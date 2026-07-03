@@ -1,0 +1,243 @@
+import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios'
+
+const api: AxiosInstance = axios.create({
+  baseURL: 'http://localhost:8000/api',
+  withCredentials: true,
+  headers: {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
+  },
+})
+
+api.interceptors.response.use(
+  (response: AxiosResponse) => response,
+  (error: AxiosError<{ message?: string }>) => {
+    const message = error.response?.data?.message || error.message || 'Terjadi kesalahan'
+    return Promise.reject(new Error(message))
+  }
+)
+
+export const karyawanApi = {
+  list: (params?: Record<string, unknown>) => api.get('/karyawan', { params }),
+  detail: (id: number) => api.get(`/karyawan/${id}`),
+  create: (data: FormData) => api.post('/karyawan', data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  update: (id: number, data: FormData) => api.post(`/karyawan/${id}`, data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  delete: (id: number) => api.delete(`/karyawan/${id}`),
+  toggleStatus: (id: number) => api.patch(`/karyawan/${id}/toggle-status`),
+  toggleKhusus: (id: number) => api.patch(`/karyawan/${id}/toggle-khusus`),
+}
+
+export const divisiApi = {
+  list: () => api.get('/divisi'),
+  create: (data: Record<string, unknown>) => api.post('/divisi', data),
+  update: (id: number, data: Record<string, unknown>) => api.put(`/divisi/${id}`, data),
+  delete: (id: number) => api.delete(`/divisi/${id}`),
+}
+
+export const cabangApi = {
+  list: () => api.get('/cabang'),
+  create: (data: Record<string, unknown>) => api.post('/cabang', data),
+  update: (id: number, data: Record<string, unknown>) => api.put(`/cabang/${id}`, data),
+  delete: (id: number) => api.delete(`/cabang/${id}`),
+}
+
+export const shiftApi = {
+  list: () => api.get('/shift'),
+  create: (data: Record<string, unknown>) => api.post('/shift', data),
+  update: (id: number, data: Record<string, unknown>) => api.put(`/shift/${id}`, data),
+  delete: (id: number) => api.delete(`/shift/${id}`),
+}
+
+export const shiftJadwalApi = {
+  getJadwal: (userId: number, params?: Record<string, unknown>) => api.get(`/shift-jadwal/${userId}`, { params }),
+  store: (data: Record<string, unknown>) => api.post('/shift-jadwal', data),
+  storeMultiple: (data: Record<string, unknown>) => api.post('/shift-jadwal/multiple', data),
+  delete: (id: number) => api.delete(`/shift-jadwal/${id}`),
+}
+
+export const rekapAbsensiApi = {
+  get: (params?: Record<string, string>) => api.get('/rekap-absensi', { params }),
+}
+
+export const hariLiburApi = {
+  list: () => api.get('/hari-libur'),
+  store: (data: Record<string, string>) => api.post('/hari-libur', data),
+  delete: (id: number) => api.delete(`/hari-libur/${id}`),
+}
+
+export const lemburApi = {
+  list: (params?: Record<string, unknown>) => api.get('/lembur', { params }),
+  updateStatus: (id: number, data: { status: string }) => api.post(`/lembur/${id}/status`, data),
+}
+
+export const izinApi = {
+  list: (params?: Record<string, unknown>) => api.get('/izin', { params }),
+  approve: (id: number) => api.post(`/izin/${id}/approve`),
+  reject: (id: number, data?: Record<string, unknown>) => api.post(`/izin/${id}/reject`, data || {}),
+}
+
+export const kehadiranKhususApi = {
+  list: (params?: Record<string, unknown>) => api.get('/kehadiran-khusus', { params }),
+  updateStatus: (data: { id: number; status: string }) => api.post('/kehadiran-khusus/update-status', data),
+}
+
+export const kehadiranApi = {
+  list: (params?: Record<string, unknown>) => api.get('/kehadiran', { params }),
+  updateStatus: (data: { id: number; status: string }) => api.post('/kehadiran/update-status', data),
+}
+
+export const userApi = {
+  list: (params?: Record<string, unknown>) => api.get('/user', { params }),
+  store: (data: Record<string, string>) => api.post('/user', data),
+  update: (id: number, data: Record<string, string>) => api.put(`/user/${id}`, data),
+  toggleStatus: (id: number) => api.patch(`/user/${id}/toggle-status`),
+  delete: (id: number) => api.delete(`/user/${id}`),
+}
+
+export const referensiApi = {
+  divisi: () => api.get('/divisi'),
+  cabang: () => api.get('/cabang'),
+  shiftAktif: () => api.get('/shift-aktif'),
+}
+
+export const kehadiranSenseiApi = {
+  list: (params?: Record<string, string | number>) =>
+    api.get('/kehadiran-sensei', { params }),
+  getKelasByUser: (userId: number) =>
+    api.get(`/kehadiran-sensei/kelas/${userId}`),
+  updateStatus: (data: { id: number; status: string }) =>
+    api.post('/kehadiran-sensei/update-status', data),
+  getRiwayat: (userId: number, kelasId: number) =>
+    api.get(`/kehadiran-sensei/riwayat/${userId}/${kelasId}`),
+}
+
+export const rekapKehadiranSenseiApi = {
+  listSensei: () => api.get('/rekap-kehadiran-sensei'),
+  getRekap: (userId: number, params?: Record<string, string | number>) =>
+    api.get(`/rekap-kehadiran-sensei/${userId}`, { params }),
+  updateStatus: (data: { id: number; status: string }) =>
+    api.post('/rekap-kehadiran-sensei/update-status', data),
+}
+
+export const guruApi = {
+  list: () => api.get('/guru'),
+  store: (data: { user_ids: number[] }) => api.post('/guru', data),
+  delete: (id: number) => api.delete(`/guru/${id}`),
+}
+
+export const agendaApi = {
+  list: (params?: Record<string, string | number>) =>
+    api.get('/data-agenda', { params }),
+}
+
+export const monitoringLokasiApi = {
+  get: (params?: Record<string, string>) =>
+    api.get('/monitoring-lokasi', { params }),
+}
+
+export const rekapJadwalShiftApi = {
+  getRekap: (userId: number, params?: Record<string, string | number>) =>
+    api.get(`/rekap-jadwal-shift/${userId}`, { params }),
+  updateStatus: (data: Record<string, unknown>) =>
+    api.post('/rekap-jadwal-shift/update-status', data),
+}
+
+export const siswaApi = {
+  list: (params?: Record<string, string | number | undefined>) =>
+    api.get('/siswa', { params }),
+  store: (data: FormData) => api.post('/siswa', data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  update: (id: number, data: FormData) => api.put(`/siswa/${id}`, data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  destroy: (id: number) => api.delete(`/siswa/${id}`),
+  toggleStatus: (id: number) => api.post(`/siswa/${id}/toggle-status`),
+  buatkanAkun: (id: number, data: { email: string; password: string }) =>
+    api.post(`/siswa/${id}/buatkan-akun`, data),
+  bulkDelete: (ids: number[]) => api.post('/siswa/bulk-delete', { ids }),
+  bulkUpdateShift: (data: { shift_id: string; mode: string; ids?: number[] }) =>
+    api.post('/siswa/bulk-update-shift', data),
+  import: (data: FormData) => api.post('/siswa/import', data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  importAi: (data: FormData) => api.post('/siswa/import-ai', data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+}
+
+export const batchApi = {
+  list: () => api.get('/batches'),
+  store: (data: { nama_batch: string }) => api.post('/batches', data),
+  update: (id: number, data: { nama_batch: string }) => api.put(`/batches/${id}`, data),
+  destroy: (id: number) => api.delete(`/batches/${id}`),
+  toggleStatus: (id: number) => api.post(`/batches/${id}/toggle-status`),
+}
+
+export const jadwalLevelApi = {
+  list: () => api.get('/jadwal-level'),
+  store: (data: { batch_id: number; level: number; tanggal_mulai: string; tanggal_selesai: string }) =>
+    api.post('/jadwal-level', data),
+  destroy: (batchId: number, level: number) => api.delete(`/jadwal-level/${batchId}/${level}`),
+}
+
+export const absensiSiswaApi = {
+  list: (params?: Record<string, string | number | undefined>) =>
+    api.get('/absensi-siswa', { params }),
+  store: (data: Record<string, unknown>) => api.post('/absensi-siswa', data),
+  massStore: (data: Record<string, unknown>) => api.post('/absensi-siswa/mass', data),
+  update: (id: number, data: Record<string, unknown>) => api.put(`/absensi-siswa/${id}`, data),
+  siswaByKelas: (kelasId: number) => api.get('/absensi-siswa/siswa-by-kelas', { params: { kelas_id: kelasId } }),
+  cek: (siswaId: number, tanggal: string) =>
+    api.get('/absensi-siswa/cek', { params: { siswa_id: siswaId, tanggal } }),
+  rekap: (params?: Record<string, string | number | undefined>) =>
+    api.get('/absensi-siswa/rekap', { params }),
+}
+
+export const aiChatApi = {
+  send: (data: { message: string; history: { role: string; content: string }[] }) =>
+    api.post('/ai-chat/send', data),
+  ask: (message: string) =>
+    api.post('/ai-chat/ask', { message }),
+}
+
+export const penilaianApi = {
+  list: (params?: Record<string, string | number | undefined>) =>
+    api.get('/penilaian', { params }),
+  matrix: (params?: Record<string, string | number | undefined>) =>
+    api.get('/penilaian/matrix', { params }),
+  dayDetail: (params: Record<string, string | number | undefined>) =>
+    api.get('/penilaian/day-detail', { params }),
+  store: (data: Record<string, unknown>) => api.post('/penilaian', data),
+  update: (id: number, data: Record<string, unknown>) => api.put(`/penilaian/${id}`, data),
+  destroy: (id: number) => api.delete(`/penilaian/${id}`),
+}
+
+export const kelasSenseiApi = {
+  list: (params?: Record<string, string | number | undefined>) =>
+    api.get('/kelas-sensei', { params }),
+  store: (data: Record<string, unknown>) => api.post('/kelas-sensei', data),
+  destroy: (id: number) => api.delete(`/kelas-sensei/${id}`),
+}
+
+export const pengaturanShiftApi = {
+  get: () => api.get('/pengaturan-shift'),
+  update: (data: { shift_mode: string }) => api.post('/pengaturan-shift', data),
+}
+
+export const pengaturanWaApi = {
+  get: () => api.get('/pengaturan-wa'),
+  update: (data: { settings: Record<string, boolean> }) => api.post('/pengaturan-wa', data),
+}
+
+export const authApi = {
+  user: () => api.get('/user'),
+  csrf: () => axios.get('http://localhost:8000/sanctum/csrf-cookie', { withCredentials: true }),
+}
+
+export default api
