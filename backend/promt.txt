@@ -1,0 +1,95 @@
+api device : 6a6bdbc7-2883-4ddd-bb9a-e2857fe468bf
+api akun : 6a6bdbc7-2883-4ddd-bb9a-e2857fe468bf
+
+
+Message APIKirim Pesan
+Kirim Pesan
+Standarisasi Pengiriman Menggunakan API Pada Platform STARSENDER
+
+HTTP REQUEST
+
+POST https://api.starsender.online/api/send
+
+Header Parameters
+Parameter	Default	Description
+Authorization	true	Device API key, anda bisa dapatkan di menu device
+Body Parameters
+Parameter	Default	Description	Placeholder
+messageType	true	Definisi tipe pesan	text / media
+to	true	Nomor tujuan pengiriman pesan, dapat berawalan 0 ataupun kode negara	
+body	false	Pesan yang akan dikirimkan	
+file	false	URL File yang akan dikirimkan	
+delay	false	Fitur delay pesan dalam satuan detik	
+schedule	false	Jadwal pengiriman pesan dalam format unix milis	
+Implementasi dengan PHP
+kirim.php
+<?php
+
+$curl = curl_init();
+
+$pesan = [
+  "messageType" => "text",
+  "to" => "08123456789",
+  "body" => "Your Message",
+  "file" => "https://file-url.com",
+  "delay" => 10,
+  "schedule" => 1665408510000
+];
+
+curl_setopt_array($curl, array(
+  CURLOPT_URL => 'https://api.starsender.online/api/send',
+  CURLOPT_RETURNTRANSFER => true,
+  CURLOPT_ENCODING => '',
+  CURLOPT_MAXREDIRS => 10,
+  CURLOPT_TIMEOUT => 0,
+  CURLOPT_FOLLOWLOCATION => true,
+  CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+  CURLOPT_CUSTOMREQUEST => 'POST',
+  CURLOPT_POSTFIELDS => json_encode($pesan),
+  CURLOPT_HTTPHEADER => array(
+    'Content-Type:application/json',
+    'Authorization: YOUR API KEY'
+  ),
+));
+
+$response = curl_exec($curl);
+
+curl_close($curl);
+echo $response;
+
+Respon API
+{
+    "success": true,
+    "data": {},
+    "message": "Success sent message"
+}
+
+
+nah kalau pakai fitur ini gimna kalau menngunakan wa 📩
+
+
+Contoh:
+
+Karyawan telat → kirim notifikasi
+Tidak absen → kirim reminder
+Admin dapat laporan harian
+
+Contoh:
+
+"Anda belum melakukan absensi hari ini"
+
+Contoh Pesan WhatsApp
+🔹 30 menit sebelum Telat
+Halo {{nama}},
+
+Anda belum melakukan absensi hari ini.
+Silakan segera melakukan absensi sebelum terlambat.
+
+- Sistem Absensi
+🔹 Sudah lewat (Alpha)
+Halo {{nama}},
+
+Anda tidak melakukan absensi hari ini.
+Status Anda: Alpha
+
+Silakan hubungi admin jika ada kendala.
