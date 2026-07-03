@@ -110,7 +110,7 @@ class KehadiranController extends Controller
         $divisi_id  = $request->divisi_id;
         $status     = $request->status;
 
-        $absensis = Absensi::with(['user.shift', 'user.divisi', 'cabang'])
+       $absensis = Absensi::with(['user.shift', 'user.divisi', 'cabang', 'shift'])
             ->whereBetween('tanggal', [$start_date, $end_date])
             ->whereHas('user', fn($q) => $q->where('status', 'AKTIF'))
             ->whereDoesntHave('user.kelasSensei')

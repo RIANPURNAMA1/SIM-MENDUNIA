@@ -132,38 +132,39 @@ export default function HariLiburPage() {
         </div>
       )}
 
-      {/* List */}
-      <div className="rounded-lg border border-slate-200 overflow-hidden">
-        {loading ? (
-          <div className="p-8 text-center text-sm text-slate-400">Memuat data...</div>
-        ) : data.length === 0 ? (
-          <div className="p-10 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400 mb-3">
-              <FileText size={24} />
-            </div>
-            <p className="text-sm font-medium text-slate-600">Belum ada hari libur</p>
-            <p className="text-xs text-slate-400 mt-1">Klik "Tambah Libur" untuk menambahkan</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {data.map((item) => (
-              <div key={item.id} className="flex items-center justify-between px-4 sm:px-6 py-3 hover:bg-slate-50 transition">
-                <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full ${isWeekend(item.tanggal) ? 'bg-red-400' : 'bg-amber-400'}`} />
-                  <div>
-                    <div className="text-sm font-semibold text-slate-800">{keterangan || '-'}</div>
-                    <div className="text-xs text-slate-500">{formatDate(item.tanggal)}</div>
-                  </div>
-                </div>
-                <button onClick={() => { setSelected(item); setShowDelete(true) }}
-                  className="p-1.5 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition">
-                  <Trash2 size={15} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+   {/* List */}
+<div className="rounded-lg border border-slate-200 overflow-hidden">
+  {loading ? (
+    <div className="p-8 text-center text-sm text-slate-400">Memuat data...</div>
+  ) : data.length === 0 ? (
+    <div className="p-10 text-center">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400 mb-3">
+        <FileText size={24} />
       </div>
+      <p className="text-sm font-medium text-slate-600">Belum ada hari libur</p>
+      <p className="text-xs text-slate-400 mt-1">Klik "Tambah Libur" untuk menambahkan</p>
+    </div>
+  ) : (
+    <div className="divide-y divide-slate-100">
+      {data.map((item) => (
+        <div key={item.id} className="flex items-center justify-between px-4 sm:px-6 py-3 hover:bg-slate-50 transition">
+          <div className="flex items-center gap-3">
+            <div className={`w-2 h-2 rounded-full ${isWeekend(item.tanggal) ? 'bg-red-400' : 'bg-amber-400'}`} />
+            <div>
+              {/* PERBAIKAN DI SINI: Ubah keterangan menjadi item.keterangan */}
+              <div className="text-sm font-semibold text-slate-800">{item.keterangan || '-'}</div>
+              <div className="text-xs text-slate-500">{formatDate(item.tanggal)}</div>
+            </div>
+          </div>
+          <button onClick={() => { setSelected(item); setShowDelete(true) }}
+            className="p-1.5 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition">
+            <Trash2 size={15} />
+          </button>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
 
       {/* Delete Confirmation */}
       {showDelete && selected && (

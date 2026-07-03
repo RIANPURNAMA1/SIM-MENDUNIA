@@ -238,7 +238,7 @@ export default function DataKehadiranPage() {
                       </div>
                     </div>
                   </td>
-                  <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600">{item.shift?.nama_shift || '-'}</td>
+                 <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600">{item.user?.shift?.nama_shift || '-'}</td>
                   <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600">{item.cabang?.nama_cabang || '-'}</td>
                   <td className="border border-slate-200 px-4 py-3 text-center text-xs font-medium">{formatTime(item.jam_masuk)}</td>
                   <td className="border border-slate-200 px-4 py-3 text-center text-xs font-medium">{formatTime(item.jam_keluar)}</td>

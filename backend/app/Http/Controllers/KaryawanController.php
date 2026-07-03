@@ -538,6 +538,7 @@ class KaryawanController extends Controller
 
     public function apiIndex(Request $request)
     {
+        // 1. Kembalikan ke semula, JANGAN pakai 'cabang' di sini
         $query = User::with(['divisi', 'shift'])
             ->whereIn('role', ['KARYAWAN', 'GURU']);
 
@@ -566,9 +567,21 @@ class KaryawanController extends Controller
         $perPage = $request->per_page ?? 20;
         $karyawan = $query->latest()->paginate($perPage);
 
+        // 2. PERBAIKAN DI SINI: Kita map datanya untuk menempelkan array cabang secara manual ke JSON
+        $data_karyawan = collect($karyawan->items())->map(function ($user) {
+            // Jika Anda sudah punya fungsi getCabangAttribute() di Model User:
+            $user->append('cabang'); 
+            
+            // JIKA CARA APPEND DI ATAS TIDAK JALAN, HAPUS BARIS APPEND DI ATAS DAN GUNAKAN CARA MANUAL INI:
+            // $user->cabang = \App\Models\Cabang::whereIn('id', $user->cabang_ids ?? [])->get();
+            
+            return $user;
+        });
+
         return response()->json([
             'status' => 'success',
-            'data' => $karyawan->items(),
+            // 3. Pastikan kita mengirim data hasil map yang baru
+            'data' => $data_karyawan,
             'pagination' => [
                 'current_page' => $karyawan->currentPage(),
                 'last_page' => $karyawan->lastPage(),
