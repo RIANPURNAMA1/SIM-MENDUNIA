@@ -997,6 +997,38 @@ class AbsensiController extends Controller
         return $earthRadius * $c;
     }
 
+    private function resolveCabangForUser($user, $latitude, $longitude)
+    {
+        $cabangIds = $user->cabang_ids ?? [];
+
+        if (!is_array($cabangIds) || count($cabangIds) === 0) {
+            if ($user->cabang_id) {
+                $cabangIds = [$user->cabang_id];
+            } else {
+                return null;
+            }
+        }
+
+        $daftarCabang = \App\Models\Cabang::whereIn('id', $cabangIds)->get();
+
+        foreach ($daftarCabang as $cabang) {
+            if (!$cabang->latitude || !$cabang->longitude || !$cabang->radius) {
+                continue;
+            }
+            $jarak = $this->calculateDistance(
+                $latitude,
+                $longitude,
+                $cabang->latitude,
+                $cabang->longitude
+            );
+            if ($jarak <= $cabang->radius) {
+                return $cabang;
+            }
+        }
+
+        return null;
+    }
+
     private function saveBase64Photo($base64, $type)
     {
         $image = explode(',', $base64)[1];
@@ -1714,5 +1746,279 @@ class AbsensiController extends Controller
             ->get();
 
         return view('absensi.riwayat_kelas', compact('kelasSensei', 'absensi', 'siswaRecord'));
+    }
+
+    // =============================================
+    // API: Absensi Karyawan (untuk mobile/dashboard karyawan)
+    // =============================================
+
+    /**
+     * Cek status absensi hari ini
+     */
+    public function apiCek(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['data' => null]);
+        }
+
+        $today = Carbon::today('Asia/Jakarta')->toDateString();
+
+        $absensi = Absensi::where('user_id', $user->id)
+            ->where('tanggal', $today)
+            ->first();
+
+        if (!$absensi) {
+            return response()->json(['data' => null]);
+        }
+
+        return response()->json([
+            'data' => [
+                'jam_masuk' => $absensi->jam_masuk,
+                'jam_keluar' => $absensi->jam_keluar,
+                'status' => $absensi->status,
+            ],
+        ]);
+    }
+
+    /**
+     * Ambil shift aktif hari ini untuk user login
+     */
+    public function apiShiftSaya(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['data' => null]);
+        }
+
+        $today = Carbon::today()->toDateString();
+        $now = Carbon::now();
+        $shift = $this->resolveShiftForUser($user, $now, $today);
+
+        if (!$shift) {
+            return response()->json(['data' => null]);
+        }
+
+        return response()->json([
+            'data' => [
+                'nama' => $shift->nama_shift,
+                'jam_mulai' => Carbon::parse($shift->jam_masuk)->format('H:i'),
+                'jam_selesai' => Carbon::parse($shift->jam_pulang)->format('H:i'),
+            ],
+        ]);
+    }
+
+    /**
+     * Absen masuk dengan foto
+     */
+    public function apiMasuk(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $today = Carbon::today('Asia/Jakarta')->toDateString();
+        $now = Carbon::now('Asia/Jakarta');
+
+        // Cek sudah absen masuk
+        $existing = Absensi::where('user_id', $user->id)
+            ->where('tanggal', $today)
+            ->first();
+
+        if ($existing && $existing->jam_masuk) {
+            return response()->json(['message' => 'Anda sudah absen masuk hari ini'], 422);
+        }
+
+        // Validasi lokasi GPS
+        $request->validate([
+            'latitude' => 'required|numeric',
+            'longitude' => 'required|numeric',
+        ]);
+
+        $cabang = $this->resolveCabangForUser($user, $request->latitude, $request->longitude);
+        if (!$cabang) {
+            return response()->json(['message' => 'Anda berada di luar radius cabang penempatan'], 422);
+        }
+
+        // Validasi & simpan foto
+        $fotoPath = null;
+        if ($request->hasFile('foto')) {
+            $request->validate(['foto' => 'required|image|max:5120']);
+            $fotoPath = $request->file('foto')->store('absensi-karyawan', 'public');
+        } elseif ($request->has('foto')) {
+            $fotoPath = $this->saveBase64Photo($request->foto, 'absen_masuk');
+        } else {
+            return response()->json(['message' => 'Foto diperlukan'], 422);
+        }
+
+        // Cari shift aktif
+        $shift = $this->resolveShiftForUser($user, $now, $today);
+        if (!$shift) {
+            return response()->json(['message' => 'Tidak ada jadwal shift hari ini, absensi tidak dapat dilakukan'], 422);
+        }
+
+        // Tentukan status
+        $status = 'HADIR';
+        if ($shift) {
+            $jamMasukShift = Carbon::parse($shift->jam_masuk);
+            $batasToleransi = $jamMasukShift->copy()->addMinutes($shift->toleransi ?? 0);
+            if ($now->gt($batasToleransi)) {
+                $status = 'TERLAMBAT';
+            }
+        }
+
+        $absensi = Absensi::create([
+            'user_id' => $user->id,
+            'cabang_id' => $cabang->id,
+            'shift_id' => $shift->id ?? null,
+            'tanggal' => $today,
+            'jam_masuk' => $now->toTimeString(),
+            'lat_masuk' => $request->latitude,
+            'long_masuk' => $request->longitude,
+            'foto_masuk' => $fotoPath,
+            'status' => $status,
+        ]);
+
+        return response()->json([
+            'message' => 'Absen masuk berhasil',
+            'data' => [
+                'jam_masuk' => $absensi->jam_masuk,
+                'status' => $status,
+            ],
+        ]);
+    }
+
+    /**
+     * Absen pulang dengan foto
+     */
+    public function apiPulang(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $today = Carbon::today('Asia/Jakarta')->toDateString();
+        $now = Carbon::now('Asia/Jakarta');
+
+        $absensi = Absensi::where('user_id', $user->id)
+            ->where('tanggal', $today)
+            ->first();
+
+        if (!$absensi) {
+            return response()->json(['message' => 'Belum absen masuk hari ini'], 422);
+        }
+
+        if ($absensi->jam_keluar) {
+            return response()->json(['message' => 'Sudah absen pulang hari ini'], 422);
+        }
+
+        // Validasi lokasi GPS
+        $request->validate([
+            'latitude' => 'required|numeric',
+            'longitude' => 'required|numeric',
+        ]);
+
+        $cabang = $this->resolveCabangForUser($user, $request->latitude, $request->longitude);
+        if (!$cabang) {
+            return response()->json(['message' => 'Anda berada di luar radius cabang penempatan'], 422);
+        }
+
+        // Validasi & simpan foto
+        $fotoPath = null;
+        if ($request->hasFile('foto')) {
+            $request->validate(['foto' => 'required|image|max:5120']);
+            $fotoPath = $request->file('foto')->store('absensi-karyawan', 'public');
+        } elseif ($request->has('foto')) {
+            $fotoPath = $this->saveBase64Photo($request->foto, 'absen_pulang');
+        } else {
+            return response()->json(['message' => 'Foto diperlukan'], 422);
+        }
+
+        $absensi->update([
+            'jam_keluar' => $now->toTimeString(),
+            'foto_pulang' => $fotoPath,
+            'lat_pulang' => $request->latitude,
+            'long_pulang' => $request->longitude,
+        ]);
+
+        return response()->json([
+            'message' => 'Absen pulang berhasil',
+            'data' => [
+                'jam_masuk' => $absensi->jam_masuk,
+                'jam_keluar' => $absensi->jam_keluar,
+            ],
+        ]);
+    }
+
+    /**
+     * Riwayat absensi
+     */
+    public function apiRiwayat(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['data' => []]);
+        }
+
+        $limit = $request->get('limit', 10);
+        $filter = $request->get('filter');
+
+        $userRole = strtoupper($user->jabatan ?? 'KARYAWAN');
+
+        $query = Absensi::with('shift')
+            ->where('user_id', $user->id);
+
+        if ($request->filled('bulan')) {
+            $query->whereMonth('tanggal', $request->bulan);
+        }
+
+        if ($request->filled('tahun')) {
+            $query->whereYear('tanggal', $request->tahun);
+        }
+
+        if ($filter && in_array($filter, ['Hadir', 'Terlambat', 'Alpa'])) {
+            $statusMap = ['Hadir' => 'HADIR', 'Terlambat' => 'TERLAMBAT', 'Alpa' => 'ALPA'];
+            $query->where('status', $statusMap[$filter]);
+        }
+
+        $riwayat = $query->orderBy('tanggal', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->limit($limit)
+            ->get()
+            ->map(function ($item) use ($userRole) {
+                return [
+                    'id' => $item->id,
+                    'tanggal' => $item->tanggal,
+                    'jam_masuk' => $item->jam_masuk,
+                    'jam_keluar' => $item->jam_keluar,
+                    'status' => $item->status ? strtolower($item->status) : 'hadir',
+                    'role' => $userRole,
+                    'shift' => $item->shift ? ['nama' => $item->shift->nama_shift] : null,
+                ];
+            });
+
+        return response()->json(['data' => $riwayat]);
+    }
+
+    /**
+     * Stats hari ini (jumlah hadir, terlambat, dll)
+     */
+    public function apiStatsHariIni()
+    {
+        $today = Carbon::today()->toDateString();
+
+        $total = Absensi::where('tanggal', $today)->count();
+        $hadir = Absensi::where('tanggal', $today)->where('status', 'HADIR')->count();
+        $terlambat = Absensi::where('tanggal', $today)->where('status', 'TERLAMBAT')->count();
+
+        return response()->json([
+            'data' => [
+                'total' => $total,
+                'hadir' => $hadir,
+                'terlambat' => $terlambat,
+            ],
+        ]);
     }
 }

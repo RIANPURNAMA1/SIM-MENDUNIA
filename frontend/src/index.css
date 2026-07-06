@@ -2,10 +2,21 @@
 
 body {
   margin: 0;
-  font-family: 'Nunito', system-ui, -apple-system, sans-serif;
-  background-color: #f8fafc;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #f5f7fa;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
+::selection {
+  background-color: #0D1F3C;
+  color: white;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
@@ -13,16 +24,16 @@ body {
 }
 
 .fade-in {
-  animation: fadeIn 0.4s ease-out;
+  animation: fadeIn 0.5s ease-out;
 }
 
 @keyframes slideDown {
-  from { opacity: 0; transform: translateY(-20px); }
+  from { opacity: 0; transform: translateY(-16px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-slide-down {
-  animation: slideDown 0.35s ease-out;
+  animation: slideDown 0.3s ease-out;
 }
 
 @keyframes pulseDot {

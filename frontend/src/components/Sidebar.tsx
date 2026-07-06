@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 import {
   LayoutDashboard, Users, Building2, MapPin, Timer, CalendarPlus, List,
   CalendarCheck, ClipboardList, FileText, Clock, Calendar, BarChart3,
   BookOpen, GraduationCap, Layers, Notebook, Bot, Settings, UserCog,
   MessageCircle, ChevronDown, LogOut, X, Presentation, UserPlus,
-  Search, Briefcase, Zap, CreditCard, Handshake, Package,
+  Search, Briefcase, Zap, CreditCard, Handshake, Package, Tag,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -32,21 +33,21 @@ const iconMap: Record<string, LucideIcon> = {
   LayoutDashboard, Users, Building2, MapPin, Timer, CalendarPlus, List,
   CalendarCheck, ClipboardList, FileText, Clock, Calendar, BarChart3,
   BookOpen, GraduationCap, Layers, Notebook, Bot, Settings, UserCog,
-  MessageCircle, Presentation, UserPlus, Search, Briefcase, Zap, CreditCard, Handshake, Package,
+  MessageCircle, Presentation, UserPlus, Search, Briefcase, Zap, CreditCard, Handshake, Package, Tag,
 }
 
 const navItems: NavItem[] = [
   {
-    label: 'Pusat Dashboard',
+    label: 'Dashboard',
     icon: 'LayoutDashboard',
-    href: '/dashboard-home',
+    href: '/',
   },
   {
     label: 'Manajemen Kandidat',
     icon: 'UserPlus',
     children: [
       { label: 'Data Kandidat', icon: 'UserPlus', href: '/data-kandidat' },
-      { label: 'Pendaftar', icon: 'ClipboardList', href: '/pendaftar' },
+      { label: 'Pendaftaran', icon: 'ClipboardList', href: '/pendaftar' },
       { label: 'Data Matching Job', icon: 'Search', href: '/data-matching-job' },
       { label: 'Tagihan', icon: 'FileText', href: '/tagihan' },
       { label: 'Pembayaran', icon: 'CreditCard', href: '/pembayaran' },
@@ -56,8 +57,10 @@ const navItems: NavItem[] = [
     label: 'Program & Affiliate',
     icon: 'Handshake',
     children: [
+      { label: 'Affiliate Dashboard', icon: 'LayoutDashboard', href: '/affiliate-dashboard' },
       { label: 'Data Affiliate', icon: 'Handshake', href: '/data-affiliate' },
-      { label: 'Data Product / Program', icon: 'Package', href: '/data-product' },
+      { label: 'Program', icon: 'Package', href: '/data-product' },
+      { label: 'Data Coupon', icon: 'CreditCard', href: '/data-coupon' },
     ],
   },
   {
@@ -79,6 +82,7 @@ const navItems: NavItem[] = [
     label: 'Manajemen Absensi',
     icon: 'CalendarCheck',
     children: [
+      { label: 'Dashboard Absensi', icon: 'LayoutDashboard', href: '/absensi' },
       { label: 'Kehadiran', icon: 'ClipboardList', href: '/data-kehadiran' },
       { label: 'Kehadiran Khusus', icon: 'Timer', href: '/data-kehadiran-khusus' },
       { label: 'Izin & Cuti', icon: 'FileText', href: '/izin-cuti' },
@@ -120,6 +124,20 @@ const navItems: NavItem[] = [
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation()
   const path = location.pathname
+  const { user, logout } = useAuth()
+
+  const filteredNavItems = navItems.map(item => {
+    if (item.label === 'Program & Affiliate' && 'children' in item) {
+      const group = item as NavGroup
+      return {
+        ...group,
+        children: group.children.filter(child =>
+          !(child.label === 'Affiliate Dashboard' && (user?.role === 'HR' || user?.role === 'MANAGER'))
+        ),
+      }
+    }
+    return item
+  })
 
   const isActive = (href: string) => {
     if (href === '/') return path === '/'
@@ -131,7 +149,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {}
-    navItems.forEach((item) => {
+    filteredNavItems.forEach((item) => {
       if ('children' in item && isGroupActive(item as NavGroup)) {
         initial[item.label] = true
       }
@@ -179,7 +197,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         </div>
 
         <nav className="sidebar-nav flex-1 overflow-y-auto px-2.5 py-3 space-y-1">
-          {navItems.map((item) => {
+          {filteredNavItems.map((item) => {
             const hasChildren = 'children' in item && item.children.length > 0
             const isOpen = openGroups[item.label]
 
@@ -239,7 +257,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         </nav>
 
         <div className="border-t border-white/10 px-3 py-3 bg-white/5">
-          <button className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200">
+          <button
+            onClick={() => { logout() }}
+            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200"
+          >
             <LogOut size={18} />
             <span>Logout</span>
           </button>

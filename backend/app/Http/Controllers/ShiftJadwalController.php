@@ -205,6 +205,11 @@ class ShiftJadwalController extends Controller
             $user = User::findOrFail($userId);
             $defaultShift = $user->shift;
 
+            // Fallback: cek shift_ids jika shift_id null
+            if (!$defaultShift && $user->shift_ids && is_array($user->shift_ids) && count($user->shift_ids) > 0) {
+                $defaultShift = Shift::find($user->shift_ids[0]);
+            }
+
             return response()->json([
                 'success' => true,
                 'jadwals' => $jadwals,

@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use Notifiable;
+    use HasApiTokens, Notifiable;
 
     protected $fillable = [
         'name',
@@ -81,12 +82,32 @@ class User extends Authenticatable
 
     public function isSiswa()
     {
-        return $this->role === 'SISWA';
+        return $this->role === 'KANDIDAT';
     }
 
     public function isGuru()
     {
         return $this->role === 'GURU';
+    }
+
+    public function isAffiliate()
+    {
+        return $this->role === 'AFFILIATE';
+    }
+
+    public function isKandidat()
+    {
+        return $this->role === 'KANDIDAT';
+    }
+
+    public function affiliateLinks()
+    {
+        return $this->hasMany(AffiliateLink::class, 'affiliate_id');
+    }
+
+    public function pendaftar()
+    {
+        return $this->hasMany(Pendaftar::class);
     }
 
     public function divisi()

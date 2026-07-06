@@ -11,14 +11,14 @@ class GuruController extends Controller
     public function index()
     {
         $gurus = Guru::with('user')->latest()->get();
-        $users = User::where('status', 'AKTIF')->where('role', '!=', 'SISWA')->orderBy('name')->get();
+        $users = User::where('status', 'AKTIF')->where('role', '!=', 'KANDIDAT')->orderBy('name')->get();
         return view('guru.index', compact('gurus', 'users'));
     }
 
     public function apiIndex()
     {
         $gurus = Guru::with('user')->latest()->get();
-        $users = User::where('status', 'AKTIF')->where('role', '!=', 'SISWA')->orderBy('name')->get();
+        $users = User::where('status', 'AKTIF')->where('role', '!=', 'KANDIDAT')->orderBy('name')->get();
         $guruUserIds = $gurus->pluck('user_id');
 
         return response()->json([

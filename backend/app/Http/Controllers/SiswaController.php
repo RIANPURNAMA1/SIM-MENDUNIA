@@ -252,7 +252,7 @@ class SiswaController extends Controller
                     'name' => $nama,
                     'email' => $email,
                     'password' => Hash::make($nama),
-                    'role' => 'SISWA',
+                    'role' => 'KANDIDAT',
                     'status' => 'AKTIF',
                 ]);
 
@@ -309,7 +309,7 @@ class SiswaController extends Controller
             'name' => $siswa->nama,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => 'SISWA',
+            'role' => 'KANDIDAT',
             'status' => 'AKTIF',
         ]);
 
@@ -370,7 +370,7 @@ class SiswaController extends Controller
                     'name' => $nama,
                     'email' => $email,
                     'password' => Hash::make($nama),
-                    'role' => 'SISWA',
+                    'role' => 'KANDIDAT',
                     'status' => 'AKTIF',
                 ]);
 

@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Password;
 
 class AuthController extends Controller
 {
+    // ========== API Sanctum ==========
+
     public function loginForm()
     {
         return view('Auth.login');
@@ -74,7 +76,7 @@ class AuthController extends Controller
 
         $redirect = match ($user->role) {
             'HR', 'MANAGER' => route('dashboard'),
-            'KARYAWAN', 'SISWA', 'GURU' => route('absensi.index'),
+            'KARYAWAN', 'KANDIDAT', 'GURU' => route('absensi.index'),
             default         => route('login')
         };
 
@@ -91,7 +93,7 @@ class AuthController extends Controller
             'name' => 'required|string|max:100',
             'email' => 'required|email|unique:users',
             'password' => 'required|min:6|confirmed',
-            'role' => 'required|in:HR,MANAGER,KARYAWAN,SISWA',
+            'role' => 'required|in:HR,MANAGER,KARYAWAN,KANDIDAT',
             'cabang_id' => 'nullable|integer'
         ]);
 
@@ -119,5 +121,111 @@ class AuthController extends Controller
             'message' => 'Logout berhasil',
             'redirect' => route('login')
         ]);
+    }
+
+    // ========== API Sanctum ==========
+
+    public function loginApi(Request $request)
+    {
+        $request->validate([
+            'email'    => 'required',
+            'password' => 'required',
+            'device'   => 'nullable|string',
+        ]);
+
+        $user = User::where('email', $request->email)
+            ->orWhere('name', $request->email)
+            ->first();
+
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'message' => 'Email/Nama atau password salah'
+            ], 401);
+        }
+
+        if ($user->status !== 'AKTIF') {
+            return response()->json([
+                'message' => 'Akun tidak aktif'
+            ], 403);
+        }
+
+        $token = $user->createToken($request->device ?? 'api-token')->plainTextToken;
+
+        return response()->json([
+            'message' => 'Login berhasil',
+            'token'   => $token,
+            'user'    => $user,
+        ]);
+    }
+
+    public function registerApi(Request $request)
+    {
+        $data = $request->validate([
+            'name'     => 'required|string|max:100',
+            'email'    => 'required|email|unique:users',
+            'password' => 'required|min:6|confirmed',
+            'role'     => 'required|in:HR,MANAGER,KARYAWAN,KANDIDAT',
+            'cabang_id'=> 'nullable|integer',
+        ]);
+
+        $user = User::create([
+            'name'     => $data['name'],
+            'email'    => $data['email'],
+            'password' => Hash::make($data['password']),
+            'role'     => $data['role'],
+            'cabang_id'=> $data['cabang_id'],
+            'status'   => 'AKTIF',
+        ]);
+
+        $token = $user->createToken('api-token')->plainTextToken;
+
+        return response()->json([
+            'message' => 'Registrasi berhasil',
+            'token'   => $token,
+            'user'    => $user,
+        ], 201);
+    }
+
+    public function logoutApi(Request $request)
+    {
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json([
+            'message' => 'Logout berhasil',
+        ]);
+    }
+
+    public function userApi(Request $request)
+    {
+        return response()->json(Auth::guard('sanctum')->user());
+    }
+
+    public function registerAffiliate(Request $request)
+    {
+        $data = $request->validate([
+            'name'     => 'required|string|max:100',
+            'email'    => 'required|email|unique:users',
+            'password' => 'required|min:6',
+            'telepon'  => 'nullable|string|max:20',
+            'alamat'   => 'nullable|string',
+        ]);
+
+        $user = User::create([
+            'name'     => $data['name'],
+            'email'    => $data['email'],
+            'password' => Hash::make($data['password']),
+            'role'     => 'AFFILIATE',
+            'status'   => 'AKTIF',
+            'no_hp'    => $data['telepon'] ?? null,
+            'alamat'   => $data['alamat'] ?? null,
+        ]);
+
+        $token = $user->createToken('affiliasi-token')->plainTextToken;
+
+        return response()->json([
+            'message'  => 'Pendaftaran affiliate berhasil',
+            'token'    => $token,
+            'user'     => $user,
+        ], 201);
     }
 }

@@ -2,17 +2,30 @@ import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios'
 
 const api: AxiosInstance = axios.create({
   baseURL: 'http://localhost:8000/api',
-  withCredentials: true,
   headers: {
     'Accept': 'application/json',
     'Content-Type': 'application/json',
-    'X-Requested-With': 'XMLHttpRequest',
   },
+})
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type']
+  }
+  return config
 })
 
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error: AxiosError<{ message?: string }>) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token')
+      window.location.href = '/login'
+    }
     const message = error.response?.data?.message || error.message || 'Terjadi kesalahan'
     return Promise.reject(new Error(message))
   }
@@ -73,10 +86,14 @@ export const hariLiburApi = {
 export const lemburApi = {
   list: (params?: Record<string, unknown>) => api.get('/lembur', { params }),
   updateStatus: (id: number, data: { status: string }) => api.post(`/lembur/${id}/status`, data),
+  aktif: () => api.get('/lembur/aktif'),
+  saya: () => api.get('/lembur/saya'),
+  store: (data: FormData) => api.post('/lembur/store', data),
 }
 
 export const izinApi = {
   list: (params?: Record<string, unknown>) => api.get('/izin', { params }),
+  store: (data: FormData) => api.post('/izin', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   approve: (id: number) => api.post(`/izin/${id}/approve`),
   reject: (id: number, data?: Record<string, unknown>) => api.post(`/izin/${id}/reject`, data || {}),
 }
@@ -235,9 +252,78 @@ export const pengaturanWaApi = {
   update: (data: { settings: Record<string, boolean> }) => api.post('/pengaturan-wa', data),
 }
 
+export const absensiKaryawanApi = {
+  cek: () => api.get('/absensi-karyawan/cek'),
+  masuk: (data?: Record<string, unknown>) => api.post('/absensi-karyawan/masuk', data || {}),
+  pulang: (data?: Record<string, unknown>) => api.post('/absensi-karyawan/pulang', data || {}),
+  riwayat: (params?: Record<string, string | number>) =>
+    api.get('/absensi-karyawan/riwayat', { params }),
+  statsHariIni: () => api.get('/absensi-karyawan/stats-hari-ini'),
+  shiftSaya: () => api.get('/absensi-karyawan/shift-saya'),
+}
+
+export const productApi = {
+  list: () => api.get('/products'),
+  store: (data: Record<string, unknown>) => api.post('/products', data),
+  update: (id: number, data: Record<string, unknown>) => api.put(`/products/${id}`, data),
+  destroy: (id: number) => api.delete(`/products/${id}`),
+}
+
+export const affiliateLinkApi = {
+  list: (params?: Record<string, unknown>) => api.get('/affiliate-links', { params }),
+  store: (data: Record<string, unknown>) => api.post('/affiliate-links', data),
+  update: (id: number, data: Record<string, unknown>) => api.put(`/affiliate-links/${id}`, data),
+  destroy: (id: number) => api.delete(`/affiliate-links/${id}`),
+  getByKode: (kode: string) => api.get(`/affiliate-link/${kode}`),
+  listAffiliates: () => api.get('/affiliates/list'),
+}
+
+export const pendaftarApi = {
+  list: (params?: Record<string, string | undefined>) =>
+    api.get('/pendaftar', { params }),
+  show: (id: number) => api.get(`/pendaftar/${id}`),
+  approve: (id: number) => api.post(`/pendaftar/${id}/approve`),
+  reject: (id: number) => api.post(`/pendaftar/${id}/reject`),
+  verifyPayment: (id: number) => api.post(`/pendaftar/${id}/verify-payment`),
+  destroy: (id: number) => api.delete(`/pendaftar/${id}`),
+  daftar: (data: FormData) =>
+    api.post('/pendaftaran/daftar', data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  daftarLangsung: (data: FormData) =>
+    api.post('/pendaftaran/daftar-langsung', data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  kandidat: (params?: Record<string, string>) =>
+    api.get('/kandidat', { params }),
+}
+
+export const affiliateDashboardApi = {
+  index: () => api.get('/affiliate-dashboard'),
+}
+
+export const couponApi = {
+  list: () => api.get('/coupons'),
+  store: (data: Record<string, unknown>) => api.post('/coupons', data),
+  update: (id: number, data: Record<string, unknown>) => api.put(`/coupons/${id}`, data),
+  destroy: (id: number) => api.delete(`/coupons/${id}`),
+  validate: (data: { kode: string; product_id: number; nominal: number }) =>
+    api.post('/coupons/validate', data),
+}
+
 export const authApi = {
-  user: () => api.get('/user'),
-  csrf: () => axios.get('http://localhost:8000/sanctum/csrf-cookie', { withCredentials: true }),
+  user: () => api.get('/auth/user'),
+  login: (email: string, password: string) =>
+    api.post('/auth/login', { email, password }),
+  logout: () => api.post('/auth/logout'),
+  registerAffiliate: (data: Record<string, unknown>) =>
+    api.post('/auth/register-affiliate', data),
+}
+
+export const profileApi = {
+  update: (data: FormData) => api.post('/profile/update', data),
+  changePassword: (data: { current_password: string; new_password: string; new_password_confirmation: string }) =>
+    api.post('/profile/password', data),
 }
 
 export default api

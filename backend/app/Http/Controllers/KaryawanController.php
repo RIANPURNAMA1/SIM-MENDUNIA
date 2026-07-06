@@ -131,10 +131,10 @@ class KaryawanController extends Controller
             'divisi_id'         => $request->divisi_id,
 
             // SIMPAN CABANG SEBAGAI ARRAY/JSON
-            'cabang_ids'        => $request->cabang_ids,
+            'cabang_ids'        => array_map('intval', $request->cabang_ids),
 
             // Multiple Shifts
-            'shift_ids'        => $request->shift_ids,
+            'shift_ids'        => $request->shift_ids ? array_map('intval', $request->shift_ids) : null,
 
             'shift_id'          => $request->shift_id,
             'jabatan'           => $request->jabatan,
@@ -467,10 +467,10 @@ class KaryawanController extends Controller
         'divisi_id'         => $request->divisi_id,
         
         // SESUAIKAN: Update kolom cabang_ids (Array otomatis jadi JSON karena casts di Model)
-            'cabang_ids'        => $request->cabang_ids, 
+            'cabang_ids'        => array_map('intval', $request->cabang_ids), 
             
             // Multiple Shifts
-            'shift_ids'        => $request->shift_ids,
+            'shift_ids'        => $request->shift_ids ? array_map('intval', $request->shift_ids) : null,
 
             'shift_id'          => $request->shift_id,
             'no_hp'             => $request->no_hp,

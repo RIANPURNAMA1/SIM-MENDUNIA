@@ -54,6 +54,15 @@ Route::middleware('guest')->group(function () {
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+Route::get('/logout-app', function () {
+    if (Auth::check()) {
+        Auth::logout();
+        request()->session()->invalidate();
+        request()->session()->regenerateToken();
+    }
+    return redirect('http://localhost:5173/login');
+});
+
 /*
 |--------------------------------------------------------------------------
 | Dashboard Routes

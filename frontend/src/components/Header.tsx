@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Users, CalendarCheck, Bot, Settings,
@@ -8,18 +8,10 @@ import {
   Layers, Notebook, Presentation, UserPlus, Search,
   Briefcase, Zap, MessageCircle, CreditCard, Handshake, Package,
 } from 'lucide-react'
-import { authApi } from '../services/api'
+import { useAuth } from '../contexts/AuthContext'
 
 interface HeaderProps {
   onToggleSidebar: () => void
-}
-
-interface UserData {
-  id: number
-  name: string
-  email: string
-  role: string
-  foto_profil: string | null
 }
 
 const navItems: { label: string; icon: React.ReactNode; href?: string; children?: { label: string; icon: React.ReactNode; href: string }[] }[] = [
@@ -90,17 +82,9 @@ const navItems: { label: string; icon: React.ReactNode; href?: string; children?
 export default function Header({ onToggleSidebar }: HeaderProps) {
   const location = useLocation()
   const path = location.pathname
+  const { user, logout } = useAuth()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showNotif, setShowNotif] = useState(false)
-  const [user, setUser] = useState<UserData | null>(null)
-
-  useEffect(() => {
-    authApi.user()
-      .then((res) => setUser(res.data))
-      .catch(() => {
-        setUser({ id: 0, name: 'Admin', email: '', role: 'ADMIN', foto_profil: null })
-      })
-  }, [])
 
   const avatarUrl = user?.foto_profil
     ? `http://localhost:8000/uploads/profil/${user.foto_profil}`
@@ -109,6 +93,10 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
   const isActive = (href: string) => {
     if (href === '/') return path === '/'
     return path.startsWith(href)
+  }
+
+  const handleLogout = () => {
+    logout()
   }
 
   return (
@@ -229,8 +217,8 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
           >
             <img src={avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=e5e7eb&color=6b7280&size=36` }} />
             <div className="hidden sm:block text-left">
-              <p className="text-sm font-medium text-gray-700 leading-tight">{user?.name || 'Admin'}</p>
-              <p className="text-[10px] text-gray-400">{user?.role || 'ADMIN'}</p>
+              <p className="text-sm font-medium text-gray-700 leading-tight">{user?.name || 'User'}</p>
+              <p className="text-[10px] text-gray-400">{user?.role || '-'}</p>
             </div>
             <ChevronDown size={12} className="text-gray-400 hidden sm:block" />
           </button>
@@ -241,7 +229,10 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
                   <UserCog size={16} />Manajemen Akun
                 </Link>
                 <hr className="my-1 border-gray-100" />
-                <button className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-500 hover:bg-red-50">
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-500 hover:bg-red-50"
+                >
                   <LogOut size={16} />Logout
                 </button>
               </div>

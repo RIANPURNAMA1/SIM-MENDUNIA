@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\ProjectListsController;
 use App\Http\Controllers\WaWebhookController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\CabangController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\ShiftJadwalController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\Absensi\AbsensiController;
 use App\Http\Controllers\Absensi\KehadiranController;
 use App\Http\Controllers\Absensi\KehadiranKhususController;
 use App\Http\Controllers\Absensi\RekapController;
@@ -29,17 +31,53 @@ use App\Http\Controllers\BatchController;
 use App\Http\Controllers\PenilaianController;
 use App\Http\Controllers\AiChatController;
 use App\Http\Controllers\Absensi\AbsensiSiswaController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PengaturanController;
 use App\Http\Controllers\PengaturanShiftController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\AffiliateLinkController;
+use App\Http\Controllers\PendaftaranController;
+use App\Http\Controllers\AffiliateDashboardController;
+use App\Http\Controllers\SiswaDashboardController;
+use App\Http\Controllers\Api\CouponController;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+// ========== API Auth (Sanctum) ==========
+Route::post('/auth/login',    [AuthController::class, 'loginApi']);
+Route::post('/auth/register', [AuthController::class, 'registerApi']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/auth/user',   [AuthController::class, 'userApi']);
+    Route::post('/auth/logout',[AuthController::class, 'logoutApi']);
+    Route::post('/profile/update', [ProfileController::class, 'apiUpdate']);
+    Route::post('/profile/password', [ProfileController::class, 'apiChangePassword']);
+});
+
+Route::post('/auth/register-affiliate', [AuthController::class, 'registerAffiliate']);
+
+Route::post('/logout', function (Request $request) {
+    if (Auth::check()) {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+    }
+    return response()->json(['message' => 'Logout berhasil']);
+});
 
 Route::get('/tasks', [TaskController::class, 'index']);
 Route::post('/tasks/store', [TaskController::class, 'store']);
 
 Route::post('/wa-webhook', [WaWebhookController::class, 'handle']);
+
+// Absensi Karyawan (mobile-friendly)
+Route::prefix('absensi-karyawan')->middleware('auth:sanctum')->group(function () {
+    Route::get('/cek', [AbsensiController::class, 'apiCek']);
+    Route::post('/masuk', [AbsensiController::class, 'apiMasuk']);
+    Route::post('/pulang', [AbsensiController::class, 'apiPulang']);
+    Route::get('/riwayat', [AbsensiController::class, 'apiRiwayat']);
+    Route::get('/stats-hari-ini', [AbsensiController::class, 'apiStatsHariIni']);
+    Route::get('/shift-saya', [AbsensiController::class, 'apiShiftSaya']);
+});
 
 // API Karyawan (tanpa auth untuk development)
 Route::prefix('karyawan')->group(function () {
@@ -103,6 +141,7 @@ Route::prefix('kehadiran-khusus')->group(function () {
 // Izin & Cuti
 Route::prefix('izin')->group(function () {
     Route::get('/', [IzinController::class, 'apiIndex']);
+    Route::post('/', [IzinController::class, 'apiStore'])->middleware('auth:sanctum');
     Route::post('/{id}/approve', [IzinController::class, 'apiApprove']);
     Route::post('/{id}/reject', [IzinController::class, 'apiReject']);
 });
@@ -110,6 +149,9 @@ Route::prefix('izin')->group(function () {
 // Lembur
 Route::prefix('lembur')->group(function () {
     Route::get('/', [LemburController::class, 'apiIndex']);
+    Route::post('/store', [LemburController::class, 'apiStore'])->middleware('auth:sanctum');
+    Route::get('/aktif', [LemburController::class, 'apiAktif'])->middleware('auth:sanctum');
+    Route::get('/saya', [LemburController::class, 'apiSaya'])->middleware('auth:sanctum');
     Route::post('/{id}/status', [LemburController::class, 'apiUpdateStatus']);
 });
 
@@ -237,6 +279,60 @@ Route::prefix('ai-chat')->group(function () {
 
 // Data referensi
 Route::get('/shift-aktif', [ShiftController::class, 'apiAktif']);
+
+// ========== Affiliate & Program ==========
+Route::prefix('products')->group(function () {
+    Route::get('/', [ProductController::class, 'index']);
+    Route::post('/', [ProductController::class, 'store']);
+    Route::get('/{id}', [ProductController::class, 'show']);
+    Route::put('/{id}', [ProductController::class, 'update']);
+    Route::delete('/{id}', [ProductController::class, 'destroy']);
+});
+
+Route::prefix('affiliate-links')->group(function () {
+    Route::get('/', [AffiliateLinkController::class, 'index']);
+    Route::post('/', [AffiliateLinkController::class, 'store']);
+    Route::get('/{id}', [AffiliateLinkController::class, 'show']);
+    Route::put('/{id}', [AffiliateLinkController::class, 'update']);
+    Route::delete('/{id}', [AffiliateLinkController::class, 'destroy']);
+});
+
+Route::get('/affiliates/list', [AffiliateLinkController::class, 'listAffiliates']);
+Route::get('/affiliates/stats', [AffiliateLinkController::class, 'affiliateStats']);
+// Public - daftar via affiliate link
+Route::post('/pendaftaran/daftar', [PendaftaranController::class, 'daftar']);
+Route::get('/affiliate-link/{kode}', [AffiliateLinkController::class, 'showByKode']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/kandidat', [PendaftaranController::class, 'kandidat']);
+
+    Route::prefix('pendaftar')->group(function () {
+        Route::get('/', [PendaftaranController::class, 'index']);
+        Route::get('/{id}', [PendaftaranController::class, 'show']);
+        Route::post('/{id}/approve', [PendaftaranController::class, 'approve']);
+        Route::post('/{id}/reject', [PendaftaranController::class, 'reject']);
+        Route::post('/{id}/verify-payment', [PendaftaranController::class, 'verifyPayment']);
+        Route::delete('/{id}', [PendaftaranController::class, 'destroy']);
+    });
+
+    Route::get('/affiliate-dashboard', [AffiliateDashboardController::class, 'index']);
+    Route::get('/siswa-dashboard', [SiswaDashboardController::class, 'index']);
+    Route::post('/siswa/profile', [SiswaDashboardController::class, 'updateProfile']);
+    Route::get('/siswa/absensi-saya', [SiswaDashboardController::class, 'absensiSaya']);
+});
+
+// Public — daftar langsung tanpa affiliate
+Route::post('/pendaftaran/daftar-langsung', [PendaftaranController::class, 'daftarLangsung']);
+
+// ========== Coupon / Diskon ==========
+Route::prefix('coupons')->group(function () {
+    Route::get('/', [CouponController::class, 'index']);
+    Route::post('/', [CouponController::class, 'store']);
+    Route::get('/{id}', [CouponController::class, 'show']);
+    Route::put('/{id}', [CouponController::class, 'update']);
+    Route::delete('/{id}', [CouponController::class, 'destroy']);
+});
+Route::post('/coupons/validate', [CouponController::class, 'validate']);
 
 Route::middleware('auth')->group(function () {
     Route::post('/wa-izin-send-test', [WaWebhookController::class, 'sendTest']);

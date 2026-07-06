@@ -159,7 +159,7 @@ class IzinController extends Controller
 
         if ($sudahInputHariIni) {
             $msg = 'Anda sudah membuat pengajuan izin hari ini. Silakan ajukan kembali besok jika ada keperluan lain.';
-            return $request->ajax()
+            return $request->ajax() || $request->wantsJson()
                 ? response()->json(['status' => 'error', 'message' => $msg], 422)
                 : redirect()->back()->with('error', $msg)->withInput();
         }
@@ -171,7 +171,7 @@ class IzinController extends Controller
 
         if ($izinPending) {
             $msg = 'Anda masih memiliki pengajuan izin yang sedang menunggu persetujuan.';
-            return $request->ajax()
+            return $request->ajax() || $request->wantsJson()
                 ? response()->json(['status' => 'error', 'message' => $msg], 422)
                 : redirect()->back()->with('error', $msg)->withInput();
         }
@@ -191,7 +191,7 @@ class IzinController extends Controller
 
         if ($sudahAbsen) {
             $msg = 'Gagal mengajukan izin. Anda tercatat sudah melakukan absensi pada tanggal ' . \Carbon\Carbon::parse($tglMulai)->format('d-m-Y') . '.';
-            return $request->ajax()
+            return $request->ajax() || $request->wantsJson()
                 ? response()->json(['status' => 'error', 'message' => $msg], 422)
                 : redirect()->back()->with('error', $msg)->withInput();
         }
@@ -260,7 +260,7 @@ class IzinController extends Controller
                 Log::error('Gagal kirim WA izin: ' . $waErr->getMessage());
             }
 
-            if ($request->ajax()) {
+            if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'status' => 'success',
                     'message' => 'Pengajuan izin berhasil dikirim.'
@@ -269,6 +269,9 @@ class IzinController extends Controller
 
             return redirect('/absensi')->with('success', 'Pengajuan izin berhasil dikirim.');
         } catch (\Exception $e) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['status' => 'error', 'message' => 'Terjadi kesalahan sistem.'], 500);
+            }
             return redirect()->back()->with('error', 'Terjadi kesalahan sistem.')->withInput();
         }
     }
@@ -410,5 +413,100 @@ class IzinController extends Controller
             'status' => 'success',
             'message' => 'Izin ditolak',
         ]);
+    }
+
+    public function apiStore(Request $request)
+    {
+        $userId = Auth::id();
+        $today = \Carbon\Carbon::today('Asia/Jakarta');
+        $tglMulai = $request->tgl_mulai;
+
+        $sudahInputHariIni = Izin::where('user_id', $userId)
+            ->whereDate('created_at', $today)
+            ->exists();
+
+        if ($sudahInputHariIni) {
+            return response()->json(['message' => 'Anda sudah membuat pengajuan izin hari ini. Silakan ajukan kembali besok.'], 422);
+        }
+
+        $izinPending = Izin::where('user_id', $userId)
+            ->where('status', 'PENDING')
+            ->exists();
+
+        if ($izinPending) {
+            return response()->json(['message' => 'Anda masih memiliki pengajuan izin yang sedang menunggu persetujuan.'], 422);
+        }
+
+        $user = Auth::user();
+        $sudahAbsen = \App\Models\Absensi::where('user_id', $userId)
+            ->where('tanggal', $tglMulai)
+            ->exists();
+
+        if ($sudahAbsen) {
+            return response()->json(['message' => 'Gagal mengajukan izin. Anda tercatat sudah absen pada tanggal ' . \Carbon\Carbon::parse($tglMulai)->format('d-m-Y') . '.'], 422);
+        }
+
+        $request->validate([
+            'jenis_izin' => 'required|in:SAKIT,CUTI,IZIN',
+            'tgl_mulai'   => 'required|date|after_or_equal:today',
+            'tgl_selesai' => 'required|date|after_or_equal:tgl_mulai',
+            'alasan'      => 'required|string|min:10',
+            'lampiran'    => 'nullable|mimes:jpeg,png,jpg,pdf|max:2048',
+        ]);
+
+        try {
+            $izin = new Izin();
+            $izin->user_id     = $userId;
+            $izin->jenis_izin  = $request->jenis_izin;
+            $izin->tgl_mulai   = $request->tgl_mulai;
+            $izin->tgl_selesai = $request->tgl_selesai;
+            $izin->alasan      = $request->alasan;
+            $izin->status      = 'PENDING';
+
+            if ($request->hasFile('lampiran')) {
+                $file = $request->file('lampiran');
+                $namaFile = $userId . '_' . time() . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path('uploads/izin'), $namaFile);
+                $izin->lampiran = $namaFile;
+            }
+
+            $izin->save();
+
+            try {
+                $managerPhone = '6285773141623';
+                $userName = $izin->user->name;
+                $tglMulai = \Carbon\Carbon::parse($izin->tgl_mulai)->translatedFormat('d F Y');
+                $tglSelesai = \Carbon\Carbon::parse($izin->tgl_selesai)->translatedFormat('d F Y');
+                $periode = $izin->tgl_mulai === $izin->tgl_selesai ? $tglMulai : "{$tglMulai} s/d {$tglSelesai}";
+
+                WaIzinApproval::create([
+                    'izin_id' => $izin->id,
+                    'manager_phone' => $managerPhone,
+                    'status' => 'PENDING',
+                ]);
+
+                $waMessage = "📋 *PENGAJUAN IZIN KARYAWAN*\n\n"
+                    . "Ada pengajuan izin baru:\n\n"
+                    . "👤 *Nama:* {$userName}\n"
+                    . "📋 *Jenis:* {$izin->jenis_izin}\n"
+                    . "📅 *Tanggal:* {$periode}\n"
+                    . "📝 *Alasan:* {$izin->alasan}\n\n"
+                    . "Apakah Anda menyetujui izin ini?\n\n"
+                    . "Balas: *IYA* untuk menyetujui ✅\n"
+                    . "Balas: *TIDAK* untuk menolak ❌";
+
+                $wa = app(WhatsAppService::class);
+                $wa->sendMessage($managerPhone, $waMessage);
+            } catch (\Exception $waErr) {
+                Log::error('Gagal kirim WA izin: ' . $waErr->getMessage());
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Pengajuan izin berhasil dikirim.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Terjadi kesalahan sistem.'], 500);
+        }
     }
 }
