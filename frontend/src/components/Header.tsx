@@ -1,14 +1,15 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Users, CalendarCheck, Bot, Settings,
   ChevronDown, Bell, Mail, Timer, UserCog, LogOut,
   Building2, MapPin, CalendarPlus, List, ClipboardList,
   FileText, Clock, BarChart3, BookOpen, GraduationCap,
-  Layers, Notebook, Presentation, UserPlus, Search,
+  Layers, Notebook, Presentation, UserPlus, User, Search,
   Briefcase, Zap, MessageCircle, CreditCard, Handshake, Package,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { izinApi, lemburApi } from '../services/api'
 
 interface HeaderProps {
   onToggleSidebar: () => void
@@ -85,6 +86,59 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
   const { user, logout } = useAuth()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showNotif, setShowNotif] = useState(false)
+  const [notifFilter, setNotifFilter] = useState<'all' | 'izin' | 'lembur'>('all')
+  const [notifications, setNotifications] = useState<any[]>([])
+
+  useEffect(() => {
+    Promise.all([
+      izinApi.list({ status: 'PENDING', per_page: 10 }).catch(() => ({ data: { data: [] } })),
+      lemburApi.list({ status: 'PENDING', per_page: 10 }).catch(() => ({ data: { data: [] } })),
+    ]).then(([izinRes, lemburRes]) => {
+      const izinList = (izinRes.data?.data || []).map((i: any) => ({
+        id: `izin-${i.id}`,
+        type: 'izin' as const,
+        nama: i.user?.name || '-',
+        jenis: i.jenis_izin,
+        created_at: i.created_at,
+        link: '/izin-cuti',
+        icon: Mail,
+        iconColor: i.jenis_izin === 'SAKIT' ? 'text-red-400' : i.jenis_izin === 'CUTI' ? 'text-blue-400' : 'text-teal-400',
+      }))
+      const lemburList = (lemburRes.data?.data || []).map((l: any) => ({
+        id: `lembur-${l.id}`,
+        type: 'lembur' as const,
+        nama: l.user?.name || '-',
+        jenis: 'LEMBUR',
+        created_at: l.created_at,
+        link: '/approval-lembur',
+        icon: Timer,
+        iconColor: 'text-green-400',
+      }))
+      const combined = [...izinList, ...lemburList].sort((a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )
+      setNotifications(combined)
+    })
+  }, [])
+
+  const filteredNotif = notifications.filter(n => {
+    if (notifFilter === 'all') return true
+    if (notifFilter === 'izin') return n.type === 'izin'
+    if (notifFilter === 'lembur') return n.type === 'lembur'
+    return true
+  })
+
+  function timeAgo(dateStr: string) {
+    const now = Date.now()
+    const diff = now - new Date(dateStr).getTime()
+    const mins = Math.floor(diff / 60000)
+    if (mins < 1) return 'Baru saja'
+    if (mins < 60) return `${mins} menit yang lalu`
+    const hours = Math.floor(mins / 60)
+    if (hours < 24) return `${hours} jam yang lalu`
+    const days = Math.floor(hours / 24)
+    return `${days} hari yang lalu`
+  }
 
   const avatarUrl = user?.foto_profil
     ? `http://localhost:8000/uploads/profil/${user.foto_profil}`
@@ -177,7 +231,9 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
             className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 relative"
           >
             <Bell size={20} />
-            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">3</span>
+            {notifications.length > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{notifications.length}</span>
+            )}
           </button>
           {showNotif && (
             <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
@@ -185,25 +241,29 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
                 <p className="text-xs font-semibold text-gray-500">Notifikasi Pengajuan</p>
               </div>
               <div className="max-h-64 overflow-y-auto">
-                <Link to="/izin-cuti" className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-50">
-                  <Mail size={20} className="text-red-400 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Lutfi Nurul Hasanah: SAKIT</p>
-                    <p className="text-xs text-gray-400">2 jam yang lalu</p>
-                  </div>
-                </Link>
-                <Link to="/approval-lembur" className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50">
-                  <Timer size={20} className="text-green-400 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Budi Santoso: LEMBUR</p>
-                    <p className="text-xs text-gray-400">5 jam yang lalu</p>
-                  </div>
-                </Link>
+                {filteredNotif.length === 0 ? (
+                  <div className="px-4 py-8 text-center text-sm text-gray-400">Tidak ada pengajuan</div>
+                ) : (
+                  filteredNotif.map(n => {
+                    const Icon = n.icon
+                    return (
+                      <Link key={n.id} to={n.link} className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-50">
+                        <Icon size={20} className={`${n.iconColor} mt-0.5 shrink-0`} />
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">{n.nama}: {n.jenis}</p>
+                          <p className="text-xs text-gray-400">{timeAgo(n.created_at)}</p>
+                        </div>
+                      </Link>
+                    )
+                  })
+                )}
               </div>
               <div className="p-2 border-t border-gray-100 flex justify-center gap-3 text-xs text-[#0D1F3C]">
-                <Link to="/izin-cuti" className="hover:underline">Semua Izin</Link>
+                <button onClick={() => setNotifFilter('all')} className={`hover:underline ${notifFilter === 'all' ? 'font-bold' : ''}`}>Semua</button>
                 <span className="text-gray-300">|</span>
-                <Link to="/approval-lembur" className="hover:underline">Semua Lembur</Link>
+                <button onClick={() => setNotifFilter('izin')} className={`hover:underline ${notifFilter === 'izin' ? 'font-bold' : ''}`}>Semua Izin</button>
+                <span className="text-gray-300">|</span>
+                <button onClick={() => setNotifFilter('lembur')} className={`hover:underline ${notifFilter === 'lembur' ? 'font-bold' : ''}`}>Semua Lembur</button>
               </div>
             </div>
           )}
@@ -215,7 +275,13 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
             onClick={() => setShowUserMenu(!showUserMenu)}
             className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
           >
-            <img src={avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=e5e7eb&color=6b7280&size=36` }} />
+            {user?.foto_profil ? (
+              <img src={avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-[#eef1f6] flex items-center justify-center">
+                <User size={16} className="text-[#8B90A0]" />
+              </div>
+            )}
             <div className="hidden sm:block text-left">
               <p className="text-sm font-medium text-gray-700 leading-tight">{user?.name || 'User'}</p>
               <p className="text-[10px] text-gray-400">{user?.role || '-'}</p>

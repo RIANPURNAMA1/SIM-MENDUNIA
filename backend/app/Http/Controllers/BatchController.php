@@ -15,7 +15,7 @@ class BatchController extends Controller
 
     public function apiIndex()
     {
-        $batches = Batch::withCount('siswas')->latest()->get();
+        $batches = Batch::withCount('siswas')->with('cabang')->latest()->get();
 
         return response()->json([
             'success' => true,
@@ -27,9 +27,10 @@ class BatchController extends Controller
     {
         $request->validate([
             'nama_batch' => 'required|string|max:100|unique:batches,nama_batch',
+            'cabang_id' => 'nullable|exists:cabangs,id',
         ]);
 
-        Batch::create($request->only('nama_batch'));
+        Batch::create($request->only('nama_batch', 'cabang_id'));
 
         return response()->json([
             'status' => 'success',
@@ -43,9 +44,10 @@ class BatchController extends Controller
 
         $request->validate([
             'nama_batch' => 'required|string|max:100|unique:batches,nama_batch,' . $id,
+            'cabang_id' => 'nullable|exists:cabangs,id',
         ]);
 
-        $batch->update($request->only('nama_batch'));
+        $batch->update($request->only('nama_batch', 'cabang_id'));
 
         return response()->json([
             'status' => 'success',

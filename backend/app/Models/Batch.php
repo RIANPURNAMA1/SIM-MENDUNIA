@@ -11,11 +11,17 @@ class Batch extends Model
     protected $fillable = [
         'nama_batch',
         'status',
+        'cabang_id',
     ];
 
     public function siswas()
     {
         return $this->hasMany(Siswa::class, 'batch_id');
+    }
+
+    public function cabang()
+    {
+        return $this->belongsTo(Cabang::class);
     }
 
     public function scopeAktif($query)

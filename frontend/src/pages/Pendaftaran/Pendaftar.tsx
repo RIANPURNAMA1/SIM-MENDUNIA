@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Search, CheckCircle, XCircle, FileText, Eye, Trash2, CheckSquare, RotateCcw, Users } from 'lucide-react'
+import { Search, CheckCircle, XCircle, FileText, Eye, Trash2, CheckSquare, RotateCcw, Users, CreditCard, X, Loader } from 'lucide-react'
 import { pendaftarApi } from '../../services/api'
 
 interface PendaftarItem {
@@ -24,6 +24,9 @@ export default function Pendaftar() {
   const [filterDaftar, setFilterDaftar] = useState('')
   const [filterBayar, setFilterBayar] = useState('')
   const [previewImg, setPreviewImg] = useState<string | null>(null)
+  const [riwayatModal, setRiwayatModal] = useState<{ id: number; nama: string } | null>(null)
+  const [riwayatData, setRiwayatData] = useState<any[]>([])
+  const [riwayatLoading, setRiwayatLoading] = useState(false)
 
   useEffect(() => {
     fetchData()
@@ -51,6 +54,14 @@ export default function Pendaftar() {
 
   function handleDelete(id: number) {
     if (confirm('Yakin ingin menghapus pendaftar ini?')) pendaftarApi.destroy(id).then(fetchData)
+  }
+
+  function openRiwayat(id: number, nama: string) {
+    setRiwayatModal({ id, nama })
+    setRiwayatLoading(true)
+    pendaftarApi.riwayatPembayaran(id).then(res => {
+      setRiwayatData(res.data)
+    }).catch(() => {}).finally(() => setRiwayatLoading(false))
   }
 
   function resetFilter() {
@@ -276,6 +287,10 @@ export default function Pendaftar() {
                           <CheckSquare size={15} />
                         </button>
                       )}
+                      <button onClick={() => openRiwayat(p.id, p.nama)}
+                        className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600" title="Riwayat Pembayaran">
+                        <CreditCard size={15} />
+                      </button>
                       <button onClick={() => handleDelete(p.id)}
                         className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600" title="Hapus">
                         <Trash2 size={15} />
@@ -291,6 +306,63 @@ export default function Pendaftar() {
           Menampilkan {filtered.length} dari {data.length} pendaftar
         </div>
       </div>
+
+      {/* Riwayat Pembayaran Modal */}
+      {riwayatModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setRiwayatModal(null)}>
+          <div className="w-full max-w-lg rounded-xl bg-white border border-gray-200 shadow-sm" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5">
+              <h2 className="text-sm font-semibold text-gray-800">Riwayat Pembayaran — {riwayatModal.nama}</h2>
+              <button onClick={() => setRiwayatModal(null)} className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors">
+                <X size={18} className="text-gray-400" />
+              </button>
+            </div>
+            <div className="divide-y divide-gray-100 max-h-80 overflow-y-auto">
+              {riwayatLoading ? (
+                <div className="flex items-center justify-center py-10">
+                  <Loader size={20} className="animate-spin text-gray-400" />
+                </div>
+              ) : riwayatData.length === 0 ? (
+                <div className="py-10 text-center text-sm text-gray-400">Belum ada riwayat pembayaran</div>
+              ) : (
+                riwayatData.map((r, i) => (
+                  <div key={r.id} className="flex items-center justify-between px-5 py-3">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        Pembayaran {riwayatData.length - i}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {new Date(r.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-bold text-gray-900">Rp {Number(r.jumlah).toLocaleString('id-ID')}</span>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                        r.status === 'verified' ? 'bg-emerald-100 text-emerald-700' :
+                        r.status === 'ditolak' ? 'bg-red-100 text-red-600' :
+                        'bg-amber-100 text-amber-700'
+                      }`}>
+                        {r.status}
+                      </span>
+                      <a
+                        href={`http://localhost:8000/storage/${r.bukti_pembayaran}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-lg border border-gray-200 p-1.5 text-gray-400 hover:border-blue-200 hover:text-blue-600 transition-colors"
+                      >
+                        <Eye size={14} />
+                      </a>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="border-t border-gray-100 px-5 py-3 text-center">
+              <button onClick={() => setRiwayatModal(null)} className="text-sm text-gray-500 hover:text-gray-700">Tutup</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Preview Bukti */}
       {previewImg && (

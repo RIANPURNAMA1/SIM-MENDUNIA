@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Batch;
 use App\Models\Pendaftar;
 use App\Models\Siswa;
 use Carbon\Carbon;
@@ -21,11 +22,13 @@ class SiswaDashboardController extends Controller
             ->first();
 
         $siswa = Siswa::where('user_id', $user->id)->first();
+        $batches = Batch::aktif()->orderBy('nama_batch')->get(['id', 'nama_batch']);
 
         return response()->json([
             'pendaftar' => $pendaftar,
             'user' => $user,
             'siswa' => $siswa,
+            'batches' => $batches,
         ]);
     }
 
@@ -43,11 +46,12 @@ class SiswaDashboardController extends Controller
             'agama' => 'nullable|string|max:100',
             'nik' => 'nullable|string|max:50',
             'pendidikan_terakhir' => 'nullable|string|max:100',
-            'foto_profil' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'foto_ktp' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'foto_ijazah' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'foto_kk' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'foto' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'foto_profil' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'foto_ktp' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'foto_ijazah' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'foto_kk' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'foto' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'batch_id' => 'nullable|exists:batches,id',
         ]);
 
         // Update User fields
@@ -80,6 +84,7 @@ class SiswaDashboardController extends Controller
         if ($request->has('tanggal_lahir')) $siswa->tanggal_lahir = $request->tanggal_lahir;
         if ($request->has('jenis_kelamin')) $siswa->jenis_kelamin = $request->jenis_kelamin;
         if ($request->has('agama')) $siswa->agama = $request->agama;
+        if ($request->has('batch_id')) $siswa->batch_id = $request->batch_id;
         $siswa->status = $siswa->status ?? 'AKTIF';
 
         // Handle foto upload for Siswa

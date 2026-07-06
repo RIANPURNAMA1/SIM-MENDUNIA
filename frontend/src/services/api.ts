@@ -190,8 +190,8 @@ export const siswaApi = {
 
 export const batchApi = {
   list: () => api.get('/batches'),
-  store: (data: { nama_batch: string }) => api.post('/batches', data),
-  update: (id: number, data: { nama_batch: string }) => api.put(`/batches/${id}`, data),
+  store: (data: { nama_batch: string; cabang_id?: number | null }) => api.post('/batches', data),
+  update: (id: number, data: { nama_batch: string; cabang_id?: number | null }) => api.put(`/batches/${id}`, data),
   destroy: (id: number) => api.delete(`/batches/${id}`),
   toggleStatus: (id: number) => api.post(`/batches/${id}/toggle-status`),
 }
@@ -285,6 +285,7 @@ export const pendaftarApi = {
   approve: (id: number) => api.post(`/pendaftar/${id}/approve`),
   reject: (id: number) => api.post(`/pendaftar/${id}/reject`),
   verifyPayment: (id: number) => api.post(`/pendaftar/${id}/verify-payment`),
+  riwayatPembayaran: (id: number) => api.get(`/pendaftar/${id}/riwayat-pembayaran`),
   destroy: (id: number) => api.delete(`/pendaftar/${id}`),
   daftar: (data: FormData) =>
     api.post('/pendaftaran/daftar', data, {

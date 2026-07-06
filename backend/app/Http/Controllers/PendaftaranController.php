@@ -7,6 +7,7 @@ use App\Models\Siswa;
 use App\Models\AffiliateLink;
 use App\Models\KomisiAffiliate;
 use App\Models\Coupon;
+use App\Models\Pembayaran;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -245,7 +246,49 @@ class PendaftaranController extends Controller
         $pendaftar = Pendaftar::findOrFail($id);
         $pendaftar->update(['status_pembayaran' => 'verified']);
 
+        Pembayaran::where('pendaftar_id', $pendaftar->id)
+            ->where('status', 'pending')
+            ->update(['status' => 'verified']);
+
         return response()->json(['message' => 'Pembayaran terverifikasi']);
+    }
+
+    public function riwayatPembayaran($id)
+    {
+        $pendaftar = Pendaftar::findOrFail($id);
+        $riwayat = Pembayaran::where('pendaftar_id', $pendaftar->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($riwayat);
+    }
+
+    public function bayar(Request $request, $id)
+    {
+        $request->validate([
+            'jumlah' => 'required|numeric|min:1',
+            'bukti_pembayaran' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
+        ]);
+
+        $pendaftar = Pendaftar::findOrFail($id);
+
+        $filePath = $request->file('bukti_pembayaran')->store('bukti_pembayaran', 'public');
+
+        Pembayaran::create([
+            'pendaftar_id' => $pendaftar->id,
+            'jumlah' => $request->jumlah,
+            'bukti_pembayaran' => $filePath,
+            'status' => 'pending',
+        ]);
+
+        $pendaftar->increment('nominal', $request->jumlah);
+        $pendaftar->status_pembayaran = 'processing';
+        $pendaftar->save();
+
+        return response()->json([
+            'message' => 'Pembayaran berhasil dikirim, menunggu verifikasi admin',
+            'pendaftar' => $pendaftar->fresh()->load('product'),
+        ]);
     }
 
     public function destroy($id)

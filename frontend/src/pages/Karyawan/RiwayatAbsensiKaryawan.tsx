@@ -8,7 +8,7 @@ const fullDayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sa
 const monthNamesID = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 
 interface RiwayatItem {
-  id: number
+  id: any
   tanggal: string
   jam_masuk: string | null
   jam_keluar: string | null

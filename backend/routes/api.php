@@ -312,11 +312,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{id}/approve', [PendaftaranController::class, 'approve']);
         Route::post('/{id}/reject', [PendaftaranController::class, 'reject']);
         Route::post('/{id}/verify-payment', [PendaftaranController::class, 'verifyPayment']);
+        Route::post('/{id}/bayar', [PendaftaranController::class, 'bayar']);
+        Route::get('/{id}/riwayat-pembayaran', [PendaftaranController::class, 'riwayatPembayaran']);
         Route::delete('/{id}', [PendaftaranController::class, 'destroy']);
     });
 
     Route::get('/affiliate-dashboard', [AffiliateDashboardController::class, 'index']);
     Route::get('/siswa-dashboard', [SiswaDashboardController::class, 'index']);
+    Route::get('/guru-dashboard', [GuruDashboardController::class, 'index']);
     Route::post('/siswa/profile', [SiswaDashboardController::class, 'updateProfile']);
     Route::get('/siswa/absensi-saya', [SiswaDashboardController::class, 'absensiSaya']);
 });

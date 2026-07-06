@@ -1,8 +1,14 @@
 import { useState, useEffect } from 'react'
-import { Link2, Eye, Users, CheckCircle, Clock, DollarSign, Copy, CheckCircle as CheckIcon, Wallet, Banknote } from 'lucide-react'
+import { Link2, Eye, Users, CheckCircle, Clock, DollarSign, Copy, CheckCircle as CheckIcon, Wallet, Banknote, User } from 'lucide-react'
 import { affiliateDashboardApi } from '../../services/api'
 
 interface DashboardData {
+  affiliate: {
+    name: string
+    email: string
+    telepon: string | null
+    alamat: string | null
+  }
   stats: {
     total_links: number
     total_views: number
@@ -54,7 +60,7 @@ export default function AffiliateDashboard() {
     )
   }
 
-  const { stats, links, pendaftar } = data
+  const { affiliate, stats, links, pendaftar } = data
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
@@ -67,6 +73,23 @@ export default function AffiliateDashboard() {
           <div>
             <h1 className="text-lg font-semibold text-slate-800">Dashboard Affiliate</h1>
             <p className="text-sm text-slate-500">Pantau performa link affiliate Anda</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Affiliate Profile */}
+      <div className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#0D1F3C] text-white">
+            <User size={28} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-lg font-bold text-slate-800">{affiliate.name}</h2>
+            <p className="text-sm text-slate-500">{affiliate.email}</p>
+            <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-400">
+              {affiliate.telepon && <span>Telp: {affiliate.telepon}</span>}
+              {affiliate.alamat && <span>Alamat: {affiliate.alamat}</span>}
+            </div>
           </div>
         </div>
       </div>

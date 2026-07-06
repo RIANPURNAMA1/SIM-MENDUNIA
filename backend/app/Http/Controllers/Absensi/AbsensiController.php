@@ -1964,19 +1964,16 @@ class AbsensiController extends Controller
 
         $limit = $request->get('limit', 10);
         $filter = $request->get('filter');
+        $bulan = $request->get('bulan', now()->month);
+        $tahun = $request->get('tahun', now()->year);
 
         $userRole = strtoupper($user->jabatan ?? 'KARYAWAN');
 
         $query = Absensi::with('shift')
             ->where('user_id', $user->id);
 
-        if ($request->filled('bulan')) {
-            $query->whereMonth('tanggal', $request->bulan);
-        }
-
-        if ($request->filled('tahun')) {
-            $query->whereYear('tanggal', $request->tahun);
-        }
+        $query->whereMonth('tanggal', $bulan);
+        $query->whereYear('tanggal', $tahun);
 
         if ($filter && in_array($filter, ['Hadir', 'Terlambat', 'Alpa'])) {
             $statusMap = ['Hadir' => 'HADIR', 'Terlambat' => 'TERLAMBAT', 'Alpa' => 'ALPA'];
@@ -1997,7 +1994,39 @@ class AbsensiController extends Controller
                     'role' => $userRole,
                     'shift' => $item->shift ? ['nama' => $item->shift->nama_shift] : null,
                 ];
-            });
+            })->keyBy('tanggal');
+
+        if (!$filter || $filter === 'Semua') {
+            $start = Carbon::create($tahun, $bulan, 1);
+            $end = $start->copy()->endOfMonth();
+            $liburEntries = [];
+            $date = $start->copy();
+            while ($date->lte($end)) {
+                $dayOfWeek = $date->dayOfWeek;
+                if ($dayOfWeek === Carbon::SATURDAY || $dayOfWeek === Carbon::SUNDAY) {
+                    $key = $date->format('Y-m-d');
+                    if (!$riwayat->has($key)) {
+                        $liburEntries[] = [
+                            'id' => 'libur-' . $key,
+                            'tanggal' => $key,
+                            'jam_masuk' => null,
+                            'jam_keluar' => null,
+                            'status' => 'libur',
+                            'role' => $userRole,
+                            'shift' => null,
+                        ];
+                    }
+                }
+                $date->addDay();
+            }
+            $riwayat = collect($liburEntries)->merge($riwayat)->sortByDesc('tanggal');
+            if ($limit) {
+                $riwayat = $riwayat->take($limit);
+            }
+            $riwayat = $riwayat->values();
+        } else {
+            $riwayat = $riwayat->values();
+        }
 
         return response()->json(['data' => $riwayat]);
     }

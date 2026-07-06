@@ -1,6 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
-import { Gift, User, Mail, Lock, Phone, MapPin, Upload, DollarSign, CheckCircle, Loader, Tag } from 'lucide-react'
+import {
+  GraduationCap, CheckCircle, Loader, User, MessageCircle,
+  Upload, FileText, X,
+} from 'lucide-react'
 import { affiliateLinkApi, pendaftarApi, couponApi } from '../../services/api'
 
 interface LinkData {
@@ -9,30 +12,58 @@ interface LinkData {
   product: { id: number; nama: string; deskripsi: string; harga: number }
 }
 
+const steps = [
+  { id: 1, label: 'Data Diri', desc: 'Informasi dasar pendaftar' },
+  { id: 2, label: 'Kontak', desc: 'Informasi komunikasi' },
+  { id: 3, label: 'Pembayaran', desc: 'Selesaikan transaksi' },
+]
+
 export default function DaftarAffiliate() {
   const { kode } = useParams<{ kode: string }>()
   const [link, setLink] = useState<LinkData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [step, setStep] = useState(1)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
 
-  const [form, setForm] = useState({
-    nama: '', email: '', password: '', password_confirmation: '',
-    telepon: '', alamat: '', nominal: '',
-  })
-  const [file, setFile] = useState<File | null>(null)
+  const [nama, setNama] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [passwordConfirmation, setPasswordConfirmation] = useState('')
+  const [telepon, setTelepon] = useState('')
+  const [alamat, setAlamat] = useState('')
+  const [nominal, setNominal] = useState('')
+  const [bukti, setBukti] = useState<File | null>(null)
   const [kodeKupon, setKodeKupon] = useState('')
-  const [validasiKupon, setValidasiKupon] = useState<{ valid: boolean; diskon?: number; nominal_setelah_diskon?: number; message?: string } | null>(null)
+  const [validasiKupon, setValidasiKupon] = useState<{
+    valid: boolean
+    diskon?: number
+    nominal_setelah_diskon?: number
+    message?: string
+  } | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
   useEffect(() => {
     if (kode) {
       affiliateLinkApi.getByKode(kode)
-        .then(res => setLink(res.data))
+        .then(res => {
+          setLink(res.data)
+          setNominal(String(res.data.product.harga))
+        })
         .catch(() => setError('Link tidak valid atau sudah tidak aktif'))
         .finally(() => setLoading(false))
     }
   }, [kode])
+
+  useEffect(() => {
+    if (bukti && bukti.type.startsWith('image/')) {
+      const url = URL.createObjectURL(bukti)
+      setPreviewUrl(url)
+      return () => URL.revokeObjectURL(url)
+    }
+    setPreviewUrl(null)
+  }, [bukti])
 
   async function cekKupon() {
     if (!kodeKupon || !link) return
@@ -40,7 +71,7 @@ export default function DaftarAffiliate() {
       const res = await couponApi.validate({
         kode: kodeKupon,
         product_id: link.product.id,
-        nominal: Number(form.nominal || link.product.harga),
+        nominal: Number(nominal || link.product.harga),
       })
       setValidasiKupon(res.data)
     } catch (err: unknown) {
@@ -49,11 +80,11 @@ export default function DaftarAffiliate() {
     }
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!kode) return
 
-    if (form.password !== form.password_confirmation) {
+    if (password !== passwordConfirmation) {
       setError('Password tidak cocok')
       return
     }
@@ -63,14 +94,14 @@ export default function DaftarAffiliate() {
 
     const fd = new FormData()
     fd.append('kode_link', kode)
-    fd.append('nama', form.nama)
-    fd.append('email', form.email)
-    fd.append('password', form.password)
+    fd.append('nama', nama)
+    fd.append('email', email)
+    fd.append('password', password)
     if (kodeKupon) fd.append('kode_kupon', kodeKupon)
-    if (form.telepon) fd.append('telepon', form.telepon)
-    if (form.alamat) fd.append('alamat', form.alamat)
-    fd.append('nominal', form.nominal)
-    fd.append('bukti_pembayaran', file!)
+    if (telepon) fd.append('telepon', telepon)
+    if (alamat) fd.append('alamat', alamat)
+    fd.append('nominal', nominal)
+    fd.append('bukti_pembayaran', bukti!)
 
     pendaftarApi.daftar(fd)
       .then(res => {
@@ -85,12 +116,60 @@ export default function DaftarAffiliate() {
       .finally(() => setSubmitting(false))
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#f0f2f5] flex items-center justify-center">
-        <Loader size={28} className="text-[#0D1F3C] animate-spin" />
+  function nextStep() {
+    if (step === 1 && (!nama || !email || !password || !passwordConfirmation)) {
+      setError('Harap isi Nama, Email, Password, dan Konfirmasi Password')
+      return
+    }
+    if (password !== passwordConfirmation) {
+      setError('Password tidak cocok')
+      return
+    }
+    setError('')
+    setStep(s => Math.min(s + 1, 3))
+  }
+
+  function handleFinalSubmit(e: FormEvent) {
+    if (!bukti) {
+      setError('Harap upload bukti pembayaran')
+      return
+    }
+    handleSubmit(e)
+  }
+
+  const Navbar = () => (
+    <nav className="bg-white border-b border-gray-200">
+      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        <a href="/" className="flex items-center gap-2">
+          <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
+          <span className="text-xl font-bold text-gray-900 tracking-tight">Mendunia.id</span>
+        </a>
+        <div className="flex items-center gap-4">
+          <a
+            href="/login"
+            className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+          >
+            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+              <User size={16} className="text-gray-500" />
+            </div>
+            <span>Masuk</span>
+          </a>
+        </div>
       </div>
-    )
+    </nav>
+  )
+
+  const LoadingScreen = () => (
+    <div className="min-h-screen bg-[#f0f2f5] flex items-center justify-center">
+      <div className="relative w-16 h-16 flex items-center justify-center">
+        <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+        <img src="/logo-sm.png" alt="Mendunia" className="w-8 h-8" />
+      </div>
+    </div>
+  )
+
+  if (loading) {
+    return <LoadingScreen />
   }
 
   if (error && !link) {
@@ -129,144 +208,390 @@ export default function DaftarAffiliate() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f0f2f5] px-4 py-10">
-      <div className="max-w-4xl mx-auto fade-in">
-        {/* Header */}
-        <div className="text-center mb-6">
-          <img src="/logo-sm.png" alt="Mendunia" className="w-12 h-12 mx-auto mb-3" />
-          <h1 className="text-xl font-extrabold text-[#0D1F3C] tracking-tight">Pendaftaran Program</h1>
+    <div className="min-h-screen bg-[#f0f2f5] text-gray-800">
+      <Navbar />
+
+      <div className="max-w-6xl mx-auto px-6 py-10 fade-in">
+        <div className="mb-8">
+          <h1 className="text-xl font-bold text-gray-900">Daftar Program Di Mendunia.id</h1>
+          <p className="text-gray-600 text-base mt-2 leading-relaxed">
+            Temukan program pelatihan bahasa dan persiapan kerja terbaik untuk
+            mewujudkan impian karir global Anda.
+          </p>
+          <div className="mt-3 bg-white border border-gray-200 rounded-lg p-4 flex items-center justify-between shadow-sm animate-slide-down">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-[#eef1f6] flex items-center justify-center">
+                <GraduationCap size={20} className="text-[#0D1F3C]" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 font-medium">Program Dipilih</p>
+                <p className="text-sm font-bold text-gray-900">{link?.product?.nama}</p>
+              </div>
+            </div>
+            <p className="text-lg font-bold text-[#0D1F3C]">
+              Rp {Number(link?.product?.harga || 0).toLocaleString('id-ID')}
+            </p>
+          </div>
+          {link?.affiliate && (
+            <div className="mt-2 bg-white border border-gray-200 rounded-lg p-3 flex items-center gap-3 shadow-sm">
+              <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <User size={14} className="text-amber-700" />
+              </div>
+              <p className="text-sm text-gray-600">
+                Anda direkomendasikan oleh <span className="font-semibold text-gray-900">{link.affiliate.name}</span>
+              </p>
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-          {/* Left - Program & Affiliate Info */}
-          <div className="lg:col-span-2 space-y-4">
-            {/* Program Card */}
-            <div className="bg-white rounded-lg shadow-[0_2px_4px_rgba(0,0,0,.1),0_8px_16px_rgba(0,0,0,.1)] p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-[#0D1F3C] to-[#1a2d4a] rounded-xl flex items-center justify-center shadow-md">
-                  <Gift size={18} className="text-white" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-[#606770] uppercase tracking-wider">Program</p>
-                  <p className="text-sm font-extrabold text-[#1c1e21]">{link?.product?.nama}</p>
-                </div>
-              </div>
-              {link?.product?.deskripsi && (
-                <p className="text-sm text-[#606770] mb-3 ml-[52px]">{link?.product?.deskripsi}</p>
-              )}
-              <div className="ml-[52px]">
-                <p className="text-2xl font-extrabold text-[#0D1F3C]">
-                  Rp {Number(link?.product?.harga || 0).toLocaleString('id-ID')}
-                </p>
+        <div className="flex flex-col md:flex-row gap-12">
+          {/* LEFT SIDEBAR: Stepper & Contact Card */}
+          <div className="w-full md:w-1/4 flex-shrink-0 fade-in" style={{ animationDelay: '0.1s' }}>
+            <div className="relative">
+              <div className="absolute left-3.5 top-2 bottom-2 w-0.5 bg-gray-200 -z-10"></div>
+              <div className="space-y-6">
+                {steps.map((s) => {
+                  const isActive = step === s.id
+                  const isPassed = step > s.id
+                  return (
+                    <div key={s.id} className="flex gap-4">
+                      <div
+                        className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-semibold border-2 z-10 ${
+                          isActive
+                            ? 'bg-[#0D1F3C] border-[#0D1F3C] text-white'
+                            : isPassed
+                              ? 'bg-[#e8eaf0] border-[#e8eaf0] text-[#0D1F3C]'
+                              : 'bg-white border-gray-300 text-gray-400'
+                        }`}
+                      >
+                        {isPassed ? <CheckCircle size={14} /> : s.id}
+                      </div>
+                      <div className="pt-0.5">
+                        <p className={`text-sm font-semibold ${isActive || isPassed ? 'text-[#0D1F3C]' : 'text-gray-400'}`}>
+                          {s.label}
+                        </p>
+                        {(isActive || isPassed) && (
+                          <p className="text-xs text-gray-500 mt-1">{s.desc}</p>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
 
-            {/* Affiliate Card */}
-            <div className="bg-white rounded-lg shadow-[0_2px_4px_rgba(0,0,0,.1),0_8px_16px_rgba(0,0,0,.1)] p-5">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
-                  <User size={18} className="text-amber-700" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-[#606770] uppercase tracking-wider">Affiliate</p>
-                  <p className="text-sm font-extrabold text-[#1c1e21]">{link?.affiliate?.name}</p>
-                </div>
-              </div>
+            <div className="mt-12 bg-white border border-gray-200 rounded-lg p-5 shadow-sm fade-in" style={{ animationDelay: '0.15s' }}>
+              <h4 className="text-sm font-bold text-gray-800 mb-1">BUTUH BANTUAN?</h4>
+              <p className="text-xs text-gray-500 mb-4">
+                Tulis pesan kepada kami dan kami akan menyelesaikannya
+              </p>
+              <button className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-[#eef1f6] text-[#0D1F3C] rounded-md text-sm font-semibold hover:bg-[#e4e7ec] transition-colors">
+                <MessageCircle size={16} /> HUBUNGI KAMI
+              </button>
             </div>
           </div>
 
-          {/* Right - Registration Form */}
-          <div className="lg:col-span-3">
-            <div className="bg-white rounded-lg shadow-[0_2px_4px_rgba(0,0,0,.1),0_8px_16px_rgba(0,0,0,.1)] p-5 pb-6">
-              <h2 className="text-lg font-extrabold text-[#1c1e21] mb-1">Form Pendaftaran</h2>
-              <p className="text-sm text-[#606770] mb-5">Isi data diri Anda untuk mendaftar</p>
+          {/* RIGHT MAIN CONTENT: Form Area */}
+          <div className="w-full md:w-3/4 fade-in" style={{ animationDelay: '0.2s' }}>
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+              <div className="px-8 py-5 border-b border-gray-200">
+                <h2 className="text-xl text-gray-800 font-medium">
+                  {step}. {steps[step - 1].label}
+                </h2>
+              </div>
 
-              {error && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm font-semibold text-red-700 text-center">
-                  {error}
-                </div>
-              )}
+              <div className="p-8 fade-in" key={step}>
+                {error && (
+                  <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md text-sm text-red-600">
+                    {error}
+                  </div>
+                )}
 
-              <form onSubmit={handleSubmit} className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <input
-                    type="text" required value={form.nama} onChange={e => setForm({ ...form, nama: e.target.value })}
-                    placeholder="Nama Lengkap"
-                    className="w-full h-[52px] px-4 bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:bg-white focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] outline-none transition-all text-[17px] text-[#1c1e21] placeholder:text-[#9ca0a6]"
-                  />
-                  <input
-                    type="email" required value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
-                    placeholder="Email"
-                    className="w-full h-[52px] px-4 bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:bg-white focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] outline-none transition-all text-[17px] text-[#1c1e21] placeholder:text-[#9ca0a6]"
-                  />
-                  <input
-                    type="password" required value={form.password} onChange={e => setForm({ ...form, password: e.target.value })}
-                    placeholder="Password"
-                    className="w-full h-[52px] px-4 bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:bg-white focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] outline-none transition-all text-[17px] text-[#1c1e21] placeholder:text-[#9ca0a6]"
-                  />
-                  <input
-                    type="password" required value={form.password_confirmation} onChange={e => setForm({ ...form, password_confirmation: e.target.value })}
-                    placeholder="Konfirmasi Password"
-                    className="w-full h-[52px] px-4 bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:bg-white focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] outline-none transition-all text-[17px] text-[#1c1e21] placeholder:text-[#9ca0a6]"
-                  />
-                  <input
-                    type="text" value={form.telepon} onChange={e => setForm({ ...form, telepon: e.target.value })}
-                    placeholder="Telepon (opsional)"
-                    className="w-full h-[52px] px-4 bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:bg-white focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] outline-none transition-all text-[17px] text-[#1c1e21] placeholder:text-[#9ca0a6]"
-                  />
-                  <input
-                    type="number" min={0} required value={form.nominal} onChange={e => setForm({ ...form, nominal: e.target.value })}
-                    placeholder="Nominal Pembayaran"
-                    className="w-full h-[52px] px-4 bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:bg-white focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] outline-none transition-all text-[17px] text-[#1c1e21] placeholder:text-[#9ca0a6]"
-                  />
-                </div>
+                <form
+                  onSubmit={
+                    step === 3
+                      ? handleFinalSubmit
+                      : (e) => {
+                          e.preventDefault()
+                          nextStep()
+                        }
+                  }
+                >
+                  {step === 1 && (
+                    <div className="space-y-8">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-full bg-[#eef1f6] flex items-center justify-center flex-shrink-0">
+                          <User size={16} className="text-[#0D1F3C]" />
+                        </div>
+                        <div>
+                          <h3 className="text-base font-semibold text-gray-800">Data Pendaftar</h3>
+                          <p className="text-sm text-gray-500">
+                            Silakan isi informasi dasar pendaftar di bawah ini.
+                          </p>
+                        </div>
+                      </div>
 
-                <textarea
-                  value={form.alamat} onChange={e => setForm({ ...form, alamat: e.target.value })}
-                  placeholder="Alamat (opsional)" rows={2}
-                  className="w-full px-4 py-3 bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:bg-white focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] outline-none transition-all text-[17px] text-[#1c1e21] placeholder:text-[#9ca0a6] resize-none"
-                />
+                      <div className="bg-[#f8f9fc] border border-[#e8eaf0] rounded-lg p-6">
+                        <h4 className="text-xs font-bold text-[#0D1F3C] uppercase tracking-wider mb-4">
+                          1. Informasi Dasar
+                        </h4>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <div className="flex gap-2">
-                      <input
-                        type="text" value={kodeKupon} onChange={e => { setKodeKupon(e.target.value.toUpperCase()); setValidasiKupon(null) }}
-                        placeholder="Kode Kupon"
-                        className="flex-1 h-[52px] px-4 bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:bg-white focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] outline-none transition-all text-[17px] text-[#1c1e21] placeholder:text-[#9ca0a6] font-mono"
-                      />
-                      <button type="button" onClick={cekKupon} disabled={!kodeKupon}
-                        className="px-4 h-[52px] bg-[#0D1F3C] text-white rounded-lg text-sm font-bold hover:bg-[#1a2d4a] disabled:opacity-50 transition-colors flex-none">
-                        Cek
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <div>
+                            <label className="sr-only">Nama Lengkap</label>
+                            <input
+                              type="text"
+                              required
+                              value={nama}
+                              onChange={e => setNama(e.target.value)}
+                              placeholder="Nama Lengkap"
+                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="sr-only">Password</label>
+                            <input
+                              type="password"
+                              required
+                              value={password}
+                              onChange={e => setPassword(e.target.value)}
+                              minLength={6}
+                              placeholder="Password (Min. 6 Karakter)"
+                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="mb-4">
+                          <label className="sr-only">Konfirmasi Password</label>
+                          <input
+                            type="password"
+                            required
+                            value={passwordConfirmation}
+                            onChange={e => setPasswordConfirmation(e.target.value)}
+                            minLength={6}
+                            placeholder="Konfirmasi Password"
+                            className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="sr-only">Email Aktif</label>
+                          <input
+                            type="email"
+                            required
+                            value={email}
+                            onChange={e => setEmail(e.target.value)}
+                            placeholder="Alamat Email Aktif"
+                            className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {step === 2 && (
+                    <div className="space-y-8">
+                      <div className="bg-[#f8f9fc] border border-[#e8eaf0] rounded-lg p-6">
+                        <h4 className="text-xs font-bold text-[#0D1F3C] uppercase tracking-wider mb-4">
+                          2. Detail Kontak & Nominal
+                        </h4>
+
+                        <div className="space-y-4">
+                          <div>
+                            <input
+                              type="text"
+                              value={telepon}
+                              onChange={e => setTelepon(e.target.value)}
+                              placeholder="Nomor Telepon (Contoh: 08123456789)"
+                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                            />
+                          </div>
+                          <div>
+                            <textarea
+                              value={alamat}
+                              onChange={e => setAlamat(e.target.value)}
+                              placeholder="Alamat Lengkap"
+                              rows={3}
+                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm resize-none"
+                            />
+                          </div>
+                          <div>
+                            <input
+                              type="number"
+                              required
+                              min={0}
+                              value={nominal}
+                              onChange={e => setNominal(e.target.value)}
+                              placeholder="Nominal Pembayaran"
+                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {step === 3 && (
+                    <div className="space-y-8">
+                      <div className="bg-[#f8f9fc] border border-[#e8eaf0] rounded-lg p-6">
+                        <h4 className="text-xs font-bold text-[#0D1F3C] uppercase tracking-wider mb-4">
+                          3. Ringkasan & Pembayaran
+                        </h4>
+
+                        <div className="mb-6 p-4 bg-white border border-gray-200 rounded text-sm">
+                          <p className="text-gray-500 mb-1">Program yang dipilih:</p>
+                          <p className="font-semibold text-gray-900">{link?.product?.nama}</p>
+                          <p className="font-bold text-[#0D1F3C] mt-2">
+                            Rp {Number(nominal || link?.product?.harga || 0).toLocaleString('id-ID')}
+                          </p>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Kode Kupon (Opsional)
+                            </label>
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={kodeKupon}
+                                onChange={e => {
+                                  setKodeKupon(e.target.value.toUpperCase())
+                                  setValidasiKupon(null)
+                                }}
+                                placeholder="Masukkan kode kupon"
+                                className="flex-1 px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm font-mono"
+                              />
+                              <button
+                                type="button"
+                                onClick={cekKupon}
+                                disabled={!kodeKupon}
+                                className="px-6 py-2.5 bg-[#0D1F3C] text-white rounded text-sm font-medium hover:bg-[#1a2d4a] disabled:opacity-50 transition-colors"
+                              >
+                                Terapkan
+                              </button>
+                            </div>
+                            {validasiKupon && (
+                              <div
+                                className={`mt-2 p-3 rounded text-sm ${validasiKupon.valid ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}
+                              >
+                                {validasiKupon.valid
+                                  ? `Berhasil! Total Bayar: Rp ${Number(validasiKupon.nominal_setelah_diskon).toLocaleString('id-ID')}`
+                                  : validasiKupon.message}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="pt-4 border-t border-gray-200">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Upload Bukti Pembayaran
+                            </label>
+
+                            {bukti && previewUrl ? (
+                              <div className="relative rounded-lg overflow-hidden border border-gray-200 bg-white mb-3">
+                                <img
+                                  src={previewUrl}
+                                  alt="Preview"
+                                  className="w-full h-48 object-contain bg-[#f7f8fa]"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setBukti(null)}
+                                  className="absolute top-2 right-2 w-7 h-7 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            ) : bukti && !previewUrl ? (
+                              <div className="relative rounded-lg border border-gray-200 bg-white p-4 mb-3 flex items-center gap-3">
+                                <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center flex-none">
+                                  <FileText size={20} className="text-red-500" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate">{bukti.name}</p>
+                                  <p className="text-xs text-gray-500">PDF</p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setBukti(null)}
+                                  className="w-7 h-7 bg-gray-100 text-gray-500 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors flex-none"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            ) : null}
+
+                            <div className="flex items-center justify-center w-full">
+                              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-white hover:bg-gray-50 transition-colors">
+                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                  <Upload className="w-8 h-8 mb-3 text-gray-400" />
+                                  <p className="text-sm text-gray-500 font-semibold">
+                                    {bukti ? 'Ganti file' : 'Klik untuk upload'}
+                                  </p>
+                                  <p className="text-xs text-gray-400 mt-1">
+                                    .JPG, .PNG, atau .PDF
+                                  </p>
+                                </div>
+                                <input
+                                  type="file"
+                                  className="hidden"
+                                  accept=".jpg,.jpeg,.png,.pdf"
+                                  required
+                                  onChange={e => setBukti(e.target.files?.[0] || null)}
+                                />
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Bottom Action Area */}
+                  <div className="mt-8 flex items-center gap-4">
+                    <label className="flex items-center gap-2 text-xs text-gray-500 flex-1">
+                      {step === 3 && (
+                        <>
+                          <input
+                            type="checkbox"
+                            required
+                            className="w-4 h-4 text-[#0D1F3C] border-gray-300 rounded focus:ring-[#0D1F3C]"
+                          />
+                          <span>
+                            Saya menyetujui syarat & ketentuan Mendunia dan memastikan data benar.
+                          </span>
+                        </>
+                      )}
+                    </label>
+
+                    <div className="flex gap-3">
+                      {step > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setStep(s => s - 1)}
+                          className="px-6 py-3 border border-gray-300 text-gray-700 rounded-md text-sm font-semibold hover:bg-gray-50 transition-colors"
+                        >
+                          Kembali
+                        </button>
+                      )}
+                      <button
+                        type="submit"
+                        disabled={submitting}
+                        className="px-8 py-3 bg-[#42b72a] text-white rounded-md text-sm font-semibold hover:bg-[#3ba124] transition-colors disabled:opacity-70 flex items-center gap-2"
+                      >
+                        {submitting ? (
+                          <Loader size={16} className="animate-spin" />
+                        ) : step === 3 ? (
+                          'Kirim Pendaftaran'
+                        ) : (
+                          'Selanjutnya'
+                        )}
                       </button>
                     </div>
-                    {validasiKupon && (
-                      <div className={`mt-2 p-2.5 rounded-lg text-sm ${validasiKupon.valid ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>
-                        {validasiKupon.valid ? (
-                          <>Diskon: Rp {Number(validasiKupon.diskon).toLocaleString('id-ID')} → Bayar: Rp {Number(validasiKupon.nominal_setelah_diskon).toLocaleString('id-ID')}</>
-                        ) : (
-                          validasiKupon.message
-                        )}
-                      </div>
-                    )}
                   </div>
-                  <div>
-                    <input
-                      type="file" accept="image/*,.pdf" required onChange={e => setFile(e.target.files?.[0] || null)}
-                      className="w-full h-[52px] pt-3.5 px-4 text-sm text-[#606770] file:mr-3 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-[#f5f6f7] file:text-[#0D1F3C] hover:file:bg-[#e4e6eb] file:cursor-pointer cursor-pointer bg-[#f5f6f7] border border-[#dddfe2] rounded-lg"
-                    />
-                  </div>
-                </div>
-
-                <button type="submit" disabled={submitting}
-                  className="w-full h-[48px] bg-[#0D1F3C] text-white rounded-lg font-bold text-xl hover:bg-[#1a2d4a] active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center mt-1">
-                  {submitting ? (
-                    <Loader size={20} className="animate-spin" />
-                  ) : (
-                    'Daftar Sekarang'
-                  )}
-                </button>
-              </form>
+                </form>
+              </div>
             </div>
           </div>
         </div>

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { absensiKaryawanApi, agendaApi, kelasSenseiApi } from '../../services/api'
 import { Camera, MapPin, CheckCircle, X, Calendar,
-  Plus, Users,
+  Plus, Users, User,
   ChevronRight, Briefcase, LogIn, LogOut,
   QrCode, FileText, History, Clock,
 } from 'lucide-react'
@@ -32,7 +32,7 @@ function formatDateFull(dateStr: string) {
 }
 
 interface RiwayatItem {
-  id: number
+  id: any
   tanggal: string
   jam_masuk: string | null
   jam_keluar: string | null
@@ -215,11 +215,11 @@ export default function KaryawanDashboard() {
       {/* Top Bar */}
       <div className="bg-white px-5 py-3.5 border-b border-[#E5E7EF] flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#0069b0] overflow-hidden flex items-center justify-center flex-none">
-            {user?.foto_profil ? (
-              <img src={`http://localhost:8000/uploads/karyawan/${user.foto_profil}`} alt="" className="w-full h-full object-cover" />
+          <div className="w-10 h-10 rounded-lg bg-[#eef1f6] overflow-hidden flex items-center justify-center flex-none">
+            {user?.foto_profil && user.foto_profil.trim() ? (
+              <img src={`http://localhost:8000/uploads/karyawan/${user.foto_profil}`} alt="" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
             ) : (
-              <span className="text-sm font-bold text-white">{user?.name?.charAt(0)?.toUpperCase() || '?'}</span>
+              <User size={20} className="text-[#8B90A0]" />
             )}
           </div>
           <div>

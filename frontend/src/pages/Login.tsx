@@ -39,6 +39,8 @@ export default function Login() {
         window.location.href = "/affiliate-dashboard";
       } else if (role === "KANDIDAT") {
         window.location.href = "/siswa-dashboard";
+      } else if (role === "GURU") {
+        window.location.href = "/guru-dashboard";
       } else if (role === "MANAGER" || role === "HR" || role === "ADMIN") {
         window.location.href = "/";
       } else {

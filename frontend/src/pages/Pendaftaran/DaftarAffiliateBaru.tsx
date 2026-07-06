@@ -50,44 +50,59 @@ export default function DaftarAffiliateBaru() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-3">
-            <input
-              type="text"
-              required
-              value={form.name}
-              onChange={e => setForm({ ...form, name: e.target.value })}
-              placeholder="Nama Lengkap"
-              className="w-full h-[52px] px-4 bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:bg-white focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] outline-none transition-all text-[17px] text-[#1c1e21] placeholder:text-[#9ca0a6]"
-            />
-            <input
-              type="email"
-              required
-              value={form.email}
-              onChange={e => setForm({ ...form, email: e.target.value })}
-              placeholder="Email"
-              className="w-full h-[52px] px-4 bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:bg-white focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] outline-none transition-all text-[17px] text-[#1c1e21] placeholder:text-[#9ca0a6]"
-            />
-            <input
-              type="password"
-              required
-              value={form.password}
-              onChange={e => setForm({ ...form, password: e.target.value })}
-              placeholder="Password (min 6 karakter)"
-              className="w-full h-[52px] px-4 bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:bg-white focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] outline-none transition-all text-[17px] text-[#1c1e21] placeholder:text-[#9ca0a6]"
-            />
-            <input
-              type="text"
-              value={form.telepon}
-              onChange={e => setForm({ ...form, telepon: e.target.value })}
-              placeholder="Telepon (opsional)"
-              className="w-full h-[52px] px-4 bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:bg-white focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] outline-none transition-all text-[17px] text-[#1c1e21] placeholder:text-[#9ca0a6]"
-            />
-            <textarea
-              value={form.alamat}
-              onChange={e => setForm({ ...form, alamat: e.target.value })}
-              placeholder="Alamat (opsional)"
-              rows={2}
-              className="w-full px-4 py-3 bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:bg-white focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] outline-none transition-all text-[17px] text-[#1c1e21] placeholder:text-[#9ca0a6] resize-none"
-            />
+            <div>
+              <label className="block text-sm font-semibold text-[#0D1F3C] mb-1">Nama Lengkap</label>
+              <input
+                type="text"
+                required
+                value={form.name}
+                onChange={e => setForm({ ...form, name: e.target.value })}
+                placeholder="Nama Lengkap"
+                className="w-full h-[52px] px-4 bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:bg-white focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] outline-none transition-all text-[17px] text-[#1c1e21] placeholder:text-[#9ca0a6]"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-[#0D1F3C] mb-1">Email</label>
+              <input
+                type="email"
+                required
+                value={form.email}
+                onChange={e => setForm({ ...form, email: e.target.value })}
+                placeholder="Email"
+                className="w-full h-[52px] px-4 bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:bg-white focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] outline-none transition-all text-[17px] text-[#1c1e21] placeholder:text-[#9ca0a6]"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-[#0D1F3C] mb-1">Password</label>
+              <input
+                type="password"
+                required
+                value={form.password}
+                onChange={e => setForm({ ...form, password: e.target.value })}
+                placeholder="Password (min 6 karakter)"
+                className="w-full h-[52px] px-4 bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:bg-white focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] outline-none transition-all text-[17px] text-[#1c1e21] placeholder:text-[#9ca0a6]"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-[#0D1F3C] mb-1">Telepon</label>
+              <input
+                type="text"
+                value={form.telepon}
+                onChange={e => setForm({ ...form, telepon: e.target.value })}
+                placeholder="Telepon (opsional)"
+                className="w-full h-[52px] px-4 bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:bg-white focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] outline-none transition-all text-[17px] text-[#1c1e21] placeholder:text-[#9ca0a6]"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-[#0D1F3C] mb-1">Alamat</label>
+              <textarea
+                value={form.alamat}
+                onChange={e => setForm({ ...form, alamat: e.target.value })}
+                placeholder="Alamat (opsional)"
+                rows={2}
+                className="w-full px-4 py-3 bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:bg-white focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] outline-none transition-all text-[17px] text-[#1c1e21] placeholder:text-[#9ca0a6] resize-none"
+              />
+            </div>
 
             <button
               type="submit"

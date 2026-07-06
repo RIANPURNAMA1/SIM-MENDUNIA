@@ -18,14 +18,14 @@ const dashboards = [
   },
   {
     id: 'kandidat',
-    title: 'Kandidat',
+    title: 'Dashboard Kandidat',
     description: 'Kelola data kandidat, pendaftaran, pembayaran, dan affiliate',
     icon: FileText,
     path: '/dashboard-kandidat',
   },
   {
     id: 'karyawan',
-    title: 'Data Karyawan',
+    title: 'Dashboard Karyawan',
     description: 'Kelola database karyawan perusahaan',
     icon: Briefcase,
     path: '/karyawan',

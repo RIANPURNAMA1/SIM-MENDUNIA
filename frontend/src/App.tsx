@@ -61,12 +61,15 @@ import PembayaranSiswa from './pages/Siswa/PembayaranSiswa'
 import AbsensiSaya from './pages/Absensi/AbsensiSaya'
 import LMS from './pages/Akademik/LMS'
 import DashboardManagement from './pages/Dashboard/DashboardManagement'
+import GuruDashboard from './pages/Guru/GuruDashboard'
+import GuruLayout from './layouts/GuruLayout'
 
 function AccessDenied({ role }: { role: string }) {
   const map: Record<string, { link: string; label: string }> = {
     AFFILIATE: { link: '/affiliate-dashboard', label: 'Dashboard Affiliate' },
     KANDIDAT: { link: '/siswa-dashboard', label: 'Dashboard Pendaftaran' },
     KARYAWAN: { link: '/dashboard-karyawan', label: 'Dashboard Karyawan' },
+    GURU: { link: '/guru-dashboard', label: 'Dashboard Guru' },
   }
   const info = map[role] || { link: '/login', label: 'Dashboard' }
   return (
@@ -170,6 +173,17 @@ function AppRoutes() {
         <Route path="pembayaran" element={<PembayaranSiswa />} />
         <Route path="lms" element={<LMS />} />
       </Route>
+
+      <Route
+        path="/guru-dashboard"
+        element={
+          <ProtectedRoute roleAllowed="GURU">
+            <GuruLayout>
+              <GuruDashboard />
+            </GuruLayout>
+          </ProtectedRoute>
+        }
+      />
 
       <Route
         path="/dashboard-karyawan"

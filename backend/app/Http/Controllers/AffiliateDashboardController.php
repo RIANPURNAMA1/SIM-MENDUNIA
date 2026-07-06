@@ -37,7 +37,15 @@ class AffiliateDashboardController extends Controller
         $totalKomisiPaid = KomisiAffiliate::whereIn('affiliate_link_id', $linkIds)
             ->where('status', 'paid')->sum('jumlah');
 
+        $user = Auth::guard('sanctum')->user();
+
         return response()->json([
+            'affiliate' => [
+                'name' => $user->name,
+                'email' => $user->email,
+                'telepon' => $user->no_hp,
+                'alamat' => $user->alamat,
+            ],
             'stats' => [
                 'total_links' => $totalLinks,
                 'total_views' => $totalViews,
