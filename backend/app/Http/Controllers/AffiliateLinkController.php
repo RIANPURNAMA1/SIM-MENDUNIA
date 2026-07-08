@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AffiliateLink;
+use App\Models\KomisiAffiliate;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -97,6 +98,14 @@ class AffiliateLinkController extends Controller
         $affiliates = User::where('role', 'AFFILIATE')
             ->withSum('affiliateLinks', 'pendaftar_count')
             ->withCount('affiliateLinks')
+            ->addSelect(['total_komisi_pending' => KomisiAffiliate::selectRaw('COALESCE(SUM(jumlah), 0)')
+                ->whereHas('affiliateLink', fn ($q) => $q->whereColumn('affiliate_id', 'users.id'))
+                ->where('status', 'pending'),
+            ])
+            ->addSelect(['total_komisi_paid' => KomisiAffiliate::selectRaw('COALESCE(SUM(jumlah), 0)')
+                ->whereHas('affiliateLink', fn ($q) => $q->whereColumn('affiliate_id', 'users.id'))
+                ->where('status', 'paid'),
+            ])
             ->orderBy('name')
             ->get(['id', 'name', 'email', 'status', 'created_at']);
 

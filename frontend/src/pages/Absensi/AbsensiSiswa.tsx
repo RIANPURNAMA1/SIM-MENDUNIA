@@ -230,30 +230,46 @@ export default function AbsensiSiswaPage() {
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
-          <ClipboardCheck className="w-6 h-6 text-indigo-600" />
-          <h1 className="text-xl font-bold text-gray-800">Absensi Siswa</h1>
+
+      {/* HEADER SECTION */}
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-[#E7F3FF] rounded-full">
+            <ClipboardCheck className="w-6 h-6 text-[#1877F2]" />
+          </div>
+          <h1 className="text-[24px] font-bold text-[#050505] tracking-tight">Absensi Siswa</h1>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={openModalManual} className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium">
-            <Plus className="w-4 h-4" /> Input Manual
+          {/* Secondary Button */}
+          <button onClick={openModalMassal} className="flex items-center gap-2 px-4 py-2 bg-[#E4E6EB] text-[#050505] rounded-md hover:bg-[#D8DADF] text-[15px] font-semibold transition-colors">
+            <Users className="w-[18px] h-[18px]" /> Absensi Massal
           </button>
-          <button onClick={openModalMassal} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium">
-            <Users className="w-4 h-4" /> Absensi Massal
+          {/* Primary Button */}
+          <button onClick={openModalManual} className="flex items-center gap-2 px-4 py-2 bg-[#1877F2] text-white rounded-md hover:bg-[#166FE5] text-[15px] font-semibold transition-colors">
+            <Plus className="w-[18px] h-[18px]" /> Input Manual
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4">
+      {/* FILTER SECTION */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
         <div className="flex flex-wrap items-end gap-3">
           <div className="w-44">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Tanggal</label>
-            <input type="date" value={filterTanggal} onChange={(e) => setFilterTanggal(e.target.value)} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
+            <label className="block text-[13px] font-semibold text-[#65676B] mb-1.5">Tanggal</label>
+            <input 
+              type="date" 
+              value={filterTanggal} 
+              onChange={(e) => setFilterTanggal(e.target.value)} 
+              className="w-full px-3 py-2 bg-[#F0F2F5] border-none rounded-md text-[15px] text-[#050505] focus:ring-2 focus:ring-[#1877F2] outline-none transition-shadow" 
+            />
           </div>
           <div className="w-56">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Kelas</label>
-            <select value={filterKelas} onChange={(e) => setFilterKelas(e.target.value)} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+            <label className="block text-[13px] font-semibold text-[#65676B] mb-1.5">Kelas</label>
+            <select 
+              value={filterKelas} 
+              onChange={(e) => setFilterKelas(e.target.value)} 
+              className="w-full px-3 py-2 bg-[#F0F2F5] border-none rounded-md text-[15px] text-[#050505] focus:ring-2 focus:ring-[#1877F2] outline-none transition-shadow cursor-pointer"
+            >
               <option value="">Semua Kelas</option>
               {kelasList.map((k) => (
                 <option key={k.id} value={k.id}>{k.nama_kelas}</option>
@@ -261,68 +277,74 @@ export default function AbsensiSiswaPage() {
             </select>
           </div>
           <div className="w-40">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
-            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+            <label className="block text-[13px] font-semibold text-[#65676B] mb-1.5">Status</label>
+            <select 
+              value={filterStatus} 
+              onChange={(e) => setFilterStatus(e.target.value)} 
+              className="w-full px-3 py-2 bg-[#F0F2F5] border-none rounded-md text-[15px] text-[#050505] focus:ring-2 focus:ring-[#1877F2] outline-none transition-shadow cursor-pointer"
+            >
               <option value="">Semua Status</option>
               {STATUS_OPTIONS.map((s) => (
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
           </div>
-          <button onClick={handleFilter} className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm">
-            <Search className="w-4 h-4" /> Cari
+          
+          <button onClick={handleFilter} className="flex items-center gap-1.5 px-4 py-2 bg-[#1877F2] text-white rounded-md hover:bg-[#166FE5] text-[15px] font-semibold transition-colors">
+            <Search className="w-[18px] h-[18px]" /> Cari
           </button>
-          <button onClick={resetFilter} className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 text-sm">
-            <RotateCcw className="w-4 h-4" /> Reset
+          <button onClick={resetFilter} className="flex items-center gap-1.5 px-4 py-2 bg-[#E4E6EB] text-[#050505] rounded-md hover:bg-[#D8DADF] text-[15px] font-semibold transition-colors">
+            <RotateCcw className="w-[18px] h-[18px]" /> Reset
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      {/* TABLE SECTION */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-10">#</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Siswa</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Kelas</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Jam Masuk</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Jam Pulang</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Keterangan</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-20">Aksi</th>
+              <tr className="border-b border-gray-200">
+                <th className="px-4 py-3.5 text-left text-[13px] font-semibold text-[#65676B] w-10">#</th>
+                <th className="px-4 py-3.5 text-left text-[13px] font-semibold text-[#65676B]">Siswa</th>
+                <th className="px-4 py-3.5 text-left text-[13px] font-semibold text-[#65676B]">Kelas</th>
+                <th className="px-4 py-3.5 text-left text-[13px] font-semibold text-[#65676B]">Jam Masuk</th>
+                <th className="px-4 py-3.5 text-left text-[13px] font-semibold text-[#65676B]">Jam Pulang</th>
+                <th className="px-4 py-3.5 text-left text-[13px] font-semibold text-[#65676B]">Status</th>
+                <th className="px-4 py-3.5 text-left text-[13px] font-semibold text-[#65676B]">Keterangan</th>
+                <th className="px-4 py-3.5 text-center text-[13px] font-semibold text-[#65676B] w-20">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                <tr><td colSpan={8} className="px-4 py-12 text-center text-sm text-gray-400">Memuat data...</td></tr>
+                <tr><td colSpan={8} className="px-4 py-12 text-center text-[15px] text-[#65676B]">Memuat data...</td></tr>
               ) : data.length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-12 text-center text-sm text-gray-400">Belum ada data absensi untuk tanggal ini</td></tr>
+                <tr><td colSpan={8} className="px-4 py-12 text-center text-[15px] text-[#65676B]">Belum ada data absensi untuk tanggal ini</td></tr>
               ) : data.map((item, idx) => (
-                <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm text-gray-500">{idx + 1}</td>
+                <tr key={item.id} className="hover:bg-[#F2F2F2] transition-colors">
+                  <td className="px-4 py-3 text-[15px] text-[#65676B]">{idx + 1}</td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <img src={fotoUrl(item.siswa)} alt="" className="w-8 h-8 rounded-full object-cover bg-gray-100" />
-                      <span className="text-sm font-medium text-gray-800">{item.siswa?.nama || "-"}</span>
+                    <div className="flex items-center gap-3">
+                      <img src={fotoUrl(item.siswa)} alt="" className="w-10 h-10 rounded-full object-cover border border-gray-200" />
+                      <span className="text-[15px] font-semibold text-[#050505]">{item.siswa?.nama || "-"}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-purple-100 text-purple-700">
+                    <span className="inline-flex px-2.5 py-1 text-[13px] font-semibold rounded-md bg-[#E4E6EB] text-[#050505]">
                       {kelasLabel(item)}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{item.jam_masuk || "-"}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{item.jam_keluar || "-"}</td>
+                  <td className="px-4 py-3 text-[15px] text-[#050505]">{item.jam_masuk || "-"}</td>
+                  <td className="px-4 py-3 text-[15px] text-[#050505]">{item.jam_keluar || "-"}</td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${STATUS_STYLE[item.status] || "bg-gray-100 text-gray-700"}`}>
+                    <span className={`inline-flex px-2.5 py-1 text-[13px] font-semibold rounded-md ${STATUS_STYLE[item.status] || "bg-[#E4E6EB] text-[#050505]"}`}>
                       {item.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-500 max-w-[200px] truncate">{item.keterangan || "-"}</td>
+                  <td className="px-4 py-3 text-[15px] text-[#65676B] max-w-[200px] truncate">{item.keterangan || "-"}</td>
                   <td className="px-4 py-3 text-center">
-                    <button onClick={() => openModalEdit(item)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg" title="Edit">
-                      <Pencil className="w-4 h-4" />
+                    <button onClick={() => openModalEdit(item)} className="p-2 text-[#65676B] hover:text-[#050505] hover:bg-[#E4E6EB] rounded-full transition-colors" title="Edit">
+                      <Pencil className="w-[18px] h-[18px]" />
                     </button>
                   </td>
                 </tr>

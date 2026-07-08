@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import api from '../services/api'
 import {
   LayoutDashboard, Users, Building2, MapPin, Timer, CalendarPlus, List,
   CalendarCheck, ClipboardList, FileText, Clock, Calendar, BarChart3,
@@ -74,6 +75,7 @@ const navItems: NavItem[] = [
       { label: 'Batch', icon: 'Layers', href: '/batches' },
       { label: 'Rekap Siswa', icon: 'BarChart3', href: '/rekap-siswa' },
       { label: 'Penilaian Siswa', icon: 'Notebook', href: '/penilaian' },
+      { label: 'LMS', icon: 'BookOpen', href: '/lms' },
     ],
   },
   {
@@ -82,7 +84,6 @@ const navItems: NavItem[] = [
     label: 'Manajemen Absensi',
     icon: 'CalendarCheck',
     children: [
-      { label: 'Dashboard Absensi', icon: 'LayoutDashboard', href: '/absensi' },
       { label: 'Kehadiran', icon: 'ClipboardList', href: '/data-kehadiran' },
       { label: 'Kehadiran Khusus', icon: 'Timer', href: '/data-kehadiran-khusus' },
       { label: 'Izin & Cuti', icon: 'FileText', href: '/izin-cuti' },
@@ -109,6 +110,7 @@ const navItems: NavItem[] = [
       { label: 'Daftar User', icon: 'List', href: '/daftar-user' },
       { label: 'Pengaturan Shift', icon: 'Settings', href: '/pengaturan-shift' },
       { label: 'Manajemen Akun', icon: 'UserCog', href: '/pengaturan' },
+      { label: 'Profil Perusahaan', icon: 'Building2', href: '/pengaturan-perusahaan' },
     ],
   },
   {
@@ -126,7 +128,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const path = location.pathname
   const { user, logout } = useAuth()
 
-  const filteredNavItems = navItems.map(item => {
+  const isRestricted = user?.role === 'KANDIDAT' || user?.role === 'AFFILIATE'
+
+  const filteredNavItems = isRestricted ? [] : navItems.map(item => {
     if (item.label === 'Program & Affiliate' && 'children' in item) {
       const group = item as NavGroup
       return {
@@ -138,6 +142,22 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     }
     return item
   })
+
+  const [pendingCount, setPendingCount] = useState(0)
+const [tagihanCount, setTagihanCount] = useState(0)
+
+  useEffect(() => {
+    if (isRestricted) return
+    const fetchPending = () => {
+      api.get('/pendaftar/pending-count').then(res => {
+        setPendingCount(res.data.count)
+        setTagihanCount(res.data.tagihan ?? 0)
+      }).catch(() => {})
+    }
+    fetchPending()
+    const interval = setInterval(fetchPending, 30000)
+    return () => clearInterval(interval)
+  }, [isRestricted])
 
   const isActive = (href: string) => {
     if (href === '/') return path === '/'
@@ -246,6 +266,16 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                         >
                           <ChildIcon size={14} />
                           <span>{child.label}</span>
+                          {child.label === 'Pendaftaran' && pendingCount > 0 && (
+                            <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+                              {pendingCount > 99 ? '99+' : pendingCount}
+                            </span>
+                          )}
+                          {child.label === 'Tagihan' && tagihanCount > 0 && (
+                            <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+                              {tagihanCount > 99 ? '99+' : tagihanCount}
+                            </span>
+                          )}
                         </Link>
                       )
                     })}

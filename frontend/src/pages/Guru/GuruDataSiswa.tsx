@@ -160,6 +160,20 @@ export default function GuruDataSiswa() {
   const [scoreInputs, setScoreInputs] = useState<Record<number, string>>({})
   const [loadingPenilaian, setLoadingPenilaian] = useState(false)
 
+  const [showKalenderModal, setShowKalenderModal] = useState(false)
+  const [kalenderSiswa, setKalenderSiswa] = useState<SiswaItem | null>(null)
+  const [kalenderData, setKalenderData] = useState<{
+    absensi: { hari: number; status: string; jam_masuk: string | null; jam_keluar: string | null }[]
+    month: number
+    year: number
+    daysInMonth: number
+    startDayOfWeek: number
+    monthName: string
+  } | null>(null)
+  const [kalenderMonth, setKalenderMonth] = useState(new Date().getMonth() + 1)
+  const [kalenderYear, setKalenderYear] = useState(new Date().getFullYear())
+  const [loadingKalender, setLoadingKalender] = useState(false)
+
   useEffect(() => {
     guruKelasApi.list().then(res => {
       setKelasList(res.data.kelas || [])
@@ -199,6 +213,44 @@ export default function GuruDataSiswa() {
     setTab(t)
     if (t === 'penilaian') {
       loadPenilaianHarian()
+    }
+  }
+
+  const openKalender = async (siswa: SiswaItem) => {
+    setKalenderSiswa(siswa)
+    setShowKalenderModal(true)
+    setLoadingKalender(true)
+    setKalenderData(null)
+    const now = new Date()
+    setKalenderMonth(now.getMonth() + 1)
+    setKalenderYear(now.getFullYear())
+    try {
+      const res = await absensiSiswaApi.kalender(siswa.id, { month: now.getMonth() + 1, year: now.getFullYear() })
+      setKalenderData(res.data)
+    } catch {
+      setKalenderData(null)
+    } finally {
+      setLoadingKalender(false)
+    }
+  }
+
+  const navigateKalender = async (dir: number) => {
+    if (!kalenderSiswa) return
+    const newMonth = kalenderMonth + dir
+    let m = newMonth
+    let y = kalenderYear
+    if (m < 1) { m = 12; y-- }
+    if (m > 12) { m = 1; y++ }
+    setKalenderMonth(m)
+    setKalenderYear(y)
+    setLoadingKalender(true)
+    try {
+      const res = await absensiSiswaApi.kalender(kalenderSiswa.id, { month: m, year: y })
+      setKalenderData(res.data)
+    } catch {
+      setKalenderData(null)
+    } finally {
+      setLoadingKalender(false)
     }
   }
 
@@ -505,7 +557,9 @@ export default function GuruDataSiswa() {
                         <tbody>
                           {penilaianHarian.siswa.map((s, idx) => (
                             <tr key={s.id} className={`border-t border-[#F0F1F5] ${idx % 2 === 0 ? 'bg-white' : 'bg-[#FAFBFC]'}`}>
-                              <td className="px-4 py-2 text-xs font-semibold text-[#14182B] sticky left-0 bg-inherit">{s.nama}</td>
+                          <td className="px-4 py-2 text-xs font-semibold text-[#0069b0] sticky left-0 bg-inherit">
+                            <button onClick={() => openKalender(s)} className="hover:underline text-left">{s.nama}</button>
+                          </td>
                               <td className="text-center px-2 py-2 text-[11px] font-semibold text-[#8B90A0]">{s.level || '-'}</td>
                               {penilaianHarian.dates.map(date => {
                                 const status = s.daily_status[date]
@@ -776,6 +830,83 @@ export default function GuruDataSiswa() {
           </div>
         )}
       </div>
+
+      {showKalenderModal && kalenderSiswa && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowKalenderModal(false)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+              <div>
+                <h3 className="text-sm font-bold text-gray-900">Kehadiran Siswa</h3>
+                <p className="text-[11px] text-gray-500 mt-0.5">{kalenderSiswa.nama}</p>
+              </div>
+              <button onClick={() => setShowKalenderModal(false)} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-5">
+              <div className="flex items-center justify-between mb-4">
+                <button onClick={() => navigateKalender(-1)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">
+                  <ChevronLeft size={18} />
+                </button>
+                <span className="text-sm font-bold text-gray-800">{kalenderData?.monthName || ''}</span>
+                <button onClick={() => navigateKalender(1)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">
+                  <ChevronLeft size={18} className="rotate-180" />
+                </button>
+              </div>
+
+              {loadingKalender ? (
+                <div className="py-8 text-center text-sm text-gray-400">Memuat data...</div>
+              ) : kalenderData ? (
+                <>
+                  <div className="grid grid-cols-7 gap-1 mb-2">
+                    {['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map(h => (
+                      <div key={h} className="text-center text-[10px] font-bold text-gray-400 py-1">{h}</div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-7 gap-1">
+                    {Array.from({ length: kalenderData.startDayOfWeek }).map((_, i) => (
+                      <div key={`empty-${i}`} />
+                    ))}
+                    {Array.from({ length: kalenderData.daysInMonth }).map((_, i) => {
+                      const hari = i + 1
+                      const absen = kalenderData.absensi.find(a => a.hari === hari)
+                      return (
+                        <div key={hari} className="flex flex-col items-center py-1.5">
+                          <span className="text-[10px] text-gray-400 mb-1">{hari}</span>
+                          {absen ? (
+                            <span className={`inline-flex items-center justify-center w-7 h-7 rounded text-[10px] font-bold ${
+                              absen.status === 'HADIR' ? 'bg-emerald-100 text-emerald-700' :
+                              absen.status === 'TERLAMBAT' ? 'bg-amber-100 text-amber-700' :
+                              absen.status === 'IZIN' ? 'bg-blue-100 text-blue-700' :
+                              absen.status === 'SAKIT' ? 'bg-sky-100 text-sky-700' :
+                              absen.status === 'ALPA' ? 'bg-rose-100 text-rose-700' :
+                              'bg-gray-100 text-gray-500'
+                            }`}>
+                              {STATUS_ABBR[absen.status] || absen.status[0]}
+                            </span>
+                          ) : (
+                            <span className="w-7 h-7" />
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {Object.entries(STATUS_ABBR).map(([key, abbr]) => (
+                      <span key={key} className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${STATUS_BG[key]}`}>
+                        {abbr}
+                      </span>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="py-8 text-center text-sm text-red-500">Gagal memuat data</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <KaryawanBottomNav
         activeTab="home"

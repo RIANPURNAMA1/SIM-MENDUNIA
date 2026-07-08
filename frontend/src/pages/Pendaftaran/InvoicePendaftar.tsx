@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Download, Printer, Loader, FileText, CheckCircle, Clock, XCircle } from 'lucide-react'
-import { pendaftarApi } from '../../services/api'
+import { pendaftarApi, companyProfileApi } from '../../services/api'
+import type { CompanyProfile } from '../../types'
 
 interface InvoiceData {
   no_invoice: string
@@ -41,21 +42,16 @@ interface InvoiceData {
 }
 
 const statusBadge = (status: string) => {
-  const map: Record<string, { bg: string; text: string; label: string }> = {
-    pending: { bg: 'bg-amber-50 border-amber-200', text: 'text-amber-700', label: 'Pending' },
-    disetujui: { bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700', label: 'Disetujui' },
-    ditolak: { bg: 'bg-red-50 border-red-200', text: 'text-red-600', label: 'Ditolak' },
-    unpaid: { bg: 'bg-slate-50 border-slate-200', text: 'text-slate-600', label: 'Belum Bayar' },
-    processing: { bg: 'bg-blue-50 border-blue-200', text: 'text-blue-700', label: 'Proses' },
-    verified: { bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700', label: 'Terverifikasi' },
+  const map: Record<string, string> = {
+    pending: 'Pending',
+    disetujui: 'Disetujui',
+    ditolak: 'Ditolak',
+    unpaid: 'Belum Bayar',
+    processing: 'Proses',
+    verified: 'Terverifikasi',
   }
-  const s = map[status] || { bg: 'bg-slate-50 border-slate-200', text: 'text-slate-600', label: status }
-  return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold ${s.bg} ${s.text}`}>
-      <span className={`h-1.5 w-1.5 rounded-full ${status === 'verified' || status === 'disetujui' ? 'bg-emerald-500' : status === 'ditolak' ? 'bg-red-500' : 'bg-amber-500'}`} />
-      {s.label}
-    </span>
-  )
+  const label = map[status] || status
+  return <span className="font-semibold text-slate-700">{label}</span>
 }
 
 export default function InvoicePendaftar() {
@@ -63,13 +59,20 @@ export default function InvoicePendaftar() {
   const navigate = useNavigate()
   const invoiceRef = useRef<HTMLDivElement>(null)
   const [data, setData] = useState<InvoiceData | null>(null)
+  const [company, setCompany] = useState<CompanyProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState(false)
 
   useEffect(() => {
     if (!id) return
-    pendaftarApi.invoice(Number(id))
-      .then(res => setData(res.data))
+    Promise.all([
+      pendaftarApi.invoice(Number(id)),
+      companyProfileApi.get(),
+    ])
+      .then(([invoiceRes, companyRes]) => {
+        setData(invoiceRes.data)
+        setCompany(companyRes.data.data)
+      })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [id])
@@ -150,7 +153,7 @@ export default function InvoicePendaftar() {
   return (
     <div className="min-h-screen bg-slate-50 px-3 py-4 sm:px-6 sm:py-5">
       {/* Toolbar */}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="no-print mb-4 flex flex-wrap items-center justify-between gap-3">
         <button
           onClick={() => navigate('/pendaftar')}
           className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
@@ -169,7 +172,7 @@ export default function InvoicePendaftar() {
           <button
             onClick={handleDownloadPdf}
             disabled={downloading}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#0D1F3C] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#1a2d4a] disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-lg bg-[#00C0FF] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#00a8e0] disabled:opacity-60"
           >
             {downloading ? <Loader size={16} className="animate-spin" /> : <Download size={16} />}
             {downloading ? 'Menyiapkan...' : 'Download PDF'}
@@ -178,27 +181,25 @@ export default function InvoicePendaftar() {
       </div>
 
       {/* Invoice */}
-      <div ref={invoiceRef} className="mx-auto max-w-[210mm] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg print:shadow-none print:border-0 print:rounded-none">
+      <div ref={invoiceRef} className="invoice-print mx-auto max-w-[210mm] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg print:shadow-none print:border-0 print:rounded-none">
         {/* Header */}
-        <div className="relative border-b border-slate-200 px-8 pb-6 pt-8 sm:px-12" style={{ borderBottom: '2px solid #0D1F3C' }}>
+        <div className="relative border-b border-slate-200 px-8 pb-6 pt-8 sm:px-12" style={{ borderBottom: '2px solid #00C0FF' }}>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-center gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#0D1F3C] p-2">
-                <img src="/logo-sm.png" alt="SIM Mendunia" className="h-full w-full object-contain brightness-0 invert" />
-              </div>
+              <img src={company?.logo_url || '/logo-sm.png'} alt="" className="h-10 w-auto" />
               <div>
-                <h1 className="text-xl font-bold tracking-tight text-[#0D1F3C]">SIM MENDUNIA</h1>
-                <p className="text-xs text-slate-500">Sistem Informasi Manajemen</p>
+                <h1 className="text-xl font-bold tracking-tight text-[#00C0FF]">{company?.company_name || 'MENDUNIA.ID'}</h1>
+                <p className="text-xs text-slate-500">{company?.pt_name || 'PT INDONESIA SUKSES MENDUNIA'}</p>
               </div>
             </div>
             <div className="text-left sm:text-right">
-              <h2 className="text-2xl font-bold tracking-wide text-[#0D1F3C]">INVOICE</h2>
+              <h2 className="text-2xl font-bold tracking-wide text-[#00C0FF]">INVOICE</h2>
               <p className="mt-1 text-xs text-slate-500 font-mono">{no_invoice}</p>
             </div>
           </div>
           <div className="mt-4 flex flex-col gap-1 text-xs text-slate-500">
-            <p>Jl. Contoh No. 123, Jakarta</p>
-            <p>Email: info@simmendunia.com | Telp: (021) 1234-5678</p>
+            <p>{company?.address || 'Jl. Contoh No. 123, Jakarta'}</p>
+            <p>{company?.email ? `Email: ${company.email}` : ''}{company?.email && company?.phone ? ' | ' : ''}{company?.phone ? `Telp: ${company.phone}` : ''}</p>
           </div>
         </div>
 
@@ -238,7 +239,7 @@ export default function InvoicePendaftar() {
           <div className="mb-8 overflow-hidden rounded-lg border border-slate-200">
             <table className="w-full border-collapse text-left text-sm">
               <thead>
-                <tr className="bg-[#0D1F3C] text-white">
+                <tr className="bg-[#00C0FF] text-white">
                   <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Deskripsi</th>
                   <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider">Jumlah</th>
                 </tr>
@@ -352,7 +353,7 @@ export default function InvoicePendaftar() {
         <div className="border-t border-slate-200 bg-slate-50 px-8 py-5 sm:px-12">
           <div className="flex flex-col items-center justify-between gap-3 text-center sm:flex-row sm:text-left">
             <div className="text-xs text-slate-400">
-              <p className="font-semibold text-slate-600">SIM MENDUNIA</p>
+              <p className="font-semibold text-slate-600">{company?.company_name || 'MENDUNIA.ID'}</p>
               <p>Invoice ini sah dan diproses secara elektronik</p>
             </div>
             <div className="text-xs text-slate-400">
@@ -366,11 +367,14 @@ export default function InvoicePendaftar() {
       {/* Print-specific styles */}
       <style>{`
         @media print {
-          body { background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; padding: 0; }
           @page { margin: 0; size: A4; }
           .print\\:shadow-none { box-shadow: none !important; }
           .print\\:border-0 { border: none !important; }
           .print\\:rounded-none { border-radius: 0 !important; }
+          .no-print { display: none !important; }
+          .print-only { display: block !important; }
+          .invoice-print { overflow: visible !important; }
         }
       `}</style>
     </div>

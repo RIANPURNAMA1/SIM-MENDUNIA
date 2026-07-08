@@ -57,8 +57,8 @@ export default function DataCoupon() {
       nilai: String(c.nilai),
       min_pembelian: String(c.min_pembelian),
       maks_penggunaan: c.maks_penggunaan ? String(c.maks_penggunaan) : '',
-      berlaku_mulai: c.berlaku_mulai || '',
-      berlaku_sampai: c.berlaku_sampai || '',
+      berlaku_mulai: c.berlaku_mulai ? c.berlaku_mulai.slice(0, 10) : '',
+      berlaku_sampai: c.berlaku_sampai ? c.berlaku_sampai.slice(0, 10) : '',
       status: c.status,
     })
     setShowModal(true)
@@ -185,7 +185,7 @@ export default function DataCoupon() {
                     <td className="border border-slate-200 px-4 py-3 text-center text-sm text-slate-500">{c.maks_penggunaan ?? '~'}</td>
                     <td className="border border-slate-200 px-4 py-3 text-center text-xs text-slate-500">
                       {c.berlaku_mulai || c.berlaku_sampai
-                        ? `${c.berlaku_mulai ?? '~'} - ${c.berlaku_sampai ?? '~'}`
+                        ? `${c.berlaku_mulai ? new Date(c.berlaku_mulai).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '~'} - ${c.berlaku_sampai ? new Date(c.berlaku_sampai).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '~'}`
                         : 'Tanpa batas'}
                     </td>
                     <td className="border border-slate-200 px-4 py-3 text-center">{statusBadge(c.status)}</td>

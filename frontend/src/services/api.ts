@@ -175,7 +175,7 @@ export const siswaApi = {
   store: (data: FormData) => api.post('/siswa', data, {
     headers: { 'Content-Type': 'multipart/form-data' },
   }),
-  update: (id: number, data: FormData) => api.put(`/siswa/${id}`, data, {
+  update: (id: number, data: FormData) => api.post(`/siswa/${id}`, data, {
     headers: { 'Content-Type': 'multipart/form-data' },
   }),
   destroy: (id: number) => api.delete(`/siswa/${id}`),
@@ -217,6 +217,8 @@ export const absensiSiswaApi = {
   siswaByKelas: (kelasId: number) => api.get('/absensi-siswa/siswa-by-kelas', { params: { kelas_id: kelasId } }),
   cek: (siswaId: number, tanggal: string) =>
     api.get('/absensi-siswa/cek', { params: { siswa_id: siswaId, tanggal } }),
+  kalender: (siswaId: number, params?: { month?: number; year?: number }) =>
+    api.get(`/absensi-siswa/${siswaId}/kalender`, { params }),
   rekap: (params?: Record<string, string | number | undefined>) =>
     api.get('/absensi-siswa/rekap', { params }),
 }
@@ -248,6 +250,13 @@ export const kelasSenseiApi = {
     api.get('/kelas-sensei', { params }),
   store: (data: Record<string, unknown>) => api.post('/kelas-sensei', data),
   destroy: (id: number) => api.delete(`/kelas-sensei/${id}`),
+}
+
+export const companyProfileApi = {
+  get: () => api.get('/company-profile'),
+  update: (data: FormData) => api.post('/company-profile', data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
 }
 
 export const pengaturanShiftApi = {
@@ -354,6 +363,29 @@ export const guruKelasApi = {
   penilaianHarian: (kelasId: number) => api.get(`/guru/penilaian-harian/${kelasId}`),
   simpanPenilaianHarian: (data: { siswa_id: number; kelas_sensei_id: number; tanggal: string; is_terisi: boolean; catatan?: string; scores?: { component_id: number; nilai: number | null }[] }) =>
     api.post('/guru/penilaian-harian', data),
+}
+
+export const lmsApi = {
+  courses: () => api.get('/lms/courses'),
+  courseDetail: (id: number) => api.get(`/lms/courses/${id}`),
+  lessonDetail: (id: number) => api.get(`/lms/lessons/${id}`),
+  completeLesson: (id: number) => api.post(`/lms/lessons/${id}/complete`),
+  uncompleteLesson: (id: number) => api.delete(`/lms/lessons/${id}/complete`),
+}
+
+export const lmsAdminApi = {
+  courses: () => api.get('/admin/lms/courses'),
+  storeCourse: (data: FormData) => api.post('/admin/lms/courses', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  updateCourse: (id: number, data: FormData) => api.post(`/admin/lms/courses/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  deleteCourse: (id: number) => api.delete(`/admin/lms/courses/${id}`),
+  lessons: (courseId: number) => api.get(`/admin/lms/courses/${courseId}/lessons`),
+  courseFiles: (courseId: number) => api.get(`/admin/lms/courses/${courseId}/files`),
+  storeLesson: (data: Record<string, unknown>) => api.post('/admin/lms/lessons', data),
+  updateLesson: (id: number, data: Record<string, unknown>) => api.post(`/admin/lms/lessons/${id}`, data),
+  deleteLesson: (id: number) => api.delete(`/admin/lms/lessons/${id}`),
+  upload: (data: FormData) => api.post('/admin/lms/upload', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  storeCourseFile: (data: FormData) => api.post('/admin/lms/files', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  deleteCourseFile: (id: number) => api.delete(`/admin/lms/files/${id}`),
 }
 
 export default api

@@ -4,12 +4,17 @@ import {
   GraduationCap, CheckCircle, Loader, User, MessageCircle,
   Upload, FileText, X,
 } from 'lucide-react'
-import { affiliateLinkApi, pendaftarApi, couponApi } from '../../services/api'
+import { affiliateLinkApi, pendaftarApi, couponApi, batchApi } from '../../services/api'
 
 interface LinkData {
   kode: string
   affiliate: { id: number; name: string; email: string }
   product: { id: number; nama: string; deskripsi: string; harga: number }
+}
+
+interface Batch {
+  id: number
+  nama_batch: string
 }
 
 const steps = [
@@ -43,13 +48,19 @@ export default function DaftarAffiliate() {
     message?: string
   } | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [batches, setBatches] = useState<Batch[]>([])
+  const [batchId, setBatchId] = useState('')
+  const [fileError, setFileError] = useState('')
+
+  useEffect(() => {
+    batchApi.list().then(res => setBatches(res.data.data || [])).catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (kode) {
       affiliateLinkApi.getByKode(kode)
         .then(res => {
           setLink(res.data)
-          setNominal(String(res.data.product.harga))
         })
         .catch(() => setError('Link tidak valid atau sudah tidak aktif'))
         .finally(() => setLoading(false))
@@ -71,7 +82,7 @@ export default function DaftarAffiliate() {
       const res = await couponApi.validate({
         kode: kodeKupon,
         product_id: link.product.id,
-        nominal: Number(nominal || link.product.harga),
+        nominal: link.product.harga,
       })
       setValidasiKupon(res.data)
     } catch (err: unknown) {
@@ -100,6 +111,7 @@ export default function DaftarAffiliate() {
     if (kodeKupon) fd.append('kode_kupon', kodeKupon)
     if (telepon) fd.append('telepon', telepon)
     if (alamat) fd.append('alamat', alamat)
+    if (batchId) fd.append('batch_id', batchId)
     fd.append('nominal', nominal)
     fd.append('bukti_pembayaran', bukti!)
 
@@ -129,11 +141,23 @@ export default function DaftarAffiliate() {
     setStep(s => Math.min(s + 1, 3))
   }
 
+  function handleBuktiChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] || null
+    setFileError('')
+    if (file && file.size > 5 * 1024 * 1024) {
+      setFileError('Ukuran file maksimal 5MB')
+      e.target.value = ''
+      return
+    }
+    setBukti(file)
+  }
+
   function handleFinalSubmit(e: FormEvent) {
     if (!bukti) {
       setError('Harap upload bukti pembayaran')
       return
     }
+    if (fileError) return
     handleSubmit(e)
   }
 
@@ -386,6 +410,19 @@ export default function DaftarAffiliate() {
                             className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
                           />
                         </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Batch</label>
+                          <select
+                            value={batchId}
+                            onChange={e => setBatchId(e.target.value)}
+                            className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm appearance-none cursor-pointer"
+                          >
+                            <option value="">Pilih Batch</option>
+                            {batches.map((b) => (
+                              <option key={b.id} value={b.id}>{b.nama_batch}</option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -393,9 +430,9 @@ export default function DaftarAffiliate() {
                   {step === 2 && (
                     <div className="space-y-8">
                       <div className="bg-[#f8f9fc] border border-[#e8eaf0] rounded-lg p-6">
-                        <h4 className="text-xs font-bold text-[#0D1F3C] uppercase tracking-wider mb-4">
-                          2. Detail Kontak & Nominal
-                        </h4>
+                          <h4 className="text-xs font-bold text-[#0D1F3C] uppercase tracking-wider mb-4">
+                           2. Detail Kontak
+                         </h4>
 
                         <div className="space-y-4">
                           <div>
@@ -416,17 +453,6 @@ export default function DaftarAffiliate() {
                               className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm resize-none"
                             />
                           </div>
-                          <div>
-                            <input
-                              type="number"
-                              required
-                              min={0}
-                              value={nominal}
-                              onChange={e => setNominal(e.target.value)}
-                              placeholder="Nominal Pembayaran"
-                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
-                            />
-                          </div>
                         </div>
                       </div>
                     </div>
@@ -442,9 +468,32 @@ export default function DaftarAffiliate() {
                         <div className="mb-6 p-4 bg-white border border-gray-200 rounded text-sm">
                           <p className="text-gray-500 mb-1">Program yang dipilih:</p>
                           <p className="font-semibold text-gray-900">{link?.product?.nama}</p>
-                          <p className="font-bold text-[#0D1F3C] mt-2">
-                            Rp {Number(nominal || link?.product?.harga || 0).toLocaleString('id-ID')}
-                          </p>
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-xs text-gray-500">Harga Program</span>
+                            <p className="font-bold text-[#0D1F3C]">
+                              Rp {Number(link?.product?.harga || 0).toLocaleString('id-ID')}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mb-6">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Nominal Pembayaran <span className="text-xs text-gray-400 font-normal">(isi jumlah yang ingin dibayarkan sekarang)</span>
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-500">Rp</span>
+                            <input
+                              type="text"
+                              required
+                              value={nominal ? Number(nominal).toLocaleString('id-ID') : ''}
+                              onChange={e => {
+                                const raw = e.target.value.replace(/\./g, '').replace(/,.*$/, '')
+                                if (raw === '' || /^\d+$/.test(raw)) setNominal(raw)
+                              }}
+                              placeholder="0"
+                              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                            />
+                          </div>
                         </div>
 
                         <div className="space-y-4">
@@ -538,10 +587,13 @@ export default function DaftarAffiliate() {
                                   className="hidden"
                                   accept=".jpg,.jpeg,.png,.pdf"
                                   required
-                                  onChange={e => setBukti(e.target.files?.[0] || null)}
+                                  onChange={handleBuktiChange}
                                 />
                               </label>
                             </div>
+                            {fileError && (
+                              <p className="mt-2 text-sm text-red-600">{fileError}</p>
+                            )}
                           </div>
                         </div>
                       </div>

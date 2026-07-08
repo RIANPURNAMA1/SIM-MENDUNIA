@@ -42,6 +42,7 @@ use App\Http\Controllers\AffiliateDashboardController;
 use App\Http\Controllers\SiswaDashboardController;
 use App\Http\Controllers\GuruDashboardController;
 use App\Http\Controllers\Api\CouponController;
+use App\Http\Controllers\CompanyProfileController;
 
 // ========== API Auth (Sanctum) ==========
 Route::post('/auth/login',    [AuthController::class, 'loginApi']);
@@ -220,14 +221,14 @@ Route::prefix('jadwal-level')->group(function () {
 Route::prefix('siswa')->group(function () {
     Route::get('/', [SiswaController::class, 'apiIndex']);
     Route::post('/', [SiswaController::class, 'store']);
-    Route::put('/{id}', [SiswaController::class, 'update']);
-    Route::delete('/{id}', [SiswaController::class, 'destroy']);
-    Route::post('/{id}/toggle-status', [SiswaController::class, 'toggleStatus']);
-    Route::post('/{id}/buatkan-akun', [SiswaController::class, 'buatkanAkun']);
     Route::post('/bulk-delete', [SiswaController::class, 'bulkDelete']);
     Route::post('/bulk-update-shift', [SiswaController::class, 'bulkUpdateShift']);
     Route::post('/import', [SiswaController::class, 'import']);
     Route::post('/import-ai', [SiswaController::class, 'importAi']);
+    Route::post('/{id}', [SiswaController::class, 'update']);
+    Route::delete('/{id}', [SiswaController::class, 'destroy']);
+    Route::post('/{id}/toggle-status', [SiswaController::class, 'toggleStatus']);
+    Route::post('/{id}/buatkan-akun', [SiswaController::class, 'buatkanAkun']);
 });
 
 // Batch
@@ -250,6 +251,7 @@ Route::prefix('absensi-siswa')->group(function () {
     Route::get('/rekap/export-excel', [AbsensiSiswaController::class, 'exportExcel']);
     Route::get('/rekap/export-pdf', [AbsensiSiswaController::class, 'exportPdf']);
     Route::get('/cek', [AbsensiSiswaController::class, 'cekAbsensiSiswa']);
+    Route::get('/{siswa}/kalender', [AbsensiSiswaController::class, 'kalenderJson']);
 });
 
 // Penilaian
@@ -274,6 +276,12 @@ Route::prefix('pengaturan-shift')->group(function () {
 Route::prefix('pengaturan-wa')->group(function () {
     Route::get('/', [PengaturanController::class, 'apiIndex']);
     Route::post('/', [PengaturanController::class, 'apiUpdate']);
+});
+
+// Company Profile
+Route::prefix('company-profile')->group(function () {
+    Route::get('/', [CompanyProfileController::class, 'show']);
+    Route::post('/', [CompanyProfileController::class, 'update']);
 });
 
 // AI Chat
@@ -313,6 +321,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::prefix('pendaftar')->group(function () {
         Route::get('/', [PendaftaranController::class, 'index']);
+        Route::get('/pending-count', [PendaftaranController::class, 'pendingCount']);
         Route::get('/{id}', [PendaftaranController::class, 'show']);
         Route::get('/{id}/invoice', [PendaftaranController::class, 'invoice']);
         Route::post('/{id}/approve', [PendaftaranController::class, 'approve']);
@@ -320,6 +329,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{id}/verify-payment', [PendaftaranController::class, 'verifyPayment']);
         Route::post('/{id}/bayar', [PendaftaranController::class, 'bayar']);
         Route::post('/{id}/bayar-manual', [PendaftaranController::class, 'bayarManual']);
+        Route::get('/pending-count', [PendaftaranController::class, 'pendingCount']);
         Route::get('/{id}/riwayat-pembayaran', [PendaftaranController::class, 'riwayatPembayaran']);
         Route::delete('/{id}', [PendaftaranController::class, 'destroy']);
     });
@@ -339,6 +349,31 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/guru/profile', [GuruDashboardController::class, 'profile']);
     Route::post('/siswa/profile', [SiswaDashboardController::class, 'updateProfile']);
     Route::get('/siswa/absensi-saya', [SiswaDashboardController::class, 'absensiSaya']);
+
+    // LMS
+    Route::prefix('lms')->group(function () {
+        Route::get('/courses', [LmsController::class, 'courses']);
+        Route::get('/courses/{id}', [LmsController::class, 'courseDetail']);
+        Route::get('/lessons/{id}', [LmsController::class, 'lessonDetail']);
+        Route::post('/lessons/{id}/complete', [LmsController::class, 'completeLesson']);
+        Route::delete('/lessons/{id}/complete', [LmsController::class, 'uncompleteLesson']);
+    });
+
+    // LMS Admin
+    Route::prefix('admin/lms')->group(function () {
+        Route::get('/courses', [LmsController::class, 'adminCourses']);
+        Route::post('/courses', [LmsController::class, 'storeCourse']);
+        Route::post('/courses/{id}', [LmsController::class, 'updateCourse']);
+        Route::delete('/courses/{id}', [LmsController::class, 'deleteCourse']);
+        Route::get('/courses/{courseId}/lessons', [LmsController::class, 'adminLessons']);
+        Route::get('/courses/{courseId}/files', [LmsController::class, 'adminCourseFiles']);
+        Route::post('/lessons', [LmsController::class, 'storeLesson']);
+        Route::post('/lessons/{id}', [LmsController::class, 'updateLesson']);
+        Route::delete('/lessons/{id}', [LmsController::class, 'deleteLesson']);
+        Route::post('/upload', [LmsController::class, 'upload']);
+        Route::post('/files', [LmsController::class, 'storeCourseFile']);
+        Route::delete('/files/{id}', [LmsController::class, 'deleteCourseFile']);
+    });
 });
 
 // Public — daftar langsung tanpa affiliate

@@ -535,3 +535,14 @@ export interface DetailResponse {
   cabang: Cabang[]
   shifts: Shift[]
 }
+
+export interface CompanyProfile {
+  id: number
+  company_name: string
+  pt_name: string
+  address: string
+  email: string
+  phone: string
+  logo: string | null
+  logo_url: string | null
+}

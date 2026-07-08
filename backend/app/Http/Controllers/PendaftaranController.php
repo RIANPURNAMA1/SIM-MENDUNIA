@@ -69,7 +69,7 @@ class PendaftaranController extends Controller
             'telepon' => 'nullable|string|max:20',
             'alamat' => 'nullable|string',
             'nominal' => 'required|numeric|min:0',
-            'bukti_pembayaran' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'bukti_pembayaran' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
         ]);
 
         $kupon = $this->applyCoupon($data['kode_kupon'] ?? null, $data['product_id'], $data['nominal']);
@@ -119,7 +119,7 @@ class PendaftaranController extends Controller
             'telepon' => 'nullable|string|max:20',
             'alamat' => 'nullable|string',
             'nominal' => 'required|numeric|min:0',
-            'bukti_pembayaran' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'bukti_pembayaran' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
         ]);
 
         $link = AffiliateLink::with('product')->where('kode', $data['kode_link'])->firstOrFail();
@@ -167,7 +167,7 @@ class PendaftaranController extends Controller
 
     public function index(Request $request)
     {
-        $query = Pendaftar::with(['affiliateLink.affiliate', 'product', 'user', 'coupon']);
+        $query = Pendaftar::with(['affiliateLink.affiliate', 'product', 'user', 'coupon', 'batch']);
 
         if ($request->status_pendaftaran) {
             $query->where('status_pendaftaran', $request->status_pendaftaran);
@@ -190,7 +190,7 @@ class PendaftaranController extends Controller
 
     public function show($id)
     {
-        $pendaftar = Pendaftar::with(['affiliateLink.affiliate', 'product', 'user', 'coupon'])->findOrFail($id);
+        $pendaftar = Pendaftar::with(['affiliateLink.affiliate', 'product', 'user', 'coupon', 'batch'])->findOrFail($id);
         return response()->json($pendaftar);
     }
 
@@ -251,6 +251,13 @@ class PendaftaranController extends Controller
             ->update(['status' => 'verified']);
 
         return response()->json(['message' => 'Pembayaran terverifikasi']);
+    }
+
+    public function pendingCount()
+    {
+        $pendaftaran = Pendaftar::where('status_pendaftaran', 'pending')->count();
+        $tagihan = Pendaftar::where('status_pembayaran', 'processing')->count();
+        return response()->json(['count' => $pendaftaran, 'tagihan' => $tagihan]);
     }
 
     public function allPembayaran(Request $request)
@@ -383,12 +390,13 @@ class PendaftaranController extends Controller
         $tagihan = ($pendaftar->product?->harga ?? 0) - ($pendaftar->diskon ?? 0);
         $totalDibayar = $pendaftar->fresh()->nominal ?? 0;
 
-        $pendaftar->status_pembayaran = $totalDibayar >= $tagihan ? 'verified' : 'partial';
+        $pendaftar->status_pembayaran = $totalDibayar >= $tagihan ? 'verified' : 'processing';
         $pendaftar->save();
 
         Pembayaran::create([
             'pendaftar_id' => $pendaftar->id,
             'jumlah' => $request->jumlah,
+            'bukti_pembayaran' => 'manual',
             'status' => 'verified',
         ]);
 

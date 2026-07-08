@@ -1,11 +1,11 @@
+import { useState, useEffect, useMemo } from 'react'
+import { Search, CheckCircle, XCircle, FileText, Eye, Trash2, CheckSquare, RotateCcw, Users, CreditCard, X, Loader, Receipt, AlertTriangle } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { pendaftarApi } from '../../services/api'
+
 function fmt(n: number) {
   return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
 }
-
-import { useState, useEffect, useMemo } from 'react'
-import { Search, CheckCircle, XCircle, FileText, Eye, Trash2, CheckSquare, RotateCcw, Users, CreditCard, X, Loader, Receipt } from 'lucide-react'
-import { Link } from 'react-router-dom'
-import { pendaftarApi } from '../../services/api'
 
 interface PendaftarItem {
   id: number
@@ -20,6 +20,15 @@ interface PendaftarItem {
   created_at: string
   product: { nama: string } | null
   user: { id: number; name: string } | null
+  batch: { id: number; nama_batch: string } | null
+}
+
+interface ConfirmModal {
+  open: boolean
+  title: string
+  message: string
+  type: 'approve' | 'reject' | 'delete'
+  id: number | null
 }
 
 export default function Pendaftar() {
@@ -28,10 +37,12 @@ export default function Pendaftar() {
   const [search, setSearch] = useState('')
   const [filterDaftar, setFilterDaftar] = useState('')
   const [filterBayar, setFilterBayar] = useState('')
+  const [filterBatch, setFilterBatch] = useState('')
   const [previewImg, setPreviewImg] = useState<string | null>(null)
   const [riwayatModal, setRiwayatModal] = useState<{ id: number; nama: string } | null>(null)
   const [riwayatData, setRiwayatData] = useState<any[]>([])
   const [riwayatLoading, setRiwayatLoading] = useState(false)
+  const [confirm, setConfirm] = useState<ConfirmModal>({ open: false, title: '', message: '', type: 'approve', id: null })
 
   useEffect(() => {
     fetchData()
@@ -46,11 +57,11 @@ export default function Pendaftar() {
   }
 
   function handleApprove(id: number) {
-    if (confirm('Setujui pendaftar ini?')) pendaftarApi.approve(id).then(fetchData)
+    setConfirm({ open: true, title: 'Setujui Pendaftar', message: 'Setujui pendaftar ini?', type: 'approve', id })
   }
 
   function handleReject(id: number) {
-    if (confirm('Tolak pendaftar ini?')) pendaftarApi.reject(id).then(fetchData)
+    setConfirm({ open: true, title: 'Tolak Pendaftar', message: 'Tolak pendaftar ini?', type: 'reject', id })
   }
 
   function handleVerifyPayment(id: number) {
@@ -58,7 +69,15 @@ export default function Pendaftar() {
   }
 
   function handleDelete(id: number) {
-    if (confirm('Yakin ingin menghapus pendaftar ini?')) pendaftarApi.destroy(id).then(fetchData)
+    setConfirm({ open: true, title: 'Hapus Pendaftar', message: 'Yakin ingin menghapus pendaftar ini?', type: 'delete', id })
+  }
+
+  function executeConfirm() {
+    if (!confirm.id) return
+    const action = confirm.type === 'approve' ? pendaftarApi.approve(confirm.id)
+      : confirm.type === 'reject' ? pendaftarApi.reject(confirm.id)
+      : pendaftarApi.destroy(confirm.id)
+    action.then(fetchData).finally(() => setConfirm({ open: false, title: '', message: '', type: 'approve', id: null }))
   }
 
   function openRiwayat(id: number, nama: string) {
@@ -73,6 +92,7 @@ export default function Pendaftar() {
     setSearch('')
     setFilterDaftar('')
     setFilterBayar('')
+    setFilterBatch('')
   }
 
   const filtered = useMemo(() => {
@@ -80,9 +100,16 @@ export default function Pendaftar() {
       const matchSearch = !search || p.nama.toLowerCase().includes(search.toLowerCase()) || p.email.toLowerCase().includes(search.toLowerCase())
       const matchDaftar = !filterDaftar || p.status_pendaftaran === filterDaftar
       const matchBayar = !filterBayar || p.status_pembayaran === filterBayar
-      return matchSearch && matchDaftar && matchBayar
+      const matchBatch = !filterBatch || p.batch?.nama_batch === filterBatch
+      return matchSearch && matchDaftar && matchBayar && matchBatch
     })
-  }, [data, search, filterDaftar, filterBayar])
+  }, [data, search, filterDaftar, filterBayar, filterBatch])
+
+  const batchList = useMemo(() => {
+    const set = new Set<string>()
+    data.forEach(p => { if (p.batch?.nama_batch) set.add(p.batch.nama_batch) })
+    return Array.from(set).sort()
+  }, [data])
 
   const stats = useMemo(() => ({
     total: data.length,
@@ -188,6 +215,13 @@ export default function Pendaftar() {
             <option value="processing">Proses</option>
             <option value="verified">Terverifikasi</option>
           </select>
+          <select value={filterBatch} onChange={e => setFilterBatch(e.target.value)}
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            <option value="">Semua Batch</option>
+            {batchList.map(b => (
+              <option key={b} value={b}>{b}</option>
+            ))}
+          </select>
           <button
             onClick={resetFilter}
             className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-200"
@@ -205,6 +239,7 @@ export default function Pendaftar() {
             <tr>
               <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Nama</th>
               <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Program</th>
+              <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Batch</th>
               <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium">Nominal</th>
               <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium">Diskon</th>
               <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Status Daftar</th>
@@ -217,7 +252,7 @@ export default function Pendaftar() {
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i}>
-                  <td colSpan={8} className="border border-slate-200 px-4 py-3">
+                  <td colSpan={9} className="border border-slate-200 px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="h-8 w-8 rounded-full bg-slate-200/70" />
                       <div className="flex-1 space-y-2">
@@ -230,7 +265,7 @@ export default function Pendaftar() {
               ))
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={8} className="border border-slate-200 px-6 py-10 text-center">
+                <td colSpan={9} className="border border-slate-200 px-6 py-10 text-center">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
                     <Users size={24} />
                   </div>
@@ -254,6 +289,7 @@ export default function Pendaftar() {
                     </div>
                   </td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">{p.product?.nama || '-'}</td>
+                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">{p.batch?.nama_batch || '-'}</td>
                   <td className="border border-slate-200 px-4 py-3 text-right text-sm font-medium text-slate-800">
                     {p.nominal ? `Rp ${Number(p.nominal).toLocaleString('id-ID')}` : '-'}
                   </td>
@@ -374,6 +410,35 @@ export default function Pendaftar() {
             </div>
             <div className="border-t border-gray-100 px-5 py-3 text-center">
               <button onClick={() => setRiwayatModal(null)} className="text-sm text-gray-500 hover:text-gray-700">Tutup</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Modal */}
+      {confirm.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setConfirm({ ...confirm, open: false })}>
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex flex-col items-center text-center">
+              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
+                <AlertTriangle size={24} className="text-amber-600" />
+              </div>
+              <h3 className="text-base font-semibold text-gray-900">{confirm.title}</h3>
+              <p className="mt-1 text-sm text-gray-500">{confirm.message}</p>
+            </div>
+            <div className="mt-5 flex justify-center gap-3">
+              <button onClick={() => setConfirm({ ...confirm, open: false })}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+                Batal
+              </button>
+              <button onClick={executeConfirm}
+                className={`rounded-lg px-4 py-2 text-sm font-medium text-white transition ${
+                  confirm.type === 'approve' ? 'bg-emerald-600 hover:bg-emerald-700' :
+                  confirm.type === 'delete' ? 'bg-red-600 hover:bg-red-700' :
+                  'bg-slate-600 hover:bg-slate-700'
+                }`}>
+                {confirm.type === 'approve' ? 'Setujui' : confirm.type === 'reject' ? 'Tolak' : 'Hapus'}
+              </button>
             </div>
           </div>
         </div>

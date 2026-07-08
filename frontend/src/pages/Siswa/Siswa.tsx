@@ -271,13 +271,6 @@ export default function SiswaPage() {
         <input type="text" value={form.nama} onChange={(e) => setForm({ ...form, nama: e.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required />
       </div>
       <div>
-        <label className="mb-1 block text-xs font-semibold text-slate-500">Kelas</label>
-        <select value={form.kelas_id} onChange={(e) => setForm({ ...form, kelas_id: e.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-          <option value="">- Pilih -</option>
-          {kelasList.map((k) => <option key={k.id} value={k.id}>{k.nama_kelas}</option>)}
-        </select>
-      </div>
-      <div>
         <label className="mb-1 block text-xs font-semibold text-slate-500">Shift</label>
         <select value={form.shift_id} onChange={(e) => setForm({ ...form, shift_id: e.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
           <option value="">- Pilih -</option>

@@ -1,6 +1,6 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { useParams } from "react-router-dom";
-import { productApi, pendaftarApi, couponApi } from "../../services/api";
+import { productApi, pendaftarApi, couponApi, batchApi } from "../../services/api";
 import {
   GraduationCap,
   ChevronRight,
@@ -23,6 +23,11 @@ interface Product {
   status: string;
 }
 
+interface Batch {
+  id: number;
+  nama_batch: string;
+}
+
 const steps = [
   { id: 1, label: "Data Diri", desc: "Informasi dasar pendaftar" },
   { id: 2, label: "Kontak", desc: "Informasi komunikasi" },
@@ -41,7 +46,10 @@ export default function DaftarProgram() {
   const [password, setPassword] = useState("");
   const [telepon, setTelepon] = useState("");
   const [alamat, setAlamat] = useState("");
+  const [nominal, setNominal] = useState("");
   const [bukti, setBukti] = useState<File | null>(null);
+  const [batches, setBatches] = useState<Batch[]>([]);
+  const [batchId, setBatchId] = useState("");
   const [kodeKupon, setKodeKupon] = useState("");
   const [validasiKupon, setValidasiKupon] = useState<{
     valid: boolean;
@@ -53,6 +61,7 @@ export default function DaftarProgram() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [fileError, setFileError] = useState("");
 
   useEffect(() => {
     productApi
@@ -62,12 +71,18 @@ export default function DaftarProgram() {
         setProducts(active);
         if (id) {
           const found = active.find((p: Product) => String(p.id) === id);
-          if (found) setSelectedProduct(found);
+          if (found) {
+            setSelectedProduct(found);
+          }
         }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    batchApi.list().then(res => setBatches(res.data.data || [])).catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (bukti && bukti.type.startsWith("image/")) {
@@ -84,7 +99,7 @@ export default function DaftarProgram() {
       const res = await couponApi.validate({
         kode: kodeKupon,
         product_id: selectedProduct.id,
-        nominal: Number(selectedProduct.harga),
+        nominal: Number(nominal || selectedProduct.harga),
       });
       setValidasiKupon(res.data);
     } catch (err: unknown) {
@@ -110,11 +125,15 @@ export default function DaftarProgram() {
       formData.append("password", password);
       if (telepon) formData.append("telepon", telepon);
       if (alamat) formData.append("alamat", alamat);
-      formData.append("nominal", String(selectedProduct.harga));
+      if (batchId) formData.append("batch_id", batchId);
+      formData.append("nominal", nominal);
       formData.append("bukti_pembayaran", bukti!);
 
       await pendaftarApi.daftarLangsung(formData);
       setSuccess(true);
+      setTimeout(() => {
+        window.location.href = '/login'
+      }, 1500)
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data
@@ -134,11 +153,23 @@ export default function DaftarProgram() {
     setStep((s) => Math.min(s + 1, 3));
   }
 
+  function handleBuktiChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] || null
+    setFileError("")
+    if (file && file.size > 5 * 1024 * 1024) {
+      setFileError("Ukuran file maksimal 5MB")
+      e.target.value = ""
+      return
+    }
+    setBukti(file)
+  }
+
   function handleFinalSubmit(e: FormEvent) {
     if (!bukti) {
       setError("Harap upload bukti pembayaran");
       return;
     }
+    if (fileError) return
     handleSubmit(e);
   }
 
@@ -190,10 +221,18 @@ export default function DaftarProgram() {
     }
 
     if (success) {
-      // ... (Keep existing success view) ...
       return (
-        <div className="p-8 text-center text-green-600 font-bold">
-          Pendaftaran Berhasil!
+        <div className="min-h-screen bg-[#f0f2f5] flex items-center justify-center px-4">
+          <div className="bg-white rounded-lg shadow-[0_2px_4px_rgba(0,0,0,.1),0_8px_16px_rgba(0,0,0,.1)] p-8 max-w-md w-full text-center fade-in">
+            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle size={32} className="text-emerald-600" />
+            </div>
+            <h1 className="text-xl font-bold text-[#1c1e21] mb-2">Pendaftaran Berhasil!</h1>
+            <p className="text-sm text-[#606770]">Silakan login untuk melanjutkan...</p>
+            <div className="mt-6 flex justify-center">
+              <div className="w-8 h-8 border-2 border-[#0D1F3C]/30 border-t-[#0D1F3C] rounded-full animate-spin" />
+            </div>
+          </div>
         </div>
       );
     }
@@ -374,6 +413,19 @@ export default function DaftarProgram() {
                               className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
                             />
                           </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Batch</label>
+                            <select
+                              value={batchId}
+                              onChange={(e) => setBatchId(e.target.value)}
+                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm appearance-none cursor-pointer"
+                            >
+                              <option value="">Pilih Batch</option>
+                              {batches.map((b) => (
+                                <option key={b.id} value={b.id}>{b.nama_batch}</option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -423,12 +475,32 @@ export default function DaftarProgram() {
                             <p className="font-semibold text-gray-900">
                               {selectedProduct.nama}
                             </p>
-                            <p className="font-bold text-[#0D1F3C] mt-2">
-                              Rp{" "}
-                              {Number(selectedProduct.harga).toLocaleString(
-                                "id-ID",
-                              )}
-                            </p>
+                            <div className="flex items-center justify-between mt-2">
+                              <span className="text-xs text-gray-500">Harga Program</span>
+                              <p className="font-bold text-[#0D1F3C]">
+                                Rp {Number(selectedProduct.harga).toLocaleString("id-ID")}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mb-6">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Nominal Pembayaran <span className="text-xs text-gray-400 font-normal">(isi jumlah yang ingin dibayarkan sekarang)</span>
+                            </label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-500">Rp</span>
+                              <input
+                                type="text"
+                                required
+                                value={nominal ? Number(nominal).toLocaleString('id-ID') : ''}
+                                onChange={e => {
+                                  const raw = e.target.value.replace(/\./g, '').replace(/,.*$/, '')
+                                  if (raw === '' || /^\d+$/.test(raw)) setNominal(raw)
+                                }}
+                                placeholder="0"
+                                className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                              />
+                            </div>
                           </div>
 
                           <div className="space-y-4">
@@ -522,12 +594,13 @@ export default function DaftarProgram() {
                                     className="hidden"
                                     accept=".jpg,.jpeg,.png,.pdf"
                                     required
-                                    onChange={(e) =>
-                                      setBukti(e.target.files?.[0] || null)
-                                    }
+                                    onChange={handleBuktiChange}
                                   />
                                 </label>
                               </div>
+                              {fileError && (
+                                <p className="mt-2 text-sm text-red-600">{fileError}</p>
+                              )}
                             </div>
                           </div>
                         </div>

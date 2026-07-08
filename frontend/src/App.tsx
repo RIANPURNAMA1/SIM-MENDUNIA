@@ -39,6 +39,7 @@ import AiChat from './pages/AiChat'
 import Pengaturan from './pages/Pengaturan/Pengaturan'
 import PengaturanShift from './pages/Karyawan/PengaturanShift'
 import PengaturanWa from './pages/Pengaturan/PengaturanWa'
+import CompanyProfile from './pages/Pengaturan/CompanyProfile'
 import DataKandidat from './pages/Pendaftaran/DataKandidat'
 import Pendaftar from './pages/Pendaftaran/Pendaftar'
 import InvoicePendaftar from './pages/Pendaftaran/InvoicePendaftar'
@@ -63,6 +64,8 @@ import SiswaLayout from './layouts/SiswaLayout'
 import PembayaranSiswa from './pages/Siswa/PembayaranSiswa'
 import AbsensiSaya from './pages/Absensi/AbsensiSaya'
 import LMS from './pages/Akademik/LMS'
+import DataCourse from './pages/Akademik/DataCourse'
+import DataLesson from './pages/Akademik/DataLesson'
 import DashboardManagement from './pages/Dashboard/DashboardManagement'
 import GuruDashboard from './pages/Guru/GuruDashboard'
 import GuruDataSiswa from './pages/Guru/GuruDataSiswa'
@@ -270,7 +273,7 @@ function AppRoutes() {
       <Route
         path="/*"
         element={
-          <ProtectedRoute roleBlocked={['KARYAWAN', 'GURU']}>
+          <ProtectedRoute roleBlocked={['KARYAWAN', 'GURU', 'KANDIDAT', 'AFFILIATE']}>
             <DashboardLayout>
               <Routes>
                 <Route path="/dashboard-absensi" element={<DashboardAbsensi />} />
@@ -306,10 +309,13 @@ function AppRoutes() {
                 <Route path="/absensi-guru-cabang" element={<AbsensiGuruCabang />} />
                 <Route path="/rekap-siswa" element={<RekapSiswa />} />
                 <Route path="/penilaian" element={<Penilaian />} />
+                <Route path="/lms" element={<DataCourse />} />
+                <Route path="/lms/:courseId/lessons" element={<DataLesson />} />
                 <Route path="/ai-chat" element={<AiChat />} />
                 <Route path="/pengaturan" element={<Pengaturan />} />
                 <Route path="/pengaturan-shift" element={<PengaturanShift />} />
                 <Route path="/pengaturan-wa" element={<PengaturanWa />} />
+                <Route path="/pengaturan-perusahaan" element={<CompanyProfile />} />
                 <Route path="/data-kandidat" element={<DataKandidat />} />
                 <Route path="/pendaftar" element={<Pendaftar />} />
                 <Route path="/pendaftar/:id/invoice" element={<InvoicePendaftar />} />

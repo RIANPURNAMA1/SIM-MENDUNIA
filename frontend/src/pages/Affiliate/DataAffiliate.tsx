@@ -35,6 +35,8 @@ interface AffiliateStat {
   created_at: string
   affiliate_links_count: number
   affiliate_links_sum_pendaftar_count: number | null
+  total_komisi_pending: number
+  total_komisi_paid: number
 }
 
 export default function DataAffiliate() {
@@ -46,6 +48,7 @@ export default function DataAffiliate() {
   const [showModal, setShowModal] = useState(false)
   const [form, setForm] = useState({ affiliate_id: '', product_id: '', nama_link: '' })
   const [copied, setCopied] = useState<number | null>(null)
+  const [copiedDaftar, setCopiedDaftar] = useState(false)
   const [search, setSearch] = useState('')
 
   useEffect(() => {
@@ -136,10 +139,20 @@ export default function DataAffiliate() {
             <p className="text-sm text-slate-500">Kelola link affiliate dan pantau performa</p>
           </div>
         </div>
-        <button onClick={openCreate}
-          className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1">
-          <Plus size={16} /> Generate Link
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+            <span className="text-slate-500">Daftar Affiliate:</span>
+            <code className="text-slate-700">http://localhost:5173/daftar-affiliate</code>
+            <button onClick={() => { navigator.clipboard.writeText('http://localhost:5173/daftar-affiliate'); setCopiedDaftar(true); setTimeout(() => setCopiedDaftar(false), 2000) }}
+              className="ml-1 rounded-md border border-slate-200 bg-white p-1.5 text-slate-400 transition hover:border-blue-200 hover:text-blue-600">
+              {copiedDaftar ? <CheckCircle size={14} className="text-emerald-500" /> : <Copy size={14} />}
+            </button>
+          </div>
+          <button onClick={openCreate}
+            className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1">
+            <Plus size={16} /> Generate Link
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -172,6 +185,7 @@ export default function DataAffiliate() {
                 <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Email</th>
                 <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Total Link</th>
                 <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Kandidat Diundang</th>
+                <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Komisi</th>
                 <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Status</th>
                 <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Bergabung</th>
               </tr>
@@ -179,7 +193,7 @@ export default function DataAffiliate() {
             <tbody>
               {stats.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="border border-slate-200 px-6 py-10 text-center">
+                  <td colSpan={7} className="border border-slate-200 px-6 py-10 text-center">
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
                       <Users size={24} />
                     </div>
@@ -205,6 +219,11 @@ export default function DataAffiliate() {
                       <span className="inline-flex items-center gap-1.5 rounded-md border border-purple-200 bg-white px-2 py-1 text-[11px] font-medium text-purple-700 shadow-sm">
                         <UserPlus size={12} />
                         {s.affiliate_links_sum_pendaftar_count || 0}
+                      </span>
+                    </td>
+                    <td className="border border-slate-200 px-4 py-3 text-center">
+                      <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-700 shadow-sm">
+                        Rp {Number(s.total_komisi_pending || 0).toLocaleString('id-ID')}
                       </span>
                     </td>
                     <td className="border border-slate-200 px-4 py-3 text-center">{statusUserBadge(s.status)}</td>

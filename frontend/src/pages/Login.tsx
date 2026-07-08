@@ -143,16 +143,6 @@ export default function Login() {
                 </a>
               </div>
 
-              <div className="border-b border-[#dadde1] my-1"></div>
-
-              <div className="flex justify-center pt-1">
-                <a
-                  href="http://localhost:5173/daftar-affiliate"
-                  className="bg-[#42b72a] text-white font-bold text-[17px] px-4 py-3 rounded-lg hover:bg-[#36a420] transition-colors"
-                >
-                  Daftar Affiliate Mendunia
-                </a>
-              </div>
             </form>
           </div>
 

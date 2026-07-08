@@ -361,16 +361,18 @@ class PenilaianController extends Controller
 
         $level = $request->level;
 
-        $guruQuery = User::whereIn('id', KelasSensei::select('user_id')->distinct());
-        if ($level) {
-            $guruQuery->whereIn('id', KelasSensei::where('level', $level)->select('user_id')->distinct());
-        }
-        $gurus = $guruQuery->orderBy('name')->get(['id', 'name']);
+        $guruQuery = \App\Models\Guru::with('user')->where('status', 'AKTIF');
+        $gurus = $guruQuery->orderBy('nama')->get()->map(fn($g) => [
+            'id' => $g->user_id,
+            'name' => $g->nama,
+        ])->values();
         $guruId = $request->guru_id;
         $batchId = $request->batch_id;
         $kelasSenseiId = $request->kelas_sensei_id;
 
-        $batchList = collect();
+        $batchList = \App\Models\Batch::orderBy('nama_batch')
+            ->get(['id', 'nama_batch']);
+
         if ($level && $guruId) {
             $batchIds = KelasSensei::where('level', $level)
                 ->where('user_id', $guruId)

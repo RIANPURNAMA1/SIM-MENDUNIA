@@ -179,8 +179,63 @@ export default function SiswaDashboard() {
 
   const cardClass = "bg-white border border-gray-200 rounded-lg shadow-sm"
 
+  const requiredFields: { key: keyof UserData; label: string }[] = [
+    { key: 'no_hp', label: 'No. HP' },
+    { key: 'alamat', label: 'Alamat' },
+    { key: 'tempat_lahir', label: 'Tempat Lahir' },
+    { key: 'tanggal_lahir', label: 'Tanggal Lahir' },
+    { key: 'jenis_kelamin', label: 'Jenis Kelamin' },
+    { key: 'agama', label: 'Agama' },
+    { key: 'nik', label: 'NIK' },
+    { key: 'pendidikan_terakhir', label: 'Pendidikan Terakhir' },
+  ]
+
+  const missingFields = userData
+    ? requiredFields.filter(f => !userData[f.key])
+    : []
+
+  const missingDocs = userData
+    ? ['foto_profil', 'foto_ktp', 'foto_ijazah', 'foto_kk'].filter(k => !userData[k as keyof UserData])
+    : []
+
+  const isProfileComplete = missingFields.length === 0 && missingDocs.length === 0
+
   return (
     <div className="min-h-screen bg-[#f0f2f5] px-3 py-4 sm:px-6 sm:py-5">
+      {/* Alert Data Belum Lengkap */}
+      {!isProfileComplete && pendaftar && (
+        <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
+          <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span className="text-amber-700 font-bold text-sm">!</span>
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-amber-800">Data diri Anda belum lengkap</p>
+            <p className="text-xs text-amber-700 mt-1">
+              {missingFields.length > 0 && `${missingFields.length} field data pribadi`}
+              {missingFields.length > 0 && missingDocs.length > 0 && ' dan '}
+              {missingDocs.length > 0 && `${missingDocs.length} dokumen`}
+              {' belum diisi. Silakan lengkapi data Anda.'}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {missingFields.map(f => (
+                <span key={f.key} className="inline-block px-2 py-0.5 bg-white border border-amber-200 rounded text-xs text-amber-700">
+                  {f.label}
+                </span>
+              ))}
+              {missingDocs.map(k => (
+                <span key={k} className="inline-block px-2 py-0.5 bg-white border border-amber-200 rounded text-xs text-amber-700">
+                  {k === 'foto_profil' ? 'Foto Profil' : k === 'foto_ktp' ? 'Foto KTP' : k === 'foto_ijazah' ? 'Foto Ijazah' : 'Foto KK'}
+                </span>
+              ))}
+            </div>
+          </div>
+          <button onClick={openModal}
+            className="shrink-0 px-4 py-2 bg-amber-600 text-white rounded-md text-sm font-semibold hover:bg-amber-700 transition-colors">
+            Lengkapi Sekarang
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className={`mb-4 ${cardClass} p-4 sm:p-5`}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
