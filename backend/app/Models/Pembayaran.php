@@ -13,10 +13,16 @@ class Pembayaran extends Model
         'jumlah',
         'bukti_pembayaran',
         'status',
+        'kategori_id',
     ];
 
     public function pendaftar()
     {
         return $this->belongsTo(Pendaftar::class, 'pendaftar_id');
+    }
+
+    public function kategori()
+    {
+        return $this->belongsTo(BiayaKategori::class, 'kategori_id');
     }
 }

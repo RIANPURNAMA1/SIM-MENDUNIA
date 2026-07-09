@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Download, Printer, Loader, FileText, CheckCircle, Clock, XCircle } from 'lucide-react'
+import { ArrowLeft, Download, Printer, Loader, FileText, CheckCircle, Clock, XCircle, ShieldCheck } from 'lucide-react'
+import { toDataURL } from 'qrcode'
 import { pendaftarApi, companyProfileApi } from '../../services/api'
 import type { CompanyProfile } from '../../types'
 
@@ -62,6 +63,7 @@ export default function InvoicePendaftar() {
   const [company, setCompany] = useState<CompanyProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState(false)
+  const [qrDataUrl, setQrDataUrl] = useState<string>('')
 
   useEffect(() => {
     if (!id) return
@@ -77,42 +79,55 @@ export default function InvoicePendaftar() {
       .finally(() => setLoading(false))
   }, [id])
 
+  useEffect(() => {
+    if (!data?.no_invoice) return
+    const verifikasiUrl = `${window.location.origin}/verifikasi/${data.no_invoice}`
+    toDataURL(verifikasiUrl, {
+      width: 120,
+      margin: 1,
+      color: { dark: '#1e293b', light: '#ffffff' },
+    }).then(setQrDataUrl)
+  }, [data])
+
   const handlePrint = () => {
     window.print()
   }
 
   const handleDownloadPdf = async () => {
-    if (!invoiceRef.current) return
+    const el = invoiceRef.current
+    if (!el) return
     setDownloading(true)
     try {
       const html2canvas = (await import('html2canvas')).default
       const jsPDF = (await import('jspdf')).default
 
-      const canvas = await html2canvas(invoiceRef.current, {
+      const origStyle = el.getAttribute('style') || ''
+      const origW = el.style.width
+      const origMaxW = el.style.maxWidth
+      const origH = el.style.height
+      const origOverflow = el.style.overflow
+
+      el.style.width = '210mm'
+      el.style.maxWidth = 'none'
+      el.style.height = '297mm'
+      el.style.overflow = 'hidden'
+
+      const canvas = await html2canvas(el, {
         scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
       })
 
+      el.style.width = origW
+      el.style.maxWidth = origMaxW
+      el.style.height = origH
+      el.style.overflow = origOverflow
+      if (!origStyle) el.removeAttribute('style')
+
       const imgData = canvas.toDataURL('image/png')
-      const imgWidth = 210
-      const imgHeight = (canvas.height * imgWidth) / canvas.width
-
       const pdf = new jsPDF('p', 'mm', 'a4')
-      let heightLeft = imgHeight
-      let position = 0
-
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
-      heightLeft -= 297
-
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight
-        pdf.addPage()
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
-        heightLeft -= 297
-      }
-
+      pdf.addImage(imgData, 'PNG', 0, 0, 210, 297)
       pdf.save(`Invoice-${data?.no_invoice || id}.pdf`)
     } catch (err) {
       console.error('PDF generation failed', err)
@@ -351,10 +366,17 @@ export default function InvoicePendaftar() {
 
         {/* Footer */}
         <div className="border-t border-slate-200 bg-slate-50 px-8 py-5 sm:px-12">
-          <div className="flex flex-col items-center justify-between gap-3 text-center sm:flex-row sm:text-left">
-            <div className="text-xs text-slate-400">
-              <p className="font-semibold text-slate-600">{company?.company_name || 'MENDUNIA.ID'}</p>
-              <p>Invoice ini sah dan diproses secara elektronik</p>
+          <div className="flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
+            <div className="flex items-center gap-4">
+              {qrDataUrl && <img src={qrDataUrl} alt="QR Verifikasi" className="shrink-0 w-[90px] h-[90px]" />}
+              <div className="text-xs text-slate-400 text-left">
+                <p className="font-semibold text-slate-600">{company?.company_name || 'MENDUNIA.ID'}</p>
+                <p>Invoice ini sah dan diproses secara elektronik</p>
+                <p className="mt-1 inline-flex items-center gap-1 text-[10px] text-slate-500">
+                  <ShieldCheck size={12} />
+                  Scan untuk verifikasi keaslian dokumen
+                </p>
+              </div>
             </div>
             <div className="text-xs text-slate-400">
               <p>Terima kasih telah mendaftar!</p>
@@ -367,14 +389,18 @@ export default function InvoicePendaftar() {
       {/* Print-specific styles */}
       <style>{`
         @media print {
-          body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; padding: 0; }
+          html, body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0 !important; padding: 0 !important; width: 100%; height: 100%; }
           @page { margin: 0; size: A4; }
           .print\\:shadow-none { box-shadow: none !important; }
           .print\\:border-0 { border: none !important; }
           .print\\:rounded-none { border-radius: 0 !important; }
           .no-print { display: none !important; }
           .print-only { display: block !important; }
-          .invoice-print { overflow: visible !important; }
+          .invoice-print, .invoice-print * { visibility: visible !important; }
+          .invoice-print { position: fixed; top: 0; left: 0; width: 210mm; height: 297mm; max-width: none; overflow: hidden; display: flex; flex-direction: column; border: none; border-radius: 0; box-shadow: none; }
+          .invoice-print > div:first-child { flex-shrink: 0; }
+          .invoice-print > div:nth-child(2) { flex: 1; overflow: hidden; }
+          .invoice-print > div:last-child { flex-shrink: 0; }
         }
       `}</style>
     </div>

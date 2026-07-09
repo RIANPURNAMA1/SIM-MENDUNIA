@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\AffiliateLink;
 use App\Models\KomisiAffiliate;
+use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class AffiliateLinkController extends Controller
@@ -91,6 +93,40 @@ class AffiliateLinkController extends Controller
             ->get(['id', 'name', 'email']);
 
         return response()->json($affiliates);
+    }
+
+    public function myLinks(Request $request)
+    {
+        $userId = Auth::guard('sanctum')->id();
+
+        $data = $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'nama_link' => 'nullable|string|max:255',
+        ]);
+
+        do {
+            $kode = Str::random(8);
+        } while (AffiliateLink::where('kode', $kode)->exists());
+
+        $link = AffiliateLink::create([
+            'affiliate_id' => $userId,
+            'product_id' => $data['product_id'],
+            'kode' => $kode,
+            'nama_link' => $data['nama_link'] ?? null,
+        ]);
+
+        $link->load('product');
+
+        return response()->json($link, 201);
+    }
+
+    public function availableProducts()
+    {
+        $products = Product::where('status', 'aktif')
+            ->orderBy('nama')
+            ->get(['id', 'nama', 'harga', 'komisi']);
+
+        return response()->json($products);
     }
 
     public function affiliateStats()

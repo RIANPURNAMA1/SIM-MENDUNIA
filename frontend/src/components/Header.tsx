@@ -7,6 +7,7 @@ import {
   FileText, Clock, BarChart3, BookOpen, GraduationCap,
   Layers, Notebook, Presentation, UserPlus, User, Search,
   Briefcase, Zap, MessageCircle, CreditCard, Handshake, Package,
+  ListOrdered,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { izinApi, lemburApi } from '../services/api'
@@ -22,9 +23,15 @@ const navItems: { label: string; icon: React.ReactNode; href?: string; children?
     children: [
       { label: 'Data Kandidat', icon: <UserPlus size={14} />, href: '/data-kandidat' },
       { label: 'Pendaftar', icon: <ClipboardList size={14} />, href: '/pendaftar' },
-      { label: 'Data Matching Job', icon: <Search size={14} />, href: '/data-matching-job' },
       { label: 'Tagihan', icon: <FileText size={14} />, href: '/tagihan' },
       { label: 'Pembayaran', icon: <CreditCard size={14} />, href: '/pembayaran' },
+      { label: 'Kategori Bayar', icon: <ListOrdered size={14} />, href: '/data-biaya-kategori' },
+    ],
+  },
+  {
+    label: 'Matching Job', icon: <Search size={16} />,
+    children: [
+      { label: 'Kandidat Matching Job', icon: <UserPlus size={14} />, href: '/data-matching-job' },
     ],
   },
   {

@@ -7,7 +7,7 @@ import {
   CalendarCheck, ClipboardList, FileText, Clock, Calendar, BarChart3,
   BookOpen, GraduationCap, Layers, Notebook, Bot, Settings, UserCog,
   MessageCircle, ChevronDown, LogOut, X, Presentation, UserPlus,
-  Search, Briefcase, Zap, CreditCard, Handshake, Package, Tag,
+  Search, Briefcase, Zap, CreditCard, Handshake, Package, Tag, ListOrdered,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -34,7 +34,7 @@ const iconMap: Record<string, LucideIcon> = {
   LayoutDashboard, Users, Building2, MapPin, Timer, CalendarPlus, List,
   CalendarCheck, ClipboardList, FileText, Clock, Calendar, BarChart3,
   BookOpen, GraduationCap, Layers, Notebook, Bot, Settings, UserCog,
-  MessageCircle, Presentation, UserPlus, Search, Briefcase, Zap, CreditCard, Handshake, Package, Tag,
+  MessageCircle, Presentation, UserPlus, Search, Briefcase, Zap, CreditCard, Handshake, Package, Tag, ListOrdered,
 }
 
 const navItems: NavItem[] = [
@@ -49,9 +49,17 @@ const navItems: NavItem[] = [
     children: [
       { label: 'Data Kandidat', icon: 'UserPlus', href: '/data-kandidat' },
       { label: 'Pendaftaran', icon: 'ClipboardList', href: '/pendaftar' },
-      { label: 'Data Matching Job', icon: 'Search', href: '/data-matching-job' },
       { label: 'Tagihan', icon: 'FileText', href: '/tagihan' },
+      { label: 'Rekap Per Batch', icon: 'Layers', href: '/rekap-per-batch' },
       { label: 'Pembayaran', icon: 'CreditCard', href: '/pembayaran' },
+      { label: 'Kategori Bayar', icon: 'ListOrdered', href: '/data-biaya-kategori' },
+    ],
+  },
+  {
+    label: 'Matching Job',
+    icon: 'Search',
+    children: [
+      { label: 'Kandidat Matching Job', icon: 'UserPlus', href: '/data-matching-job' },
     ],
   },
   {

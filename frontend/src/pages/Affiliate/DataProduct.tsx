@@ -1,6 +1,21 @@
 import { useState, useEffect } from 'react'
-import { Package, Plus, Edit3, Trash2, X, Search, RotateCcw, Link as LinkIcon, Check, GraduationCap, ExternalLink } from 'lucide-react'
-import { productApi } from '../../services/api'
+import {
+  Package, Plus, Edit3, Trash2, X, Search, RotateCcw, Link as LinkIcon,
+  Check, GraduationCap, ExternalLink, Tag,
+} from 'lucide-react'
+import api, { productApi } from '../../services/api'
+
+interface BiayaKategori {
+  id: number
+  kode: string
+  nama: string
+  urutan: number
+}
+
+interface KategoriPrice {
+  kategori_id: number
+  harga: number
+}
 
 interface Product {
   id: number
@@ -9,39 +24,86 @@ interface Product {
   harga: number
   komisi: number | null
   status: string
+  biaya_kategoris: (BiayaKategori & { pivot: { harga: number } })[]
 }
 
 export default function DataProduct() {
   const [products, setProducts] = useState<Product[]>([])
+  const [biayaKategoris, setBiayaKategoris] = useState<BiayaKategori[]>([])
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Product | null>(null)
-  const [form, setForm] = useState({ nama: '', deskripsi: '', harga: '', komisi: '', status: 'aktif' })
+  const [form, setForm] = useState({
+    nama: '',
+    deskripsi: '',
+    komisi: '',
+    status: 'aktif',
+    kategori_prices: {} as Record<number, string>,
+  })
   const [copiedId, setCopiedId] = useState<number | null>(null)
 
   useEffect(() => {
     fetchProducts()
+    api.get('/biaya-kategori').then(res => setBiayaKategoris(res.data))
   }, [])
 
   function fetchProducts() {
     productApi.list().then(res => setProducts(res.data))
   }
 
+  const sortedKat = [...biayaKategoris].sort((a, b) => a.urutan - b.urutan)
+
+  const totalHarga = Object.values(form.kategori_prices).reduce(
+    (sum, v) => sum + (parseFloat(v) || 0), 0
+  )
+
   function openCreate() {
     setEditing(null)
-    setForm({ nama: '', deskripsi: '', harga: '', komisi: '', status: 'aktif' })
+    const prices: Record<number, string> = {}
+    sortedKat.forEach(k => { prices[k.id] = '' })
+    setForm({ nama: '', deskripsi: '', komisi: '', status: 'aktif', kategori_prices: prices })
     setShowModal(true)
   }
 
   function openEdit(p: Product) {
     setEditing(p)
-    setForm({ nama: p.nama, deskripsi: p.deskripsi || '', harga: String(p.harga), komisi: p.komisi ? String(p.komisi) : '', status: p.status })
+    const prices: Record<number, string> = {}
+    sortedKat.forEach(k => {
+      const found = p.biaya_kategoris?.find(bk => bk.id === k.id)
+      prices[k.id] = found ? String(found.pivot.harga) : ''
+    })
+    setForm({
+      nama: p.nama,
+      deskripsi: p.deskripsi || '',
+      komisi: p.komisi ? String(p.komisi) : '',
+      status: p.status,
+      kategori_prices: prices,
+    })
     setShowModal(true)
+  }
+
+  function setKatPrice(katId: number, val: string) {
+    setForm(prev => ({
+      ...prev,
+      kategori_prices: { ...prev.kategori_prices, [katId]: val },
+    }))
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const payload = { ...form, harga: parseFloat(form.harga), komisi: form.komisi ? parseFloat(form.komisi) : null }
+    const kategoriPrices: KategoriPrice[] = Object.entries(form.kategori_prices)
+      .filter(([_, v]) => v !== '' && parseFloat(v) > 0)
+      .map(([k, v]) => ({ kategori_id: Number(k), harga: parseFloat(v) }))
+
+    const payload: any = {
+      nama: form.nama,
+      deskripsi: form.deskripsi,
+      harga: totalHarga,
+      komisi: form.komisi ? parseFloat(form.komisi) : null,
+      status: form.status,
+      kategori_prices: kategoriPrices,
+    }
+
     const req = editing ? productApi.update(editing.id, payload) : productApi.store(payload)
     req.then(() => { setShowModal(false); fetchProducts() })
   }
@@ -62,7 +124,9 @@ export default function DataProduct() {
     setSearch('')
   }
 
-  const filtered = products.filter(p => !search || p.nama.toLowerCase().includes(search.toLowerCase()))
+  const filtered = products.filter(p =>
+    !search || p.nama.toLowerCase().includes(search.toLowerCase())
+  )
 
   const statusBadge = (status: string) => {
     const dot = status === 'aktif' ? 'bg-emerald-500' : 'bg-slate-300'
@@ -161,6 +225,7 @@ export default function DataProduct() {
             <thead className="text-sm text-slate-600">
               <tr>
                 <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Nama Produk</th>
+                <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Kategori Bayar</th>
                 <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Deskripsi</th>
                 <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium">Harga</th>
                 <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium">Komisi</th>
@@ -171,7 +236,7 @@ export default function DataProduct() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="border border-slate-200 px-6 py-10 text-center">
+                  <td colSpan={7} className="border border-slate-200 px-6 py-10 text-center">
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
                       <Package size={24} />
                     </div>
@@ -188,6 +253,20 @@ export default function DataProduct() {
                         </div>
                         <span className="text-sm font-semibold text-slate-800">{p.nama}</span>
                       </div>
+                    </td>
+                    <td className="border border-slate-200 px-4 py-3">
+                      {p.biaya_kategoris && p.biaya_kategoris.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {p.biaya_kategoris.map(bk => (
+                            <span key={bk.id} className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-[11px] font-medium text-blue-700">
+                              <Tag size={11} />
+                              {bk.kode}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400">-</span>
+                      )}
                     </td>
                     <td className="border border-slate-200 px-4 py-3 text-sm text-slate-500 max-w-xs truncate">{p.deskripsi || '-'}</td>
                     <td className="border border-slate-200 px-4 py-3 text-right text-sm font-semibold text-slate-800">
@@ -219,47 +298,67 @@ export default function DataProduct() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShowModal(false)}>
-          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="mb-4 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowModal(false)}>
+          <div className="w-full max-w-lg rounded-lg bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
               <h2 className="text-lg font-bold text-gray-800">{editing ? 'Edit Produk' : 'Tambah Produk'}</h2>
-              <button onClick={() => setShowModal(false)} className="rounded-lg p-1 hover:bg-slate-100"><X size={20} /></button>
+              <button onClick={() => setShowModal(false)} className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200 text-slate-500 transition hover:bg-slate-300"><X size={18} /></button>
             </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Nama Produk <span className="text-red-500">*</span></label>
-                <input type="text" required value={form.nama} onChange={e => setForm({ ...form, nama: e.target.value })}
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Deskripsi</label>
-                <textarea value={form.deskripsi} onChange={e => setForm({ ...form, deskripsi: e.target.value })} rows={3}
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="px-4 pb-4 pt-2">
+              <div className="space-y-3 max-h-[70vh] overflow-y-auto">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Harga (Rp) <span className="text-red-500">*</span></label>
-                  <input type="number" required min={0} value={form.harga} onChange={e => setForm({ ...form, harga: e.target.value })}
-                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                  <input type="text" required placeholder="Nama Produk *" value={form.nama} onChange={e => setForm({ ...form, nama: e.target.value })}
+                    className="w-full rounded-md bg-[#f0f2f5] px-3 py-2.5 text-sm text-slate-800 placeholder-slate-500 outline-none transition focus:bg-white focus:ring-1 focus:ring-blue-500" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Komisi Affiliate (Rp)</label>
-                  <input type="number" min={0} value={form.komisi} onChange={e => setForm({ ...form, komisi: e.target.value })}
-                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                  <textarea placeholder="Deskripsi" value={form.deskripsi} onChange={e => setForm({ ...form, deskripsi: e.target.value })} rows={2}
+                    className="w-full rounded-md bg-[#f0f2f5] px-3 py-2.5 text-sm text-slate-800 placeholder-slate-500 outline-none transition focus:bg-white focus:ring-1 focus:ring-blue-500" />
                 </div>
+
+                {/* Kategori Prices */}
+                <div className="border border-slate-200 rounded-lg p-3 bg-slate-50/50">
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Rincian Harga per Kategori</p>
+                  <div className="space-y-2">
+                    {sortedKat.map(k => (
+                      <div key={k.id} className="flex items-center gap-2">
+                        <span className="w-20 text-xs font-semibold text-slate-600 flex-none">{k.kode}</span>
+                        <span className="text-[10px] text-slate-400 flex-none w-12">{k.nama}</span>
+                        <div className="relative flex-1">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-medium">Rp</span>
+                          <input
+                            type="number" min={0} placeholder="0"
+                            value={form.kategori_prices[k.id] ?? ''}
+                            onChange={e => setKatPrice(k.id, e.target.value)}
+                            className="w-full rounded-md bg-white border border-slate-200 px-8 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:border-blue-400 focus:ring-1 focus:ring-blue-200"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-200">
+                    <span className="text-sm font-bold text-slate-700">Total Harga</span>
+                    <span className="text-sm font-bold text-[#0D1F3C]">Rp {totalHarga.toLocaleString('id-ID')}</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <input type="number" min={0} placeholder="Komisi (Rp)" value={form.komisi} onChange={e => setForm({ ...form, komisi: e.target.value })}
+                      className="w-full rounded-md bg-[#f0f2f5] px-3 py-2.5 text-sm text-slate-800 placeholder-slate-500 outline-none transition focus:bg-white focus:ring-1 focus:ring-blue-500" />
+                  </div>
+                  <div>
+                    <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}
+                      className="w-full rounded-md bg-[#f0f2f5] px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:bg-white focus:ring-1 focus:ring-blue-500">
+                      <option value="aktif">Aktif</option>
+                      <option value="nonaktif">Nonaktif</option>
+                    </select>
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-tight">Jumlah komisi yg diterima affiliate saat pendaftar di-approve</p>
               </div>
-              <p className="-mt-2 text-xs text-slate-400">Jumlah komisi yg diterima affiliate saat pendaftar di-approve</p>
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Status</label>
-                <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-                  <option value="aktif">Aktif</option>
-                  <option value="nonaktif">Nonaktif</option>
-                </select>
-              </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowModal(false)} className="rounded-lg px-4 py-2 text-sm text-slate-600 transition hover:bg-slate-100">Batal</button>
-                <button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition hover:bg-blue-700">{editing ? 'Simpan' : 'Tambah'}</button>
+              <div className="mt-4 flex gap-2">
+                <button type="submit" className="flex-1 rounded-md bg-emerald-600 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700">{editing ? 'Simpan' : 'Tambah'}</button>
+                <button type="button" onClick={() => setShowModal(false)} className="flex-1 rounded-md bg-[#e4e6eb] py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-[#d8dadf]">Batal</button>
               </div>
             </form>
           </div>

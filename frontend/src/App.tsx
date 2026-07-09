@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import DashboardLayout from './layouts/DashboardLayout'
 import AffiliateLayout from './layouts/AffiliateLayout'
 import Login from './pages/Login'
+import ForgotPassword from './pages/ForgotPassword'
 import DashboardHome from './pages/Dashboard/DashboardHome'
 import DashboardAbsensi from './pages/Absensi/DashboardAbsensi'
 import DashboardAkademik from './pages/Akademik/DashboardAkademik'
@@ -45,10 +46,12 @@ import Pendaftar from './pages/Pendaftaran/Pendaftar'
 import InvoicePendaftar from './pages/Pendaftaran/InvoicePendaftar'
 import DataMatchingJob from './pages/Akademik/DataMatchingJob'
 import Tagihan from './pages/Siswa/Tagihan'
+import RekapBatch from './pages/Siswa/RekapBatch'
 import Pembayaran from './pages/Siswa/Pembayaran'
 import DataAffiliate from './pages/Affiliate/DataAffiliate'
 import DataProduct from './pages/Affiliate/DataProduct'
 import DataCoupon from './pages/Affiliate/DataCoupon'
+import DataBiayaKategori from './pages/Affiliate/DataBiayaKategori'
 import DaftarAffiliate from './pages/Pendaftaran/DaftarAffiliate'
 import AffiliateDashboard from './pages/Affiliate/AffiliateDashboard'
 import DaftarAffiliateBaru from './pages/Pendaftaran/DaftarAffiliateBaru'
@@ -153,6 +156,7 @@ function AppRoutes() {
         path="/login"
         element={isAuthenticated ? <Navigate to="/" replace /> : <Login />}
       />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/daftar/:kode" element={<DaftarAffiliate />} />
       <Route path="/daftar-affiliate" element={<DaftarAffiliateBaru />} />
       <Route path="/daftar-program" element={<DaftarProgram />} />
@@ -321,10 +325,12 @@ function AppRoutes() {
                 <Route path="/pendaftar/:id/invoice" element={<InvoicePendaftar />} />
                 <Route path="/data-matching-job" element={<DataMatchingJob />} />
                 <Route path="/tagihan" element={<Tagihan />} />
+                <Route path="/rekap-per-batch" element={<RekapBatch />} />
                 <Route path="/pembayaran" element={<Pembayaran />} />
                 <Route path="/data-affiliate" element={<DataAffiliate />} />
                 <Route path="/data-product" element={<DataProduct />} />
                 <Route path="/data-coupon" element={<DataCoupon />} />
+                <Route path="/data-biaya-kategori" element={<DataBiayaKategori />} />
               </Routes>
             </DashboardLayout>
           </ProtectedRoute>

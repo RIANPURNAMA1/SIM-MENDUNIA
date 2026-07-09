@@ -18,4 +18,11 @@ class Product extends Model
     {
         return $this->hasMany(AffiliateLink::class);
     }
+
+    public function biayaKategoris()
+    {
+        return $this->belongsToMany(BiayaKategori::class, 'product_biaya_kategori', 'product_id', 'kategori_id')
+            ->withPivot('harga')
+            ->withTimestamps();
+    }
 }

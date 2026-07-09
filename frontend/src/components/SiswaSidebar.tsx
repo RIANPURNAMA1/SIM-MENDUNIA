@@ -1,6 +1,8 @@
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, CalendarCheck, CreditCard, BookOpen, LogOut } from 'lucide-react'
+import { LayoutDashboard, CalendarCheck, CreditCard, BookOpen, LogOut, Lock } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import api from '../services/api'
 
 interface SiswaSidebarProps {
   isOpen: boolean
@@ -8,15 +10,24 @@ interface SiswaSidebarProps {
 }
 
 const menu = [
-  { to: '/siswa-dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/siswa-dashboard/absensi', icon: CalendarCheck, label: 'Absensi' },
-  { to: '/siswa-dashboard/pembayaran', icon: CreditCard, label: 'Pembayaran' },
-  { to: '/siswa-dashboard/lms', icon: BookOpen, label: 'LMS' },
+  { to: '/siswa-dashboard', icon: LayoutDashboard, label: 'Dashboard', locked: false },
+  { to: '/siswa-dashboard/pembayaran', icon: CreditCard, label: 'Pembayaran', locked: false },
+  { to: '/siswa-dashboard/absensi', icon: CalendarCheck, label: 'Absensi', locked: true },
+  { to: '/siswa-dashboard/lms', icon: BookOpen, label: 'LMS', locked: true },
 ]
 
 export default function SiswaSidebar({ isOpen, onClose }: SiswaSidebarProps) {
   const location = useLocation()
   const { logout } = useAuth()
+  const [hasClass, setHasClass] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    api.get('/siswa-dashboard').then(res => {
+      setHasClass(res.data.has_class)
+    }).catch(() => {
+      setHasClass(false)
+    })
+  }, [])
 
   return (
     <>
@@ -41,6 +52,24 @@ export default function SiswaSidebar({ isOpen, onClose }: SiswaSidebarProps) {
         <nav className="flex-1 px-2.5 py-3 space-y-0.5">
           {menu.map(item => {
             const active = location.pathname === item.to
+            const isLocked = item.locked && hasClass === false
+
+            if (isLocked) {
+              return (
+                <div
+                  key={item.to}
+                  className="relative group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-500 cursor-not-allowed select-none"
+                >
+                  <Lock size={18} />
+                  <span>{item.label}</span>
+                  <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-2.5 py-1 bg-gray-800 text-white text-[11px] rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-lg pointer-events-none z-50">
+                    Belum ada kelas
+                    <div className="absolute left-1/2 -translate-x-1/2 top-full border-4 border-transparent border-t-gray-800" />
+                  </div>
+                </div>
+              )
+            }
+
             return (
               <Link
                 key={item.to}

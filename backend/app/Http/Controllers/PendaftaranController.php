@@ -7,7 +7,10 @@ use App\Models\Siswa;
 use App\Models\AffiliateLink;
 use App\Models\KomisiAffiliate;
 use App\Models\Coupon;
+use App\Models\BatchBiaya;
+use App\Models\BiayaKategori;
 use App\Models\Pembayaran;
+use App\Models\PembayaranItem;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -167,25 +170,64 @@ class PendaftaranController extends Controller
 
     public function index(Request $request)
     {
-        $query = Pendaftar::with(['affiliateLink.affiliate', 'product', 'user', 'coupon', 'batch']);
+        $pendaftars = Pendaftar::with(['affiliateLink.affiliate', 'product.biayaKategoris', 'user', 'coupon', 'batch'])
+            ->orderBy('created_at', 'desc');
 
         if ($request->status_pendaftaran) {
-            $query->where('status_pendaftaran', $request->status_pendaftaran);
+            $pendaftars->where('status_pendaftaran', $request->status_pendaftaran);
         }
 
         if ($request->status_pembayaran) {
-            $query->where('status_pembayaran', $request->status_pembayaran);
+            $pendaftars->where('status_pembayaran', $request->status_pembayaran);
         }
 
         if ($request->search) {
             $s = $request->search;
-            $query->where(function ($q) use ($s) {
+            $pendaftars->where(function ($q) use ($s) {
                 $q->where('nama', 'like', "%{$s}%")
                   ->orWhere('email', 'like', "%{$s}%");
             });
         }
 
-        return response()->json($query->orderBy('created_at', 'desc')->get());
+        if ($request->batch_id) {
+            $pendaftars->where('batch_id', $request->batch_id);
+        }
+
+        if ($request->product_id) {
+            $pendaftars->where('product_id', $request->product_id);
+        }
+
+        $data = $pendaftars->get();
+
+        // Include per-kategori payments
+        $kategoris = BiayaKategori::orderBy('urutan')->get();
+        $pendaftarIds = $data->pluck('id');
+        $allPembayaran = PembayaranItem::whereIn('pendaftar_id', $pendaftarIds)
+            ->get()
+            ->groupBy('pendaftar_id');
+
+        $result = $data->map(function ($p) use ($kategoris, $allPembayaran) {
+            $pembayaranItems = $allPembayaran->get($p->id, collect())->keyBy('kategori_id');
+            $product = $p->product;
+            $pivotPrices = collect();
+            if ($product && $product->relationLoaded('biayaKategoris')) {
+                $pivotPrices = $product->biayaKategoris->keyBy('id')->map(fn($k) => (int) $k->pivot->harga);
+            }
+            $detail = $kategoris->map(function ($k) use ($pembayaranItems, $pivotPrices) {
+                $pi = $pembayaranItems->get($k->id);
+                $default = $pivotPrices->get($k->id, 0);
+                return [
+                    'kategori_id' => $k->id,
+                    'kode' => $k->kode,
+                    'nama' => $k->nama,
+                    'biaya' => $default,
+                    'dibayar' => $pi ? (int) $pi->jumlah : 0,
+                ];
+            });
+            return array_merge($p->toArray(), ['detail' => $detail]);
+        });
+
+        return response()->json($result);
     }
 
     public function show($id)
@@ -196,7 +238,7 @@ class PendaftaranController extends Controller
 
     public function approve($id)
     {
-        $pendaftar = Pendaftar::with(['affiliateLink.product'])->findOrFail($id);
+        $pendaftar = Pendaftar::with(['affiliateLink.product', 'product.biayaKategoris'])->findOrFail($id);
         $pendaftar->update([
             'status_pendaftaran' => 'disetujui',
             'status_pembayaran' => 'verified',
@@ -228,6 +270,28 @@ class PendaftaranController extends Controller
             ]);
         }
 
+        // Auto-create PembayaranItem and Pembayaran for first category if none exist
+        $existingItems = PembayaranItem::where('pendaftar_id', $pendaftar->id)->count();
+        if ($existingItems === 0) {
+            $firstKat = BiayaKategori::orderBy('urutan')->first();
+            if ($firstKat && $pendaftar->nominal > 0) {
+                PembayaranItem::updateOrCreate(
+                    [
+                        'pendaftar_id' => $pendaftar->id,
+                        'kategori_id' => $firstKat->id,
+                    ],
+                    ['jumlah' => $pendaftar->nominal]
+                );
+                Pembayaran::create([
+                    'pendaftar_id' => $pendaftar->id,
+                    'jumlah' => $pendaftar->nominal,
+                    'kategori_id' => $firstKat->id,
+                    'status' => 'verified',
+                    'bukti_pembayaran' => $pendaftar->bukti_pembayaran ?? 'auto',
+                ]);
+            }
+        }
+
         return response()->json(['message' => 'Pendaftar disetujui']);
     }
 
@@ -246,9 +310,27 @@ class PendaftaranController extends Controller
         $pendaftar = Pendaftar::findOrFail($id);
         $pendaftar->update(['status_pembayaran' => 'verified']);
 
-        Pembayaran::where('pendaftar_id', $pendaftar->id)
+        $pembayarans = Pembayaran::where('pendaftar_id', $pendaftar->id)
             ->where('status', 'pending')
-            ->update(['status' => 'verified']);
+            ->get();
+
+        foreach ($pembayarans as $p) {
+            $p->update(['status' => 'verified']);
+            if ($p->kategori_id) {
+                PembayaranItem::updateOrCreate(
+                    [
+                        'pendaftar_id' => $pendaftar->id,
+                        'kategori_id' => $p->kategori_id,
+                    ],
+                    ['jumlah' => $p->jumlah]
+                );
+            }
+        }
+
+        // Sync total nominal
+        $totalDibayar = PembayaranItem::where('pendaftar_id', $pendaftar->id)->sum('jumlah');
+        $pendaftar->nominal = $totalDibayar;
+        $pendaftar->save();
 
         return response()->json(['message' => 'Pembayaran terverifikasi']);
     }
@@ -324,16 +406,49 @@ class PendaftaranController extends Controller
         return response()->json($merged);
     }
 
-    public function riwayatPembayaran($id)
+    public function pendingPembayaran()
     {
-        $pendaftar = Pendaftar::with('product')->findOrFail($id);
-        $riwayat = Pembayaran::where('pendaftar_id', $pendaftar->id)
+        $pembayaran = Pembayaran::with(['pendaftar.product', 'kategori'])
+            ->where('status', 'pending')
+            ->whereNotNull('kategori_id')
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // If no pembayaran records exist but pendaftar has nominal > 0, create a synthetic record
+        return response()->json([
+            'total' => $pembayaran->count(),
+            'data' => $pembayaran,
+        ]);
+    }
+
+    public function riwayatPembayaran($id)
+    {
+        $pendaftar = Pendaftar::with('product.biayaKategoris')->findOrFail($id);
+
+        $pembayaran = Pembayaran::where('pendaftar_id', $pendaftar->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Include PembayaranItem as synthetic records (for payments created during approve)
+        $paidKatIds = $pembayaran->pluck('kategori_id')->filter()->unique()->values()->toArray();
+        $items = PembayaranItem::where('pendaftar_id', $pendaftar->id)
+            ->whereNotIn('kategori_id', $paidKatIds)
+            ->get();
+
+        $synthetic = $items->map(function ($item) use ($pendaftar) {
+            return (object) [
+                'id' => -$item->id,
+                'pendaftar_id' => $pendaftar->id,
+                'jumlah' => $item->jumlah,
+                'status' => 'verified',
+                'created_at' => $item->created_at ?? $pendaftar->updated_at ?? $pendaftar->created_at,
+                'bukti_pembayaran' => $pendaftar->bukti_pembayaran ?? null,
+            ];
+        });
+
+        $riwayat = collect($pembayaran)->merge($synthetic)->sortByDesc('created_at')->values();
+
+        // Fallback: if still empty but pendaftar has nominal > 0
         if ($riwayat->isEmpty() && $pendaftar->nominal > 0) {
-            $tagihan = ($pendaftar->product?->harga ?? 0) - ($pendaftar->diskon ?? 0);
             $riwayat = collect([
                 (object) [
                     'id' => -$pendaftar->id,
@@ -341,7 +456,7 @@ class PendaftaranController extends Controller
                     'jumlah' => $pendaftar->nominal,
                     'status' => $pendaftar->status_pembayaran === 'verified' ? 'verified' : ($pendaftar->status_pembayaran ?: 'pending'),
                     'created_at' => $pendaftar->updated_at ?? $pendaftar->created_at,
-                    'bukti_pembayaran' => null,
+                    'bukti_pembayaran' => $pendaftar->bukti_pembayaran ?? null,
                 ]
             ]);
         }
@@ -353,6 +468,7 @@ class PendaftaranController extends Controller
     {
         $request->validate([
             'jumlah' => 'required|numeric|min:1',
+            'kategori_id' => 'required|exists:biaya_kategoris,id',
             'bukti_pembayaran' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
         ]);
 
@@ -363,6 +479,7 @@ class PendaftaranController extends Controller
         Pembayaran::create([
             'pendaftar_id' => $pendaftar->id,
             'jumlah' => $request->jumlah,
+            'kategori_id' => $request->kategori_id,
             'bukti_pembayaran' => $filePath,
             'status' => 'pending',
         ]);
@@ -373,7 +490,7 @@ class PendaftaranController extends Controller
 
         return response()->json([
             'message' => 'Pembayaran berhasil dikirim, menunggu verifikasi admin',
-            'pendaftar' => $pendaftar->fresh()->load('product'),
+            'pendaftar' => $pendaftar->fresh()->load('product.biayaKategoris'),
         ]);
     }
 
@@ -381,13 +498,19 @@ class PendaftaranController extends Controller
     {
         $request->validate([
             'jumlah' => 'required|numeric|min:1',
+            'kategori_id' => 'required|exists:biaya_kategoris,id',
         ]);
 
-        $pendaftar = Pendaftar::with('product')->findOrFail($id);
+        $pendaftar = Pendaftar::with('product.biayaKategoris')->findOrFail($id);
 
         $pendaftar->increment('nominal', $request->jumlah);
 
-        $tagihan = ($pendaftar->product?->harga ?? 0) - ($pendaftar->diskon ?? 0);
+        $totalBiaya = 0;
+        if ($pendaftar->product && $pendaftar->product->relationLoaded('biayaKategoris')) {
+            $totalBiaya = $pendaftar->product->biayaKategoris->sum(fn($k) => (int) $k->pivot->harga);
+        }
+        $totalBiaya = $totalBiaya ?: ($pendaftar->product?->harga ?? 0);
+        $tagihan = $totalBiaya - ($pendaftar->diskon ?? 0);
         $totalDibayar = $pendaftar->fresh()->nominal ?? 0;
 
         $pendaftar->status_pembayaran = $totalDibayar >= $tagihan ? 'verified' : 'processing';
@@ -396,13 +519,23 @@ class PendaftaranController extends Controller
         Pembayaran::create([
             'pendaftar_id' => $pendaftar->id,
             'jumlah' => $request->jumlah,
+            'kategori_id' => $request->kategori_id,
             'bukti_pembayaran' => 'manual',
             'status' => 'verified',
         ]);
 
+        // Update PembayaranItem
+        PembayaranItem::updateOrCreate(
+            [
+                'pendaftar_id' => $pendaftar->id,
+                'kategori_id' => $request->kategori_id,
+            ],
+            ['jumlah' => $request->jumlah]
+        );
+
         return response()->json([
             'message' => 'Pembayaran manual berhasil dicatat',
-            'pendaftar' => $pendaftar->fresh()->load('product'),
+            'pendaftar' => $pendaftar->fresh()->load('product.biayaKategoris'),
         ]);
     }
 
@@ -549,6 +682,91 @@ class PendaftaranController extends Controller
             'totalBatch' => count($batches),
             'totalKandidat' => $totalKandidat,
             'kandidatAktif' => $kandidatAktif,
+        ]);
+    }
+
+    public function rekapPerBatch()
+    {
+        $batches = \App\Models\Batch::aktif()->orderBy('nama_batch')->get();
+        $kategoris = BiayaKategori::orderBy('urutan')->get();
+
+        $result = [];
+
+        foreach ($batches as $batch) {
+            $pendaftar = Pendaftar::with(['product'])
+                ->where('batch_id', $batch->id)
+                ->orderBy('nama')
+                ->get();
+
+            if ($pendaftar->isEmpty()) continue;
+
+            $biayaBatch = BatchBiaya::where('batch_id', $batch->id)
+                ->get()
+                ->keyBy('kategori_id');
+
+            $pembayaranBatch = PembayaranItem::whereIn('pendaftar_id', $pendaftar->pluck('id'))
+                ->get()
+                ->groupBy('pendaftar_id');
+
+            $items = $pendaftar->map(function ($p) use ($kategoris, $biayaBatch, $pembayaranBatch) {
+                $pembayaranItems = $pembayaranBatch->get($p->id, collect())->keyBy('kategori_id');
+
+                $detail = $kategoris->map(function ($k) use ($biayaBatch, $pembayaranItems) {
+                    $bb = $biayaBatch->get($k->id);
+                    $pi = $pembayaranItems->get($k->id);
+                    $biaya = $bb ? (int) $bb->biaya : 0;
+                    $dibayar = $pi ? (int) $pi->jumlah : 0;
+                    return [
+                        'kategori_id' => $k->id,
+                        'kode' => $k->kode,
+                        'nama' => $k->nama,
+                        'biaya' => $biaya,
+                        'dibayar' => $dibayar,
+                        'sisa' => max(0, $biaya - $dibayar),
+                    ];
+                });
+
+                $totalBiaya = $detail->sum('biaya');
+                $totalDibayar = $detail->sum('dibayar');
+
+                return [
+                    'id' => $p->id,
+                    'nama' => $p->nama,
+                    'email' => $p->email,
+                    'program' => $p->product?->nama ?? '-',
+                    'total_biaya' => $totalBiaya,
+                    'total_dibayar' => $totalDibayar,
+                    'total_sisa' => max(0, $totalBiaya - $totalDibayar),
+                    'status_pembayaran' => $p->status_pembayaran,
+                    'status_pendaftaran' => $p->status_pendaftaran,
+                    'detail' => $detail,
+                ];
+            });
+
+            $grandBiaya = $items->sum('total_biaya');
+            $grandDibayar = $items->sum('total_dibayar');
+
+            $result[] = [
+                'batch_id' => $batch->id,
+                'batch' => $batch->nama_batch,
+                'kuota' => $batch->kuota,
+                'siswas_count' => $pendaftar->count(),
+                'total_biaya' => $grandBiaya,
+                'total_dibayar' => $grandDibayar,
+                'total_sisa' => $grandBiaya - $grandDibayar,
+                'items' => $items,
+            ];
+        }
+
+        $grandBiaya = collect($result)->sum('total_biaya');
+        $grandDibayar = collect($result)->sum('total_dibayar');
+
+        return response()->json([
+            'data' => $result,
+            'grand_total_biaya' => $grandBiaya,
+            'grand_total_dibayar' => $grandDibayar,
+            'grand_total_sisa' => $grandBiaya - $grandDibayar,
+            'kategoris' => $kategoris->map(fn($k) => ['id' => $k->id, 'kode' => $k->kode, 'nama' => $k->nama]),
         ]);
     }
 }

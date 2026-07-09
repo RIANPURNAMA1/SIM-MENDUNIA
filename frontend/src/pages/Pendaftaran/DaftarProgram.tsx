@@ -1,6 +1,6 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { useParams } from "react-router-dom";
-import { productApi, pendaftarApi, couponApi, batchApi } from "../../services/api";
+import api, { productApi, pendaftarApi, couponApi, batchApi } from "../../services/api";
 import {
   GraduationCap,
   ChevronRight,
@@ -21,11 +21,22 @@ interface Product {
   deskripsi: string | null;
   harga: number;
   status: string;
+  biaya_kategoris?: { id: number; kode: string; pivot: { harga: number } }[];
+}
+
+interface BiayaKategori {
+  id: number;
+  kode: string;
+  nama: string;
+  urutan: number;
 }
 
 interface Batch {
   id: number;
   nama_batch: string;
+  kuota: number | null;
+  siswas_count?: number;
+  is_penuh?: boolean;
 }
 
 const steps = [
@@ -62,17 +73,29 @@ export default function DaftarProgram() {
   const [success, setSuccess] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [fileError, setFileError] = useState("");
+  const [biayaKategoris, setBiayaKategoris] = useState<BiayaKategori[]>([]);
 
   useEffect(() => {
-    productApi
-      .list()
-      .then((res) => {
-        const active = res.data.filter((p: Product) => p.status !== "nonaktif");
+    Promise.all([
+      productApi.list(),
+      api.get('/biaya-kategori'),
+    ])
+      .then(([prodRes, katRes]) => {
+        const active = prodRes.data.filter((p: Product) => p.status !== "nonaktif");
         setProducts(active);
+        const kats = (katRes.data || []).sort((a: BiayaKategori, b: BiayaKategori) => a.urutan - b.urutan);
+        setBiayaKategoris(kats);
         if (id) {
           const found = active.find((p: Product) => String(p.id) === id);
           if (found) {
             setSelectedProduct(found);
+            const firstKat = kats[0];
+            if (firstKat) {
+              const pivot = found.biaya_kategoris?.find((bk: any) => bk.id === firstKat.id);
+              if (pivot) {
+                setNominal(String(pivot.pivot.harga));
+              }
+            }
           }
         }
       })
@@ -175,25 +198,23 @@ export default function DaftarProgram() {
 
   const Navbar = () => (
     <nav className="bg-white border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        {/* Left: Logo */}
+      <div className="max-w-7xl mx-auto px-4 md:px-6 h-14 md:h-16 flex items-center justify-between">
         <a href="/" className="flex items-center gap-2">
-          <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
-          <span className="text-xl font-bold text-gray-900 tracking-tight">
+          <img src="/logo-sm.png" alt="Mendunia" className="w-6 md:w-7 h-6 md:h-7" />
+          <span className="text-base md:text-xl font-bold text-gray-900 tracking-tight">
             Mendunia.id
           </span>
         </a>
 
-        {/* Right: User/Login */}
         <div className="flex items-center gap-4">
           <a
             href="/login"
-            className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+            className="flex items-center gap-1.5 md:gap-2 text-xs md:text-sm font-medium text-gray-700 hover:text-gray-900"
           >
-            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
-              <User size={16} className="text-gray-500" />
+            <div className="w-7 h-7 md:w-8 md:h-8 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+              <User size={13} className="text-gray-500" />
             </div>
-            <span>Masuk</span>
+            <span className="hidden xs:inline">Masuk</span>
           </a>
         </div>
       </div>
@@ -241,40 +262,38 @@ export default function DaftarProgram() {
       <div className="min-h-screen bg-[#f0f2f5] text-gray-800">
         <Navbar />
 
-        <div className="max-w-6xl mx-auto px-6 py-10 fade-in">
-          <div className="mb-8">
-            <h1 className="text-xl font-bold text-gray-900">
-              Daftar Program Di Mendunia.id
+        <div className="max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-10 fade-in">
+          <div className="mb-6 md:mb-8">
+            <h1 className="text-base md:text-xl font-bold text-gray-900">
+              Daftar Program
             </h1>
-            <p className="text-gray-600 text-base mt-2 leading-relaxed">
-              Temukan program pelatihan bahasa dan persiapan kerja terbaik untuk
-              mewujudkan impian karir global Anda.
+            <p className="text-gray-600 text-sm md:text-base mt-1 md:mt-2 leading-relaxed">
+              Isi data diri dan selesaikan pembayaran untuk mendaftar program pilihan Anda.
             </p>
-            <div className="mt-3 bg-white border border-gray-200 rounded-lg p-4 flex items-center justify-between shadow-sm animate-slide-down">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-[#eef1f6] flex items-center justify-center">
-                  <GraduationCap size={20} className="text-[#0D1F3C]" />
+            <div className="mt-3 bg-white border border-gray-200 rounded-lg p-3 md:p-4 flex items-center justify-between gap-3 shadow-sm animate-slide-down">
+              <div className="flex items-center gap-2 md:gap-3 min-w-0">
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-[#eef1f6] flex items-center justify-center shrink-0">
+                  <GraduationCap size={16} className="text-[#0D1F3C]" />
                 </div>
-                <div>
-                  <p className="text-xs text-gray-500 font-medium">
-                    Program Dipilih
+                <div className="min-w-0">
+                  <p className="text-[10px] md:text-xs text-gray-500 font-medium">
+                    Program
                   </p>
-                  <p className="text-sm font-bold text-gray-900">
+                  <p className="text-xs md:text-sm font-bold text-gray-900 truncate">
                     {selectedProduct?.nama}
                   </p>
                 </div>
               </div>
-              <p className="text-lg font-bold text-[#0D1F3C]">
+              <p className="text-sm md:text-lg font-bold text-[#0D1F3C] shrink-0">
                 Rp {Number(selectedProduct?.harga || 0).toLocaleString("id-ID")}
               </p>
             </div>
           </div>
 
           <div className="flex flex-col md:flex-row gap-12">
-            {/* LEFT SIDEBAR: Stepper & Contact Card */}
-            <div className="w-full md:w-1/4 flex-shrink-0 fade-in" style={{ animationDelay: '0.1s' }}>
+            {/* LEFT SIDEBAR: Stepper & Contact Card — hidden on mobile */}
+            <div className="hidden md:block w-full md:w-1/4 flex-shrink-0 fade-in" style={{ animationDelay: '0.1s' }}>
               <div className="relative">
-                {/* Vertical Line */}
                 <div className="absolute left-3.5 top-2 bottom-2 w-0.5 bg-gray-200 -z-10"></div>
 
                 <div className="space-y-6">
@@ -312,7 +331,6 @@ export default function DaftarProgram() {
                 </div>
               </div>
 
-              {/* Help Card */}
               <div className="mt-12 bg-white border border-gray-200 rounded-lg p-5 shadow-sm fade-in" style={{ animationDelay: '0.15s' }}>
                 <h4 className="text-sm font-bold text-gray-800 mb-1">
                   BUTUH BANTUAN?
@@ -328,16 +346,50 @@ export default function DaftarProgram() {
 
             {/* RIGHT MAIN CONTENT: Form Area */}
             <div className="w-full md:w-3/4 fade-in" style={{ animationDelay: '0.2s' }}>
+              {/* Mobile horizontal stepper */}
+              <div className="md:hidden mb-4">
+                <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-4 py-3 shadow-sm">
+                  {steps.map((s, i) => {
+                    const isActive = step === s.id;
+                    const isPassed = step > s.id;
+                    return (
+                      <div key={s.id} className="flex items-center gap-1.5 flex-1">
+                        {i > 0 && (
+                          <div className={`h-0.5 flex-1 ${isPassed || isActive ? 'bg-[#0D1F3C]' : 'bg-gray-200'}`} />
+                        )}
+                        <div className="flex flex-col items-center">
+                          <div
+                            className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 shrink-0 ${
+                              isActive
+                                ? "bg-[#0D1F3C] border-[#0D1F3C] text-white"
+                                : isPassed
+                                  ? "bg-[#e8eaf0] border-[#e8eaf0] text-[#0D1F3C]"
+                                  : "bg-white border-gray-300 text-gray-400"
+                            }`}
+                          >
+                            {isPassed ? <CheckCircle size={10} /> : s.id}
+                          </div>
+                          <span className={`text-[9px] mt-1 leading-tight text-center ${isActive ? 'text-[#0D1F3C] font-semibold' : isPassed ? 'text-[#0D1F3C]' : 'text-gray-400'}`}>
+                            {s.label}
+                          </span>
+                        </div>
+                        {i === steps.length - 1 && <div className="h-0.5 flex-1" />}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
                 {/* Header Section */}
-                <div className="px-8 py-5 border-b border-gray-200">
-                  <h2 className="text-xl text-gray-800 font-medium">
+                <div className="px-4 md:px-8 py-4 md:py-5 border-b border-gray-200">
+                  <h2 className="text-base md:text-xl text-gray-800 font-medium">
                     {step}. {steps[step - 1].label}
                   </h2>
                 </div>
 
                 {/* Form Content */}
-                <div className="p-8 fade-in" key={step}>
+                <div className="p-4 md:p-8 fade-in" key={step}>
                   {error && (
                     <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md text-sm text-red-600">
                       {error}
@@ -421,10 +473,26 @@ export default function DaftarProgram() {
                               className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm appearance-none cursor-pointer"
                             >
                               <option value="">Pilih Batch</option>
-                              {batches.map((b) => (
-                                <option key={b.id} value={b.id}>{b.nama_batch}</option>
-                              ))}
+                              {batches.map((b) => {
+                                const penuh = b.is_penuh && b.kuota !== null && (b.siswas_count ?? 0) >= b.kuota
+                                return (
+                                  <option key={b.id} value={b.id} disabled={penuh}>
+                                    {b.nama_batch}{penuh ? ` (Penuh)` : b.kuota ? ` (${b.siswas_count ?? 0}/${b.kuota})` : ''}
+                                  </option>
+                                )
+                              })}
                             </select>
+                            {batchId && (() => {
+                              const selectedBatch = batches.find(b => String(b.id) === batchId)
+                              if (selectedBatch?.is_penuh) {
+                                return (
+                                  <p className="mt-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+                                    Kelas ini sudah penuh. Silakan pilih batch lain.
+                                  </p>
+                                )
+                              }
+                              return null
+                            })()}
                           </div>
                         </div>
                       </div>
@@ -481,11 +549,33 @@ export default function DaftarProgram() {
                                 Rp {Number(selectedProduct.harga).toLocaleString("id-ID")}
                               </p>
                             </div>
+                            <div className="mt-3 pt-3 border-t border-gray-100">
+                              <p className="text-xs font-semibold text-gray-700 mb-2">Pembayaran Awal:</p>
+                              {(() => {
+                                const firstKat = biayaKategoris[0];
+                                if (firstKat && selectedProduct.biaya_kategoris) {
+                                  const pivot = selectedProduct.biaya_kategoris.find(bk => bk.id === firstKat.id);
+                                  if (pivot && pivot.pivot.harga > 0) {
+                                    return (
+                                      <div className="flex items-center justify-between bg-blue-50 rounded px-3 py-2">
+                                        <span className="text-xs font-medium text-blue-800">
+                                          {firstKat.kode} - {firstKat.nama}
+                                        </span>
+                                        <span className="text-sm font-bold text-blue-800">
+                                          Rp {Number(pivot.pivot.harga).toLocaleString("id-ID")}
+                                        </span>
+                                      </div>
+                                    );
+                                  }
+                                }
+                                return null;
+                              })()}
+                            </div>
                           </div>
 
                           <div className="mb-6">
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Nominal Pembayaran <span className="text-xs text-gray-400 font-normal">(isi jumlah yang ingin dibayarkan sekarang)</span>
+                              Nominal Pembayaran <span className="text-xs text-gray-400 font-normal">(pembayaran awal {biayaKategoris[0]?.kode || 'DAFTAR'})</span>
                             </label>
                             <div className="relative">
                               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-500">Rp</span>
@@ -608,14 +698,14 @@ export default function DaftarProgram() {
                     )}
 
                     {/* Bottom Action Area */}
-                    <div className="mt-8 flex items-center gap-4">
-                      <label className="flex items-center gap-2 text-xs text-gray-500 flex-1">
+                    <div className="mt-8 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                      <label className="flex items-start gap-2 text-xs text-gray-500 flex-1">
                         {step === 3 && (
                           <>
                             <input
                               type="checkbox"
                               required
-                              className="w-4 h-4 text-[#0D1F3C] border-gray-300 rounded focus:ring-[#0D1F3C]"
+                              className="w-4 h-4 text-[#0D1F3C] border-gray-300 rounded focus:ring-[#0D1F3C] mt-0.5 shrink-0"
                             />
                             <span>
                               Saya menyetujui syarat & ketentuan Mendunia dan
@@ -625,12 +715,12 @@ export default function DaftarProgram() {
                         )}
                       </label>
 
-                      <div className="flex gap-3">
+                      <div className="flex gap-3 w-full sm:w-auto">
                         {step > 1 && (
                           <button
                             type="button"
                             onClick={() => setStep((s) => s - 1)}
-                            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-md text-sm font-semibold hover:bg-gray-50 transition-colors"
+                            className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 border border-gray-300 text-gray-700 rounded-md text-sm font-semibold hover:bg-gray-50 transition-colors"
                           >
                             Kembali
                           </button>
@@ -638,7 +728,7 @@ export default function DaftarProgram() {
                         <button
                           type="submit"
                           disabled={isSubmitting}
-                          className="px-8 py-3 bg-[#42b72a] text-white rounded-md text-sm font-semibold hover:bg-[#3ba124] transition-colors disabled:opacity-70 flex items-center gap-2"
+                          className="flex-1 sm:flex-none px-6 sm:px-8 py-2.5 bg-[#42b72a] text-white rounded-md text-sm font-semibold hover:bg-[#3ba124] transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
                         >
                           {isSubmitting ? (
                             <Loader size={16} className="animate-spin" />

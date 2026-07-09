@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { RefreshCw } from "lucide-react";
 
@@ -138,9 +139,9 @@ export default function Login() {
               </button>
 
               <div className="text-center">
-                <a href="/forgot-password" className="text-sm text-[#0D1F3C] font-medium hover:underline">
+                <Link to="/forgot-password" className="text-sm text-[#0D1F3C] font-medium hover:underline">
                   Lupa kata sandi?
-                </a>
+                </Link>
               </div>
 
             </form>

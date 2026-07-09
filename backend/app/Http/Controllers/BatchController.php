@@ -15,7 +15,10 @@ class BatchController extends Controller
 
     public function apiIndex()
     {
-        $batches = Batch::withCount('siswas')->with('cabang')->latest()->get();
+        $batches = Batch::withCount('siswas')->with('cabang')->latest()->get()->map(function ($b) {
+            $b->is_penuh = ($b->kuota !== null && $b->siswas_count >= $b->kuota) || $b->is_penuh_manual;
+            return $b;
+        });
 
         return response()->json([
             'success' => true,
@@ -28,9 +31,10 @@ class BatchController extends Controller
         $request->validate([
             'nama_batch' => 'required|string|max:100|unique:batches,nama_batch',
             'cabang_id' => 'nullable|exists:cabangs,id',
+            'kuota' => 'nullable|integer|min:1',
         ]);
 
-        Batch::create($request->only('nama_batch', 'cabang_id'));
+        Batch::create($request->only('nama_batch', 'cabang_id', 'kuota'));
 
         return response()->json([
             'status' => 'success',
@@ -45,9 +49,10 @@ class BatchController extends Controller
         $request->validate([
             'nama_batch' => 'required|string|max:100|unique:batches,nama_batch,' . $id,
             'cabang_id' => 'nullable|exists:cabangs,id',
+            'kuota' => 'nullable|integer|min:1',
         ]);
 
-        $batch->update($request->only('nama_batch', 'cabang_id'));
+        $batch->update($request->only('nama_batch', 'cabang_id', 'kuota'));
 
         return response()->json([
             'status' => 'success',
@@ -83,6 +88,21 @@ class BatchController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Status batch berhasil diubah menjadi ' . $batch->status,
+        ]);
+    }
+
+    public function togglePenuh($id)
+    {
+        $batch = Batch::findOrFail($id);
+        $batch->is_penuh_manual = !$batch->is_penuh_manual;
+        $batch->save();
+
+        $label = $batch->is_penuh_manual ? 'Penuh' : 'Tidak Penuh';
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Batch ditandai sebagai ' . $label,
+            'is_penuh_manual' => $batch->is_penuh_manual,
         ]);
     }
 }

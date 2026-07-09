@@ -186,6 +186,29 @@ class AuthController extends Controller
         ], 201);
     }
 
+    public function forgotPasswordApi(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+            'password' => 'required|min:6|confirmed',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (in_array($user->role, ['MANAGER', 'HR'])) {
+            return response()->json([
+                'message' => 'Akun Manager dan HR tidak dapat direset melalui fitur ini. Hubungi administrator.',
+            ], 403);
+        }
+
+        $user->password = Hash::make($request->password);
+        $user->save();
+
+        return response()->json([
+            'message' => 'Password berhasil diubah. Silakan login.',
+        ]);
+    }
+
     public function logoutApi(Request $request)
     {
         $request->user()->currentAccessToken()->delete();

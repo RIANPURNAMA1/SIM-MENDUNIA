@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Batch;
+use App\Models\KelasSensei;
 use App\Models\Pendaftar;
 use App\Models\Siswa;
 use Carbon\Carbon;
@@ -24,11 +25,19 @@ class SiswaDashboardController extends Controller
         $siswa = Siswa::where('user_id', $user->id)->first();
         $batches = Batch::aktif()->orderBy('nama_batch')->get(['id', 'nama_batch']);
 
+        $hasClass = false;
+        if ($siswa && $siswa->batch_id) {
+            $hasClass = KelasSensei::where('batch_id', $siswa->batch_id)
+                ->where('status', 'aktif')
+                ->exists();
+        }
+
         return response()->json([
             'pendaftar' => $pendaftar,
             'user' => $user,
             'siswa' => $siswa,
             'batches' => $batches,
+            'has_class' => $hasClass,
         ]);
     }
 

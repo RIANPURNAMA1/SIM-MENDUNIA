@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, LogOut } from 'lucide-react'
+import { LayoutDashboard, Table, LogOut } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
 interface AffiliateSidebarProps {
@@ -10,7 +10,8 @@ interface AffiliateSidebarProps {
 export default function AffiliateSidebar({ isOpen, onClose }: AffiliateSidebarProps) {
   const location = useLocation()
   const { logout } = useAuth()
-  const active = location.pathname === '/affiliate-dashboard'
+  const activeDash = location.pathname === '/affiliate-dashboard' && !location.search.includes('tab=pendaftar')
+  const activePendaftar = location.pathname === '/affiliate-dashboard' && location.search.includes('tab=pendaftar')
 
   return (
     <>
@@ -32,14 +33,22 @@ export default function AffiliateSidebar({ isOpen, onClose }: AffiliateSidebarPr
           </div>
         </div>
 
-        <nav className="flex-1 px-2.5 py-3">
+        <nav className="flex-1 px-2.5 py-3 space-y-0.5">
           <Link
             to="/affiliate-dashboard"
             onClick={() => { if (onClose) onClose() }}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${active ? 'bg-white/15 text-white font-medium shadow-sm' : 'text-gray-300 hover:bg-white/10 hover:text-white'}`}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${activeDash ? 'bg-white/15 text-white font-medium shadow-sm' : 'text-gray-300 hover:bg-white/10 hover:text-white'}`}
           >
             <LayoutDashboard size={18} />
-            <span>Affiliate Dashboard</span>
+            <span>Dashboard</span>
+          </Link>
+          <Link
+            to="/affiliate-dashboard?tab=pendaftar"
+            onClick={() => { if (onClose) onClose() }}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${activePendaftar ? 'bg-white/15 text-white font-medium shadow-sm' : 'text-gray-300 hover:bg-white/10 hover:text-white'}`}
+          >
+            <Table size={18} />
+            <span>Data Pendaftar</span>
           </Link>
         </nav>
 

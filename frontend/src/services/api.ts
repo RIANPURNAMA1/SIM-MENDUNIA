@@ -195,10 +195,11 @@ export const siswaApi = {
 
 export const batchApi = {
   list: () => api.get('/batches'),
-  store: (data: { nama_batch: string; cabang_id?: number | null }) => api.post('/batches', data),
-  update: (id: number, data: { nama_batch: string; cabang_id?: number | null }) => api.put(`/batches/${id}`, data),
+  store: (data: { nama_batch: string; cabang_id?: number | null; kuota?: number | null }) => api.post('/batches', data),
+  update: (id: number, data: { nama_batch: string; cabang_id?: number | null; kuota?: number | null }) => api.put(`/batches/${id}`, data),
   destroy: (id: number) => api.delete(`/batches/${id}`),
   toggleStatus: (id: number) => api.post(`/batches/${id}/toggle-status`),
+  togglePenuh: (id: number) => api.post(`/batches/${id}/toggle-penuh`),
 }
 
 export const jadwalLevelApi = {
@@ -295,6 +296,8 @@ export const affiliateLinkApi = {
   destroy: (id: number) => api.delete(`/affiliate-links/${id}`),
   getByKode: (kode: string) => api.get(`/affiliate-link/${kode}`),
   listAffiliates: () => api.get('/affiliates/list'),
+  myStore: (data: { product_id: number; nama_link?: string }) => api.post('/affiliate/my-links', data),
+  availableProducts: () => api.get('/affiliate/products-aktif'),
 }
 
 export const pendaftarApi = {

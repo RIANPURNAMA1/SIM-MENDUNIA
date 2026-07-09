@@ -36,9 +36,11 @@ use App\Http\Controllers\PengaturanController;
 use App\Http\Controllers\PengaturanShiftController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\AffiliateLinkController;
 use App\Http\Controllers\PendaftaranController;
 use App\Http\Controllers\AffiliateDashboardController;
+use App\Http\Controllers\BiayaController;
 use App\Http\Controllers\SiswaDashboardController;
 use App\Http\Controllers\GuruDashboardController;
 use App\Http\Controllers\Api\CouponController;
@@ -47,6 +49,7 @@ use App\Http\Controllers\CompanyProfileController;
 // ========== API Auth (Sanctum) ==========
 Route::post('/auth/login',    [AuthController::class, 'loginApi']);
 Route::post('/auth/register', [AuthController::class, 'registerApi']);
+Route::post('/auth/forgot-password', [AuthController::class, 'forgotPasswordApi']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/user',   [AuthController::class, 'userApi']);
@@ -238,6 +241,7 @@ Route::prefix('batches')->group(function () {
     Route::put('/{id}', [BatchController::class, 'update']);
     Route::delete('/{id}', [BatchController::class, 'destroy']);
     Route::post('/{id}/toggle-status', [BatchController::class, 'toggleStatus']);
+    Route::post('/{id}/toggle-penuh', [BatchController::class, 'togglePenuh']);
 });
 
 // Absensi Siswa
@@ -302,6 +306,13 @@ Route::prefix('products')->group(function () {
     Route::delete('/{id}', [ProductController::class, 'destroy']);
 });
 
+Route::prefix('product-categories')->group(function () {
+    Route::get('/', [ProductCategoryController::class, 'index']);
+    Route::post('/', [ProductCategoryController::class, 'store']);
+    Route::put('/{id}', [ProductCategoryController::class, 'update']);
+    Route::delete('/{id}', [ProductCategoryController::class, 'destroy']);
+});
+
 Route::prefix('affiliate-links')->group(function () {
     Route::get('/', [AffiliateLinkController::class, 'index']);
     Route::post('/', [AffiliateLinkController::class, 'store']);
@@ -335,7 +346,19 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::get('/pembayaran', [PendaftaranController::class, 'allPembayaran']);
+    Route::get('/pembayaran-pending', [PendaftaranController::class, 'pendingPembayaran']);
+    Route::get('/rekap-per-batch', [PendaftaranController::class, 'rekapPerBatch']);
+    Route::get('/biaya-kategori', [BiayaController::class, 'kategoriIndex']);
+    Route::post('/biaya-kategori', [BiayaController::class, 'kategoriStore']);
+    Route::put('/biaya-kategori/{id}', [BiayaController::class, 'kategoriUpdate']);
+    Route::delete('/biaya-kategori/{id}', [BiayaController::class, 'kategoriDestroy']);
+    Route::get('/batch-biaya/{batchId}', [BiayaController::class, 'batchBiayaIndex']);
+    Route::post('/batch-biaya/{batchId}', [BiayaController::class, 'batchBiayaStore']);
+    Route::get('/pembayaran-item/{pendaftarId}', [BiayaController::class, 'pembayaranItemIndex']);
+    Route::post('/pembayaran-item/{pendaftarId}', [BiayaController::class, 'pembayaranItemStore']);
     Route::get('/affiliate-dashboard', [AffiliateDashboardController::class, 'index']);
+    Route::post('/affiliate/my-links', [AffiliateLinkController::class, 'myLinks']);
+    Route::get('/affiliate/products-aktif', [AffiliateLinkController::class, 'availableProducts']);
     Route::get('/siswa-dashboard', [SiswaDashboardController::class, 'index']);
     Route::get('/guru-dashboard', [GuruDashboardController::class, 'index']);
     Route::get('/guru/kelas-saya', [GuruDashboardController::class, 'kelasSaya']);
