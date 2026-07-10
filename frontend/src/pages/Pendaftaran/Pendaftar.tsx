@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Search, CheckCircle, XCircle, FileText, Eye, Trash2, CheckSquare, RotateCcw, Users, CreditCard, X, Loader, Receipt, AlertTriangle } from 'lucide-react'
-import { Link } from 'react-router-dom'
-import { pendaftarApi } from '../../services/api'
+import { Search, CheckCircle, XCircle, FileText, Eye, Trash2, CheckSquare, RotateCcw, Users, CreditCard, X, Loader, AlertTriangle, DollarSign, Upload } from 'lucide-react'
+import { pendaftarApi, pendaftarApi as apiModule } from '../../services/api'
+import api from '../../services/api'
 
 function fmt(n: number) {
   return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
@@ -11,6 +11,7 @@ interface PendaftarItem {
   id: number
   nama: string
   email: string
+  no_registrasi: string | null
   telepon: string | null
   nominal: number | null
   diskon: number | null
@@ -43,6 +44,13 @@ export default function Pendaftar() {
   const [riwayatData, setRiwayatData] = useState<any[]>([])
   const [riwayatLoading, setRiwayatLoading] = useState(false)
   const [confirm, setConfirm] = useState<ConfirmModal>({ open: false, title: '', message: '', type: 'approve', id: null })
+  const [bayarModal, setBayarModal] = useState<{ pendaftarId: number; nama: string; biaya: number } | null>(null)
+  const [bayarJumlah, setBayarJumlah] = useState('')
+  const [bayarBukti, setBayarBukti] = useState<File | null>(null)
+  const [bayarSubmitting, setBayarSubmitting] = useState(false)
+  const [bayarError, setBayarError] = useState('')
+  const [kategoris, setKategoris] = useState<{ id: number; kode: string; nama: string; urutan: number }[]>([])
+  const [kategoriItems, setKategoriItems] = useState<Record<number, { kategori_id: number; biaya: number; dibayar: number }[]>>({})
 
   useEffect(() => {
     fetchData()
@@ -50,10 +58,61 @@ export default function Pendaftar() {
 
   function fetchData() {
     setLoading(true)
-    pendaftarApi.list({}).then(res => {
+    Promise.all([
+      pendaftarApi.list({}),
+      api.get('/biaya-kategori'),
+    ]).then(([res, katRes]) => {
       setData(res.data)
+      setKategoris(katRes.data || [])
       setLoading(false)
+    }).catch(() => setLoading(false))
+  }
+
+  function openBayar(p: PendaftarItem) {
+    const daftarKat = [...kategoris].sort((a, b) => a.urutan - b.urutan)[0]
+    if (!daftarKat) return
+    api.get(`/pembayaran-item/${p.id}`).then(res => {
+      const items = res.data.items || []
+      const daftarItem = items.find((i: any) => i.kategori_id === daftarKat.id)
+      const biaya = daftarItem?.biaya || 0
+      const dibayar = daftarItem?.dibayar || 0
+      const sisa = biaya - dibayar
+      setBayarModal({ pendaftarId: p.id, nama: p.nama, biaya: sisa > 0 ? sisa : biaya })
+      setBayarJumlah(String(sisa > 0 ? sisa : biaya))
+      setBayarBukti(null)
+      setBayarError('')
+    }).catch(() => {
+      setBayarModal({ pendaftarId: p.id, nama: p.nama, biaya: 0 })
+      setBayarJumlah('')
+      setBayarBukti(null)
+      setBayarError('')
     })
+  }
+
+  async function handleBayarSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!bayarModal) return
+    if (!bayarJumlah || Number(bayarJumlah) <= 0) { setBayarError('Masukkan jumlah'); return }
+    if (!bayarBukti) { setBayarError('Upload bukti pembayaran'); return }
+    const daftarKat = [...kategoris].sort((a, b) => a.urutan - b.urutan)[0]
+    if (!daftarKat) return
+    setBayarSubmitting(true)
+    setBayarError('')
+    try {
+      const fd = new FormData()
+      fd.append('jumlah', bayarJumlah)
+      fd.append('kategori_id', String(daftarKat.id))
+      fd.append('bukti_pembayaran', bayarBukti)
+      await api.post(`/pendaftar/${bayarModal.pendaftarId}/bayar`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      setBayarModal(null)
+      fetchData()
+    } catch (err: any) {
+      setBayarError(err.response?.data?.message || 'Gagal mengirim pembayaran')
+    } finally {
+      setBayarSubmitting(false)
+    }
   }
 
   function handleApprove(id: number) {
@@ -238,6 +297,7 @@ export default function Pendaftar() {
           <thead className="text-sm text-slate-600">
             <tr>
               <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Nama</th>
+              <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">No. Registrasi</th>
               <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Program</th>
               <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Batch</th>
               <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium">Nominal</th>
@@ -252,7 +312,7 @@ export default function Pendaftar() {
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i}>
-                  <td colSpan={9} className="border border-slate-200 px-4 py-3">
+                  <td colSpan={10} className="border border-slate-200 px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="h-8 w-8 rounded-full bg-slate-200/70" />
                       <div className="flex-1 space-y-2">
@@ -265,7 +325,7 @@ export default function Pendaftar() {
               ))
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={9} className="border border-slate-200 px-6 py-10 text-center">
+                <td colSpan={10} className="border border-slate-200 px-6 py-10 text-center">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
                     <Users size={24} />
                   </div>
@@ -287,6 +347,9 @@ export default function Pendaftar() {
                         <div className="text-xs text-slate-500">{p.email}</div>
                       </div>
                     </div>
+                  </td>
+                  <td className="border border-slate-200 px-4 py-3 text-sm font-mono text-slate-700">
+                    {p.no_registrasi || <span className="text-slate-300">-</span>}
                   </td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">{p.product?.nama || '-'}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">{p.batch?.nama_batch || '-'}</td>
@@ -322,16 +385,18 @@ export default function Pendaftar() {
                           </button>
                         </>
                       )}
+                      {p.status_pendaftaran === 'disetujui' && (
+                        <button onClick={() => openBayar(p)}
+                          className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-emerald-600 transition hover:bg-emerald-100" title="Bayar Pendaftaran">
+                          <DollarSign size={15} />
+                        </button>
+                      )}
                       {p.status_pembayaran === 'processing' && (
                         <button onClick={() => handleVerifyPayment(p.id)}
                           className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600" title="Verifikasi Pembayaran">
                           <CheckSquare size={15} />
                         </button>
                       )}
-                      <Link to={`/pendaftar/${p.id}/invoice`}
-                        className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600" title="Invoice">
-                        <Receipt size={15} />
-                      </Link>
                       <button onClick={() => openRiwayat(p.id, p.nama)}
                         className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600" title="Riwayat Pembayaran">
                         <CreditCard size={15} />
@@ -452,6 +517,83 @@ export default function Pendaftar() {
             <div className="pb-1 pt-2 text-center">
               <button onClick={() => setPreviewImg(null)} className="text-sm text-slate-500 hover:text-slate-700">Tutup</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Bayar Pendaftaran */}
+      {bayarModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setBayarModal(null)}>
+          <div className="w-full max-w-md rounded-xl bg-white border border-gray-200 shadow-sm p-6" onClick={e => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Bayar Pendaftaran</h2>
+                <p className="text-xs text-gray-500">{bayarModal.nama}</p>
+              </div>
+              <button onClick={() => setBayarModal(null)} className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors">
+                <X size={20} className="text-gray-500" />
+              </button>
+            </div>
+
+            {bayarError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-600">{bayarError}</div>
+            )}
+
+            <form onSubmit={handleBayarSubmit} className="space-y-4">
+              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Kategori</span>
+                  <span className="font-semibold text-gray-900">Pendaftaran</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Biaya</span>
+                  <span className="font-semibold text-gray-900">Rp {bayarModal.biaya.toLocaleString('id-ID')}</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Jumlah Pembayaran</label>
+                <input
+                  type="number"
+                  required
+                  min={1}
+                  max={bayarModal.biaya}
+                  value={bayarJumlah}
+                  onChange={e => setBayarJumlah(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                  placeholder="Masukkan jumlah"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Upload Bukti Pembayaran</label>
+                <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-white hover:border-[#0D1F3C] transition-colors">
+                  {bayarBukti ? (
+                    <div className="flex flex-col items-center">
+                      <Upload className="w-6 h-6 text-[#0D1F3C]" />
+                      <p className="text-xs text-gray-600 mt-1 font-medium">{bayarBukti.name}</p>
+                      <p className="text-[10px] text-gray-400">Klik untuk ganti</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center">
+                      <Upload className="w-6 h-6 text-gray-400" />
+                      <p className="text-xs text-gray-500 mt-1 font-medium">Klik untuk upload</p>
+                      <p className="text-[10px] text-gray-400">.JPG, .PNG, atau .PDF</p>
+                    </div>
+                  )}
+                  <input type="file" className="hidden" accept=".jpg,.jpeg,.png,.pdf" onChange={e => setBayarBukti(e.target.files?.[0] || null)} />
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setBayarModal(null)}
+                  className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-md text-sm font-semibold hover:bg-gray-50 transition-colors">Batal</button>
+                <button type="submit" disabled={bayarSubmitting}
+                  className="px-6 py-2.5 bg-[#0D1F3C] text-white rounded-md text-sm font-semibold hover:bg-[#1a2d4a] transition-colors disabled:opacity-70 inline-flex items-center gap-2">
+                  {bayarSubmitting ? <><span className="animate-spin">&#9696;</span> Mengirim</> : 'Kirim Pembayaran'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

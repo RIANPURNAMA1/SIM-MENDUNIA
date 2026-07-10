@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { BarChart3, Search, RotateCcw, X } from "lucide-react";
-import { rekapKehadiranSenseiApi } from "../../services/api";
+import { BarChart3, Search, RotateCcw, X, Table, Calendar } from "lucide-react";
+import { rekapKehadiranSenseiApi, batchApi } from "../../services/api";
 import type { RekapKehadiranSenseiDay, KelasSenseiInfo, Karyawan } from "../../types";
 
 const MONTHS_IND = [
@@ -29,6 +29,12 @@ export default function RekapKehadiranSenseiPage() {
   const [tahun, setTahun] = useState(now.getFullYear());
   const [loading, setLoading] = useState(false);
   const [senseiLoading, setSenseiLoading] = useState(true);
+  const [filterBatch, setFilterBatch] = useState("");
+  const [filterLevel, setFilterLevel] = useState("");
+  const [batchList, setBatchList] = useState<{ id: number; nama_batch: string }[]>([]);
+  const [viewMode, setViewMode] = useState<"calendar" | "table">("calendar");
+  const [tableData, setTableData] = useState<any[]>([]);
+  const [tableLoading, setTableLoading] = useState(false);
 
   const [modal, setModal] = useState<{
     show: boolean;
@@ -43,6 +49,9 @@ export default function RekapKehadiranSenseiPage() {
       .then((res) => setSenseiList(res.data.data || []))
       .catch(console.error)
       .finally(() => setSenseiLoading(false));
+    batchApi.list()
+      .then((res) => setBatchList(res.data?.data || res.data || []))
+      .catch(console.error);
   }, []);
 
   const fetchData = useCallback(async () => {
@@ -58,6 +67,27 @@ export default function RekapKehadiranSenseiPage() {
       setLoading(false);
     }
   }, [selectedUserId, bulan, tahun]);
+
+  useEffect(() => {
+    if (selectedUserId) {
+      fetchData();
+    } else {
+      setKelasList([]);
+      setRekapData({});
+      setFilterBatch("");
+      setFilterLevel("");
+    }
+  }, [selectedUserId, bulan, tahun, fetchData]);
+
+  useEffect(() => {
+    if (viewMode === "table") {
+      setTableLoading(true);
+      rekapKehadiranSenseiApi.tableData()
+        .then((res) => setTableData(res.data.data || []))
+        .catch(console.error)
+        .finally(() => setTableLoading(false));
+    }
+  }, [viewMode]);
 
   const daysInMonth = new Date(tahun, bulan, 0).getDate();
   const firstDayOfWeek = new Date(tahun, bulan - 1, 1).getDay();
@@ -93,10 +123,29 @@ export default function RekapKehadiranSenseiPage() {
     }
   };
 
+  const batchOptions = batchList;
+
+  const levelOptions = Array.from(new Set(kelasList.map((k) => k.level))).sort();
+
+  const filteredKelasList = kelasList.filter((k) => {
+    if (filterBatch && String(k.batch_id) !== filterBatch) return false;
+    if (filterLevel && k.level !== filterLevel) return false;
+    return true;
+  });
+
+  const filteredTableData = tableData.filter((r) => {
+    if (filterBatch && String(r.batch_id) !== filterBatch) return false;
+    if (filterLevel && String(r.level) !== filterLevel) return false;
+    if (selectedUserId && r.sensei_id !== selectedUserId) return false;
+    return true;
+  });
+
   const getSummary = () => {
     const s = { hadir: 0, terlambat: 0, alpa: 0, pulangAwal: 0, libur: 0, belumAbsen: 0 };
+    const filteredNames = new Set(filteredKelasList.map((k) => k.nama_kelas));
     Object.values(rekapData).forEach((day) => {
       day.entries.forEach((e) => {
+        if (filteredKelasList.length < kelasList.length && !filteredNames.has(e.kelas_nama)) return;
         if (e.status === "HADIR") s.hadir++;
         else if (e.status === "TERLAMBAT") s.terlambat++;
         else if (e.status === "ALPA" || e.status === "TIDAK ABSEN PULANG") s.alpa++;
@@ -159,6 +208,30 @@ export default function RekapKehadiranSenseiPage() {
               <option key={y} value={y}>{y}</option>
             ))}
           </select>
+          {batchOptions.length > 0 && (
+            <select
+              value={filterBatch}
+              onChange={(e) => setFilterBatch(e.target.value)}
+              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="">Semua Batch</option>
+              {batchOptions.map((b) => (
+                <option key={b.id} value={b.id}>{b.nama_batch}</option>
+              ))}
+            </select>
+          )}
+          {levelOptions.length > 0 && (
+            <select
+              value={filterLevel}
+              onChange={(e) => setFilterLevel(e.target.value)}
+              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="">Semua Level</option>
+              {levelOptions.map((l) => (
+                <option key={l} value={l}>Level {l}</option>
+              ))}
+            </select>
+          )}
           <button
             onClick={fetchData}
             disabled={!selectedUserId || loading}
@@ -172,6 +245,8 @@ export default function RekapKehadiranSenseiPage() {
               setSelectedUserId("");
               setBulan(now.getMonth() + 1);
               setTahun(now.getFullYear());
+              setFilterBatch("");
+              setFilterLevel("");
               setRekapData({});
               setKelasList([]);
             }}
@@ -183,12 +258,88 @@ export default function RekapKehadiranSenseiPage() {
         </div>
       </div>
 
+      {/* View Toggle */}
+      <div className="mb-4 flex items-center gap-2">
+        <button
+          onClick={() => setViewMode("calendar")}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition ${viewMode === "calendar" ? "bg-slate-800 text-white" : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"}`}
+        >
+          <Calendar size={15} /> Kalender
+        </button>
+        <button
+          onClick={() => setViewMode("table")}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition ${viewMode === "table" ? "bg-slate-800 text-white" : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"}`}
+        >
+          <Table size={15} /> Tabel
+        </button>
+      </div>
+
+      {/* Table View */}
+      {viewMode === "table" && (
+        <div className="mb-4 overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+          {tableLoading ? (
+            <div className="px-4 py-16 text-center text-sm text-slate-400">Memuat data...</div>
+          ) : filteredTableData.length === 0 ? (
+            <div className="flex flex-col items-center justify-center px-4 py-16 text-slate-400">
+              <Table size={40} className="mb-3" />
+              <p className="text-sm font-medium text-slate-500">Tidak ada data kelas</p>
+            </div>
+          ) : (
+            <table className="w-full min-w-[900px] border-collapse text-left text-sm text-slate-700">
+              <thead className="text-[10px] text-slate-600 uppercase tracking-wide">
+                <tr>
+                  <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">No</th>
+                  <th className="border border-slate-200 px-3 py-2.5 font-semibold">Batch</th>
+                  <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">Level</th>
+                  <th className="border border-slate-200 px-3 py-2.5 font-semibold">Nama Kelas</th>
+                  <th className="border border-slate-200 px-3 py-2.5 font-semibold">Nama Sensei</th>
+                  <th className="border border-slate-200 px-3 py-2.5 font-semibold">Tgl Mulai</th>
+                  <th className="border border-slate-200 px-3 py-2.5 font-semibold">Tgl Selesai</th>
+                  <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">Total Pertemuan</th>
+                  <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">Absen Terisi</th>
+                  <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">Alpa</th>
+                  <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">Izin</th>
+                  <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredTableData.map((row, idx) => (
+                  <tr key={row.id} className="bg-white transition hover:bg-slate-50">
+                    <td className="border border-slate-200 px-3 py-2 text-center text-xs font-medium text-slate-500">{idx + 1}</td>
+                    <td className="border border-slate-200 px-3 py-2 text-xs">{row.batch_nama}</td>
+                    <td className="border border-slate-200 px-3 py-2 text-center text-xs font-semibold">{row.level}</td>
+                    <td className="border border-slate-200 px-3 py-2 text-xs font-medium text-slate-800">{row.nama_kelas}</td>
+                    <td className="border border-slate-200 px-3 py-2 text-xs">{row.sensei}</td>
+                    <td className="border border-slate-200 px-3 py-2 text-xs text-slate-600">{row.tanggal_mulai}</td>
+                    <td className="border border-slate-200 px-3 py-2 text-xs text-slate-600">{row.tanggal_selesai}</td>
+                    <td className="border border-slate-200 px-3 py-2 text-center text-xs font-semibold">{row.total_pertemuan}</td>
+                    <td className="border border-slate-200 px-3 py-2 text-center text-xs font-semibold">{row.absen_terisi}</td>
+                    <td className="border border-slate-200 px-3 py-2 text-center text-xs font-semibold text-rose-600">{row.alpa}</td>
+                    <td className="border border-slate-200 px-3 py-2 text-center text-xs font-semibold text-amber-600">{row.izin}</td>
+                    <td className="border border-slate-200 px-3 py-2 text-center">
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${row.status === 'aktif' ? 'bg-emerald-100 text-emerald-700' : row.status === 'selesai' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}`}>
+                        {row.status === 'aktif' ? 'Aktif' : row.status === 'selesai' ? 'Selesai' : row.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
+      {/* Calendar View */}
+      {viewMode === "calendar" && (<>
       {/* Kelas Info Cards */}
-      {kelasList.length > 0 && (
+      {filteredKelasList.length > 0 && (
         <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {kelasList.map((k) => (
+          {filteredKelasList.map((k) => (
             <div key={k.id} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-              <div className="text-xs font-bold text-slate-700">{k.nama_kelas}</div>
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-bold text-slate-700">{k.nama_kelas}</div>
+                <span className="text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">{k.batch_nama}</span>
+              </div>
               <div className="mt-0.5 text-[10px] text-slate-400">Level {k.level}</div>
               <div className="mt-1.5 flex items-center justify-between text-[10px]">
                 <span className="text-slate-500">
@@ -272,20 +423,27 @@ export default function RekapKehadiranSenseiPage() {
                 }
                 const ds = dateStr(day);
                 const dayData = rekapData[ds];
-                const inClassRange = dayData?.in_class_range ?? (kelasList.some((k) => ds >= k.tanggal_mulai && ds <= k.tanggal_selesai));
+                const inClassRange = filteredKelasList.some((k) => ds >= k.tanggal_mulai && ds <= k.tanggal_selesai);
+
+                const filteredEntries = filterBatch || filterLevel
+                  ? dayData?.entries.filter((e) => {
+                      const matchedKelas = filteredKelasList.find((k) => k.nama_kelas === e.kelas_nama);
+                      return !!matchedKelas;
+                    }) || []
+                  : dayData?.entries || [];
 
                 return (
                   <div
                     key={ds}
-                    className={`relative min-h-[70px] border-b border-r border-slate-100 p-1.5 transition last:border-r-0 ${dayData ? "cursor-pointer hover:bg-slate-50" : ""} ${inClassRange && !dayData ? "bg-amber-50/50" : ""} ${!inClassRange && !dayData ? "bg-slate-50/30" : ""}`}
+                    className={`relative min-h-[70px] border-b border-r border-slate-100 p-1.5 transition last:border-r-0 ${dayData ? "cursor-pointer hover:bg-slate-50" : ""} ${!inClassRange && !dayData ? "bg-slate-50/30" : ""}`}
                     onClick={() => dayData && handleCellClick(ds, dayData)}
-                    title={dayData ? dayData.entries.map((e) => `${e.kelas_nama}: ${e.status}`).join(", ") : (inClassRange ? "Rentang kelas" : "")}
-                    style={dayData?.in_class_range && !dayData.entries.length ? { backgroundColor: "#fff3cd" } : (!dayData && inClassRange ? { backgroundColor: "#fff3cd" } : undefined)}
+                    title={filteredEntries.length ? filteredEntries.map((e) => `${e.kelas_nama}: ${e.status}`).join(", ") : (inClassRange ? "Rentang kelas" : "")}
+                    style={inClassRange ? { backgroundColor: "#fff3cd" } : undefined}
                   >
-                    <span className={`text-[10px] font-bold ${dayData ? "text-slate-600" : inClassRange ? "text-amber-700" : "text-slate-300"}`}>
+                    <span className={`text-[10px] font-bold ${filteredEntries.length ? "text-slate-600" : inClassRange ? "text-amber-700" : "text-slate-300"}`}>
                       {day}
                     </span>
-                    {dayData?.entries.map((e, ei) => (
+                    {filteredEntries.map((e, ei) => (
                       <div
                         key={ei}
                         className={`mt-0.5 inline-flex items-center justify-center rounded px-1 py-0.5 text-[9px] font-bold leading-tight ${statusColorClass(e.status)}`}
@@ -304,6 +462,7 @@ export default function RekapKehadiranSenseiPage() {
           </div>
         )}
       </div>
+      </>)}
 
       {/* Modal */}
       {modal.show && (
@@ -365,3 +524,6 @@ function statusColorClass(status: string): string {
     default: return "border border-slate-300 bg-white text-slate-600";
   }
 }
+
+
+

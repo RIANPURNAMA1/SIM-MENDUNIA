@@ -50,8 +50,13 @@ export default function Login() {
         window.location.href = "/dashboard-karyawan";
       }
     } catch (err: unknown) {
-      const msg =
-        err instanceof Error ? err.message : "Email atau password salah";
+      let msg = "Email atau password salah";
+      if (err && typeof err === "object" && "response" in err) {
+        const axiosErr = err as { response?: { data?: { message?: string } } };
+        msg = axiosErr.response?.data?.message || msg;
+      } else if (err instanceof Error) {
+        msg = err.message;
+      }
       setError(msg);
       setCaptcha(generateCaptcha());
       setCaptchaInput("");

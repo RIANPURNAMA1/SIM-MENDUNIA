@@ -360,6 +360,8 @@ export interface KelasSenseiInfo {
   total_pertemuan: number
   jumlah_absen: number
   sensei: string
+  batch_id: number | null
+  batch_nama: string
 }
 
 export interface RekapJadwalShiftDayShift {

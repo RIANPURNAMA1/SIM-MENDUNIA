@@ -235,68 +235,79 @@ class AdminCabangController extends Controller
     {
         $batchIds = $this->getBranchBatchIds();
 
-        $query = Pendaftar::with(['product', 'batch', 'user'])
+        $query = Pendaftar::with(['product', 'batch', 'user', 'siswa'])
             ->whereIn('batch_id', $batchIds);
 
         if ($request->search) {
             $s = $request->search;
             $query->where(function ($q) use ($s) {
                 $q->where('nama', 'like', "%{$s}%")
-                  ->orWhere('email', 'like', "%{$s}%");
+                  ->orWhere('email', 'like', "%{$s}%")
+                  ->orWhere('no_registrasi', 'like', "%{$s}%")
+                  ->orWhereHas('siswa', fn($sq) => $sq->where('nik', 'like', "%{$s}%"));
             });
+        }
+
+        if ($request->batch_id) {
+            $query->where('batch_id', $request->batch_id);
         }
 
         $pendaftar = $query->orderBy('created_at', 'desc')->get();
 
-        $grouped = $pendaftar->groupBy(fn($p) => $p->batch_id ?? 0);
+        $allKandidat = $pendaftar->map(function ($p) {
+            $s = $p->siswa;
+            $tempat = $s?->tempat_lahir ?? '-';
+            $tgl = $s?->tanggal_lahir ?? '-';
+            $ttl = ($tempat !== '-' && $tgl !== '-') ? $tempat . ', ' . $tgl : '-';
 
-        $batches = [];
-        $ungrouped = $grouped->pull(0);
+            return [
+                'id' => $p->id,
+                'nik' => $s?->nik ?? '-',
+                'no_registrasi' => $p->no_registrasi ?? '-',
+                'nama' => $p->nama,
+                'batch_nama' => $p->batch?->nama_batch ?? '-',
+                'real_batch' => $s?->real_batch ?? '-',
+                'jenis_kelamin' => $s?->jenis_kelamin ?? '-',
+                'ttl' => $ttl,
+                'tempat_lahir' => $tempat,
+                'tanggal_lahir' => $tgl,
+                'alamat' => $s?->alamat ?? '-',
+                'desa' => $s?->desa ?? '-',
+                'kecamatan' => $s?->kecamatan ?? '-',
+                'kabupaten' => $s?->kabupaten ?? '-',
+                'provinsi' => $s?->provinsi ?? '-',
+                'pendidikan_terakhir' => $s?->pendidikan_terakhir ?? '-',
+                'tahun_lulus' => $s?->tahun_lulus ?? '-',
+                'tinggi_badan' => $s?->tinggi_badan ?? '-',
+                'berat_badan' => $s?->berat_badan ?? '-',
+                'goldar' => $s?->goldar ?? '-',
+                'ukuran_baju' => $s?->ukuran_baju ?? '-',
+                'status_pernikahan' => $s?->status_pernikahan ?? '-',
+                'email' => $p->email,
+                'no_hp' => $s?->no_hp ?? $p->telepon ?? '-',
+                'nama_ortu' => $s?->nama_ortu ?? '-',
+                'no_hp_ortu' => $s?->no_hp_ortu ?? '-',
+                'status' => $p->status_pendaftaran === 'pending' ? 'Pending'
+                    : ($p->status_pendaftaran === 'disetujui' ? 'Disetujui'
+                    : ($p->status_pendaftaran === 'ditolak' ? 'Ditolak' : $p->status_pendaftaran)),
+                'keterangan' => $s?->keterangan ?? '-',
+                'batch_id' => $p->batch_id,
+                'user_id' => $p->user_id,
+                'program' => $p->product?->nama ?? '-',
+            ];
+        });
 
-        foreach ($grouped as $batchId => $items) {
-            $batch = $items->first()->batch;
-            $batches[] = [
+        $batchOptions = $pendaftar->groupBy('batch_id')
+            ->map(fn($items, $batchId) => [
                 'id' => $batchId,
-                'nama' => $batch?->nama_batch ?? 'Batch #' . $batchId,
-                'jumlahKandidat' => $items->count(),
-                'kandidat' => $items->map(fn($p) => [
-                    'id' => $p->id,
-                    'nama' => $p->nama,
-                    'email' => $p->email,
-                    'telepon' => $p->telepon,
-                    'posisi' => $p->product?->nama ?? '-',
-                    'status' => $p->status_pendaftaran === 'pending' ? 'Pending'
-                        : ($p->status_pendaftaran === 'disetujui' ? 'Disetujui'
-                        : ($p->status_pendaftaran === 'ditolak' ? 'Ditolak' : $p->status_pendaftaran)),
-                    'tanggalDaftar' => $p->created_at->format('d F Y'),
-                    'user_id' => $p->user_id,
-                ]),
-            ];
-        }
-
-        if ($ungrouped) {
-            $batches[] = [
-                'id' => 0,
-                'nama' => 'Tanpa Batch',
-                'jumlahKandidat' => $ungrouped->count(),
-                'kandidat' => $ungrouped->map(fn($p) => [
-                    'id' => $p->id,
-                    'nama' => $p->nama,
-                    'email' => $p->email,
-                    'telepon' => $p->telepon,
-                    'posisi' => $p->product?->nama ?? '-',
-                    'status' => $p->status_pendaftaran === 'pending' ? 'Pending'
-                        : ($p->status_pendaftaran === 'disetujui' ? 'Disetujui'
-                        : ($p->status_pendaftaran === 'ditolak' ? 'Ditolak' : $p->status_pendaftaran)),
-                    'tanggalDaftar' => $p->created_at->format('d F Y'),
-                    'user_id' => $p->user_id,
-                ]),
-            ];
-        }
+                'nama' => $items->first()->batch?->nama_batch ?? 'Batch #' . $batchId,
+            ])
+            ->values();
 
         return response()->json([
-            'batches' => $batches,
-            'totalBatch' => count($batches),
+            'kandidat' => $allKandidat,
+            'batchOptions' => $batchOptions,
+            'totalBatch' => $batchOptions->count(),
             'totalKandidat' => $pendaftar->count(),
             'kandidatAktif' => $pendaftar->where('status_pendaftaran', 'disetujui')->count(),
         ]);

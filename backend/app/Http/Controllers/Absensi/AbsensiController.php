@@ -485,7 +485,7 @@ class AbsensiController extends Controller
         $isSiswa = $user->isSiswa();
 
         if ($isSiswa && $user->siswa) {
-            $siswa = $user->siswa;
+        $siswa = $user->siswa()->with('shift')->first();
             $siswaAbsensi = \App\Models\AbsensiSiswa::where('siswa_id', $siswa->id)
                 ->whereMonth('tanggal', now()->month);
             $stats = [
@@ -527,14 +527,14 @@ class AbsensiController extends Controller
             return response()->json(['message' => 'QR Code tidak dikenal'], 404);
         }
 
-        $siswa = $user->siswa;
+        $siswa = $user->siswa()->with('shift')->first();
 
         if (!$siswa) {
             return response()->json(['message' => 'Data siswa tidak ditemukan'], 404);
         }
 
         $today = now()->toDateString();
-        $now = now()->format('H:i:s');
+        $now = now();
 
         $existing = \App\Models\AbsensiSiswa::where('siswa_id', $siswa->id)
             ->where('tanggal', $today)
@@ -658,6 +658,86 @@ class AbsensiController extends Controller
             'jam_masuk' => $now->format('H:i:s'),
             'lat_masuk' => $request->lat,
             'long_masuk' => $request->long,
+            'status' => $status,
+        ]);
+
+        return response()->json([
+            'message' => 'Absensi berhasil',
+            'cabang' => $cabang->nama_cabang,
+            'jam' => 'Masuk: ' . $now->format('H:i:s'),
+            'status' => $status,
+        ]);
+    }
+
+    public function scanQrSiswa(Request $request)
+    {
+        $request->validate([
+            'barcode' => 'required|string',
+            'lat' => 'nullable|numeric',
+            'long' => 'nullable|numeric',
+        ]);
+
+        $user = Auth::guard('sanctum')->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $barcode = trim($request->barcode);
+        $cabang = Cabang::where('barcode', $barcode)->first();
+
+        if (!$cabang) {
+            return response()->json(['message' => 'QR Code tidak dikenal'], 404);
+        }
+
+        $siswa = $user->siswa;
+
+        if (!$siswa) {
+            return response()->json(['message' => 'Data siswa tidak ditemukan'], 404);
+        }
+
+        $today = now()->toDateString();
+        $now = now();
+
+        $existing = \App\Models\AbsensiSiswa::where('siswa_id', $siswa->id)
+            ->where('tanggal', $today)
+            ->first();
+
+        if ($existing) {
+            if ($existing->jam_masuk && !$existing->jam_keluar) {
+                $existing->update([
+                    'jam_keluar' => $now->format('H:i:s'),
+                ]);
+
+                return response()->json([
+                    'message' => 'Absensi pulang berhasil',
+                    'cabang' => $cabang->nama_cabang,
+                    'jam' => 'Pulang: ' . $now->format('H:i:s'),
+                    'status' => 'pulang',
+                ]);
+            }
+
+            return response()->json([
+                'message' => 'Anda sudah absen hari ini',
+                'cabang' => $cabang->nama_cabang,
+                'jam' => 'Masuk: ' . $existing->jam_masuk . ' | Pulang: ' . ($existing->jam_keluar ?? '-'),
+            ], 422);
+        }
+
+        $shiftSiswa = $siswa->shift;
+        $status = 'HADIR';
+        if ($shiftSiswa) {
+            $batasTerlambat = Carbon::parse($shiftSiswa->jam_masuk)->addMinutes($shiftSiswa->toleransi ?? 15);
+            if ($now->gt($batasTerlambat)) {
+                $status = 'TERLAMBAT';
+            }
+        }
+
+        \App\Models\AbsensiSiswa::create([
+            'siswa_id' => $siswa->id,
+            'cabang_id' => $cabang->id,
+            'tanggal' => $today,
+            'jam_masuk' => $now->format('H:i:s'),
             'status' => $status,
         ]);
 

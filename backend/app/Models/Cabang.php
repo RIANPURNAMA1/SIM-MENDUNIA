@@ -24,6 +24,12 @@ class Cabang extends Model
                 $cabang->barcode = 'CAB-' . strtoupper(substr(md5(uniqid()), 0, 10));
             }
         });
+
+        static::updating(function ($cabang) {
+            if (!$cabang->barcode) {
+                $cabang->barcode = 'CAB-' . strtoupper(substr(md5(uniqid()), 0, 10));
+            }
+        });
     }
 
     public function users()

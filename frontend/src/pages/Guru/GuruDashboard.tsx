@@ -3,6 +3,7 @@ import {
   Calendar, CheckCircle, X, Plus, Users, User,
   ChevronRight, FileText, Clock,
   QrCode, History, BookOpen, ClipboardList, Camera, MapPin, Notebook,
+  Award, BarChart3,
 } from 'lucide-react'
 import api, { guruKelasApi } from '../../services/api'
 import Swal from 'sweetalert2'
@@ -53,6 +54,23 @@ interface DashboardData {
   cabangs?: { id: number; kode_cabang: string; nama_cabang: string; status_pusat: string }[]
 }
 
+interface BatchNilai {
+  id: number
+  nama_batch: string
+  total_siswa: number
+  levels: {
+    level: string
+    avg: number | null
+    total_penilaian: number
+    categories: {
+      nama: string
+      avg: number | null
+      total_penilaian: number
+      components: { nama: string; avg: number | null; total_penilaian: number }[]
+    }[]
+  }[]
+}
+
 const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des']
 const monthNamesID = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
@@ -94,6 +112,8 @@ export default function GuruDashboard() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const coordsRef = useRef<{ latitude: number; longitude: number } | null>(null)
+  const [batchNilaiList, setBatchNilaiList] = useState<BatchNilai[]>([])
+  const [expandedLevel, setExpandedLevel] = useState<string | null>(null)
 
   const absenStatus: 'belum' | 'masuk' | 'pulang' = kelasList.some(k => absenPerKelas[k.id]?.jam_masuk && !absenPerKelas[k.id]?.jam_keluar)
     ? 'masuk'
@@ -117,10 +137,12 @@ export default function GuruDashboard() {
     Promise.all([
       api.get('/guru-dashboard'),
       guruKelasApi.list(),
-    ]).then(([dashRes, kelasRes]) => {
+      guruKelasApi.batchDanNilai(),
+    ]).then(([dashRes, kelasRes, nilaiRes]) => {
       setData(dashRes.data)
       setKelasList(kelasRes.data.kelas)
       setBatches(kelasRes.data.batches || [])
+      setBatchNilaiList(nilaiRes.data.batches || [])
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [])
@@ -419,6 +441,100 @@ export default function GuruDashboard() {
             </div>
           )}
         </section>
+
+        {/* Batch & Nilai */}
+        {batchNilaiList.length > 0 && (
+          <section className="bg-white rounded-xl border border-[#E5E7EF] p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Batch & Nilai</h3>
+              <BarChart3 size={14} className="text-[#8B90A0]" />
+            </div>
+            <div className="space-y-4">
+              {batchNilaiList.map(batch => (
+                <div key={batch.id}>
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-[#0069b0]/[0.08] flex items-center justify-center shrink-0">
+                      <BookOpen size={14} className="text-[#0069b0]" strokeWidth={2} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-[#14182B] truncate">{batch.nama_batch}</p>
+                      <p className="text-[10px] text-[#8B90A0] font-medium">{batch.total_siswa} siswa</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {batch.levels.map(lvl => {
+                      const key = `${batch.id}-${lvl.level}`
+                      const isExpanded = expandedLevel === key
+                      return (
+                        <div key={key} className="rounded-lg border border-[#F0F1F5] overflow-hidden">
+                          <button
+                            onClick={() => setExpandedLevel(isExpanded ? null : key)}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-[#FAFBFD] transition-colors"
+                          >
+                            <span className="text-[11px] font-bold text-[#0069b0] bg-[#0069b0]/[0.07] w-7 h-7 rounded-md flex items-center justify-center shrink-0">
+                              L{lvl.level}
+                            </span>
+                            <div className="flex-1 text-left">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-[#14182B]">Level {lvl.level}</span>
+                                <span className="text-[10px] text-[#8B90A0] font-medium">{lvl.total_penilaian} penilaian</span>
+                              </div>
+                            </div>
+                            {lvl.avg !== null ? (
+                              <span className={`text-sm font-bold tabular-nums ${lvl.avg >= 85 ? 'text-emerald-600' : lvl.avg >= 70 ? 'text-[#0069b0]' : lvl.avg >= 55 ? 'text-amber-600' : 'text-red-600'}`}>
+                                {lvl.avg}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-[#C5C8D4] font-medium">—</span>
+                            )}
+                            <ChevronRight size={14} className={`text-[#C5C8D4] transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                          </button>
+                          {isExpanded && lvl.categories.length > 0 && (
+                            <div className="px-3 pb-3 space-y-2 border-t border-[#F0F1F5]">
+                              {lvl.categories.map((cat, ci) => (
+                                <div key={ci} className="pt-2">
+                                  <div className="flex items-center justify-between mb-1.5">
+                                    <span className="text-[11px] font-semibold text-[#4B5063]">{cat.nama}</span>
+                                    {cat.avg !== null ? (
+                                      <span className={`text-xs font-bold tabular-nums ${cat.avg >= 85 ? 'text-emerald-600' : cat.avg >= 70 ? 'text-[#0069b0]' : cat.avg >= 55 ? 'text-amber-600' : 'text-red-600'}`}>
+                                        {cat.avg}
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] text-[#C5C8D4]">—</span>
+                                    )}
+                                  </div>
+                                  {cat.components.length > 0 && (
+                                    <div className="space-y-1 ml-2 border-l-2 border-[#F0F1F5] pl-3">
+                                      {cat.components.map((comp, cpi) => (
+                                        <div key={cpi} className="flex items-center justify-between">
+                                          <span className="text-[10px] text-[#8B90A0] font-medium">{comp.nama}</span>
+                                          {comp.avg !== null ? (
+                                            <span className="text-[10px] font-semibold text-[#4B5063] tabular-nums">{comp.avg}</span>
+                                          ) : (
+                                            <span className="text-[10px] text-[#C5C8D4]">—</span>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {isExpanded && lvl.categories.length === 0 && (
+                            <div className="px-3 pb-3 pt-2 border-t border-[#F0F1F5]">
+                              <p className="text-[10px] text-[#C5C8D4] font-medium text-center">Belum ada komponen penilaian untuk level ini</p>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Menu Cepat */}
         <section className="bg-white rounded-xl border border-[#E5E7EF] p-5">

@@ -44,7 +44,7 @@ class RekapKehadiranSenseiController extends Controller
 
         $user = User::findOrFail($userId);
 
-        $kelasList = KelasSensei::where('user_id', $userId)
+        $kelasList = KelasSensei::with('batchRelasi')->where('user_id', $userId)
             ->where('status', 'aktif')
             ->orderBy('nama_kelas', 'asc')
             ->get()
@@ -67,6 +67,8 @@ class RekapKehadiranSenseiController extends Controller
                     'total_pertemuan' => $totalPertemuan,
                     'jumlah_absen' => $jumlahAbsen,
                     'sensei' => $kelas->user->name ?? '-',
+                    'batch_id' => $kelas->batch_id,
+                    'batch_nama' => $kelas->batchRelasi->nama_batch ?? '-',
                 ];
             });
 
@@ -157,6 +159,50 @@ class RekapKehadiranSenseiController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Status kehadiran sensei berhasil diperbarui',
+        ]);
+    }
+
+    public function tableData(Request $request)
+    {
+        $kelasList = KelasSensei::with('batchRelasi', 'user')
+            ->where('status', 'aktif')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($kelas) {
+                $tglMulai = Carbon::parse($kelas->tanggal_mulai);
+                $tglSelesai = Carbon::parse($kelas->tanggal_selesai);
+                $totalPertemuan = $tglMulai->copy()->diffInDaysFiltered(function ($date) {
+                    if ($date->dayOfWeek === 0 || $date->dayOfWeek === 6) return false;
+                    if (\App\Models\HariLibur::apakahLibur($date->toDateString())) return false;
+                    return true;
+                }, $tglSelesai->copy()->addSecond());
+
+                $absensi = AbsensiSensei::where('kelas_sensei_id', $kelas->id)->get();
+                $absenTerisi = $absensi->count();
+                $alpa = $absensi->whereIn('status', ['ALPA', 'TIDAK ABSEN PULANG'])->count();
+                $izin = $absensi->whereIn('status', ['LIBUR'])->count();
+
+                return [
+                    'id' => $kelas->id,
+                    'nama_kelas' => $kelas->nama_kelas,
+                    'level' => $kelas->level,
+                    'batch_id' => $kelas->batch_id,
+                    'sensei_id' => $kelas->user_id,
+                    'tanggal_mulai' => $tglMulai->toDateString(),
+                    'tanggal_selesai' => $tglSelesai->toDateString(),
+                    'total_pertemuan' => $totalPertemuan,
+                    'absen_terisi' => $absenTerisi,
+                    'alpa' => $alpa,
+                    'izin' => $izin,
+                    'sensei' => $kelas->user->name ?? '-',
+                    'batch_nama' => $kelas->batchRelasi->nama_batch ?? '-',
+                    'status' => Carbon::now()->toDateString() > $tglSelesai->toDateString() ? 'selesai' : $kelas->status,
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => $kelasList,
         ]);
     }
 }

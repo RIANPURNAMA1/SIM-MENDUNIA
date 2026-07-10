@@ -48,6 +48,7 @@ import DataMatchingJob from './pages/Akademik/DataMatchingJob'
 import Tagihan from './pages/Siswa/Tagihan'
 import RekapBatch from './pages/Siswa/RekapBatch'
 import Pembayaran from './pages/Siswa/Pembayaran'
+import DataDiri from './pages/Siswa/DataDiri'
 import DataAffiliate from './pages/Affiliate/DataAffiliate'
 import DataProduct from './pages/Affiliate/DataProduct'
 import DataCoupon from './pages/Affiliate/DataCoupon'
@@ -188,6 +189,7 @@ function AppRoutes() {
         }
       >
         <Route index element={<SiswaDashboard />} />
+        <Route path="data-diri" element={<DataDiri />} />
         <Route path="absensi" element={<AbsensiSaya />} />
         <Route path="pembayaran" element={<PembayaranSiswa />} />
         <Route path="lms" element={<LMS />} />

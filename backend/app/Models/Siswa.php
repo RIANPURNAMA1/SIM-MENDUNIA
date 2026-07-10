@@ -14,22 +14,37 @@ class Siswa extends Model
         'kelas_id',
         'batch_id',
         'nama',
+        'nik',
+        'no_registrasi',
         'kelas',
         'batch',
         'level',
+        'real_batch',
         'jenis_kelamin',
         'tempat_lahir',
         'tanggal_lahir',
         'agama',
         'alamat',
+        'desa',
+        'kecamatan',
+        'kabupaten',
+        'provinsi',
+        'pendidikan_terakhir',
+        'tahun_lulus',
+        'tinggi_badan',
+        'berat_badan',
+        'goldar',
+        'ukuran_baju',
+        'status_pernikahan',
         'no_hp',
+        'no_hp_ortu',
+        'nama_ortu',
         'foto',
         'status',
+        'keterangan',
     ];
 
-    protected $casts = [
-        'tanggal_lahir' => 'date',
-    ];
+    protected $casts = [];
 
     public function user()
     {

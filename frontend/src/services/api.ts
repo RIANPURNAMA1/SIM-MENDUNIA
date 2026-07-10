@@ -22,12 +22,13 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error: AxiosError<{ message?: string }>) => {
-    if (error.response?.status === 401) {
+    const url = error.config?.url || ''
+    const isLoginRequest = url.includes('/login')
+    if (error.response?.status === 401 && !isLoginRequest) {
       localStorage.removeItem('token')
       window.location.href = '/login'
     }
-    const message = error.response?.data?.message || error.message || 'Terjadi kesalahan'
-    return Promise.reject(new Error(message))
+    return Promise.reject(error)
   }
 )
 
@@ -137,6 +138,7 @@ export const rekapKehadiranSenseiApi = {
   listSensei: () => api.get('/rekap-kehadiran-sensei'),
   getRekap: (userId: number, params?: Record<string, string | number>) =>
     api.get(`/rekap-kehadiran-sensei/${userId}`, { params }),
+  tableData: () => api.get('/rekap-kehadiran-sensei/table-data'),
   updateStatus: (data: { id: number; status: string }) =>
     api.post('/rekap-kehadiran-sensei/update-status', data),
 }
@@ -151,6 +153,7 @@ export const agendaApi = {
   list: (params?: Record<string, string | number>) =>
     api.get('/data-agenda', { params }),
 }
+
 
 export const pembayaranApi = {
   list: (params?: Record<string, string | undefined>) =>
@@ -320,6 +323,8 @@ export const pendaftarApi = {
     }),
   kandidat: (params?: Record<string, string>) =>
     api.get('/kandidat', { params }),
+  updateKandidat: (id: number, data: Record<string, unknown>) =>
+    api.put(`/kandidat/${id}`, data),
 }
 
 export const affiliateDashboardApi = {
@@ -367,6 +372,8 @@ export const adminCabangApi = {
     api.post(`/admin-cabang/pendaftar/${id}/bayar-manual`, data),
   biayaKategori: () => api.get('/admin-cabang/biaya-kategori'),
   batchBiaya: (batchId: number) => api.get(`/admin-cabang/batch-biaya/${batchId}`),
+  updateKandidat: (id: number, data: Record<string, unknown>) =>
+    api.post(`/admin-cabang/pendaftar/${id}/update-kandidat`, data),
 }
 
 export const profileApi = {
@@ -391,6 +398,7 @@ export const guruKelasApi = {
   penilaianHarian: (kelasId: number) => api.get(`/guru/penilaian-harian/${kelasId}`),
   simpanPenilaianHarian: (data: { siswa_id: number; kelas_sensei_id: number; tanggal: string; is_terisi: boolean; catatan?: string; scores?: { component_id: number; nilai: number | null }[] }) =>
     api.post('/guru/penilaian-harian', data),
+  batchDanNilai: () => api.get('/guru/batch-dan-nilai'),
 }
 
 export const lmsApi = {

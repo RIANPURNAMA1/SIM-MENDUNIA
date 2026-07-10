@@ -69,8 +69,10 @@ class PendaftaranController extends Controller
             'nama' => 'required|string|max:255',
             'email' => 'required|email|unique:pendaftar,email|unique:users,email',
             'password' => 'required|min:6',
-            'telepon' => 'nullable|string|max:20',
-            'alamat' => 'nullable|string',
+            'telepon' => 'required|string|max:20',
+            'alamat' => 'required|string',
+            'bank_asal' => 'required|string|max:100',
+            'nama_rekening' => 'required|string|max:255',
             'nominal' => 'required|numeric|min:0',
             'bukti_pembayaran' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
         ]);
@@ -96,6 +98,8 @@ class PendaftaranController extends Controller
             'password' => $user->password,
             'telepon' => $data['telepon'],
             'alamat' => $data['alamat'],
+            'bank_asal' => $data['bank_asal'],
+            'nama_rekening' => $data['nama_rekening'],
             'nominal' => $data['nominal'],
             'diskon' => $kupon['diskon'],
             'bukti_pembayaran' => $filePath,
@@ -119,8 +123,10 @@ class PendaftaranController extends Controller
             'nama' => 'required|string|max:255',
             'email' => 'required|email|unique:pendaftar,email|unique:users,email',
             'password' => 'required|min:6',
-            'telepon' => 'nullable|string|max:20',
-            'alamat' => 'nullable|string',
+            'telepon' => 'required|string|max:20',
+            'alamat' => 'required|string',
+            'bank_asal' => 'required|string|max:100',
+            'nama_rekening' => 'required|string|max:255',
             'nominal' => 'required|numeric|min:0',
             'bukti_pembayaran' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
         ]);
@@ -149,6 +155,8 @@ class PendaftaranController extends Controller
             'password' => $user->password,
             'telepon' => $data['telepon'],
             'alamat' => $data['alamat'],
+            'bank_asal' => $data['bank_asal'],
+            'nama_rekening' => $data['nama_rekening'],
             'nominal' => $data['nominal'],
             'diskon' => $kupon['diskon'],
             'bukti_pembayaran' => $filePath,
@@ -185,7 +193,8 @@ class PendaftaranController extends Controller
             $s = $request->search;
             $pendaftars->where(function ($q) use ($s) {
                 $q->where('nama', 'like', "%{$s}%")
-                  ->orWhere('email', 'like', "%{$s}%");
+                  ->orWhere('email', 'like', "%{$s}%")
+                  ->orWhere('no_registrasi', 'like', "%{$s}%");
             });
         }
 
@@ -239,9 +248,24 @@ class PendaftaranController extends Controller
     public function approve($id)
     {
         $pendaftar = Pendaftar::with(['affiliateLink.product', 'product.biayaKategoris'])->findOrFail($id);
+
+        // Generate No. Registrasi: REG/YYYYMMDD/XXXX
+        $today = now()->format('Ymd');
+        $lastReg = Pendaftar::where('no_registrasi', 'like', "REG/{$today}/%")
+            ->orderByDesc('no_registrasi')
+            ->value('no_registrasi');
+        if ($lastReg) {
+            $lastNum = (int) substr($lastReg, -4);
+            $nextNum = str_pad($lastNum + 1, 4, '0', STR_PAD_LEFT);
+        } else {
+            $nextNum = '0001';
+        }
+        $noReg = "REG/{$today}/{$nextNum}";
+
         $pendaftar->update([
             'status_pendaftaran' => 'disetujui',
             'status_pembayaran' => 'verified',
+            'no_registrasi' => $noReg,
         ]);
 
         if ($pendaftar->user_id) {
@@ -254,21 +278,14 @@ class PendaftaranController extends Controller
                         'batch_id' => $pendaftar->batch_id,
                         'no_hp' => $pendaftar->telepon,
                         'alamat' => $pendaftar->alamat,
+                        'no_registrasi' => $noReg,
                         'status' => 'AKTIF',
                     ]
                 );
             }
         }
 
-        // Catat komisi untuk affiliate
-        if ($pendaftar->affiliate_link_id && $pendaftar->affiliateLink->product?->komisi) {
-            KomisiAffiliate::create([
-                'affiliate_link_id' => $pendaftar->affiliate_link_id,
-                'pendaftar_id' => $pendaftar->id,
-                'jumlah' => $pendaftar->affiliateLink->product->komisi,
-                'status' => 'pending',
-            ]);
-        }
+        // Komisi affiliate dicatat saat Level 1 LUNAS (lihat cekDanCatatKomisiAffiliate)
 
         // Auto-create PembayaranItem and Pembayaran for first category if none exist
         $existingItems = PembayaranItem::where('pendaftar_id', $pendaftar->id)->count();
@@ -331,6 +348,8 @@ class PendaftaranController extends Controller
         $totalDibayar = PembayaranItem::where('pendaftar_id', $pendaftar->id)->sum('jumlah');
         $pendaftar->nominal = $totalDibayar;
         $pendaftar->save();
+
+        $this->cekDanCatatKomisiAffiliate($pendaftar->fresh());
 
         return response()->json(['message' => 'Pembayaran terverifikasi']);
     }
@@ -424,13 +443,13 @@ class PendaftaranController extends Controller
     {
         $pendaftar = Pendaftar::with('product.biayaKategoris')->findOrFail($id);
 
-        $pembayaran = Pembayaran::where('pendaftar_id', $pendaftar->id)
+        $pembayaran = Pembayaran::with('kategori')->where('pendaftar_id', $pendaftar->id)
             ->orderBy('created_at', 'desc')
             ->get();
 
         // Include PembayaranItem as synthetic records (for payments created during approve)
         $paidKatIds = $pembayaran->pluck('kategori_id')->filter()->unique()->values()->toArray();
-        $items = PembayaranItem::where('pendaftar_id', $pendaftar->id)
+        $items = PembayaranItem::with('kategori')->where('pendaftar_id', $pendaftar->id)
             ->whereNotIn('kategori_id', $paidKatIds)
             ->get();
 
@@ -442,6 +461,8 @@ class PendaftaranController extends Controller
                 'status' => 'verified',
                 'created_at' => $item->created_at ?? $pendaftar->updated_at ?? $pendaftar->created_at,
                 'bukti_pembayaran' => $pendaftar->bukti_pembayaran ?? null,
+                'kategori_id' => $item->kategori_id,
+                'kategori' => $item->kategori,
             ];
         });
 
@@ -469,7 +490,7 @@ class PendaftaranController extends Controller
         $request->validate([
             'jumlah' => 'required|numeric|min:1',
             'kategori_id' => 'required|exists:biaya_kategoris,id',
-            'bukti_pembayaran' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'bukti_pembayaran' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
         ]);
 
         $pendaftar = Pendaftar::findOrFail($id);
@@ -532,6 +553,8 @@ class PendaftaranController extends Controller
             ],
             ['jumlah' => $request->jumlah]
         );
+
+        $this->cekDanCatatKomisiAffiliate($pendaftar->fresh());
 
         return response()->json([
             'message' => 'Pembayaran manual berhasil dicatat',
@@ -610,7 +633,7 @@ class PendaftaranController extends Controller
 
     public function kandidat(Request $request)
     {
-        $query = Pendaftar::with(['product', 'batch', 'user']);
+        $query = Pendaftar::with(['product', 'batch', 'user', 'siswa']);
 
         if ($request->search) {
             $s = $request->search;
@@ -629,26 +652,55 @@ class PendaftaranController extends Controller
         $batches = [];
         $ungrouped = $grouped->pull(0);
 
+        $mapKandidat = function ($p) {
+            $siswa = $p->siswa;
+            $user = $p->user;
+            return [
+                'id' => $p->id,
+                'nama' => $p->nama,
+                'email' => $p->email,
+                'telepon' => $p->telepon,
+                'nik' => $siswa?->nik ?? $user?->nik ?? '-',
+                'no_registrasi' => $p->no_registrasi ?? $siswa?->no_registrasi ?? '-',
+                'batch_id' => $p->batch_id,
+                'batch_nama' => $p->batch?->nama_batch ?? '-',
+                'real_batch' => $siswa?->real_batch ?? '-',
+                'jenis_kelamin' => $siswa?->jenis_kelamin ?? '-',
+                'tempat_lahir' => $siswa?->tempat_lahir ?? '-',
+                'tanggal_lahir' => $siswa?->tanggal_lahir ? \Carbon\Carbon::parse($siswa->tanggal_lahir)->format('d M Y') : '-',
+                'alamat' => $siswa?->alamat ?? $p->alamat ?? '-',
+                'desa' => $siswa?->desa ?? '-',
+                'kecamatan' => $siswa?->kecamatan ?? '-',
+                'kabupaten' => $siswa?->kabupaten ?? '-',
+                'provinsi' => $siswa?->provinsi ?? '-',
+                'pendidikan_terakhir' => $siswa?->pendidikan_terakhir ?? $user?->pendidikan_terakhir ?? '-',
+                'tahun_lulus' => $siswa?->tahun_lulus ?? '-',
+                'tinggi_badan' => $siswa?->tinggi_badan ?? '-',
+                'berat_badan' => $siswa?->berat_badan ?? '-',
+                'goldar' => $siswa?->goldar ?? '-',
+                'ukuran_baju' => $siswa?->ukuran_baju ?? '-',
+                'status_pernikahan' => $siswa?->status_pernikahan ?? '-',
+                'no_hp' => $siswa?->no_hp ?? $p->telepon ?? '-',
+                'nama_ortu' => $siswa?->nama_ortu ?? '-',
+                'no_hp_ortu' => $siswa?->no_hp_ortu ?? '-',
+                'status_pendaftaran' => $p->status_pendaftaran,
+                'status' => $p->status_pendaftaran === 'pending' ? 'Pending'
+                    : ($p->status_pendaftaran === 'disetujui' ? 'Disetujui'
+                    : ($p->status_pendaftaran === 'ditolak' ? 'Ditolak' : $p->status_pendaftaran)),
+                'tanggalDaftar' => $p->created_at->format('d F Y'),
+                'user_id' => $p->user_id,
+                'keterangan' => $siswa?->keterangan ?? '-',
+                'posisi' => $p->product?->nama ?? '-',
+            ];
+        };
+
         foreach ($grouped as $batchId => $items) {
             $batch = $items->first()->batch;
             $batches[] = [
                 'id' => $batchId,
                 'nama' => $batch?->nama_batch ?? 'Batch #' . $batchId,
                 'jumlahKandidat' => $items->count(),
-                'kandidat' => $items->map(function ($p) {
-                    return [
-                        'id' => $p->id,
-                        'nama' => $p->nama,
-                        'email' => $p->email,
-                        'telepon' => $p->telepon,
-                        'posisi' => $p->product?->nama ?? '-',
-                        'status' => $p->status_pendaftaran === 'pending' ? 'Pending'
-                            : ($p->status_pendaftaran === 'disetujui' ? 'Disetujui'
-                            : ($p->status_pendaftaran === 'ditolak' ? 'Ditolak' : $p->status_pendaftaran)),
-                        'tanggalDaftar' => $p->created_at->format('d F Y'),
-                        'user_id' => $p->user_id,
-                    ];
-                }),
+                'kandidat' => $items->map($mapKandidat),
             ];
         }
 
@@ -657,20 +709,7 @@ class PendaftaranController extends Controller
                 'id' => 0,
                 'nama' => 'Tanpa Batch',
                 'jumlahKandidat' => $ungrouped->count(),
-                'kandidat' => $ungrouped->map(function ($p) {
-                    return [
-                        'id' => $p->id,
-                        'nama' => $p->nama,
-                        'email' => $p->email,
-                        'telepon' => $p->telepon,
-                        'posisi' => $p->product?->nama ?? '-',
-                        'status' => $p->status_pendaftaran === 'pending' ? 'Pending'
-                            : ($p->status_pendaftaran === 'disetujui' ? 'Disetujui'
-                            : ($p->status_pendaftaran === 'ditolak' ? 'Ditolak' : $p->status_pendaftaran)),
-                        'tanggalDaftar' => $p->created_at->format('d F Y'),
-                        'user_id' => $p->user_id,
-                    ];
-                }),
+                'kandidat' => $ungrouped->map($mapKandidat),
             ];
         }
 
@@ -768,5 +807,107 @@ class PendaftaranController extends Controller
             'grand_total_sisa' => $grandBiaya - $grandDibayar,
             'kategoris' => $kategoris->map(fn($k) => ['id' => $k->id, 'kode' => $k->kode, 'nama' => $k->nama]),
         ]);
+    }
+
+    public function updateKandidat(Request $request, $id)
+    {
+        $pendaftar = Pendaftar::with(['siswa'])->findOrFail($id);
+
+        $data = $request->validate([
+            'nik' => 'nullable|string|max:50',
+            'nama' => 'nullable|string|max:255',
+            'email' => 'nullable|email',
+            'batch_id' => 'nullable|exists:batches,id',
+            'real_batch' => 'nullable|string|max:255',
+            'jenis_kelamin' => 'nullable|in:L,P',
+            'tempat_lahir' => 'nullable|string|max:255',
+            'tanggal_lahir' => 'nullable|date',
+            'alamat' => 'nullable|string',
+            'desa' => 'nullable|string|max:255',
+            'kecamatan' => 'nullable|string|max:255',
+            'kabupaten' => 'nullable|string|max:255',
+            'provinsi' => 'nullable|string|max:255',
+            'pendidikan_terakhir' => 'nullable|string|max:100',
+            'tahun_lulus' => 'nullable|string|max:4',
+            'tinggi_badan' => 'nullable|numeric',
+            'berat_badan' => 'nullable|numeric',
+            'goldar' => 'nullable|in:A,B,AB,O',
+            'ukuran_baju' => 'nullable|in:XS,S,M,L,XL,XXL',
+            'status_pernikahan' => 'nullable|in:Belum Nikah,Nikah,Cerai',
+            'no_hp' => 'nullable|string|max:20',
+            'nama_ortu' => 'nullable|string|max:255',
+            'no_hp_ortu' => 'nullable|string|max:20',
+            'keterangan' => 'nullable|string|max:500',
+        ]);
+
+        // Update pendaftar fields
+        $pendaftarFields = ['nama', 'email', 'batch_id'];
+        foreach ($pendaftarFields as $f) {
+            if (array_key_exists($f, $data)) $pendaftar->$f = $data[$f];
+        }
+        $pendaftar->save();
+
+        // Update user if email/name changed
+        if ($pendaftar->user_id) {
+            $user = User::find($pendaftar->user_id);
+            if ($user) {
+                if (isset($data['nama'])) $user->name = $data['nama'];
+                if (isset($data['email'])) $user->email = $data['email'];
+                $user->save();
+            }
+        }
+
+        // Update siswa fields
+        $siswa = $pendaftar->siswa;
+        if ($siswa) {
+            $siswaFields = [
+                'nik', 'real_batch', 'jenis_kelamin', 'tempat_lahir', 'tanggal_lahir',
+                'alamat', 'desa', 'kecamatan', 'kabupaten', 'provinsi',
+                'pendidikan_terakhir', 'tahun_lulus', 'tinggi_badan', 'berat_badan',
+                'goldar', 'ukuran_baju', 'status_pernikahan', 'no_hp',
+                'nama_ortu', 'no_hp_ortu', 'keterangan', 'batch_id',
+            ];
+            foreach ($siswaFields as $f) {
+                if (array_key_exists($f, $data)) $siswa->$f = $data[$f];
+            }
+            if (isset($data['nama'])) $siswa->nama = $data['nama'];
+            $siswa->save();
+        }
+
+        return response()->json(['message' => 'Data kandidat berhasil diperbarui']);
+    }
+
+    private function cekDanCatatKomisiAffiliate($pendaftar)
+    {
+        if (!$pendaftar->affiliate_link_id) return;
+
+        $existing = KomisiAffiliate::where('pendaftar_id', $pendaftar->id)->first();
+        if ($existing) return;
+
+        $product = $pendaftar->product;
+        if (!$product || !$product->komisi) return;
+
+        $level1Kategori = \App\Models\BiayaKategori::where('kode', 'LEVEL1')->first();
+        if (!$level1Kategori) return;
+
+        $level1Harga = 0;
+        if ($product->relationLoaded('biayaKategoris')) {
+            $level1Pivot = $product->biayaKategoris->first(fn($k) => $k->id === $level1Kategori->id);
+            $level1Harga = $level1Pivot ? (int) $level1Pivot->pivot->harga : 0;
+        }
+        if ($level1Harga <= 0) return;
+
+        $level1Dibayar = PembayaranItem::where('pendaftar_id', $pendaftar->id)
+            ->where('kategori_id', $level1Kategori->id)
+            ->sum('jumlah');
+
+        if ($level1Dibayar >= $level1Harga) {
+            KomisiAffiliate::create([
+                'affiliate_link_id' => $pendaftar->affiliate_link_id,
+                'pendaftar_id' => $pendaftar->id,
+                'jumlah' => $product->komisi,
+                'status' => 'pending',
+            ]);
+        }
     }
 }

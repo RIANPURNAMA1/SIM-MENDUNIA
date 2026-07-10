@@ -76,10 +76,14 @@ export default function PembayaranSiswa() {
   const totalBiaya = kategoriItems.reduce((s, i) => s + i.biaya, 0)
   const totalDibayar = kategoriItems.reduce((s, i) => s + i.dibayar, 0)
   const tunggakan = totalBiaya - totalDibayar
-  const paidKategoriIds = kategoriItems.filter(i => i.dibayar > 0).map(i => i.kategori_id)
+  const paidKategoriIds = kategoriItems.filter(i => i.dibayar >= i.biaya && i.biaya > 0).map(i => i.kategori_id)
+  const partialKategoriIds = kategoriItems.filter(i => i.dibayar > 0 && i.dibayar < i.biaya).map(i => i.kategori_id)
 
   const sortedKat = [...kategoris].sort((a, b) => a.urutan - b.urutan)
-  const nextKat = sortedKat.find(k => !paidKategoriIds.includes(k.id)) || null
+  const nextKat = sortedKat.find(k => {
+    const item = kategoriItems.find(i => i.kategori_id === k.id)
+    return item ? item.dibayar < item.biaya : true
+  }) || null
 
   function openModal() {
     setSelectedKatId(nextKat?.id || null)
@@ -93,7 +97,8 @@ export default function PembayaranSiswa() {
   function selectKat(id: number) {
     setSelectedKatId(id)
     const item = kategoriItems.find(i => i.kategori_id === id)
-    setJumlah(String(item?.biaya || 0))
+    const sisa = (item?.biaya || 0) - (item?.dibayar || 0)
+    setJumlah(String(sisa > 0 ? sisa : item?.biaya || 0))
     setError('')
   }
 
@@ -152,66 +157,72 @@ export default function PembayaranSiswa() {
 
       {pendaftar ? (
         <>
-          <div className={`${cardClass} divide-y divide-gray-200`}>
-            <div className="px-5 py-3.5">
-              <h2 className="text-sm font-semibold text-gray-800">Status Pembayaran</h2>
-            </div>
-            <div className="p-5 space-y-4">
-              <div className="flex items-center gap-3">
-                <PaymentIcon size={20} className={
-                  pendaftar.status_pembayaran === 'verified' ? 'text-emerald-500' : 'text-amber-500'
-                } />
-                <div>
-                  <p className="text-xs text-gray-500">Status</p>
-                  <span className={`mt-0.5 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${paymentColor[pendaftar.status_pembayaran] || 'bg-slate-100 text-slate-600'}`}>
-                    {pendaftar.status_pembayaran}
-                  </span>
-                </div>
+          <div className={`${cardClass}`}>
+            {/* Status */}
+            <div className="px-5 py-4 border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-gray-800">Status Pembayaran</h2>
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+                  pendaftar.status_pembayaran === 'verified' ? 'bg-gray-100 text-gray-700' : 'bg-gray-100 text-gray-500'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${
+                    pendaftar.status_pembayaran === 'verified' ? 'bg-gray-700' : 'bg-gray-400'
+                  }`} />
+                  {pendaftar.status_pembayaran === 'verified' ? 'Terverifikasi' : 'Menunggu'}
+                </span>
               </div>
             </div>
 
-            {/* Payment Progress */}
+            {/* Tahapan */}
             {kategoris.length > 0 && (
-              <div className="p-5">
-                <h3 className="text-xs font-bold text-[#0D1F3C] uppercase tracking-wider mb-3">Tahapan Pembayaran</h3>
-                <div className="flex gap-2 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-thin">
+              <div className="px-5 py-4 border-b border-gray-100">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Tahapan Pembayaran</h3>
+                <div className="flex gap-2 overflow-x-auto pb-1 snap-x snap-mandatory scrollbar-thin">
                   {sortedKat.map((k, idx) => {
                     const item = kategoriItems.find(i => i.kategori_id === k.id)
-                    const isPaid = paidKategoriIds.includes(k.id)
+                    const isLunas = paidKategoriIds.includes(k.id)
+                    const isPartial = partialKategoriIds.includes(k.id)
                     const isNext = k.id === nextKat?.id
                     const katBiaya = item?.biaya || 0
+                    const katDibayar = item?.dibayar || 0
                     return (
-                      <div key={k.id} className={`snap-start flex-none w-24 sm:w-28 flex flex-col items-center gap-1.5 px-2 py-2.5 rounded-xl border transition-all ${
-                        isPaid
-                          ? 'border-emerald-200 bg-emerald-50'
-                          : isNext
-                            ? 'border-blue-300 bg-blue-50 shadow-sm'
-                            : 'border-gray-100 bg-gray-50 opacity-40'
+                      <div key={k.id} className={`snap-start flex-none w-24 sm:w-28 flex flex-col items-center gap-1.5 px-2 py-3 rounded-lg border transition-all ${
+                        isLunas
+                          ? 'border-gray-200 bg-white'
+                          : isPartial
+                            ? 'border-gray-300 bg-gray-50'
+                            : isNext
+                              ? 'border-gray-300 bg-gray-50'
+                              : 'border-gray-100 bg-white opacity-40'
                       }`}>
-                        <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                          isPaid ? 'bg-emerald-500 text-white' : isNext ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-500'
+                        <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
+                          isLunas
+                            ? 'border-gray-200 bg-white'
+                            : isPartial
+                              ? 'border-gray-800 text-gray-800'
+                              : isNext
+                                ? 'border-gray-400 text-gray-400'
+                                : 'border-gray-200 text-gray-300'
                         }`}>
-                          {isPaid ? <CheckCircle size={13} /> : idx + 1}
+                          {isLunas ? <CheckCircle size={14} className="text-emerald-500" /> : isPartial ? <Clock size={12} className="text-gray-800" /> : idx + 1}
                         </div>
                         <p className={`text-[10px] sm:text-xs font-bold text-center leading-tight ${
-                          isPaid ? 'text-emerald-700' : isNext ? 'text-blue-700' : 'text-gray-400'
-                        }`}>
-                          {k.kode}
-                        </p>
-                        <p className={`text-[8px] sm:text-[10px] text-center leading-tight ${
-                          isPaid ? 'text-emerald-600' : isNext ? 'text-blue-600' : 'text-gray-400'
+                          isLunas ? 'text-gray-900' : isPartial ? 'text-gray-700' : isNext ? 'text-gray-600' : 'text-gray-300'
                         }`}>
                           {k.nama}
                         </p>
                         {katBiaya > 0 && (
-                          <p className={`text-[7px] sm:text-[9px] font-semibold ${
-                            isPaid ? 'text-emerald-600' : 'text-blue-600'
+                          <p className={`text-[7px] sm:text-[9px] font-medium ${
+                            isLunas ? 'text-gray-500' : isPartial ? 'text-gray-600' : 'text-gray-400'
                           }`}>
                             Rp {katBiaya.toLocaleString('id-ID')}
                           </p>
                         )}
-                        {isPaid && (
-                          <span className="text-[7px] sm:text-[9px] font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-full">Lunas</span>
+                        {isLunas && (
+                          <span className="text-[7px] sm:text-[9px] font-semibold text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded-full">Lunas</span>
+                        )}
+                        {isPartial && (
+                          <span className="text-[7px] sm:text-[9px] font-semibold text-gray-600 bg-gray-200 px-1.5 py-0.5 rounded-full">Belum Lunas</span>
                         )}
                       </div>
                     )
@@ -220,43 +231,45 @@ export default function PembayaranSiswa() {
               </div>
             )}
 
-            <div className="p-5 space-y-4">
-              <h3 className="text-xs font-bold text-[#0D1F3C] uppercase tracking-wider">Ringkasan Pembayaran</h3>
-
-              {pendaftar.product && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">Program</span>
-                  <span className="text-sm font-semibold text-gray-900">{pendaftar.product.nama}</span>
-                </div>
-              )}
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">Total Biaya</span>
-                <span className="text-sm font-semibold text-gray-900">Rp {totalBiaya.toLocaleString('id-ID')}</span>
-              </div>
-              {diskon > 0 && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-green-600">Diskon</span>
-                  <span className="text-sm font-semibold text-green-600">- Rp {diskon.toLocaleString('id-ID')}</span>
-                </div>
-              )}
-              <div className="border-t border-gray-100 pt-3 flex items-center justify-between">
-                <span className="text-sm font-semibold text-gray-800">Total Dibayar</span>
-                <span className="text-base font-bold text-[#0D1F3C]">Rp {totalDibayar.toLocaleString('id-ID')}</span>
-              </div>
-              {tunggakan > 0 && (
-                <>
-                  <div className="flex items-center justify-between pt-2">
-                    <span className="text-sm font-semibold text-red-600">Tunggakan</span>
-                    <span className="text-base font-bold text-red-600">Rp {tunggakan.toLocaleString('id-ID')}</span>
+            {/* Ringkasan */}
+            <div className="px-5 py-4">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Ringkasan Pembayaran</h3>
+              <div className="space-y-2.5">
+                {pendaftar.product && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-500">Program</span>
+                    <span className="text-sm font-medium text-gray-900">{pendaftar.product.nama}</span>
                   </div>
-                  <button
-                    onClick={openModal}
-                    className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 bg-[#0D1F3C] text-white rounded-md text-sm font-semibold hover:bg-[#1a2d4a] transition-colors"
-                  >
-                    <CreditCard size={16} /> Bayar Tunggakan
-                  </button>
-                </>
-              )}
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-500">Total Biaya</span>
+                  <span className="text-sm font-medium text-gray-900">Rp {totalBiaya.toLocaleString('id-ID')}</span>
+                </div>
+                {diskon > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-500">Diskon</span>
+                    <span className="text-sm font-medium text-gray-700">- Rp {diskon.toLocaleString('id-ID')}</span>
+                  </div>
+                )}
+                <div className="border-t border-gray-100 pt-2.5 flex items-center justify-between">
+                  <span className="text-sm font-semibold text-gray-800">Total Dibayar</span>
+                  <span className="text-sm font-bold text-gray-900">Rp {totalDibayar.toLocaleString('id-ID')}</span>
+                </div>
+                {tunggakan > 0 && (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-gray-600">Tunggakan</span>
+                      <span className="text-sm font-bold text-gray-800">Rp {tunggakan.toLocaleString('id-ID')}</span>
+                    </div>
+                    <button
+                      onClick={openModal}
+                      className="mt-2 w-full md:w-auto md:px-6 flex items-center justify-center gap-2 py-2.5 bg-[#0D1F3C] text-white rounded-md text-sm font-semibold hover:bg-[#1a2d4a] transition-colors"
+                    >
+                      <CreditCard size={16} /> Bayar Tunggakan
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
@@ -277,7 +290,7 @@ export default function PembayaranSiswa() {
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-900">
-                          Pembayaran ke-{riwayat.length - i}
+                          {r.kategori?.nama || 'Pembayaran ke-' + (riwayat.length - i)}
                         </p>
                         <p className="text-xs text-gray-400">
                           {new Date(r.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -328,10 +341,12 @@ export default function PembayaranSiswa() {
                     <div className="flex gap-1.5 overflow-x-auto pb-1 snap-x snap-mandatory scrollbar-thin">
                       {sortedKat.map(k => {
                         const item = kategoriItems.find(i => i.kategori_id === k.id)
-                        const isPaid = paidKategoriIds.includes(k.id)
-                        const isSelectable = k.id === nextKat?.id && !isPaid
+                        const isLunas = paidKategoriIds.includes(k.id)
+                        const isPartial = partialKategoriIds.includes(k.id)
+                        const isSelectable = (isPartial || (k.id === nextKat?.id && !isLunas)) && !isLunas
                         const isSelected = selectedKatId === k.id
                         const katBiaya = item?.biaya || 0
+                        const katDibayar = item?.dibayar || 0
                         return (
                           <button
                             key={k.id}
@@ -339,35 +354,71 @@ export default function PembayaranSiswa() {
                             disabled={!isSelectable}
                             onClick={() => selectKat(k.id)}
                             className={`snap-start flex-none w-20 sm:w-24 flex flex-col items-center gap-1 px-1.5 py-2 rounded-xl border transition-all ${
-                              isPaid
-                                ? 'border-emerald-200 bg-emerald-50 cursor-default'
+                              isLunas
+                                ? 'border-gray-200 bg-gray-50 cursor-default'
                                 : isSelected
-                                  ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                                  ? 'border-gray-800 bg-gray-100 ring-2 ring-gray-300'
                                   : isSelectable
-                                    ? 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/50 cursor-pointer'
-                                    : 'border-gray-100 bg-gray-50 cursor-default opacity-40'
+                                    ? 'border-gray-200 hover:border-gray-400 hover:bg-gray-50 cursor-pointer'
+                                    : 'border-gray-100 bg-white cursor-default opacity-40'
                             }`}>
-                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                              isPaid ? 'bg-emerald-500 text-white' : isSelectable ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-400'
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 ${
+                              isLunas ? 'border-emerald-500 text-emerald-500' : isSelectable ? 'border-gray-800 text-gray-800' : 'border-gray-200 text-gray-400'
                             }`}>
-                              {isPaid ? <CheckCircle size={11} /> : k.urutan}
+                              {isLunas ? <CheckCircle size={11} /> : isPartial ? <Clock size={10} /> : k.urutan}
                             </div>
                             <p className={`text-[9px] sm:text-[10px] font-bold text-center leading-tight ${
-                              isPaid ? 'text-emerald-700' : isSelected ? 'text-blue-700' : 'text-gray-400'
+                              isLunas ? 'text-gray-500' : isSelected ? 'text-gray-900' : 'text-gray-500'
                             }`}>
-                              {k.kode}
+                              {k.nama}
                             </p>
                             {katBiaya > 0 && (
-                              <p className={`text-[7px] sm:text-[8px] font-semibold ${isPaid ? 'text-emerald-600' : 'text-blue-600'}`}>
+                              <p className={`text-[7px] sm:text-[8px] font-semibold ${isLunas ? 'text-gray-400' : 'text-gray-600'}`}>
                                 Rp {katBiaya.toLocaleString('id-ID')}
                               </p>
                             )}
-                            {isPaid && <span className="text-[7px] font-semibold text-emerald-600 bg-emerald-100 px-1 py-0.5 rounded-full">Lunas</span>}
+                            {isLunas && <span className="text-[7px] font-semibold text-gray-600 bg-gray-200 px-1 py-0.5 rounded-full">Lunas</span>}
+                            {isPartial && <span className="text-[7px] font-semibold text-gray-600 bg-gray-200 px-1 py-0.5 rounded-full">Sisa Rp {(katBiaya - katDibayar).toLocaleString('id-ID')}</span>}
                           </button>
                         )
                       })}
                     </div>
                   </div>
+
+                  {/* Info Step yang Dipilih */}
+                  {selectedKatId && (() => {
+                    const selectedKat = sortedKat.find(k => k.id === selectedKatId)
+                    const selectedItem = kategoriItems.find(i => i.kategori_id === selectedKatId)
+                    if (!selectedKat) return null
+                    const sisaBayar = (selectedItem?.biaya || 0) - (selectedItem?.dibayar || 0)
+                    return (
+                      <div className="border border-gray-200 rounded-lg p-4 space-y-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 border-gray-800 text-gray-800 bg-white">
+                            {selectedKat.urutan}
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-gray-900">{selectedKat.nama}</p>
+                            <p className="text-xs text-gray-500">Tahap {selectedKat.urutan} dari {sortedKat.length}</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3">
+                          <div className="bg-gray-50 rounded-md px-3 py-2">
+                            <p className="text-[10px] text-gray-500 uppercase tracking-wide">Biaya</p>
+                            <p className="text-sm font-bold text-gray-900">Rp {(selectedItem?.biaya || 0).toLocaleString('id-ID')}</p>
+                          </div>
+                          <div className="bg-gray-50 rounded-md px-3 py-2">
+                            <p className="text-[10px] text-gray-500 uppercase tracking-wide">Dibayar</p>
+                            <p className="text-sm font-bold text-gray-900">Rp {(selectedItem?.dibayar || 0).toLocaleString('id-ID')}</p>
+                          </div>
+                          <div className="bg-gray-50 rounded-md px-3 py-2">
+                            <p className="text-[10px] text-gray-500 uppercase tracking-wide">Sisa Bayar</p>
+                            <p className="text-sm font-bold text-gray-900">Rp {sisaBayar.toLocaleString('id-ID')}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })()}
 
                   <div className="bg-gray-50 rounded-lg p-4 space-y-2">
                     <div className="flex justify-between text-sm">
@@ -379,8 +430,8 @@ export default function PembayaranSiswa() {
                       <span className="font-semibold text-gray-900">Rp {totalDibayar.toLocaleString('id-ID')}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-red-600 font-semibold">Tunggakan</span>
-                      <span className="text-red-600 font-bold">Rp {tunggakan.toLocaleString('id-ID')}</span>
+                      <span className="text-gray-600 font-semibold">Tunggakan</span>
+                      <span className="font-bold text-gray-800">Rp {tunggakan.toLocaleString('id-ID')}</span>
                     </div>
                   </div>
 
@@ -422,7 +473,7 @@ export default function PembayaranSiswa() {
                     <button type="button" onClick={() => setShowModal(false)}
                       className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-md text-sm font-semibold hover:bg-gray-50 transition-colors">Batal</button>
                     <button type="submit" disabled={submitting || !selectedKatId}
-                      className="px-8 py-2.5 bg-[#42b72a] text-white rounded-md text-sm font-semibold hover:bg-[#3ba124] transition-colors disabled:opacity-70 inline-flex items-center gap-2">
+                      className="px-8 py-2.5 bg-[#0D1F3C] text-white rounded-md text-sm font-semibold hover:bg-[#1a2d4a] transition-colors disabled:opacity-70 inline-flex items-center gap-2">
                       {submitting ? <><span className="animate-spin">&#9696;</span> Mengirim</> : 'Kirim Pembayaran'}
                     </button>
                   </div>

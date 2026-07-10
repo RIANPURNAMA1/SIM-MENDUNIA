@@ -185,8 +185,8 @@ export default function KaryawanDashboard() {
           Swal.fire({ icon: 'success', title: 'Absen Pulang Berhasil', timer: 2000, showConfirmButton: false })
         }
         loadData()
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : 'Gagal melakukan absensi'
+      } catch (e: any) {
+        const msg = e?.response?.data?.message || (e instanceof Error ? e.message : 'Gagal melakukan absensi')
         Swal.fire({ icon: 'error', title: 'Absensi Gagal', text: msg })
       } finally {
         setIsSubmitting(false)

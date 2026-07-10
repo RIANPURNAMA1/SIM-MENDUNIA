@@ -15,6 +15,9 @@ interface LinkData {
 interface Batch {
   id: number
   nama_batch: string
+  kuota: number | null
+  siswas_count?: number
+  is_penuh?: boolean
 }
 
 const steps = [
@@ -38,6 +41,8 @@ export default function DaftarAffiliate() {
   const [passwordConfirmation, setPasswordConfirmation] = useState('')
   const [telepon, setTelepon] = useState('')
   const [alamat, setAlamat] = useState('')
+  const [bankAsal, setBankAsal] = useState('')
+  const [namaRekening, setNamaRekening] = useState('')
   const [nominal, setNominal] = useState('')
   const [bukti, setBukti] = useState<File | null>(null)
   const [kodeKupon, setKodeKupon] = useState('')
@@ -111,6 +116,8 @@ export default function DaftarAffiliate() {
     if (kodeKupon) fd.append('kode_kupon', kodeKupon)
     if (telepon) fd.append('telepon', telepon)
     if (alamat) fd.append('alamat', alamat)
+    if (bankAsal) fd.append('bank_asal', bankAsal)
+    if (namaRekening) fd.append('nama_rekening', namaRekening)
     if (batchId) fd.append('batch_id', batchId)
     fd.append('nominal', nominal)
     fd.append('bukti_pembayaran', bukti!)
@@ -135,6 +142,10 @@ export default function DaftarAffiliate() {
     }
     if (password !== passwordConfirmation) {
       setError('Password tidak cocok')
+      return
+    }
+    if (step === 2 && (!telepon || !alamat)) {
+      setError('Harap isi Nomor Telepon dan Alamat Lengkap')
       return
     }
     setError('')
@@ -418,10 +429,26 @@ export default function DaftarAffiliate() {
                             className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm appearance-none cursor-pointer"
                           >
                             <option value="">Pilih Batch</option>
-                            {batches.map((b) => (
-                              <option key={b.id} value={b.id}>{b.nama_batch}</option>
-                            ))}
-                          </select>
+                            {batches.map((b) => {
+                              const penuh = b.is_penuh && b.kuota !== null && (b.siswas_count ?? 0) >= b.kuota
+                              return (
+                                <option key={b.id} value={b.id} disabled={penuh}>
+                                  {b.nama_batch}{penuh ? ' (Penuh)' : b.kuota ? ` (${b.siswas_count ?? 0}/${b.kuota})` : ''}
+                                </option>
+                              )
+                            })}
+                           </select>
+                          {batchId && (() => {
+                            const selectedBatch = batches.find(b => String(b.id) === batchId)
+                            if (selectedBatch?.is_penuh) {
+                              return (
+                                <p className="mt-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+                                  Kelas ini sudah penuh. Silakan pilih batch lain.
+                                </p>
+                              )
+                            }
+                            return null
+                          })()}
                         </div>
                       </div>
                     </div>
@@ -436,16 +463,20 @@ export default function DaftarAffiliate() {
 
                         <div className="space-y-4">
                           <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Nomor Telepon <span className="text-red-500">*</span></label>
                             <input
                               type="text"
+                              required
                               value={telepon}
                               onChange={e => setTelepon(e.target.value)}
-                              placeholder="Nomor Telepon (Contoh: 08123456789)"
+                              placeholder="08123456789"
                               className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
                             />
                           </div>
                           <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Alamat Lengkap <span className="text-red-500">*</span></label>
                             <textarea
+                              required
                               value={alamat}
                               onChange={e => setAlamat(e.target.value)}
                               placeholder="Alamat Lengkap"
@@ -474,6 +505,59 @@ export default function DaftarAffiliate() {
                               Rp {Number(link?.product?.harga || 0).toLocaleString('id-ID')}
                             </p>
                           </div>
+                        </div>
+
+                        <div className="mb-6">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Dari Bank <span className="text-red-500">*</span>
+                          </label>
+                          <select
+                            value={bankAsal}
+                            onChange={e => setBankAsal(e.target.value)}
+                            required
+                            className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm appearance-none cursor-pointer"
+                          >
+                            <option value="">Pilih Bank</option>
+                            <option value="BCA">BCA</option>
+                            <option value="BNI">BNI</option>
+                            <option value="BRI">BRI</option>
+                            <option value="Mandiri">Mandiri</option>
+                            <option value="CIMB Niaga">CIMB Niaga</option>
+                            <option value="BSI">BSI</option>
+                            <option value="Danamon">Danamon</option>
+                            <option value="Permata">Permata</option>
+                            <option value="OCBC NISP">OCBC NISP</option>
+                            <option value="Maybank">Maybank</option>
+                            <option value="Panin">Panin</option>
+                            <option value="Mega">Mega</option>
+                            <option value="BTN">BTN</option>
+                            <option value="BTPN">BTPN</option>
+                            <option value="BJB">BJB</option>
+                            <option value="Sea Bank">Sea Bank</option>
+                            <option value="Neo Commerce">Neo Commerce</option>
+                            <option value="Jago">Jago</option>
+                            <option value="GoPay">GoPay</option>
+                            <option value="OVO">OVO</option>
+                            <option value="DANA">DANA</option>
+                            <option value="LinkAja">LinkAja</option>
+                            <option value="ShopeePay">ShopeePay</option>
+                            <option value="E-Wallet Lainnya">E-Wallet Lainnya</option>
+                            <option value="Bank Lainnya">Bank Lainnya</option>
+                          </select>
+                        </div>
+
+                        <div className="mb-6">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Nama Pemilik Rekening <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={namaRekening}
+                            onChange={e => setNamaRekening(e.target.value)}
+                            placeholder="Sesuai nama di rekening/bank"
+                            className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                          />
                         </div>
 
                         <div className="mb-6">

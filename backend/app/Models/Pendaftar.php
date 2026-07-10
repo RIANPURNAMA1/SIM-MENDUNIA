@@ -15,9 +15,12 @@ class Pendaftar extends Model
         'coupon_id',
         'nama',
         'email',
+        'no_registrasi',
         'password',
         'telepon',
         'alamat',
+        'bank_asal',
+        'nama_rekening',
         'nominal',
         'diskon',
         'bukti_pembayaran',
@@ -57,5 +60,10 @@ class Pendaftar extends Model
     public function coupon()
     {
         return $this->belongsTo(Coupon::class);
+    }
+
+    public function siswa()
+    {
+        return $this->hasOne(Siswa::class, 'user_id', 'user_id');
     }
 }

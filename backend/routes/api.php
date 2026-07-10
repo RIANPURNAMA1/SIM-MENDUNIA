@@ -188,6 +188,7 @@ Route::get('/data-agenda', [AdminAgendaController::class, 'apiIndex']);
 // Rekap Kehadiran Sensei
 Route::prefix('rekap-kehadiran-sensei')->group(function () {
     Route::get('/', [RekapKehadiranSenseiController::class, 'apiIndex']);
+    Route::get('/table-data', [RekapKehadiranSenseiController::class, 'tableData']);
     Route::get('/{userId}', [RekapKehadiranSenseiController::class, 'getData']);
     Route::post('/update-status', [RekapKehadiranSenseiController::class, 'updateStatus']);
 });
@@ -229,6 +230,10 @@ Route::prefix('siswa')->group(function () {
     Route::post('/bulk-update-shift', [SiswaController::class, 'bulkUpdateShift']);
     Route::post('/import', [SiswaController::class, 'import']);
     Route::post('/import-ai', [SiswaController::class, 'importAi']);
+    Route::post('/profile', [SiswaDashboardController::class, 'updateProfile'])->middleware('auth:sanctum');
+    Route::get('/absensi-saya', [SiswaDashboardController::class, 'absensiSaya'])->middleware('auth:sanctum');
+    Route::get('/nilai-saya/{batchId}', [SiswaDashboardController::class, 'nilaiSaya'])->middleware('auth:sanctum');
+    Route::post('/scan-qr', [AbsensiController::class, 'scanQrSiswa'])->middleware('auth:sanctum');
     Route::post('/{id}', [SiswaController::class, 'update']);
     Route::delete('/{id}', [SiswaController::class, 'destroy']);
     Route::post('/{id}/toggle-status', [SiswaController::class, 'toggleStatus']);
@@ -330,6 +335,7 @@ Route::get('/affiliate-link/{kode}', [AffiliateLinkController::class, 'showByKod
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/kandidat', [PendaftaranController::class, 'kandidat']);
+    Route::put('/kandidat/{id}', [PendaftaranController::class, 'updateKandidat']);
 
     Route::prefix('pendaftar')->group(function () {
         Route::get('/', [PendaftaranController::class, 'index']);
@@ -371,8 +377,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/guru/penilaian-harian/{kelasId}', [GuruDashboardController::class, 'penilaianHarian']);
     Route::post('/guru/penilaian-harian', [GuruDashboardController::class, 'simpanPenilaianHarian']);
     Route::get('/guru/profile', [GuruDashboardController::class, 'profile']);
-    Route::post('/siswa/profile', [SiswaDashboardController::class, 'updateProfile']);
-    Route::get('/siswa/absensi-saya', [SiswaDashboardController::class, 'absensiSaya']);
+    Route::get('/guru/batch-dan-nilai', [GuruDashboardController::class, 'batchDanNilai']);
 
     // LMS
     Route::prefix('lms')->group(function () {
@@ -436,6 +441,7 @@ Route::prefix('admin-cabang')->middleware(['auth:sanctum'])->group(function () {
     Route::get('/pendaftar/{id}/invoice', [PendaftaranController::class, 'invoice']);
     Route::get('/pendaftar/{id}/riwayat-pembayaran', [PendaftaranController::class, 'riwayatPembayaran']);
     Route::post('/pendaftar/{id}/bayar-manual', [PendaftaranController::class, 'bayarManual']);
+    Route::post('/pendaftar/{id}/update-kandidat', [PendaftaranController::class, 'updateKandidat']);
 
     // Biaya & Batch Biaya
     Route::get('/biaya-kategori', [BiayaController::class, 'kategoriIndex']);

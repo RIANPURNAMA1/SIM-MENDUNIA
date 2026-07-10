@@ -3,16 +3,26 @@ import { Calendar, Plus, Pencil, Trash2, X } from "lucide-react";
 import { jadwalLevelApi } from "../../services/api";
 import type { BatchData, JadwalLevelItem } from "../../types";
 
+const stages = [
+  { level: -4, label: "Wawancara" },
+  { level: -3, label: "Rapat Orang Tua" },
+  { level: -2, label: "MCU" },
+  { level: -1, label: "Pembukaan Kelas" },
+  { level: 1, label: "Level 1" },
+  { level: 2, label: "Level 2" },
+  { level: 3, label: "Level 3" },
+  { level: 4, label: "Level 4" },
+];
+
 export default function JadwalLevelPage() {
   const [batches, setBatches] = useState<BatchData[]>([]);
-  const [levels] = useState([1, 2, 3, 4]);
   const [jadwalMap, setJadwalMap] = useState<Record<string, JadwalLevelItem>>({});
   const [loading, setLoading] = useState(true);
 
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
-    batch_id: 0, batch_nama: "", level: 0,
+    batch_id: 0, batch_nama: "", level: 0, levelLabel: "",
     tanggal_mulai: "", tanggal_selesai: "",
   });
 
@@ -26,8 +36,7 @@ export default function JadwalLevelPage() {
       const map: Record<string, JadwalLevelItem> = {};
       const jadwalData = res.data.jadwal || {};
       Object.keys(jadwalData).forEach((key) => {
-        const item = jadwalData[key];
-        map[key] = item;
+        map[key] = jadwalData[key];
       });
       setJadwalMap(map);
     } catch (err) {
@@ -41,11 +50,12 @@ export default function JadwalLevelPage() {
     fetchData();
   }, []);
 
-  const openModal = (batch: BatchData, level: number, existing?: JadwalLevelItem) => {
+  const openModal = (batch: BatchData, level: number, label: string, existing?: JadwalLevelItem) => {
     setForm({
       batch_id: batch.id,
       batch_nama: batch.nama_batch,
       level,
+      levelLabel: label,
       tanggal_mulai: existing?.tanggal_mulai || "",
       tanggal_selesai: existing?.tanggal_selesai || "",
     });
@@ -71,8 +81,8 @@ export default function JadwalLevelPage() {
     }
   };
 
-  const handleDelete = async (batch: BatchData, level: number) => {
-    if (!confirm(`Hapus jadwal untuk ${batch.nama_batch} Level ${level}?`)) return;
+  const handleDelete = async (batch: BatchData, level: number, label: string) => {
+    if (!confirm(`Hapus jadwal untuk ${batch.nama_batch} - ${label}?`)) return;
     try {
       await jadwalLevelApi.destroy(batch.id, level);
       fetchData();
@@ -96,7 +106,7 @@ export default function JadwalLevelPage() {
           </div>
           <div>
             <h1 className="text-lg font-semibold text-slate-800">Jadwal Level</h1>
-            <p className="text-sm text-slate-500">Atur tanggal mulai dan selesai setiap level per batch</p>
+            <p className="text-sm text-slate-500">Atur tanggal mulai dan selesai setiap tahapan per batch</p>
           </div>
         </div>
       </div>
@@ -112,40 +122,40 @@ export default function JadwalLevelPage() {
       ) : (
         <div className="rounded-lg border border-slate-200 shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[600px] border-collapse text-left text-xs text-slate-700">
+            <table className="w-full min-w-[1200px] border-collapse text-left text-xs text-slate-700">
               <thead className="bg-slate-50 text-[10px] text-slate-600 uppercase tracking-wide">
                 <tr>
-                  <th className="border border-slate-200 px-3 py-2.5 font-semibold">Batch</th>
-                  {levels.map((lv) => (
-                    <th key={lv} className="border border-slate-200 px-3 py-2.5 text-center font-semibold">Level {lv}</th>
+                  <th className="border border-slate-200 px-3 py-2.5 font-semibold sticky left-0 bg-slate-50 z-10">Batch</th>
+                  {stages.map((s) => (
+                    <th key={s.level} className="border border-slate-200 px-3 py-2.5 text-center font-semibold whitespace-nowrap">{s.label}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {batches.map((batch) => (
                   <tr key={batch.id} className="bg-white transition hover:bg-slate-50">
-                    <td className="border border-slate-200 px-3 py-2.5 font-semibold text-slate-800">{batch.nama_batch}</td>
-                    {levels.map((lv) => {
-                      const key = buildKey(batch.id, lv);
+                    <td className="border border-slate-200 px-3 py-2.5 font-semibold text-slate-800 sticky left-0 bg-white z-10">{batch.nama_batch}</td>
+                    {stages.map((s) => {
+                      const key = buildKey(batch.id, s.level);
                       const item = jadwalMap[key];
                       return (
-                        <td key={lv} className="border border-slate-200 px-3 py-2.5 text-center" style={{ minWidth: 200 }}>
+                        <td key={s.level} className="border border-slate-200 px-3 py-2.5 text-center" style={{ minWidth: 180 }}>
                           {item ? (
                             <div className="flex flex-col items-center gap-1.5">
                               <span className="inline-flex rounded-md bg-emerald-100 px-3 py-1.5 text-[10px] font-medium text-emerald-700 whitespace-nowrap">
                                 {formatDate(item.tanggal_mulai)} - {formatDate(item.tanggal_selesai)}
                               </span>
                               <div className="flex gap-1">
-                                <button onClick={() => openModal(batch, lv, item)} className="rounded-md border border-slate-300 bg-white p-1 text-slate-500 transition hover:bg-amber-50 hover:text-amber-600" title="Edit">
+                                <button onClick={() => openModal(batch, s.level, s.label, item)} className="rounded-md border border-slate-300 bg-white p-1 text-slate-500 transition hover:bg-amber-50 hover:text-amber-600" title="Edit">
                                   <Pencil size={12} />
                                 </button>
-                                <button onClick={() => handleDelete(batch, lv)} className="rounded-md border border-slate-300 bg-white p-1 text-slate-500 transition hover:bg-rose-50 hover:text-rose-600" title="Hapus">
+                                <button onClick={() => handleDelete(batch, s.level, s.label)} className="rounded-md border border-slate-300 bg-white p-1 text-slate-500 transition hover:bg-rose-50 hover:text-rose-600" title="Hapus">
                                   <Trash2 size={12} />
                                 </button>
                               </div>
                             </div>
                           ) : (
-                            <button onClick={() => openModal(batch, lv)} className="inline-flex items-center gap-1 rounded-md border border-dashed border-slate-300 bg-white px-3 py-1.5 text-[10px] font-medium text-slate-500 transition hover:border-blue-400 hover:text-blue-600">
+                            <button onClick={() => openModal(batch, s.level, s.label)} className="inline-flex items-center gap-1 rounded-md border border-dashed border-slate-300 bg-white px-3 py-1.5 text-[10px] font-medium text-slate-500 transition hover:border-blue-400 hover:text-blue-600">
                               <Plus size={12} /> Atur Tanggal
                             </button>
                           )}
@@ -166,7 +176,7 @@ export default function JadwalLevelPage() {
           <div className="w-full max-w-sm rounded-lg bg-white shadow-xl">
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
               <h3 className="text-sm font-semibold text-slate-800">
-                {form.tanggal_mulai ? "Edit" : "Atur"} Jadwal - {form.batch_nama} Level {form.level}
+                {form.tanggal_mulai ? "Edit" : "Atur"} Jadwal - {form.batch_nama} {form.levelLabel}
               </h3>
               <button onClick={() => setShowModal(false)} className="rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
                 <X size={16} />
@@ -178,8 +188,8 @@ export default function JadwalLevelPage() {
                 <input type="text" value={form.batch_nama} readOnly className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none" />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-500">Level</label>
-                <input type="text" value={`Level ${form.level}`} readOnly className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none" />
+                <label className="mb-1 block text-xs font-semibold text-slate-500">Tahapan</label>
+                <input type="text" value={form.levelLabel} readOnly className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none" />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold text-slate-500">Tanggal Mulai <span className="text-rose-500">*</span></label>

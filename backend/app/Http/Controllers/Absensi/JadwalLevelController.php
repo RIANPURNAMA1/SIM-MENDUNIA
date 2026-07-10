@@ -13,7 +13,7 @@ class JadwalLevelController extends Controller
     public function index()
     {
         $batches = Batch::aktif()->get();
-        $levels = [1, 2, 3, 4];
+        $levels = [-4, -3, -2, -1, 1, 2, 3, 4];
         $jadwal = JadwalLevel::with('batch')->get()->keyBy(function ($item) {
             return $item->batch_id . '-' . $item->level;
         });
@@ -24,7 +24,7 @@ class JadwalLevelController extends Controller
     public function apiIndex()
     {
         $batches = Batch::aktif()->get();
-        $levels = [1, 2, 3, 4];
+        $levels = [-4, -3, -2, -1, 1, 2, 3, 4];
         $jadwal = JadwalLevel::with('batch')->get()->keyBy(function ($item) {
             return $item->batch_id . '-' . $item->level;
         });
@@ -52,7 +52,7 @@ class JadwalLevelController extends Controller
     {
         $request->validate([
             'batch_id' => 'required|exists:batches,id',
-            'level' => 'required|integer|min:1|max:4',
+            'level' => 'required|integer|min:-4|max:4',
             'tanggal_mulai' => 'required|date',
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
         ]);
@@ -62,13 +62,15 @@ class JadwalLevelController extends Controller
             ['tanggal_mulai' => $request->tanggal_mulai, 'tanggal_selesai' => $request->tanggal_selesai]
         );
 
-        // Sync tanggal_mulai / tanggal_selesai ke kelas_sensei yang cocok
-        KelasSensei::where('batch_id', $request->batch_id)
-            ->where('level', $request->level)
-            ->update([
-                'tanggal_mulai' => $request->tanggal_mulai,
-                'tanggal_selesai' => $request->tanggal_selesai,
-            ]);
+        // Sync tanggal_mulai / tanggal_selesai ke kelas_sensei hanya untuk level 1-4
+        if ($request->level >= 1 && $request->level <= 4) {
+            KelasSensei::where('batch_id', $request->batch_id)
+                ->where('level', $request->level)
+                ->update([
+                    'tanggal_mulai' => $request->tanggal_mulai,
+                    'tanggal_selesai' => $request->tanggal_selesai,
+                ]);
+        }
 
         return response()->json([
             'status' => 'success',
@@ -101,7 +103,7 @@ class JadwalLevelController extends Controller
     {
         $request->validate([
             'batch_id' => 'required|exists:batches,id',
-            'level' => 'required|integer|min:1|max:4',
+            'level' => 'required|integer|min:-4|max:4',
         ]);
 
         $jadwal = JadwalLevel::where('batch_id', $request->batch_id)

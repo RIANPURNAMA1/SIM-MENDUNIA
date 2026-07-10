@@ -313,21 +313,21 @@ export default function Tagihan() {
 
       {/* Table */}
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-        <table className="w-full min-w-full border-collapse text-left text-sm text-slate-700">
+        <table className="w-full min-w-[2000px] border-collapse text-left text-sm text-slate-700">
           <thead className="text-[10px] text-slate-600 uppercase tracking-wide">
             <tr>
-              <th scope="col" className="border border-slate-200 px-2 py-2.5 font-semibold min-w-[150px]">Pendaftar</th>
-              <th scope="col" className="border border-slate-200 px-2 py-2.5 font-semibold">Batch</th>
-              <th scope="col" className="border border-slate-200 px-2 py-2.5 font-semibold">Program</th>
+              <th scope="col" className="border border-slate-200 px-2 py-2.5 font-semibold w-[220px]">Pendaftar</th>
+              <th scope="col" className="border border-slate-200 px-2 py-2.5 font-semibold w-[100px]">Batch</th>
+              <th scope="col" className="border border-slate-200 px-2 py-2.5 font-semibold w-[140px]">Program</th>
               {kategoris.map(k => (
-                <th key={k.id} scope="col" className="border border-slate-200 px-1 py-2.5 text-right font-semibold min-w-[60px]">{k.kode}</th>
+                <th key={k.id} scope="col" className="border border-slate-200 px-2 py-2.5 text-right font-semibold w-[90px]">{k.kode}</th>
               ))}
-              <th scope="col" className="border border-slate-200 px-2 py-2.5 text-right font-semibold min-w-[75px]">Tagihan</th>
-              <th scope="col" className="border border-slate-200 px-2 py-2.5 text-right font-semibold min-w-[75px]">Dibayar</th>
-              <th scope="col" className="border border-slate-200 px-2 py-2.5 text-right font-semibold min-w-[75px]">Sisa</th>
-              <th scope="col" className="border border-slate-200 px-2 py-2.5 text-center font-semibold">Status</th>
-              <th scope="col" className="border border-slate-200 px-2 py-2.5 text-center font-semibold">Invoice</th>
-              <th scope="col" className="border border-slate-200 px-2 py-2.5 text-center font-semibold">Aksi</th>
+              <th scope="col" className="border border-slate-200 px-2 py-2.5 text-right font-semibold w-[120px]">Tagihan</th>
+              <th scope="col" className="border border-slate-200 px-2 py-2.5 text-right font-semibold w-[120px]">Dibayar</th>
+              <th scope="col" className="border border-slate-200 px-2 py-2.5 text-right font-semibold w-[120px]">Sisa</th>
+              <th scope="col" className="border border-slate-200 px-2 py-2.5 text-center font-semibold w-[110px]">Status</th>
+              <th scope="col" className="border border-slate-200 px-2 py-2.5 text-center font-semibold w-[80px]">Invoice</th>
+              <th scope="col" className="border border-slate-200 px-2 py-2.5 text-center font-semibold w-[80px]">Aksi</th>
             </tr>
           </thead>
           <tbody>
@@ -385,14 +385,17 @@ export default function Tagihan() {
                         </div>
                       </div>
                     </td>
-                    <td className="border border-slate-200 px-2 py-2 text-xs text-slate-600">{p.batch?.nama_batch || '-'}</td>
-                    <td className="border border-slate-200 px-2 py-2 text-xs text-slate-600">{p.product?.nama || '-'}</td>
+                    <td className="border border-slate-200 px-2 py-2 whitespace-nowrap">{p.batch?.nama_batch || '-'}</td>
+                    <td className="border border-slate-200 px-2 py-2 text-xs text-slate-600 whitespace-nowrap">{p.product?.nama || '-'}</td>
                     {kategoris.map(k => {
                       const key = `${p.id}_${k.id}`
                       const val = getDibayar(p, k.id)
                       const isChanged = key in pendingChanges
+                      const biayaKat = p.detail?.find((d: DetailItem) => d.kategori_id === k.id)?.biaya || 0
+                      const isLunas = biayaKat > 0 && val >= biayaKat
+                      const isPartial = val > 0 && !isLunas
                       return (
-                        <td key={k.id} className="border border-slate-200 px-1 py-2 text-right">
+                        <td key={k.id} className="border border-slate-200 px-2 py-2 text-right whitespace-nowrap">
                           <input
                             ref={el => { inputRefs.current[key] = el }}
                             type="text"
@@ -410,19 +413,19 @@ export default function Tagihan() {
                               })
                             }}
                             onKeyDown={e => handleKeyDown(e, key)}
-                            className={`w-full bg-transparent text-right text-xs outline-none transition ${isChanged ? 'font-semibold text-blue-700' : val > 0 ? 'font-semibold text-emerald-700' : 'text-slate-400'} placeholder:text-slate-300 focus:bg-blue-50 focus:rounded focus:px-1`}
+                            className={`w-full bg-transparent text-right text-xs outline-none transition ${isChanged ? 'font-semibold text-blue-700' : isLunas ? 'font-semibold text-emerald-700' : isPartial ? 'font-semibold text-red-600' : 'text-slate-400'} placeholder:text-slate-300 focus:bg-blue-50 focus:rounded focus:px-1`}
                             placeholder="-"
                           />
                         </td>
                       )
                     })}
-                    <td className="border border-slate-200 px-2 py-2 text-right text-xs font-semibold text-slate-800">
+                    <td className="border border-slate-200 px-2 py-2 text-right text-xs font-semibold text-slate-800 whitespace-nowrap">
                       Rp {fmt(tagihan)}
                     </td>
-                    <td className="border border-slate-200 px-2 py-2 text-right text-xs font-semibold text-emerald-700">
+                    <td className="border border-slate-200 px-2 py-2 text-right text-xs font-semibold text-emerald-700 whitespace-nowrap">
                       Rp {fmt(dibayar)}
                     </td>
-                    <td className="border border-slate-200 px-2 py-2 text-right text-xs font-semibold text-red-600">
+                    <td className="border border-slate-200 px-2 py-2 text-right text-xs font-semibold text-red-600 whitespace-nowrap">
                       {sisa > 0 ? `Rp ${fmt(sisa)}` : '-'}
                     </td>
                     <td className="border border-slate-200 px-2 py-2 text-center">
@@ -459,8 +462,13 @@ export default function Tagihan() {
             )}
           </tbody>
         </table>
-        <div className="border-t border-slate-200 px-4 py-3 text-sm text-slate-500">
-          Menampilkan {filtered.length} dari {data.length} tagihan
+        <div className="border-t border-slate-200 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <p className="text-sm text-slate-500">Menampilkan {filtered.length} dari {data.length} tagihan</p>
+          <div className="flex items-center gap-3 text-[10px] text-slate-500">
+            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-600" /> Lunas</span>
+            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500" /> Belum Lunas</span>
+            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-300" /> Belum Bayar</span>
+          </div>
         </div>
       </div>
 

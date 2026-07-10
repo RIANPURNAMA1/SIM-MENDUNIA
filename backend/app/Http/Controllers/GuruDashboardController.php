@@ -583,4 +583,110 @@ class GuruDashboardController extends Controller
             'total_kelas' => $totalKelas,
         ]);
     }
+
+    public function batchDanNilai()
+    {
+        $user = Auth::guard('sanctum')->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $today = now()->toDateString();
+
+        $kelasList = KelasSensei::where('user_id', $user->id)
+            ->with('batchRelasi')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $batchMap = [];
+        foreach ($kelasList as $k) {
+            if (!$k->batch_id) continue;
+            if (!isset($batchMap[$k->batch_id])) {
+                $batchMap[$k->batch_id] = [
+                    'id' => $k->batchRelasi->id ?? $k->batch_id,
+                    'nama_batch' => $k->batchRelasi->nama_batch ?? 'Batch #' . $k->batch_id,
+                    'levels' => [],
+                ];
+            }
+            $lvl = $k->level;
+            if ($lvl && !in_array($lvl, $batchMap[$k->batch_id]['levels'])) {
+                $batchMap[$k->batch_id]['levels'][] = $lvl;
+            }
+        }
+
+        $batchIds = array_keys($batchMap);
+        $siswaPerBatch = Siswa::whereIn('batch_id', $batchIds)->count();
+
+        $totalSiswaPerBatch = Siswa::whereIn('batch_id', $batchIds)
+            ->selectRaw('batch_id, COUNT(*) as total')
+            ->groupBy('batch_id')
+            ->pluck('total', 'batch_id');
+
+        $allLevels = ['1', '2', '3', '4'];
+
+        $categoriesByLevel = \App\Models\AssessmentCategory::with('components')->get()->groupBy('level');
+
+        $assessmentsByBatch = \App\Models\StudentAssessment::where('user_id', $user->id)
+            ->whereIn('batch_id', $batchIds)
+            ->whereNotNull('nilai')
+            ->get()
+            ->groupBy('batch_id');
+
+        $results = [];
+        foreach ($batchMap as $batchId => $batch) {
+            $batchAssessments = $assessmentsByBatch[$batchId] ?? collect();
+            $levelsData = [];
+
+            foreach ($batch['levels'] as $lvl) {
+                $categories = $categoriesByLevel[$lvl] ?? collect();
+                $categoriesData = [];
+
+                foreach ($categories as $cat) {
+                    $componentIds = $cat->components->pluck('id');
+                    $catAssessments = $batchAssessments->whereIn('component_id', $componentIds);
+
+                    $componentsData = [];
+                    foreach ($cat->components as $comp) {
+                        $compScores = $catAssessments->where('component_id', $comp->id)->pluck('nilai')->filter()->values();
+                        $componentsData[] = [
+                            'nama' => $comp->sub_komponen,
+                            'avg' => $compScores->isNotEmpty() ? round($compScores->avg(), 1) : null,
+                            'total_penilaian' => $compScores->count(),
+                        ];
+                    }
+
+                    $catScores = $catAssessments->pluck('nilai')->filter()->values();
+                    $categoriesData[] = [
+                        'nama' => $cat->nama_kategori,
+                        'avg' => $catScores->isNotEmpty() ? round($catScores->avg(), 1) : null,
+                        'total_penilaian' => $catScores->count(),
+                        'components' => $componentsData,
+                    ];
+                }
+
+                $levelScores = $batchAssessments->filter(function ($a) use ($lvl, $categoriesByLevel) {
+                    $catIds = ($categoriesByLevel[$lvl] ?? collect())->pluck('components')->flatten()->pluck('id');
+                    return $catIds->contains($a->component_id);
+                })->pluck('nilai')->filter()->values();
+
+                $levelsData[] = [
+                    'level' => $lvl,
+                    'avg' => $levelScores->isNotEmpty() ? round($levelScores->avg(), 1) : null,
+                    'total_penilaian' => $levelScores->count(),
+                    'categories' => $categoriesData,
+                ];
+            }
+
+            $results[] = [
+                'id' => $batch['id'],
+                'nama_batch' => $batch['nama_batch'],
+                'total_siswa' => $totalSiswaPerBatch[$batchId] ?? 0,
+                'levels' => $levelsData,
+            ];
+        }
+
+        return response()->json([
+            'batches' => $results,
+        ]);
+    }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Batch;
+use App\Models\JadwalLevel;
 use App\Models\KelasSensei;
 use App\Models\Pendaftar;
 use App\Models\Siswa;
@@ -26,10 +27,20 @@ class SiswaDashboardController extends Controller
         $batches = Batch::aktif()->orderBy('nama_batch')->get(['id', 'nama_batch']);
 
         $hasClass = false;
-        if ($siswa && $siswa->batch_id) {
-            $hasClass = KelasSensei::where('batch_id', $siswa->batch_id)
+        $jadwalLevels = [];
+        $batchId = $siswa?->batch_id ?: $pendaftar?->batch_id;
+        if ($batchId) {
+            $hasClass = KelasSensei::where('batch_id', $batchId)
                 ->where('status', 'aktif')
                 ->exists();
+
+            $jadwalData = JadwalLevel::where('batch_id', $batchId)->get();
+            foreach ($jadwalData as $j) {
+                $jadwalLevels[$j->level] = [
+                    'tanggal_mulai' => $j->tanggal_mulai->format('Y-m-d'),
+                    'tanggal_selesai' => $j->tanggal_selesai->format('Y-m-d'),
+                ];
+            }
         }
 
         return response()->json([
@@ -38,6 +49,7 @@ class SiswaDashboardController extends Controller
             'siswa' => $siswa,
             'batches' => $batches,
             'has_class' => $hasClass,
+            'jadwal_levels' => $jadwalLevels,
         ]);
     }
 
@@ -61,6 +73,19 @@ class SiswaDashboardController extends Controller
             'foto_kk' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
             'foto' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
             'batch_id' => 'nullable|exists:batches,id',
+            'desa' => 'nullable|string|max:255',
+            'kecamatan' => 'nullable|string|max:255',
+            'kabupaten' => 'nullable|string|max:255',
+            'provinsi' => 'nullable|string|max:255',
+            'tahun_lulus' => 'nullable|string|max:4',
+            'tinggi_badan' => 'nullable|numeric',
+            'berat_badan' => 'nullable|numeric',
+            'goldar' => 'nullable|in:A,B,AB,O',
+            'ukuran_baju' => 'nullable|in:XS,S,M,L,XL,XXL',
+            'status_pernikahan' => 'nullable|in:Belum Nikah,Nikah,Cerai',
+            'no_hp_ortu' => 'nullable|string|max:20',
+            'nama_ortu' => 'nullable|string|max:255',
+            'keterangan' => 'nullable|string|max:500',
         ]);
 
         // Update User fields
@@ -94,6 +119,21 @@ class SiswaDashboardController extends Controller
         if ($request->has('jenis_kelamin')) $siswa->jenis_kelamin = $request->jenis_kelamin;
         if ($request->has('agama')) $siswa->agama = $request->agama;
         if ($request->has('batch_id')) $siswa->batch_id = $request->batch_id;
+        if ($request->has('nik')) $siswa->nik = $request->nik;
+        if ($request->has('pendidikan_terakhir')) $siswa->pendidikan_terakhir = $request->pendidikan_terakhir;
+        if ($request->has('desa')) $siswa->desa = $request->desa;
+        if ($request->has('kecamatan')) $siswa->kecamatan = $request->kecamatan;
+        if ($request->has('kabupaten')) $siswa->kabupaten = $request->kabupaten;
+        if ($request->has('provinsi')) $siswa->provinsi = $request->provinsi;
+        if ($request->has('tahun_lulus')) $siswa->tahun_lulus = $request->tahun_lulus;
+        if ($request->has('tinggi_badan')) $siswa->tinggi_badan = $request->tinggi_badan;
+        if ($request->has('berat_badan')) $siswa->berat_badan = $request->berat_badan;
+        if ($request->has('goldar')) $siswa->goldar = $request->goldar;
+        if ($request->has('ukuran_baju')) $siswa->ukuran_baju = $request->ukuran_baju;
+        if ($request->has('status_pernikahan')) $siswa->status_pernikahan = $request->status_pernikahan;
+        if ($request->has('no_hp_ortu')) $siswa->no_hp_ortu = $request->no_hp_ortu;
+        if ($request->has('nama_ortu')) $siswa->nama_ortu = $request->nama_ortu;
+        if ($request->has('keterangan')) $siswa->keterangan = $request->keterangan;
         $siswa->status = $siswa->status ?? 'AKTIF';
 
         // Handle foto upload for Siswa
@@ -133,9 +173,124 @@ class SiswaDashboardController extends Controller
             ->orderBy('jam_masuk', 'desc')
             ->get();
 
+        // Kelas aktif untuk siswa ini
+        $batchId = $siswa->batch_id;
+        $kelasList = [];
+        if ($batchId) {
+            $kelasSensei = KelasSensei::with(['user', 'batchRelasi'])
+                ->where('batch_id', $batchId)
+                ->orderBy('level')
+                ->get();
+
+            foreach ($kelasSensei as $ks) {
+                $absensiQuery = \App\Models\AbsensiSiswa::where('siswa_id', $siswa->id)
+                    ->where('kelas_sensei_id', $ks->id);
+
+                $totalPertemuan = \App\Models\AbsensiSiswa::where('kelas_sensei_id', $ks->id)
+                    ->distinct('tanggal')->count('tanggal');
+                $absenTerisi = (clone $absensiQuery)->whereNotNull('jam_masuk')->count();
+                $alpa = (clone $absensiQuery)->where('status', 'alpha')->count();
+                $izin = (clone $absensiQuery)->where('status', 'izin')->count();
+
+                $today = now()->toDateString();
+                $mulai = $ks->tanggal_mulai?->toDateString();
+                $selesai = $ks->tanggal_selesai?->toDateString();
+                $status = 'selesai';
+                if ($ks->status === 'aktif' && $mulai && $selesai && $today >= $mulai && $today <= $selesai) {
+                    $status = 'aktif';
+                } elseif ($ks->status === 'aktif' && $mulai && $today < $mulai) {
+                    $status = 'belum_mulai';
+                }
+
+                $kelasList[] = [
+                    'id' => $ks->id,
+                    'batch_id' => $ks->batch_id,
+                    'batch' => $ks->batchRelasi->nama_batch ?? '-',
+                    'level' => $ks->level,
+                    'nama_kelas' => $ks->nama_kelas,
+                    'sensei' => $ks->user->name ?? '-',
+                    'tanggal_mulai' => $mulai,
+                    'tanggal_selesai' => $selesai,
+                    'total_pertemuan' => $totalPertemuan,
+                    'absen_terisi' => $absenTerisi,
+                    'alpa' => $alpa,
+                    'izin' => $izin,
+                    'status' => $status,
+                ];
+            }
+        }
+
         return response()->json([
             'siswa' => $siswa,
             'riwayat' => $riwayat,
+            'kelas_aktif' => $kelasList,
+        ]);
+    }
+
+    public function nilaiSaya(Request $request, $batchId)
+    {
+        $user = Auth::guard('sanctum')->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $siswa = Siswa::where('user_id', $user->id)->first();
+        if (!$siswa) {
+            return response()->json(['message' => 'Data siswa tidak ditemukan'], 404);
+        }
+
+        $levelParam = $request->query('level');
+
+        $componentQuery = \App\Models\AssessmentComponent::with('category')
+            ->whereHas('category', function ($q) use ($levelParam) {
+                if ($levelParam) {
+                    $q->where('level', $levelParam);
+                }
+            });
+
+        $components = $componentQuery->get();
+
+        $assessments = \App\Models\StudentAssessment::where('siswa_id', $siswa->id)
+            ->where('batch_id', $batchId)
+            ->whereNotNull('nilai')
+            ->with('component.category')
+            ->get();
+
+        $dailyGroups = $assessments->groupBy('tanggal')->sortKeysDesc();
+
+        $daily = [];
+        foreach ($dailyGroups as $tanggal => $items) {
+            $componentScores = [];
+            $totalAvg = 0;
+            $countComponents = 0;
+
+            foreach ($items as $item) {
+                $compName = $item->component->sub_komponen ?? '-';
+                $componentScores[] = [
+                    'nama' => $compName,
+                    'nilai' => (float) $item->nilai,
+                ];
+                $totalAvg += (float) $item->nilai;
+                $countComponents++;
+            }
+
+            usort($componentScores, fn($a, $b) => strcmp($a['nama'], $b['nama']));
+
+            $daily[] = [
+                'tanggal' => $tanggal,
+                'rata_rata' => $countComponents > 0 ? round($totalAvg / $countComponents, 1) : null,
+                'komponen' => $componentScores,
+            ];
+        }
+
+        $allNilai = $assessments->pluck('nilai')->map(fn($v) => (float) $v);
+        $overallAvg = $allNilai->isNotEmpty() ? round($allNilai->avg(), 1) : null;
+
+        return response()->json([
+            'overall_avg' => $overallAvg,
+            'total_penilaian' => $allNilai->count(),
+            'total_hari' => $dailyGroups->count(),
+            'daily' => array_values($daily),
         ]);
     }
 }
