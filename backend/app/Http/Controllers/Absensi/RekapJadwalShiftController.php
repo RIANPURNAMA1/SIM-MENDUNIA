@@ -28,7 +28,8 @@ class RekapJadwalShiftController extends Controller
         $daysInMonth = Carbon::create($tahun, $bulan, 1)->daysInMonth;
 
         $user = User::with('shift')->findOrFail($userId);
-        $defaultShift = $user->shift;
+        $singleShift = $user->shift;
+        $multipleShifts = $user->shifts;
 
         $jadwals = ShiftJadwal::where('user_id', $userId)
             ->whereMonth('tanggal', $bulan)
@@ -64,15 +65,15 @@ class RekapJadwalShiftController extends Controller
                         $matchingAbsensi = $absensiArr ? $absensiArr->first() : null;
                         $status = $matchingAbsensi ? $matchingAbsensi->status : 'LIBUR';
 
-                    $rowData[] = [
-                        'initial' => 'L',
-                        'shift_nama' => 'Libur',
-                        'shift_id' => null,
-                        'status' => $status,
-                        'color' => 'bg-secondary',
-                        'text_color' => 'text-white',
-                        'absensi_id' => $matchingAbsensi?->id,
-                    ];
+                        $rowData[] = [
+                            'initial' => 'L',
+                            'shift_nama' => 'Libur',
+                            'shift_id' => null,
+                            'status' => $status,
+                            'color' => 'bg-secondary',
+                            'text_color' => 'text-white',
+                            'absensi_id' => $matchingAbsensi?->id,
+                        ];
                         continue;
                     }
 
@@ -105,42 +106,59 @@ class RekapJadwalShiftController extends Controller
                         'absensi_id' => $matchingAbsensi?->id,
                     ];
                 }
-            } elseif ($defaultShift) {
-                if ($dayOfWeek === 0 || $dayOfWeek === 6) {
-                    continue;
+            } else {
+                // Cari shift default user (single atau multiple)
+                $activeShifts = $singleShift
+                    ? collect([$singleShift])
+                    : ($multipleShifts->isNotEmpty() ? $multipleShifts : collect());
+
+                if ($activeShifts->isEmpty() && $absensiArr && $absensiArr->isNotEmpty()) {
+                    // Tidak ada shift, tapi ada absensi → tampilkan data absensi apa adanya
+                    foreach ($absensiArr as $a) {
+                        $rowData[] = [
+                            'initial' => strtoupper(substr($a->status, 0, 1)),
+                            'shift_nama' => $a->shift?->nama_shift ?? $a->status,
+                            'shift_id' => $a->shift_id,
+                            'status' => $a->status,
+                            'color' => match ($a->status) {
+                                'HADIR' => 'bg-success',
+                                'TERLAMBAT' => 'bg-warning',
+                                'ALPA', 'TIDAK ABSEN PULANG' => 'bg-danger',
+                                'IZIN' => 'bg-info',
+                                'LIBUR' => 'bg-secondary',
+                                default => 'bg-light border',
+                            },
+                            'text_color' => in_array($a->status, ['HADIR', 'TERLAMBAT', 'ALPA', 'TIDAK ABSEN PULANG', 'IZIN', 'LIBUR']) ? 'text-white' : 'text-dark',
+                            'absensi_id' => $a->id,
+                        ];
+                    }
                 }
 
-                $initial = strtoupper(substr($defaultShift->nama_shift, 0, 1));
+                foreach ($activeShifts as $s) {
+                    $matchingAbsensi = $absensiArr ? $absensiArr->firstWhere('shift_id', $s->id) : null;
 
-                $matchingAbsensi = $absensiArr ? $absensiArr->firstWhere('shift_id', $defaultShift->id) : null;
+                    $status = $matchingAbsensi ? $matchingAbsensi->status : 'BELUM ABSEN';
 
-                $status = $matchingAbsensi ? $matchingAbsensi->status : 'BELUM ABSEN';
+                    $color = match ($status) {
+                        'HADIR' => 'bg-success',
+                        'TERLAMBAT' => 'bg-warning',
+                        'ALPA', 'TIDAK ABSEN PULANG' => 'bg-danger',
+                        'IZIN' => 'bg-info',
+                        'LIBUR' => 'bg-secondary',
+                        default => 'bg-light border',
+                    };
+                    $textColor = in_array($status, ['HADIR', 'TERLAMBAT', 'ALPA', 'TIDAK ABSEN PULANG', 'IZIN', 'LIBUR']) ? 'text-white' : 'text-dark';
 
-                $color = match ($status) {
-                    'HADIR' => 'bg-success',
-                    'TERLAMBAT' => 'bg-warning',
-                    'ALPA', 'TIDAK ABSEN PULANG' => 'bg-danger',
-                    'IZIN' => 'bg-info',
-                    'LIBUR' => 'bg-secondary',
-                    default => 'bg-light border',
-                };
-                $textColor = in_array($status, ['HADIR', 'TERLAMBAT', 'ALPA', 'TIDAK ABSEN PULANG', 'IZIN', 'LIBUR']) ? 'text-white' : 'text-dark';
-
-                $rowData[] = [
-                    'initial' => $initial,
-                    'shift_nama' => $defaultShift->nama_shift,
-                    'shift_id' => $defaultShift->id,
-                    'status' => $status,
-                    'color' => $color,
-                    'text_color' => $textColor,
-                    'absensi_id' => $matchingAbsensi?->id,
-                ];
-            } else {
-                continue;
-            }
-
-            if (empty($rowData)) {
-                continue;
+                    $rowData[] = [
+                        'initial' => strtoupper(substr($s->nama_shift, 0, 1)),
+                        'shift_nama' => $s->nama_shift,
+                        'shift_id' => $s->id,
+                        'status' => $status,
+                        'color' => $color,
+                        'text_color' => $textColor,
+                        'absensi_id' => $matchingAbsensi?->id,
+                    ];
+                }
             }
 
             $data[$dateStr] = [

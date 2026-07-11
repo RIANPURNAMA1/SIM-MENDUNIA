@@ -3,6 +3,8 @@ import {
   Clock, CalendarDays, QrCode, X, CheckCircle,
   AlertCircle, History
 } from 'lucide-react'
+import { Html5Qrcode } from 'html5-qrcode'
+import Swal from 'sweetalert2'
 import api from '../../services/api'
 
 export default function AbsensiSaya() {
@@ -10,8 +12,8 @@ export default function AbsensiSaya() {
   const [riwayat, setRiwayat] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showQr, setShowQr] = useState(false)
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const [scannerActive, setScannerActive] = useState(false)
+  const scannerRef = useRef<Html5Qrcode | null>(null)
+  const [userCoords, setUserCoords] = useState<{ lat: number; long: number } | null>(null)
 
   useEffect(() => {
     api.get('/siswa/absensi-saya')
@@ -25,25 +27,61 @@ export default function AbsensiSaya() {
 
   useEffect(() => {
     if (!showQr) {
-      setScannerActive(false)
-      if (videoRef.current?.srcObject) {
-        const tracks = (videoRef.current.srcObject as MediaStream).getTracks()
-        tracks.forEach(t => t.stop())
-        videoRef.current.srcObject = null
+      if (scannerRef.current) {
+        scannerRef.current.stop().catch(() => {})
+        scannerRef.current.clear().catch(() => {})
+        scannerRef.current = null
       }
       return
     }
-    setScannerActive(true)
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-      .then(stream => {
-        if (videoRef.current) videoRef.current.srcObject = stream
-      })
-      .catch(() => setScannerActive(false))
+
+    const scanner = new Html5Qrcode('qr-reader')
+    scannerRef.current = scanner
+
+    scanner.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      (decodedText) => {
+        scanner.stop().catch(() => {})
+        scannerRef.current = null
+        setShowQr(false)
+
+        Swal.fire({
+          title: 'Memproses...',
+          text: 'Silakan tunggu',
+          didOpen: () => Swal.showLoading(),
+          allowOutsideClick: false,
+        })
+
+        api.post('/absensi-karyawan/scan-qr', { barcode: decodedText, lat: userCoords?.lat, long: userCoords?.long })
+          .then((res) => {
+            Swal.fire({
+              icon: 'success',
+              title: 'Berhasil!',
+              text: res.data.message,
+              footer: res.data.cabang ? `Cabang: ${res.data.cabang}` : undefined,
+            })
+            api.get('/siswa/absensi-saya').then(r => {
+              setSiswa(r.data.siswa)
+              setRiwayat(r.data.riwayat)
+            }).catch(() => {})
+          })
+          .catch((err) => {
+            Swal.fire({
+              icon: 'error',
+              title: 'Gagal',
+              text: err.message || 'Terjadi kesalahan',
+            })
+          })
+      },
+      () => {}
+    ).catch(() => {})
+
     return () => {
-      if (videoRef.current?.srcObject) {
-        const tracks = (videoRef.current.srcObject as MediaStream).getTracks()
-        tracks.forEach(t => t.stop())
-        videoRef.current.srcObject = null
+      if (scannerRef.current) {
+        scannerRef.current.stop().catch(() => {})
+        scannerRef.current.clear().catch(() => {})
+        scannerRef.current = null
       }
     }
   }, [showQr])
@@ -155,7 +193,14 @@ export default function AbsensiSaya() {
 
             {/* QR button */}
             <button
-              onClick={() => setShowQr(true)}
+              onClick={() => {
+                navigator.geolocation.getCurrentPosition(
+                  (pos) => setUserCoords({ lat: pos.coords.latitude, long: pos.coords.longitude }),
+                  () => setUserCoords(null),
+                  { enableHighAccuracy: true, timeout: 5000 },
+                )
+                setShowQr(true)
+              }}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-5 py-4 font-semibold flex items-center justify-center gap-3 transition-colors shadow-sm"
             >
               <QrCode size={22} />
@@ -256,44 +301,13 @@ export default function AbsensiSaya() {
             </div>
             <div className="p-5">
               <div className="aspect-square bg-black rounded-xl overflow-hidden relative flex items-center justify-center">
-                {scannerActive ? (
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="text-center p-8">
-                    <QrCode size={48} className="text-slate-500 mx-auto mb-3" />
-                    <p className="text-slate-400 text-sm">
-                      Arahkan kamera ke QR code yang disediakan oleh sensei/admin
-                    </p>
-                  </div>
-                )}
-                {/* Overlay scan area */}
+                <div id="qr-reader" className="w-full h-full" />
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="w-48 h-48 border-2 border-blue-400 rounded-xl opacity-70" />
                 </div>
               </div>
-              {!scannerActive && (
-                <button
-                  onClick={() => {
-                    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-                      .then(stream => {
-                        if (videoRef.current) videoRef.current.srcObject = stream
-                        setScannerActive(true)
-                      })
-                      .catch(() => {})
-                  }}
-                  className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-3 font-semibold transition-colors"
-                >
-                  Mulai Kamera
-                </button>
-              )}
               <p className="text-xs text-slate-400 text-center mt-3">
-                Pastikan Anda terhubung dengan internet dan mengizinkan akses kamera
+                Arahkan kamera ke QR code yang disediakan oleh sensei/admin
               </p>
             </div>
           </div>

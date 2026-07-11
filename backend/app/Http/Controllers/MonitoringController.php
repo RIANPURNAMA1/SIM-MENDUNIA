@@ -14,6 +14,8 @@ class MonitoringController extends Controller
         $tglSelesai = $request->tgl_selesai ?? now()->toDateString();
         $cabangId  = $request->cabang_id;
 
+        $user = auth()->user();
+
         $query = Absensi::with(['user', 'cabang'])
             ->whereBetween('tanggal', [$tglMulai, $tglSelesai])
             ->where(function ($q) {
@@ -23,6 +25,8 @@ class MonitoringController extends Controller
 
         if ($cabangId) {
             $query->where('cabang_id', $cabangId);
+        } elseif ($user && $user->cabang_ids) {
+            $query->whereIn('cabang_id', $user->cabang_ids);
         }
 
         $absensis = $query->orderBy('tanggal', 'desc')->get();
@@ -39,6 +43,8 @@ class MonitoringController extends Controller
         $tglSelesai = $request->tgl_selesai ?? now()->toDateString();
         $cabangId  = $request->cabang_id;
 
+        $user = auth()->user();
+
         $query = Absensi::with(['user', 'cabang'])
             ->whereBetween('tanggal', [$tglMulai, $tglSelesai])
             ->where(function ($q) {
@@ -48,6 +54,8 @@ class MonitoringController extends Controller
 
         if ($cabangId) {
             $query->where('cabang_id', $cabangId);
+        } elseif ($user && $user->cabang_ids) {
+            $query->whereIn('cabang_id', $user->cabang_ids);
         }
 
         $absensis = $query->orderBy('tanggal', 'desc')->get();

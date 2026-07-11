@@ -16,7 +16,7 @@ class KehadiranSenseiController extends Controller
         $list_cabang = \App\Models\Cabang::all();
         $list_divisi = \App\Models\Divisi::all();
 
-        $list_sensei = User::where('role', 'KARYAWAN')
+        $list_sensei = User::whereIn('role', ['KARYAWAN', 'GURU'])
             ->whereHas('kelasSensei')
             ->with(['kelasSensei' => function ($q) {
                 $q->orderBy('nama_kelas', 'asc');
@@ -24,10 +24,8 @@ class KehadiranSenseiController extends Controller
             ->orderBy('name', 'asc')
             ->get();
 
-        $list_kelas = KelasSensei::orderBy('nama_kelas', 'asc')->get();
-
         // Get all kelas sensei grouped by user (creator)
-        $kelasByUser = User::where('role', 'KARYAWAN')
+        $kelasByUser = User::whereIn('role', ['KARYAWAN', 'GURU'])
             ->whereHas('kelasSensei')
             ->with(['kelasSensei' => function ($q) {
                 $q->orderBy('tanggal_mulai', 'desc');
@@ -79,6 +77,8 @@ class KehadiranSenseiController extends Controller
         $end_date = $request->end_date ?? now('Asia/Jakarta')->toDateString();
         $user_id = $request->user_id;
         $kelas_id = $request->kelas_id;
+        $batch_id = $request->batch_id;
+        $level = $request->level;
         $status = $request->status;
 
         $query = AbsensiSensei::with(['user', 'kelasSensei'])
@@ -90,6 +90,14 @@ class KehadiranSenseiController extends Controller
 
         if ($kelas_id) {
             $query->where('kelas_sensei_id', $kelas_id);
+        }
+
+        if ($batch_id) {
+            $query->whereHas('kelasSensei', fn($q) => $q->where('batch_id', $batch_id));
+        }
+
+        if ($level) {
+            $query->whereHas('kelasSensei', fn($q) => $q->where('level', $level));
         }
 
         if ($status) {
@@ -112,6 +120,14 @@ class KehadiranSenseiController extends Controller
 
         if ($kelas_id) {
             $absensis->where('kelas_sensei_id', $kelas_id);
+        }
+
+        if ($batch_id) {
+            $absensis->whereHas('kelasSensei', fn($q) => $q->where('batch_id', $batch_id));
+        }
+
+        if ($level) {
+            $absensis->whereHas('kelasSensei', fn($q) => $q->where('level', $level));
         }
 
         if ($status) {
@@ -178,6 +194,8 @@ class KehadiranSenseiController extends Controller
 
         $rekap = $this->generateRekap($absensis->filter(fn ($a) => !\App\Models\HariLibur::apakahLibur($a->tanggal)));
 
+        $list_batch = \App\Models\Batch::orderBy('nama_batch', 'asc')->get();
+
         return view('admin.kehadiran_sensei.index', [
             'groupedAbsensis' => $groupedAbsensis,
             'absensis' => $absensis,
@@ -187,10 +205,12 @@ class KehadiranSenseiController extends Controller
             'list_cabang' => $list_cabang,
             'list_divisi' => $list_divisi,
             'list_sensei' => $list_sensei,
-            'list_kelas' => $list_kelas,
+            'list_batch' => $list_batch,
             'kelasByUser' => $kelasByUser,
             'user_id_selected' => $user_id,
             'kelas_id_selected' => $kelas_id,
+            'batch_id_selected' => $batch_id,
+            'level_selected' => $level,
             'status_selected' => $status,
         ]);
     }
@@ -305,13 +325,17 @@ class KehadiranSenseiController extends Controller
         $end_date = $request->end_date ?? now('Asia/Jakarta')->toDateString();
         $user_id = $request->user_id;
         $kelas_id = $request->kelas_id;
+        $batch_id = $request->batch_id;
+        $level = $request->level;
         $status = $request->status;
 
-        $query = AbsensiSensei::with(['user', 'kelasSensei'])
+        $query = AbsensiSensei::with(['user', 'kelasSensei.user', 'kelasSensei.batchRelasi'])
             ->whereBetween('tanggal', [$start_date, $end_date]);
 
         if ($user_id) $query->where('user_id', $user_id);
         if ($kelas_id) $query->where('kelas_sensei_id', $kelas_id);
+        if ($batch_id) $query->whereHas('kelasSensei', fn($q) => $q->where('batch_id', $batch_id));
+        if ($level) $query->whereHas('kelasSensei', fn($q) => $q->where('level', $level));
         if ($status) $query->where('status', $status);
 
         $absensis = $query->orderBy('kelas_sensei_id', 'asc')
@@ -371,20 +395,20 @@ class KehadiranSenseiController extends Controller
             'tidak_absen_pulang' => $absensis->where('status', 'TIDAK ABSEN PULANG')->count(),
         ];
 
-        $list_sensei = User::where('role', 'KARYAWAN')
+        $list_sensei = User::whereIn('role', ['KARYAWAN', 'GURU'])
             ->whereHas('kelasSensei')
             ->with(['kelasSensei' => fn($q) => $q->orderBy('nama_kelas', 'asc')])
             ->orderBy('name', 'asc')
             ->get();
 
-        $list_kelas = KelasSensei::orderBy('nama_kelas', 'asc')->get();
+        $list_batch = \App\Models\Batch::orderBy('nama_batch', 'asc')->get();
 
         return response()->json([
             'success' => true,
             'data' => $grouped,
             'rekap' => $rekap,
             'list_sensei' => $list_sensei,
-            'list_kelas' => $list_kelas,
+            'list_batch' => $list_batch,
         ]);
     }
 
@@ -563,7 +587,7 @@ class KehadiranSenseiController extends Controller
             return $kelasItem;
         });
 
-        $list_sensei = User::where('role', 'KARYAWAN')
+        $list_sensei = User::whereIn('role', ['KARYAWAN', 'GURU'])
             ->whereHas('kelasSensei')
             ->orderBy('name', 'asc')
             ->get();
@@ -639,7 +663,7 @@ class KehadiranSenseiController extends Controller
             return $kelasItem;
         });
 
-        $list_sensei = User::where('role', 'KARYAWAN')
+        $list_sensei = User::whereIn('role', ['KARYAWAN', 'GURU'])
             ->whereHas('kelasSensei')
             ->orderBy('name', 'asc')
             ->get();

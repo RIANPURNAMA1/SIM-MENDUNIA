@@ -253,12 +253,91 @@ class PendaftaranController extends Controller
         return response()->json(['message' => 'Pembayaran terverifikasi']);
     }
 
+    public function allPembayaran(Request $request)
+    {
+        $query = Pembayaran::with(['pendaftar.product']);
+
+        if ($request->status) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->search) {
+            $s = $request->search;
+            $query->whereHas('pendaftar', function ($q) use ($s) {
+                $q->where('nama', 'like', "%{$s}%")
+                  ->orWhere('email', 'like', "%{$s}%");
+            });
+        }
+
+        if ($request->tgl_mulai) {
+            $query->whereDate('created_at', '>=', $request->tgl_mulai);
+        }
+        if ($request->tgl_selesai) {
+            $query->whereDate('created_at', '<=', $request->tgl_selesai);
+        }
+
+        $pembayaran = $query->orderBy('created_at', 'desc')->get();
+
+        // Also include payments from pendaftar that don't have pembayaran records yet
+        $existingPendaftarIds = Pembayaran::pluck('pendaftar_id')->unique()->toArray();
+        $pendaftarWithoutPembayaran = \App\Models\Pendaftar::with('product')
+            ->whereNotIn('id', $existingPendaftarIds)
+            ->where('nominal', '>', 0)
+            ->where(function ($q) use ($request) {
+                if ($request->status) {
+                    $q->where('status_pembayaran', $request->status === 'verified' ? 'verified' : $request->status);
+                }
+                if ($request->search) {
+                    $s = $request->search;
+                    $q->where('nama', 'like', "%{$s}%")
+                      ->orWhere('email', 'like', "%{$s}%");
+                }
+            })
+            ->get();
+
+        $synthetic = $pendaftarWithoutPembayaran->map(function ($p) {
+            $tagihan = ($p->product?->harga ?? 0) - ($p->diskon ?? 0);
+            return [
+                'id' => -$p->id,
+                'pendaftar_id' => $p->id,
+                'jumlah' => $p->nominal,
+                'status' => $p->status_pembayaran === 'verified' ? 'verified' : ($p->status_pembayaran ?: 'pending'),
+                'created_at' => $p->updated_at ?? $p->created_at,
+                'updated_at' => $p->updated_at ?? $p->created_at,
+                'bukti_pembayaran' => null,
+                'pendaftar' => $p->load('product')->toArray(),
+            ];
+        });
+
+        $merged = collect($pembayaran->toArray())
+            ->merge($synthetic)
+            ->sortByDesc('created_at')
+            ->values();
+
+        return response()->json($merged);
+    }
+
     public function riwayatPembayaran($id)
     {
-        $pendaftar = Pendaftar::findOrFail($id);
+        $pendaftar = Pendaftar::with('product')->findOrFail($id);
         $riwayat = Pembayaran::where('pendaftar_id', $pendaftar->id)
             ->orderBy('created_at', 'desc')
             ->get();
+
+        // If no pembayaran records exist but pendaftar has nominal > 0, create a synthetic record
+        if ($riwayat->isEmpty() && $pendaftar->nominal > 0) {
+            $tagihan = ($pendaftar->product?->harga ?? 0) - ($pendaftar->diskon ?? 0);
+            $riwayat = collect([
+                (object) [
+                    'id' => -$pendaftar->id,
+                    'pendaftar_id' => $pendaftar->id,
+                    'jumlah' => $pendaftar->nominal,
+                    'status' => $pendaftar->status_pembayaran === 'verified' ? 'verified' : ($pendaftar->status_pembayaran ?: 'pending'),
+                    'created_at' => $pendaftar->updated_at ?? $pendaftar->created_at,
+                    'bukti_pembayaran' => null,
+                ]
+            ]);
+        }
 
         return response()->json($riwayat);
     }
@@ -291,6 +370,34 @@ class PendaftaranController extends Controller
         ]);
     }
 
+    public function bayarManual(Request $request, $id)
+    {
+        $request->validate([
+            'jumlah' => 'required|numeric|min:1',
+        ]);
+
+        $pendaftar = Pendaftar::with('product')->findOrFail($id);
+
+        $pendaftar->increment('nominal', $request->jumlah);
+
+        $tagihan = ($pendaftar->product?->harga ?? 0) - ($pendaftar->diskon ?? 0);
+        $totalDibayar = $pendaftar->fresh()->nominal ?? 0;
+
+        $pendaftar->status_pembayaran = $totalDibayar >= $tagihan ? 'verified' : 'partial';
+        $pendaftar->save();
+
+        Pembayaran::create([
+            'pendaftar_id' => $pendaftar->id,
+            'jumlah' => $request->jumlah,
+            'status' => 'verified',
+        ]);
+
+        return response()->json([
+            'message' => 'Pembayaran manual berhasil dicatat',
+            'pendaftar' => $pendaftar->fresh()->load('product'),
+        ]);
+    }
+
     public function destroy($id)
     {
         $pendaftar = Pendaftar::findOrFail($id);
@@ -302,6 +409,62 @@ class PendaftaranController extends Controller
         $pendaftar->delete();
 
         return response()->json(['message' => 'Pendaftar deleted']);
+    }
+
+    public function invoice($id)
+    {
+        $pendaftar = Pendaftar::with(['product', 'coupon', 'user'])->findOrFail($id);
+
+        $riwayat = Pembayaran::where('pendaftar_id', $pendaftar->id)
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        $hargaProduk = (float) ($pendaftar->product?->harga ?? 0);
+        $totalDibayar = (float) $pendaftar->nominal;
+        $diskon = (float) ($pendaftar->diskon ?? 0);
+        $totalTagihan = $hargaProduk - $diskon;
+        $sisa = max(0, $totalTagihan - $totalDibayar);
+
+        $noInvoice = 'INV/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . $pendaftar->created_at->format('Ym');
+
+        return response()->json([
+            'no_invoice' => $noInvoice,
+            'pendaftar' => [
+                'id' => $pendaftar->id,
+                'nama' => $pendaftar->nama,
+                'email' => $pendaftar->email,
+                'telepon' => $pendaftar->telepon,
+                'alamat' => $pendaftar->alamat,
+                'created_at' => $pendaftar->created_at,
+                'status_pendaftaran' => $pendaftar->status_pendaftaran,
+                'status_pembayaran' => $pendaftar->status_pembayaran,
+            ],
+            'product' => $pendaftar->product ? [
+                'id' => $pendaftar->product->id,
+                'nama' => $pendaftar->product->nama,
+                'harga' => $hargaProduk,
+            ] : null,
+            'coupon' => $pendaftar->coupon ? [
+                'kode' => $pendaftar->coupon->kode,
+                'diskon' => $diskon,
+            ] : null,
+            'keuangan' => [
+                'harga_produk' => $hargaProduk,
+                'diskon' => $diskon,
+                'total_tagihan' => $totalTagihan,
+                'total_dibayar' => $totalDibayar,
+                'sisa' => $sisa,
+            ],
+            'riwayat_pembayaran' => $riwayat->map(function ($r) {
+                return [
+                    'id' => $r->id,
+                    'jumlah' => (float) $r->jumlah,
+                    'status' => $r->status,
+                    'created_at' => $r->created_at,
+                    'bukti_pembayaran' => $r->bukti_pembayaran,
+                ];
+            }),
+        ]);
     }
 
     public function kandidat(Request $request)

@@ -152,6 +152,11 @@ export const agendaApi = {
     api.get('/data-agenda', { params }),
 }
 
+export const pembayaranApi = {
+  list: (params?: Record<string, string | undefined>) =>
+    api.get('/pembayaran', { params }),
+}
+
 export const monitoringLokasiApi = {
   get: (params?: Record<string, string>) =>
     api.get('/monitoring-lokasi', { params }),
@@ -233,6 +238,9 @@ export const penilaianApi = {
   store: (data: Record<string, unknown>) => api.post('/penilaian', data),
   update: (id: number, data: Record<string, unknown>) => api.put(`/penilaian/${id}`, data),
   destroy: (id: number) => api.delete(`/penilaian/${id}`),
+  storeStudentAssessment: (data: Record<string, unknown>) =>
+    api.post('/penilaian/student-assessment/store', data),
+  rekap: () => api.get('/penilaian/rekap'),
 }
 
 export const kelasSenseiApi = {
@@ -259,7 +267,9 @@ export const absensiKaryawanApi = {
   riwayat: (params?: Record<string, string | number>) =>
     api.get('/absensi-karyawan/riwayat', { params }),
   statsHariIni: () => api.get('/absensi-karyawan/stats-hari-ini'),
+  grafikMingguan: () => api.get('/absensi-karyawan/grafik-mingguan'),
   shiftSaya: () => api.get('/absensi-karyawan/shift-saya'),
+  scanQr: (barcode: string, lat?: number, long?: number) => api.post('/absensi-karyawan/scan-qr', { barcode, lat, long }),
 }
 
 export const productApi = {
@@ -282,6 +292,7 @@ export const pendaftarApi = {
   list: (params?: Record<string, string | undefined>) =>
     api.get('/pendaftar', { params }),
   show: (id: number) => api.get(`/pendaftar/${id}`),
+  invoice: (id: number) => api.get(`/pendaftar/${id}/invoice`),
   approve: (id: number) => api.post(`/pendaftar/${id}/approve`),
   reject: (id: number) => api.post(`/pendaftar/${id}/reject`),
   verifyPayment: (id: number) => api.post(`/pendaftar/${id}/verify-payment`),
@@ -325,6 +336,24 @@ export const profileApi = {
   update: (data: FormData) => api.post('/profile/update', data),
   changePassword: (data: { current_password: string; new_password: string; new_password_confirmation: string }) =>
     api.post('/profile/password', data),
+}
+
+export const guruProfileApi = {
+  profile: () => api.get('/guru/profile'),
+}
+
+export const guruKelasApi = {
+  list: () => api.get('/guru/kelas-saya'),
+  store: (data: Record<string, unknown>) => api.post('/guru/kelas-saya', data),
+  cekAbsen: (kelasId: number) => api.get('/guru/absen-cek', { params: { kelas_id: kelasId } }),
+  absenMasuk: (data: { kelas_id: number; foto?: string; lat?: number; long?: number }) =>
+    api.post('/guru/absen-masuk', data),
+  absenPulang: (data: { kelas_id: number; foto?: string; lat?: number; long?: number }) =>
+    api.post('/guru/absen-pulang', data),
+  dataSiswa: (kelasId: number) => api.get(`/guru/data-siswa/${kelasId}`),
+  penilaianHarian: (kelasId: number) => api.get(`/guru/penilaian-harian/${kelasId}`),
+  simpanPenilaianHarian: (data: { siswa_id: number; kelas_sensei_id: number; tanggal: string; is_terisi: boolean; catatan?: string; scores?: { component_id: number; nilai: number | null }[] }) =>
+    api.post('/guru/penilaian-harian', data),
 }
 
 export default api

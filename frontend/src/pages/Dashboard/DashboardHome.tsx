@@ -24,11 +24,11 @@ const dashboards = [
     path: '/dashboard-kandidat',
   },
   {
-    id: 'karyawan',
-    title: 'Dashboard Karyawan',
-    description: 'Kelola database karyawan perusahaan',
+    id: 'pusat',
+    title: 'Dashboard Matching Job',
+    description: 'Manajemen lowongan pekerjaan, penempatan kandidat, dan rekrutmen',
     icon: Briefcase,
-    path: '/karyawan',
+    path: '/dashboard-pusat',
   },
 ]
 

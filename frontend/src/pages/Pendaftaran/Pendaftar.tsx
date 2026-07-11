@@ -1,5 +1,10 @@
+function fmt(n: number) {
+  return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+}
+
 import { useState, useEffect, useMemo } from 'react'
-import { Search, CheckCircle, XCircle, FileText, Eye, Trash2, CheckSquare, RotateCcw, Users, CreditCard, X, Loader } from 'lucide-react'
+import { Search, CheckCircle, XCircle, FileText, Eye, Trash2, CheckSquare, RotateCcw, Users, CreditCard, X, Loader, Receipt } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { pendaftarApi } from '../../services/api'
 
 interface PendaftarItem {
@@ -134,7 +139,7 @@ export default function Pendaftar() {
             <FileText size={20} />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-slate-800">Pendaftar</h1>
+            <h1 className="text-lg font-semibold text-slate-800">Pendaftaran</h1>
             <p className="text-sm text-slate-500">Kelola pendaftar dari link affiliate</p>
           </div>
         </div>
@@ -287,6 +292,10 @@ export default function Pendaftar() {
                           <CheckSquare size={15} />
                         </button>
                       )}
+                      <Link to={`/pendaftar/${p.id}/invoice`}
+                        className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600" title="Invoice">
+                        <Receipt size={15} />
+                      </Link>
                       <button onClick={() => openRiwayat(p.id, p.nama)}
                         className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600" title="Riwayat Pembayaran">
                         <CreditCard size={15} />
@@ -336,22 +345,28 @@ export default function Pendaftar() {
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-bold text-gray-900">Rp {Number(r.jumlah).toLocaleString('id-ID')}</span>
+                      <span className="text-sm font-bold text-gray-900">Rp {fmt(Number(r.jumlah))}</span>
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                         r.status === 'verified' ? 'bg-emerald-100 text-emerald-700' :
                         r.status === 'ditolak' ? 'bg-red-100 text-red-600' :
                         'bg-amber-100 text-amber-700'
                       }`}>
-                        {r.status}
+                        {r.status === 'verified' ? 'Lunas' : r.status === 'ditolak' ? 'Ditolak' : 'Pending'}
                       </span>
-                      <a
-                        href={`http://localhost:8000/storage/${r.bukti_pembayaran}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="rounded-lg border border-gray-200 p-1.5 text-gray-400 hover:border-blue-200 hover:text-blue-600 transition-colors"
-                      >
-                        <Eye size={14} />
-                      </a>
+                      {r.bukti_pembayaran ? (
+                        <a
+                          href={`http://localhost:8000/storage/${r.bukti_pembayaran}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-lg border border-gray-200 p-1.5 text-gray-400 hover:border-blue-200 hover:text-blue-600 transition-colors"
+                        >
+                          <Eye size={14} />
+                        </a>
+                      ) : (
+                        <span className="rounded-lg border border-gray-200 p-1.5 text-gray-300">
+                          <Eye size={14} />
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))

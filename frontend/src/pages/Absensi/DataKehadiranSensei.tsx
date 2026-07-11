@@ -28,8 +28,9 @@ export default function DataKehadiranSenseiPage() {
   const [groups, setGroups] = useState<KehadiranSenseiGroup[]>([]);
   const [rekap, setRekap] = useState({ total: 0, hadir: 0, terlambat: 0, pulang_cepat: 0, tidak_absen_pulang: 0 });
   const [listSensei, setListSensei] = useState<Karyawan[]>([]);
-  const [listKelas, setListKelas] = useState<{ id: number; nama_kelas: string }[]>([]);
+  const [listBatch, setListBatch] = useState<{ id: number; nama_batch: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const levels = [1, 2, 3, 4];
 
   const [startDate, setStartDate] = useState(() => {
     const d = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -37,7 +38,8 @@ export default function DataKehadiranSenseiPage() {
   });
   const [endDate, setEndDate] = useState(now.toISOString().split("T")[0]);
   const [filterSensei, setFilterSensei] = useState("");
-  const [filterKelas, setFilterKelas] = useState("");
+  const [filterBatch, setFilterBatch] = useState("");
+  const [filterLevel, setFilterLevel] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
 
   const [expandedGroups, setExpandedGroups] = useState<Record<number, boolean>>({});
@@ -57,19 +59,20 @@ export default function DataKehadiranSenseiPage() {
         end_date: endDate,
       };
       if (filterSensei) params.user_id = filterSensei;
-      if (filterKelas) params.kelas_id = filterKelas;
+      if (filterBatch) params.batch_id = filterBatch;
+      if (filterLevel) params.level = filterLevel;
       if (filterStatus) params.status = filterStatus;
       const res = await kehadiranSenseiApi.list(params);
       setGroups(res.data.data || []);
       setRekap(res.data.rekap || { total: 0, hadir: 0, terlambat: 0, pulang_cepat: 0, tidak_absen_pulang: 0 });
       setListSensei(res.data.list_sensei || []);
-      setListKelas(res.data.list_kelas || []);
+      setListBatch(res.data.list_batch || []);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate, filterSensei, filterKelas, filterStatus]);
+  }, [startDate, endDate, filterSensei, filterBatch, filterLevel, filterStatus]);
 
   useEffect(() => {
     fetchData();
@@ -81,7 +84,8 @@ export default function DataKehadiranSenseiPage() {
     setStartDate(sd.toISOString().split("T")[0]);
     setEndDate(d.toISOString().split("T")[0]);
     setFilterSensei("");
-    setFilterKelas("");
+    setFilterBatch("");
+    setFilterLevel("");
     setFilterStatus("");
   };
 
@@ -116,7 +120,7 @@ export default function DataKehadiranSenseiPage() {
           </div>
           <div>
             <h1 className="text-lg font-semibold text-slate-800">Kehadiran Sensei</h1>
-            <p className="text-sm text-slate-500">Data kehadiran sensei per kelas</p>
+            <p className="text-sm text-slate-500">Data kehadiran sensei per batch</p>
           </div>
         </div>
       </div>
@@ -138,10 +142,16 @@ export default function DataKehadiranSenseiPage() {
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
           </select>
-          <select value={filterKelas} onChange={(e) => setFilterKelas(e.target.value)} className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-            <option value="">Semua Kelas</option>
-            {listKelas.map((k) => (
-              <option key={k.id} value={k.id}>{k.nama_kelas}</option>
+          <select value={filterBatch} onChange={(e) => setFilterBatch(e.target.value)} className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            <option value="">Semua Batch</option>
+            {listBatch.map((b) => (
+              <option key={b.id} value={b.id}>{b.nama_batch}</option>
+            ))}
+          </select>
+          <select value={filterLevel} onChange={(e) => setFilterLevel(e.target.value)} className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            <option value="">Semua Level</option>
+            {levels.map((l) => (
+              <option key={l} value={l}>Level {l}</option>
             ))}
           </select>
           <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
@@ -205,8 +215,9 @@ export default function DataKehadiranSenseiPage() {
               >
                 <div className="flex items-center gap-3">
                   <div>
-                    <span className="text-sm font-semibold text-slate-800">{group.kelas.nama_kelas}</span>
+                    <span className="text-sm font-semibold text-slate-800">{group.kelas.batch_relasi?.nama_batch || group.kelas.nama_kelas}</span>
                     <span className="ml-2 text-[10px] text-slate-400">Level {group.kelas.level}</span>
+                    {group.kelas.user && <span className="ml-2 text-[10px] text-slate-500">- {group.kelas.user.name}</span>}
                   </div>
                   <div className="flex gap-1 text-[9px]">
                     <span className="rounded bg-emerald-100 px-1.5 py-0.5 font-medium text-emerald-700">{group.stats.hadir} H</span>
@@ -241,7 +252,7 @@ export default function DataKehadiranSenseiPage() {
                         <tr key={item.id} className="bg-white transition hover:bg-slate-50">
                           <td className="border-b border-slate-50 px-3 py-2 text-slate-400">{item.pertemuan_ke || idx + 1}</td>
                           <td className="border-b border-slate-50 px-3 py-2">
-                            <span className="font-medium text-slate-700">{item.tanggal}</span>
+                            <span className="font-medium text-slate-700">{item.tanggal?.slice(0, 10) || item.tanggal}</span>
                           </td>
                           <td className="border-b border-slate-50 px-3 py-2">
                             {item.jam_masuk ? (

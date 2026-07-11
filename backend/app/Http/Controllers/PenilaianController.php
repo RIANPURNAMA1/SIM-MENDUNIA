@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Batch;
 use App\Models\Divisi;
 use App\Models\KelasSensei;
 use App\Models\Penilaian;
@@ -9,6 +10,7 @@ use App\Models\PenilaianSetting;
 use App\Models\Siswa;
 use App\Models\StudentAssessment;
 use App\Models\AssessmentCategory;
+use App\Models\AssessmentComponent;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -65,12 +67,15 @@ class PenilaianController extends Controller
             $guruId = $user->id;
         }
 
-        $kelasList = collect();
+        $batchList = collect();
         if ($level && $guruId) {
-            $kelasList = KelasSensei::with('batchRelasi')
-                ->where('level', $level)
+            $batchIds = KelasSensei::where('level', $level)
                 ->where('user_id', $guruId)
-                ->get();
+                ->whereNotNull('batch_id')
+                ->pluck('batch_id');
+            $batchList = \App\Models\Batch::whereIn('id', $batchIds)
+                ->orderBy('nama_batch')
+                ->get(['id', 'nama_batch']);
         }
 
         $kelas = null;
@@ -135,7 +140,7 @@ class PenilaianController extends Controller
 
         return view('penilaian.index', compact(
             'levels', 'gurus', 'level', 'guruId', 'batchId',
-            'kelasList', 'kelas', 'students', 'categories',
+            'batchList', 'kelas', 'students', 'categories',
             'days', 'assessmentCheck', 'weekStart', 'prevWeek', 'nextWeek'
         ));
     }
@@ -144,9 +149,9 @@ class PenilaianController extends Controller
     {
         $request->validate([
             'siswa_id' => 'required|integer',
-            'batch_id' => 'required|integer',
+            'batch_id' => 'nullable|integer',
             'level' => 'required|string',
-            'guru_id' => 'required|integer',
+            'guru_id' => 'nullable|integer',
             'kelas_sensei_id' => 'nullable|integer',
             'tanggal' => 'nullable|date',
         ]);
@@ -166,6 +171,8 @@ class PenilaianController extends Controller
             return response()->json(['error' => 'Kelas tidak ditemukan'], 404);
         }
 
+        $batchId = $request->batch_id ?? $kelas->batch_id;
+
         $categories = AssessmentCategory::with('components')
             ->where('level', $kelas->level)
             ->orderBy('urutan')
@@ -175,7 +182,7 @@ class PenilaianController extends Controller
 
         $query = StudentAssessment::where('siswa_id', $request->siswa_id)
             ->whereIn('component_id', $componentIds)
-            ->where('batch_id', $request->batch_id);
+            ->where('batch_id', $batchId);
 
         if ($request->tanggal) {
             $query->where('tanggal', $request->tanggal);
@@ -363,12 +370,15 @@ class PenilaianController extends Controller
         $batchId = $request->batch_id;
         $kelasSenseiId = $request->kelas_sensei_id;
 
-        $kelasList = collect();
+        $batchList = collect();
         if ($level && $guruId) {
-            $kelasList = KelasSensei::with('batchRelasi')
-                ->where('level', $level)
+            $batchIds = KelasSensei::where('level', $level)
                 ->where('user_id', $guruId)
-                ->get();
+                ->whereNotNull('batch_id')
+                ->pluck('batch_id');
+            $batchList = \App\Models\Batch::whereIn('id', $batchIds)
+                ->orderBy('nama_batch')
+                ->get(['id', 'nama_batch']);
         }
 
         $kelas = null;
@@ -459,7 +469,7 @@ class PenilaianController extends Controller
             'level' => $level,
             'guru_id' => $guruId,
             'batch_id' => $batchId,
-            'kelas_list' => $kelasList,
+            'batch_list' => $batchList,
             'kelas' => $kelasaData,
             'students' => $students,
             'categories' => $categories,
@@ -597,5 +607,106 @@ class PenilaianController extends Controller
         $penilaian->delete();
 
         return redirect()->back()->with('success', 'Penilaian berhasil dihapus.');
+    }
+
+    public function apiRekapPenilaian(Request $request)
+    {
+        $perBatch = Batch::where('status', 'AKTIF')
+            ->withCount('siswas')
+            ->get()
+            ->map(function ($batch) {
+                $stats = StudentAssessment::where('batch_id', $batch->id)
+                    ->selectRaw('COUNT(*) as total, AVG(nilai) as rata, COUNT(DISTINCT siswa_id) as siswa_dinilai')
+                    ->first();
+                return [
+                    'batch_id' => $batch->id,
+                    'nama_batch' => $batch->nama_batch,
+                    'total_siswa' => $batch->siswas_count,
+                    'siswa_dinilai' => (int) ($stats?->siswa_dinilai ?? 0),
+                    'rata_rata' => $stats?->rata ? round((float) $stats->rata, 2) : 0,
+                    'total_assessments' => (int) ($stats?->total ?? 0),
+                ];
+            });
+
+        $leaderboard = StudentAssessment::selectRaw('
+                siswa_id, AVG(nilai) as rata_rata, COUNT(*) as total_penilaian
+            ')
+            ->with('siswa.batchRelasi')
+            ->groupBy('siswa_id')
+            ->orderByDesc('rata_rata')
+            ->limit(20)
+            ->get()
+            ->map(fn($item) => [
+                'siswa_id' => $item->siswa_id,
+                'nama' => $item->siswa?->nama ?? 'Unknown',
+                'batch' => $item->siswa?->batchRelasi?->nama_batch ?? '-',
+                'level' => $item->siswa?->level ?? '-',
+                'rata_rata' => round((float) $item->rata_rata, 2),
+                'total_penilaian' => (int) $item->total_penilaian,
+            ]);
+
+        $totalSiswaDinilai = StudentAssessment::distinct('siswa_id')->count('siswa_id');
+        $totalAssessments = StudentAssessment::count();
+        $rataRataKeseluruhan = StudentAssessment::avg('nilai');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'per_batch' => $perBatch,
+                'leaderboard' => $leaderboard,
+                'statistik' => [
+                    'total_siswa_dinilai' => $totalSiswaDinilai,
+                    'total_assessments' => $totalAssessments,
+                    'rata_rata_keseluruhan' => $rataRataKeseluruhan ? round((float) $rataRataKeseluruhan, 2) : 0,
+                ],
+            ],
+        ]);
+    }
+
+    public function apiStoreStudentAssessment(Request $request)
+    {
+        $request->validate([
+            'siswa_id' => 'required|exists:siswas,id',
+            'batch_id' => 'nullable|exists:batches,id',
+            'kelas_sensei_id' => 'nullable|exists:kelas_sensei,id',
+            'tanggal' => 'required|date',
+            'scores' => 'required|array',
+            'scores.*.component_id' => 'required|exists:assessment_components,id',
+            'scores.*.nilai' => 'nullable|numeric|min:0|max:100',
+        ]);
+
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $batchId = $request->batch_id;
+        if (!$batchId && $request->kelas_sensei_id) {
+            $kelas = KelasSensei::find($request->kelas_sensei_id);
+            $batchId = $kelas?->batch_id;
+        }
+
+        $stored = [];
+        foreach ($request->scores as $score) {
+            $sa = StudentAssessment::updateOrCreate(
+                [
+                    'component_id' => $score['component_id'],
+                    'siswa_id' => $request->siswa_id,
+                    'batch_id' => $batchId,
+                    'tanggal' => $request->tanggal,
+                ],
+                [
+                    'user_id' => $user->id,
+                    'nilai' => $score['nilai'],
+                ]
+            );
+            $stored[] = $sa;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Penilaian berhasil disimpan',
+            'data' => $stored,
+        ]);
     }
 }

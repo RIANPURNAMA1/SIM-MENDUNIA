@@ -40,6 +40,7 @@ use App\Http\Controllers\AffiliateLinkController;
 use App\Http\Controllers\PendaftaranController;
 use App\Http\Controllers\AffiliateDashboardController;
 use App\Http\Controllers\SiswaDashboardController;
+use App\Http\Controllers\GuruDashboardController;
 use App\Http\Controllers\Api\CouponController;
 
 // ========== API Auth (Sanctum) ==========
@@ -76,7 +77,9 @@ Route::prefix('absensi-karyawan')->middleware('auth:sanctum')->group(function ()
     Route::post('/pulang', [AbsensiController::class, 'apiPulang']);
     Route::get('/riwayat', [AbsensiController::class, 'apiRiwayat']);
     Route::get('/stats-hari-ini', [AbsensiController::class, 'apiStatsHariIni']);
+    Route::get('/grafik-mingguan', [AbsensiController::class, 'apiGrafikMingguan']);
     Route::get('/shift-saya', [AbsensiController::class, 'apiShiftSaya']);
+    Route::post('/scan-qr', [AbsensiController::class, 'scanQrApi']);
 });
 
 // API Karyawan (tanpa auth untuk development)
@@ -172,7 +175,7 @@ Route::prefix('rekap-jadwal-shift')->group(function () {
 });
 
 // Monitoring Lokasi
-Route::get('/monitoring-lokasi', [MonitoringController::class, 'apiMonitoring']);
+Route::get('/monitoring-lokasi', [MonitoringController::class, 'apiMonitoring'])->middleware('auth:sanctum');
 
 // Data Agenda
 Route::get('/data-agenda', [AdminAgendaController::class, 'apiIndex']);
@@ -250,11 +253,13 @@ Route::prefix('absensi-siswa')->group(function () {
 });
 
 // Penilaian
-Route::prefix('penilaian')->group(function () {
+Route::prefix('penilaian')->middleware('auth:sanctum')->group(function () {
     Route::get('/', [PenilaianController::class, 'apiIndex']);
     Route::get('/matrix', [PenilaianController::class, 'apiMatrixIndex']);
     Route::get('/day-detail', [PenilaianController::class, 'dayDetail']);
     Route::post('/', [PenilaianController::class, 'apiStore']);
+    Route::get('/rekap', [PenilaianController::class, 'apiRekapPenilaian']);
+    Route::post('/student-assessment/store', [PenilaianController::class, 'apiStoreStudentAssessment']);
     Route::put('/{id}', [PenilaianController::class, 'apiUpdate']);
     Route::delete('/{id}', [PenilaianController::class, 'apiDestroy']);
 });
@@ -309,17 +314,29 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('pendaftar')->group(function () {
         Route::get('/', [PendaftaranController::class, 'index']);
         Route::get('/{id}', [PendaftaranController::class, 'show']);
+        Route::get('/{id}/invoice', [PendaftaranController::class, 'invoice']);
         Route::post('/{id}/approve', [PendaftaranController::class, 'approve']);
         Route::post('/{id}/reject', [PendaftaranController::class, 'reject']);
         Route::post('/{id}/verify-payment', [PendaftaranController::class, 'verifyPayment']);
         Route::post('/{id}/bayar', [PendaftaranController::class, 'bayar']);
+        Route::post('/{id}/bayar-manual', [PendaftaranController::class, 'bayarManual']);
         Route::get('/{id}/riwayat-pembayaran', [PendaftaranController::class, 'riwayatPembayaran']);
         Route::delete('/{id}', [PendaftaranController::class, 'destroy']);
     });
 
+    Route::get('/pembayaran', [PendaftaranController::class, 'allPembayaran']);
     Route::get('/affiliate-dashboard', [AffiliateDashboardController::class, 'index']);
     Route::get('/siswa-dashboard', [SiswaDashboardController::class, 'index']);
     Route::get('/guru-dashboard', [GuruDashboardController::class, 'index']);
+    Route::get('/guru/kelas-saya', [GuruDashboardController::class, 'kelasSaya']);
+    Route::post('/guru/kelas-saya', [GuruDashboardController::class, 'storeKelas']);
+    Route::get('/guru/absen-cek', [GuruDashboardController::class, 'cekAbsen']);
+    Route::post('/guru/absen-masuk', [GuruDashboardController::class, 'absenMasuk']);
+    Route::post('/guru/absen-pulang', [GuruDashboardController::class, 'absenPulang']);
+    Route::get('/guru/data-siswa/{kelasId}', [GuruDashboardController::class, 'dataSiswa']);
+    Route::get('/guru/penilaian-harian/{kelasId}', [GuruDashboardController::class, 'penilaianHarian']);
+    Route::post('/guru/penilaian-harian', [GuruDashboardController::class, 'simpanPenilaianHarian']);
+    Route::get('/guru/profile', [GuruDashboardController::class, 'profile']);
     Route::post('/siswa/profile', [SiswaDashboardController::class, 'updateProfile']);
     Route::get('/siswa/absensi-saya', [SiswaDashboardController::class, 'absensiSaya']);
 });

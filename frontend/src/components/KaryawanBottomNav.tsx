@@ -6,9 +6,19 @@ interface Props {
   absenStatus?: 'belum' | 'masuk' | 'pulang'
   hasJadwal?: boolean
   onAbsenClick?: () => void
+  homeHref?: string
+  jadwalHref?: string
+  laporanHref?: string
+  profilHref?: string
 }
 
-export default function KaryawanBottomNav({ activeTab, absenStatus, hasJadwal = true, onAbsenClick }: Props) {
+export default function KaryawanBottomNav({
+  activeTab, absenStatus, hasJadwal = true, onAbsenClick,
+  homeHref = '/dashboard-karyawan',
+  jadwalHref = '/jadwal-karyawan',
+  laporanHref = '/riwayat-absensi-karyawan',
+  profilHref = '/profil-karyawan',
+}: Props) {
   const handleAbsen = () => {
     if (!hasJadwal) {
       Swal.fire({ icon: 'warning', title: 'Tidak Ada Jadwal', text: 'Tidak ada jadwal shift hari ini, absensi tidak dapat dilakukan' })
@@ -20,13 +30,13 @@ export default function KaryawanBottomNav({ activeTab, absenStatus, hasJadwal = 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#E5E7EF] z-40">
       <div className="max-w-lg mx-auto flex items-center justify-around">
-        <a href="/dashboard-karyawan"
+        <a href={homeHref}
           className={`relative flex flex-col items-center gap-1 py-2.5 px-3 flex-1 ${activeTab === 'home' ? 'text-[#0069b0]' : 'text-[#A5AAB8]'}`}>
           {activeTab === 'home' && <span className="absolute top-0 w-6 h-[2px] bg-[#0069b0] rounded-full" />}
           <Home size={19} strokeWidth={activeTab === 'home' ? 2.2 : 1.8} />
           <span className={`text-[10px] ${activeTab === 'home' ? 'font-bold' : 'font-medium'}`}>Home</span>
         </a>
-        <a href="/jadwal-karyawan"
+        <a href={jadwalHref}
           className={`relative flex flex-col items-center gap-1 py-2.5 px-3 flex-1 ${activeTab === 'jadwal' ? 'text-[#0069b0]' : 'text-[#A5AAB8]'}`}>
           {activeTab === 'jadwal' && <span className="absolute top-0 w-6 h-[2px] bg-[#0069b0] rounded-full" />}
           <Calendar size={19} strokeWidth={activeTab === 'jadwal' ? 2.2 : 1.8} />
@@ -50,13 +60,13 @@ export default function KaryawanBottomNav({ activeTab, absenStatus, hasJadwal = 
           </span>
         </div>
 
-        <a href="/riwayat-absensi-karyawan"
+        <a href={laporanHref}
           className={`relative flex flex-col items-center gap-1 py-2.5 px-3 flex-1 ${activeTab === 'laporan' ? 'text-[#0069b0]' : 'text-[#A5AAB8]'}`}>
           {activeTab === 'laporan' && <span className="absolute top-0 w-6 h-[2px] bg-[#0069b0] rounded-full" />}
           <BarChart3 size={19} strokeWidth={activeTab === 'laporan' ? 2.2 : 1.8} />
           <span className={`text-[10px] ${activeTab === 'laporan' ? 'font-bold' : 'font-medium'}`}>Laporan</span>
         </a>
-        <a href="/profil-karyawan"
+        <a href={profilHref}
           className={`relative flex flex-col items-center gap-1 py-2.5 px-3 flex-1 ${activeTab === 'profil' ? 'text-[#0069b0]' : 'text-[#A5AAB8]'}`}>
           {activeTab === 'profil' && <span className="absolute top-0 w-6 h-[2px] bg-[#0069b0] rounded-full" />}
           <User size={19} strokeWidth={activeTab === 'profil' ? 2.2 : 1.8} />

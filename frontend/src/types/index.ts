@@ -335,6 +335,8 @@ export interface KehadiranSenseiGroup {
     tanggal_mulai: string
     tanggal_selesai: string
     status: string
+    batch_relasi?: { id: number; nama_batch: string } | null
+    user?: { id: number; name: string } | null
   }
   absensis: KehadiranSenseiItem[]
   total: number

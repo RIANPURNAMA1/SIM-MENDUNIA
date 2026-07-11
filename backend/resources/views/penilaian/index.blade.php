@@ -50,12 +50,12 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Kelas</label>
-                        <select name="kelas_sensei_id" class="form-select" onchange="this.form.submit()">
-                            <option value="">Pilih Kelas</option>
-                            @foreach($kelasList as $k)
-                                <option value="{{ $k->id }}" {{ ($kelas->id ?? null) == $k->id ? 'selected' : '' }}>
-                                    {{ $k->nama_kelas }} - {{ $k->batchRelasi->nama_batch ?? 'Batch #'.$k->batch_id }}
+                        <label class="form-label">Batch</label>
+                        <select name="batch_id" class="form-select" onchange="this.form.submit()">
+                            <option value="">Pilih Batch</option>
+                            @foreach($batchList as $b)
+                                <option value="{{ $b->id }}" {{ $batchId == $b->id ? 'selected' : '' }}>
+                                    {{ $b->nama_batch }}
                                 </option>
                             @endforeach
                         </select>

@@ -98,7 +98,7 @@ export default function GuruPage() {
             <tr>
               <th className="border border-slate-200 px-3 py-2.5 font-semibold">Nama</th>
               <th className="border border-slate-200 px-3 py-2.5 font-semibold">NIP</th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold">Mata Pelajaran</th>
+
               <th className="border border-slate-200 px-3 py-2.5 font-semibold">No. HP</th>
               <th className="border border-slate-200 px-3 py-2.5 font-semibold">Status</th>
               <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">Aksi</th>
@@ -139,7 +139,7 @@ export default function GuruPage() {
                     </div>
                   </td>
                   <td className="border border-slate-200 px-3 py-2.5 text-slate-500">{g.nip || "-"}</td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-slate-500">{g.mata_pelajaran || "-"}</td>
+
                   <td className="border border-slate-200 px-3 py-2.5 text-slate-500">{g.no_hp || "-"}</td>
                   <td className="border border-slate-200 px-3 py-2.5">
                     <span className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-semibold ${

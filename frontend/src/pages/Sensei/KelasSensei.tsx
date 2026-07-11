@@ -3,6 +3,14 @@ import { BookOpen, Search, RotateCcw, Plus, Trash2, X } from "lucide-react";
 import { kelasSenseiApi, guruApi } from "../../services/api";
 import type { KelasSenseiData, Guru } from "../../types";
 
+function formatDate(iso: string) {
+  if (!iso) return '-'
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return iso
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
+}
+
 const STATUS_STYLE: Record<string, string> = {
   aktif: "bg-emerald-100 text-emerald-700",
   selesai: "bg-blue-100 text-blue-700",
@@ -114,8 +122,8 @@ export default function KelasSenseiPage() {
             <BookOpen size={20} className="text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-slate-800">Kelas Sensei</h1>
-            <p className="text-sm text-slate-500">Daftar kelas yang dibuat oleh Sensei</p>
+            <h1 className="text-lg font-semibold text-slate-800">Kelas</h1>
+            <p className="text-sm text-slate-500">Daftar kelas</p>
           </div>
         </div>
         <button onClick={openAddModal} className="inline-flex items-center gap-2 rounded-md bg-slate-800 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-700">
@@ -167,8 +175,7 @@ export default function KelasSenseiPage() {
           <thead className="bg-slate-50 text-[10px] text-slate-600 uppercase tracking-wide">
             <tr>
               <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold w-12">No</th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold">Nama Kelas</th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold">Batch</th>
+               <th className="border border-slate-200 px-3 py-2.5 font-semibold">Batch</th>
               <th className="border border-slate-200 px-3 py-2.5 font-semibold">Level</th>
               <th className="border border-slate-200 px-3 py-2.5 font-semibold">Nama Sensei</th>
               <th className="border border-slate-200 px-3 py-2.5 font-semibold">Tgl Mulai</th>
@@ -185,14 +192,14 @@ export default function KelasSenseiPage() {
             {loading ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <tr key={i}>
-                  <td colSpan={13} className="border border-slate-200 px-3 py-3">
+                  <td colSpan={12} className="border border-slate-200 px-3 py-3">
                     <div className="h-3 w-full rounded bg-slate-200/70" />
                   </td>
                 </tr>
               ))
             ) : data.length === 0 ? (
               <tr>
-                <td colSpan={13} className="border border-slate-200 px-4 py-10 text-center">
+                <td colSpan={12} className="border border-slate-200 px-4 py-10 text-center">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
                     <BookOpen size={24} />
                   </div>
@@ -204,19 +211,14 @@ export default function KelasSenseiPage() {
                 <tr key={item.id} className="bg-white transition hover:bg-slate-50">
                   <td className="border border-slate-200 px-3 py-2.5 text-center text-slate-400">{idx + 1}</td>
                   <td className="border border-slate-200 px-3 py-2.5">
-                    <span className="font-semibold text-slate-800">{item.nama_kelas}</span>
-                  </td>
-                  <td className="border border-slate-200 px-3 py-2.5">
-                    {item.batch_relasi ? (
-                      <span className="inline-flex rounded-full bg-sky-100 px-2 py-0.5 text-[9px] font-medium text-sky-700">{item.batch_relasi.nama_batch}</span>
-                    ) : <span className="text-slate-300">-</span>}
+                    <span className="font-semibold text-slate-800">{item.batch_relasi?.nama_batch || item.nama_kelas}</span>
                   </td>
                   <td className="border border-slate-200 px-3 py-2.5">
                     <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-medium text-slate-500">{item.level || "-"}</span>
                   </td>
                   <td className="border border-slate-200 px-3 py-2.5 text-slate-600">{item.user?.name || "-"}</td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-slate-500">{item.tanggal_mulai}</td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-slate-500">{item.tanggal_selesai}</td>
+                  <td className="border border-slate-200 px-3 py-2.5 text-slate-500">{formatDate(item.tanggal_mulai)}</td>
+                  <td className="border border-slate-200 px-3 py-2.5 text-slate-500">{formatDate(item.tanggal_selesai)}</td>
                   <td className="border border-slate-200 px-3 py-2.5 text-center font-medium">{item.total_pertemuan}</td>
                   <td className="border border-slate-200 px-3 py-2.5 text-center font-medium">{item.jumlah_absen}</td>
                   <td className="border border-slate-200 px-3 py-2.5 text-center font-medium">{item.jumlah_alpa}</td>
@@ -239,7 +241,7 @@ export default function KelasSenseiPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3">
           <div className="w-full max-w-lg rounded-lg bg-white shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-              <h3 className="text-sm font-semibold text-slate-800">Tambah Kelas Sensei</h3>
+              <h3 className="text-sm font-semibold text-slate-800">Tambah Kelas</h3>
               <button onClick={() => setShowModal(false)} className="rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
                 <X size={16} />
               </button>

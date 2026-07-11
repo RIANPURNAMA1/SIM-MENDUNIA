@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Users, Search, Plus, RotateCcw, Eye, Edit3, Trash2, CheckCircle, X } from 'lucide-react'
+import { Users, Search, Plus, RotateCcw, Eye, Edit3, Trash2, CheckCircle, X, Receipt } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { pendaftarApi } from '../../services/api'
 
 interface Kandidat {
@@ -27,6 +28,7 @@ export default function DataKandidat() {
   const [kandidatAktif, setKandidatAktif] = useState(0)
   const [expandedBatch, setExpandedBatch] = useState<number | null>(null)
   const [search, setSearch] = useState('')
+  const [filterBatch, setFilterBatch] = useState('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -56,8 +58,13 @@ export default function DataKandidat() {
 
   function resetFilter() {
     setSearch('')
+    setFilterBatch('')
     fetchData()
   }
+
+  const filteredBatches = filterBatch
+    ? batches.filter(b => String(b.id) === filterBatch)
+    : batches
 
   const statusBadge = (status: string) => {
     const map: Record<string, { dot: string; label: string }> = {
@@ -108,6 +115,16 @@ export default function DataKandidat() {
               className="w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
           </div>
+          <select
+            value={filterBatch}
+            onChange={e => setFilterBatch(e.target.value)}
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="">Semua Batch</option>
+            {batches.map(b => (
+              <option key={b.id} value={b.id}>{b.nama}</option>
+            ))}
+          </select>
           <button
             onClick={() => fetchData(search)}
             className="inline-flex items-center justify-center gap-2 rounded-md bg-slate-800 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-1"
@@ -135,7 +152,7 @@ export default function DataKandidat() {
             </div>
           </div>
         ) : (
-          batches.map((batch) => (
+          filteredBatches.map((batch) => (
             <div key={batch.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
               {/* Batch Header */}
               <button
@@ -207,6 +224,10 @@ export default function DataKandidat() {
                                   <button className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600" title="Hapus">
                                     <Trash2 size={15} />
                                   </button>
+                                  <Link to={`/pendaftar/${k.id}/invoice`}
+                                    className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600" title="Invoice">
+                                    <Receipt size={15} />
+                                  </Link>
                                 </div>
                               </td>
                             </tr>

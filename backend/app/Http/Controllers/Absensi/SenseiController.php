@@ -262,8 +262,8 @@ class SenseiController extends Controller
             ], 400);
         }
 
-        // Batas akhir = jam pulang + 5 jam
-        $batasAkhir = $jamPulangParse->copy()->addHours(5);
+        // Batas akhir = jam pulang + 7 jam
+        $batasAkhir = $jamPulangParse->copy()->addHours(7);
 
         // Simpan foto jika ada
         $fotoPath = null;

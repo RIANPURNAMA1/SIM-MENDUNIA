@@ -587,6 +587,88 @@ class AbsensiController extends Controller
         ]);
     }
 
+    public function scanQrApi(Request $request)
+    {
+        $request->validate([
+            'barcode' => 'required|string',
+            'lat' => 'nullable|numeric',
+            'long' => 'nullable|numeric',
+        ]);
+
+        $user = Auth::guard('sanctum')->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $cabang = Cabang::where('barcode', $request->barcode)->first();
+
+        if (!$cabang) {
+            return response()->json(['message' => 'QR Code tidak dikenal'], 404);
+        }
+
+        $today = now()->toDateString();
+        $now = now();
+
+        // SEMUA role (KARYAWAN, GURU, KANDIDAT) pakai Absensi model
+        $existing = Absensi::where('user_id', $user->id)
+            ->where('tanggal', $today)
+            ->first();
+
+        if ($existing) {
+            if ($existing->jam_masuk && !$existing->jam_keluar) {
+                $existing->update([
+                    'jam_keluar' => $now->format('H:i:s'),
+                    'cabang_id' => $cabang->id,
+                    'lat_pulang' => $request->lat ?? $existing->lat_pulang,
+                    'long_pulang' => $request->long ?? $existing->long_pulang,
+                ]);
+                return response()->json([
+                    'message' => 'Absensi pulang berhasil',
+                    'cabang' => $cabang->nama_cabang,
+                    'jam' => 'Pulang: ' . $now->format('H:i:s'),
+                    'status' => 'pulang',
+                ]);
+            }
+
+            return response()->json([
+                'message' => 'Anda sudah absen hari ini',
+                'cabang' => $cabang->nama_cabang,
+                'jam' => 'Masuk: ' . $existing->jam_masuk . ' | Pulang: ' . ($existing->jam_keluar ?? '-'),
+            ], 422);
+        }
+
+        // Resolve shift menggunakan logika yang sama seperti absen biasa
+        // (cek mode fixed/jadwal, cek shift_jadwal per tanggal, fallback, dll)
+        $shift = $this->resolveShiftForUser($user, $now, $today);
+
+        $status = 'HADIR';
+        if ($shift) {
+            $batasTerlambat = Carbon::parse($shift->jam_masuk)->addMinutes($shift->toleransi ?? 15);
+            if ($now->gt($batasTerlambat)) {
+                $status = 'TERLAMBAT';
+            }
+        }
+
+        Absensi::create([
+            'user_id' => $user->id,
+            'shift_id' => $shift ? $shift->id : null,
+            'cabang_id' => $cabang->id,
+            'tanggal' => $today,
+            'jam_masuk' => $now->format('H:i:s'),
+            'lat_masuk' => $request->lat,
+            'long_masuk' => $request->long,
+            'status' => $status,
+        ]);
+
+        return response()->json([
+            'message' => 'Absensi berhasil',
+            'cabang' => $cabang->nama_cabang,
+            'jam' => 'Masuk: ' . $now->format('H:i:s'),
+            'status' => $status,
+        ]);
+    }
+
     public function absenMasuk(Request $request)
     {
         $today = Carbon::today()->toDateString();
@@ -815,12 +897,15 @@ class AbsensiController extends Controller
         }
 
         // 🔥 Batas akhir
-        $batasAkhir = $jamPulangShift->copy()->addHours(5);
+        $batasAkhir = $jamPulangShift->copy()->addHours(7);
 
         // ⛔ Sudah lewat batas → langsung tandai
         if ($now->greaterThan($batasAkhir)) {
 
             $absensi->update([
+                'jam_keluar' => $now->toTimeString(),
+                'lat_pulang' => $request->latitude,
+                'long_pulang' => $request->longitude,
                 'status' => 'TIDAK ABSEN PULANG',
                 'keterangan' => 'Terlambat absen pulang',
             ]);
@@ -1351,17 +1436,35 @@ class AbsensiController extends Controller
             // Tentukan status berdasarkan jam sekarang (HADIR atau TERLAMBAT)
             $status = ($now->gt($batasToleransi)) ? 'TERLAMBAT' : 'HADIR';
 
-            $absensi = Absensi::create([
-                'user_id' => $user->id,
-                'cabang_id' => $cabang->id,
-                'shift_id' => $shift->id,
-                'tanggal' => $today,
-                'jam_masuk' => $now->toTimeString(),
-                'lat_masuk' => $request->latitude,
-                'long_masuk' => $request->longitude,
-                'foto_masuk' => $fotoPath,
-                'status' => $status,
-            ]);
+            try {
+                $absensi = Absensi::create([
+                    'user_id' => $user->id,
+                    'cabang_id' => $cabang->id,
+                    'shift_id' => $shift->id,
+                    'tanggal' => $today,
+                    'jam_masuk' => $now->toTimeString(),
+                    'lat_masuk' => $request->latitude,
+                    'long_masuk' => $request->longitude,
+                    'foto_masuk' => $fotoPath,
+                    'status' => $status,
+                ]);
+            } catch (\Illuminate\Database\QueryException $e) {
+                if ($e->getCode() == 23000) {
+                    // Race condition — user sudah absen masuk untuk shift ini
+                    $absensi = Absensi::where('user_id', $user->id)
+                        ->where('tanggal', $today)
+                        ->where('shift_id', $shift->id)
+                        ->first();
+
+                    if ($absensi && $absensi->jam_masuk) {
+                        return response()->json([
+                            'message' => 'Absen masuk shift '.$shift->nama_shift.' sudah tercatat sebelumnya.',
+                            'status' => $absensi->status,
+                        ]);
+                    }
+                }
+                throw $e;
+            }
 
             // Kirim notifikasi WhatsApp masuk
             if ($user->no_hp) {
@@ -1821,15 +1924,6 @@ class AbsensiController extends Controller
         $today = Carbon::today('Asia/Jakarta')->toDateString();
         $now = Carbon::now('Asia/Jakarta');
 
-        // Cek sudah absen masuk
-        $existing = Absensi::where('user_id', $user->id)
-            ->where('tanggal', $today)
-            ->first();
-
-        if ($existing && $existing->jam_masuk) {
-            return response()->json(['message' => 'Anda sudah absen masuk hari ini'], 422);
-        }
-
         // Validasi lokasi GPS
         $request->validate([
             'latitude' => 'required|numeric',
@@ -1858,6 +1952,16 @@ class AbsensiController extends Controller
             return response()->json(['message' => 'Tidak ada jadwal shift hari ini, absensi tidak dapat dilakukan'], 422);
         }
 
+        // Cek sudah absen masuk untuk shift ini
+        $existing = Absensi::where('user_id', $user->id)
+            ->where('tanggal', $today)
+            ->where('shift_id', $shift->id)
+            ->first();
+
+        if ($existing && $existing->jam_masuk) {
+            return response()->json(['message' => 'Anda sudah absen masuk untuk shift '.$shift->nama_shift.' hari ini'], 422);
+        }
+
         // Tentukan status
         $status = 'HADIR';
         if ($shift) {
@@ -1868,17 +1972,24 @@ class AbsensiController extends Controller
             }
         }
 
-        $absensi = Absensi::create([
-            'user_id' => $user->id,
-            'cabang_id' => $cabang->id,
-            'shift_id' => $shift->id ?? null,
-            'tanggal' => $today,
-            'jam_masuk' => $now->toTimeString(),
-            'lat_masuk' => $request->latitude,
-            'long_masuk' => $request->longitude,
-            'foto_masuk' => $fotoPath,
-            'status' => $status,
-        ]);
+        try {
+            $absensi = Absensi::create([
+                'user_id' => $user->id,
+                'cabang_id' => $cabang->id,
+                'shift_id' => $shift->id ?? null,
+                'tanggal' => $today,
+                'jam_masuk' => $now->toTimeString(),
+                'lat_masuk' => $request->latitude,
+                'long_masuk' => $request->longitude,
+                'foto_masuk' => $fotoPath,
+                'status' => $status,
+            ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                return response()->json(['message' => 'Anda sudah absen masuk untuk shift '.$shift->nama_shift.' hari ini'], 422);
+            }
+            throw $e;
+        }
 
         return response()->json([
             'message' => 'Absen masuk berhasil',
@@ -1934,6 +2045,36 @@ class AbsensiController extends Controller
             $fotoPath = $this->saveBase64Photo($request->foto, 'absen_pulang');
         } else {
             return response()->json(['message' => 'Foto diperlukan'], 422);
+        }
+
+        // Cari shift untuk batas waktu pulang
+        $shift = $this->resolveShiftForUser($user, $now, $today);
+        if ($shift) {
+            $jamMasukShift = Carbon::parse($shift->jam_masuk);
+            $jamPulangShift = Carbon::parse($shift->jam_pulang);
+            if ($jamPulangShift->lt($jamMasukShift)) {
+                $jamPulangShift->addDay();
+            }
+            $batasAkhir = $jamPulangShift->copy()->addHours(7);
+
+            if ($now->greaterThan($batasAkhir)) {
+                $absensi->update([
+                    'jam_keluar' => $now->toTimeString(),
+                    'foto_pulang' => $fotoPath,
+                    'lat_pulang' => $request->latitude,
+                    'long_pulang' => $request->longitude,
+                    'status' => 'TIDAK ABSEN PULANG',
+                ]);
+
+                return response()->json([
+                    'message' => 'Waktu habis. Anda dianggap TIDAK ABSEN PULANG.',
+                    'data' => [
+                        'jam_masuk' => $absensi->jam_masuk,
+                        'jam_keluar' => $absensi->jam_keluar,
+                        'status' => 'TIDAK ABSEN PULANG',
+                    ],
+                ], 400);
+            }
         }
 
         $absensi->update([
@@ -2049,5 +2190,27 @@ class AbsensiController extends Controller
                 'terlambat' => $terlambat,
             ],
         ]);
+    }
+
+    public function apiGrafikMingguan()
+    {
+        $days = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date = Carbon::today()->subDays($i)->toDateString();
+            $total = Absensi::whereDate('tanggal', $date)->count();
+            $hadir = Absensi::whereDate('tanggal', $date)->where('status', 'HADIR')->count();
+            $terlambat = Absensi::whereDate('tanggal', $date)->where('status', 'TERLAMBAT')->count();
+            $izin = Absensi::whereDate('tanggal', $date)->whereIn('status', ['IZIN', 'SAKIT', 'CUTI'])->count();
+            $days[] = [
+                'tanggal' => $date,
+                'total' => $total,
+                'hadir' => $hadir,
+                'terlambat' => $terlambat,
+                'izin' => $izin,
+                'belum_absen' => max(0, User::where('role', 'KARYAWAN')->where('status', 'AKTIF')->count() - $total),
+            ];
+        }
+
+        return response()->json(['data' => $days]);
     }
 }

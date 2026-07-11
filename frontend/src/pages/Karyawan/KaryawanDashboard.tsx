@@ -4,7 +4,7 @@ import { absensiKaryawanApi, agendaApi, kelasSenseiApi } from '../../services/ap
 import { Camera, MapPin, CheckCircle, X, Calendar,
   Plus, Users, User,
   ChevronRight, Briefcase, LogIn, LogOut,
-  QrCode, FileText, History, Clock,
+  QrCode, FileText, History, Clock, ClipboardList,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
@@ -307,6 +307,7 @@ export default function KaryawanDashboard() {
               { icon: History, label: 'Riwayat', href: '/riwayat-absensi-karyawan' },
               { icon: Clock, label: 'Lembur', href: '/lembur-karyawan' },
               { icon: Calendar, label: 'Jadwal', href: '/jadwal-karyawan' },
+              ...(user?.role === 'GURU' || user?.jabatan === 'Guru' ? [{ icon: ClipboardList, label: 'Data Siswa', href: '/guru-data-siswa' }] : []),
               ...(user?.jabatan === 'Guru' ? [{ icon: Users, label: 'Sensei' }] : []),
             ].map((item, i) => (
               <button key={i} onClick={() => item.href && (window.location.href = item.href)} className="flex flex-col items-center gap-2 py-3 rounded-lg hover:bg-[#F4F5F8] transition-colors">

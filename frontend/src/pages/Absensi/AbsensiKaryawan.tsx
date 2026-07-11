@@ -4,8 +4,10 @@ import { Chart, registerables } from 'chart.js'
 import {
   Briefcase, Users, CalendarCheck, MapPin, Clock, Timer,
   Calendar, ArrowRight, Circle, FileText,
-  CheckCircle, Camera, QrCode, LogOut, UserCheck,
+  CheckCircle, Camera, QrCode, LogOut, UserCheck, X,
 } from 'lucide-react'
+import { Html5Qrcode } from 'html5-qrcode'
+import Swal from 'sweetalert2'
 import { absensiKaryawanApi } from '../../services/api'
 import type { Absensi } from '../../types'
 
@@ -52,6 +54,10 @@ export default function AbsensiKaryawan() {
   const [jamKeluar, setJamKeluar] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
+  const [showQrScanner, setShowQrScanner] = useState(false)
+  const qrScannerRef = useRef<Html5Qrcode | null>(null)
+  const [userCoords, setUserCoords] = useState<{ lat: number; long: number } | null>(null)
+
   const [todayData, setTodayData] = useState({
     hadir: 0,
     terlambat: 0,
@@ -95,6 +101,79 @@ export default function AbsensiKaryawan() {
       if (donutChartRef.current) donutChartRef.current.destroy()
     }
   }, [todayData])
+
+  const openQrScanner = () => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setUserCoords({ lat: pos.coords.latitude, long: pos.coords.longitude }),
+      () => setUserCoords(null),
+      { enableHighAccuracy: true, timeout: 5000 },
+    )
+    setShowQrScanner(true)
+  }
+
+  useEffect(() => {
+    if (!showQrScanner) {
+      if (qrScannerRef.current) {
+        qrScannerRef.current.stop().catch(() => {})
+        qrScannerRef.current.clear().catch(() => {})
+        qrScannerRef.current = null
+      }
+      return
+    }
+
+    const scanner = new Html5Qrcode('qr-scanner-employee')
+    qrScannerRef.current = scanner
+
+    scanner.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      (decodedText) => {
+        scanner.stop().catch(() => {})
+        qrScannerRef.current = null
+        setShowQrScanner(false)
+
+        Swal.fire({
+          title: 'Memproses...',
+          text: 'Silakan tunggu',
+          didOpen: () => Swal.showLoading(),
+          allowOutsideClick: false,
+        })
+
+        absensiKaryawanApi.scanQr(decodedText, userCoords?.lat, userCoords?.long)
+          .then((res) => {
+            Swal.fire({
+              icon: 'success',
+              title: 'Berhasil!',
+              text: res.data.message,
+              footer: res.data.cabang ? `Cabang: ${res.data.cabang}` : undefined,
+            })
+            if (res.data.status === 'pulang') {
+              setAbsenPulang(true)
+              setJamKeluar(res.data.jam)
+            } else {
+              setAbsenMasuk(true)
+              setJamMasuk(res.data.jam)
+            }
+          })
+          .catch((err) => {
+            Swal.fire({
+              icon: 'error',
+              title: 'Gagal',
+              text: err.message || 'Terjadi kesalahan',
+            })
+          })
+      },
+      () => {}
+    ).catch(() => {})
+
+    return () => {
+      if (qrScannerRef.current) {
+        qrScannerRef.current.stop().catch(() => {})
+        qrScannerRef.current.clear().catch(() => {})
+        qrScannerRef.current = null
+      }
+    }
+  }, [showQrScanner])
 
   const handleAbsenMasuk = async () => {
     setIsLoading(true)
@@ -192,7 +271,11 @@ export default function AbsensiKaryawan() {
               </div>
             )}
             <div className="flex gap-2">
-              <button className="rounded-lg bg-white/10 p-3 transition hover:bg-white/20" title="Scan QR">
+              <button
+                onClick={openQrScanner}
+                className="rounded-lg bg-white/10 p-3 transition hover:bg-white/20"
+                title="Scan QR"
+              >
                 <QrCode size={20} />
               </button>
               <button className="rounded-lg bg-white/10 p-3 transition hover:bg-white/20" title="Foto Selfie">
@@ -410,6 +493,36 @@ export default function AbsensiKaryawan() {
           </table>
         </div>
       </div>
+      {/* QR Scanner Modal */}
+      {showQrScanner && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                <QrCode size={18} className="text-blue-600" />
+                Scan QR Absensi
+              </h3>
+              <button
+                onClick={() => setShowQrScanner(false)}
+                className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <X size={20} className="text-slate-400" />
+              </button>
+            </div>
+            <div className="p-5">
+              <div className="aspect-square bg-black rounded-xl overflow-hidden relative flex items-center justify-center">
+                <div id="qr-scanner-employee" className="w-full h-full" />
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="w-48 h-48 border-2 border-blue-400 rounded-xl opacity-70" />
+                </div>
+              </div>
+              <p className="text-xs text-slate-400 text-center mt-3">
+                Arahkan kamera ke QR code cabang
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

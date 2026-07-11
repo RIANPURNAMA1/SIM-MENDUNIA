@@ -4,7 +4,7 @@ import DashboardLayout from './layouts/DashboardLayout'
 import AffiliateLayout from './layouts/AffiliateLayout'
 import Login from './pages/Login'
 import DashboardHome from './pages/Dashboard/DashboardHome'
-import Dashboard from './pages/Dashboard/Dashboard'
+import DashboardAbsensi from './pages/Absensi/DashboardAbsensi'
 import DashboardAkademik from './pages/Akademik/DashboardAkademik'
 import DashboardKandidat from './pages/Dashboard/DashboardKandidat'
 import Karyawan from './pages/Karyawan/Karyawan'
@@ -31,6 +31,8 @@ import Siswa from './pages/Siswa/Siswa'
 import Batches from './pages/Siswa/Batches'
 import AbsensiSiswa from './pages/Absensi/AbsensiSiswa'
 import AbsensiKaryawan from './pages/Absensi/AbsensiKaryawan'
+import AbsensiGuruShift from './pages/Absensi/AbsensiGuruShift'
+import AbsensiGuruCabang from './pages/Absensi/AbsensiGuruCabang'
 import RekapSiswa from './pages/Siswa/RekapSiswa'
 import Penilaian from './pages/Siswa/Penilaian'
 import AiChat from './pages/AiChat'
@@ -39,6 +41,7 @@ import PengaturanShift from './pages/Karyawan/PengaturanShift'
 import PengaturanWa from './pages/Pengaturan/PengaturanWa'
 import DataKandidat from './pages/Pendaftaran/DataKandidat'
 import Pendaftar from './pages/Pendaftaran/Pendaftar'
+import InvoicePendaftar from './pages/Pendaftaran/InvoicePendaftar'
 import DataMatchingJob from './pages/Akademik/DataMatchingJob'
 import Tagihan from './pages/Siswa/Tagihan'
 import Pembayaran from './pages/Siswa/Pembayaran'
@@ -62,6 +65,9 @@ import AbsensiSaya from './pages/Absensi/AbsensiSaya'
 import LMS from './pages/Akademik/LMS'
 import DashboardManagement from './pages/Dashboard/DashboardManagement'
 import GuruDashboard from './pages/Guru/GuruDashboard'
+import GuruDataSiswa from './pages/Guru/GuruDataSiswa'
+import GuruProfil from './pages/Guru/GuruProfil'
+
 import GuruLayout from './layouts/GuruLayout'
 
 function AccessDenied({ role }: { role: string }) {
@@ -186,9 +192,31 @@ function AppRoutes() {
       />
 
       <Route
+        path="/guru-data-siswa"
+        element={
+          <ProtectedRoute roleAllowed="GURU">
+            <GuruLayout>
+              <GuruDataSiswa />
+            </GuruLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/guru-profil"
+        element={
+          <ProtectedRoute roleAllowed="GURU">
+            <GuruLayout>
+              <GuruProfil />
+            </GuruLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/dashboard-karyawan"
         element={
-          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN']}>
+          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN', 'GURU']}>
             <KaryawanDashboard />
           </ProtectedRoute>
         }
@@ -197,7 +225,7 @@ function AppRoutes() {
       <Route
         path="/riwayat-absensi-karyawan"
         element={
-          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN']}>
+          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN', 'GURU']}>
             <RiwayatAbsensiKaryawan />
           </ProtectedRoute>
         }
@@ -206,7 +234,7 @@ function AppRoutes() {
       <Route
         path="/pengajuan-izin"
         element={
-          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN']}>
+          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN', 'GURU']}>
             <PengajuanIzin />
           </ProtectedRoute>
         }
@@ -215,7 +243,7 @@ function AppRoutes() {
       <Route
         path="/lembur-karyawan"
         element={
-          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN']}>
+          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN', 'GURU']}>
             <LemburKaryawan />
           </ProtectedRoute>
         }
@@ -224,7 +252,7 @@ function AppRoutes() {
       <Route
         path="/jadwal-karyawan"
         element={
-          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN']}>
+          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN', 'GURU']}>
             <JadwalKaryawan />
           </ProtectedRoute>
         }
@@ -233,7 +261,7 @@ function AppRoutes() {
       <Route
         path="/profil-karyawan"
         element={
-          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN']}>
+          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN', 'GURU']}>
             <ProfilKaryawan />
           </ProtectedRoute>
         }
@@ -242,10 +270,10 @@ function AppRoutes() {
       <Route
         path="/*"
         element={
-          <ProtectedRoute roleBlocked={['KARYAWAN']}>
+          <ProtectedRoute roleBlocked={['KARYAWAN', 'GURU']}>
             <DashboardLayout>
               <Routes>
-                <Route path="/dashboard-absensi" element={<Dashboard />} />
+                <Route path="/dashboard-absensi" element={<DashboardAbsensi />} />
                 <Route path="/" element={<DashboardHome />} />
                 <Route path="/dashboard-akademik" element={<DashboardAkademik />} />
                 <Route path="/dashboard-kandidat" element={<DashboardKandidat />} />
@@ -274,6 +302,8 @@ function AppRoutes() {
                 <Route path="/batches" element={<Batches />} />
                 <Route path="/absensi" element={<AbsensiKaryawan />} />
                 <Route path="/absensi-siswa" element={<AbsensiSiswa />} />
+                <Route path="/absensi-guru-shift" element={<AbsensiGuruShift />} />
+                <Route path="/absensi-guru-cabang" element={<AbsensiGuruCabang />} />
                 <Route path="/rekap-siswa" element={<RekapSiswa />} />
                 <Route path="/penilaian" element={<Penilaian />} />
                 <Route path="/ai-chat" element={<AiChat />} />
@@ -282,6 +312,7 @@ function AppRoutes() {
                 <Route path="/pengaturan-wa" element={<PengaturanWa />} />
                 <Route path="/data-kandidat" element={<DataKandidat />} />
                 <Route path="/pendaftar" element={<Pendaftar />} />
+                <Route path="/pendaftar/:id/invoice" element={<InvoicePendaftar />} />
                 <Route path="/data-matching-job" element={<DataMatchingJob />} />
                 <Route path="/tagihan" element={<Tagihan />} />
                 <Route path="/pembayaran" element={<Pembayaran />} />

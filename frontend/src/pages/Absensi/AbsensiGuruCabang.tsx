@@ -1,10 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
-  MapPin, Plus, Edit3, Trash2, X, AlertTriangle, Hash, Search, Globe, Map, Crosshair, CheckCircle, QrCode, Download, Printer,
+  MapPin, Plus, Edit3, Trash2, X, AlertTriangle, Search, Hash, CheckCircle, Crosshair,
 } from 'lucide-react'
-import { toCanvas } from 'qrcode'
-import jsPDF from 'jspdf'
-import html2canvas from 'html2canvas'
 import { cabangApi } from '../../services/api'
 import type { Cabang } from '../../types'
 
@@ -28,7 +25,7 @@ const emptyForm: CabangForm = {
   alamat: '',
 }
 
-export default function CabangPage() {
+export default function AbsensiGuruCabang() {
   const [data, setData] = useState<Cabang[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -41,9 +38,6 @@ export default function CabangPage() {
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
-  const [qrItem, setQrItem] = useState<Cabang | null>(null)
-  const qrCanvasRef = useRef<HTMLCanvasElement>(null)
-  const printContentRef = useRef<HTMLDivElement>(null)
 
   const showSuccess = useCallback((msg: string) => {
     setSuccessMessage(msg)
@@ -63,38 +57,6 @@ export default function CabangPage() {
   }
 
   useEffect(() => { fetchData() }, [])
-
-  useEffect(() => {
-    if (qrItem && qrCanvasRef.current && qrItem.barcode) {
-      toCanvas(qrCanvasRef.current, qrItem.barcode, {
-        width: 200,
-        margin: 2,
-        color: { dark: '#1e293b', light: '#ffffff' },
-      })
-    }
-  }, [qrItem])
-
-  const handleDownloadQr = () => {
-    if (!qrCanvasRef.current || !qrItem) return
-    const link = document.createElement('a')
-    link.download = `qrcode-${qrItem.kode_cabang || qrItem.id}.png`
-    link.href = qrCanvasRef.current.toDataURL('image/png')
-    link.click()
-  }
-
-  const handleDownloadPdf = async () => {
-    if (!qrItem || !printContentRef.current) return
-    const canvas = await html2canvas(printContentRef.current, {
-      scale: 3,
-      backgroundColor: '#ffffff',
-    })
-    const imgData = canvas.toDataURL('image/png')
-    const pdf = new jsPDF('p', 'mm', 'a4')
-    const pdfWidth = pdf.internal.pageSize.getWidth()
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
-    pdf.save(`qrcode-${qrItem.kode_cabang || qrItem.id}.pdf`)
-  }
 
   const filtered = data.filter((item) =>
     item.kode_cabang?.toLowerCase().includes(search.toLowerCase()) ||
@@ -187,8 +149,6 @@ export default function CabangPage() {
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
-      {/* Header */}
-      {/* Success Alert */}
       {successMessage && (
         <div className="mb-4 animate-slide-down">
           <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 shadow-sm">
@@ -208,14 +168,13 @@ export default function CabangPage() {
         </div>
       )}
 
-      {/* Header */}
       <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] border border-blue-100">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0069b0] border border-blue-100">
             <MapPin size={20} className="text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-slate-800">Cabang / Lokasi</h1>
+            <h1 className="text-lg font-semibold text-slate-800">Cabang / Lokasi Guru</h1>
             <p className="text-sm text-slate-500">{data.length} total cabang</p>
           </div>
         </div>
@@ -228,7 +187,6 @@ export default function CabangPage() {
         </button>
       </div>
 
-      {/* Filter */}
       <div className="mb-4 rounded-lg p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative flex-1">
@@ -247,7 +205,6 @@ export default function CabangPage() {
         </div>
       </div>
 
-      {/* Table */}
       <div className="relative overflow-x-auto">
         <div className="overflow-x-auto">
           <table className="w-full min-w-full border-collapse text-left text-sm text-slate-700">
@@ -313,13 +270,6 @@ export default function CabangPage() {
                     <td className="border border-slate-200 px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-1">
                         <button
-                          onClick={() => { setQrItem(item) }}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-                          title="Lihat QR"
-                        >
-                          <QrCode size={15} />
-                        </button>
-                        <button
                           onClick={() => openEdit(item)}
                           className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                           title="Edit"
@@ -343,79 +293,6 @@ export default function CabangPage() {
         </div>
       </div>
 
-      {/* QR Code Modal */}
-      {qrItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" onClick={() => setQrItem(null)}>
-          <div className="absolute inset-0 bg-black/40" />
-          <div className="relative bg-white rounded-2xl w-full max-w-sm shadow-xl" onClick={(e) => e.stopPropagation()}>
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h3 className="font-semibold text-gray-900">QR Code Cabang</h3>
-              <button onClick={() => setQrItem(null)} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-                <X size={18} className="text-slate-400" />
-              </button>
-            </div>
-
-            {qrItem.barcode ? (
-              <>
-                {/* Print/PDF content */}
-                <div ref={printContentRef} className="print-content px-5 py-5 text-center">
-                  <div className="flex items-center justify-center gap-3 mb-3">
-                    <img src="/logo-sm.png" alt="Logo" className="h-9 w-auto" />
-                    <div className="text-left">
-                      <h2 className="text-lg font-bold text-[#0D1F3C] tracking-wide leading-tight">ABSENSI MENDUNIA</h2>
-                      <p className="text-[10px] text-slate-500">Sistem Informasi Absensi</p>
-                    </div>
-                  </div>
-                  <hr className="border-slate-200 mb-4" />
-                  <p className="text-xs font-semibold text-slate-600 uppercase tracking-widest mb-1">QR Code Absensi</p>
-                  <p className="text-base font-bold text-[#0D1F3C] mb-4">{qrItem.nama_cabang}</p>
-                  <div className="flex justify-center mb-3">
-                    <canvas ref={qrCanvasRef} className="rounded-xl border-2 border-slate-200" />
-                  </div>
-                  <p className="text-[10px] text-slate-400 font-mono tracking-wider">{qrItem.barcode}</p>
-                  <p className="text-[9px] text-slate-300 mt-4">Scan QR ini untuk melakukan absensi</p>
-                </div>
-
-                {/* Action buttons */}
-                <div className="px-5 pb-5 flex flex-col gap-2">
-                  <button
-                    onClick={handleDownloadPdf}
-                    className="w-full py-2.5 text-sm font-semibold rounded-xl bg-[#0D1F3C] text-white hover:bg-[#1a3054] transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Download size={16} />
-                    Download PDF
-                  </button>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleDownloadQr}
-                      className="flex-1 py-2 text-sm font-medium rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Download size={14} />
-                      QR PNG
-                    </button>
-                    <button
-                      onClick={() => { window.print() }}
-                      className="flex-1 py-2 text-sm font-medium rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Printer size={14} />
-                      Cetak
-                    </button>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="py-10 text-center px-5">
-                <QrCode size={48} className="text-slate-300 mx-auto mb-3" />
-                <p className="text-sm text-slate-400">Cabang ini belum memiliki barcode</p>
-                <p className="text-xs text-slate-400 mt-1">Edit cabang untuk menghasilkan barcode secara otomatis</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Create/Edit Modal */}
       {showModal && (
         <div
           className="fixed inset-0 z-50 flex items-start justify-center pt-8 sm:pt-10 p-3 sm:p-4"
@@ -433,7 +310,7 @@ export default function CabangPage() {
                     {editItem ? 'Edit Cabang' : 'Tambah Cabang'}
                   </h5>
                   <span className="text-[11px] text-blue-600 font-medium">
-                    {editItem ? 'Perbarui data cabang' : 'Buat cabang baru'}
+                    {editItem ? 'Perbarui data cabang guru' : 'Buat cabang baru untuk guru'}
                   </span>
                 </div>
                 <button
@@ -586,7 +463,6 @@ export default function CabangPage() {
         </div>
       )}
 
-      {/* Delete Confirmation */}
       {showDelete && deleteItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" onClick={() => setShowDelete(false)}>
           <div className="absolute inset-0 bg-black/40" />

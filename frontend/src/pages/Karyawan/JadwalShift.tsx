@@ -32,6 +32,7 @@ export default function JadwalShiftPage() {
   const [month, setMonth] = useState(new Date().getMonth() + 1)
   const [year, setYear] = useState(new Date().getFullYear())
   const [jadwalData, setJadwalData] = useState<Record<string, ShiftJadwal[]>>({})
+  const [defaultShift, setDefaultShift] = useState<Shift | null>(null)
   const [selectedDates, setSelectedDates] = useState<string[]>([])
   const [selectedShift, setSelectedShift] = useState('')
   const [keterangan, setKeterangan] = useState('')
@@ -44,15 +45,21 @@ export default function JadwalShiftPage() {
   const fetchKaryawan = useCallback(async () => {
     try {
       const res = await karyawanApi.list({ per_page: 500, status: 'AKTIF' })
-      setKaryawanList(res.data.data.map((k: any) => ({ id: k.id, name: k.name, nip: k.nip })))
-    } catch { }
+      const raw = res.data.data || res.data || []
+      setKaryawanList(Array.isArray(raw) ? raw.map((k: any) => ({ id: k.id, name: k.name, nip: k.nip })) : [])
+    } catch (e) {
+      console.error('Gagal fetch karyawan:', e)
+    }
   }, [])
 
   const fetchShifts = useCallback(async () => {
     try {
       const res = await shiftApi.list()
-      setShifts(res.data.data)
-    } catch { }
+      const raw = res.data.data || res.data || []
+      setShifts(Array.isArray(raw) ? raw : [])
+    } catch (e) {
+      console.error('Gagal fetch shifts:', e)
+    }
   }, [])
 
   useEffect(() => { fetchKaryawan(); fetchShifts() }, [fetchKaryawan, fetchShifts])
@@ -63,6 +70,7 @@ export default function JadwalShiftPage() {
     try {
       const res = await shiftJadwalApi.getJadwal(selectedUserId, { bulan: month, tahun: year })
       setJadwalData(res.data.jadwals || {})
+      setDefaultShift(res.data.default_shift || null)
     } catch { } finally {
       setLoading(false)
     }
@@ -260,6 +268,7 @@ export default function JadwalShiftPage() {
               {shifts.map((s) => (
                 <option key={s.id} value={s.id}>{s.nama_shift} ({s.jam_masuk.substring(0, 5)} - {s.jam_pulang.substring(0, 5)})</option>
               ))}
+              <option value="LIBUR">🔴 Libur</option>
             </select>
 
             {isLibur && (
@@ -348,6 +357,9 @@ export default function JadwalShiftPage() {
                             const hasData = jadwalArr.length > 0
                             const isLiburDay = isWeekend(dayNum) || jadwalArr.some((j) => j.is_libur)
 
+                            // Fallback ke default shift jika tidak ada jadwal manual
+                            const effectiveShifts = hasData ? jadwalArr : (defaultShift && !isWeekend(dayNum) ? [{ shift: defaultShift } as ShiftJadwal] : [])
+
                             return (
                               <td key={dayIdx} className="border border-slate-100 p-1">
                                 <div
@@ -360,7 +372,7 @@ export default function JadwalShiftPage() {
                                   <span className={`text-sm font-bold ${isSelected ? 'text-white' : isLiburDay && !hasData ? 'text-red-400' : 'text-slate-700'}`}>
                                     {dayNum}
                                   </span>
-                                  {hasData && !isSelected && jadwalArr.map((j, idx) => (
+                                  {effectiveShifts.map((j: any, idx: number) => (
                                     j.is_libur ? (
                                       <span key={idx} className="text-[9px] font-bold text-red-500 mt-0.5">LIBUR</span>
                                     ) : j.shift ? (
@@ -384,31 +396,46 @@ export default function JadwalShiftPage() {
                 {/* Existing Schedule */}
                 <div className="mt-4 p-3 bg-slate-50 rounded-lg">
                   <span className="text-xs font-semibold text-slate-600">Jadwal Tersimpan:</span>
+                  {defaultShift && (
+                    <span className="ml-2 text-[10px] text-slate-400">(default: <strong>{defaultShift.nama_shift}</strong>)</span>
+                  )}
                   <div className="mt-2 max-h-48 overflow-y-auto space-y-1">
-                    {Object.entries(jadwalData).length > 0 ? (
-                      Object.entries(jadwalData).sort(([a], [b]) => a.localeCompare(b)).map(([tgl, arr]) => {
-                        const d = new Date(tgl + 'T00:00:00')
-                        const label = d.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' })
-                        return (
-                          <div key={tgl} className="flex items-center gap-2 text-xs">
-                            <span className="text-slate-500 w-24 shrink-0">{label}</span>
-                            <div className="flex gap-1">
-                              {arr.map((j, idx) => (
-                                j.is_libur ? (
-                                  <span key={idx} className="px-2 py-0.5 bg-red-100 text-red-700 font-medium rounded text-[10px]">LIBUR</span>
-                                ) : j.shift ? (
-                                  <span key={idx} className={`px-2 py-0.5 text-white rounded text-[10px] ${shiftColors[j.shift.id] || 'bg-slate-500'}`}>
-                                    {j.shift.nama_shift}
-                                  </span>
-                                ) : null
-                              ))}
+                    {(() => {
+                      const allDays: { tgl: string; arr: any[] }[] = []
+                      for (let d = 1; d <= daysInMonth; d++) {
+                        const tgl = getDateStr(d)
+                        const manual = jadwalData[tgl] || []
+                        if (manual.length > 0) {
+                          allDays.push({ tgl, arr: manual })
+                        } else if (defaultShift && !isWeekend(d)) {
+                          allDays.push({ tgl, arr: [{ shift: defaultShift, is_default: true }] })
+                        }
+                      }
+                      return allDays.length > 0 ? (
+                        allDays.sort((a, b) => a.tgl.localeCompare(b.tgl)).map(({ tgl, arr }) => {
+                          const d = new Date(tgl + 'T00:00:00')
+                          const label = d.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' })
+                          return (
+                            <div key={tgl} className="flex items-center gap-2 text-xs">
+                              <span className="text-slate-500 w-24 shrink-0">{label}</span>
+                              <div className="flex gap-1">
+                                {arr.map((j: any, idx: number) => (
+                                  j.is_libur ? (
+                                    <span key={idx} className="px-2 py-0.5 bg-red-100 text-red-700 font-medium rounded text-[10px]">LIBUR</span>
+                                  ) : j.shift ? (
+                                    <span key={idx} className={`px-2 py-0.5 rounded text-[10px] ${j.is_default ? 'bg-slate-200 text-slate-600' : 'text-white ' + (shiftColors[j.shift.id] || 'bg-slate-500')}`}>
+                                      {j.shift.nama_shift}{j.is_default ? '' : ''}
+                                    </span>
+                                  ) : null
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        )
-                      })
-                    ) : (
-                      <span className="text-xs text-slate-400">Pilih karyawan untuk melihat jadwal</span>
-                    )}
+                          )
+                        })
+                      ) : (
+                        <span className="text-xs text-slate-400">Pilih karyawan untuk melihat jadwal</span>
+                      )
+                    })()}
                   </div>
                 </div>
               </>

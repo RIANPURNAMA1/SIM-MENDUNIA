@@ -28,13 +28,22 @@
                             </div>
 
                             <div class="col-6 col-md-2">
-                                <select name="kelas_id" id="filterKelas" class="form-select form-select-sm shadow-sm">
-                                    <option value="">Semua Kelas</option>
-                                    @foreach($list_kelas as $kelas)
-                                        <option value="{{ $kelas->id }}" {{ $kelas_id_selected == $kelas->id ? 'selected' : '' }}>
-                                            {{ $kelas->nama_kelas }}
+                                <select name="batch_id" class="form-select form-select-sm shadow-sm">
+                                    <option value="">Semua Batch</option>
+                                    @foreach($list_batch as $batch)
+                                        <option value="{{ $batch->id }}" {{ ($batch_id_selected ?? '') == $batch->id ? 'selected' : '' }}>
+                                            {{ $batch->nama_batch }}
                                         </option>
                                     @endforeach
+                                </select>
+                            </div>
+
+                            <div class="col-6 col-md-2">
+                                <select name="level" class="form-select form-select-sm shadow-sm">
+                                    <option value="">Semua Level</option>
+                                    @for($i = 1; $i <= 4; $i++)
+                                        <option value="{{ $i }}" {{ ($level_selected ?? '') == $i ? 'selected' : '' }}>Level {{ $i }}</option>
+                                    @endfor
                                 </select>
                             </div>
 

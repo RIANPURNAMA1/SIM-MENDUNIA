@@ -11,6 +11,7 @@ export interface UserData {
   foto_profil: string | null
   jabatan: string | null
   status: string
+  cabang_ids: number[] | null
 }
 
 interface AuthContextType {

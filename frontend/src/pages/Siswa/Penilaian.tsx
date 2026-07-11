@@ -7,10 +7,9 @@ interface Guru {
   name: string;
 }
 
-interface KelasItem {
+interface BatchItem {
   id: number;
-  nama_kelas: string;
-  batch_relasi?: { nama_batch: string } | null;
+  nama_batch: string;
 }
 
 interface Student {
@@ -77,11 +76,11 @@ function formatDate(dateStr: string): string {
 export default function PenilaianPage() {
   const [levels, setLevels] = useState<string[]>([]);
   const [gurus, setGurus] = useState<Guru[]>([]);
-  const [kelasList, setKelasList] = useState<KelasItem[]>([]);
+  const [batchList, setBatchList] = useState<BatchItem[]>([]);
 
   const [filterLevel, setFilterLevel] = useState("");
   const [filterGuru, setFilterGuru] = useState("");
-  const [filterKelas, setFilterKelas] = useState("");
+  const [filterBatch, setFilterBatch] = useState("");
 
   const [kelas, setKelas] = useState<{
     id: number; nama_kelas: string; level: string; batch_nama: string;
@@ -112,14 +111,14 @@ export default function PenilaianPage() {
       } else {
         if (filterLevel) params.level = filterLevel;
         if (filterGuru) params.guru_id = filterGuru;
-        if (filterKelas) params.kelas_sensei_id = filterKelas;
+        if (filterBatch) params.batch_id = filterBatch;
         if (weekStart) params.week = weekStart;
       }
       const res = await penilaianApi.matrix(params);
       const d = res.data;
       setLevels(d.levels || []);
       setGurus(d.gurus || []);
-      setKelasList(d.kelas_list || []);
+      setBatchList(d.batch_list || []);
       setKelas(d.kelas || null);
       setStudents(d.students || []);
       setCategories(d.categories || []);
@@ -142,8 +141,8 @@ export default function PenilaianPage() {
   const handleLevelChange = (val: string) => {
     setFilterLevel(val);
     setFilterGuru("");
-    setFilterKelas("");
-    setKelasList([]);
+    setFilterBatch("");
+    setBatchList([]);
     setKelas(null);
     setStudents([]);
     setDays([]);
@@ -156,7 +155,7 @@ export default function PenilaianPage() {
 
   const handleGuruChange = (val: string) => {
     setFilterGuru(val);
-    setFilterKelas("");
+    setFilterBatch("");
     setKelas(null);
     setStudents([]);
     setDays([]);
@@ -169,15 +168,15 @@ export default function PenilaianPage() {
     }
   };
 
-  const handleKelasChange = (val: string) => {
-    setFilterKelas(val);
+  const handleBatchChange = (val: string) => {
+    setFilterBatch(val);
     setKelas(null);
     setStudents([]);
     setDays([]);
     const params: Record<string, string> = {};
     if (filterLevel) params.level = filterLevel;
     if (filterGuru) params.guru_id = filterGuru;
-    if (val) params.kelas_sensei_id = val;
+    if (val) params.batch_id = val;
     fetchMatrix(params);
   };
 
@@ -185,7 +184,7 @@ export default function PenilaianPage() {
     const params: Record<string, string> = { week: target };
     if (filterLevel) params.level = filterLevel;
     if (filterGuru) params.guru_id = filterGuru;
-    if (filterKelas) params.kelas_sensei_id = filterKelas;
+    if (filterBatch) params.batch_id = filterBatch;
     fetchMatrix(params);
   };
 
@@ -276,22 +275,20 @@ export default function PenilaianPage() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1">Kelas</label>
-            <select value={filterKelas} onChange={(e) => handleKelasChange(e.target.value)}
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Batch</label>
+            <select value={filterBatch} onChange={(e) => handleBatchChange(e.target.value)}
               className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-              <option value="">Pilih Kelas</option>
-              {kelasList.map((k) => (
-                <option key={k.id} value={k.id}>
-                  {k.nama_kelas} - {k.batch_relasi?.nama_batch || `Batch #${k.id}`}
-                </option>
+              <option value="">Pilih Batch</option>
+              {batchList.map((b) => (
+                <option key={b.id} value={b.id}>{b.nama_batch}</option>
               ))}
             </select>
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-500 mb-1">&nbsp;</label>
             <button onClick={() => {
-              setFilterLevel(""); setFilterGuru(""); setFilterKelas("");
-              setKelasList([]); setKelas(null); setStudents([]); setDays([]);
+              setFilterLevel(""); setFilterGuru(""); setFilterBatch("");
+              setBatchList([]); setKelas(null); setStudents([]); setDays([]);
               fetchMatrix({});
             }}
               className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-200">
