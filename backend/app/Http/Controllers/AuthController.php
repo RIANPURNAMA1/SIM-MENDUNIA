@@ -130,7 +130,6 @@ class AuthController extends Controller
         $request->validate([
             'email'    => 'required',
             'password' => 'required',
-            'device'   => 'nullable|string',
         ]);
 
         $user = User::where('email', $request->email)
@@ -149,11 +148,11 @@ class AuthController extends Controller
             ], 403);
         }
 
-        $token = $user->createToken($request->device ?? 'api-token')->plainTextToken;
+        Auth::login($user, true);
+        $user->update(['last_login' => now()]);
 
         return response()->json([
             'message' => 'Login berhasil',
-            'token'   => $token,
             'user'    => $user,
         ]);
     }
@@ -177,11 +176,10 @@ class AuthController extends Controller
             'status'   => 'AKTIF',
         ]);
 
-        $token = $user->createToken('api-token')->plainTextToken;
+        Auth::login($user, true);
 
         return response()->json([
             'message' => 'Registrasi berhasil',
-            'token'   => $token,
             'user'    => $user,
         ], 201);
     }
@@ -211,16 +209,26 @@ class AuthController extends Controller
 
     public function logoutApi(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
-        return response()->json([
+        $response = response()->json([
             'message' => 'Logout berhasil',
         ]);
+
+        $response->headers->clearCookie('laravel_session');
+
+        return $response;
     }
 
     public function userApi(Request $request)
     {
-        return response()->json(Auth::guard('sanctum')->user());
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+        return response()->json($user);
     }
 
     public function registerAffiliate(Request $request)
@@ -243,12 +251,11 @@ class AuthController extends Controller
             'alamat'   => $data['alamat'] ?? null,
         ]);
 
-        $token = $user->createToken('affiliasi-token')->plainTextToken;
+        Auth::login($user, true);
 
         return response()->json([
-            'message'  => 'Pendaftaran affiliate berhasil',
-            'token'    => $token,
-            'user'     => $user,
+            'message' => 'Pendaftaran affiliate berhasil',
+            'user'    => $user,
         ], 201);
     }
 }

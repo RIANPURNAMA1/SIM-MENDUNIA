@@ -78,7 +78,7 @@ class ProfileController extends Controller
 
     public function apiUpdate(Request $request)
     {
-        $user = Auth::guard('sanctum')->user();
+        $user = $request->user();
         if (!$user) {
             return response()->json(['status' => 'error', 'message' => 'Unauthenticated'], 401);
         }
@@ -131,7 +131,7 @@ class ProfileController extends Controller
 
     public function apiChangePassword(Request $request)
     {
-        $user = Auth::guard('sanctum')->user();
+        $user = $request->user();
         if (!$user) {
             return response()->json(['status' => 'error', 'message' => 'Unauthenticated'], 401);
         }

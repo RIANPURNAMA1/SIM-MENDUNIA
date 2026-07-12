@@ -157,13 +157,16 @@ export default function Pembayaran() {
           </thead>
           <tbody>
             {loading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i}>
-                  <td colSpan={7} className="border border-slate-200 px-4 py-3">
-                    <div className="h-4 w-full rounded bg-slate-200/70" />
-                  </td>
-                </tr>
-              ))
+              <tr>
+                <td colSpan={7} className="border border-slate-200 px-4 py-20">
+                  <div className="flex items-center justify-center">
+                    <div className="relative w-14 h-14 flex items-center justify-center">
+                      <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+                      <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
+                    </div>
+                  </div>
+                </td>
+              </tr>
             ) : filtered.length === 0 ? (
               <tr>
                 <td colSpan={7} className="border border-slate-200 px-6 py-10 text-center">

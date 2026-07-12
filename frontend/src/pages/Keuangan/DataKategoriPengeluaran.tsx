@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import {
   ListOrdered, Plus, Edit3, Trash2, X, Search, Hash, Tag, ArrowUpDown,
 } from 'lucide-react'
-import api from '../../services/api'
+import { kategoriPengeluaranApi } from '../../services/api'
 
 interface Kategori {
   id: number
@@ -11,7 +11,7 @@ interface Kategori {
   urutan: number
 }
 
-export default function DataBiayaKategori() {
+export default function DataKategoriPengeluaran() {
   const [data, setData] = useState<Kategori[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -26,7 +26,7 @@ export default function DataBiayaKategori() {
 
   const fetchData = () => {
     setLoading(true)
-    api.get('/biaya-kategori')
+    kategoriPengeluaranApi.list()
       .then(res => setData(res.data))
       .catch(console.error)
       .finally(() => setLoading(false))
@@ -60,9 +60,9 @@ export default function DataBiayaKategori() {
     try {
       const payload = { nama: form.nama, kode: form.kode, urutan: parseInt(form.urutan) || 0 }
       if (editItem) {
-        await api.put(`/biaya-kategori/${editItem.id}`, payload)
+        await kategoriPengeluaranApi.update(editItem.id, payload)
       } else {
-        await api.post('/biaya-kategori', payload)
+        await kategoriPengeluaranApi.store(payload)
       }
       setShowModal(false)
       fetchData()
@@ -77,12 +77,12 @@ export default function DataBiayaKategori() {
     if (!deleteItem) return
     setDeleting(true)
     try {
-      await api.delete(`/biaya-kategori/${deleteItem.id}`)
+      await kategoriPengeluaranApi.destroy(deleteItem.id)
       setShowDelete(false)
       setDeleteItem(null)
       fetchData()
-    } catch (err) {
-      alert(err)
+    } catch (err: any) {
+      alert(err.response?.data?.message || err.message || 'Gagal menghapus')
     } finally {
       setDeleting(false)
     }
@@ -101,7 +101,7 @@ export default function DataBiayaKategori() {
             <ListOrdered size={20} className="text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-slate-800">Kategori Pembayaran</h1>
+            <h1 className="text-lg font-semibold text-slate-800">Kategori Pengeluaran</h1>
             <p className="text-sm text-slate-500">{data.length} total kategori</p>
           </div>
         </div>
@@ -142,16 +142,16 @@ export default function DataBiayaKategori() {
             </thead>
             <tbody>
               {loading ? (
-                <tr>
-                  <td colSpan={4} className="border border-slate-200 px-4 py-20">
-                    <div className="flex items-center justify-center">
-                      <div className="relative w-14 h-14 flex items-center justify-center">
-                        <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
-                        <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
+                Array.from({ length: 3 }).map((_, i) => (
+                  <tr key={i}>
+                    <td colSpan={4} className="border border-slate-200 px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="h-3 bg-slate-200/70 rounded w-16 animate-pulse" />
+                        <div className="h-3 bg-slate-200/70 rounded w-40 animate-pulse" />
                       </div>
-                    </div>
-                  </td>
-                </tr>
+                    </td>
+                  </tr>
+                ))
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="border border-slate-200 px-6 py-10 text-center">
@@ -159,7 +159,7 @@ export default function DataBiayaKategori() {
                       <ListOrdered size={24} />
                     </div>
                     <p className="mt-3 text-sm font-medium text-slate-600">
-                      {search ? 'Kategori tidak ditemukan' : 'Belum ada kategori'}
+                      {search ? 'Kategori tidak ditemukan' : 'Belum ada kategori pengeluaran'}
                     </p>
                   </td>
                 </tr>
@@ -167,7 +167,7 @@ export default function DataBiayaKategori() {
                 filtered.map(item => (
                   <tr key={item.id} className="bg-white transition hover:bg-slate-50">
                     <td className="border border-slate-200 px-4 py-3">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-mono font-semibold rounded-lg">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-orange-50 text-orange-700 text-xs font-mono font-semibold rounded-lg">
                         <Hash size={11} />
                         {item.kode}
                       </span>
@@ -220,8 +220,8 @@ export default function DataBiayaKategori() {
                   <h5 className="font-bold text-gray-900 m-0">
                     {editItem ? 'Edit Kategori' : 'Tambah Kategori'}
                   </h5>
-                  <span className="text-[11px] text-blue-600 font-medium">
-                    {editItem ? 'Perbarui data kategori' : 'Buat kategori baru'}
+                  <span className="text-[11px] text-orange-600 font-medium">
+                    {editItem ? 'Perbarui data kategori pengeluaran' : 'Buat kategori pengeluaran baru'}
                   </span>
                 </div>
                 <button type="button" onClick={closeModal} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
@@ -242,8 +242,8 @@ export default function DataBiayaKategori() {
                     maxLength={50}
                     value={form.kode}
                     onChange={e => setForm({ ...form, kode: e.target.value.toUpperCase() })}
-                    placeholder="Contoh: LEVEL5, UJIAN, SERTIFIKAT"
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    placeholder="Contoh: GAJI, SEWA, LISTRIK"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                   />
                 </div>
                 <div>
@@ -256,8 +256,8 @@ export default function DataBiayaKategori() {
                     maxLength={100}
                     value={form.nama}
                     onChange={e => setForm({ ...form, nama: e.target.value })}
-                    placeholder="Nama kategori pembayaran"
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    placeholder="Nama kategori pengeluaran"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                   />
                 </div>
                 <div>
@@ -270,14 +270,14 @@ export default function DataBiayaKategori() {
                     value={form.urutan}
                     onChange={e => setForm({ ...form, urutan: e.target.value })}
                     placeholder="Urutan tampil"
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                   />
                 </div>
                 <div className="flex gap-2 pt-2">
                   <button type="button" onClick={closeModal} className="flex-1 py-2.5 text-sm font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
                     Batal
                   </button>
-                  <button type="submit" disabled={saving} className="flex-1 py-2.5 text-sm font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors">
+                  <button type="submit" disabled={saving} className="flex-1 py-2.5 text-sm font-medium rounded-lg bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50 transition-colors">
                     {saving ? 'Menyimpan...' : editItem ? 'Simpan' : 'Tambah'}
                   </button>
                 </div>

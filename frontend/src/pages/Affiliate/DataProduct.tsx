@@ -15,6 +15,7 @@ interface BiayaKategori {
 interface KategoriPrice {
   kategori_id: number
   harga: number
+  komisi: number
 }
 
 interface Product {
@@ -24,7 +25,7 @@ interface Product {
   harga: number
   komisi: number | null
   status: string
-  biaya_kategoris: (BiayaKategori & { pivot: { harga: number } })[]
+  biaya_kategoris: (BiayaKategori & { pivot: { harga: number; komisi: number } })[]
 }
 
 export default function DataProduct() {
@@ -39,6 +40,7 @@ export default function DataProduct() {
     komisi: '',
     status: 'aktif',
     kategori_prices: {} as Record<number, string>,
+    kategori_komisi: {} as Record<number, string>,
   })
   const [copiedId, setCopiedId] = useState<number | null>(null)
 
@@ -60,17 +62,20 @@ export default function DataProduct() {
   function openCreate() {
     setEditing(null)
     const prices: Record<number, string> = {}
-    sortedKat.forEach(k => { prices[k.id] = '' })
-    setForm({ nama: '', deskripsi: '', komisi: '', status: 'aktif', kategori_prices: prices })
+    const komisis: Record<number, string> = {}
+    sortedKat.forEach(k => { prices[k.id] = ''; komisis[k.id] = '' })
+    setForm({ nama: '', deskripsi: '', komisi: '', status: 'aktif', kategori_prices: prices, kategori_komisi: komisis })
     setShowModal(true)
   }
 
   function openEdit(p: Product) {
     setEditing(p)
     const prices: Record<number, string> = {}
+    const komisis: Record<number, string> = {}
     sortedKat.forEach(k => {
       const found = p.biaya_kategoris?.find(bk => bk.id === k.id)
       prices[k.id] = found ? String(found.pivot.harga) : ''
+      komisis[k.id] = found?.pivot?.komisi ? String(found.pivot.komisi) : ''
     })
     setForm({
       nama: p.nama,
@@ -78,6 +83,7 @@ export default function DataProduct() {
       komisi: p.komisi ? String(p.komisi) : '',
       status: p.status,
       kategori_prices: prices,
+      kategori_komisi: komisis,
     })
     setShowModal(true)
   }
@@ -89,11 +95,22 @@ export default function DataProduct() {
     }))
   }
 
+  function setKatKomisi(katId: number, val: string) {
+    setForm(prev => ({
+      ...prev,
+      kategori_komisi: { ...prev.kategori_komisi, [katId]: val },
+    }))
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const kategoriPrices: KategoriPrice[] = Object.entries(form.kategori_prices)
       .filter(([_, v]) => v !== '' && parseFloat(v) > 0)
-      .map(([k, v]) => ({ kategori_id: Number(k), harga: parseFloat(v) }))
+      .map(([k, v]) => ({
+        kategori_id: Number(k),
+        harga: parseFloat(v),
+        komisi: parseFloat(form.kategori_komisi[k]) || 0,
+      }))
 
     const payload: any = {
       nama: form.nama,
@@ -225,10 +242,9 @@ export default function DataProduct() {
             <thead className="text-sm text-slate-600">
               <tr>
                 <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Nama Produk</th>
-                <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Kategori Bayar</th>
+                <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Kategori / Harga / Komisi</th>
                 <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Deskripsi</th>
-                <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium">Harga</th>
-                <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium">Komisi</th>
+                <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium">Total</th>
                 <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Status</th>
                 <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Aksi</th>
               </tr>
@@ -236,7 +252,7 @@ export default function DataProduct() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="border border-slate-200 px-6 py-10 text-center">
+                  <td colSpan={6} className="border border-slate-200 px-6 py-10 text-center">
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
                       <Package size={24} />
                     </div>
@@ -256,12 +272,18 @@ export default function DataProduct() {
                     </td>
                     <td className="border border-slate-200 px-4 py-3">
                       {p.biaya_kategoris && p.biaya_kategoris.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
+                        <div className="space-y-1">
                           {p.biaya_kategoris.map(bk => (
-                            <span key={bk.id} className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-[11px] font-medium text-blue-700">
-                              <Tag size={11} />
-                              {bk.kode}
-                            </span>
+                            <div key={bk.id} className="flex items-center gap-1.5 text-[11px]">
+                              <span className="inline-flex items-center gap-1 rounded bg-blue-50 px-1.5 py-0.5 font-medium text-blue-700">
+                                <Tag size={10} />
+                                {bk.kode}
+                              </span>
+                              <span className="text-slate-500">Rp {Number(bk.pivot.harga).toLocaleString('id-ID')}</span>
+                              {bk.pivot.komisi > 0 && (
+                                <span className="text-emerald-600 font-medium">+ Rp {Number(bk.pivot.komisi).toLocaleString('id-ID')}</span>
+                              )}
+                            </div>
                           ))}
                         </div>
                       ) : (
@@ -271,9 +293,6 @@ export default function DataProduct() {
                     <td className="border border-slate-200 px-4 py-3 text-sm text-slate-500 max-w-xs truncate">{p.deskripsi || '-'}</td>
                     <td className="border border-slate-200 px-4 py-3 text-right text-sm font-semibold text-slate-800">
                       Rp {Number(p.harga).toLocaleString('id-ID')}
-                    </td>
-                    <td className="border border-slate-200 px-4 py-3 text-right text-sm font-semibold text-emerald-600">
-                      {p.komisi ? `Rp ${Number(p.komisi).toLocaleString('id-ID')}` : '-'}
                     </td>
                     <td className="border border-slate-200 px-4 py-3 text-center">{statusBadge(p.status)}</td>
                     <td className="border border-slate-200 px-4 py-3 text-center">
@@ -320,17 +339,31 @@ export default function DataProduct() {
                   <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Rincian Harga per Kategori</p>
                   <div className="space-y-2">
                     {sortedKat.map(k => (
-                      <div key={k.id} className="flex items-center gap-2">
-                        <span className="w-20 text-xs font-semibold text-slate-600 flex-none">{k.kode}</span>
-                        <span className="text-[10px] text-slate-400 flex-none w-12">{k.nama}</span>
-                        <div className="relative flex-1">
-                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-medium">Rp</span>
-                          <input
-                            type="number" min={0} placeholder="0"
-                            value={form.kategori_prices[k.id] ?? ''}
-                            onChange={e => setKatPrice(k.id, e.target.value)}
-                            className="w-full rounded-md bg-white border border-slate-200 px-8 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:border-blue-400 focus:ring-1 focus:ring-blue-200"
-                          />
+                      <div key={k.id}>
+                        <div className="flex items-center gap-2">
+                          <span className="w-20 text-xs font-semibold text-slate-600 flex-none">{k.kode}</span>
+                          <span className="text-[10px] text-slate-400 flex-none w-12">{k.nama}</span>
+                          <div className="relative flex-1">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-medium">Rp</span>
+                            <input
+                              type="number" min={0} placeholder="0"
+                              value={form.kategori_prices[k.id] ?? ''}
+                              onChange={e => setKatPrice(k.id, e.target.value)}
+                              className="w-full rounded-md bg-white border border-slate-200 px-8 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:border-blue-400 focus:ring-1 focus:ring-blue-200"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="w-20 text-[10px] font-medium text-slate-400 flex-none text-right pr-1">Komisi</span>
+                          <div className="relative flex-1">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-medium">Rp</span>
+                            <input
+                              type="number" min={0} placeholder="0"
+                              value={form.kategori_komisi[k.id] ?? ''}
+                              onChange={e => setKatKomisi(k.id, e.target.value)}
+                              className="w-full rounded-md bg-emerald-50 border border-emerald-200 px-8 py-1.5 text-xs text-slate-800 placeholder-slate-400 outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200"
+                            />
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -343,10 +376,12 @@ export default function DataProduct() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <input type="number" min={0} placeholder="Komisi (Rp)" value={form.komisi} onChange={e => setForm({ ...form, komisi: e.target.value })}
+                    <label className="block text-xs font-semibold text-slate-500 mb-1">Komisi Global (Rp)</label>
+                    <input type="number" min={0} placeholder="0" value={form.komisi} onChange={e => setForm({ ...form, komisi: e.target.value })}
                       className="w-full rounded-md bg-[#f0f2f5] px-3 py-2.5 text-sm text-slate-800 placeholder-slate-500 outline-none transition focus:bg-white focus:ring-1 focus:ring-blue-500" />
                   </div>
                   <div>
+                    <label className="block text-xs font-semibold text-slate-500 mb-1">Status</label>
                     <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}
                       className="w-full rounded-md bg-[#f0f2f5] px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:bg-white focus:ring-1 focus:ring-blue-500">
                       <option value="aktif">Aktif</option>
@@ -354,7 +389,7 @@ export default function DataProduct() {
                     </select>
                   </div>
                 </div>
-                <p className="text-[11px] text-slate-400 leading-tight">Jumlah komisi yg diterima affiliate saat pendaftar di-approve</p>
+                <p className="text-[11px] text-slate-400 leading-tight">Komisi per kategori: diterima affiliate saat kategori tersebut lunas. Komisi global: diterima saat pendaftar di-approve.</p>
               </div>
               <div className="mt-4 flex gap-2">
                 <button type="submit" className="flex-1 rounded-md bg-emerald-600 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700">{editing ? 'Simpan' : 'Tambah'}</button>

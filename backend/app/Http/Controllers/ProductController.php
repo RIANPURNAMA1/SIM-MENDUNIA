@@ -23,6 +23,7 @@ class ProductController extends Controller
             'kategori_prices' => 'nullable|array',
             'kategori_prices.*.kategori_id' => 'required|exists:biaya_kategoris,id',
             'kategori_prices.*.harga' => 'required|numeric|min:0',
+            'kategori_prices.*.komisi' => 'nullable|numeric|min:0',
         ]);
 
         $product = Product::create([
@@ -36,7 +37,10 @@ class ProductController extends Controller
         if ($request->has('kategori_prices')) {
             $sync = [];
             foreach ($request->kategori_prices as $kp) {
-                $sync[$kp['kategori_id']] = ['harga' => $kp['harga']];
+                $sync[$kp['kategori_id']] = [
+                    'harga' => $kp['harga'],
+                    'komisi' => $kp['komisi'] ?? 0,
+                ];
             }
             $product->biayaKategoris()->sync($sync);
         }
@@ -62,6 +66,7 @@ class ProductController extends Controller
             'kategori_prices' => 'nullable|array',
             'kategori_prices.*.kategori_id' => 'required|exists:biaya_kategoris,id',
             'kategori_prices.*.harga' => 'required|numeric|min:0',
+            'kategori_prices.*.komisi' => 'nullable|numeric|min:0',
         ]);
 
         $updateData = [];
@@ -76,7 +81,10 @@ class ProductController extends Controller
         if ($request->has('kategori_prices')) {
             $sync = [];
             foreach ($request->kategori_prices as $kp) {
-                $sync[$kp['kategori_id']] = ['harga' => $kp['harga']];
+                $sync[$kp['kategori_id']] = [
+                    'harga' => $kp['harga'],
+                    'komisi' => $kp['komisi'] ?? 0,
+                ];
             }
             $product->biayaKategoris()->sync($sync);
 

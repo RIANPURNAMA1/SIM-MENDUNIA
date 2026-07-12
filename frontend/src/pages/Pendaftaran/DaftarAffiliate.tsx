@@ -1,7 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import {
-  GraduationCap, CheckCircle, Loader, User, MessageCircle,
+  GraduationCap, CheckCircle, User, MessageCircle,
   Upload, FileText, X,
 } from 'lucide-react'
 import { affiliateLinkApi, pendaftarApi, couponApi, batchApi } from '../../services/api'
@@ -196,9 +196,9 @@ export default function DaftarAffiliate() {
 
   const LoadingScreen = () => (
     <div className="min-h-screen bg-[#f0f2f5] flex items-center justify-center">
-      <div className="relative w-16 h-16 flex items-center justify-center">
+      <div className="relative w-14 h-14 flex items-center justify-center">
         <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
-        <img src="/logo-sm.png" alt="Mendunia" className="w-8 h-8" />
+        <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
       </div>
     </div>
   )

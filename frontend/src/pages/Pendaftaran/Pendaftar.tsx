@@ -211,7 +211,10 @@ export default function Pendaftar() {
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center p-6">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" />
+        <div className="relative w-14 h-14 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+          <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
+        </div>
       </div>
     )
   }

@@ -139,7 +139,10 @@ export default function ProfilKaryawan() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F4F5F8] pb-24 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-[#0069b0]/20 border-t-[#0069b0] rounded-full animate-spin" />
+        <div className="relative w-14 h-14 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+          <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
+        </div>
       </div>
     )
   }

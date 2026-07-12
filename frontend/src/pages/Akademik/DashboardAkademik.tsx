@@ -159,59 +159,66 @@ export default function DashboardAkademik() {
     },
   }
 
-  const stats = [
-    { label: 'Total Siswa', value: siswa.length, icon: Users, color: 'bg-blue-500' },
-    { label: 'Batch Aktif', value: batchAktif.length, icon: BookOpen, color: 'bg-purple-500' },
-    { label: 'Guru', value: guru.length, icon: Users, color: 'bg-green-500' },
-  ]
-
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center p-6">
-        <div className="flex items-center gap-3">
-          <Loader size={20} className="animate-spin text-slate-400" />
-          <span className="text-sm text-slate-500">Memuat data...</span>
+        <div className="relative w-14 h-14 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+          <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
         </div>
       </div>
     )
   }
 
   return (
-    <div className="px-3 sm:px-6 py-3 sm:py-4">
+    <div className="px-3 sm:px-6 py-3 sm:py-4 space-y-6">
       {/* Header */}
-      <div className="mb-4">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white">
-            <BookOpen size={24} />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard Akademik</h1>
-            <p className="text-sm text-gray-500">Pantau data akademik siswa dan guru</p>
-          </div>
+      <div className="flex items-center gap-3">
+        <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+          <BookOpen size={22} />
+        </div>
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">Dashboard Akademik</h1>
+          <p className="text-sm text-gray-500">Pantau data akademik siswa dan guru</p>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {stats.map((stat, idx) => {
-          const Icon = stat.icon
-          return (
-            <div key={idx} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-semibold text-gray-600">{stat.label}</span>
-                <div className={`${stat.color} p-2.5 rounded-lg`}>
-                  <Icon size={16} className="text-white" />
-                </div>
-              </div>
-              <div className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</div>
-              <p className="text-xs text-gray-400">Tahun 2026</p>
+      {/* Main Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-semibold text-gray-600">Total Siswa</span>
+            <div className="bg-blue-500 p-2.5 rounded-lg">
+              <Users size={16} className="text-white" />
             </div>
-          )
-        })}
+          </div>
+          <div className="text-3xl font-bold text-gray-900 mb-1">{siswa.length}</div>
+          <p className="text-xs text-gray-400">Tahun 2026</p>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-semibold text-gray-600">Batch Aktif</span>
+            <div className="bg-purple-500 p-2.5 rounded-lg">
+              <BookOpen size={16} className="text-white" />
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-gray-900 mb-1">{batchAktif.length}</div>
+          <p className="text-xs text-gray-400">Tahun 2026</p>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-semibold text-gray-600">Guru</span>
+            <div className="bg-green-500 p-2.5 rounded-lg">
+              <Users size={16} className="text-white" />
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-gray-900 mb-1">{guru.length}</div>
+          <p className="text-xs text-gray-400">Tahun 2026</p>
+        </div>
       </div>
 
-      {/* Breakdown */}
-      <div className="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* Breakdown Row 1 */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex items-center gap-4">
           <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-50 shrink-0">
             <GraduationCap size={20} className="text-blue-600" />
@@ -232,123 +239,113 @@ export default function DashboardAkademik() {
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex items-center gap-4">
           <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-purple-50 shrink-0">
-            <BookOpen size={20} className="text-purple-600" />
+            <Layers size={20} className="text-purple-600" />
           </div>
           <div>
             <p className="text-xs text-gray-500">Total Batch</p>
             <p className="text-xl font-bold text-gray-900">{kelasSensei.length}</p>
           </div>
         </div>
-      </div>
-
-      {/* Penilaian Summary Cards */}
-      {rekap && (
-        <div className="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex items-center gap-4">
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-indigo-50 shrink-0">
-              <Award size={20} className="text-indigo-600" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Siswa Dinilai</p>
-              <p className="text-xl font-bold text-gray-900">{rekap.statistik.total_siswa_dinilai}</p>
-            </div>
+        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex items-center gap-4">
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-indigo-50 shrink-0">
+            <Award size={20} className="text-indigo-600" />
           </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex items-center gap-4">
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-50 shrink-0">
-              <FileText size={20} className="text-blue-600" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Total Penilaian</p>
-              <p className="text-xl font-bold text-blue-700">{rekap.statistik.total_assessments}</p>
-            </div>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex items-center gap-4">
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-50 shrink-0">
-              <Target size={20} className="text-emerald-600" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Rata-rata Keseluruhan</p>
-              <p className="text-xl font-bold text-emerald-700">{rekap.statistik.rata_rata_keseluruhan}</p>
-            </div>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex items-center gap-4">
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-purple-50 shrink-0">
-              <BarChart size={20} className="text-purple-600" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Batch Aktif Dinilai</p>
-              <p className="text-xl font-bold text-gray-900">{rekap.per_batch.length}</p>
-            </div>
+          <div>
+            <p className="text-xs text-gray-500">Siswa Dinilai</p>
+            <p className="text-xl font-bold text-gray-900">{rekap?.statistik.total_siswa_dinilai ?? 0}</p>
           </div>
         </div>
-      )}
+      </div>
+
+      {/* Breakdown Row 2 */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex items-center gap-4">
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-50 shrink-0">
+            <FileText size={20} className="text-blue-600" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">Total Penilaian</p>
+            <p className="text-xl font-bold text-blue-700">{rekap?.statistik.total_assessments ?? 0}</p>
+          </div>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex items-center gap-4">
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-50 shrink-0">
+            <Target size={20} className="text-emerald-600" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">Rata-rata Keseluruhan</p>
+            <p className="text-xl font-bold text-emerald-700">{rekap?.statistik.rata_rata_keseluruhan ?? 0}</p>
+          </div>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex items-center gap-4">
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-purple-50 shrink-0">
+            <BarChart size={20} className="text-purple-600" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">Batch Aktif Dinilai</p>
+            <p className="text-xl font-bold text-gray-900">{rekap?.per_batch.length ?? 0}</p>
+          </div>
+        </div>
+      </div>
 
       {/* Chart */}
-      <div className="mb-6">
-        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50">
-                <TrendingUp size={18} className="text-indigo-600" />
-              </div>
-              <div>
-                <h2 className="text-sm font-bold text-gray-800">Grafik Absensi (Minggu Ini)</h2>
-                <p className="text-xs text-gray-400">Total absensi & kehadiran siswa</p>
-              </div>
-            </div>
+      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50">
+            <TrendingUp size={18} className="text-indigo-600" />
           </div>
-          <div className="h-72 sm:h-80">
-            <Line data={chartData} options={chartOptions} />
+          <div>
+            <h2 className="text-sm font-bold text-gray-800">Grafik Absensi (Minggu Ini)</h2>
+            <p className="text-xs text-gray-400">Total absensi & kehadiran siswa</p>
           </div>
+        </div>
+        <div className="h-72 sm:h-80">
+          <Line data={chartData} options={chartOptions} />
         </div>
       </div>
 
       {/* Per Batch Penilaian */}
       {rekap && rekap.per_batch.length > 0 && (
-        <div className="mb-6">
-          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-50">
-                  <Layers size={18} className="text-orange-600" />
+        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-50">
+              <Layers size={18} className="text-orange-600" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-gray-800">Penilaian Per Batch</h2>
+              <p className="text-xs text-gray-400">Rata-rata nilai dan statistik per batch</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {rekap.per_batch.map((b) => (
+              <div key={b.batch_id} className="border border-gray-200 rounded-xl p-4 bg-gradient-to-br from-gray-50 to-white">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-gray-900">{b.nama_batch}</h3>
+                  <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-medium">
+                    {b.siswa_dinilai}/{b.total_siswa} siswa
+                  </span>
                 </div>
-                <div>
-                  <h2 className="text-sm font-bold text-gray-800">Penilaian Per Batch</h2>
-                  <p className="text-xs text-gray-400">Rata-rata nilai dan statistik per batch</p>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <p className="text-xs text-gray-500">Rata-rata</p>
+                    <p className="text-lg font-bold text-indigo-600">{b.rata_rata}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Penilaian</p>
+                    <p className="text-lg font-bold text-gray-800">{b.total_assessments}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Siswa</p>
+                    <p className="text-lg font-bold text-gray-800">{b.total_siswa}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {rekap.per_batch.map((b) => (
-                <div key={b.batch_id} className="border border-gray-200 rounded-xl p-4 bg-gradient-to-br from-gray-50 to-white">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-semibold text-gray-900">{b.nama_batch}</h3>
-                    <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-medium">
-                      {b.siswa_dinilai}/{b.total_siswa} siswa
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3 text-center">
-                    <div>
-                      <p className="text-xs text-gray-500">Rata-rata</p>
-                      <p className="text-lg font-bold text-indigo-600">{b.rata_rata}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Penilaian</p>
-                      <p className="text-lg font-bold text-gray-800">{b.total_assessments}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Siswa</p>
-                      <p className="text-lg font-bold text-gray-800">{b.total_siswa}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* Main Content */}
+      {/* Batch Terbaru + Absensi Hari Ini */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Batch Terbaru */}
         <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
@@ -418,51 +415,49 @@ export default function DashboardAkademik() {
 
       {/* Leaderboard */}
       {rekap && rekap.leaderboard.length > 0 && (
-        <div className="mt-6">
-          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-yellow-50">
-                <Medal size={18} className="text-yellow-600" />
-              </div>
-              <div>
-                <h2 className="text-sm font-bold text-gray-800">Leaderboard Nilai Tertinggi Kandidat</h2>
-                <p className="text-xs text-gray-400">20 kandidat dengan rata-rata penilaian terbaik</p>
-              </div>
+        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-yellow-50">
+              <Medal size={18} className="text-yellow-600" />
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-2 font-semibold text-gray-600">#</th>
-                    <th className="text-left py-3 px-2 font-semibold text-gray-600">Nama Kandidat</th>
-                    <th className="text-left py-3 px-2 font-semibold text-gray-600">Batch</th>
-                    <th className="text-center py-3 px-2 font-semibold text-gray-600">Level</th>
-                    <th className="text-center py-3 px-2 font-semibold text-gray-600">Total Penilaian</th>
-                    <th className="text-center py-3 px-2 font-semibold text-gray-600">Rata-rata</th>
+            <div>
+              <h2 className="text-sm font-bold text-gray-800">Leaderboard Nilai Tertinggi Kandidat</h2>
+              <p className="text-xs text-gray-400">20 kandidat dengan rata-rata penilaian terbaik</p>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 px-2 font-semibold text-gray-600">#</th>
+                  <th className="text-left py-3 px-2 font-semibold text-gray-600">Nama Kandidat</th>
+                  <th className="text-left py-3 px-2 font-semibold text-gray-600">Batch</th>
+                  <th className="text-center py-3 px-2 font-semibold text-gray-600">Level</th>
+                  <th className="text-center py-3 px-2 font-semibold text-gray-600">Total Penilaian</th>
+                  <th className="text-center py-3 px-2 font-semibold text-gray-600">Rata-rata</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rekap.leaderboard.map((entry, idx) => (
+                  <tr key={entry.siswa_id} className="border-b border-gray-100 hover:bg-gray-50 transition">
+                    <td className="py-3 px-2">
+                      <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gray-100 text-xs font-bold text-gray-600">
+                        {idx + 1}
+                      </div>
+                    </td>
+                    <td className="py-3 px-2 font-medium text-gray-900">{entry.nama}</td>
+                    <td className="py-3 px-2 text-gray-600">{entry.batch}</td>
+                    <td className="py-3 px-2 text-center text-gray-600">{entry.level}</td>
+                    <td className="py-3 px-2 text-center text-gray-600">{entry.total_penilaian}</td>
+                    <td className="py-3 px-2 text-center">
+                      <span className="inline-flex items-center gap-1 font-bold text-indigo-600">
+                        {entry.rata_rata}
+                      </span>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {rekap.leaderboard.map((entry, idx) => (
-                    <tr key={entry.siswa_id} className="border-b border-gray-100 hover:bg-gray-50 transition">
-                      <td className="py-3 px-2">
-                        <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gray-100 text-xs font-bold text-gray-600">
-                          {idx + 1}
-                        </div>
-                      </td>
-                      <td className="py-3 px-2 font-medium text-gray-900">{entry.nama}</td>
-                      <td className="py-3 px-2 text-gray-600">{entry.batch}</td>
-                      <td className="py-3 px-2 text-center text-gray-600">{entry.level}</td>
-                      <td className="py-3 px-2 text-center text-gray-600">{entry.total_penilaian}</td>
-                      <td className="py-3 px-2 text-center">
-                        <span className="inline-flex items-center gap-1 font-bold text-indigo-600">
-                          {entry.rata_rata}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

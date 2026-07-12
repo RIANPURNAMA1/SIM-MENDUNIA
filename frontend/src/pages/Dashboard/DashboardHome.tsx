@@ -1,5 +1,6 @@
-import { Users, Briefcase, BookOpen, UserCheck, FileText } from 'lucide-react'
+import { Users, Briefcase, BookOpen, UserCheck, FileText, Wallet } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../../contexts/AuthContext'
 
 const dashboards = [
   {
@@ -30,9 +31,24 @@ const dashboards = [
     icon: Briefcase,
     path: '/dashboard-pusat',
   },
+  {
+    id: 'keuangan',
+    title: 'Dashboard Keuangan',
+    description: 'Pencatatan pengeluaran, kategori biaya, dan rekap keuangan perusahaan',
+    icon: Wallet,
+    path: '/dashboard-keuangan',
+    roles: ['HR', 'MANAGER'],
+  },
 ]
 
 export default function DashboardHome() {
+  const { user } = useAuth()
+
+  const filteredDashboards = dashboards.filter(d => {
+    if (d.roles && user?.role && !d.roles.includes(user.role)) return false
+    return true
+  })
+
   return (
     <div className="px-3 sm:px-6 py-3 sm:py-4">
       {/* Header */}
@@ -43,7 +59,7 @@ export default function DashboardHome() {
 
       {/* Dashboard Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {dashboards.map((dash) => {
+        {filteredDashboards.map((dash) => {
           const Icon = dash.icon
           return (
             <Link

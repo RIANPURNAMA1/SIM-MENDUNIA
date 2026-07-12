@@ -809,8 +809,178 @@ class PendaftaranController extends Controller
         ]);
     }
 
+    public function storeKandidat(Request $request)
+    {
+        $messages = [
+            'nama.required' => 'Nama lengkap wajib diisi.',
+            'email.required' => 'Email wajib diisi.',
+            'email.email' => 'Format email tidak valid.',
+            'email.unique' => 'Email sudah digunakan oleh akun lain.',
+            'nik.string' => 'NIK harus berupa teks.',
+            'telepon.max' => 'No. telepon maksimal 20 karakter.',
+            'batch_id.exists' => 'Batch yang dipilih tidak valid.',
+            'jenis_kelamin.in' => 'Jenis kelamin harus L atau P.',
+            'tanggal_lahir.date' => 'Format tanggal lahir tidak valid.',
+            'pendidikan_terakhir.string' => 'Pendidikan terakhir harus berupa teks.',
+            'tinggi_badan.numeric' => 'Tinggi badan harus berupa angka.',
+            'berat_badan.numeric' => 'Berat badan harus berupa angka.',
+            'goldar.in' => 'Golongan darah harus A, B, AB, atau O.',
+            'ukuran_baju.in' => 'Ukuran baju tidak valid.',
+            'status_pernikahan.in' => 'Status nikah tidak valid.',
+        ];
+
+        $data = $request->validate([
+            'nik' => 'nullable|string|max:50',
+            'nama' => 'required|string|max:255',
+            'email' => 'required|email|unique:pendaftar,email|unique:users,email',
+            'telepon' => 'nullable|string|max:20',
+            'batch_id' => 'nullable|integer|exists:batches,id',
+            'real_batch' => 'nullable|string|max:255',
+            'jenis_kelamin' => 'nullable|in:L,P',
+            'tempat_lahir' => 'nullable|string|max:255',
+            'tanggal_lahir' => 'nullable|date',
+            'alamat' => 'nullable|string',
+            'desa' => 'nullable|string|max:255',
+            'kecamatan' => 'nullable|string|max:255',
+            'kabupaten' => 'nullable|string|max:255',
+            'provinsi' => 'nullable|string|max:255',
+            'pendidikan_terakhir' => 'nullable|string|max:100',
+            'tahun_lulus' => 'nullable|string|max:4',
+            'tinggi_badan' => 'nullable|numeric',
+            'berat_badan' => 'nullable|numeric',
+            'goldar' => 'nullable|in:A,B,AB,O',
+            'ukuran_baju' => 'nullable|in:XS,S,M,L,XL,XXL',
+            'status_pernikahan' => 'nullable|in:Belum Nikah,Nikah,Cerai',
+            'no_hp' => 'nullable|string|max:20',
+            'nama_ortu' => 'nullable|string|max:255',
+            'no_hp_ortu' => 'nullable|string|max:20',
+            'keterangan' => 'nullable|string|max:500',
+        ], $messages);
+
+        // Generate No. Registrasi
+        $today = now()->format('Ymd');
+        $lastReg = Pendaftar::where('no_registrasi', 'like', "REG/{$today}/%")
+            ->orderByDesc('no_registrasi')
+            ->value('no_registrasi');
+        if ($lastReg) {
+            $lastNum = (int) substr($lastReg, -4);
+            $nextNum = str_pad($lastNum + 1, 4, '0', STR_PAD_LEFT);
+        } else {
+            $nextNum = '0001';
+        }
+        $noReg = "REG/{$today}/{$nextNum}";
+
+        // Generate random password
+        $password = strtoupper(bin2hex(random_bytes(4)));
+
+        try {
+            // Create user — nik wajib diisi karena kolom NOT NULL di DB
+            $user = User::create([
+                'name' => $data['nama'],
+                'email' => $data['email'],
+                'password' => Hash::make($password),
+                'nik' => $data['nik'] ?? $data['email'],
+                'role' => 'KANDIDAT',
+                'status' => 'AKTIF',
+                'no_hp' => $data['no_hp'] ?? $data['telepon'] ?? null,
+                'pendidikan_terakhir' => $data['pendidikan_terakhir'] ?? null,
+                'tempat_lahir' => $data['tempat_lahir'] ?? null,
+                'tanggal_lahir' => $data['tanggal_lahir'] ?? null,
+                'jenis_kelamin' => $data['jenis_kelamin'] ?? null,
+                'alamat' => $data['alamat'] ?? null,
+            ]);
+
+            // Create pendaftar
+            $pendaftar = Pendaftar::create([
+                'nama' => $data['nama'],
+                'email' => $data['email'],
+                'password' => Hash::make($password),
+                'telepon' => $data['telepon'] ?? null,
+                'alamat' => $data['alamat'] ?? null,
+                'batch_id' => $data['batch_id'] ?? null,
+                'no_registrasi' => $noReg,
+                'status_pendaftaran' => 'disetujui',
+                'status_pembayaran' => 'verified',
+                'nominal' => 0,
+                'user_id' => $user->id,
+            ]);
+
+            // Create siswa
+            Siswa::create([
+                'user_id' => $user->id,
+                'batch_id' => $data['batch_id'] ?? null,
+                'nama' => $data['nama'],
+                'nik' => $data['nik'] ?? null,
+                'no_registrasi' => $noReg,
+                'jenis_kelamin' => $data['jenis_kelamin'] ?? null,
+                'tempat_lahir' => $data['tempat_lahir'] ?? null,
+                'tanggal_lahir' => $data['tanggal_lahir'] ?? null,
+                'alamat' => $data['alamat'] ?? null,
+                'desa' => $data['desa'] ?? null,
+                'kecamatan' => $data['kecamatan'] ?? null,
+                'kabupaten' => $data['kabupaten'] ?? null,
+                'provinsi' => $data['provinsi'] ?? null,
+                'pendidikan_terakhir' => $data['pendidikan_terakhir'] ?? null,
+                'tahun_lulus' => $data['tahun_lulus'] ?? null,
+                'tinggi_badan' => $data['tinggi_badan'] ?? null,
+                'berat_badan' => $data['berat_badan'] ?? null,
+                'goldar' => $data['goldar'] ?? null,
+                'ukuran_baju' => $data['ukuran_baju'] ?? null,
+                'status_pernikahan' => $data['status_pernikahan'] ?? null,
+                'no_hp' => $data['no_hp'] ?? $data['telepon'] ?? null,
+                'nama_ortu' => $data['nama_ortu'] ?? null,
+                'no_hp_ortu' => $data['no_hp_ortu'] ?? null,
+                'real_batch' => $data['real_batch'] ?? null,
+                'keterangan' => $data['keterangan'] ?? null,
+                'status' => 'AKTIF',
+            ]);
+
+            return response()->json([
+                'message' => 'Kandidat berhasil ditambahkan',
+                'no_registrasi' => $noReg,
+                'password' => $password,
+            ], 201);
+        } catch (\Illuminate\Database\QueryException $e) {
+            \Log::error('storeKandidat QueryException: ' . $e->getMessage());
+            $errorMap = [
+                "Duplicate entry" => 'Data sudah ada di database (kemungkinan email atau NIK sudah terdaftar).',
+                "doesn't have a default value" => 'Ada kolom wajib yang belum diisi. Silakan lengkapi semua data.',
+                "Cannot add or update a child row" => 'Data referensi tidak valid (batch atau data lain tidak ditemukan).',
+                "Data too long" => 'Ada data yang melebihi batas maksimum karakter.',
+                "Integrity constraint" => 'Ada data yang tidak konsisten. Silakan periksa kembali.',
+                "Column" => 'Ada kolom data yang bermasalah.',
+            ];
+            $msg = $e->getMessage();
+            $userMsg = 'Terjadi kesalahan saat menyimpan data.';
+            foreach ($errorMap as $en => $id) {
+                if (str_contains($msg, $en)) {
+                    $userMsg = $id;
+                    break;
+                }
+            }
+            return response()->json(['message' => $userMsg, 'debug' => config('app.debug') ? $msg : null], 422);
+        } catch (\Exception $e) {
+            \Log::error('storeKandidat Exception: ' . $e->getMessage());
+            return response()->json(['message' => 'Terjadi kesalahan saat menyimpan data: ' . $e->getMessage()], 500);
+        }
+    }
+
     public function updateKandidat(Request $request, $id)
     {
+        $messages = [
+            'nama.string' => 'Nama harus berupa teks.',
+            'email.email' => 'Format email tidak valid.',
+            'nik.string' => 'NIK harus berupa teks.',
+            'batch_id.exists' => 'Batch yang dipilih tidak valid.',
+            'jenis_kelamin.in' => 'Jenis kelamin harus L atau P.',
+            'tanggal_lahir.date' => 'Format tanggal lahir tidak valid.',
+            'tinggi_badan.numeric' => 'Tinggi badan harus berupa angka.',
+            'berat_badan.numeric' => 'Berat badan harus berupa angka.',
+            'goldar.in' => 'Golongan darah harus A, B, AB, atau O.',
+            'ukuran_baju.in' => 'Ukuran baju tidak valid.',
+            'status_pernikahan.in' => 'Status nikah tidak valid.',
+        ];
+
         $pendaftar = Pendaftar::with(['siswa'])->findOrFail($id);
 
         $data = $request->validate([
@@ -838,7 +1008,7 @@ class PendaftaranController extends Controller
             'nama_ortu' => 'nullable|string|max:255',
             'no_hp_ortu' => 'nullable|string|max:20',
             'keterangan' => 'nullable|string|max:500',
-        ]);
+        ], $messages);
 
         // Update pendaftar fields
         $pendaftarFields = ['nama', 'email', 'batch_id'];
@@ -881,33 +1051,37 @@ class PendaftaranController extends Controller
     {
         if (!$pendaftar->affiliate_link_id) return;
 
-        $existing = KomisiAffiliate::where('pendaftar_id', $pendaftar->id)->first();
-        if ($existing) return;
-
         $product = $pendaftar->product;
-        if (!$product || !$product->komisi) return;
+        if (!$product) return;
 
-        $level1Kategori = \App\Models\BiayaKategori::where('kode', 'LEVEL1')->first();
-        if (!$level1Kategori) return;
+        $product->load('biayaKategoris');
+        if ($product->biayaKategoris->isEmpty()) return;
 
-        $level1Harga = 0;
-        if ($product->relationLoaded('biayaKategoris')) {
-            $level1Pivot = $product->biayaKategoris->first(fn($k) => $k->id === $level1Kategori->id);
-            $level1Harga = $level1Pivot ? (int) $level1Pivot->pivot->harga : 0;
-        }
-        if ($level1Harga <= 0) return;
+        foreach ($product->biayaKategoris as $kategori) {
+            $komisiPerKategori = (float) ($kategori->pivot->komisi ?? 0);
+            if ($komisiPerKategori <= 0) continue;
 
-        $level1Dibayar = PembayaranItem::where('pendaftar_id', $pendaftar->id)
-            ->where('kategori_id', $level1Kategori->id)
-            ->sum('jumlah');
+            $existing = KomisiAffiliate::where('pendaftar_id', $pendaftar->id)
+                ->where('kategori_id', $kategori->id)
+                ->first();
+            if ($existing) continue;
 
-        if ($level1Dibayar >= $level1Harga) {
-            KomisiAffiliate::create([
-                'affiliate_link_id' => $pendaftar->affiliate_link_id,
-                'pendaftar_id' => $pendaftar->id,
-                'jumlah' => $product->komisi,
-                'status' => 'pending',
-            ]);
+            $hargaKategori = (float) $kategori->pivot->harga;
+            if ($hargaKategori <= 0) continue;
+
+            $dibayar = PembayaranItem::where('pendaftar_id', $pendaftar->id)
+                ->where('kategori_id', $kategori->id)
+                ->sum('jumlah');
+
+            if ($dibayar >= $hargaKategori) {
+                KomisiAffiliate::create([
+                    'affiliate_link_id' => $pendaftar->affiliate_link_id,
+                    'pendaftar_id' => $pendaftar->id,
+                    'kategori_id' => $kategori->id,
+                    'jumlah' => $komisiPerKategori,
+                    'status' => 'pending',
+                ]);
+            }
         }
     }
 }

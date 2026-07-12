@@ -122,7 +122,12 @@ export default function RekapBatch() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-16"><Loader size={24} className="animate-spin text-slate-400" /></div>
+        <div className="flex items-center justify-center py-16">
+          <div className="relative w-14 h-14 flex items-center justify-center">
+            <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+            <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
+          </div>
+        </div>
       ) : data.length === 0 ? (
         <div className="rounded-lg border border-slate-200 bg-white py-12 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400"><Receipt size={24} /></div>

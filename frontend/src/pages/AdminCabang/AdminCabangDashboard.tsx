@@ -37,11 +37,10 @@ export default function AdminCabangDashboard() {
 
   if (loading) {
     return (
-      <div className="px-6 py-8">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-24 rounded-lg bg-white border border-slate-200 animate-pulse" />
-          ))}
+      <div className="px-6 py-8 flex items-center justify-center min-h-[50vh]">
+        <div className="relative w-14 h-14 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+          <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
         </div>
       </div>
     )

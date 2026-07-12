@@ -2,6 +2,7 @@ import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios'
 
 const api: AxiosInstance = axios.create({
   baseURL: 'http://localhost:8000/api',
+  withCredentials: true,
   headers: {
     'Accept': 'application/json',
     'Content-Type': 'application/json',
@@ -9,10 +10,6 @@ const api: AxiosInstance = axios.create({
 })
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
   if (config.data instanceof FormData) {
     delete config.headers['Content-Type']
   }
@@ -24,8 +21,8 @@ api.interceptors.response.use(
   (error: AxiosError<{ message?: string }>) => {
     const url = error.config?.url || ''
     const isLoginRequest = url.includes('/login')
-    if (error.response?.status === 401 && !isLoginRequest) {
-      localStorage.removeItem('token')
+    const isUserCheck = url.includes('/auth/user')
+    if (error.response?.status === 401 && !isLoginRequest && !isUserCheck) {
       window.location.href = '/login'
     }
     return Promise.reject(error)
@@ -323,6 +320,8 @@ export const pendaftarApi = {
     }),
   kandidat: (params?: Record<string, string>) =>
     api.get('/kandidat', { params }),
+  createKandidat: (data: Record<string, unknown>) =>
+    api.post('/kandidat', data),
   updateKandidat: (id: number, data: Record<string, unknown>) =>
     api.put(`/kandidat/${id}`, data),
 }
@@ -422,6 +421,26 @@ export const lmsAdminApi = {
   upload: (data: FormData) => api.post('/admin/lms/upload', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   storeCourseFile: (data: FormData) => api.post('/admin/lms/files', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   deleteCourseFile: (id: number) => api.delete(`/admin/lms/files/${id}`),
+}
+
+export const kategoriPengeluaranApi = {
+  list: () => api.get('/pengeluaran/kategori'),
+  store: (data: { nama: string; kode: string; urutan?: number }) => api.post('/pengeluaran/kategori', data),
+  update: (id: number, data: { nama: string; kode: string; urutan?: number }) => api.put(`/pengeluaran/kategori/${id}`, data),
+  destroy: (id: number) => api.delete(`/pengeluaran/kategori/${id}`),
+}
+
+export const pengeluaranApi = {
+  list: (params?: Record<string, string | number | undefined>) => api.get('/pengeluaran', { params }),
+  store: (data: FormData) => api.post('/pengeluaran', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  show: (id: number) => api.get(`/pengeluaran/${id}`),
+  update: (id: number, data: FormData) => {
+    data.append('_method', 'PUT')
+    return api.post(`/pengeluaran/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } })
+  },
+  destroy: (id: number) => api.delete(`/pengeluaran/${id}`),
+  rekap: (tahun?: number) => api.get('/pengeluaran/rekap', { params: tahun ? { tahun } : undefined }),
+  dashboard: () => api.get('/pengeluaran/dashboard'),
 }
 
 export default api

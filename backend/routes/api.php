@@ -46,6 +46,8 @@ use App\Http\Controllers\GuruDashboardController;
 use App\Http\Controllers\Api\CouponController;
 use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\AdminCabangController;
+use App\Http\Controllers\PengeluaranController;
+use App\Http\Controllers\LmsController;
 
 // ========== API Auth (Sanctum) ==========
 Route::post('/auth/login',    [AuthController::class, 'loginApi']);
@@ -335,6 +337,7 @@ Route::get('/affiliate-link/{kode}', [AffiliateLinkController::class, 'showByKod
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/kandidat', [PendaftaranController::class, 'kandidat']);
+    Route::post('/kandidat', [PendaftaranController::class, 'storeKandidat']);
     Route::put('/kandidat/{id}', [PendaftaranController::class, 'updateKandidat']);
 
     Route::prefix('pendaftar')->group(function () {
@@ -446,4 +449,20 @@ Route::prefix('admin-cabang')->middleware(['auth:sanctum'])->group(function () {
     // Biaya & Batch Biaya
     Route::get('/biaya-kategori', [BiayaController::class, 'kategoriIndex']);
     Route::get('/batch-biaya/{batchId}', [BiayaController::class, 'batchBiayaIndex']);
+});
+
+// ========== Pengeluaran (HR & MANAGER only) ==========
+Route::middleware(['auth:sanctum', 'role:HR,MANAGER'])->prefix('pengeluaran')->group(function () {
+    Route::get('/kategori', [PengeluaranController::class, 'kategoriIndex']);
+    Route::post('/kategori', [PengeluaranController::class, 'kategoriStore']);
+    Route::put('/kategori/{id}', [PengeluaranController::class, 'kategoriUpdate']);
+    Route::delete('/kategori/{id}', [PengeluaranController::class, 'kategoriDestroy']);
+
+    Route::get('/', [PengeluaranController::class, 'index']);
+    Route::post('/', [PengeluaranController::class, 'store']);
+    Route::get('/dashboard', [PengeluaranController::class, 'dashboard']);
+    Route::get('/rekap', [PengeluaranController::class, 'rekap']);
+    Route::get('/{id}', [PengeluaranController::class, 'show']);
+    Route::put('/{id}', [PengeluaranController::class, 'update']);
+    Route::delete('/{id}', [PengeluaranController::class, 'destroy']);
 });

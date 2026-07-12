@@ -53,6 +53,9 @@ import DataAffiliate from './pages/Affiliate/DataAffiliate'
 import DataProduct from './pages/Affiliate/DataProduct'
 import DataCoupon from './pages/Affiliate/DataCoupon'
 import DataBiayaKategori from './pages/Affiliate/DataBiayaKategori'
+import DataKategoriPengeluaran from './pages/Keuangan/DataKategoriPengeluaran'
+import DataPengeluaran from './pages/Keuangan/DataPengeluaran'
+import DashboardKeuangan from './pages/Keuangan/DashboardKeuangan'
 import DaftarAffiliate from './pages/Pendaftaran/DaftarAffiliate'
 import AffiliateDashboard from './pages/Affiliate/AffiliateDashboard'
 import DaftarAffiliateBaru from './pages/Pendaftaran/DaftarAffiliateBaru'
@@ -117,7 +120,10 @@ function ProtectedRoute({ children, roleAllowed, roleBlocked }: { children: Reac
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4" />
+          <div className="relative w-14 h-14 flex items-center justify-center mx-auto mb-4">
+            <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+            <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
+          </div>
           <p className="text-sm text-slate-500 font-medium">Memuat...</p>
         </div>
       </div>
@@ -150,7 +156,10 @@ function AppRoutes() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4" />
+          <div className="relative w-14 h-14 flex items-center justify-center mx-auto mb-4">
+            <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+            <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
+          </div>
           <p className="text-sm text-slate-500 font-medium">Memuat...</p>
         </div>
       </div>
@@ -390,6 +399,9 @@ function AppRoutes() {
                 <Route path="/data-product" element={<DataProduct />} />
                 <Route path="/data-coupon" element={<DataCoupon />} />
                 <Route path="/data-biaya-kategori" element={<DataBiayaKategori />} />
+                <Route path="/dashboard-keuangan" element={<DashboardKeuangan />} />
+                <Route path="/kategori-pengeluaran" element={<DataKategoriPengeluaran />} />
+                <Route path="/pengeluaran" element={<DataPengeluaran />} />
               </Routes>
             </DashboardLayout>
           </ProtectedRoute>

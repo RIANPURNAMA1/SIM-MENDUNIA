@@ -25,10 +25,6 @@ function toast(msg: string) {
   setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.3s'; setTimeout(() => el.remove(), 300) }, 2000)
 }
 
-function Skeleton({ className = '' }: { className?: string }) {
-  return <div className={`animate-pulse rounded-md bg-slate-200 ${className}`} />
-}
-
 export default function AffiliateDashboard() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [data, setData] = useState<DashboardData | null>(null)
@@ -83,17 +79,10 @@ export default function AffiliateDashboard() {
 
   if (loading) {
     return (
-      <div className="px-3 py-3 sm:px-6 sm:py-4 space-y-4">
-        <Skeleton className="h-16 w-full" />
-        <Skeleton className="h-10 w-full" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1,2,3,4].map(i => <Skeleton key={i} className="h-24" />)}
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {[1,2].map(i => <Skeleton key={i} className="h-24" />)}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {[1,2].map(i => <Skeleton key={i} className="h-64" />)}
+      <div className="px-3 py-3 sm:px-6 sm:py-4 flex items-center justify-center min-h-[50vh]">
+        <div className="relative w-14 h-14 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+          <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
         </div>
       </div>
     )

@@ -209,9 +209,9 @@ export default function DashboardKandidat() {
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center p-6">
-        <div className="flex items-center gap-3">
-          <Loader size={20} className="animate-spin text-slate-400" />
-          <span className="text-sm text-slate-500">Memuat data...</span>
+        <div className="relative w-14 h-14 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+          <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
         </div>
       </div>
     )

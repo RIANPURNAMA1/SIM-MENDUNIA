@@ -103,7 +103,10 @@ export default function LMS() {
   if (loading) {
     return (
       <div className="p-6 flex items-center justify-center min-h-[50vh]">
-        <div className="w-10 h-10 border-4 border-gray-200 border-t-[#0D1F3C] rounded-full animate-spin" />
+        <div className="relative w-14 h-14 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+          <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
+        </div>
       </div>
     )
   }

@@ -30,18 +30,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   const fetchUser = useCallback(async () => {
-    const token = localStorage.getItem('token')
-    if (!token) {
-      setUser(null)
-      setIsLoading(false)
-      return
-    }
     try {
       const res = await authApi.user()
       setUser(res.data)
     } catch {
       setUser(null)
-      localStorage.removeItem('token')
     } finally {
       setIsLoading(false)
     }
@@ -53,7 +46,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await authApi.login(email, password)
-    localStorage.setItem('token', res.data.token)
     await fetchUser()
     return res
   }, [fetchUser])
@@ -64,7 +56,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // tetap lanjutkan hapus state meski gagal
     }
-    localStorage.removeItem('token')
     setUser(null)
   }, [])
 

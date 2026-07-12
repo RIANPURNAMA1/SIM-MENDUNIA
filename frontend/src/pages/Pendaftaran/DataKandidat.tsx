@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Users, Search, RotateCcw, Eye, Edit3, Trash2, Receipt, Check, X } from 'lucide-react'
+import { Users, Search, RotateCcw, Eye, Edit3, Trash2, Receipt, Check, X, Plus, Loader2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { pendaftarApi } from '../../services/api'
 
@@ -65,6 +65,19 @@ export default function DataKandidat() {
   const [editForm, setEditForm] = useState<Partial<Kandidat>>({})
   const [saving, setSaving] = useState(false)
   const [detailKandidat, setDetailKandidat] = useState<Kandidat | null>(null)
+  const [showTambah, setShowTambah] = useState(false)
+  const [tambahLoading, setTambahLoading] = useState(false)
+  const [tambahSuccess, setTambahSuccess] = useState<{ noReg: string; password: string } | null>(null)
+  const [tambahError, setTambahError] = useState('')
+  const [tambahErrors, setTambahErrors] = useState<Record<string, string>>({})
+  const [tambahForm, setTambahForm] = useState({
+    nama: '', email: '', telepon: '', nik: '', batch_id: '',
+    real_batch: '', jenis_kelamin: '', tempat_lahir: '', tanggal_lahir: '',
+    alamat: '', desa: '', kecamatan: '', kabupaten: '', provinsi: '',
+    pendidikan_terakhir: '', tahun_lulus: '', tinggi_badan: '', berat_badan: '',
+    goldar: '', ukuran_baju: '', status_pernikahan: '', no_hp: '',
+    nama_ortu: '', no_hp_ortu: '', keterangan: '',
+  })
 
   useEffect(() => {
     fetchData()
@@ -146,6 +159,115 @@ export default function DataKandidat() {
     setEditForm(prev => ({ ...prev, [field]: value }))
   }
 
+  function updateTambahField(field: string, value: string) {
+    setTambahForm(prev => ({ ...prev, [field]: value }))
+    if (tambahErrors[field]) {
+      setTambahErrors(prev => { const n = { ...prev }; delete n[field]; return n })
+    }
+  }
+
+  function validateTambahForm(): Record<string, string> {
+    const e: Record<string, string> = {}
+    const f = tambahForm
+
+    if (!f.nama.trim()) e.nama = 'Nama lengkap wajib diisi.'
+    else if (f.nama.length > 255) e.nama = 'Nama maksimal 255 karakter.'
+
+    if (!f.email.trim()) e.email = 'Email wajib diisi.'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) e.email = 'Format email tidak valid.'
+
+    if (f.nik.length > 50) e.nik = 'NIK maksimal 50 karakter.'
+    if (f.telepon.length > 20) e.telepon = 'No. telepon maksimal 20 karakter.'
+    if (f.no_hp.length > 20) e.no_hp = 'No. HP maksimal 20 karakter.'
+    if (f.tempat_lahir.length > 255) e.tempat_lahir = 'Tempat lahir maksimal 255 karakter.'
+    if (f.desa.length > 255) e.desa = 'Nama desa maksimal 255 karakter.'
+    if (f.kecamatan.length > 255) e.kecamatan = 'Nama kecamatan maksimal 255 karakter.'
+    if (f.kabupaten.length > 255) e.kabupaten = 'Nama kabupaten maksimal 255 karakter.'
+    if (f.provinsi.length > 255) e.provinsi = 'Nama provinsi maksimal 255 karakter.'
+    if (f.pendidikan_terakhir.length > 100) e.pendidikan_terakhir = 'Pendidikan terakhir maksimal 100 karakter.'
+    if (f.tahun_lulus.length > 4) e.tahun_lulus = 'Tahun lulus maksimal 4 karakter.'
+    else if (f.tahun_lulus !== '' && !/^\d{4}$/.test(f.tahun_lulus)) e.tahun_lulus = 'Tahun lulus harus 4 digit angka.'
+    if (f.tinggi_badan !== '' && isNaN(Number(f.tinggi_badan))) e.tinggi_badan = 'Tinggi badan harus berupa angka.'
+    if (f.berat_badan !== '' && isNaN(Number(f.berat_badan))) e.berat_badan = 'Berat badan harus berupa angka.'
+    if (f.nama_ortu.length > 255) e.nama_ortu = 'Nama orang tua maksimal 255 karakter.'
+    if (f.no_hp_ortu.length > 20) e.no_hp_ortu = 'No. tlp orang tua maksimal 20 karakter.'
+    if (f.real_batch.length > 255) e.real_batch = 'Real batch maksimal 255 karakter.'
+    if (f.keterangan.length > 500) e.keterangan = 'Keterangan maksimal 500 karakter.'
+
+    return e
+  }
+
+  async function handleTambahSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const clientErrors = validateTambahForm()
+    if (Object.keys(clientErrors).length > 0) {
+      setTambahErrors(clientErrors)
+      setTambahError('Mohon lengkapi semua field yang ditandai.')
+      return
+    }
+    setTambahErrors({})
+    setTambahLoading(true)
+    setTambahError('')
+    try {
+      const payload: Record<string, unknown> = {}
+      for (const [k, v] of Object.entries(tambahForm)) {
+        if (v !== '' && v !== null && v !== undefined) payload[k] = v
+      }
+      if (payload.batch_id) payload.batch_id = Number(payload.batch_id)
+      if (payload.tinggi_badan) payload.tinggi_badan = Number(payload.tinggi_badan)
+      if (payload.berat_badan) payload.berat_badan = Number(payload.berat_badan)
+      const res = await pendaftarApi.createKandidat(payload)
+      setTambahSuccess({ noReg: res.data.no_registrasi, password: res.data.password })
+      setTambahError('')
+      setTambahErrors({})
+      setTambahForm({
+        nama: '', email: '', telepon: '', nik: '', batch_id: '',
+        real_batch: '', jenis_kelamin: '', tempat_lahir: '', tanggal_lahir: '',
+        alamat: '', desa: '', kecamatan: '', kabupaten: '', provinsi: '',
+        pendidikan_terakhir: '', tahun_lulus: '', tinggi_badan: '', berat_badan: '',
+        goldar: '', ukuran_baju: '', status_pernikahan: '', no_hp: '',
+        nama_ortu: '', no_hp_ortu: '', keterangan: '',
+      })
+      fetchData()
+    } catch (err: unknown) {
+      let detail = 'Terjadi kesalahan saat menyimpan data.'
+      const fieldErrors: Record<string, string> = {}
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axErr = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
+        if (axErr.response?.data?.errors) {
+          const errs = axErr.response.data.errors
+          for (const [field, msgs] of Object.entries(errs)) {
+            const translated: Record<string, string> = {
+              nama: 'Nama', email: 'Email', nik: 'NIK', telepon: 'No. telepon',
+              no_hp: 'No. HP', batch_id: 'Batch', jenis_kelamin: 'Jenis kelamin',
+              tempat_lahir: 'Tempat lahir', tanggal_lahir: 'Tanggal lahir',
+              alamat: 'Alamat', desa: 'Desa', kecamatan: 'Kecamatan',
+              kabupaten: 'Kab./Kota', provinsi: 'Provinsi',
+              pendidikan_terakhir: 'Pendidikan terakhir', tahun_lulus: 'Tahun lulus',
+              tinggi_badan: 'Tinggi badan', berat_badan: 'Berat badan',
+              goldar: 'Golongan darah', ukuran_baju: 'Ukuran baju',
+              status_pernikahan: 'Status nikah', nama_ortu: 'Nama orang tua',
+              no_hp_ortu: 'No. tlp orang tua', keterangan: 'Keterangan',
+              real_batch: 'Real batch',
+            }
+            const label = translated[field] || field
+            fieldErrors[field] = `${label}: ${msgs[0]}`
+          }
+          detail = Object.values(fieldErrors).join('\n')
+        } else if (axErr.response?.data?.message) {
+          detail = axErr.response.data.message
+          if (axErr.response.data.debug) {
+            detail += '\n[' + axErr.response.data.debug + ']'
+          }
+        }
+      }
+      setTambahErrors(fieldErrors)
+      setTambahError(detail)
+    } finally {
+      setTambahLoading(false)
+    }
+  }
+
   async function handlePindahBatch(kandidatId: number, newBatchId: string) {
     const id = newBatchId ? Number(newBatchId) : null
     try {
@@ -219,6 +341,13 @@ export default function DataKandidat() {
             <p className="text-sm text-slate-500">Kelola data kandidat per batch</p>
           </div>
         </div>
+        <button
+          onClick={() => { setShowTambah(true); setTambahSuccess(null); setTambahError(''); setTambahErrors({}) }}
+          className="inline-flex items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700"
+        >
+          <Plus size={16} />
+          Tambah Data
+        </button>
       </div>
 
       {/* Summary */}
@@ -550,6 +679,134 @@ export default function DataKandidat() {
           </div>
         </div>
       )}
+
+      {/* Tambah Data Modal */}
+      {showTambah && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 pt-10 pb-10" onClick={() => { setShowTambah(false); setTambahSuccess(null) }}>
+          <div className="w-full max-w-4xl rounded-xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600 text-white">
+                  <Plus size={18} />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">Tambah Data Kandidat</h2>
+                  <p className="text-xs text-slate-500">Lengkapi data kandidat baru</p>
+                </div>
+              </div>
+              <button onClick={() => { setShowTambah(false); setTambahSuccess(null) }} className="rounded-lg p-1.5 hover:bg-slate-100 transition">
+                <X size={18} className="text-slate-400" />
+              </button>
+            </div>
+
+            {tambahSuccess ? (
+              <div className="px-6 py-10 text-center">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
+                  <Check size={32} className="text-emerald-600" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 mb-2">Kandidat Berhasil Ditambahkan!</h3>
+                <p className="text-sm text-slate-500 mb-6">Data kandidat baru telah tersimpan di sistem.</p>
+                <div className="mx-auto mb-6 max-w-sm rounded-lg border border-slate-200 bg-slate-50 p-4 text-left">
+                  <div className="mb-3">
+                    <p className="text-xs text-slate-400">No. Registrasi</p>
+                    <p className="text-sm font-mono font-bold text-slate-800">{tambahSuccess.noReg}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400">Password Akun</p>
+                    <p className="text-sm font-mono font-bold text-red-600">{tambahSuccess.password}</p>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-400 mb-4">Simpan informasi di atas, password hanya ditampilkan sekali.</p>
+                <div className="flex justify-center gap-3">
+                  <button onClick={() => { setShowTambah(false); setTambahSuccess(null) }}
+                    className="rounded-lg bg-[#0D1F3C] px-6 py-2 text-sm font-semibold text-white transition hover:bg-[#1a3a5c]">
+                    Tutup
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleTambahSubmit} autoComplete="off" className="px-6 py-5 max-h-[70vh] overflow-y-auto">
+                {tambahError && (
+                  <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    <p className="font-semibold mb-1">Gagal menyimpan:</p>
+                    <pre className="whitespace-pre-wrap text-xs">{tambahError}</pre>
+                  </div>
+                )}
+                {/* Data Diri */}
+                <h3 className="mb-3 text-sm font-bold text-slate-700 uppercase tracking-wide">Data Diri</h3>
+                <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <FormField label="Nama Lengkap *" value={tambahForm.nama} onChange={v => updateTambahField('nama', v)} placeholder="Nama lengkap" maxLength={255} error={tambahErrors.nama} />
+                  <FormField label="Email *" value={tambahForm.email} onChange={v => updateTambahField('email', v)} type="email" placeholder="email@contoh.com" error={tambahErrors.email} />
+                  <FormField label="NIK" value={tambahForm.nik} onChange={v => updateTambahField('nik', v)} placeholder="Nomor NIK (maks. 50)" maxLength={50} error={tambahErrors.nik} />
+                  <FormField label="No. Telepon" value={tambahForm.telepon} onChange={v => updateTambahField('telepon', v)} placeholder="No. telepon (maks. 20)" maxLength={20} error={tambahErrors.telepon} />
+                  <FormField label="No. HP" value={tambahForm.no_hp} onChange={v => updateTambahField('no_hp', v)} placeholder="No. HP (maks. 20)" maxLength={20} error={tambahErrors.no_hp} />
+                  <FormSelect label="Jenis Kelamin" value={tambahForm.jenis_kelamin} onChange={v => updateTambahField('jenis_kelamin', v)}
+                    options={[{ value: 'L', label: 'Laki-laki' }, { value: 'P', label: 'Perempuan' }]} error={tambahErrors.jenis_kelamin} />
+                  <FormField label="Tempat Lahir" value={tambahForm.tempat_lahir} onChange={v => updateTambahField('tempat_lahir', v)} placeholder="Kota kelahiran (maks. 255)" maxLength={255} error={tambahErrors.tempat_lahir} />
+                  <FormField label="Tanggal Lahir" value={tambahForm.tanggal_lahir} onChange={v => updateTambahField('tanggal_lahir', v)} type="date" error={tambahErrors.tanggal_lahir} />
+                  <FormSelect label="Status Nikah" value={tambahForm.status_pernikahan} onChange={v => updateTambahField('status_pernikahan', v)}
+                    options={[{ value: 'Belum Nikah', label: 'Belum Nikah' }, { value: 'Nikah', label: 'Nikah' }, { value: 'Cerai', label: 'Cerai' }]} error={tambahErrors.status_pernikahan} />
+                </div>
+
+                {/* Alamat */}
+                <h3 className="mb-3 text-sm font-bold text-slate-700 uppercase tracking-wide">Alamat</h3>
+                <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="sm:col-span-2 lg:col-span-3">
+                    <FormField label="Alamat" value={tambahForm.alamat} onChange={v => updateTambahField('alamat', v)} placeholder="Alamat lengkap" error={tambahErrors.alamat} />
+                  </div>
+                  <FormField label="Desa" value={tambahForm.desa} onChange={v => updateTambahField('desa', v)} placeholder="Nama desa (maks. 255)" maxLength={255} error={tambahErrors.desa} />
+                  <FormField label="Kecamatan" value={tambahForm.kecamatan} onChange={v => updateTambahField('kecamatan', v)} placeholder="Nama kecamatan (maks. 255)" maxLength={255} error={tambahErrors.kecamatan} />
+                  <FormField label="Kab./Kota" value={tambahForm.kabupaten} onChange={v => updateTambahField('kabupaten', v)} placeholder="Nama kabupaten/kota (maks. 255)" maxLength={255} error={tambahErrors.kabupaten} />
+                  <FormField label="Provinsi" value={tambahForm.provinsi} onChange={v => updateTambahField('provinsi', v)} placeholder="Nama provinsi (maks. 255)" maxLength={255} error={tambahErrors.provinsi} />
+                </div>
+
+                {/* Pendidikan & Fisik */}
+                <h3 className="mb-3 text-sm font-bold text-slate-700 uppercase tracking-wide">Pendidikan & Data Fisik</h3>
+                <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <FormSelect label="Pendidikan Terakhir" value={tambahForm.pendidikan_terakhir} onChange={v => updateTambahField('pendidikan_terakhir', v)}
+                    options={[{ value: 'SD/Sederajat', label: 'SD/Sederajat' }, { value: 'SMP/Sederajat', label: 'SMP/Sederajat' }, { value: 'SMA/Sederajat', label: 'SMA/Sederajat' }, { value: 'D1-D3', label: 'D1-D3' }, { value: 'S1', label: 'S1' }, { value: 'S2', label: 'S2' }]} error={tambahErrors.pendidikan_terakhir} />
+                  <FormField label="Tahun Lulus" value={tambahForm.tahun_lulus} onChange={v => updateTambahField('tahun_lulus', v)} placeholder="Contoh: 2023 (4 digit)" maxLength={4} error={tambahErrors.tahun_lulus} />
+                  <FormField label="Tinggi Badan (cm)" value={tambahForm.tinggi_badan} onChange={v => updateTambahField('tinggi_badan', v)} type="number" placeholder="cm" error={tambahErrors.tinggi_badan} />
+                  <FormField label="Berat Badan (kg)" value={tambahForm.berat_badan} onChange={v => updateTambahField('berat_badan', v)} type="number" placeholder="kg" error={tambahErrors.berat_badan} />
+                  <FormSelect label="Golongan Darah" value={tambahForm.goldar} onChange={v => updateTambahField('goldar', v)}
+                    options={[{ value: 'A', label: 'A' }, { value: 'B', label: 'B' }, { value: 'AB', label: 'AB' }, { value: 'O', label: 'O' }]} error={tambahErrors.goldar} />
+                  <FormSelect label="Ukuran Baju" value={tambahForm.ukuran_baju} onChange={v => updateTambahField('ukuran_baju', v)}
+                    options={[{ value: 'XS', label: 'XS' }, { value: 'S', label: 'S' }, { value: 'M', label: 'M' }, { value: 'L', label: 'L' }, { value: 'XL', label: 'XL' }, { value: 'XXL', label: 'XXL' }]} error={tambahErrors.ukuran_baju} />
+                </div>
+
+                {/* Keluarga & Lainnya */}
+                <h3 className="mb-3 text-sm font-bold text-slate-700 uppercase tracking-wide">Keluarga & Lainnya</h3>
+                <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <FormField label="Nama Orang Tua/Wali" value={tambahForm.nama_ortu} onChange={v => updateTambahField('nama_ortu', v)} placeholder="Nama orang tua (maks. 255)" maxLength={255} error={tambahErrors.nama_ortu} />
+                  <FormField label="No. Tlp Orang Tua" value={tambahForm.no_hp_ortu} onChange={v => updateTambahField('no_hp_ortu', v)} placeholder="No. tlp orang tua (maks. 20)" maxLength={20} error={tambahErrors.no_hp_ortu} />
+                  <FormSelect label="Batch" value={tambahForm.batch_id} onChange={v => updateTambahField('batch_id', v)}
+                    options={batchOptions.map(b => ({ value: String(b.id), label: b.nama }))} error={tambahErrors.batch_id} />
+                  <FormField label="Real Batch" value={tambahForm.real_batch} onChange={v => updateTambahField('real_batch', v)} placeholder="Real batch (maks. 255)" maxLength={255} error={tambahErrors.real_batch} />
+                  <div className="sm:col-span-2 lg:col-span-3">
+                    <FormField label="Keterangan" value={tambahForm.keterangan} onChange={v => updateTambahField('keterangan', v)} placeholder="Keterangan tambahan (maks. 500)" maxLength={500} error={tambahErrors.keterangan} />
+                  </div>
+                </div>
+              </form>
+            )}
+
+            {/* Footer */}
+            {!tambahSuccess && (
+              <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-3.5">
+                <button type="button" onClick={() => { setShowTambah(false); setTambahSuccess(null) }}
+                  className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                  Batal
+                </button>
+                <button type="submit" onClick={handleTambahSubmit} disabled={tambahLoading || !tambahForm.nama || !tambahForm.email}
+                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                  {tambahLoading ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
+                  {tambahLoading ? 'Menyimpan...' : 'Simpan Kandidat'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -561,6 +818,50 @@ function InfoItem({ label, value, mono }: { label: string; value: string | null 
       <p className={`text-sm font-medium ${mono ? 'font-mono' : ''} ${value && value !== '-' ? 'text-slate-800' : 'text-slate-300'}`}>
         {value && value !== '-' ? value : '-'}
       </p>
+    </div>
+  )
+}
+
+function FormField({ label, value, onChange, type, placeholder, error, maxLength }: { label: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string; error?: string; maxLength?: number }) {
+  const hasError = !!error
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-medium text-slate-600">{label}</label>
+      <input
+        type={type || 'text'}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        maxLength={maxLength}
+        className={`w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 ${
+          hasError
+            ? 'border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500'
+            : 'border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+        }`}
+      />
+      {hasError && <p className="mt-1 text-[11px] text-red-500">{error}</p>}
+    </div>
+  )
+}
+
+function FormSelect({ label, value, onChange, options, error }: { label: string; value: string; onChange: (v: string) => void; options: { value: string; label: string }[]; error?: string }) {
+  const hasError = !!error
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-medium text-slate-600">{label}</label>
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className={`w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-700 outline-none transition ${
+          hasError
+            ? 'border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500'
+            : 'border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+        }`}
+      >
+        <option value="">Pilih...</option>
+        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+      {hasError && <p className="mt-1 text-[11px] text-red-500">{error}</p>}
     </div>
   )
 }

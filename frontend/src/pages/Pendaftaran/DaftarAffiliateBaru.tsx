@@ -15,8 +15,7 @@ export default function DaftarAffiliateBaru() {
     setError('')
 
     authApi.registerAffiliate(form)
-      .then(res => {
-        localStorage.setItem('token', res.data.token)
+      .then(() => {
         window.location.href = '/affiliate-dashboard'
       })
       .catch(err => {
@@ -84,21 +83,23 @@ export default function DaftarAffiliateBaru() {
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-[#0D1F3C] mb-1">Telepon</label>
+              <label className="block text-sm font-semibold text-[#0D1F3C] mb-1">Telepon <span className="text-red-500">*</span></label>
               <input
                 type="text"
+                required
                 value={form.telepon}
                 onChange={e => setForm({ ...form, telepon: e.target.value })}
-                placeholder="Telepon (opsional)"
+                placeholder="Telepon"
                 className="w-full h-[52px] px-4 bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:bg-white focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] outline-none transition-all text-[17px] text-[#1c1e21] placeholder:text-[#9ca0a6]"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-[#0D1F3C] mb-1">Alamat</label>
+              <label className="block text-sm font-semibold text-[#0D1F3C] mb-1">Alamat <span className="text-red-500">*</span></label>
               <textarea
                 value={form.alamat}
+                required
                 onChange={e => setForm({ ...form, alamat: e.target.value })}
-                placeholder="Alamat (opsional)"
+                placeholder="Alamat"
                 rows={2}
                 className="w-full px-4 py-3 bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:bg-white focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] outline-none transition-all text-[17px] text-[#1c1e21] placeholder:text-[#9ca0a6] resize-none"
               />

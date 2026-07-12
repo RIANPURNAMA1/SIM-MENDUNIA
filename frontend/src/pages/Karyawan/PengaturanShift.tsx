@@ -32,14 +32,10 @@ export default function PengaturanShiftPage() {
 
   if (loading) {
     return (
-      <div className="px-3 py-3 sm:px-6 sm:py-4">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="animate-pulse space-y-4">
-            <div className="h-6 w-48 bg-slate-200 rounded" />
-            <div className="h-4 w-64 bg-slate-100 rounded" />
-            <div className="h-20 bg-slate-100 rounded-lg" />
-            <div className="h-20 bg-slate-100 rounded-lg" />
-          </div>
+      <div className="px-3 py-3 sm:px-6 sm:py-4 flex items-center justify-center min-h-[50vh]">
+        <div className="relative w-14 h-14 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+          <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
         </div>
       </div>
     )
