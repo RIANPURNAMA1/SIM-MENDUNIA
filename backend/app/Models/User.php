@@ -100,6 +100,16 @@ class User extends Authenticatable
         return $this->role === 'KANDIDAT';
     }
 
+    public function isAdminCabang()
+    {
+        return $this->role === 'ADMIN_CABANG';
+    }
+
+    public function getBranchIdsAttribute()
+    {
+        return $this->cabang_ids ?? [];
+    }
+
     public function affiliateLinks()
     {
         return $this->hasMany(AffiliateLink::class, 'affiliate_id');

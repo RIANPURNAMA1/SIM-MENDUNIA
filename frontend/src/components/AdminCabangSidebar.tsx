@@ -1,13 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import api from '../services/api'
+import { adminCabangApi } from '../services/api'
 import {
-  LayoutDashboard, Users, Building2, MapPin, Timer, CalendarPlus, List,
-  CalendarCheck, ClipboardList, FileText, Clock, Calendar, BarChart3,
-  BookOpen, GraduationCap, Layers, Notebook, Bot, Settings, UserCog,
-  MessageCircle, ChevronDown, LogOut, X, Presentation, UserPlus,
-  Search, Briefcase, Zap, CreditCard, Handshake, Package, Tag, ListOrdered,
+  LayoutDashboard, UserPlus, ClipboardList, FileText, Layers,
+  ChevronDown, LogOut, X, Receipt, MapPin,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -31,133 +28,39 @@ interface SidebarProps {
 }
 
 const iconMap: Record<string, LucideIcon> = {
-  LayoutDashboard, Users, Building2, MapPin, Timer, CalendarPlus, List,
-  CalendarCheck, ClipboardList, FileText, Clock, Calendar, BarChart3,
-  BookOpen, GraduationCap, Layers, Notebook, Bot, Settings, UserCog,
-  MessageCircle, Presentation, UserPlus, Search, Briefcase, Zap, CreditCard, Handshake, Package, Tag, ListOrdered,
+  LayoutDashboard, UserPlus, ClipboardList, FileText, Layers,
+  ChevronDown, LogOut, X, Receipt, MapPin,
 }
 
 const navItems: NavItem[] = [
   {
     label: 'Dashboard',
     icon: 'LayoutDashboard',
-    href: '/',
+    href: '/admin-cabang',
   },
   {
     label: 'Manajemen Kandidat',
     icon: 'UserPlus',
     children: [
-      { label: 'Data Kandidat', icon: 'UserPlus', href: '/data-kandidat' },
-      { label: 'Pendaftaran', icon: 'ClipboardList', href: '/pendaftar' },
-      { label: 'Tagihan', icon: 'FileText', href: '/tagihan' },
-      { label: 'Rekap Per Batch', icon: 'Layers', href: '/rekap-per-batch' },
-      { label: 'Pembayaran', icon: 'CreditCard', href: '/pembayaran' },
-      { label: 'Kategori Bayar', icon: 'ListOrdered', href: '/data-biaya-kategori' },
-    ],
-  },
-  {
-    label: 'Matching Job',
-    icon: 'Search',
-    children: [
-      { label: 'Kandidat Matching Job', icon: 'UserPlus', href: '/data-matching-job' },
-    ],
-  },
-  {
-    label: 'Program & Affiliate',
-    icon: 'Handshake',
-    children: [
-      { label: 'Affiliate Dashboard', icon: 'LayoutDashboard', href: '/affiliate-dashboard' },
-      { label: 'Data Affiliate', icon: 'Handshake', href: '/data-affiliate' },
-      { label: 'Program', icon: 'Package', href: '/data-product' },
-      { label: 'Data Coupon', icon: 'CreditCard', href: '/data-coupon' },
-    ],
-  },
-  {
-    label: 'Akademik',
-    icon: 'BookOpen',
-    children: [
-      { label: 'Data Guru', icon: 'Presentation', href: '/guru' },
-      { label: 'Kelas Sensei', icon: 'BookOpen', href: '/kelas-sensei' },
-      { label: 'Jadwal Level', icon: 'Calendar', href: '/jadwal-level' },
-      { label: 'Data Siswa', icon: 'Users', href: '/siswa' },
-      { label: 'Batch', icon: 'Layers', href: '/batches' },
-      { label: 'Rekap Siswa', icon: 'BarChart3', href: '/rekap-siswa' },
-      { label: 'Penilaian Siswa', icon: 'Notebook', href: '/penilaian' },
-      { label: 'LMS', icon: 'BookOpen', href: '/lms' },
-    ],
-  },
-  {
-
-    
-    label: 'Manajemen Absensi',
-    icon: 'CalendarCheck',
-    children: [
-      { label: 'Kehadiran', icon: 'ClipboardList', href: '/data-kehadiran' },
-      { label: 'Kehadiran Khusus', icon: 'Timer', href: '/data-kehadiran-khusus' },
-      { label: 'Izin & Cuti', icon: 'FileText', href: '/izin-cuti' },
-      { label: 'Approval Lembur', icon: 'Clock', href: '/approval-lembur' },
-      { label: 'Hari Libur', icon: 'FileText', href: '/hari-libur' },
-      { label: 'Rekap Absensi', icon: 'BarChart3', href: '/rekap-absensi' },
-      { label: 'Rekap Jadwal Shift', icon: 'CalendarCheck', href: '/rekap-jadwal-shift' },
-      { label: 'Monitoring Lokasi', icon: 'MapPin', href: '/monitoring-lokasi' },
-      { label: 'Data Agenda', icon: 'Calendar', href: '/data-agenda' },
-      { label: 'Kehadiran Sensei', icon: 'ClipboardList', href: '/data-kehadiran-sensei' },
-      { label: 'Rekap Kehadiran Sensei', icon: 'BarChart3', href: '/rekap-kehadiran-sensei' },
-      { label: 'Absensi Siswa', icon: 'ClipboardList', href: '/absensi-siswa' },
-    ],
-  },
-  {
-    label: 'HR & Operasional',
-    icon: 'Briefcase',
-    children: [
-      { label: 'Data Karyawan', icon: 'Users', href: '/karyawan' },
-      { label: 'Divisi', icon: 'Building2', href: '/divisi' },
-      { label: 'Cabang / Lokasi', icon: 'MapPin', href: '/cabang' },
-      { label: 'Shift Kerja', icon: 'Timer', href: '/shift' },
-      { label: 'Jadwal Shift', icon: 'CalendarPlus', href: '/jadwal-shift' },
-      { label: 'Daftar User', icon: 'List', href: '/daftar-user' },
-      { label: 'Pengaturan Shift', icon: 'Settings', href: '/pengaturan-shift' },
-      { label: 'Manajemen Akun', icon: 'UserCog', href: '/pengaturan' },
-      { label: 'Profil Perusahaan', icon: 'Building2', href: '/pengaturan-perusahaan' },
-    ],
-  },
-  {
-    label: 'AI & Automasi',
-    icon: 'Zap',
-    children: [
-      { label: 'AI Chat', icon: 'Bot', href: '/ai-chat' },
-      { label: 'Notifikasi WA', icon: 'MessageCircle', href: '/pengaturan-wa' },
+      { label: 'Data Kandidat', icon: 'UserPlus', href: '/admin-cabang/kandidat' },
+      { label: 'Pendaftaran', icon: 'ClipboardList', href: '/admin-cabang/pendaftar' },
+      { label: 'Tagihan', icon: 'FileText', href: '/admin-cabang/tagihan' },
+      { label: 'Rekap Per Batch', icon: 'Layers', href: '/admin-cabang/rekap-per-batch' },
     ],
   },
 ]
 
-export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+export default function AdminCabangSidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation()
   const path = location.pathname
   const { user, logout } = useAuth()
 
-  const isRestricted = user?.role === 'KANDIDAT' || user?.role === 'AFFILIATE' || user?.role === 'ADMIN_CABANG'
-
-  const filteredNavItems = isRestricted ? [] : navItems.map(item => {
-    if (item.label === 'Program & Affiliate' && 'children' in item) {
-      const group = item as NavGroup
-      return {
-        ...group,
-        children: group.children.filter(child =>
-          !(child.label === 'Affiliate Dashboard' && (user?.role === 'HR' || user?.role === 'MANAGER'))
-        ),
-      }
-    }
-    return item
-  })
-
   const [pendingCount, setPendingCount] = useState(0)
-const [tagihanCount, setTagihanCount] = useState(0)
+  const [tagihanCount, setTagihanCount] = useState(0)
 
   useEffect(() => {
-    if (isRestricted) return
     const fetchPending = () => {
-      api.get('/pendaftar/pending-count').then(res => {
+      adminCabangApi.pendingCount().then(res => {
         setPendingCount(res.data.count)
         setTagihanCount(res.data.tagihan ?? 0)
       }).catch(() => {})
@@ -165,10 +68,10 @@ const [tagihanCount, setTagihanCount] = useState(0)
     fetchPending()
     const interval = setInterval(fetchPending, 30000)
     return () => clearInterval(interval)
-  }, [isRestricted])
+  }, [])
 
   const isActive = (href: string) => {
-    if (href === '/') return path === '/'
+    if (href === '/admin-cabang') return path === '/admin-cabang'
     return path.startsWith(href)
   }
 
@@ -177,7 +80,7 @@ const [tagihanCount, setTagihanCount] = useState(0)
 
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {}
-    filteredNavItems.forEach((item) => {
+    navItems.forEach((item) => {
       if ('children' in item && isGroupActive(item as NavGroup)) {
         initial[item.label] = true
       }
@@ -212,7 +115,7 @@ const [tagihanCount, setTagihanCount] = useState(0)
           <div className="flex items-center gap-2">
             <img src="/logo-sm.png" alt="SIM Mendunia" className="h-8 w-auto" />
             <div className="leading-tight">
-              <p className="text-[10px] text-gray-400 tracking-wide">Sistem Informasi</p>
+              <p className="text-[10px] text-gray-400 tracking-wide">Admin Cabang</p>
               <p className="font-semibold text-white text-sm tracking-wide">SIM Mendunia</p>
             </div>
           </div>
@@ -225,7 +128,7 @@ const [tagihanCount, setTagihanCount] = useState(0)
         </div>
 
         <nav className="sidebar-nav flex-1 overflow-y-auto px-2.5 py-3 space-y-1">
-          {filteredNavItems.map((item) => {
+          {navItems.map((item) => {
             const hasChildren = 'children' in item && item.children.length > 0
             const isOpen = openGroups[item.label]
 

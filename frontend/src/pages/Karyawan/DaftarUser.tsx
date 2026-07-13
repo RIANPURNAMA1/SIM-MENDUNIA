@@ -1,7 +1,22 @@
 import { useState, useEffect, useCallback } from 'react'
-import { List, Search, Trash2, AlertTriangle, RotateCcw } from 'lucide-react'
-import { userApi } from '../../services/api'
+import { List, Search, Trash2, AlertTriangle, RotateCcw, UserPlus, X } from 'lucide-react'
+import { userApi, cabangApi } from '../../services/api'
 import type { Karyawan, Pagination } from '../../types'
+
+interface Cabang {
+  id: number
+  nama_cabang: string
+  kode_cabang: string | null
+}
+
+interface FormData {
+  name: string
+  email: string
+  password: string
+  role: string
+  status: string
+  cabang_ids: number[]
+}
 
 export default function DaftarUserPage() {
   const [data, setData] = useState<Karyawan[]>([])
@@ -15,6 +30,19 @@ export default function DaftarUserPage() {
   const [showDelete, setShowDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [togglingId, setTogglingId] = useState<number | null>(null)
+
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [formError, setFormError] = useState('')
+  const [cabangs, setCabangs] = useState<Cabang[]>([])
+  const [form, setForm] = useState<FormData>({
+    name: '',
+    email: '',
+    password: '',
+    role: 'KARYAWAN',
+    status: 'AKTIF',
+    cabang_ids: [],
+  })
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -34,6 +62,61 @@ export default function DaftarUserPage() {
   }, [page, search, filterRole, filterStatus])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  const fetchCabangs = async () => {
+    try {
+      const res = await cabangApi.list()
+      setCabangs(res.data.data || [])
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const openCreateModal = () => {
+    setForm({
+      name: '',
+      email: '',
+      password: '',
+      role: 'KARYAWAN',
+      status: 'AKTIF',
+      cabang_ids: [],
+    })
+    setFormError('')
+    fetchCabangs()
+    setShowCreateModal(true)
+  }
+
+  const handleCreate = async () => {
+    setFormError('')
+    if (!form.name || !form.email || !form.password) {
+      setFormError('Nama, email, dan password wajib diisi')
+      return
+    }
+    if (form.role === 'ADMIN_CABANG' && form.cabang_ids.length === 0) {
+      setFormError('Admin Cabang wajib memilih minimal 1 cabang')
+      return
+    }
+    setCreating(true)
+    try {
+      const payload: Record<string, unknown> = {
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        role: form.role,
+        status: form.status,
+      }
+      if (form.role === 'ADMIN_CABANG') {
+        payload.cabang_ids = form.cabang_ids
+      }
+      await userApi.store(payload as any)
+      setShowCreateModal(false)
+      fetchData()
+    } catch (err: any) {
+      setFormError(err?.response?.data?.message || err.message || 'Gagal membuat user')
+    } finally {
+      setCreating(false)
+    }
+  }
 
   const handleToggleStatus = async (item: Karyawan) => {
     setTogglingId(item.id)
@@ -77,12 +160,23 @@ export default function DaftarUserPage() {
       KARYAWAN: 'bg-emerald-100 text-emerald-700',
       GURU: 'bg-sky-100 text-sky-700',
       KANDIDAT: 'bg-rose-100 text-rose-700',
+      AFFILIATE: 'bg-orange-100 text-orange-700',
+      ADMIN_CABANG: 'bg-indigo-100 text-indigo-700',
     }
     return (
       <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${colors[role] || 'bg-slate-100 text-slate-600'}`}>
-        {role}
+        {role === 'ADMIN_CABANG' ? 'ADMIN CABANG' : role}
       </span>
     )
+  }
+
+  const toggleCabang = (id: number) => {
+    setForm(prev => ({
+      ...prev,
+      cabang_ids: prev.cabang_ids.includes(id)
+        ? prev.cabang_ids.filter(c => c !== id)
+        : [...prev.cabang_ids, id],
+    }))
   }
 
   return (
@@ -98,6 +192,13 @@ export default function DaftarUserPage() {
             <p className="text-sm text-slate-500">Manajemen akun seluruh pengguna sistem</p>
           </div>
         </div>
+        <button
+          onClick={openCreateModal}
+          className="inline-flex items-center gap-2 rounded-lg bg-[#0D1F3C] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#1a2d4a]"
+        >
+          <UserPlus size={16} />
+          Tambah User
+        </button>
       </div>
 
       {/* Filter */}
@@ -121,6 +222,8 @@ export default function DaftarUserPage() {
             <option value="KARYAWAN">KARYAWAN</option>
             <option value="GURU">GURU</option>
             <option value="KANDIDAT">KANDIDAT</option>
+            <option value="AFFILIATE">AFFILIATE</option>
+            <option value="ADMIN_CABANG">ADMIN CABANG</option>
           </select>
           <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(1) }}
             className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
@@ -245,6 +348,161 @@ export default function DaftarUserPage() {
               className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition disabled:cursor-not-allowed disabled:opacity-50">
               Selanjutnya
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Create User Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-6" onClick={() => setShowCreateModal(false)}>
+          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50">
+                  <UserPlus size={18} className="text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800">Tambah User Baru</h3>
+                  <p className="text-xs text-slate-500">Buat akun pengguna baru</p>
+                </div>
+              </div>
+              <button onClick={() => setShowCreateModal(false)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="px-5 py-4 space-y-4">
+              {formError && (
+                <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-2.5 text-xs font-medium text-red-700">
+                  {formError}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1.5">Nama Lengkap *</label>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={e => setForm({ ...form, name: e.target.value })}
+                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  placeholder="Masukkan nama lengkap"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1.5">Email *</label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={e => setForm({ ...form, email: e.target.value })}
+                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  placeholder="Masukkan email"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1.5">Password *</label>
+                <input
+                  type="password"
+                  value={form.password}
+                  onChange={e => setForm({ ...form, password: e.target.value })}
+                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  placeholder="Minimal 6 karakter"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1.5">Role *</label>
+                  <select
+                    value={form.role}
+                    onChange={e => setForm({ ...form, role: e.target.value, cabang_ids: e.target.value !== 'ADMIN_CABANG' ? [] : form.cabang_ids })}
+                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="HR">HR</option>
+                    <option value="MANAGER">MANAGER</option>
+                    <option value="KARYAWAN">KARYAWAN</option>
+                    <option value="GURU">GURU</option>
+                    <option value="KANDIDAT">KANDIDAT</option>
+                    <option value="AFFILIATE">AFFILIATE</option>
+                    <option value="ADMIN_CABANG">ADMIN CABANG</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1.5">Status *</label>
+                  <select
+                    value={form.status}
+                    onChange={e => setForm({ ...form, status: e.target.value })}
+                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="AKTIF">AKTIF</option>
+                    <option value="NONAKTIF">NONAKTIF</option>
+                  </select>
+                </div>
+              </div>
+
+              {form.role === 'ADMIN_CABANG' && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1.5">
+                    Pilih Cabang * <span className="text-slate-400 font-normal">(wajib minimal 1)</span>
+                  </label>
+                  <div className="max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-2 space-y-1">
+                    {cabangs.length === 0 ? (
+                      <p className="text-xs text-slate-400 text-center py-3">Tidak ada data cabang</p>
+                    ) : (
+                      cabangs.map(c => (
+                        <label
+                          key={c.id}
+                          className={`flex items-center gap-3 rounded-lg px-3 py-2 cursor-pointer transition ${form.cabang_ids.includes(c.id) ? 'bg-indigo-50 border border-indigo-200' : 'hover:bg-white border border-transparent'}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={form.cabang_ids.includes(c.id)}
+                            onChange={() => toggleCabang(c.id)}
+                            className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <div className="flex-1">
+                            <p className="text-xs font-semibold text-slate-800">{c.nama_cabang}</p>
+                            {c.kode_cabang && <p className="text-[10px] text-slate-500">{c.kode_cabang}</p>}
+                          </div>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                  {form.cabang_ids.length > 0 && (
+                    <p className="mt-1.5 text-[10px] text-indigo-600 font-medium">
+                      {form.cabang_ids.length} cabang dipilih
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-5 py-3">
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleCreate}
+                disabled={creating}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[#0D1F3C] px-5 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-[#1a2d4a] disabled:opacity-50"
+              >
+                {creating ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  <>
+                    <UserPlus size={14} />
+                    Simpan
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

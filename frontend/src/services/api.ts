@@ -344,6 +344,31 @@ export const authApi = {
     api.post('/auth/register-affiliate', data),
 }
 
+export const adminCabangApi = {
+  dashboard: () => api.get('/admin-cabang/dashboard'),
+  pendaftar: (params?: Record<string, string | undefined>) =>
+    api.get('/admin-cabang/pendaftar', { params }),
+  tagihan: (params?: Record<string, string | undefined>) =>
+    api.get('/admin-cabang/tagihan', { params }),
+  kandidat: (params?: Record<string, string>) =>
+    api.get('/admin-cabang/kandidat', { params }),
+  batches: () => api.get('/admin-cabang/batches'),
+  pendingCount: () => api.get('/admin-cabang/pending-count'),
+  pendingPembayaran: () => api.get('/admin-cabang/pending-pembayaran'),
+  rekapPerBatch: () => api.get('/admin-cabang/rekap-per-batch'),
+  myBranches: () => api.get('/admin-cabang/my-branches'),
+  pembayaranItem: (pendaftarId: number) => api.get(`/admin-cabang/pembayaran-item/${pendaftarId}`),
+  savePembayaranItem: (pendaftarId: number, items: { kategori_id: number; jumlah: number }[]) =>
+    api.post(`/admin-cabang/pembayaran-item/${pendaftarId}`, { items }),
+  verifyPayment: (id: number) => api.post(`/admin-cabang/pendaftar/${id}/verify-payment`),
+  invoice: (id: number) => api.get(`/admin-cabang/pendaftar/${id}/invoice`),
+  riwayatPembayaran: (id: number) => api.get(`/admin-cabang/pendaftar/${id}/riwayat-pembayaran`),
+  bayarManual: (id: number, data: { jumlah: number; kategori_id: number }) =>
+    api.post(`/admin-cabang/pendaftar/${id}/bayar-manual`, data),
+  biayaKategori: () => api.get('/admin-cabang/biaya-kategori'),
+  batchBiaya: (batchId: number) => api.get(`/admin-cabang/batch-biaya/${batchId}`),
+}
+
 export const profileApi = {
   update: (data: FormData) => api.post('/profile/update', data),
   changePassword: (data: { current_password: string; new_password: string; new_password_confirmation: string }) =>

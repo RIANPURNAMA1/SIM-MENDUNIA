@@ -45,6 +45,7 @@ use App\Http\Controllers\SiswaDashboardController;
 use App\Http\Controllers\GuruDashboardController;
 use App\Http\Controllers\Api\CouponController;
 use App\Http\Controllers\CompanyProfileController;
+use App\Http\Controllers\AdminCabangController;
 
 // ========== API Auth (Sanctum) ==========
 Route::post('/auth/login',    [AuthController::class, 'loginApi']);
@@ -414,4 +415,29 @@ Route::post('/coupons/validate', [CouponController::class, 'validate']);
 
 Route::middleware('auth')->group(function () {
     Route::post('/wa-izin-send-test', [WaWebhookController::class, 'sendTest']);
+});
+
+// ========== Admin Cabang Routes ==========
+Route::prefix('admin-cabang')->middleware(['auth:sanctum'])->group(function () {
+    Route::get('/dashboard', [AdminCabangController::class, 'dashboard']);
+    Route::get('/pendaftar', [AdminCabangController::class, 'pendaftar']);
+    Route::get('/tagihan', [AdminCabangController::class, 'tagihan']);
+    Route::get('/kandidat', [AdminCabangController::class, 'kandidat']);
+    Route::get('/batches', [AdminCabangController::class, 'batches']);
+    Route::get('/pending-count', [AdminCabangController::class, 'pendingCount']);
+    Route::get('/pending-pembayaran', [AdminCabangController::class, 'pendingPembayaran']);
+    Route::get('/rekap-per-batch', [AdminCabangController::class, 'rekapPerBatch']);
+    Route::get('/my-branches', [AdminCabangController::class, 'myBranches']);
+
+    // Reuse existing endpoints for payment operations
+    Route::get('/pembayaran-item/{pendaftarId}', [BiayaController::class, 'pembayaranItemIndex']);
+    Route::post('/pembayaran-item/{pendaftarId}', [BiayaController::class, 'pembayaranItemStore']);
+    Route::post('/pendaftar/{id}/verify-payment', [PendaftaranController::class, 'verifyPayment']);
+    Route::get('/pendaftar/{id}/invoice', [PendaftaranController::class, 'invoice']);
+    Route::get('/pendaftar/{id}/riwayat-pembayaran', [PendaftaranController::class, 'riwayatPembayaran']);
+    Route::post('/pendaftar/{id}/bayar-manual', [PendaftaranController::class, 'bayarManual']);
+
+    // Biaya & Batch Biaya
+    Route::get('/biaya-kategori', [BiayaController::class, 'kategoriIndex']);
+    Route::get('/batch-biaya/{batchId}', [BiayaController::class, 'batchBiayaIndex']);
 });

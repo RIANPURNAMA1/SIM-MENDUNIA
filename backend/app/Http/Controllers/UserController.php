@@ -141,8 +141,10 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|min:6',
-            'role' => 'required|in:HR,MANAGER',
+            'role' => 'required|in:HR,MANAGER,KARYAWAN,GURU,ADMIN_CABANG',
             'status' => 'required|in:AKTIF,NONAKTIF',
+            'cabang_ids' => 'nullable|array',
+            'cabang_ids.*' => 'integer|exists:cabangs,id',
         ]);
 
         $user = User::create([
@@ -151,6 +153,7 @@ class UserController extends Controller
             'password' => Hash::make($request->password),
             'role' => $request->role,
             'status' => $request->status,
+            'cabang_ids' => $request->cabang_ids ?? null,
         ]);
 
         return response()->json([
@@ -167,15 +170,21 @@ class UserController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,'.$id,
-            'role' => 'required|in:HR,MANAGER',
+            'role' => 'required|in:HR,MANAGER,KARYAWAN,GURU,ADMIN_CABANG',
             'status' => 'required|in:AKTIF,NONAKTIF',
             'password' => 'nullable|min:6',
+            'cabang_ids' => 'nullable|array',
+            'cabang_ids.*' => 'integer|exists:cabangs,id',
         ]);
 
         $user->name = $request->name;
         $user->email = $request->email;
         $user->role = $request->role;
         $user->status = $request->status;
+
+        if ($request->has('cabang_ids')) {
+            $user->cabang_ids = $request->cabang_ids;
+        }
 
         if ($request->filled('password')) {
             $user->password = Hash::make($request->password);

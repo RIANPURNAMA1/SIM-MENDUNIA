@@ -75,6 +75,11 @@ import GuruDataSiswa from './pages/Guru/GuruDataSiswa'
 import GuruProfil from './pages/Guru/GuruProfil'
 
 import GuruLayout from './layouts/GuruLayout'
+import AdminCabangLayout from './layouts/AdminCabangLayout'
+import AdminCabangDashboard from './pages/AdminCabang/AdminCabangDashboard'
+import AdminCabangTagihan from './pages/AdminCabang/AdminCabangTagihan'
+import AdminCabangDataKandidat from './pages/AdminCabang/AdminCabangDataKandidat'
+import AdminCabangPendaftaran from './pages/AdminCabang/AdminCabangPendaftaran'
 
 function AccessDenied({ role }: { role: string }) {
   const map: Record<string, { link: string; label: string }> = {
@@ -82,6 +87,7 @@ function AccessDenied({ role }: { role: string }) {
     KANDIDAT: { link: '/siswa-dashboard', label: 'Dashboard Pendaftaran' },
     KARYAWAN: { link: '/dashboard-karyawan', label: 'Dashboard Karyawan' },
     GURU: { link: '/guru-dashboard', label: 'Dashboard Guru' },
+    ADMIN_CABANG: { link: '/admin-cabang', label: 'Dashboard Admin Cabang' },
   }
   const info = map[role] || { link: '/login', label: 'Dashboard' }
   return (
@@ -230,6 +236,57 @@ function AppRoutes() {
       />
 
       <Route
+        path="/admin-cabang"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <AdminCabangDashboard />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-cabang/tagihan"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <AdminCabangTagihan />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-cabang/kandidat"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <AdminCabangDataKandidat />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-cabang/pendaftar"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <AdminCabangPendaftaran />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-cabang/rekap-per-batch"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <RekapBatch />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/riwayat-absensi-karyawan"
         element={
           <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN', 'GURU']}>
@@ -277,7 +334,7 @@ function AppRoutes() {
       <Route
         path="/*"
         element={
-          <ProtectedRoute roleBlocked={['KARYAWAN', 'GURU', 'KANDIDAT', 'AFFILIATE']}>
+          <ProtectedRoute roleBlocked={['KARYAWAN', 'GURU', 'KANDIDAT', 'AFFILIATE', 'ADMIN_CABANG']}>
             <DashboardLayout>
               <Routes>
                 <Route path="/dashboard-absensi" element={<DashboardAbsensi />} />
