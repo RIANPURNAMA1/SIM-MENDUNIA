@@ -205,6 +205,6 @@ npm run build
 
 ---
 
-**Dibuat**: March 2024
+**Dibuat**: Maret 2024 | **Update**: Juli 2026
 **Framework**: React 19 + Vite + Leaflet 1.9
-**Status**: ✅ Production Ready
+**Status**: Production Ready
