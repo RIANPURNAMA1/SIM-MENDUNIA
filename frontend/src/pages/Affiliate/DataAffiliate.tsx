@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link2, Plus, Trash2, Copy, CheckCircle, X, ExternalLink, Users, UserCheck, UserPlus, RotateCcw, Search } from 'lucide-react'
+import { Link2, Plus, Trash2, Copy, CheckCircle, X, ExternalLink, Users, UserCheck, UserPlus, RotateCcw, Search, Eye, ChevronDown, ChevronRight } from 'lucide-react'
 import { affiliateLinkApi, productApi } from '../../services/api'
 import api from '../../services/api'
 
@@ -27,6 +27,33 @@ interface AffiliateUser {
   email: string
 }
 
+interface AffiliateDetailLink {
+  id: number
+  kode: string
+  nama_link: string | null
+  views: number
+  pendaftar_count: number
+  status: boolean
+  created_at: string
+  product: { id: number; nama: string; harga: number }
+  pendaftar: {
+    id: number
+    nama: string
+    email: string
+    telepon: string | null
+    status_pendaftaran: string
+    status_pembayaran: string
+    created_at: string
+    product?: { nama: string }
+  }[]
+}
+
+interface AffiliateDetail {
+  affiliate: { id: number; name: string; email: string }
+  links: AffiliateDetailLink[]
+  stats: { total_links: number; total_views: number; total_pendaftar: number }
+}
+
 interface AffiliateStat {
   id: number
   name: string
@@ -50,6 +77,9 @@ export default function DataAffiliate() {
   const [copied, setCopied] = useState<number | null>(null)
   const [copiedDaftar, setCopiedDaftar] = useState(false)
   const [search, setSearch] = useState('')
+  const [detailAffiliate, setDetailAffiliate] = useState<AffiliateDetail | null>(null)
+  const [loadingDetail, setLoadingDetail] = useState(false)
+  const [expandedLinks, setExpandedLinks] = useState<Record<number, boolean>>({})
 
   useEffect(() => {
     fetchData()
@@ -93,6 +123,18 @@ export default function DataAffiliate() {
 
   function handleDelete(id: number) {
     if (confirm('Yakin ingin menghapus link ini?')) affiliateLinkApi.destroy(id).then(fetchData)
+  }
+
+  function openDetail(affiliateId: number) {
+    setLoadingDetail(true)
+    setExpandedLinks({})
+    affiliateLinkApi.detail(affiliateId).then(res => {
+      setDetailAffiliate(res.data)
+    }).finally(() => setLoadingDetail(false))
+  }
+
+  function toggleLink(linkId: number) {
+    setExpandedLinks(prev => ({ ...prev, [linkId]: !prev[linkId] }))
   }
 
   function copyLink(kode: string, id: number) {
@@ -188,12 +230,13 @@ export default function DataAffiliate() {
                 <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Komisi</th>
                 <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Status</th>
                 <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Bergabung</th>
+                <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {stats.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="border border-slate-200 px-6 py-10 text-center">
+                  <td colSpan={8} className="border border-slate-200 px-6 py-10 text-center">
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
                       <Users size={24} />
                     </div>
@@ -229,6 +272,14 @@ export default function DataAffiliate() {
                     <td className="border border-slate-200 px-4 py-3 text-center">{statusUserBadge(s.status)}</td>
                     <td className="border border-slate-200 px-4 py-3 text-sm text-slate-500">
                       {new Date(s.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </td>
+                    <td className="border border-slate-200 px-4 py-3 text-center">
+                      <button
+                        onClick={() => openDetail(s.id)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-[11px] font-medium text-blue-700 transition hover:bg-blue-100"
+                      >
+                        <Eye size={12} /> Detail
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -367,6 +418,96 @@ export default function DataAffiliate() {
                 <button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition hover:bg-blue-700">Generate</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Detail Modal */}
+      {detailAffiliate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setDetailAffiliate(null)}>
+          <div className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-xl bg-white shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4">
+              <div>
+                <h2 className="text-lg font-bold text-slate-800">{detailAffiliate.affiliate.name}</h2>
+                <p className="text-xs text-slate-500">{detailAffiliate.affiliate.email}</p>
+              </div>
+              <button onClick={() => setDetailAffiliate(null)} className="rounded-lg p-1 hover:bg-slate-100"><X size={20} /></button>
+            </div>
+
+            <div className="px-5 py-4">
+              <div className="mb-4 grid grid-cols-3 gap-3">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-center">
+                  <p className="text-xs text-slate-500">Total Link</p>
+                  <p className="text-xl font-bold text-slate-800">{detailAffiliate.stats.total_links}</p>
+                </div>
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-center">
+                  <p className="text-xs text-slate-500">Total Views</p>
+                  <p className="text-xl font-bold text-slate-800">{detailAffiliate.stats.total_views}</p>
+                </div>
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-center">
+                  <p className="text-xs text-slate-500">Total Kandidat</p>
+                  <p className="text-xl font-bold text-slate-800">{detailAffiliate.stats.total_pendaftar}</p>
+                </div>
+              </div>
+
+              {detailAffiliate.links.length === 0 ? (
+                <div className="py-8 text-center">
+                  <p className="text-sm text-slate-500">Belum ada link affiliate</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {detailAffiliate.links.map(link => (
+                    <div key={link.id} className="rounded-lg border border-slate-200">
+                      <button
+                        onClick={() => toggleLink(link.id)}
+                        className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-slate-50"
+                      >
+                        {expandedLinks[link.id] ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />}
+                        <Link2 size={14} className="shrink-0 text-blue-500" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-slate-800 truncate">{link.nama_link || link.kode}</p>
+                          <p className="text-[10px] text-slate-400 truncate">{linkBase}{link.kode}</p>
+                        </div>
+                        <span className="shrink-0 text-xs text-slate-500">{link.product?.nama}</span>
+                        <span className="shrink-0 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">{link.views} views</span>
+                        <span className="shrink-0 rounded bg-purple-50 px-2 py-0.5 text-[10px] font-medium text-purple-700">{link.pendaftar_count} kandidat</span>
+                      </button>
+                      {expandedLinks[link.id] && (
+                        <div className="border-t border-slate-100 px-4 py-3">
+                          {link.pendaftar.length === 0 ? (
+                            <p className="py-3 text-center text-xs text-slate-400">Belum ada kandidat</p>
+                          ) : (
+                            <div className="space-y-2">
+                              {link.pendaftar.map(p => (
+                                <div key={p.id} className="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2">
+                                  <img
+                                    src={`https://ui-avatars.com/api/?name=${encodeURIComponent(p.nama)}&background=e5e7eb&color=6b7280&size=24`}
+                                    className="h-6 w-6 rounded-full"
+                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                                  />
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-xs font-semibold text-slate-800 truncate">{p.nama}</p>
+                                    <p className="text-[10px] text-slate-500 truncate">{p.email}</p>
+                                  </div>
+                                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                                    p.status_pendaftaran === 'disetujui' ? 'bg-emerald-50 text-emerald-700' :
+                                    p.status_pendaftaran === 'pending' ? 'bg-amber-50 text-amber-700' :
+                                    'bg-red-50 text-red-600'
+                                  }`}>{p.status_pendaftaran}</span>
+                                  <span className="text-[10px] text-slate-400">
+                                    {new Date(p.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

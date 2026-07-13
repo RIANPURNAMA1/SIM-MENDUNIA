@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { CreditCard, CheckCircle, Clock, Upload, X, Eye } from 'lucide-react'
+import Swal from 'sweetalert2'
 import api from '../../services/api'
 
 const cardClass = "bg-white border border-gray-200 rounded-lg shadow-sm"
@@ -26,8 +27,8 @@ export default function PembayaranSiswa() {
   const [kategoriItems, setKategoriItems] = useState<KategoriItem[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
-  const [selectedKatId, setSelectedKatId] = useState<number | null>(null)
   const [jumlah, setJumlah] = useState('')
+  const [jumlahDisplay, setJumlahDisplay] = useState('')
   const [bukti, setBukti] = useState<File | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -36,7 +37,7 @@ export default function PembayaranSiswa() {
     setLoading(true)
     Promise.all([
       api.get('/siswa-dashboard'),
-      api.get('/biaya-kategori'),
+      api.get('/biaya-kategori-flat'),
     ]).then(([siswaRes, katRes]) => {
       const p = siswaRes.data.pendaftar
       setPendaftar(p)
@@ -86,28 +87,48 @@ export default function PembayaranSiswa() {
   }) || null
 
   function openModal() {
-    setSelectedKatId(nextKat?.id || null)
-    const nextItem = kategoriItems.find(i => i.kategori_id === nextKat?.id)
-    setJumlah(String(nextItem?.biaya || totalBiaya))
+    setJumlah('')
+    setJumlahDisplay('')
     setBukti(null)
     setError('')
     setShowModal(true)
   }
 
-  function selectKat(id: number) {
-    setSelectedKatId(id)
-    const item = kategoriItems.find(i => i.kategori_id === id)
-    const sisa = (item?.biaya || 0) - (item?.dibayar || 0)
-    setJumlah(String(sisa > 0 ? sisa : item?.biaya || 0))
-    setError('')
+  function formatRupiah(n: number) {
+    return n.toLocaleString('id-ID')
   }
+
+  function parseFormatted(value: string): string {
+    return value.replace(/[^0-9]/g, '')
+  }
+
+  function handleJumlahInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const raw = parseFormatted(e.target.value)
+    setJumlah(raw)
+    setJumlahDisplay(raw ? Number(raw).toLocaleString('id-ID') : '')
+  }
+
+  function getDistribusiPreview(jml: number) {
+    const preview: { nama: string; biaya: number; dibayar: number; bayar: number; lunas: boolean }[] = []
+    let sisa = jml
+    for (const k of sortedKat) {
+      if (sisa <= 0) break
+      const item = kategoriItems.find(i => i.kategori_id === k.id)
+      const biaya = item?.biaya || 0
+      const dibayar = item?.dibayar || 0
+      const kurang = biaya - dibayar
+      if (kurang <= 0) continue
+      const bayar = Math.min(sisa, kurang)
+      sisa -= bayar
+      preview.push({ nama: k.nama, biaya, dibayar, bayar, lunas: dibayar + bayar >= biaya })
+    }
+    return preview
+  }
+
+  const distribusiPreview = jumlah ? getDistribusiPreview(Number(jumlah)) : []
 
   async function handleBayar(e: React.FormEvent) {
     e.preventDefault()
-    if (!selectedKatId) {
-      setError('Pilih kategori pembayaran')
-      return
-    }
     if (!jumlah || Number(jumlah) <= 0) {
       setError('Masukkan jumlah pembayaran')
       return
@@ -121,19 +142,28 @@ export default function PembayaranSiswa() {
     try {
       const fd = new FormData()
       fd.append('jumlah', jumlah)
-      fd.append('kategori_id', String(selectedKatId))
       fd.append('bukti_pembayaran', bukti)
-      const res = await api.post(`/pendaftar/${pendaftar.id}/bayar`, fd, {
+      const res = await api.post(`/pendaftar/${pendaftar.id}/bayar-all`, fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       setPendaftar(res.data.pendaftar)
       setShowModal(false)
       setJumlah('')
+      setJumlahDisplay('')
       setBukti(null)
       api.get(`/pendaftar/${pendaftar.id}/riwayat-pembayaran`).then(r => setRiwayat(r.data)).catch(() => {})
       api.get(`/pembayaran-item/${pendaftar.id}`).then(r => {
         setKategoriItems(r.data.items || [])
       }).catch(() => {})
+      Swal.fire({
+        icon: 'success',
+        title: 'Pembayaran Terkirim!',
+        text: 'Bukti pembayaran Anda telah dikirim dan menunggu verifikasi.',
+        confirmButtonColor: '#0D1F3C',
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      })
     } catch (err: any) {
       setError(err.response?.data?.message || 'Gagal mengirim pembayaran')
     } finally {
@@ -163,10 +193,10 @@ export default function PembayaranSiswa() {
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-gray-800">Status Pembayaran</h2>
                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-                  pendaftar.status_pembayaran === 'verified' ? 'bg-gray-100 text-gray-700' : 'bg-gray-100 text-gray-500'
+                  pendaftar.status_pembayaran === 'verified' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
                 }`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${
-                    pendaftar.status_pembayaran === 'verified' ? 'bg-gray-700' : 'bg-gray-400'
+                    pendaftar.status_pembayaran === 'verified' ? 'bg-emerald-600' : 'bg-amber-500'
                   }`} />
                   {pendaftar.status_pembayaran === 'verified' ? 'Terverifikasi' : 'Menunggu'}
                 </span>
@@ -183,46 +213,47 @@ export default function PembayaranSiswa() {
                     const isLunas = paidKategoriIds.includes(k.id)
                     const isPartial = partialKategoriIds.includes(k.id)
                     const isNext = k.id === nextKat?.id
+                    const isBelumBayar = !isLunas && !isPartial
                     const katBiaya = item?.biaya || 0
                     const katDibayar = item?.dibayar || 0
                     return (
-                      <div key={k.id} className={`snap-start flex-none w-24 sm:w-28 flex flex-col items-center gap-1.5 px-2 py-3 rounded-lg border transition-all ${
+                      <div key={k.id} className={`snap-start flex-none w-24 sm:w-28 flex flex-col items-center gap-1.5 px-2 py-3 rounded-lg border-2 transition-all ${
                         isLunas
-                          ? 'border-gray-200 bg-white'
+                          ? 'border-emerald-400 bg-emerald-50'
                           : isPartial
-                            ? 'border-gray-300 bg-gray-50'
+                            ? 'border-amber-400 bg-amber-50'
                             : isNext
-                              ? 'border-gray-300 bg-gray-50'
-                              : 'border-gray-100 bg-white opacity-40'
+                              ? 'border-blue-400 bg-blue-50 ring-2 ring-blue-200'
+                              : 'border-gray-200 bg-gray-50 opacity-50'
                       }`}>
                         <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
                           isLunas
-                            ? 'border-gray-200 bg-white'
+                            ? 'border-emerald-500 bg-emerald-100 text-emerald-700'
                             : isPartial
-                              ? 'border-gray-800 text-gray-800'
+                              ? 'border-amber-500 bg-amber-100 text-amber-700'
                               : isNext
-                                ? 'border-gray-400 text-gray-400'
-                                : 'border-gray-200 text-gray-300'
+                                ? 'border-blue-500 bg-blue-100 text-blue-700'
+                                : 'border-gray-300 bg-gray-100 text-gray-400'
                         }`}>
-                          {isLunas ? <CheckCircle size={14} className="text-emerald-500" /> : isPartial ? <Clock size={12} className="text-gray-800" /> : idx + 1}
+                          {isLunas ? <CheckCircle size={14} className="text-emerald-600" /> : isPartial ? <Clock size={12} className="text-amber-600" /> : idx + 1}
                         </div>
                         <p className={`text-[10px] sm:text-xs font-bold text-center leading-tight ${
-                          isLunas ? 'text-gray-900' : isPartial ? 'text-gray-700' : isNext ? 'text-gray-600' : 'text-gray-300'
+                          isLunas ? 'text-emerald-800' : isPartial ? 'text-amber-800' : isNext ? 'text-blue-700' : 'text-gray-400'
                         }`}>
                           {k.nama}
                         </p>
                         {katBiaya > 0 && (
                           <p className={`text-[7px] sm:text-[9px] font-medium ${
-                            isLunas ? 'text-gray-500' : isPartial ? 'text-gray-600' : 'text-gray-400'
+                            isLunas ? 'text-emerald-600' : isPartial ? 'text-amber-600' : isNext ? 'text-blue-600' : 'text-gray-400'
                           }`}>
                             Rp {katBiaya.toLocaleString('id-ID')}
                           </p>
                         )}
                         {isLunas && (
-                          <span className="text-[7px] sm:text-[9px] font-semibold text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded-full">Lunas</span>
+                          <span className="text-[7px] sm:text-[9px] font-bold text-emerald-700 bg-emerald-200 px-1.5 py-0.5 rounded-full">Lunas</span>
                         )}
                         {isPartial && (
-                          <span className="text-[7px] sm:text-[9px] font-semibold text-gray-600 bg-gray-200 px-1.5 py-0.5 rounded-full">Belum Lunas</span>
+                          <span className="text-[7px] sm:text-[9px] font-bold text-amber-700 bg-amber-200 px-1.5 py-0.5 rounded-full">Belum Lunas</span>
                         )}
                       </div>
                     )
@@ -324,7 +355,7 @@ export default function PembayaranSiswa() {
           {/* Payment Modal */}
           {showModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShowModal(false)}>
-              <div className="w-full max-w-lg rounded-xl bg-white border border-gray-200 shadow-sm p-6" onClick={e => e.stopPropagation()}>
+              <div className="w-full max-w-lg rounded-xl bg-white border border-gray-200 shadow-sm p-6 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                 <div className="mb-4 flex items-center justify-between">
                   <h2 className="text-lg font-bold text-gray-900">Bayar Tunggakan</h2>
                   <button onClick={() => setShowModal(false)} className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors"><X size={20} className="text-gray-500" /></button>
@@ -335,91 +366,6 @@ export default function PembayaranSiswa() {
                 )}
 
                 <form onSubmit={handleBayar} className="space-y-4">
-                  {/* Category Selection */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Pilih Kategori Pembayaran</label>
-                    <div className="flex gap-1.5 overflow-x-auto pb-1 snap-x snap-mandatory scrollbar-thin">
-                      {sortedKat.map(k => {
-                        const item = kategoriItems.find(i => i.kategori_id === k.id)
-                        const isLunas = paidKategoriIds.includes(k.id)
-                        const isPartial = partialKategoriIds.includes(k.id)
-                        const isSelectable = (isPartial || (k.id === nextKat?.id && !isLunas)) && !isLunas
-                        const isSelected = selectedKatId === k.id
-                        const katBiaya = item?.biaya || 0
-                        const katDibayar = item?.dibayar || 0
-                        return (
-                          <button
-                            key={k.id}
-                            type="button"
-                            disabled={!isSelectable}
-                            onClick={() => selectKat(k.id)}
-                            className={`snap-start flex-none w-20 sm:w-24 flex flex-col items-center gap-1 px-1.5 py-2 rounded-xl border transition-all ${
-                              isLunas
-                                ? 'border-gray-200 bg-gray-50 cursor-default'
-                                : isSelected
-                                  ? 'border-gray-800 bg-gray-100 ring-2 ring-gray-300'
-                                  : isSelectable
-                                    ? 'border-gray-200 hover:border-gray-400 hover:bg-gray-50 cursor-pointer'
-                                    : 'border-gray-100 bg-white cursor-default opacity-40'
-                            }`}>
-                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 ${
-                              isLunas ? 'border-emerald-500 text-emerald-500' : isSelectable ? 'border-gray-800 text-gray-800' : 'border-gray-200 text-gray-400'
-                            }`}>
-                              {isLunas ? <CheckCircle size={11} /> : isPartial ? <Clock size={10} /> : k.urutan}
-                            </div>
-                            <p className={`text-[9px] sm:text-[10px] font-bold text-center leading-tight ${
-                              isLunas ? 'text-gray-500' : isSelected ? 'text-gray-900' : 'text-gray-500'
-                            }`}>
-                              {k.nama}
-                            </p>
-                            {katBiaya > 0 && (
-                              <p className={`text-[7px] sm:text-[8px] font-semibold ${isLunas ? 'text-gray-400' : 'text-gray-600'}`}>
-                                Rp {katBiaya.toLocaleString('id-ID')}
-                              </p>
-                            )}
-                            {isLunas && <span className="text-[7px] font-semibold text-gray-600 bg-gray-200 px-1 py-0.5 rounded-full">Lunas</span>}
-                            {isPartial && <span className="text-[7px] font-semibold text-gray-600 bg-gray-200 px-1 py-0.5 rounded-full">Sisa Rp {(katBiaya - katDibayar).toLocaleString('id-ID')}</span>}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Info Step yang Dipilih */}
-                  {selectedKatId && (() => {
-                    const selectedKat = sortedKat.find(k => k.id === selectedKatId)
-                    const selectedItem = kategoriItems.find(i => i.kategori_id === selectedKatId)
-                    if (!selectedKat) return null
-                    const sisaBayar = (selectedItem?.biaya || 0) - (selectedItem?.dibayar || 0)
-                    return (
-                      <div className="border border-gray-200 rounded-lg p-4 space-y-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 border-gray-800 text-gray-800 bg-white">
-                            {selectedKat.urutan}
-                          </div>
-                          <div>
-                            <p className="text-sm font-bold text-gray-900">{selectedKat.nama}</p>
-                            <p className="text-xs text-gray-500">Tahap {selectedKat.urutan} dari {sortedKat.length}</p>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-3 gap-3">
-                          <div className="bg-gray-50 rounded-md px-3 py-2">
-                            <p className="text-[10px] text-gray-500 uppercase tracking-wide">Biaya</p>
-                            <p className="text-sm font-bold text-gray-900">Rp {(selectedItem?.biaya || 0).toLocaleString('id-ID')}</p>
-                          </div>
-                          <div className="bg-gray-50 rounded-md px-3 py-2">
-                            <p className="text-[10px] text-gray-500 uppercase tracking-wide">Dibayar</p>
-                            <p className="text-sm font-bold text-gray-900">Rp {(selectedItem?.dibayar || 0).toLocaleString('id-ID')}</p>
-                          </div>
-                          <div className="bg-gray-50 rounded-md px-3 py-2">
-                            <p className="text-[10px] text-gray-500 uppercase tracking-wide">Sisa Bayar</p>
-                            <p className="text-sm font-bold text-gray-900">Rp {sisaBayar.toLocaleString('id-ID')}</p>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })()}
-
                   <div className="bg-gray-50 rounded-lg p-4 space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">Program</span>
@@ -438,16 +384,44 @@ export default function PembayaranSiswa() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Jumlah Pembayaran</label>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       required
-                      min={1}
-                      max={tunggakan}
-                      value={jumlah}
-                      onChange={e => setJumlah(e.target.value)}
+                      value={jumlahDisplay}
+                      onChange={handleJumlahInput}
                       className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
-                      placeholder="Masukkan jumlah"
+                      placeholder={`Maksimal Rp ${tunggakan.toLocaleString('id-ID')}`}
                     />
                   </div>
+
+                  {distribusiPreview.length > 0 && (
+                    <div className="border border-blue-200 bg-blue-50 rounded-lg p-4 space-y-2">
+                      <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-2">Preview Distribusi Pembayaran</p>
+                      {distribusiPreview.map((d, i) => (
+                        <div key={i} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            {d.lunas ? (
+                              <CheckCircle size={14} className="text-emerald-500" />
+                            ) : (
+                              <Clock size={14} className="text-amber-500" />
+                            )}
+                            <span className={`${d.lunas ? 'text-emerald-700 font-medium' : 'text-gray-700'}`}>{d.nama}</span>
+                          </div>
+                          <span className={`font-semibold ${d.lunas ? 'text-emerald-700' : 'text-gray-700'}`}>
+                            Rp {d.bayar.toLocaleString('id-ID')}
+                          </span>
+                        </div>
+                      ))}
+                      {Number(jumlah) > distribusiPreview.reduce((s, d) => s + d.bayar, 0) && (
+                        <div className="border-t border-blue-200 pt-2 mt-2 flex justify-between text-sm">
+                          <span className="text-blue-600">Sisa kembali</span>
+                          <span className="font-bold text-blue-700">
+                            Rp {(Number(jumlah) - distribusiPreview.reduce((s, d) => s + d.bayar, 0)).toLocaleString('id-ID')}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Upload Bukti Pembayaran</label>
@@ -472,7 +446,7 @@ export default function PembayaranSiswa() {
                   <div className="flex justify-end gap-3 pt-2">
                     <button type="button" onClick={() => setShowModal(false)}
                       className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-md text-sm font-semibold hover:bg-gray-50 transition-colors">Batal</button>
-                    <button type="submit" disabled={submitting || !selectedKatId}
+                    <button type="submit" disabled={submitting}
                       className="px-8 py-2.5 bg-[#0D1F3C] text-white rounded-md text-sm font-semibold hover:bg-[#1a2d4a] transition-colors disabled:opacity-70 inline-flex items-center gap-2">
                       {submitting ? <><span className="animate-spin">&#9696;</span> Mengirim</> : 'Kirim Pembayaran'}
                     </button>

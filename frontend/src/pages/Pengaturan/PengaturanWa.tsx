@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { MessageCircle, CheckCircle2, XCircle } from 'lucide-react'
+import { MessageCircle, CheckCircle2, XCircle, Phone, CreditCard } from 'lucide-react'
 import { pengaturanWaApi } from '../../services/api'
 
 interface WaSetting {
@@ -7,6 +7,7 @@ interface WaSetting {
   key: string
   is_enabled: boolean
   description: string
+  value: string | null
 }
 
 const statusColors: Record<string, string> = {
@@ -16,6 +17,8 @@ const statusColors: Record<string, string> = {
   wa_tidak_absen_pulang: 'bg-red-100 text-red-700',
   wa_alpa: 'bg-rose-100 text-rose-700',
   wa_reminder_belum_absen: 'bg-blue-100 text-blue-700',
+  wa_pembayaran: 'bg-yellow-100 text-yellow-700',
+  wa_pembayaran_admin_phones: 'bg-purple-100 text-purple-700',
 }
 
 export default function PengaturanWaPage() {
@@ -38,12 +41,23 @@ export default function PengaturanWaPage() {
     )
   }
 
+  const updateValue = (key: string, value: string) => {
+    setSettings((prev) =>
+      prev.map((s) => (s.key === key ? { ...s, value } : s))
+    )
+  }
+
   const handleSave = async () => {
     setSaving(true)
     setSuccess('')
     try {
-      const payload: Record<string, boolean> = {}
-      settings.forEach((s) => { payload[s.key] = s.is_enabled })
+      const payload: Record<string, { is_enabled: boolean; value?: string | null }> = {}
+      settings.forEach((s) => {
+        payload[s.key] = {
+          is_enabled: s.is_enabled,
+          value: s.value,
+        }
+      })
       await pengaturanWaApi.update({ settings: payload })
       setSuccess('Pengaturan notifikasi berhasil diperbarui.')
       setTimeout(() => setSuccess(''), 3000)
@@ -61,6 +75,10 @@ export default function PengaturanWaPage() {
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(' ')
   }
+
+  const absensiSettings = settings.filter((s) => !s.key.startsWith('wa_pembayaran'))
+  const paymentSettings = settings.filter((s) => s.key === 'wa_pembayaran')
+  const adminPhoneSettings = settings.filter((s) => s.key === 'wa_pembayaran_admin_phones')
 
   if (loading) {
     return (
@@ -81,7 +99,7 @@ export default function PengaturanWaPage() {
         </div>
         <div>
           <h1 className="text-lg font-semibold text-slate-800">Pengaturan Notifikasi WhatsApp</h1>
-          <p className="text-sm text-slate-500">Kelola notifikasi WhatsApp untuk absensi karyawan</p>
+          <p className="text-sm text-slate-500">Kelola notifikasi WhatsApp untuk absensi & pembayaran</p>
         </div>
       </div>
 
@@ -91,18 +109,25 @@ export default function PengaturanWaPage() {
         </div>
       )}
 
+      {/* Absensi Settings */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-4">
+        <div className="px-5 py-3 bg-slate-50 border-b border-slate-200">
+          <h2 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+            <MessageCircle size={16} />
+            Notifikasi Absensi
+          </h2>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
+              <tr className="border-b border-slate-200">
                 <th className="px-5 py-3 text-left font-semibold text-slate-600">Jenis Notifikasi</th>
                 <th className="px-5 py-3 text-left font-semibold text-slate-600">Deskripsi</th>
                 <th className="px-5 py-3 text-center font-semibold text-slate-600 w-32">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {settings.map((s) => (
+              {absensiSettings.map((s) => (
                 <tr key={s.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-2">
@@ -132,6 +157,62 @@ export default function PengaturanWaPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Payment Notification Settings */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-4">
+        <div className="px-5 py-3 bg-slate-50 border-b border-slate-200">
+          <h2 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+            <CreditCard size={16} />
+            Notifikasi Pembayaran
+          </h2>
+        </div>
+        <div className="p-5 space-y-4">
+          {paymentSettings.map((s) => (
+            <div key={s.id} className="flex items-center justify-between">
+              <div>
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusColors[s.key] || 'bg-slate-100 text-slate-600'}`}>
+                  {formatLabel(s.key)}
+                </span>
+                <p className="text-sm text-slate-500 mt-1">{s.description}</p>
+              </div>
+              <button
+                onClick={() => toggle(s.key)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  s.is_enabled
+                    ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                }`}
+              >
+                {s.is_enabled ? (
+                  <><CheckCircle2 size={14} />AKTIF</>
+                ) : (
+                  <><XCircle size={14} />NONAKTIF</>
+                )}
+              </button>
+            </div>
+          ))}
+
+          {/* Admin Phone Numbers */}
+          {adminPhoneSettings.map((s) => (
+            <div key={s.id} className="border-t border-slate-100 pt-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Phone size={14} className="text-slate-400" />
+                <label className="text-sm font-medium text-slate-700">Nomor HP Admin (Penerima Notifikasi Pembayaran)</label>
+              </div>
+              <p className="text-xs text-slate-400 mb-2">
+                Pisahkan dengan koma untuk beberapa nomor. Contoh: 081234567890,085678901234
+              </p>
+              <input
+                type="text"
+                value={s.value || ''}
+                onChange={(e) => updateValue(s.key, e.target.value)}
+                placeholder="081234567890,085678901234"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+              />
+            </div>
+          ))}
         </div>
       </div>
 

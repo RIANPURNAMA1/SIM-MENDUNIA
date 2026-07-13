@@ -3,13 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\KomisiTier;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
     public function index()
     {
-        return response()->json(Product::with('biayaKategoris')->orderBy('created_at', 'desc')->get());
+        return response()->json(Product::with(['biayaKategoris', 'komisiTiers'])->orderBy('created_at', 'desc')->get());
     }
 
     public function store(Request $request)
@@ -24,6 +25,12 @@ class ProductController extends Controller
             'kategori_prices.*.kategori_id' => 'required|exists:biaya_kategoris,id',
             'kategori_prices.*.harga' => 'required|numeric|min:0',
             'kategori_prices.*.komisi' => 'nullable|numeric|min:0',
+            'komisi_tiers' => 'nullable|array',
+            'komisi_tiers.*.kategori_id' => 'nullable|exists:biaya_kategoris,id',
+            'komisi_tiers.*.min_orang' => 'required|integer|min:1',
+            'komisi_tiers.*.max_orang' => 'nullable|integer|min:1',
+            'komisi_tiers.*.komisi' => 'required|numeric|min:0',
+            'komisi_tiers.*.urutan' => 'nullable|integer|min:0',
         ]);
 
         $product = Product::create([
@@ -45,12 +52,14 @@ class ProductController extends Controller
             $product->biayaKategoris()->sync($sync);
         }
 
-        return response()->json($product->load('biayaKategoris'), 201);
+        $this->syncKomisiTiers($product, $request);
+
+        return response()->json($product->load(['biayaKategoris', 'komisiTiers']), 201);
     }
 
     public function show($id)
     {
-        return response()->json(Product::with('biayaKategoris')->findOrFail($id));
+        return response()->json(Product::with(['biayaKategoris', 'komisiTiers'])->findOrFail($id));
     }
 
     public function update(Request $request, $id)
@@ -67,6 +76,12 @@ class ProductController extends Controller
             'kategori_prices.*.kategori_id' => 'required|exists:biaya_kategoris,id',
             'kategori_prices.*.harga' => 'required|numeric|min:0',
             'kategori_prices.*.komisi' => 'nullable|numeric|min:0',
+            'komisi_tiers' => 'nullable|array',
+            'komisi_tiers.*.kategori_id' => 'nullable|exists:biaya_kategoris,id',
+            'komisi_tiers.*.min_orang' => 'required|integer|min:1',
+            'komisi_tiers.*.max_orang' => 'nullable|integer|min:1',
+            'komisi_tiers.*.komisi' => 'required|numeric|min:0',
+            'komisi_tiers.*.urutan' => 'nullable|integer|min:0',
         ]);
 
         $updateData = [];
@@ -93,7 +108,9 @@ class ProductController extends Controller
             $product->save();
         }
 
-        return response()->json($product->load('biayaKategoris'));
+        $this->syncKomisiTiers($product, $request);
+
+        return response()->json($product->load(['biayaKategoris', 'komisiTiers']));
     }
 
     public function destroy($id)
@@ -102,5 +119,22 @@ class ProductController extends Controller
         $product->delete();
 
         return response()->json(['message' => 'Product deleted']);
+    }
+
+    private function syncKomisiTiers(Product $product, Request $request)
+    {
+        if (!$request->has('komisi_tiers')) return;
+
+        $product->komisiTiers()->delete();
+
+        foreach ($request->komisi_tiers as $tier) {
+            $product->komisiTiers()->create([
+                'kategori_id' => $tier['kategori_id'] ?? null,
+                'min_orang' => $tier['min_orang'],
+                'max_orang' => $tier['max_orang'] ?? null,
+                'komisi' => $tier['komisi'],
+                'urutan' => $tier['urutan'] ?? 0,
+            ]);
+        }
     }
 }

@@ -16,11 +16,10 @@ class WhatsAppService
     }
 
     /**
-     * Kirim pesan WhatsApp
+     * Kirim pesan WhatsApp (text)
      */
     public function sendMessage($to, $message, $delay = 0)
     {
-        // Format nomor HP (pastikan diawali 62)
         $to = $this->formatPhoneNumber($to);
 
         if (!$to) {
@@ -55,6 +54,148 @@ class WhatsAppService
             Log::error('Error kirim WhatsApp: ' . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+     * Kirim pesan WhatsApp (media + caption)
+     */
+    public function sendMediaMessage($to, $fileUrl, $caption = '', $delay = 0)
+    {
+        $to = $this->formatPhoneNumber($to);
+
+        if (!$to) {
+            Log::warning('Nomor HP tidak valid untuk WhatsApp media: ' . $to);
+            return false;
+        }
+
+        $payload = [
+            'messageType' => 'media',
+            'to' => $to,
+            'file' => $fileUrl,
+        ];
+
+        if ($caption) {
+            $payload['body'] = $caption;
+        }
+
+        if ($delay > 0) {
+            $payload['delay'] = $delay;
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json',
+                'Authorization' => $this->apiKey,
+            ])->post($this->apiUrl, $payload);
+
+            if ($response->successful()) {
+                Log::info('WhatsApp media terkirim ke: ' . $to);
+                return true;
+            }
+
+            Log::error('Gagal kirim WhatsApp media ke: ' . $to . ' - ' . $response->body());
+            return false;
+        } catch (\Exception $e) {
+            Log::error('Error kirim WhatsApp media: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Kirim notifikasi pembayaran ke admin (dengan gambar bukti)
+     */
+    public function sendPaymentNotificationToAdmin($pendaftar, $jumlah, $kategoriNama, $buktiPembayaran = null)
+    {
+        $settingKey = 'wa_pembayaran';
+        if (!\App\Models\NotificationSetting::isEnabled($settingKey)) {
+            Log::info("Notifikasi {$settingKey} dinonaktifkan.");
+            return false;
+        }
+
+        $adminPhones = $this->getAdminPaymentPhones();
+        if (empty($adminPhones)) {
+            Log::warning('Tidak ada nomor admin untuk notifikasi pembayaran.');
+            return false;
+        }
+
+        $tanggal = now()->translatedFormat('d F Y H:i');
+        $nama = $pendaftar->nama;
+        $jumlahFormat = 'Rp ' . number_format($jumlah, 0, ',', '.');
+        $noReg = $pendaftar->no_registrasi ?? '-';
+        $batch = $pendaftar->batch?->nama_batch ?? '-';
+
+        $buktiLink = $buktiPembayaran ? asset('storage/' . $buktiPembayaran) : null;
+
+        $message = "💰 *NOTIFIKASI PEMBAYARAN BARU*\n\n"
+            . "Tanggal: {$tanggal}\n"
+            . "Nama: {$nama}\n"
+            . "No. Registrasi: {$noReg}\n"
+            . "Batch: {$batch}\n"
+            . "Kategori: {$kategoriNama}\n"
+            . "Jumlah: {$jumlahFormat}\n"
+            . "Status: Menunggu Verifikasi\n\n";
+
+        if ($buktiLink) {
+            $message .= "🧾 Bukti Pembayaran: {$buktiLink}\n\n";
+        }
+
+        $message .= "Silakan verifikasi pembayaran ini di panel admin.\n\n"
+            . "- Sistem SIM Mendunia";
+
+        $results = [];
+        foreach ($adminPhones as $phone) {
+            $results[] = $this->sendMessage($phone, $message);
+        }
+
+        return in_array(true, $results);
+    }
+
+    /**
+     * Kirim notifikasi verifikasi pembayaran ke kandidat
+     */
+    public function sendPaymentVerifiedNotification($pendaftar, $kategoriNama, $status)
+    {
+        $noHp = $pendaftar->telepon ?? $pendaftar->user?->no_hp ?? null;
+        if (!$noHp) {
+            Log::warning('Pendaftar ' . $pendaftar->nama . ' tidak memiliki no_hp untuk notifikasi verifikasi.');
+            return false;
+        }
+
+        $tanggal = now()->translatedFormat('d F Y H:i');
+        $nama = $pendaftar->nama;
+        $noReg = $pendaftar->no_registrasi ?? '-';
+        $statusLabel = $status === 'verified' ? '✅ TERVERIFIKASI' : '❌ DITOLAK';
+
+        $message = "📋 *NOTIFIKASI VERIFIKASI PEMBAYARAN*\n\n"
+            . "Halo {$nama},\n\n"
+            . "Pembayaran Anda telah diproses.\n"
+            . "📅 Tanggal: {$tanggal}\n"
+            . "No. Registrasi: {$noReg}\n"
+            . "Kategori: {$kategoriNama}\n"
+            . "Status: {$statusLabel}\n\n";
+
+        if ($status === 'verified') {
+            $message .= "Pembayaran Anda telah berhasil diverifikasi. Terima kasih.\n\n";
+        } else {
+            $message .= "Pembayaran Anda ditolak. Silakan hubungi admin untuk informasi lebih lanjut.\n\n";
+        }
+
+        $message .= "- Sistem SIM Mendunia";
+
+        return $this->sendMessage($noHp, $message);
+    }
+
+    /**
+     * Ambil nomor HP admin dari notification_settings
+     */
+    private function getAdminPaymentPhones()
+    {
+        $setting = \App\Models\NotificationSetting::where('key', 'wa_pembayaran_admin_phones')->first();
+        if (!$setting || !$setting->value) {
+            return [];
+        }
+        $phones = array_map('trim', explode(',', $setting->value));
+        return array_filter($phones);
     }
 
     /**

@@ -45,10 +45,19 @@ class PengaturanController extends Controller
             'settings' => 'required|array',
         ]);
 
-        foreach ($request->settings as $key => $enabled) {
-            NotificationSetting::where('key', $key)->update([
-                'is_enabled' => filter_var($enabled, FILTER_VALIDATE_BOOLEAN),
-            ]);
+        foreach ($request->settings as $key => $value) {
+            if (is_array($value) && array_key_exists('is_enabled', $value)) {
+                // Support both { is_enabled: true/false } and { is_enabled: true/false, value: '...' }
+                NotificationSetting::where('key', $key)->update([
+                    'is_enabled' => filter_var($value['is_enabled'], FILTER_VALIDATE_BOOLEAN),
+                    'value' => $value['value'] ?? null,
+                ]);
+            } else {
+                // Legacy: just boolean
+                NotificationSetting::where('key', $key)->update([
+                    'is_enabled' => filter_var($value, FILTER_VALIDATE_BOOLEAN),
+                ]);
+            }
         }
 
         return response()->json([

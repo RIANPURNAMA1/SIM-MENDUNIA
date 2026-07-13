@@ -147,4 +147,30 @@ class AffiliateLinkController extends Controller
 
         return response()->json($affiliates);
     }
+
+    public function detailAffiliate($id)
+    {
+        $affiliate = User::where('role', 'AFFILIATE')->findOrFail($id);
+
+        $links = AffiliateLink::with(['product', 'pendaftar' => function ($q) {
+            $q->select('id', 'nama', 'email', 'telepon', 'status_pendaftaran', 'status_pembayaran', 'affiliate_link_id', 'created_at')
+              ->with('product:id,nama');
+        }])
+            ->where('affiliate_id', $id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $totalPendaftar = $links->sum('pendaftar_count');
+        $totalViews = $links->sum('views');
+
+        return response()->json([
+            'affiliate' => $affiliate,
+            'links' => $links,
+            'stats' => [
+                'total_links' => $links->count(),
+                'total_views' => $totalViews,
+                'total_pendaftar' => $totalPendaftar,
+            ],
+        ]);
+    }
 }

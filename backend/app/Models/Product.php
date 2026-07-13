@@ -22,7 +22,12 @@ class Product extends Model
     public function biayaKategoris()
     {
         return $this->belongsToMany(BiayaKategori::class, 'product_biaya_kategori', 'product_id', 'kategori_id')
-            ->withPivot('harga')
+            ->withPivot('harga', 'komisi')
             ->withTimestamps();
+    }
+
+    public function komisiTiers()
+    {
+        return $this->hasMany(KomisiTier::class)->orderBy('kategori_id')->orderBy('urutan');
     }
 }

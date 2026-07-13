@@ -9,7 +9,7 @@ function parseInput(v: string): number {
 
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { FileText, Search, Receipt, CheckCircle, Clock, AlertCircle, RotateCcw, DollarSign, X, Save, Bell, Eye, Check, Loader } from 'lucide-react'
+import { FileText, Search, Receipt, CheckCircle, Clock, AlertCircle, RotateCcw, DollarSign, X, Save, Bell, Eye, Check, Loader, XCircle } from 'lucide-react'
 import api, { pendaftarApi, batchApi, productApi } from '../../services/api'
 
 interface KategoriInfo {
@@ -78,6 +78,8 @@ export default function Tagihan() {
   const [pendingPembayaran, setPendingPembayaran] = useState<any[]>([])
   const [showPendingModal, setShowPendingModal] = useState(false)
   const [verifyingId, setVerifyingId] = useState<number | null>(null)
+  const [rejectingId, setRejectingId] = useState<number | null>(null)
+  const [confirmRejectId, setConfirmRejectId] = useState<number | null>(null)
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   const pendingCount = Object.keys(pendingChanges).length
@@ -91,7 +93,7 @@ export default function Tagihan() {
   useEffect(() => {
     Promise.all([
       pendaftarApi.list({}),
-      api.get('/biaya-kategori'),
+      api.get('/biaya-kategori-flat'),
       batchApi.list(),
       productApi.list(),
     ]).then(([res, katRes, batchRes, prodRes]) => {
@@ -105,14 +107,19 @@ export default function Tagihan() {
   }, [])
 
   const filtered = useMemo(() => {
-    return data.filter(p => {
+    const result = data.filter(p => {
       const matchSearch = !search || p.nama.toLowerCase().includes(search.toLowerCase()) || p.email.toLowerCase().includes(search.toLowerCase())
       const matchStatus = !filterStatus || p.status_pembayaran === filterStatus
       const matchBatch = !filterBatch || String(p.batch?.id) === filterBatch
       const matchProduct = !filterProduct || String(p.product?.nama) === filterProduct
       return matchSearch && matchStatus && matchBatch && matchProduct
     })
-  }, [data, search, filterStatus, filterBatch, filterProduct])
+    return result.sort((a, b) => {
+      const aHasPending = pendingPembayaran.some((pp: any) => pp.pendaftar_id === a.id) ? 0 : 1
+      const bHasPending = pendingPembayaran.some((pp: any) => pp.pendaftar_id === b.id) ? 0 : 1
+      return aHasPending - bHasPending
+    })
+  }, [data, search, filterStatus, filterBatch, filterProduct, pendingPembayaran])
 
   const stats = useMemo(() => {
     const total = data.reduce((sum, p) => {
@@ -219,6 +226,22 @@ export default function Tagihan() {
     }
   }
 
+  async function handleRejectPembayaran(pembayaranId: number) {
+    setRejectingId(pembayaranId)
+    setConfirmRejectId(null)
+    try {
+      await api.post(`/pendaftar/pembayaran/${pembayaranId}/reject-payment`)
+      await Promise.all([
+        pendaftarApi.list({}).then(res => setData(res.data)),
+        api.get('/pembayaran-pending').then(res => setPendingPembayaran(res.data.data || [])),
+      ])
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setRejectingId(null)
+    }
+  }
+
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       {/* Header */}
@@ -236,11 +259,10 @@ export default function Tagihan() {
           onClick={() => setShowPendingModal(true)}
           className="relative inline-flex items-center gap-2 rounded-md bg-white border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
         >
-          <Bell size={16} />
           <span>Verifikasi</span>
           {pendingPembayaran.length > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow">
-              {pendingPembayaran.length}
+            <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+              {new Set(pendingPembayaran.map((pp: any) => pp.pendaftar_id)).size}
             </span>
           )}
         </button>
@@ -377,11 +399,9 @@ export default function Tagihan() {
                             {pendingPembayaran.some((pp: any) => pp.pendaftar_id === p.id) && (
                               <button
                                 onClick={() => setShowPendingModal(true)}
-                                className="relative ml-1 inline-flex items-center justify-center"
-                              >
-                                <Bell size={14} className="text-amber-500" />
-                                <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500 ring-1 ring-white" />
-                              </button>
+                                title="Ada pembayaran menunggu verifikasi"
+                                className="h-2.5 w-2.5 rounded-full bg-red-500 shrink-0"
+                              />
                             )}
                           </div>
                           <div className="text-[10px] text-slate-500 truncate">{p.email}</div>
@@ -634,7 +654,7 @@ export default function Tagihan() {
                         )}
                         <button
                           onClick={() => handleVerifyPembayaran(pp.pendaftar_id)}
-                          disabled={verifyingId === pp.pendaftar_id}
+                          disabled={verifyingId === pp.pendaftar_id || rejectingId === pp.id}
                           className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-[10px] font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
                         >
                           {verifyingId === pp.pendaftar_id ? (
@@ -643,12 +663,48 @@ export default function Tagihan() {
                             <><Check size={12} /> Verifikasi</>
                           )}
                         </button>
+                        <button
+                          onClick={() => setConfirmRejectId(pp.id)}
+                          disabled={verifyingId === pp.pendaftar_id || rejectingId === pp.id}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-[10px] font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
+                        >
+                          <XCircle size={12} /> Tolak
+                        </button>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {confirmRejectId !== null && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => setConfirmRejectId(null)}>
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
+              <AlertCircle size={24} className="text-red-500" />
+            </div>
+            <h3 className="text-center text-sm font-bold text-slate-800">Tolak Pembayaran?</h3>
+            <p className="mt-2 text-center text-xs text-slate-500">
+              Pembayaran ini akan ditolak dan dihapus. Tindakan ini tidak dapat dibatalkan.
+            </p>
+            <div className="mt-5 flex gap-3">
+              <button
+                onClick={() => setConfirmRejectId(null)}
+                className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Batal
+              </button>
+              <button
+                onClick={() => handleRejectPembayaran(confirmRejectId)}
+                disabled={rejectingId === confirmRejectId}
+                className="flex-1 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
+              >
+                {rejectingId === confirmRejectId ? 'Menolak...' : 'Ya, Tolak'}
+              </button>
+            </div>
           </div>
         </div>
       )}

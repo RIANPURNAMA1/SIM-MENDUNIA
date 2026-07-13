@@ -85,34 +85,6 @@ import AdminCabangTagihan from './pages/AdminCabang/AdminCabangTagihan'
 import AdminCabangDataKandidat from './pages/AdminCabang/AdminCabangDataKandidat'
 import AdminCabangPendaftaran from './pages/AdminCabang/AdminCabangPendaftaran'
 
-function AccessDenied({ role }: { role: string }) {
-  const map: Record<string, { link: string; label: string }> = {
-    AFFILIATE: { link: '/affiliate-dashboard', label: 'Dashboard Affiliate' },
-    KANDIDAT: { link: '/siswa-dashboard', label: 'Dashboard Pendaftaran' },
-    KARYAWAN: { link: '/dashboard-karyawan', label: 'Dashboard Karyawan' },
-    GURU: { link: '/guru-dashboard', label: 'Dashboard Guru' },
-    ADMIN_CABANG: { link: '/admin-cabang', label: 'Dashboard Admin Cabang' },
-  }
-  const info = map[role] || { link: '/login', label: 'Dashboard' }
-  return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-red-500 mb-4">403</h1>
-        <h2 className="text-xl font-semibold text-slate-800 mb-2">Akses Ditolak</h2>
-        <p className="text-slate-500 mb-6">
-          Halaman ini hanya untuk administrator. Silakan gunakan menu yang tersedia di {info.label.toLowerCase()} Anda.
-        </p>
-        <a
-          href={info.link}
-          className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          Kembali ke {info.label}
-        </a>
-      </div>
-    </div>
-  )
-}
-
 function ProtectedRoute({ children, roleAllowed, roleBlocked }: { children: React.ReactNode; roleAllowed?: string; roleBlocked?: string[] }) {
   const { user, isAuthenticated, isLoading } = useAuth()
 
@@ -135,15 +107,33 @@ function ProtectedRoute({ children, roleAllowed, roleBlocked }: { children: Reac
   }
 
   if (roleAllowed && user?.role !== roleAllowed) {
-    return <AccessDenied role={roleAllowed} />
+    const map: Record<string, string> = {
+      AFFILIATE: '/affiliate-dashboard',
+      KANDIDAT: '/siswa-dashboard',
+      KARYAWAN: '/dashboard-karyawan',
+      GURU: '/guru-dashboard',
+      ADMIN_CABANG: '/admin-cabang',
+    }
+    return <Navigate to={map[user?.role || ''] || '/login'} replace />
   }
 
   if (roleBlocked && user?.role && roleBlocked.includes(user.role)) {
-    return <AccessDenied role={user.role} />
+    const map: Record<string, string> = {
+      AFFILIATE: '/affiliate-dashboard',
+      KANDIDAT: '/siswa-dashboard',
+      KARYAWAN: '/dashboard-karyawan',
+      GURU: '/guru-dashboard',
+      ADMIN_CABANG: '/admin-cabang',
+    }
+    return <Navigate to={map[user.role] || '/login'} replace />
   }
 
   if (!roleAllowed && !roleBlocked && (user?.role === 'AFFILIATE' || user?.role === 'KANDIDAT')) {
-    return <AccessDenied role={user.role} />
+    const map: Record<string, string> = {
+      AFFILIATE: '/affiliate-dashboard',
+      KANDIDAT: '/siswa-dashboard',
+    }
+    return <Navigate to={map[user?.role || ''] || '/login'} replace />
   }
 
   return <>{children}</>

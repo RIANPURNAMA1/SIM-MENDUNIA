@@ -10,6 +10,7 @@ class NotificationSetting extends Model
         'key',
         'is_enabled',
         'description',
+        'value',
     ];
 
     protected $casts = [
@@ -23,5 +24,14 @@ class NotificationSetting extends Model
     {
         $setting = self::where('key', $key)->first();
         return $setting ? $setting->is_enabled : true;
+    }
+
+    /**
+     * Ambil value dari setting tertentu
+     */
+    public static function getValue($key, $default = null)
+    {
+        $setting = self::where('key', $key)->first();
+        return $setting ? $setting->value : $default;
     }
 }

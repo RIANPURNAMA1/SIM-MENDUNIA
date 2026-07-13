@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Search, CheckCircle, XCircle, FileText, Eye, Trash2, CheckSquare, RotateCcw, Users, CreditCard, X, Loader, AlertTriangle, DollarSign, Upload } from 'lucide-react'
+import { Search, CheckCircle, XCircle, FileText, Eye, Trash2, CheckSquare, RotateCcw, Users, CreditCard, X, Loader, AlertTriangle, DollarSign, Upload, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { pendaftarApi, pendaftarApi as apiModule } from '../../services/api'
 import api from '../../services/api'
 
@@ -22,6 +22,7 @@ interface PendaftarItem {
   product: { nama: string } | null
   user: { id: number; name: string } | null
   batch: { id: number; nama_batch: string } | null
+  affiliate_link?: { affiliate: { id: number; name: string; email: string } | null } | null
 }
 
 interface ConfirmModal {
@@ -51,6 +52,8 @@ export default function Pendaftar() {
   const [bayarError, setBayarError] = useState('')
   const [kategoris, setKategoris] = useState<{ id: number; kode: string; nama: string; urutan: number }[]>([])
   const [kategoriItems, setKategoriItems] = useState<Record<number, { kategori_id: number; biaya: number; dibayar: number }[]>>({})
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(25)
 
   useEffect(() => {
     fetchData()
@@ -60,7 +63,7 @@ export default function Pendaftar() {
     setLoading(true)
     Promise.all([
       pendaftarApi.list({}),
-      api.get('/biaya-kategori'),
+      api.get('/biaya-kategori-flat'),
     ]).then(([res, katRes]) => {
       setData(res.data)
       setKategoris(katRes.data || [])
@@ -152,6 +155,7 @@ export default function Pendaftar() {
     setFilterDaftar('')
     setFilterBayar('')
     setFilterBatch('')
+    setPage(1)
   }
 
   const filtered = useMemo(() => {
@@ -163,6 +167,10 @@ export default function Pendaftar() {
       return matchSearch && matchDaftar && matchBayar && matchBatch
     })
   }, [data, search, filterDaftar, filterBayar, filterBatch])
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage))
+  const safePage = Math.min(page, totalPages)
+  const pagedList = filtered.slice((safePage - 1) * perPage, safePage * perPage)
 
   const batchList = useMemo(() => {
     const set = new Set<string>()
@@ -259,25 +267,25 @@ export default function Pendaftar() {
               type="text"
               placeholder="Cari nama/email..."
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={e => { setSearch(e.target.value); setPage(1) }}
               className="w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
           </div>
-          <select value={filterDaftar} onChange={e => setFilterDaftar(e.target.value)}
+          <select value={filterDaftar} onChange={e => { setFilterDaftar(e.target.value); setPage(1) }}
             className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
             <option value="">Semua Status Daftar</option>
             <option value="pending">Pending</option>
             <option value="disetujui">Disetujui</option>
             <option value="ditolak">Ditolak</option>
           </select>
-          <select value={filterBayar} onChange={e => setFilterBayar(e.target.value)}
+          <select value={filterBayar} onChange={e => { setFilterBayar(e.target.value); setPage(1) }}
             className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
             <option value="">Semua Status Bayar</option>
             <option value="unpaid">Belum Bayar</option>
             <option value="processing">Proses</option>
             <option value="verified">Terverifikasi</option>
           </select>
-          <select value={filterBatch} onChange={e => setFilterBatch(e.target.value)}
+          <select value={filterBatch} onChange={e => { setFilterBatch(e.target.value); setPage(1) }}
             className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
             <option value="">Semua Batch</option>
             {batchList.map(b => (
@@ -303,6 +311,7 @@ export default function Pendaftar() {
               <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">No. Registrasi</th>
               <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Program</th>
               <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Batch</th>
+              <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Affiliate</th>
               <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium">Nominal</th>
               <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium">Diskon</th>
               <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Status Daftar</th>
@@ -315,7 +324,7 @@ export default function Pendaftar() {
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i}>
-                  <td colSpan={10} className="border border-slate-200 px-4 py-3">
+                  <td colSpan={11} className="border border-slate-200 px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="h-8 w-8 rounded-full bg-slate-200/70" />
                       <div className="flex-1 space-y-2">
@@ -326,9 +335,9 @@ export default function Pendaftar() {
                   </td>
                 </tr>
               ))
-            ) : filtered.length === 0 ? (
+            ) : pagedList.length === 0 ? (
               <tr>
-                <td colSpan={10} className="border border-slate-200 px-6 py-10 text-center">
+                <td colSpan={11} className="border border-slate-200 px-6 py-10 text-center">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
                     <Users size={24} />
                   </div>
@@ -336,7 +345,7 @@ export default function Pendaftar() {
                 </td>
               </tr>
             ) : (
-              filtered.map(p => (
+              pagedList.map(p => (
                 <tr key={p.id} className="bg-white transition hover:bg-slate-50">
                   <td className="border border-slate-200 px-4 py-3">
                     <div className="flex items-center gap-3">
@@ -356,6 +365,9 @@ export default function Pendaftar() {
                   </td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">{p.product?.nama || '-'}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">{p.batch?.nama_batch || '-'}</td>
+                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">
+                    {p.affiliate_link?.affiliate?.name || <span className="text-slate-300">-</span>}
+                  </td>
                   <td className="border border-slate-200 px-4 py-3 text-right text-sm font-medium text-slate-800">
                     {p.nominal ? `Rp ${Number(p.nominal).toLocaleString('id-ID')}` : '-'}
                   </td>
@@ -416,9 +428,88 @@ export default function Pendaftar() {
           </tbody>
         </table>
         <div className="border-t border-slate-200 px-4 py-3 text-sm text-slate-500">
-          Menampilkan {filtered.length} dari {data.length} pendaftar
+          Menampilkan {pagedList.length} dari {filtered.length} pendaftar
         </div>
       </div>
+
+      {/* Pagination */}
+      {!loading && filtered.length > 0 && (
+        <div className="mt-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3 text-sm text-slate-500">
+            <span>Per halaman</span>
+            <select
+              value={perPage}
+              onChange={e => { setPerPage(Number(e.target.value)); setPage(1) }}
+              className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            >
+              {[10, 25, 50, 100].map(n => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage(1)}
+              disabled={safePage <= 1}
+              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <ChevronsLeft size={16} />
+            </button>
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={safePage <= 1}
+              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            {(() => {
+              const pages: (number | '...')[] = []
+              if (totalPages <= 7) {
+                for (let i = 1; i <= totalPages; i++) pages.push(i)
+              } else {
+                pages.push(1)
+                if (safePage > 3) pages.push('...')
+                const start = Math.max(2, safePage - 1)
+                const end = Math.min(totalPages - 1, safePage + 1)
+                for (let i = start; i <= end; i++) pages.push(i)
+                if (safePage < totalPages - 2) pages.push('...')
+                pages.push(totalPages)
+              }
+              return pages.map((p, i) =>
+                p === '...' ? (
+                  <span key={`dots-${i}`} className="px-1 text-sm text-slate-300">...</span>
+                ) : (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p)}
+                    className={`min-w-[32px] rounded-md border px-2 py-1.5 text-sm font-medium transition ${
+                      p === safePage
+                        ? 'border-slate-200 bg-slate-800 text-white'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                )
+              )
+            })()}
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <ChevronRight size={16} />
+            </button>
+            <button
+              onClick={() => setPage(totalPages)}
+              disabled={safePage >= totalPages}
+              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <ChevronsRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Riwayat Pembayaran Modal */}
       {riwayatModal && (

@@ -13,6 +13,16 @@ class BiayaController extends Controller
 {
     public function kategoriIndex()
     {
+        $all = BiayaKategori::orderBy('urutan')->get();
+        $parents = $all->filter(fn($k) => !$k->parent_id)->values();
+        foreach ($parents as $parent) {
+            $parent->children = $all->filter(fn($k) => $k->parent_id === $parent->id)->values();
+        }
+        return response()->json($parents);
+    }
+
+    public function kategoriIndexFlat()
+    {
         return response()->json(BiayaKategori::orderBy('urutan')->get());
     }
 
@@ -22,12 +32,16 @@ class BiayaController extends Controller
             'nama' => 'required|string|max:100',
             'kode' => 'required|string|max:50|unique:biaya_kategoris,kode',
             'urutan' => 'nullable|integer|min:0',
+            'deskripsi' => 'nullable|string',
+            'parent_id' => 'nullable|integer|exists:biaya_kategoris,id',
         ]);
 
         $kategori = BiayaKategori::create([
             'nama' => $request->nama,
             'kode' => strtoupper($request->kode),
             'urutan' => $request->urutan ?? 0,
+            'deskripsi' => $request->deskripsi,
+            'parent_id' => $request->parent_id,
         ]);
 
         return response()->json([
@@ -45,12 +59,16 @@ class BiayaController extends Controller
             'nama' => 'required|string|max:100',
             'kode' => 'required|string|max:50|unique:biaya_kategoris,kode,' . $id,
             'urutan' => 'nullable|integer|min:0',
+            'deskripsi' => 'nullable|string',
+            'parent_id' => 'nullable|integer|exists:biaya_kategoris,id',
         ]);
 
         $kategori->update([
             'nama' => $request->nama,
             'kode' => strtoupper($request->kode),
             'urutan' => $request->urutan ?? $kategori->urutan,
+            'deskripsi' => $request->deskripsi,
+            'parent_id' => $request->parent_id,
         ]);
 
         return response()->json([

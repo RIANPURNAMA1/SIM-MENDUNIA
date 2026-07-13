@@ -1,5 +1,6 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { useParams } from "react-router-dom";
+import Swal from "sweetalert2";
 import api, { productApi, pendaftarApi, couponApi, batchApi } from "../../services/api";
 import {
   GraduationCap,
@@ -12,6 +13,7 @@ import {
   LogIn,
   FileText,
   X,
+  Loader,
 } from "lucide-react";
 
 interface Product {
@@ -76,10 +78,22 @@ export default function DaftarProgram() {
   const [fileError, setFileError] = useState("");
   const [biayaKategoris, setBiayaKategoris] = useState<BiayaKategori[]>([]);
 
+  const [provinsi, setProvinsi] = useState("");
+  const [kabupaten, setKabupaten] = useState("");
+  const [kecamatan, setKecamatan] = useState("");
+  const [desa, setDesa] = useState("");
+  const [provinces, setProvinces] = useState<{ id: string; name: string }[]>([]);
+  const [regencies, setRegencies] = useState<{ id: string; name: string }[]>([]);
+  const [districts, setDistricts] = useState<{ id: string; name: string }[]>([]);
+  const [villages, setVillages] = useState<{ id: string; name: string }[]>([]);
+  const [loadingRegencies, setLoadingRegencies] = useState(false);
+  const [loadingDistricts, setLoadingDistricts] = useState(false);
+  const [loadingVillages, setLoadingVillages] = useState(false);
+
   useEffect(() => {
     Promise.all([
       productApi.list(),
-      api.get('/biaya-kategori'),
+      api.get('/biaya-kategori-flat'),
     ])
       .then(([prodRes, katRes]) => {
         const active = prodRes.data.filter((p: Product) => p.status !== "nonaktif");
@@ -117,6 +131,40 @@ export default function DaftarProgram() {
     setPreviewUrl(null);
   }, [bukti]);
 
+  useEffect(() => {
+    fetch("https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json")
+      .then(r => r.json())
+      .then((data: { id: string; name: string }[]) => setProvinces(data))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!provinsi) { setRegencies([]); setKabupaten(""); setDistricts([]); setKecamatan(""); setVillages([]); setDesa(""); return; }
+    setLoadingRegencies(true);
+    fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${provinsi}.json`)
+      .then(r => r.json())
+      .then((data: { id: string; name: string }[]) => { setRegencies(data); setLoadingRegencies(false); })
+      .catch(() => setLoadingRegencies(false));
+  }, [provinsi]);
+
+  useEffect(() => {
+    if (!kabupaten) { setDistricts([]); setKecamatan(""); setVillages([]); setDesa(""); return; }
+    setLoadingDistricts(true);
+    fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${kabupaten}.json`)
+      .then(r => r.json())
+      .then((data: { id: string; name: string }[]) => { setDistricts(data); setLoadingDistricts(false); })
+      .catch(() => setLoadingDistricts(false));
+  }, [kabupaten]);
+
+  useEffect(() => {
+    if (!kecamatan) { setVillages([]); setDesa(""); return; }
+    setLoadingVillages(true);
+    fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${kecamatan}.json`)
+      .then(r => r.json())
+      .then((data: { id: string; name: string }[]) => { setVillages(data); setLoadingVillages(false); })
+      .catch(() => setLoadingVillages(false));
+  }, [kecamatan]);
+
   async function cekKupon() {
     if (!kodeKupon || !selectedProduct) return;
     try {
@@ -149,6 +197,10 @@ export default function DaftarProgram() {
       formData.append("password", password);
       if (telepon) formData.append("telepon", telepon);
       if (alamat) formData.append("alamat", alamat);
+      if (provinsi) formData.append("provinsi", provinces.find(p => p.id === provinsi)?.name || provinsi);
+      if (kabupaten) formData.append("kabupaten", regencies.find(r => r.id === kabupaten)?.name || kabupaten);
+      if (kecamatan) formData.append("kecamatan", districts.find(d => d.id === kecamatan)?.name || kecamatan);
+      if (desa) formData.append("desa", villages.find(v => v.id === desa)?.name || desa);
       if (bankAsal) formData.append("bank_asal", bankAsal);
       if (namaRekening) formData.append("nama_rekening", namaRekening);
       if (batchId) formData.append("batch_id", batchId);
@@ -156,10 +208,16 @@ export default function DaftarProgram() {
       formData.append("bukti_pembayaran", bukti!);
 
       await pendaftarApi.daftarLangsung(formData);
-      setSuccess(true);
-      setTimeout(() => {
-        window.location.href = '/login'
-      }, 1500)
+      await Swal.fire({
+        icon: "success",
+        title: "Pendaftaran Berhasil!",
+        text: "Silakan login untuk melanjutkan.",
+        confirmButtonColor: "#0D1F3C",
+        timer: 2000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      });
+      window.location.href = '/login'
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data
@@ -534,6 +592,57 @@ export default function DaftarProgram() {
                                 rows={3}
                                 className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm resize-none"
                               />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Provinsi</label>
+                                <select
+                                  value={provinsi}
+                                  onChange={(e) => { setProvinsi(e.target.value); setKabupaten(""); setKecamatan(""); setDesa(""); }}
+                                  className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                                >
+                                  <option value="">Pilih Provinsi</option>
+                                  {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Kabupaten / Kota</label>
+                                <select
+                                  value={kabupaten}
+                                  onChange={(e) => { setKabupaten(e.target.value); setKecamatan(""); setDesa(""); }}
+                                  disabled={!provinsi || loadingRegencies}
+                                  className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm disabled:bg-gray-50 disabled:text-gray-400"
+                                >
+                                  <option value="">{loadingRegencies ? 'Memuat...' : 'Pilih Kabupaten'}</option>
+                                  {regencies.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                </select>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Kecamatan</label>
+                                <select
+                                  value={kecamatan}
+                                  onChange={(e) => { setKecamatan(e.target.value); setDesa(""); }}
+                                  disabled={!kabupaten || loadingDistricts}
+                                  className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm disabled:bg-gray-50 disabled:text-gray-400"
+                                >
+                                  <option value="">{loadingDistricts ? 'Memuat...' : 'Pilih Kecamatan'}</option>
+                                  {districts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Desa / Kelurahan</label>
+                                <select
+                                  value={desa}
+                                  onChange={(e) => setDesa(e.target.value)}
+                                  disabled={!kecamatan || loadingVillages}
+                                  className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm disabled:bg-gray-50 disabled:text-gray-400"
+                                >
+                                  <option value="">{loadingVillages ? 'Memuat...' : 'Pilih Desa'}</option>
+                                  {villages.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                                </select>
+                              </div>
                             </div>
                           </div>
                         </div>

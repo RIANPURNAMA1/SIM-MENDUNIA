@@ -296,6 +296,7 @@ export const affiliateLinkApi = {
   destroy: (id: number) => api.delete(`/affiliate-links/${id}`),
   getByKode: (kode: string) => api.get(`/affiliate-link/${kode}`),
   listAffiliates: () => api.get('/affiliates/list'),
+  detail: (id: number) => api.get(`/affiliates/${id}/detail`),
   myStore: (data: { product_id: number; nama_link?: string }) => api.post('/affiliate/my-links', data),
   availableProducts: () => api.get('/affiliate/products-aktif'),
 }
@@ -365,6 +366,7 @@ export const adminCabangApi = {
   savePembayaranItem: (pendaftarId: number, items: { kategori_id: number; jumlah: number }[]) =>
     api.post(`/admin-cabang/pembayaran-item/${pendaftarId}`, { items }),
   verifyPayment: (id: number) => api.post(`/admin-cabang/pendaftar/${id}/verify-payment`),
+  rejectPayment: (pembayaranId: number) => api.post(`/admin-cabang/pendaftar/pembayaran/${pembayaranId}/reject-payment`),
   invoice: (id: number) => api.get(`/admin-cabang/pendaftar/${id}/invoice`),
   riwayatPembayaran: (id: number) => api.get(`/admin-cabang/pendaftar/${id}/riwayat-pembayaran`),
   bayarManual: (id: number, data: { jumlah: number; kategori_id: number }) =>

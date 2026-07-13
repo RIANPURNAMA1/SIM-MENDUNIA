@@ -71,6 +71,10 @@ class PendaftaranController extends Controller
             'password' => 'required|min:6',
             'telepon' => 'required|string|max:20',
             'alamat' => 'required|string',
+            'provinsi' => 'nullable|string|max:255',
+            'kabupaten' => 'nullable|string|max:255',
+            'kecamatan' => 'nullable|string|max:255',
+            'desa' => 'nullable|string|max:255',
             'bank_asal' => 'required|string|max:100',
             'nama_rekening' => 'required|string|max:255',
             'nominal' => 'required|numeric|min:0',
@@ -98,6 +102,10 @@ class PendaftaranController extends Controller
             'password' => $user->password,
             'telepon' => $data['telepon'],
             'alamat' => $data['alamat'],
+            'provinsi' => $data['provinsi'] ?? null,
+            'kabupaten' => $data['kabupaten'] ?? null,
+            'kecamatan' => $data['kecamatan'] ?? null,
+            'desa' => $data['desa'] ?? null,
             'bank_asal' => $data['bank_asal'],
             'nama_rekening' => $data['nama_rekening'],
             'nominal' => $data['nominal'],
@@ -324,24 +332,33 @@ class PendaftaranController extends Controller
 
     public function verifyPayment($id)
     {
-        $pendaftar = Pendaftar::findOrFail($id);
+        $pendaftar = Pendaftar::with('user')->findOrFail($id);
         $pendaftar->update(['status_pembayaran' => 'verified']);
 
-        $pembayarans = Pembayaran::where('pendaftar_id', $pendaftar->id)
+        $pembayarans = Pembayaran::with('kategori')->where('pendaftar_id', $pendaftar->id)
             ->where('status', 'pending')
             ->get();
 
         foreach ($pembayarans as $p) {
             $p->update(['status' => 'verified']);
-            if ($p->kategori_id) {
-                PembayaranItem::updateOrCreate(
-                    [
-                        'pendaftar_id' => $pendaftar->id,
-                        'kategori_id' => $p->kategori_id,
-                    ],
-                    ['jumlah' => $p->jumlah]
-                );
-            }
+        }
+
+        // Recalculate PembayaranItem: SUM total verified per kategori
+        $verifiedByKategori = Pembayaran::where('pendaftar_id', $pendaftar->id)
+            ->where('status', 'verified')
+            ->whereNotNull('kategori_id')
+            ->selectRaw('kategori_id, SUM(jumlah) as total')
+            ->groupBy('kategori_id')
+            ->get();
+
+        foreach ($verifiedByKategori as $vb) {
+            PembayaranItem::updateOrCreate(
+                [
+                    'pendaftar_id' => $pendaftar->id,
+                    'kategori_id' => $vb->kategori_id,
+                ],
+                ['jumlah' => $vb->total]
+            );
         }
 
         // Sync total nominal
@@ -351,7 +368,80 @@ class PendaftaranController extends Controller
 
         $this->cekDanCatatKomisiAffiliate($pendaftar->fresh());
 
+        // Kirim notifikasi WA ke kandidat
+        try {
+            $waService = new \App\Services\WhatsAppService();
+            $kategoriNama = $pembayarans->first()?->kategori?->nama ?? 'Pembayaran';
+            $waService->sendPaymentVerifiedNotification(
+                $pendaftar->fresh()->load('user'),
+                $kategoriNama,
+                'verified'
+            );
+        } catch (\Exception $e) {
+            \Log::error('Gagal kirim notifikasi WA verifikasi: ' . $e->getMessage());
+        }
+
         return response()->json(['message' => 'Pembayaran terverifikasi']);
+    }
+
+    /**
+     * Tolak pembayaran (hapus record pending)
+     */
+    public function rejectPayment($pembayaranId)
+    {
+        $pembayaran = Pembayaran::with('pendaftar')->findOrFail($pembayaranId);
+
+        if ($pembayaran->status !== 'pending') {
+            return response()->json(['message' => 'Hanya pembayaran pending yang bisa ditolak'], 422);
+        }
+
+        $pendaftar = $pembayaran->pendaftar;
+        $kategoriId = $pembayaran->kategori_id;
+        $jumlah = $pembayaran->jumlah;
+
+        // Hapus record pembayaran
+        $pembayaran->delete();
+
+        // Kurangi nominal pendaftar
+        if ($pendaftar) {
+            $pendaftar->decrement('nominal', $jumlah);
+        }
+
+        // Recalculate PembayaranItem: SUM total verified per kategori
+        if ($kategoriId && $pendaftar) {
+            $totalVerified = Pembayaran::where('pendaftar_id', $pendaftar->id)
+                ->where('kategori_id', $kategoriId)
+                ->where('status', 'verified')
+                ->sum('jumlah');
+
+            if ($totalVerified > 0) {
+                PembayaranItem::updateOrCreate(
+                    ['pendaftar_id' => $pendaftar->id, 'kategori_id' => $kategoriId],
+                    ['jumlah' => $totalVerified]
+                );
+            } else {
+                PembayaranItem::where('pendaftar_id', $pendaftar->id)
+                    ->where('kategori_id', $kategoriId)
+                    ->delete();
+            }
+        }
+
+        // Kirim notifikasi WA ke kandidat
+        try {
+            if ($pendaftar) {
+                $waService = new \App\Services\WhatsAppService();
+                $kategoriNama = $pembayaran->kategori?->nama ?? 'Pembayaran';
+                $waService->sendPaymentVerifiedNotification(
+                    $pendaftar->fresh()->load('user'),
+                    $kategoriNama,
+                    'ditolak'
+                );
+            }
+        } catch (\Exception $e) {
+            \Log::error('Gagal kirim notifikasi WA reject: ' . $e->getMessage());
+        }
+
+        return response()->json(['message' => 'Pembayaran ditolak dan dihapus']);
     }
 
     public function pendingCount()
@@ -493,9 +583,11 @@ class PendaftaranController extends Controller
             'bukti_pembayaran' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
         ]);
 
-        $pendaftar = Pendaftar::findOrFail($id);
+        $pendaftar = Pendaftar::with('batch')->findOrFail($id);
 
         $filePath = $request->file('bukti_pembayaran')->store('bukti_pembayaran', 'public');
+
+        $kategori = BiayaKategori::find($request->kategori_id);
 
         Pembayaran::create([
             'pendaftar_id' => $pendaftar->id,
@@ -509,8 +601,112 @@ class PendaftaranController extends Controller
         $pendaftar->status_pembayaran = 'processing';
         $pendaftar->save();
 
+        // Kirim notifikasi WA ke admin
+        try {
+            $waService = new \App\Services\WhatsAppService();
+            $waService->sendPaymentNotificationToAdmin(
+                $pendaftar->fresh()->load('batch'),
+                $request->jumlah,
+                $kategori?->nama ?? 'Tidak Diketahui',
+                $filePath
+            );
+        } catch (\Exception $e) {
+            \Log::error('Gagal kirim notifikasi WA pembayaran: ' . $e->getMessage());
+        }
+
         return response()->json([
             'message' => 'Pembayaran berhasil dikirim, menunggu verifikasi admin',
+            'pendaftar' => $pendaftar->fresh()->load('product.biayaKategoris'),
+        ]);
+    }
+
+    /**
+     * Bayar semua tahapan sekaligus — distribusi otomatis ke kategori berikutnya
+     */
+    public function bayarAll(Request $request, $id)
+    {
+        $request->validate([
+            'jumlah' => 'required|numeric|min:1',
+            'bukti_pembayaran' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
+        ]);
+
+        $pendaftar = Pendaftar::with('batch', 'product.biayaKategoris')->findOrFail($id);
+        $filePath = $request->file('bukti_pembayaran')->store('bukti_pembayaran', 'public');
+
+        // Ambil semua kategori biaya, urutkan
+        $kategoris = BiayaKategori::orderBy('urutan')->get();
+
+        // Ambil biaya per kategori dari product pivot
+        $pivotHarga = collect();
+        if ($pendaftar->product && $pendaftar->product->relationLoaded('biayaKategoris')) {
+            $pivotHarga = $pendaftar->product->biayaKategoris->keyBy('id')->map(fn($k) => (int) $k->pivot->harga);
+        }
+
+        // Ambil sudah dibayar per kategori
+        $existingItems = PembayaranItem::where('pendaftar_id', $pendaftar->id)
+            ->get()
+            ->keyBy('kategori_id');
+
+        $sisa = (int) $request->jumlah;
+        $createdPayments = [];
+        $detailPerKategori = [];
+
+        foreach ($kategoris as $k) {
+            if ($sisa <= 0) break;
+
+            $biaya = $pivotHarga->get($k->id, 0);
+            if ($biaya <= 0) continue;
+
+            $sudahBayar = $existingItems->has($k->id) ? (int) $existingItems->get($k->id)->jumlah : 0;
+            $kurang = $biaya - $sudahBayar;
+
+            if ($kurang <= 0) continue; // sudah lunas
+
+            $bayar = min($sisa, $kurang);
+            $sisa -= $bayar;
+
+            // Simpan Pembayaran (status pending, belum update PembayaranItem)
+            $pembayaran = Pembayaran::create([
+                'pendaftar_id' => $pendaftar->id,
+                'jumlah' => $bayar,
+                'kategori_id' => $k->id,
+                'bukti_pembayaran' => $filePath,
+                'status' => 'pending',
+            ]);
+            $createdPayments[] = $pembayaran;
+
+            $detailPerKategori[] = [
+                'kategori' => $k->nama,
+                'biaya' => $biaya,
+                'dibayar_sebelumnya' => $sudahBayar,
+                'dibayar_sekarang' => $bayar,
+                'total_dibayar' => $sudahBayar + $bayar,
+                'lunas' => ($sudahBayar + $bayar) >= $biaya,
+            ];
+        }
+
+        // Update pendaftar
+        $pendaftar->increment('nominal', $request->jumlah - $sisa); // jumlah aktual yang terserap
+        $pendaftar->status_pembayaran = 'processing';
+        $pendaftar->save();
+
+        // Kirim notifikasi WA ke admin
+        try {
+            $waService = new \App\Services\WhatsAppService();
+            $waService->sendPaymentNotificationToAdmin(
+                $pendaftar->fresh()->load('batch'),
+                $request->jumlah - $sisa,
+                'Pembayaran Multi Tahap',
+                $filePath
+            );
+        } catch (\Exception $e) {
+            \Log::error('Gagal kirim notifikasi WA bayarAll: ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'message' => 'Pembayaran berhasil didistribusikan ke ' . count($detailPerKategori) . ' kategori',
+            'detail' => $detailPerKategori,
+            'sisa_kembali' => $sisa,
             'pendaftar' => $pendaftar->fresh()->load('product.biayaKategoris'),
         ]);
     }
@@ -522,7 +718,9 @@ class PendaftaranController extends Controller
             'kategori_id' => 'required|exists:biaya_kategoris,id',
         ]);
 
-        $pendaftar = Pendaftar::with('product.biayaKategoris')->findOrFail($id);
+        $pendaftar = Pendaftar::with('product.biayaKategoris', 'user', 'batch')->findOrFail($id);
+
+        $kategori = BiayaKategori::find($request->kategori_id);
 
         $pendaftar->increment('nominal', $request->jumlah);
 
@@ -545,16 +743,33 @@ class PendaftaranController extends Controller
             'status' => 'verified',
         ]);
 
-        // Update PembayaranItem
+        // Update PembayaranItem — SUM total verified per kategori
+        $totalPerKategori = Pembayaran::where('pendaftar_id', $pendaftar->id)
+            ->where('status', 'verified')
+            ->where('kategori_id', $request->kategori_id)
+            ->sum('jumlah');
+
         PembayaranItem::updateOrCreate(
             [
                 'pendaftar_id' => $pendaftar->id,
                 'kategori_id' => $request->kategori_id,
             ],
-            ['jumlah' => $request->jumlah]
+            ['jumlah' => $totalPerKategori]
         );
 
         $this->cekDanCatatKomisiAffiliate($pendaftar->fresh());
+
+        // Kirim notifikasi WA ke kandidat (manual = langsung verified)
+        try {
+            $waService = new \App\Services\WhatsAppService();
+            $waService->sendPaymentVerifiedNotification(
+                $pendaftar->fresh()->load('user'),
+                $kategori?->nama ?? 'Pembayaran',
+                'verified'
+            );
+        } catch (\Exception $e) {
+            \Log::error('Gagal kirim notifikasi WA bayar manual: ' . $e->getMessage());
+        }
 
         return response()->json([
             'message' => 'Pembayaran manual berhasil dicatat',
@@ -773,6 +988,7 @@ class PendaftaranController extends Controller
                     'nama' => $p->nama,
                     'email' => $p->email,
                     'program' => $p->product?->nama ?? '-',
+                    'created_at' => $p->created_at->toDateString(),
                     'total_biaya' => $totalBiaya,
                     'total_dibayar' => $totalDibayar,
                     'total_sisa' => max(0, $totalBiaya - $totalDibayar),
@@ -1054,26 +1270,43 @@ class PendaftaranController extends Controller
         $product = $pendaftar->product;
         if (!$product) return;
 
-        $product->load('biayaKategoris');
+        $product->load(['biayaKategoris', 'komisiTiers']);
         if ($product->biayaKategoris->isEmpty()) return;
 
+        $batchCount = \App\Models\Pendaftar::where('affiliate_link_id', $pendaftar->affiliate_link_id)
+            ->where('batch_id', $pendaftar->batch_id)
+            ->count();
+
         foreach ($product->biayaKategoris as $kategori) {
-            $komisiPerKategori = (float) ($kategori->pivot->komisi ?? 0);
-            if ($komisiPerKategori <= 0) continue;
+            $hargaKategori = (float) $kategori->pivot->harga;
+            if ($hargaKategori <= 0) continue;
 
             $existing = KomisiAffiliate::where('pendaftar_id', $pendaftar->id)
                 ->where('kategori_id', $kategori->id)
                 ->first();
             if ($existing) continue;
 
-            $hargaKategori = (float) $kategori->pivot->harga;
-            if ($hargaKategori <= 0) continue;
-
             $dibayar = PembayaranItem::where('pendaftar_id', $pendaftar->id)
                 ->where('kategori_id', $kategori->id)
                 ->sum('jumlah');
 
             if ($dibayar >= $hargaKategori) {
+                $komisiPerKategori = 0;
+
+                $tier = $product->komisiTiers
+                    ->where('kategori_id', $kategori->id)
+                    ->filter(fn($t) => $batchCount >= $t->min_orang && ($t->max_orang === null || $batchCount <= $t->max_orang))
+                    ->sortBy('min_orang')
+                    ->last();
+
+                if ($tier) {
+                    $komisiPerKategori = (float) $tier->komisi;
+                } else {
+                    $komisiPerKategori = (float) ($kategori->pivot->komisi ?? 0);
+                }
+
+                if ($komisiPerKategori <= 0) continue;
+
                 KomisiAffiliate::create([
                     'affiliate_link_id' => $pendaftar->affiliate_link_id,
                     'pendaftar_id' => $pendaftar->id,

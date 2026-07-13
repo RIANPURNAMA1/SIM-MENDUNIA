@@ -331,6 +331,7 @@ Route::prefix('affiliate-links')->group(function () {
 
 Route::get('/affiliates/list', [AffiliateLinkController::class, 'listAffiliates']);
 Route::get('/affiliates/stats', [AffiliateLinkController::class, 'affiliateStats']);
+Route::get('/affiliates/{id}/detail', [AffiliateLinkController::class, 'detailAffiliate']);
 // Public - daftar via affiliate link
 Route::post('/pendaftaran/daftar', [PendaftaranController::class, 'daftar']);
 Route::get('/affiliate-link/{kode}', [AffiliateLinkController::class, 'showByKode']);
@@ -348,7 +349,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{id}/approve', [PendaftaranController::class, 'approve']);
         Route::post('/{id}/reject', [PendaftaranController::class, 'reject']);
         Route::post('/{id}/verify-payment', [PendaftaranController::class, 'verifyPayment']);
+        Route::post('/pembayaran/{pembayaranId}/reject-payment', [PendaftaranController::class, 'rejectPayment']);
         Route::post('/{id}/bayar', [PendaftaranController::class, 'bayar']);
+        Route::post('/{id}/bayar-all', [PendaftaranController::class, 'bayarAll']);
         Route::post('/{id}/bayar-manual', [PendaftaranController::class, 'bayarManual']);
         Route::get('/pending-count', [PendaftaranController::class, 'pendingCount']);
         Route::get('/{id}/riwayat-pembayaran', [PendaftaranController::class, 'riwayatPembayaran']);
@@ -362,6 +365,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/biaya-kategori', [BiayaController::class, 'kategoriStore']);
     Route::put('/biaya-kategori/{id}', [BiayaController::class, 'kategoriUpdate']);
     Route::delete('/biaya-kategori/{id}', [BiayaController::class, 'kategoriDestroy']);
+    Route::get('/biaya-kategori-flat', [BiayaController::class, 'kategoriIndexFlat']);
     Route::get('/batch-biaya/{batchId}', [BiayaController::class, 'batchBiayaIndex']);
     Route::post('/batch-biaya/{batchId}', [BiayaController::class, 'batchBiayaStore']);
     Route::get('/pembayaran-item/{pendaftarId}', [BiayaController::class, 'pembayaranItemIndex']);
@@ -441,13 +445,15 @@ Route::prefix('admin-cabang')->middleware(['auth:sanctum'])->group(function () {
     Route::get('/pembayaran-item/{pendaftarId}', [BiayaController::class, 'pembayaranItemIndex']);
     Route::post('/pembayaran-item/{pendaftarId}', [BiayaController::class, 'pembayaranItemStore']);
     Route::post('/pendaftar/{id}/verify-payment', [PendaftaranController::class, 'verifyPayment']);
+    Route::post('/pendaftar/pembayaran/{pembayaranId}/reject-payment', [PendaftaranController::class, 'rejectPayment']);
     Route::get('/pendaftar/{id}/invoice', [PendaftaranController::class, 'invoice']);
     Route::get('/pendaftar/{id}/riwayat-pembayaran', [PendaftaranController::class, 'riwayatPembayaran']);
     Route::post('/pendaftar/{id}/bayar-manual', [PendaftaranController::class, 'bayarManual']);
+    Route::post('/pendaftar/{id}/bayar-all', [PendaftaranController::class, 'bayarAll']);
     Route::post('/pendaftar/{id}/update-kandidat', [PendaftaranController::class, 'updateKandidat']);
 
     // Biaya & Batch Biaya
-    Route::get('/biaya-kategori', [BiayaController::class, 'kategoriIndex']);
+    Route::get('/biaya-kategori', [BiayaController::class, 'kategoriIndexFlat']);
     Route::get('/batch-biaya/{batchId}', [BiayaController::class, 'batchBiayaIndex']);
 });
 

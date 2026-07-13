@@ -2,10 +2,11 @@ function fmt(n: number) {
   return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
 }
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { useLocation } from 'react-router-dom'
 import {
   Layers, ChevronDown, ChevronUp, Receipt, CheckCircle, Clock, AlertCircle, Loader,
-  X
+  X, RotateCcw, Calendar
 } from 'lucide-react'
 import api from '../../services/api'
 
@@ -29,6 +30,7 @@ interface RekapItem {
   nama: string
   email: string
   program: string
+  created_at: string
   total_biaya: number
   total_dibayar: number
   total_sisa: number
@@ -49,14 +51,20 @@ interface BatchRekap {
 }
 
 export default function RekapBatch() {
+  const location = useLocation()
+  const isAdminCabang = location.pathname.startsWith('/admin-cabang')
   const [data, setData] = useState<BatchRekap[]>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<Record<number, boolean>>({})
   const [kategoris, setKategoris] = useState<KategoriInfo[]>([])
   const [grand, setGrand] = useState({ total_biaya: 0, total_dibayar: 0, total_sisa: 0 })
+  const [filterBatch, setFilterBatch] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
   useEffect(() => {
-    api.get('/rekap-per-batch').then(res => {
+    const endpoint = isAdminCabang ? '/admin-cabang/rekap-per-batch' : '/rekap-per-batch'
+    api.get(endpoint).then(res => {
       const d: BatchRekap[] = res.data.data || []
       setData(d)
       setKategoris(res.data.kategoris || [])
@@ -74,6 +82,32 @@ export default function RekapBatch() {
   const toggleBatch = (id: number) => {
     setExpanded(prev => ({ ...prev, [id]: !prev[id] }))
   }
+
+  const filteredData = useMemo(() => {
+    let result = data
+    if (filterBatch) {
+      result = result.filter(b => String(b.batch_id) === filterBatch)
+    }
+    if (dateFrom || dateTo) {
+      result = result.map(b => ({
+        ...b,
+        items: b.items.filter(item => {
+          if (dateFrom && item.created_at < dateFrom) return false
+          if (dateTo && item.created_at > dateTo) return false
+          return true
+        }),
+      })).filter(b => b.items.length > 0)
+    }
+    return result
+  }, [data, filterBatch, dateFrom, dateTo])
+
+  const filteredGrand = useMemo(() => {
+    return {
+      total_biaya: filteredData.reduce((s, b) => s + b.total_biaya, 0),
+      total_dibayar: filteredData.reduce((s, b) => s + b.total_dibayar, 0),
+      total_sisa: filteredData.reduce((s, b) => s + b.total_sisa, 0),
+    }
+  }, [filteredData])
 
   const statusBadge = (status: string) => {
     const map: Record<string, { bg: string; text: string; label: string; icon: typeof Clock }> = {
@@ -105,19 +139,57 @@ export default function RekapBatch() {
         </div>
       </div>
 
+      {/* Filter */}
+      <div className="mb-4 rounded-lg p-4 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+          <select value={filterBatch} onChange={e => setFilterBatch(e.target.value)}
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            <option value="">Semua Batch</option>
+            {data.map(b => (
+              <option key={b.batch_id} value={b.batch_id}>{b.batch}</option>
+            ))}
+          </select>
+          <div className="flex items-center gap-2">
+            <Calendar size={16} className="text-slate-400" />
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={e => setDateFrom(e.target.value)}
+              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              placeholder="Dari tanggal"
+            />
+            <span className="text-xs text-slate-400">s/d</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={e => setDateTo(e.target.value)}
+              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              placeholder="Sampai tanggal"
+            />
+          </div>
+          <button
+            onClick={() => { setFilterBatch(''); setDateFrom(''); setDateTo('') }}
+            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+          >
+            <RotateCcw size={16} />
+            Reset
+          </button>
+        </div>
+      </div>
+
       {/* Grand Total */}
       <div className="mb-4 grid grid-cols-3 gap-3">
         <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
           <p className="text-xs font-medium text-slate-500">Total Biaya</p>
-          <p className="text-lg font-bold text-slate-800">Rp {fmt(grand.total_biaya)}</p>
+          <p className="text-lg font-bold text-slate-800">Rp {fmt(filteredGrand.total_biaya)}</p>
         </div>
         <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
           <p className="text-xs font-medium text-emerald-600">Terkumpul</p>
-          <p className="text-lg font-bold text-emerald-700">Rp {fmt(grand.total_dibayar)}</p>
+          <p className="text-lg font-bold text-emerald-700">Rp {fmt(filteredGrand.total_dibayar)}</p>
         </div>
         <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
           <p className="text-xs font-medium text-red-600">Outstanding</p>
-          <p className="text-lg font-bold text-red-600">Rp {fmt(grand.total_sisa)}</p>
+          <p className="text-lg font-bold text-red-600">Rp {fmt(filteredGrand.total_sisa)}</p>
         </div>
       </div>
 
@@ -135,7 +207,7 @@ export default function RekapBatch() {
         </div>
       ) : (
         <div className="space-y-4">
-          {data.map(batch => (
+          {filteredData.map(batch => (
             <div key={batch.batch_id} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
               <button
                 onClick={() => toggleBatch(batch.batch_id)}

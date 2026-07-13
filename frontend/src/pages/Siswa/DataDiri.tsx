@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { User, CheckCircle, Camera, ChevronDown } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { User, CheckCircle, Camera, ChevronDown, Loader } from 'lucide-react'
 import api from '../../services/api'
 
 interface PendaftarData {
@@ -49,6 +49,11 @@ interface UserData {
   foto_profil: string | null; foto_ktp: string | null; foto_ijazah: string | null; foto_kk: string | null
 }
 
+interface Wilayah {
+  id: string
+  name: string
+}
+
 const inputClass = "w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
 const selectClass = "w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm appearance-none cursor-pointer"
 const labelClass = "block text-sm font-medium text-gray-700 mb-1"
@@ -61,6 +66,8 @@ const steps = [
   { id: 'keluarga', label: 'Data Keluarga' },
   { id: 'dokumen', label: 'Upload Dokumen' },
 ]
+
+const API_BASE = 'https://www.emsifa.com/api-wilayah-indonesia'
 
 export default function DataDiri() {
   const [pendaftar, setPendaftar] = useState<PendaftarData | null>(null)
@@ -89,6 +96,12 @@ export default function DataDiri() {
 
   const [errors, setErrors] = useState<string[]>([])
 
+  const [provinsiList, setProvinsiList] = useState<Wilayah[]>([])
+  const [kabupatenList, setKabupatenList] = useState<Wilayah[]>([])
+  const [kecamatanList, setKecamatanList] = useState<Wilayah[]>([])
+  const [desaList, setDesaList] = useState<Wilayah[]>([])
+  const [wilayahLoading, setWilayahLoading] = useState({ provinsi: false, kabupaten: false, kecamatan: false, desa: false })
+
   useEffect(() => {
     api.get('/siswa-dashboard')
       .then(res => {
@@ -98,6 +111,51 @@ export default function DataDiri() {
       })
       .catch(() => {})
       .finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    setWilayahLoading(p => ({ ...p, provinsi: true }))
+    fetch(`${API_BASE}/provinces.json`)
+      .then(r => r.json())
+      .then((data: Wilayah[]) => setProvinsiList(data))
+      .catch(() => {})
+      .finally(() => setWilayahLoading(p => ({ ...p, provinsi: false })))
+  }, [])
+
+  const fetchKabupaten = useCallback((provId: string) => {
+    setKabupatenList([])
+    setKecamatanList([])
+    setDesaList([])
+    if (!provId) return
+    setWilayahLoading(p => ({ ...p, kabupaten: true }))
+    fetch(`${API_BASE}/regencies/${provId}.json`)
+      .then(r => r.json())
+      .then((data: Wilayah[]) => setKabupatenList(data))
+      .catch(() => {})
+      .finally(() => setWilayahLoading(p => ({ ...p, kabupaten: false })))
+  }, [])
+
+  const fetchKecamatan = useCallback((kabId: string) => {
+    setKecamatanList([])
+    setDesaList([])
+    if (!kabId) return
+    setWilayahLoading(p => ({ ...p, kecamatan: true }))
+    fetch(`${API_BASE}/districts/${kabId}.json`)
+      .then(r => r.json())
+      .then((data: Wilayah[]) => setKecamatanList(data))
+      .catch(() => {})
+      .finally(() => setWilayahLoading(p => ({ ...p, kecamatan: false })))
+  }, [])
+
+  const fetchDesa = useCallback((kecId: string) => {
+    setDesaList([])
+    if (!kecId) return
+    setWilayahLoading(p => ({ ...p, desa: true }))
+    fetch(`${API_BASE}/villages/${kecId}.json`)
+      .then(r => r.json())
+      .then((data: Wilayah[]) => setDesaList(data))
+      .catch(() => {})
+      .finally(() => setWilayahLoading(p => ({ ...p, desa: false })))
   }, [])
 
   useEffect(() => {
@@ -135,6 +193,24 @@ export default function DataDiri() {
       no_hp_ortu: s.no_hp_ortu || '',
     })
   }, [userData, siswa])
+
+  useEffect(() => {
+    if (!provinsiList.length || !formAlamat.provinsi) return
+    const found = provinsiList.find(p => p.name.toLowerCase() === formAlamat.provinsi.toLowerCase())
+    if (found) fetchKabupaten(found.id)
+  }, [provinsiList, formAlamat.provinsi])
+
+  useEffect(() => {
+    if (!kabupatenList.length || !formAlamat.kabupaten) return
+    const found = kabupatenList.find(k => k.name.toLowerCase() === formAlamat.kabupaten.toLowerCase())
+    if (found) fetchKecamatan(found.id)
+  }, [kabupatenList, formAlamat.kabupaten])
+
+  useEffect(() => {
+    if (!kecamatanList.length || !formAlamat.kecamatan) return
+    const found = kecamatanList.find(k => k.name.toLowerCase() === formAlamat.kecamatan.toLowerCase())
+    if (found) fetchDesa(found.id)
+  }, [kecamatanList, formAlamat.kecamatan])
 
   function flashSuccess(setter: React.Dispatch<React.SetStateAction<boolean>>) {
     setter(true)
@@ -265,9 +341,18 @@ export default function DataDiri() {
     return !!(s?.[field] || u?.[field])
   }
 
+  function findIdByName(list: Wilayah[], name: string | null): string {
+    if (!name) return ''
+    const found = list.find(i => i.name.toLowerCase() === name.toLowerCase())
+    return found ? found.id : ''
+  }
+
+  const provinsiId = findIdByName(provinsiList, formAlamat.provinsi)
+  const kabupatenId = findIdByName(kabupatenList, formAlamat.kabupaten)
+  const kecamatanId = findIdByName(kecamatanList, formAlamat.kecamatan)
+
   return (
     <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-4">
-      {/* Header */}
       <div className={`${cardClass} p-4 sm:p-5`}>
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] text-white">
@@ -280,7 +365,6 @@ export default function DataDiri() {
         </div>
       </div>
 
-      {/* Step Navigation */}
       <div className={`${cardClass} p-2`}>
         <div className="flex gap-1 overflow-x-auto">
           {steps.map((step, idx) => {
@@ -312,7 +396,6 @@ export default function DataDiri() {
         </div>
       </div>
 
-      {/* Errors */}
       {errors.length > 0 && (
         <div className="rounded-md bg-red-50 border border-red-200 p-3">
           {errors.map((msg, i) => (
@@ -395,21 +478,100 @@ export default function DataDiri() {
                 <textarea value={formAlamat.alamat} onChange={e => setFormAlamat({ ...formAlamat, alamat: e.target.value })} rows={2}
                   className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm resize-none" placeholder="Alamat lengkap" />
               </div>
-              <div>
-                <label className={labelClass}>Desa/Kelurahan</label>
-                <input type="text" value={formAlamat.desa} onChange={e => setFormAlamat({ ...formAlamat, desa: e.target.value })} className={inputClass} placeholder="Desa/Kelurahan" />
-              </div>
-              <div>
-                <label className={labelClass}>Kecamatan</label>
-                <input type="text" value={formAlamat.kecamatan} onChange={e => setFormAlamat({ ...formAlamat, kecamatan: e.target.value })} className={inputClass} placeholder="Kecamatan" />
-              </div>
-              <div>
-                <label className={labelClass}>Kabupaten/Kota</label>
-                <input type="text" value={formAlamat.kabupaten} onChange={e => setFormAlamat({ ...formAlamat, kabupaten: e.target.value })} className={inputClass} placeholder="Kabupaten/Kota" />
-              </div>
+
+              {/* Provinsi */}
               <div>
                 <label className={labelClass}>Provinsi</label>
-                <input type="text" value={formAlamat.provinsi} onChange={e => setFormAlamat({ ...formAlamat, provinsi: e.target.value })} className={inputClass} placeholder="Provinsi" />
+                <div className="relative">
+                  <select
+                    value={provinsiId}
+                    onChange={e => {
+                      const id = e.target.value
+                      const found = provinsiList.find(p => p.id === id)
+                      setFormAlamat({ ...formAlamat, provinsi: found?.name || '', kabupaten: '', kecamatan: '', desa: '' })
+                      if (id) fetchKabupaten(id)
+                    }}
+                    className={selectClass}
+                    disabled={wilayahLoading.provinsi}
+                  >
+                    <option value="">{wilayahLoading.provinsi ? 'Memuat...' : 'Pilih Provinsi'}</option>
+                    {provinsiList.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Kabupaten/Kota */}
+              <div>
+                <label className={labelClass}>Kabupaten/Kota</label>
+                <div className="relative">
+                  <select
+                    value={kabupatenId}
+                    onChange={e => {
+                      const id = e.target.value
+                      const found = kabupatenList.find(k => k.id === id)
+                      setFormAlamat({ ...formAlamat, kabupaten: found?.name || '', kecamatan: '', desa: '' })
+                      if (id) fetchKecamatan(id)
+                    }}
+                    className={selectClass}
+                    disabled={!formAlamat.provinsi || wilayahLoading.kabupaten}
+                  >
+                    <option value="">{!formAlamat.provinsi ? 'Pilih Provinsi dulu' : wilayahLoading.kabupaten ? 'Memuat...' : 'Pilih Kabupaten/Kota'}</option>
+                    {kabupatenList.map(k => (
+                      <option key={k.id} value={k.id}>{k.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Kecamatan */}
+              <div>
+                <label className={labelClass}>Kecamatan</label>
+                <div className="relative">
+                  <select
+                    value={kecamatanId}
+                    onChange={e => {
+                      const id = e.target.value
+                      const found = kecamatanList.find(k => k.id === id)
+                      setFormAlamat({ ...formAlamat, kecamatan: found?.name || '', desa: '' })
+                      if (id) fetchDesa(id)
+                    }}
+                    className={selectClass}
+                    disabled={!formAlamat.kabupaten || wilayahLoading.kecamatan}
+                  >
+                    <option value="">{!formAlamat.kabupaten ? 'Pilih Kabupaten dulu' : wilayahLoading.kecamatan ? 'Memuat...' : 'Pilih Kecamatan'}</option>
+                    {kecamatanList.map(k => (
+                      <option key={k.id} value={k.id}>{k.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Desa/Kelurahan */}
+              <div>
+                <label className={labelClass}>Desa/Kelurahan</label>
+                <div className="relative">
+                  <select
+                    value={findIdByName(desaList, formAlamat.desa)}
+                    onChange={e => {
+                      const id = e.target.value
+                      const found = desaList.find(d => d.id === id)
+                      setFormAlamat({ ...formAlamat, desa: found?.name || '' })
+                    }}
+                    className={selectClass}
+                    disabled={!formAlamat.kecamatan || wilayahLoading.desa}
+                  >
+                    <option value="">{!formAlamat.kecamatan ? 'Pilih Kecamatan dulu' : wilayahLoading.desa ? 'Memuat...' : 'Pilih Desa/Kelurahan'}</option>
+                    {desaList.map(d => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                </div>
               </div>
             </div>
             <div className="mt-5 flex justify-end">
