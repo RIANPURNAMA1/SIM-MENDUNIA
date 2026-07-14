@@ -1,25 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   Package, Plus, Edit3, Trash2, X, Search, RotateCcw, Link as LinkIcon,
-  Check, GraduationCap, ExternalLink, Tag, ChevronDown, ChevronRight, Trash,
+  Check, GraduationCap, ExternalLink, Trash, ChevronDown, ChevronRight,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 import api, { productApi } from '../../services/api'
 
-interface BiayaKategori {
-  id: number
-  kode: string
-  nama: string
-  deskripsi: string | null
-  urutan: number
-  parent_id: number | null
-  children?: BiayaKategori[]
-}
-
-interface KategoriPrice {
-  kategori_id: number
+interface KategoriItem {
+  name: string
   harga: number
   komisi: number
+  children: KategoriItem[]
 }
 
 interface KomisiTier {
@@ -31,10 +22,21 @@ interface KomisiTier {
   urutan: number
 }
 
+interface BiayaKategori {
+  id: number
+  kode: string
+  nama: string
+  deskripsi: string | null
+  urutan: number
+  parent_id: number | null
+  children?: BiayaKategori[]
+}
+
 interface Product {
   id: number
   nama: string
   deskripsi: string | null
+  kategori_items: KategoriItem[] | null
   harga: number
   komisi: number | null
   status: string
@@ -42,21 +44,18 @@ interface Product {
   komisi_tiers: KomisiTier[]
 }
 
-function collectAllKategoris(tree: BiayaKategori[]): BiayaKategori[] {
-  const result: BiayaKategori[] = []
-  function walk(items: BiayaKategori[]) {
-    for (const item of items) {
-      result.push(item)
-      if (item.children && item.children.length > 0) walk(item.children)
-    }
-  }
-  walk(tree)
-  return result
+function emptyKategoriItem(): KategoriItem {
+  return { name: '', harga: 0, komisi: 0, children: [] }
+}
+
+function sumHargaDeep(item: KategoriItem): number {
+  const own = item.harga || 0
+  const kids = (item.children || []).reduce((s, c) => s + sumHargaDeep(c), 0)
+  return own + kids
 }
 
 export default function DataProduct() {
   const [products, setProducts] = useState<Product[]>([])
-  const [kategoriTree, setKategoriTree] = useState<BiayaKategori[]>([])
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Product | null>(null)
@@ -65,104 +64,105 @@ export default function DataProduct() {
     deskripsi: '',
     komisi: '',
     status: 'aktif',
-    kategori_prices: {} as Record<number, string>,
-    kategori_komisi: {} as Record<number, string>,
+    kategori_items: [emptyKategoriItem()] as KategoriItem[],
     komisi_tiers: [] as KomisiTier[],
   })
   const [copiedId, setCopiedId] = useState<number | null>(null)
-  const [expandedParents, setExpandedParents] = useState<Record<number, boolean>>({})
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
 
-  useEffect(() => {
-    fetchProducts()
-    api.get('/biaya-kategori').then(res => setKategoriTree(res.data))
-  }, [])
+  useEffect(() => { fetchProducts() }, [])
+  function fetchProducts() { productApi.list().then(res => setProducts(res.data)) }
 
-  function fetchProducts() {
-    productApi.list().then(res => setProducts(res.data))
-  }
-
-  const allKategoris = collectAllKategoris(kategoriTree)
-  const sortedTree = [...kategoriTree].sort((a, b) => a.urutan - b.urutan)
-
-  function getParentTotal(parent: BiayaKategori): number {
-    const own = parseFloat(form.kategori_prices[parent.id]) || 0
-    if (!parent.children || parent.children.length === 0) return own
-    return own + parent.children.reduce((sum, child) => sum + getParentTotal(child), 0)
-  }
-
-  function getParentKomisi(parent: BiayaKategori): number {
-    const own = parseFloat(form.kategori_komisi[parent.id]) || 0
-    if (!parent.children || parent.children.length === 0) return own
-    return own + parent.children.reduce((sum, child) => sum + getParentKomisi(child), 0)
-  }
-
-  const totalHarga = sortedTree.reduce((sum, parent) => sum + getParentTotal(parent), 0)
+  const totalHarga = useMemo(
+    () => form.kategori_items.reduce((sum, item) => sum + sumHargaDeep(item), 0),
+    [form.kategori_items]
+  )
 
   function openCreate() {
     setEditing(null)
-    const prices: Record<number, string> = {}
-    const komisis: Record<number, string> = {}
-    allKategoris.forEach(k => { prices[k.id] = ''; komisis[k.id] = '' })
-    setForm({ nama: '', deskripsi: '', komisi: '', status: 'aktif', kategori_prices: prices, kategori_komisi: komisis, komisi_tiers: [] })
-    const expanded: Record<number, boolean> = {}
-    kategoriTree.forEach(p => { if (p.children && p.children.length > 0) expanded[p.id] = true })
-    setExpandedParents(expanded)
+    setForm({
+      nama: '', deskripsi: '', komisi: '', status: 'aktif',
+      kategori_items: [emptyKategoriItem()], komisi_tiers: [],
+    })
+    setExpanded({})
     setShowModal(true)
   }
 
   function openEdit(p: Product) {
     setEditing(p)
-    const prices: Record<number, string> = {}
-    const komisis: Record<number, string> = {}
-    allKategoris.forEach(k => {
-      const found = p.biaya_kategoris?.find(bk => bk.id === k.id)
-      prices[k.id] = found ? String(found.pivot.harga) : ''
-      komisis[k.id] = found?.pivot?.komisi ? String(found.pivot.komisi) : ''
-    })
+    function mapItems(items: any[]): KategoriItem[] {
+      return (items || []).map(i => ({
+        name: i.name || '',
+        harga: i.harga || 0,
+        komisi: i.komisi || 0,
+        children: mapItems(i.children || []),
+      }))
+    }
+    const items: KategoriItem[] = (p.kategori_items && p.kategori_items.length > 0)
+      ? mapItems(p.kategori_items)
+      : [emptyKategoriItem()]
     setForm({
-      nama: p.nama,
-      deskripsi: p.deskripsi || '',
-      komisi: p.komisi ? String(p.komisi) : '',
-      status: p.status,
-      kategori_prices: prices,
-      kategori_komisi: komisis,
-      komisi_tiers: p.komisi_tiers || [],
+      nama: p.nama, deskripsi: p.deskripsi || '',
+      komisi: p.komisi ? String(p.komisi) : '', status: p.status,
+      kategori_items: items, komisi_tiers: p.komisi_tiers || [],
     })
-    const expanded: Record<number, boolean> = {}
-    kategoriTree.forEach(pg => { if (pg.children && pg.children.length > 0) expanded[pg.id] = true })
-    setExpandedParents(expanded)
+    setExpanded({})
     setShowModal(true)
   }
 
-  function setKatPrice(katId: number, val: string) {
-    setForm(prev => ({
-      ...prev,
-      kategori_prices: { ...prev.kategori_prices, [katId]: val },
-    }))
+  // Helper to update nested item by path
+  function updateItem(path: number[], field: keyof KategoriItem, value: any) {
+    setForm(prev => {
+      const items = JSON.parse(JSON.stringify(prev.kategori_items)) as KategoriItem[]
+      let target: any = items
+      for (const i of path) target = target[i]
+      if (field === 'children') return prev
+      ;(target as any)[field] = value
+      return { ...prev, kategori_items: items }
+    })
   }
 
-  function setKatKomisi(katId: number, val: string) {
-    setForm(prev => ({
-      ...prev,
-      kategori_komisi: { ...prev.kategori_komisi, [katId]: val },
-    }))
+  function addItem(parentPath: number[]) {
+    setForm(prev => {
+      const items = JSON.parse(JSON.stringify(prev.kategori_items)) as KategoriItem[]
+      if (parentPath.length === 0) {
+        items.push(emptyKategoriItem())
+      } else {
+        let target: any = items
+        for (const i of parentPath) target = target[i]
+        if (!target.children) target.children = []
+        target.children.push(emptyKategoriItem())
+      }
+      return { ...prev, kategori_items: items }
+    })
   }
 
-  function toggleParent(id: number) {
-    setExpandedParents(prev => ({ ...prev, [id]: !prev[id] }))
+  function removeItem(path: number[]) {
+    setForm(prev => {
+      const items = JSON.parse(JSON.stringify(prev.kategori_items)) as KategoriItem[]
+      if (path.length === 1) {
+        items.splice(path[0], 1)
+      } else {
+        let parent: any = items
+        for (let i = 0; i < path.length - 1; i++) parent = parent[path[i]]
+        parent.children.splice(path[path.length - 1], 1)
+      }
+      return { ...prev, kategori_items: items.length > 0 ? items : [emptyKategoriItem()] }
+    })
   }
 
-  function addTier(kategoriId: number | null = null) {
+  function toggleExpand(key: string) {
+    setExpanded(prev => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  function addTier() {
     setForm(prev => ({
       ...prev,
       komisi_tiers: [...prev.komisi_tiers, {
-        kategori_id: kategoriId,
-        min_orang: prev.komisi_tiers.filter(t => t.kategori_id === kategoriId).length > 0
-          ? Math.max(...prev.komisi_tiers.filter(t => t.kategori_id === kategoriId).map(t => (t.max_orang || t.min_orang) + 1))
-          : 1,
-        max_orang: null,
-        komisi: 0,
-        urutan: prev.komisi_tiers.filter(t => t.kategori_id === kategoriId).length,
+        kategori_id: null,
+        min_orang: prev.komisi_tiers.length > 0
+          ? Math.max(...prev.komisi_tiers.map(t => (t.max_orang || t.min_orang) + 1)) : 1,
+        max_orang: null, komisi: 0, urutan: prev.komisi_tiers.length,
       }],
     }))
   }
@@ -176,51 +176,43 @@ export default function DataProduct() {
   }
 
   function removeTier(index: number) {
-    setForm(prev => ({
-      ...prev,
-      komisi_tiers: prev.komisi_tiers.filter((_, i) => i !== index),
-    }))
+    setForm(prev => ({ ...prev, komisi_tiers: prev.komisi_tiers.filter((_, i) => i !== index) }))
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const kategoriPrices: KategoriPrice[] = allKategoris
-      .filter(k => form.kategori_prices[k.id] !== '' && parseFloat(form.kategori_prices[k.id]) > 0)
-      .map(k => ({
-        kategori_id: k.id,
-        harga: parseFloat(form.kategori_prices[k.id]),
-        komisi: parseFloat(form.kategori_komisi[k.id]) || 0,
-      }))
+    const validItems = form.kategori_items.filter(i => i.name.trim() !== '')
+    if (validItems.length === 0) {
+      Swal.fire({ icon: 'warning', title: 'Perhatian', text: 'Tambahkan minimal satu kategori.', confirmButtonColor: '#0D1F3C' })
+      return
+    }
 
-    const payload: any = {
-      nama: form.nama,
-      deskripsi: form.deskripsi,
-      harga: totalHarga,
+    function cleanItems(items: KategoriItem[]): KategoriItem[] {
+      return items
+        .filter(i => i.name.trim() !== '')
+        .map(i => ({
+          name: i.name.trim(),
+          harga: i.harga || 0,
+          komisi: i.komisi || 0,
+          children: cleanItems(i.children || []),
+        }))
+    }
+
+    const payload = {
+      nama: form.nama, deskripsi: form.deskripsi,
+      kategori_items: cleanItems(form.kategori_items),
       komisi: form.komisi ? parseFloat(form.komisi) : null,
       status: form.status,
-      kategori_prices: kategoriPrices,
       komisi_tiers: form.komisi_tiers.map(t => ({
-        kategori_id: t.kategori_id,
-        min_orang: t.min_orang,
-        max_orang: t.max_orang || null,
-        komisi: t.komisi,
-        urutan: t.urutan,
+        kategori_id: t.kategori_id, min_orang: t.min_orang,
+        max_orang: t.max_orang || null, komisi: t.komisi, urutan: t.urutan,
       })),
     }
 
     const req = editing ? productApi.update(editing.id, payload) : productApi.store(payload)
     req.then(() => {
-      setShowModal(false)
-      fetchProducts()
-      Swal.fire({
-        icon: 'success',
-        title: 'Berhasil!',
-        text: editing ? 'Produk berhasil diperbarui.' : 'Produk berhasil ditambahkan.',
-        confirmButtonColor: '#0D1F3C',
-        timer: 2000,
-        timerProgressBar: true,
-        showConfirmButton: false,
-      })
+      setShowModal(false); fetchProducts()
+      Swal.fire({ icon: 'success', title: 'Berhasil!', text: editing ? 'Produk berhasil diperbarui.' : 'Produk berhasil ditambahkan.', confirmButtonColor: '#0D1F3C', timer: 2000, timerProgressBar: true, showConfirmButton: false })
     })
   }
 
@@ -229,85 +221,42 @@ export default function DataProduct() {
   }
 
   function copyLink(p: Product) {
-    const url = `${window.location.origin}/daftar-program/${p.id}`
-    navigator.clipboard.writeText(url).then(() => {
-      setCopiedId(p.id)
-      setTimeout(() => setCopiedId(null), 2000)
+    navigator.clipboard.writeText(`${window.location.origin}/daftar-program/${p.id}`).then(() => {
+      setCopiedId(p.id); setTimeout(() => setCopiedId(null), 2000)
     })
   }
 
-  function resetFilter() {
-    setSearch('')
-  }
+  const filtered = products.filter(p => !search || p.nama.toLowerCase().includes(search.toLowerCase()))
 
-  const filtered = products.filter(p =>
-    !search || p.nama.toLowerCase().includes(search.toLowerCase())
-  )
-
-  function renderKategoriTree(bkList: (BiayaKategori & { pivot: { harga: number; komisi: number } })[]) {
-    if (!bkList || bkList.length === 0) return <span className="text-xs text-slate-400">-</span>
-
-    const priceMap = new Map<number, number>()
-    const komisiMap = new Map<number, number>()
-    for (const bk of bkList) {
-      if (Number(bk.pivot.harga) > 0) priceMap.set(bk.id, Number(bk.pivot.harga))
-      if (Number(bk.pivot.komisi) > 0) komisiMap.set(bk.id, Number(bk.pivot.komisi))
-    }
-    if (priceMap.size === 0) return <span className="text-xs text-slate-400">-</span>
-
-    function sumDescendantPrices(node: BiayaKategori): number {
-      let sum = 0
-      for (const child of node.children || []) {
-        sum += priceMap.get(child.id) || 0
-        sum += sumDescendantPrices(child)
-      }
-      return sum
-    }
-
-    function sumDescendantKomisi(node: BiayaKategori): number {
-      let sum = 0
-      for (const child of node.children || []) {
-        sum += komisiMap.get(child.id) || 0
-        sum += sumDescendantKomisi(child)
-      }
-      return sum
-    }
-
-    function walk(nodes: BiayaKategori[], depth: number): any[] {
-      const result: any[] = []
-      for (const node of nodes) {
-        const ownPrice = priceMap.get(node.id) || 0
-        const ownKomisi = komisiMap.get(node.id) || 0
-        const children = node.children || []
-        const childResults = walk(children, depth + 1)
-        const hasVisible = ownPrice > 0 || childResults.length > 0
-        if (!hasVisible) continue
-        const displayPrice = ownPrice > 0 ? ownPrice : sumDescendantPrices(node)
-        const displayKomisi = ownKomisi > 0 ? ownKomisi : sumDescendantKomisi(node)
-        result.push(
-          <div key={node.id}>
-            <div className={`flex items-center gap-1.5 text-[11px] ${depth > 0 ? 'ml-4 border-l-2 border-blue-100 pl-2' : ''}`}>
-              <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-semibold ${
-                depth === 0 ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-600'
-              }`}>
-                {node.kode}
-              </span>
-              {displayPrice > 0 && (
-                <span className="text-slate-500">Rp {displayPrice.toLocaleString('id-ID')}</span>
-              )}
-              {displayKomisi > 0 && (
-                <span className="text-emerald-500 text-[10px]">(Komisi: Rp {displayKomisi.toLocaleString('id-ID')})</span>
+  function renderKategoriDisplay(p: Product) {
+    const items = p.kategori_items && p.kategori_items.length > 0 ? p.kategori_items : []
+    if (items.length === 0) return <span className="text-xs text-slate-400">-</span>
+    return (
+      <div className="space-y-0.5">
+        {items.slice(0, 4).map((item, idx) => {
+          const total = sumHargaDeep(item)
+          return (
+            <div key={idx} className="text-[11px]">
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex items-center rounded bg-blue-50 px-1.5 py-0.5 font-semibold text-blue-700">{item.name}</span>
+                {total > 0 && <span className="text-slate-500">Rp {total.toLocaleString('id-ID')}</span>}
+              </div>
+              {item.children && item.children.length > 0 && (
+                <div className="ml-3 border-l border-slate-200 pl-1.5 space-y-0.5">
+                  {item.children.filter(c => c.harga > 0).slice(0, 3).map((c, ci) => (
+                    <div key={ci} className="flex items-center gap-1 text-[10px] text-slate-400">
+                      <span>{c.name}</span>
+                      <span>Rp {c.harga.toLocaleString('id-ID')}</span>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
-            {childResults}
-          </div>
-        )
-      }
-      return result
-    }
-
-    const nodes = walk(sortedTree, 0)
-    return nodes.length > 0 ? <div className="space-y-0.5">{nodes}</div> : <span className="text-xs text-slate-400">-</span>
+          )
+        })}
+        {items.length > 4 && <span className="text-[10px] text-slate-400">+{items.length - 4} lainnya</span>}
+      </div>
+    )
   }
 
   const statusBadge = (status: string) => {
@@ -322,65 +271,79 @@ export default function DataProduct() {
 
   const activeProducts = products.filter(p => p.status === 'aktif')
 
-  function renderKategoriInputs(cat: BiayaKategori, depth: number = 0) {
-    const hasChildren = cat.children && cat.children.length > 0
-    const isExpanded = expandedParents[cat.id]
+  // Recursive render kategori row in form
+  function renderKategoriRow(item: KategoriItem, path: number[], depth: number) {
+    const key = path.join('-')
+    const hasChildren = item.children && item.children.length > 0
+    const isExpanded = expanded[key] !== false
+    const ownTotal = sumHargaDeep(item)
 
     return (
-      <div key={cat.id} className={`${depth > 0 ? 'ml-4 border-l border-slate-200 pl-3' : ''}`}>
-        <div className="rounded-lg border border-slate-200 bg-white">
-          {/* Header */}
-          <div className="flex items-center gap-2 px-3 py-2">
+      <div key={key} className={depth > 0 ? 'ml-4 mt-1.5 border-l-2 border-blue-100 pl-3' : ''}>
+        <div className={`rounded-lg border ${ownTotal > 0 ? 'border-blue-200 bg-blue-50/30' : 'border-slate-200 bg-white'}`}>
+          <div className="flex items-end gap-2 p-2.5">
             {hasChildren ? (
-              <button type="button" onClick={() => toggleParent(cat.id)} className="flex-none p-0.5 rounded hover:bg-slate-100 transition">
+              <button type="button" onClick={() => toggleExpand(key)}
+                className="flex-none p-1 rounded hover:bg-slate-100 transition mb-0.5">
                 {isExpanded ? <ChevronDown size={14} className="text-slate-400" /> : <ChevronRight size={14} className="text-slate-400" />}
               </button>
-            ) : (
-              <span className="w-5 flex-none" />
-            )}
-            <span className="text-xs font-mono font-bold text-slate-700 flex-none">{cat.kode}</span>
-            <span className="text-xs text-slate-500 flex-none">{cat.nama}</span>
-            {hasChildren && (
-              <span className="ml-auto text-xs font-semibold text-slate-600">
-                Rp {getParentTotal(cat).toLocaleString('id-ID')}
-              </span>
-            )}
-          </div>
-
-          {/* Inputs */}
-          <div className="px-3 pb-2.5 pt-0">
-            <div className="flex items-end gap-2">
-              <div className="flex-1">
-                <label className="block text-[10px] text-slate-400 mb-1">Harga</label>
-                <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400">Rp</span>
-                  <input
-                    type="number" min={0} placeholder="0"
-                    value={form.kategori_prices[cat.id] ?? ''}
-                    onChange={e => setKatPrice(cat.id, e.target.value)}
-                    className="w-full rounded-md bg-slate-50 border border-slate-200 pl-8 pr-3 py-2 text-sm text-slate-700 placeholder-slate-300 outline-none transition focus:bg-white focus:border-slate-300"
-                  />
-                </div>
-              </div>
-              <div className="flex-1">
-                <label className="block text-[10px] text-emerald-500 mb-1">Komisi</label>
-                <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400">Rp</span>
-                  <input
-                    type="number" min={0} placeholder="0"
-                    value={form.kategori_komisi[cat.id] ?? ''}
-                    onChange={e => setKatKomisi(cat.id, e.target.value)}
-                    className="w-full rounded-md bg-emerald-50 border border-emerald-200 pl-8 pr-3 py-2 text-sm text-slate-700 placeholder-slate-300 outline-none transition focus:bg-white focus:border-emerald-400"
-                  />
-                </div>
+            ) : <span className="w-5 flex-none" />}
+            <div className="flex-1 min-w-0">
+              <label className="block text-[10px] text-slate-400 mb-1">{depth === 0 ? 'Nama Kategori' : 'Nama Sub'}</label>
+              <input type="text" placeholder={depth === 0 ? 'Contoh: Level 1, SPP, Ujian...' : 'Contoh: Asrama Level 1, MCU...'}
+                value={item.name}
+                onChange={e => updateItem(path, 'name', e.target.value)}
+                className="w-full rounded-md bg-slate-50 border border-slate-200 px-3 py-2 text-sm text-slate-700 placeholder-slate-300 outline-none transition focus:bg-white focus:border-slate-300" />
+            </div>
+            <div className="w-28 flex-none">
+              <label className="block text-[10px] text-slate-400 mb-1">Harga</label>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-slate-400">Rp</span>
+                <input type="number" min={0} placeholder="0"
+                  value={item.harga || ''}
+                  onChange={e => updateItem(path, 'harga', parseFloat(e.target.value) || 0)}
+                  className="w-full rounded-md bg-slate-50 border border-slate-200 pl-7 pr-1.5 py-2 text-sm text-slate-700 placeholder-slate-300 outline-none transition focus:bg-white focus:border-slate-300" />
               </div>
             </div>
+            <div className="w-28 flex-none">
+              <label className="block text-[10px] text-emerald-500 mb-1">Komisi</label>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-slate-400">Rp</span>
+                <input type="number" min={0} placeholder="0"
+                  value={item.komisi || ''}
+                  onChange={e => updateItem(path, 'komisi', parseFloat(e.target.value) || 0)}
+                  className="w-full rounded-md bg-emerald-50 border border-emerald-200 pl-7 pr-1.5 py-2 text-sm text-slate-700 placeholder-slate-300 outline-none transition focus:bg-white focus:border-emerald-400" />
+              </div>
+            </div>
+            <button type="button" onClick={() => removeItem(path)}
+              className="flex-none rounded-md border border-slate-200 bg-white p-2 text-slate-400 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-500 mb-0.5">
+              <Trash2 size={14} />
+            </button>
           </div>
+          {/* Total badge for parent with children */}
+          {hasChildren && (
+            <div className="flex items-center justify-between px-2.5 pb-2 -mt-1">
+              <button type="button" onClick={() => addItem(path)}
+                className="text-[10px] font-semibold text-blue-500 hover:text-blue-700 transition">
+                + Tambah Sub
+              </button>
+              <span className="text-[10px] font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
+                Total: Rp {ownTotal.toLocaleString('id-ID')}
+              </span>
+            </div>
+          )}
+          {!hasChildren && (
+            <div className="flex justify-end px-2.5 pb-2 -mt-1">
+              <button type="button" onClick={() => addItem(path)}
+                className="text-[10px] font-semibold text-blue-500 hover:text-blue-700 transition">
+                + Tambah Sub
+              </button>
+            </div>
+          )}
         </div>
-
         {hasChildren && isExpanded && (
-          <div className="mt-1.5 space-y-1.5">
-            {cat.children!.map(child => renderKategoriInputs(child, depth + 1))}
+          <div className="space-y-1.5">
+            {item.children!.map((child, ci) => renderKategoriRow(child, [...path, ci], depth + 1))}
           </div>
         )}
       </div>
@@ -406,7 +369,7 @@ export default function DataProduct() {
         </button>
       </div>
 
-      {/* Link Pendaftaran Card */}
+      {/* Link Pendaftaran */}
       {activeProducts.length > 0 && (
         <div className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
@@ -417,8 +380,7 @@ export default function DataProduct() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
             {activeProducts.map(p => (
-              <div key={p.id}
-                className="flex items-center justify-between gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5 hover:border-[#0D1F3C]/20 hover:bg-[#f5f6fa] transition-all group">
+              <div key={p.id} className="flex items-center justify-between gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5 hover:border-[#0D1F3C]/20 hover:bg-[#f5f6fa] transition-all group">
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
                   <div className="flex h-7 w-7 items-center justify-center rounded-md bg-white shadow-sm flex-none">
                     <GraduationCap size={14} className="text-[#0D1F3C]" />
@@ -447,20 +409,12 @@ export default function DataProduct() {
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative flex-1">
             <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Cari produk..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            />
+            <input type="text" placeholder="Cari produk..." value={search} onChange={e => setSearch(e.target.value)}
+              className="w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
           </div>
-          <button
-            onClick={resetFilter}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-200"
-          >
-            <RotateCcw size={16} />
-            Reset
+          <button onClick={() => setSearch('')}
+            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50">
+            <RotateCcw size={16} /> Reset
           </button>
         </div>
       </div>
@@ -471,62 +425,42 @@ export default function DataProduct() {
           <table className="w-full min-w-full border-collapse text-left text-sm text-slate-700">
             <thead className="text-sm text-slate-600">
               <tr>
-                <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Nama Produk</th>
-                <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Kategori / Harga</th>
-                <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Deskripsi</th>
-                <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium">Total</th>
-                <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Status</th>
-                <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Aksi</th>
+                <th className="border border-slate-200 px-4 py-3 font-medium">Nama Produk</th>
+                <th className="border border-slate-200 px-4 py-3 font-medium">Kategori / Harga</th>
+                <th className="border border-slate-200 px-4 py-3 font-medium">Deskripsi</th>
+                <th className="border border-slate-200 px-4 py-3 text-right font-medium">Total</th>
+                <th className="border border-slate-200 px-4 py-3 text-center font-medium">Status</th>
+                <th className="border border-slate-200 px-4 py-3 text-center font-medium">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="border border-slate-200 px-6 py-10 text-center">
-                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-                      <Package size={24} />
-                    </div>
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400"><Package size={24} /></div>
                     <p className="mt-3 text-sm font-medium text-slate-600">Belum ada produk</p>
                   </td>
                 </tr>
-              ) : (
-                filtered.map(p => (
-                  <tr key={p.id} className="bg-white transition hover:bg-slate-50">
-                    <td className="border border-slate-200 px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50">
-                          <Package size={16} className="text-blue-600" />
-                        </div>
-                        <span className="text-sm font-semibold text-slate-800">{p.nama}</span>
-                      </div>
-                    </td>
-                    <td className="border border-slate-200 px-4 py-3">
-                      {p.biaya_kategoris && p.biaya_kategoris.length > 0 ? (
-                        renderKategoriTree(p.biaya_kategoris)
-                      ) : (
-                        <span className="text-xs text-slate-400">-</span>
-                      )}
-                    </td>
-                    <td className="border border-slate-200 px-4 py-3 text-sm text-slate-500 max-w-xs truncate">{p.deskripsi || '-'}</td>
-                    <td className="border border-slate-200 px-4 py-3 text-right text-sm font-semibold text-slate-800">
-                      Rp {Number(p.harga).toLocaleString('id-ID')}
-                    </td>
-                    <td className="border border-slate-200 px-4 py-3 text-center">{statusBadge(p.status)}</td>
-                    <td className="border border-slate-200 px-4 py-3 text-center">
-                      <div className="flex justify-center gap-1.5">
-                        <button onClick={() => openEdit(p)}
-                          className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-amber-200 hover:bg-amber-50 hover:text-amber-600" title="Edit">
-                          <Edit3 size={15} />
-                        </button>
-                        <button onClick={() => handleDelete(p.id)}
-                          className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600" title="Hapus">
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
+              ) : filtered.map(p => (
+                <tr key={p.id} className="bg-white transition hover:bg-slate-50">
+                  <td className="border border-slate-200 px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50"><Package size={16} className="text-blue-600" /></div>
+                      <span className="text-sm font-semibold text-slate-800">{p.nama}</span>
+                    </div>
+                  </td>
+                  <td className="border border-slate-200 px-4 py-3">{renderKategoriDisplay(p)}</td>
+                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-500 max-w-xs truncate">{p.deskripsi || '-'}</td>
+                  <td className="border border-slate-200 px-4 py-3 text-right text-sm font-semibold text-slate-800">Rp {Number(p.harga).toLocaleString('id-ID')}</td>
+                  <td className="border border-slate-200 px-4 py-3 text-center">{statusBadge(p.status)}</td>
+                  <td className="border border-slate-200 px-4 py-3 text-center">
+                    <div className="flex justify-center gap-1.5">
+                      <button onClick={() => openEdit(p)} className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-amber-200 hover:bg-amber-50 hover:text-amber-600" title="Edit"><Edit3 size={15} /></button>
+                      <button onClick={() => handleDelete(p.id)} className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600" title="Hapus"><Trash2 size={15} /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -559,18 +493,18 @@ export default function DataProduct() {
                     className="w-full rounded-md bg-[#f0f2f5] px-3 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:bg-white focus:ring-1 focus:ring-blue-500" />
                 </div>
 
-                {/* Kategori Prices */}
+                {/* Kategori Items */}
                 <div className="border border-slate-200 rounded-lg bg-white overflow-hidden">
                   <div className="px-4 py-2.5 border-b border-slate-200">
                     <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">Rincian Harga per Kategori</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Isi harga dan komisi untuk setiap kategori.</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Tambahkan kategori bayar beserta sub-nya (jika ada).</p>
                   </div>
                   <div className="p-3 space-y-2">
-                    {sortedTree.map(parent => (
-                      <div key={parent.id}>
-                        {renderKategoriInputs(parent, 0)}
-                      </div>
-                    ))}
+                    {form.kategori_items.map((item, idx) => renderKategoriRow(item, [idx], 0))}
+                    <button type="button" onClick={() => addItem([])}
+                      className="w-full rounded-md border border-dashed border-blue-300 bg-blue-50/50 py-2 text-xs font-semibold text-blue-600 transition hover:bg-blue-50 hover:border-blue-400">
+                      + Tambah Kategori
+                    </button>
                   </div>
                   <div className="flex items-center justify-between px-4 py-2.5 border-t border-slate-200">
                     <span className="text-xs font-bold text-slate-600">Total Harga</span>
@@ -578,69 +512,43 @@ export default function DataProduct() {
                   </div>
                 </div>
 
-                {/* Komisi Tier per Kategori */}
+                {/* Komisi Tier */}
                 <div className="border border-slate-200 rounded-lg bg-white overflow-hidden">
                   <div className="px-4 py-2.5 border-b border-slate-200">
                     <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Komisi Tier per Jumlah Orang</p>
                     <p className="text-[10px] text-slate-400 mt-0.5">Atur komisi berdasarkan jumlah pendaftar per batch.</p>
                   </div>
-                  <div className="p-3 space-y-4">
-                    {allKategoris.filter(k => {
-                      const harga = parseFloat(form.kategori_prices[k.id]) || 0
-                      return harga > 0
-                    }).map(kat => {
-                      const katTiers = form.komisi_tiers
-                        .map((t, i) => ({ ...t, _idx: i }))
-                        .filter(t => t.kategori_id === kat.id)
-                        .sort((a, b) => a.min_orang - b.min_orang)
-                      return (
-                        <div key={kat.id} className="rounded-lg border border-slate-100 p-3">
-                          <div className="flex items-center gap-1.5 mb-2">
-                            <span className="text-xs font-mono font-bold text-slate-700">{kat.kode}</span>
-                            <span className="text-xs text-slate-500">{kat.nama}</span>
-                          </div>
-
-                          {katTiers.length > 0 && (
-                            <div className="space-y-1.5 mb-2">
-                              <div className="grid grid-cols-[50px_50px_1fr_28px] gap-1.5 text-[9px] font-semibold text-slate-400 px-1">
-                                <span>Min</span>
-                                <span>Max</span>
-                                <span>Komisi (Rp)</span>
-                                <span></span>
-                              </div>
-                              {katTiers.map(t => (
-                                <div key={t._idx} className="grid grid-cols-[50px_50px_1fr_28px] gap-1.5 items-center">
-                                  <input type="number" min={1} value={t.min_orang}
-                                    onChange={e => updateTier(t._idx, 'min_orang', parseInt(e.target.value) || 1)}
-                                    className="rounded border border-slate-200 bg-slate-50 px-1.5 py-1.5 text-xs text-slate-700 outline-none focus:border-slate-300 text-center" />
-                                  <input type="number" min={t.min_orang} placeholder="∞" value={t.max_orang ?? ''}
-                                    onChange={e => updateTier(t._idx, 'max_orang', e.target.value ? parseInt(e.target.value) : null)}
-                                    className="rounded border border-slate-200 bg-slate-50 px-1.5 py-1.5 text-xs text-slate-700 outline-none focus:border-slate-300 text-center" />
-                                  <div className="relative">
-                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">Rp</span>
-                                    <input type="number" min={0} value={t.komisi || ''}
-                                      onChange={e => updateTier(t._idx, 'komisi', parseFloat(e.target.value) || 0)}
-                                      className="w-full rounded border border-emerald-200 bg-emerald-50 pl-6 pr-1.5 py-1.5 text-xs text-slate-700 outline-none focus:border-emerald-400" />
-                                  </div>
-                                  <button type="button" onClick={() => removeTier(t._idx)}
-                                    className="rounded p-1 text-slate-300 hover:text-red-500 transition-colors">
-                                    <Trash size={13} />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          <button type="button" onClick={() => addTier(kat.id)}
-                            className="w-full rounded border border-dashed border-emerald-200 py-1.5 text-[10px] font-semibold text-emerald-500 hover:text-emerald-700 hover:border-emerald-300 transition-colors">
-                            + Tambah Tier
-                          </button>
+                  <div className="p-3 space-y-3">
+                    {form.komisi_tiers.length > 0 && (
+                      <div className="space-y-1.5">
+                        <div className="grid grid-cols-[50px_50px_1fr_28px] gap-1.5 text-[9px] font-semibold text-slate-400 px-1">
+                          <span>Min</span><span>Max</span><span>Komisi (Rp)</span><span></span>
                         </div>
-                      )
-                    })}
-                    {allKategoris.filter(k => parseFloat(form.kategori_prices[k.id]) || 0).length === 0 && (
-                      <p className="text-xs text-slate-400 text-center py-4">Isi harga kategori terlebih dahulu.</p>
+                        {form.komisi_tiers.map((t, idx) => (
+                          <div key={idx} className="grid grid-cols-[50px_50px_1fr_28px] gap-1.5 items-center">
+                            <input type="number" min={1} value={t.min_orang}
+                              onChange={e => updateTier(idx, 'min_orang', parseInt(e.target.value) || 1)}
+                              className="rounded border border-slate-200 bg-slate-50 px-1.5 py-1.5 text-xs text-slate-700 outline-none focus:border-slate-300 text-center" />
+                            <input type="number" min={t.min_orang} placeholder="∞" value={t.max_orang ?? ''}
+                              onChange={e => updateTier(idx, 'max_orang', e.target.value ? parseInt(e.target.value) : null)}
+                              className="rounded border border-slate-200 bg-slate-50 px-1.5 py-1.5 text-xs text-slate-700 outline-none focus:border-slate-300 text-center" />
+                            <div className="relative">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">Rp</span>
+                              <input type="number" min={0} value={t.komisi || ''}
+                                onChange={e => updateTier(idx, 'komisi', parseFloat(e.target.value) || 0)}
+                                className="w-full rounded border border-emerald-200 bg-emerald-50 pl-6 pr-1.5 py-1.5 text-xs text-slate-700 outline-none focus:border-emerald-400" />
+                            </div>
+                            <button type="button" onClick={() => removeTier(idx)} className="rounded p-1 text-slate-300 hover:text-red-500 transition-colors">
+                              <Trash size={13} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     )}
+                    <button type="button" onClick={addTier}
+                      className="w-full rounded border border-dashed border-emerald-200 py-1.5 text-[10px] font-semibold text-emerald-500 hover:text-emerald-700 hover:border-emerald-300 transition-colors">
+                      + Tambah Tier
+                    </button>
                   </div>
                 </div>
 

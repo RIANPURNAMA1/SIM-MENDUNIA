@@ -18,13 +18,12 @@ class ProductController extends Controller
         $data = $request->validate([
             'nama' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
-            'harga' => 'required|numeric|min:0',
+            'kategori_items' => 'nullable|array',
+            'kategori_items.*.name' => 'required|string|max:100',
+            'kategori_items.*.harga' => 'required|numeric|min:0',
+            'kategori_items.*.komisi' => 'nullable|numeric|min:0',
             'komisi' => 'nullable|numeric|min:0',
             'status' => 'nullable|in:aktif,nonaktif',
-            'kategori_prices' => 'nullable|array',
-            'kategori_prices.*.kategori_id' => 'required|exists:biaya_kategoris,id',
-            'kategori_prices.*.harga' => 'required|numeric|min:0',
-            'kategori_prices.*.komisi' => 'nullable|numeric|min:0',
             'komisi_tiers' => 'nullable|array',
             'komisi_tiers.*.kategori_id' => 'nullable|exists:biaya_kategoris,id',
             'komisi_tiers.*.min_orang' => 'required|integer|min:1',
@@ -33,24 +32,19 @@ class ProductController extends Controller
             'komisi_tiers.*.urutan' => 'nullable|integer|min:0',
         ]);
 
+        $kategoriItems = $data['kategori_items'] ?? [];
+        $totalHarga = collect($kategoriItems)->sum('harga');
+
         $product = Product::create([
             'nama' => $data['nama'],
             'deskripsi' => $data['deskripsi'] ?? null,
-            'harga' => $data['harga'],
+            'kategori_items' => $kategoriItems,
+            'harga' => $totalHarga,
             'komisi' => $data['komisi'] ?? null,
             'status' => $data['status'] ?? 'aktif',
         ]);
 
-        if ($request->has('kategori_prices')) {
-            $sync = [];
-            foreach ($request->kategori_prices as $kp) {
-                $sync[$kp['kategori_id']] = [
-                    'harga' => $kp['harga'],
-                    'komisi' => $kp['komisi'] ?? 0,
-                ];
-            }
-            $product->biayaKategoris()->sync($sync);
-        }
+        $product->syncKategoriItems($kategoriItems);
 
         $this->syncKomisiTiers($product, $request);
 
@@ -69,13 +63,12 @@ class ProductController extends Controller
         $data = $request->validate([
             'nama' => 'sometimes|string|max:255',
             'deskripsi' => 'nullable|string',
-            'harga' => 'sometimes|numeric|min:0',
+            'kategori_items' => 'nullable|array',
+            'kategori_items.*.name' => 'required|string|max:100',
+            'kategori_items.*.harga' => 'required|numeric|min:0',
+            'kategori_items.*.komisi' => 'nullable|numeric|min:0',
             'komisi' => 'nullable|numeric|min:0',
             'status' => 'nullable|in:aktif,nonaktif',
-            'kategori_prices' => 'nullable|array',
-            'kategori_prices.*.kategori_id' => 'required|exists:biaya_kategoris,id',
-            'kategori_prices.*.harga' => 'required|numeric|min:0',
-            'kategori_prices.*.komisi' => 'nullable|numeric|min:0',
             'komisi_tiers' => 'nullable|array',
             'komisi_tiers.*.kategori_id' => 'nullable|exists:biaya_kategoris,id',
             'komisi_tiers.*.min_orang' => 'required|integer|min:1',
@@ -86,26 +79,21 @@ class ProductController extends Controller
 
         $updateData = [];
         if (isset($data['nama'])) $updateData['nama'] = $data['nama'];
-        if (isset($data['deskripsi'])) $updateData['deskripsi'] = $data['deskripsi'];
-        if (isset($data['harga'])) $updateData['harga'] = $data['harga'];
+        if (array_key_exists('deskripsi', $data)) $updateData['deskripsi'] = $data['deskripsi'];
         if (isset($data['komisi'])) $updateData['komisi'] = $data['komisi'];
         if (isset($data['status'])) $updateData['status'] = $data['status'];
 
-        $product->update($updateData);
+        if (isset($data['kategori_items'])) {
+            $kategoriItems = $data['kategori_items'];
+            $totalHarga = collect($kategoriItems)->sum('harga');
 
-        if ($request->has('kategori_prices')) {
-            $sync = [];
-            foreach ($request->kategori_prices as $kp) {
-                $sync[$kp['kategori_id']] = [
-                    'harga' => $kp['harga'],
-                    'komisi' => $kp['komisi'] ?? 0,
-                ];
-            }
-            $product->biayaKategoris()->sync($sync);
+            $updateData['kategori_items'] = $kategoriItems;
+            $updateData['harga'] = $totalHarga;
 
-            $total = collect($request->kategori_prices)->sum('harga');
-            $product->harga = $total;
-            $product->save();
+            $product->update($updateData);
+            $product->syncKategoriItems($kategoriItems);
+        } else {
+            $product->update($updateData);
         }
 
         $this->syncKomisiTiers($product, $request);
