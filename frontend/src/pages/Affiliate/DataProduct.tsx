@@ -110,14 +110,26 @@ export default function DataProduct() {
     setShowModal(true)
   }
 
-  // Helper to update nested item by path
+  // Navigate into nested KategoriItem tree. path[0] = items array index, subsequent = .children index
+  function getItem(items: KategoriItem[], path: number[]): KategoriItem | null {
+    let current: any = items
+    for (let i = 0; i < path.length; i++) {
+      if (i === 0) {
+        current = current[path[i]]
+      } else {
+        current = current?.children?.[path[i]]
+      }
+      if (current === undefined || current === null) return null
+    }
+    return current
+  }
+
   function updateItem(path: number[], field: keyof KategoriItem, value: any) {
     setForm(prev => {
       const items = JSON.parse(JSON.stringify(prev.kategori_items)) as KategoriItem[]
-      let target: any = items
-      for (const i of path) target = target[i]
-      if (field === 'children') return prev
-      ;(target as any)[field] = value
+      const target = getItem(items, path)
+      if (!target || field === 'children') return prev
+      target[field] = value
       return { ...prev, kategori_items: items }
     })
   }
@@ -128,10 +140,11 @@ export default function DataProduct() {
       if (parentPath.length === 0) {
         items.push(emptyKategoriItem())
       } else {
-        let target: any = items
-        for (const i of parentPath) target = target[i]
-        if (!target.children) target.children = []
-        target.children.push(emptyKategoriItem())
+        const parent = getItem(items, parentPath)
+        if (parent) {
+          if (!parent.children) parent.children = []
+          parent.children.push(emptyKategoriItem())
+        }
       }
       return { ...prev, kategori_items: items }
     })
@@ -143,9 +156,10 @@ export default function DataProduct() {
       if (path.length === 1) {
         items.splice(path[0], 1)
       } else {
-        let parent: any = items
-        for (let i = 0; i < path.length - 1; i++) parent = parent[path[i]]
-        parent.children.splice(path[path.length - 1], 1)
+        const parent = getItem(items, path.slice(0, -1))
+        if (parent && parent.children) {
+          parent.children.splice(path[path.length - 1], 1)
+        }
       }
       return { ...prev, kategori_items: items.length > 0 ? items : [emptyKategoriItem()] }
     })
@@ -321,7 +335,7 @@ export default function DataProduct() {
             </button>
           </div>
           {/* Total badge for parent with children */}
-          {hasChildren && (
+          {hasChildren && depth === 0 && (
             <div className="flex items-center justify-between px-2.5 pb-2 -mt-1">
               <button type="button" onClick={() => addItem(path)}
                 className="text-[10px] font-semibold text-blue-500 hover:text-blue-700 transition">
@@ -332,7 +346,7 @@ export default function DataProduct() {
               </span>
             </div>
           )}
-          {!hasChildren && (
+          {!hasChildren && depth === 0 && (
             <div className="flex justify-end px-2.5 pb-2 -mt-1">
               <button type="button" onClick={() => addItem(path)}
                 className="text-[10px] font-semibold text-blue-500 hover:text-blue-700 transition">

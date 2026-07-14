@@ -15,13 +15,10 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
-        $data = $request->validate([
+        $request->validate([
             'nama' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
             'kategori_items' => 'nullable|array',
-            'kategori_items.*.name' => 'required|string|max:100',
-            'kategori_items.*.harga' => 'required|numeric|min:0',
-            'kategori_items.*.komisi' => 'nullable|numeric|min:0',
             'komisi' => 'nullable|numeric|min:0',
             'status' => 'nullable|in:aktif,nonaktif',
             'komisi_tiers' => 'nullable|array',
@@ -32,16 +29,16 @@ class ProductController extends Controller
             'komisi_tiers.*.urutan' => 'nullable|integer|min:0',
         ]);
 
-        $kategoriItems = $data['kategori_items'] ?? [];
-        $totalHarga = collect($kategoriItems)->sum('harga');
+        $kategoriItems = $request->input('kategori_items', []);
+        $totalHarga = $this->sumHargaDeep($kategoriItems);
 
         $product = Product::create([
-            'nama' => $data['nama'],
-            'deskripsi' => $data['deskripsi'] ?? null,
+            'nama' => $request->input('nama'),
+            'deskripsi' => $request->input('deskripsi'),
             'kategori_items' => $kategoriItems,
             'harga' => $totalHarga,
-            'komisi' => $data['komisi'] ?? null,
-            'status' => $data['status'] ?? 'aktif',
+            'komisi' => $request->input('komisi'),
+            'status' => $request->input('status', 'aktif'),
         ]);
 
         $product->syncKategoriItems($kategoriItems);
@@ -60,13 +57,10 @@ class ProductController extends Controller
     {
         $product = Product::findOrFail($id);
 
-        $data = $request->validate([
+        $request->validate([
             'nama' => 'sometimes|string|max:255',
             'deskripsi' => 'nullable|string',
             'kategori_items' => 'nullable|array',
-            'kategori_items.*.name' => 'required|string|max:100',
-            'kategori_items.*.harga' => 'required|numeric|min:0',
-            'kategori_items.*.komisi' => 'nullable|numeric|min:0',
             'komisi' => 'nullable|numeric|min:0',
             'status' => 'nullable|in:aktif,nonaktif',
             'komisi_tiers' => 'nullable|array',
@@ -78,14 +72,14 @@ class ProductController extends Controller
         ]);
 
         $updateData = [];
-        if (isset($data['nama'])) $updateData['nama'] = $data['nama'];
-        if (array_key_exists('deskripsi', $data)) $updateData['deskripsi'] = $data['deskripsi'];
-        if (isset($data['komisi'])) $updateData['komisi'] = $data['komisi'];
-        if (isset($data['status'])) $updateData['status'] = $data['status'];
+        if ($request->has('nama')) $updateData['nama'] = $request->input('nama');
+        if ($request->has('deskripsi')) $updateData['deskripsi'] = $request->input('deskripsi');
+        if ($request->has('komisi')) $updateData['komisi'] = $request->input('komisi');
+        if ($request->has('status')) $updateData['status'] = $request->input('status');
 
-        if (isset($data['kategori_items'])) {
-            $kategoriItems = $data['kategori_items'];
-            $totalHarga = collect($kategoriItems)->sum('harga');
+        if ($request->has('kategori_items')) {
+            $kategoriItems = $request->input('kategori_items', []);
+            $totalHarga = $this->sumHargaDeep($kategoriItems);
 
             $updateData['kategori_items'] = $kategoriItems;
             $updateData['harga'] = $totalHarga;
@@ -107,6 +101,18 @@ class ProductController extends Controller
         $product->delete();
 
         return response()->json(['message' => 'Product deleted']);
+    }
+
+    private function sumHargaDeep(array $items): float
+    {
+        $total = 0;
+        foreach ($items as $item) {
+            $total += $item['harga'] ?? 0;
+            if (!empty($item['children'])) {
+                $total += $this->sumHargaDeep($item['children']);
+            }
+        }
+        return $total;
     }
 
     private function syncKomisiTiers(Product $product, Request $request)
