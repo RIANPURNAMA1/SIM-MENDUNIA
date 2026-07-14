@@ -161,7 +161,12 @@ class BiayaController extends Controller
         }
 
         $kategoris = BiayaKategori::orderBy('urutan')->get();
-        $result = $kategoris->map(function ($k) use ($data, $biayaBatch, $pivotPrices) {
+        $result = $kategoris->filter(function ($k) use ($data, $biayaBatch, $pivotPrices) {
+            $bb = $biayaBatch->get($k->id);
+            $pi = $data->get($k->id);
+            $biaya = $bb ? (int) $bb->biaya : $pivotPrices->get($k->id, 0);
+            return $biaya > 0;
+        })->values()->map(function ($k) use ($data, $biayaBatch, $pivotPrices) {
             $bb = $biayaBatch->get($k->id);
             $pi = $data->get($k->id);
             $biaya = $bb ? (int) $bb->biaya : $pivotPrices->get($k->id, 0);

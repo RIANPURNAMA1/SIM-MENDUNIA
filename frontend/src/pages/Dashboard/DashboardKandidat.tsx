@@ -4,12 +4,12 @@ import { Link } from 'react-router-dom'
 import { pendaftarApi, pembayaranApi, affiliateLinkApi } from '../../services/api'
 import {
   Chart as ChartJS,
-  CategoryScale, LinearScale, PointElement, LineElement,
+  CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title,
   Filler, Tooltip, Legend,
 } from 'chart.js'
-import { Line } from 'react-chartjs-2'
+import { Line, Bar } from 'react-chartjs-2'
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend)
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Filler, Tooltip, Legend)
 
 interface PendaftarItem {
   id: number
@@ -199,6 +199,58 @@ export default function DashboardKandidat() {
     },
   }
 
+  const programChartData = useMemo(() => {
+    const countMap: Record<string, number> = {}
+    pendaftar.forEach(p => {
+      const nama = p.product?.nama || 'Tanpa Program'
+      countMap[nama] = (countMap[nama] || 0) + 1
+    })
+    const sorted = Object.entries(countMap).sort((a, b) => b[1] - a[1])
+    const colors = ['#0D1F3C', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6']
+    return {
+      labels: sorted.map(([name]) => name),
+      datasets: [{
+        label: 'Jumlah Pendaftar',
+        data: sorted.map(([, count]) => count),
+        backgroundColor: sorted.map((_, i) => colors[i % colors.length] + 'cc'),
+        borderColor: sorted.map((_, i) => colors[i % colors.length]),
+        borderWidth: 1.5,
+        borderRadius: 6,
+        barThickness: sorted.length > 6 ? 28 : 36,
+      }],
+    }
+  }, [pendaftar])
+
+  const programChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    indexAxis: 'y' as const,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#0D1F3C',
+        titleFont: { size: 12 },
+        bodyFont: { size: 11 },
+        padding: 10,
+        cornerRadius: 8,
+        callbacks: {
+          label: (ctx: any) => `${ctx.parsed.x} pendaftar`,
+        },
+      },
+    },
+    scales: {
+      x: {
+        beginAtZero: true,
+        ticks: { stepSize: 1, font: { size: 10 }, color: '#94a3b8' },
+        grid: { color: 'rgba(0,0,0,0.04)' },
+      },
+      y: {
+        grid: { display: false },
+        ticks: { font: { size: 11, weight: 'bold' as const }, color: '#334155' },
+      },
+    },
+  }
+
   const breakdownStats = [
     { label: 'Total Pendaftar', value: pendaftar.length, icon: Users, color: 'text-[#0D1F3C]', bg: 'bg-[#0D1F3C]/5' },
     { label: 'Disetujui', value: pendaftar.filter(p => p.status_pendaftaran === 'disetujui').length, icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
@@ -283,7 +335,7 @@ export default function DashboardKandidat() {
       </div>
 
       {/* Chart Section */}
-      <div className="mb-6">
+      <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
@@ -298,6 +350,28 @@ export default function DashboardKandidat() {
           </div>
           <div className="h-72 sm:h-80">
             <Line data={chartData} options={chartOptions} />
+          </div>
+        </div>
+
+        {/* Program Terlaris */}
+        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10">
+                <TrendingUp size={18} className="text-emerald-600" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-gray-800">Program Terlaris</h2>
+                <p className="text-xs text-gray-400">Jumlah pendaftar per program</p>
+              </div>
+            </div>
+          </div>
+          <div className="h-72 sm:h-80">
+            {programChartData.labels.length > 0 ? (
+              <Bar data={programChartData} options={programChartOptions} />
+            ) : (
+              <div className="flex h-full items-center justify-center text-sm text-gray-400">Belum ada data</div>
+            )}
           </div>
         </div>
       </div>

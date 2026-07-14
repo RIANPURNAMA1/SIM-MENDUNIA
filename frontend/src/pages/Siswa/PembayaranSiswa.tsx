@@ -10,6 +10,7 @@ interface Kategori {
   kode: string
   nama: string
   urutan: number
+  parent_id: number | null
 }
 
 interface KategoriItem {
@@ -80,7 +81,9 @@ export default function PembayaranSiswa() {
   const paidKategoriIds = kategoriItems.filter(i => i.dibayar >= i.biaya && i.biaya > 0).map(i => i.kategori_id)
   const partialKategoriIds = kategoriItems.filter(i => i.dibayar > 0 && i.dibayar < i.biaya).map(i => i.kategori_id)
 
-  const sortedKat = [...kategoris].sort((a, b) => a.urutan - b.urutan)
+  const sortedKat = [...kategoris]
+    .filter(k => !k.parent_id && kategoriItems.some(i => i.kategori_id === k.id))
+    .sort((a, b) => a.urutan - b.urutan)
   const nextKat = sortedKat.find(k => {
     const item = kategoriItems.find(i => i.kategori_id === k.id)
     return item ? item.dibayar < item.biaya : true
@@ -204,7 +207,7 @@ export default function PembayaranSiswa() {
             </div>
 
             {/* Tahapan */}
-            {kategoris.length > 0 && (
+            {sortedKat.length > 0 && (
               <div className="px-5 py-4 border-b border-gray-100">
                 <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Tahapan Pembayaran</h3>
                 <div className="flex gap-2 overflow-x-auto pb-1 snap-x snap-mandatory scrollbar-thin">

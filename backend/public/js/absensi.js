@@ -192,8 +192,8 @@ function startRealtimeDetection(video, canvas) {
                 .detectSingleFace(
                     video,
                     new faceapi.TinyFaceDetectorOptions({
-                        inputSize: 224,
-                        scoreThreshold: 0.5, // Bisa diturunkan menjadi 0.4 untuk sensitivitas lebih tinggi
+                        inputSize: 416,
+                        scoreThreshold: 0.3, // Deteksi wajah dari jarak lebih jauh
                     }),
                 )
                 .withFaceLandmarks()
@@ -591,8 +591,8 @@ async function startRealtimeDetectionReg() {
             .detectSingleFace(
                 video,
                 new faceapi.TinyFaceDetectorOptions({
-                    inputSize: 224,
-                    scoreThreshold: 0.5,
+                    inputSize: 416,
+                    scoreThreshold: 0.3,
                 }),
             )
             .withFaceLandmarks();

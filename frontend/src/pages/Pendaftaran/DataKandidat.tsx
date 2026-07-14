@@ -449,8 +449,8 @@ export default function DataKandidat() {
                     <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[170px]">NIK</th>
                     <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[160px]">No. Registrasi</th>
                     <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[200px]">Nama Kandidat</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[100px]">Batch</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[100px]">Real Batch</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[140px]">Batch</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[120px]">Real Batch</th>
                     <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium w-[40px]">JK</th>
                     <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[220px]">Tempat, Tanggal Lahir</th>
                     <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[250px]">Alamat</th>
@@ -488,34 +488,23 @@ export default function DataKandidat() {
                           <td className="border border-slate-200 px-4 py-3 text-sm font-mono text-slate-700 whitespace-nowrap">
                             {k.no_registrasi || <span className="text-slate-300">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
+                          <td className="border border-slate-200 px-4 py-3 max-w-[200px] overflow-hidden">
                             {isEditing ? <CellEdit field="nama" /> : (
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-3 min-w-0">
                                 <img
                                   src={`https://ui-avatars.com/api/?name=${encodeURIComponent(k.nama)}&background=e5e7eb&color=6b7280&size=28`}
-                                  className="h-8 w-8 rounded-full object-cover"
+                                  className="h-8 w-8 rounded-full object-cover flex-none"
                                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                                 />
-                                <div>
-                                  <div className="text-sm font-semibold text-slate-800">{k.nama}</div>
-                                  <div className="text-xs text-slate-500">{k.email}</div>
+                                <div className="min-w-0">
+                                  <div className="text-sm font-semibold text-slate-800 truncate">{k.nama}</div>
+                                  <div className="text-xs text-slate-500 truncate">{k.email}</div>
                                 </div>
                               </div>
                             )}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
+                          <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">
                             {isEditing ? (
-                              <select
-                                value={String(k.batch_id ?? '')}
-                                onChange={e => handlePindahBatch(k.id, e.target.value)}
-                                className="w-full bg-transparent text-sm text-slate-700 outline-none cursor-pointer"
-                              >
-                                <option value="">-</option>
-                                {batchOptions.map(b => (
-                                  <option key={b.id} value={b.id}>{b.nama}</option>
-                                ))}
-                              </select>
-                            ) : (
                               <select
                                 value={String(k.batch_id ?? '')}
                                 onChange={e => handlePindahBatch(k.id, e.target.value)}
@@ -526,6 +515,10 @@ export default function DataKandidat() {
                                   <option key={b.id} value={b.id}>{b.nama}</option>
                                 ))}
                               </select>
+                            ) : (
+                              <span className="inline-block rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-sm font-medium text-slate-700">
+                                {batchOptions.find(b => String(b.id) === String(k.batch_id))?.nama || <span className="text-slate-300">-</span>}
+                              </span>
                             )}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600 whitespace-nowrap">

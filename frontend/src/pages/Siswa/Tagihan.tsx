@@ -9,13 +9,18 @@ function parseInput(v: string): number {
 
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { FileText, Search, Receipt, CheckCircle, Clock, AlertCircle, RotateCcw, DollarSign, X, Save, Bell, Eye, Check, Loader, XCircle } from 'lucide-react'
+import {
+  FileText, Search, Receipt, CheckCircle, Clock, AlertCircle, RotateCcw,
+  DollarSign, X, Save, Bell, Eye, Check, Loader, XCircle,
+} from 'lucide-react'
 import api, { pendaftarApi, batchApi, productApi } from '../../services/api'
 
 interface KategoriInfo {
   id: number
   kode: string
   nama: string
+  parent_id: number | null
+  children?: KategoriInfo[]
 }
 
 interface DetailItem {
@@ -35,7 +40,7 @@ interface TagihanItem {
   status_pendaftaran: string
   status_pembayaran: string
   created_at: string
-  product: { nama: string; harga: number } | null
+  product: { id: number; nama: string; harga: number } | null
   batch: { id: number; nama_batch: string } | null
   detail?: DetailItem[]
 }
@@ -56,6 +61,19 @@ interface BatchOption {
 interface ProductOption {
   id: number
   nama: string
+}
+
+interface KategoriColumn {
+  kategori: KategoriInfo
+  depth: number
+}
+
+interface ProgramGroup {
+  productId: number
+  productName: string
+  kategoris: KategoriInfo[]
+  kategoriColumns: KategoriColumn[]
+  items: TagihanItem[]
 }
 
 export default function Tagihan() {
@@ -81,6 +99,7 @@ export default function Tagihan() {
   const [rejectingId, setRejectingId] = useState<number | null>(null)
   const [confirmRejectId, setConfirmRejectId] = useState<number | null>(null)
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+  const [collapsedPrograms, setCollapsedPrograms] = useState<Set<number>>(new Set())
 
   const pendingCount = Object.keys(pendingChanges).length
 
@@ -121,6 +140,60 @@ export default function Tagihan() {
     })
   }, [data, search, filterStatus, filterBatch, filterProduct, pendingPembayaran])
 
+  const programGroups = useMemo<ProgramGroup[]>(() => {
+    const groupMap = new Map<number, ProgramGroup>()
+    const order: number[] = []
+
+    filtered.forEach(p => {
+      const pid = p.product?.id || 0
+      if (!groupMap.has(pid)) {
+        order.push(pid)
+        groupMap.set(pid, {
+          productId: pid,
+          productName: p.product?.nama || 'Tanpa Program',
+          kategoris: [],
+          kategoriColumns: [],
+          items: [],
+        })
+      }
+      groupMap.get(pid)!.items.push(p)
+    })
+
+    groupMap.forEach((group) => {
+      const usedIds = new Set<number>()
+      group.items.forEach(p => {
+        p.detail?.forEach(d => {
+          if (d.biaya > 0) usedIds.add(d.kategori_id)
+        })
+      })
+      const used = kategoris.filter(k => usedIds.has(k.id))
+      group.kategoris = used
+
+      const byId = new Map(used.map(k => [k.id, k]))
+      const childMap = new Map<number, KategoriInfo[]>()
+      const roots: KategoriInfo[] = []
+
+      used.forEach(k => {
+        if (k.parent_id && byId.has(k.parent_id)) {
+          if (!childMap.has(k.parent_id)) childMap.set(k.parent_id, [])
+          childMap.get(k.parent_id)!.push(k)
+        } else {
+          roots.push(k)
+        }
+      })
+
+      const columns: KategoriColumn[] = []
+      roots.forEach(r => {
+        columns.push({ kategori: r, depth: 0 })
+        const children = childMap.get(r.id) || []
+        children.forEach(c => columns.push({ kategori: c, depth: 1 }))
+      })
+      group.kategoriColumns = columns
+    })
+
+    return order.map(id => groupMap.get(id)!).sort((a, b) => a.productName.localeCompare(b.productName))
+  }, [filtered, kategoris])
+
   const stats = useMemo(() => {
     const total = data.reduce((sum, p) => {
       const biayaTotal = p.detail?.reduce((s: number, d: DetailItem) => s + (d.biaya || 0), 0) || Number(p.product?.harga || 0)
@@ -145,6 +218,10 @@ export default function Tagihan() {
     return d?.dibayar || 0
   }
 
+  const hasKategori = (p: TagihanItem, kategoriId: number): boolean => {
+    return !!p.detail?.some(d => d.kategori_id === kategoriId && d.biaya > 0)
+  }
+
   const statusBadge = (status: string, dibayar: number, tagihan: number) => {
     const isLunas = dibayar >= tagihan && tagihan > 0
     const map: Record<string, { bg: string; text: string; label: string; icon: typeof Clock }> = {
@@ -164,11 +241,32 @@ export default function Tagihan() {
     )
   }
 
+  const toggleProgram = (pid: number) => {
+    setCollapsedPrograms(prev => {
+      const next = new Set(prev)
+      if (next.has(pid)) next.delete(pid)
+      else next.add(pid)
+      return next
+    })
+  }
+
+  const calcRow = (p: TagihanItem, kats: KategoriInfo[]) => {
+    const diskon = Number(p.diskon || 0)
+    const biayaFromDetail = kats.reduce((sum, k) => {
+      const d = p.detail?.find((dd: DetailItem) => dd.kategori_id === k.id)
+      return sum + (d?.biaya || 0)
+    }, 0)
+    const tagihan = biayaFromDetail || Number(p.product?.harga || 0) - diskon
+    const totalPaid = kats.reduce((sum, k) => sum + getDibayar(p, k.id), 0)
+    const dibayar = totalPaid || Number(p.nominal || 0)
+    const sisa = Math.max(0, tagihan - dibayar)
+    return { tagihan, dibayar, sisa }
+  }
+
   const handleSaveInline = async () => {
     if (pendingCount === 0) return
     setSavingInline(true)
     try {
-      // Group by pendaftarId
       const grouped: Record<number, { kategori_id: number; jumlah: number }[]> = {}
       for (const [key, val] of Object.entries(pendingChanges)) {
         const [pid, kid] = key.split('_').map(Number)
@@ -190,23 +288,15 @@ export default function Tagihan() {
     }
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent, key: string) => {
+  const handleKeyDown = (e: React.KeyboardEvent, key: string, p: TagihanItem, kats: KategoriInfo[]) => {
     if (e.key === 'Enter') {
       e.preventDefault()
-      // Move to next cell (same row, next kategori) or next row
-      const [pid, kid] = key.split('_').map(Number)
-      const katIndex = kategoris.findIndex(k => k.id === kid)
-      if (katIndex < kategoris.length - 1) {
-        const nextKey = `${pid}_${kategoris[katIndex + 1].id}`
+      const [, kid] = key.split('_').map(Number)
+      const visibleKats = kats.filter(k => hasKategori(p, k.id))
+      const katIndex = visibleKats.findIndex(k => k.id === kid)
+      if (katIndex < visibleKats.length - 1) {
+        const nextKey = `${p.id}_${visibleKats[katIndex + 1].id}`
         inputRefs.current[nextKey]?.focus()
-      } else {
-        // Move to next row
-        const rowIndex = filtered.findIndex(p => p.id === pid)
-        if (rowIndex < filtered.length - 1) {
-          const nextPid = filtered[rowIndex + 1].id
-          const nextKey = `${nextPid}_${kategoris[0].id}`
-          inputRefs.current[nextKey]?.focus()
-        }
       }
     }
   }
@@ -240,6 +330,194 @@ export default function Tagihan() {
     } finally {
       setRejectingId(null)
     }
+  }
+
+  const renderProgramTable = (group: ProgramGroup) => {
+    const { productId, productName, kategoris: kats, kategoriColumns, items } = group
+    const isCollapsed = collapsedPrograms.has(productId)
+    const colSpan = 3 + kategoriColumns.length + 6
+    const groupTagihan = items.reduce((sum, p) => sum + calcRow(p, kats).tagihan, 0)
+    const groupDibayar = items.reduce((sum, p) => sum + calcRow(p, kats).dibayar, 0)
+    const groupSisa = Math.max(0, groupTagihan - groupDibayar)
+    const hasHierarchy = kategoriColumns.some(c => c.depth > 0)
+
+    return (
+      <div key={productId} className="mb-6">
+        <button
+          onClick={() => toggleProgram(productId)}
+          className="w-full flex items-center justify-between px-4 py-3 bg-white rounded-t-lg border border-slate-200 border-b-0 hover:bg-slate-50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0D1F3C]">
+              <Receipt size={14} className="text-white" />
+            </div>
+            <div className="text-left">
+              <h3 className="text-sm font-bold text-slate-800">{productName}</h3>
+              <p className="text-[10px] text-slate-500">{items.length} pendaftar</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:flex items-center gap-4 text-[10px]">
+              <span className="text-slate-500">Tagihan: <span className="font-bold text-slate-700">Rp {fmt(groupTagihan)}</span></span>
+              <span className="text-emerald-600">Dibayar: <span className="font-bold">Rp {fmt(groupDibayar)}</span></span>
+              <span className="text-red-600">Sisa: <span className="font-bold">Rp {fmt(groupSisa)}</span></span>
+            </div>
+            <span className="text-slate-400">{isCollapsed ? '▶' : '▼'}</span>
+          </div>
+        </button>
+
+        {!isCollapsed && (
+          <div className="overflow-x-auto border border-slate-200 border-t-0 rounded-b-lg bg-white shadow-sm">
+            <table className="w-full min-w-[900px] border-collapse text-left text-sm text-slate-700">
+              <thead className="text-[10px] text-slate-600 uppercase tracking-wide bg-slate-50">
+                <tr>
+                  <th className="border border-slate-200 px-2 py-2.5 font-semibold w-[220px]">Pendaftar</th>
+                  <th className="border border-slate-200 px-2 py-2.5 font-semibold w-[100px]">Batch</th>
+                  {kategoriColumns.map(col => {
+                    const k = col.kategori
+                    return (
+                      <th
+                        key={k.id}
+                        className="border border-slate-200 px-2 py-2.5 text-right font-semibold w-[90px]"
+                      >
+                        <span className="font-semibold">{k.nama}</span>
+                      </th>
+                    )
+                  })}
+                  <th className="border border-slate-200 px-2 py-2.5 text-right font-semibold w-[120px]">Tagihan</th>
+                  <th className="border border-slate-200 px-2 py-2.5 text-right font-semibold w-[120px]">Dibayar</th>
+                  <th className="border border-slate-200 px-2 py-2.5 text-right font-semibold w-[120px]">Sisa</th>
+                  <th className="border border-slate-200 px-2 py-2.5 text-center font-semibold w-[110px]">Status</th>
+                  <th className="border border-slate-200 px-2 py-2.5 text-center font-semibold w-[80px]">Invoice</th>
+                  <th className="border border-slate-200 px-2 py-2.5 text-center font-semibold w-[80px]">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map(p => {
+                  const { tagihan, dibayar, sisa } = calcRow(p, kats)
+                  return (
+                    <tr key={p.id} className="bg-white transition hover:bg-slate-50">
+                      <td className="border border-slate-200 px-2 py-2">
+                        <div className="flex items-center gap-2">
+                          <img
+                            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(p.nama)}&background=e5e7eb&color=6b7280&size=24`}
+                            className="h-6 w-6 rounded-full object-cover shrink-0"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                          />
+                          <div className="min-w-0">
+                            <div className="text-xs font-semibold text-slate-800 truncate flex items-center gap-1">
+                              {p.nama}
+                              {pendingPembayaran.some((pp: any) => pp.pendaftar_id === p.id) && (
+                                <button
+                                  onClick={() => setShowPendingModal(true)}
+                                  title="Ada pembayaran menunggu verifikasi"
+                                  className="h-2.5 w-2.5 rounded-full bg-red-500 shrink-0"
+                                />
+                              )}
+                            </div>
+                            <div className="text-[10px] text-slate-500 truncate">{p.email}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="border border-slate-200 px-2 py-2 whitespace-nowrap text-xs">{p.batch?.nama_batch || '-'}</td>
+                      {kategoriColumns.map(col => {
+                        const k = col.kategori
+                        const relevant = hasKategori(p, k.id)
+                        if (!relevant) {
+                          return (
+                            <td key={k.id} className="border border-slate-200 px-2 py-2 text-right text-xs text-slate-300">-</td>
+                          )
+                        }
+                        const key = `${p.id}_${k.id}`
+                        const val = getDibayar(p, k.id)
+                        const isChanged = key in pendingChanges
+                        const biayaKat = p.detail?.find((d: DetailItem) => d.kategori_id === k.id)?.biaya || 0
+                        const isLunas = biayaKat > 0 && val >= biayaKat
+                        const isPartial = val > 0 && !isLunas
+                        return (
+                          <td key={k.id} className="border border-slate-200 px-2 py-2 text-right whitespace-nowrap">
+                            <input
+                              ref={el => { inputRefs.current[key] = el }}
+                              type="text"
+                              value={val > 0 ? val.toLocaleString('id-ID') : ''}
+                              onChange={e => {
+                                const num = parseInput(e.target.value)
+                                setPendingChanges(prev => {
+                                  const next = { ...prev }
+                                  if (num === (p.detail?.find(d => d.kategori_id === k.id)?.dibayar || 0)) {
+                                    delete next[key]
+                                  } else {
+                                    next[key] = num
+                                  }
+                                  return next
+                                })
+                              }}
+                              onKeyDown={e => handleKeyDown(e, key, p, kats)}
+                              className={`w-full bg-transparent text-right text-xs outline-none transition ${isChanged ? 'font-semibold text-blue-700' : isLunas ? 'font-semibold text-emerald-700' : isPartial ? 'font-semibold text-orange-600' : 'text-slate-500'} placeholder:text-slate-300 focus:bg-blue-50 focus:rounded focus:px-1`}
+                              placeholder="-"
+                            />
+                          </td>
+                        )
+                      })}
+                      <td className="border border-slate-200 px-2 py-2 text-right text-xs font-semibold text-slate-800 whitespace-nowrap">
+                        Rp {fmt(tagihan)}
+                      </td>
+                      <td className="border border-slate-200 px-2 py-2 text-right text-xs font-semibold text-emerald-700 whitespace-nowrap">
+                        Rp {fmt(dibayar)}
+                      </td>
+                      <td className="border border-slate-200 px-2 py-2 text-right text-xs font-semibold text-red-600 whitespace-nowrap">
+                        {sisa > 0 ? `Rp ${fmt(sisa)}` : '-'}
+                      </td>
+                      <td className="border border-slate-200 px-2 py-2 text-center">
+                        {statusBadge(p.status_pembayaran, dibayar, tagihan)}
+                      </td>
+                      <td className="border border-slate-200 px-2 py-2 text-center">
+                        <Link
+                          to={`/pendaftar/${p.id}/invoice`}
+                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[10px] font-medium text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600"
+                        >
+                          <FileText size={11} />
+                          Invoice
+                        </Link>
+                      </td>
+                      <td className="border border-slate-200 px-2 py-2 text-center">
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await api.get(`/pembayaran-item/${p.id}`)
+                              setModalBayar({ pendaftar: p, items: (res.data.items || []) })
+                            } catch (err) {
+                              console.error(err)
+                            }
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-medium text-emerald-700 transition hover:bg-emerald-100"
+                        >
+                          <DollarSign size={11} />
+                          Bayar
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="bg-slate-50 font-semibold text-xs">
+                  <td className="border border-slate-200 px-2 py-2" colSpan={kategoriColumns.length + 2}>
+                    <span className="text-slate-500">Total {productName}</span>
+                  </td>
+                  <td className="border border-slate-200 px-2 py-2 text-right text-slate-800">Rp {fmt(groupTagihan)}</td>
+                  <td className="border border-slate-200 px-2 py-2 text-right text-emerald-700">Rp {fmt(groupDibayar)}</td>
+                  <td className="border border-slate-200 px-2 py-2 text-right text-red-600">{groupSisa > 0 ? `Rp ${fmt(groupSisa)}` : '-'}</td>
+                  <td className="border border-slate-200 px-2 py-2 text-center text-slate-500">{items.length} orang</td>
+                  <td className="border border-slate-200 px-2 py-2" />
+                  <td className="border border-slate-200 px-2 py-2" />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
+      </div>
+    )
   }
 
   return (
@@ -324,7 +602,7 @@ export default function Tagihan() {
             <option value="verified">Lunas</option>
           </select>
           <button
-            onClick={() => { setSearch(''); setFilterStatus(''); setFilterBatch(''); setFilterProduct(''); setPendingChanges({}) }}
+            onClick={() => { setSearch(''); setFilterStatus(''); setFilterBatch(''); setFilterProduct(''); setPendingChanges({}); setCollapsedPrograms(new Set()) }}
             className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
           >
             <RotateCcw size={16} />
@@ -333,167 +611,38 @@ export default function Tagihan() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-        <table className="w-full min-w-[2000px] border-collapse text-left text-sm text-slate-700">
-          <thead className="text-[10px] text-slate-600 uppercase tracking-wide">
-            <tr>
-              <th scope="col" className="border border-slate-200 px-2 py-2.5 font-semibold w-[220px]">Pendaftar</th>
-              <th scope="col" className="border border-slate-200 px-2 py-2.5 font-semibold w-[100px]">Batch</th>
-              <th scope="col" className="border border-slate-200 px-2 py-2.5 font-semibold w-[140px]">Program</th>
-              {kategoris.map(k => (
-                <th key={k.id} scope="col" className="border border-slate-200 px-2 py-2.5 text-right font-semibold w-[90px]">{k.kode}</th>
-              ))}
-              <th scope="col" className="border border-slate-200 px-2 py-2.5 text-right font-semibold w-[120px]">Tagihan</th>
-              <th scope="col" className="border border-slate-200 px-2 py-2.5 text-right font-semibold w-[120px]">Dibayar</th>
-              <th scope="col" className="border border-slate-200 px-2 py-2.5 text-right font-semibold w-[120px]">Sisa</th>
-              <th scope="col" className="border border-slate-200 px-2 py-2.5 text-center font-semibold w-[110px]">Status</th>
-              <th scope="col" className="border border-slate-200 px-2 py-2.5 text-center font-semibold w-[80px]">Invoice</th>
-              <th scope="col" className="border border-slate-200 px-2 py-2.5 text-center font-semibold w-[80px]">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={10 + kategoris.length} className="border border-slate-200 px-4 py-20">
-                  <div className="flex items-center justify-center">
-                    <div className="relative w-14 h-14 flex items-center justify-center">
-                      <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
-                      <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            ) : filtered.length === 0 ? (
-              <tr>
-                <td colSpan={10 + kategoris.length} className="border border-slate-200 px-6 py-10 text-center">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-                    <Receipt size={24} />
-                  </div>
-                  <p className="mt-3 text-sm font-medium text-slate-600">Tidak ada tagihan</p>
-                </td>
-              </tr>
-            ) : (
-              filtered.map(p => {
-                const diskon = Number(p.diskon || 0)
-                const biayaFromDetail = kategoris.reduce((sum, k) => {
-                  const d = p.detail?.find((dd: DetailItem) => dd.kategori_id === k.id)
-                  return sum + (d?.biaya || 0)
-                }, 0)
-                const tagihan = biayaFromDetail || Number(p.product?.harga || 0) - diskon
-                const totalPaidFromDetail = kategoris.reduce((sum, k) => sum + getDibayar(p, k.id), 0)
-                const dibayar = totalPaidFromDetail || Number(p.nominal || 0)
-                const sisa = Math.max(0, tagihan - dibayar)
-                return (
-                  <tr key={p.id} className="bg-white transition hover:bg-slate-50">
-                    <td className="border border-slate-200 px-2 py-2">
-                      <div className="flex items-center gap-2">
-                        <img
-                          src={`https://ui-avatars.com/api/?name=${encodeURIComponent(p.nama)}&background=e5e7eb&color=6b7280&size=24`}
-                          className="h-6 w-6 rounded-full object-cover shrink-0"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                        />
-                        <div>
-                          <div className="text-xs font-semibold text-slate-800 truncate flex items-center gap-1">
-                            {p.nama}
-                            {pendingPembayaran.some((pp: any) => pp.pendaftar_id === p.id) && (
-                              <button
-                                onClick={() => setShowPendingModal(true)}
-                                title="Ada pembayaran menunggu verifikasi"
-                                className="h-2.5 w-2.5 rounded-full bg-red-500 shrink-0"
-                              />
-                            )}
-                          </div>
-                          <div className="text-[10px] text-slate-500 truncate">{p.email}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="border border-slate-200 px-2 py-2 whitespace-nowrap">{p.batch?.nama_batch || '-'}</td>
-                    <td className="border border-slate-200 px-2 py-2 text-xs text-slate-600 whitespace-nowrap">{p.product?.nama || '-'}</td>
-                    {kategoris.map(k => {
-                      const key = `${p.id}_${k.id}`
-                      const val = getDibayar(p, k.id)
-                      const isChanged = key in pendingChanges
-                      const biayaKat = p.detail?.find((d: DetailItem) => d.kategori_id === k.id)?.biaya || 0
-                      const isLunas = biayaKat > 0 && val >= biayaKat
-                      const isPartial = val > 0 && !isLunas
-                      return (
-                        <td key={k.id} className="border border-slate-200 px-2 py-2 text-right whitespace-nowrap">
-                          <input
-                            ref={el => { inputRefs.current[key] = el }}
-                            type="text"
-                            value={val > 0 ? val.toLocaleString('id-ID') : ''}
-                            onChange={e => {
-                              const num = parseInput(e.target.value)
-                              setPendingChanges(prev => {
-                                const next = { ...prev }
-                                if (num === (p.detail?.find(d => d.kategori_id === k.id)?.dibayar || 0)) {
-                                  delete next[key]
-                                } else {
-                                  next[key] = num
-                                }
-                                return next
-                              })
-                            }}
-                            onKeyDown={e => handleKeyDown(e, key)}
-                            className={`w-full bg-transparent text-right text-xs outline-none transition ${isChanged ? 'font-semibold text-blue-700' : isLunas ? 'font-semibold text-emerald-700' : isPartial ? 'font-semibold text-red-600' : 'text-slate-400'} placeholder:text-slate-300 focus:bg-blue-50 focus:rounded focus:px-1`}
-                            placeholder="-"
-                          />
-                        </td>
-                      )
-                    })}
-                    <td className="border border-slate-200 px-2 py-2 text-right text-xs font-semibold text-slate-800 whitespace-nowrap">
-                      Rp {fmt(tagihan)}
-                    </td>
-                    <td className="border border-slate-200 px-2 py-2 text-right text-xs font-semibold text-emerald-700 whitespace-nowrap">
-                      Rp {fmt(dibayar)}
-                    </td>
-                    <td className="border border-slate-200 px-2 py-2 text-right text-xs font-semibold text-red-600 whitespace-nowrap">
-                      {sisa > 0 ? `Rp ${fmt(sisa)}` : '-'}
-                    </td>
-                    <td className="border border-slate-200 px-2 py-2 text-center">
-                      {statusBadge(p.status_pembayaran, dibayar, tagihan)}
-                    </td>
-                    <td className="border border-slate-200 px-2 py-2 text-center">
-                      <Link
-                        to={`/pendaftar/${p.id}/invoice`}
-                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[10px] font-medium text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600"
-                      >
-                        <FileText size={11} />
-                        Invoice
-                      </Link>
-                    </td>
-                    <td className="border border-slate-200 px-2 py-2 text-center">
-                      <button
-                        onClick={async () => {
-                          try {
-                            const res = await api.get(`/pembayaran-item/${p.id}`)
-                            setModalBayar({ pendaftar: p, items: (res.data.items || []) })
-                          } catch (err) {
-                            console.error(err)
-                          }
-                        }}
-                        className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-medium text-emerald-700 transition hover:bg-emerald-100"
-                      >
-                        <DollarSign size={11} />
-                        Bayar
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })
-            )}
-          </tbody>
-        </table>
-        <div className="border-t border-slate-200 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <p className="text-sm text-slate-500">Menampilkan {filtered.length} dari {data.length} tagihan</p>
+      {/* Program Tables */}
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="relative w-14 h-14 flex items-center justify-center">
+            <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+            <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
+          </div>
+        </div>
+      ) : programGroups.length === 0 ? (
+        <div className="rounded-lg border border-slate-200 bg-white px-6 py-10 text-center shadow-sm">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+            <Receipt size={24} />
+          </div>
+          <p className="mt-3 text-sm font-medium text-slate-600">Tidak ada tagihan</p>
+        </div>
+      ) : (
+        programGroups.map(group => renderProgramTable(group))
+      )}
+
+      {/* Summary */}
+      {!loading && programGroups.length > 0 && (
+        <div className="mt-2 flex items-center justify-between">
+          <p className="text-sm text-slate-500">
+            {programGroups.length} program &middot; {filtered.length} pendaftar
+          </p>
           <div className="flex items-center gap-3 text-[10px] text-slate-500">
             <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-600" /> Lunas</span>
             <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500" /> Belum Lunas</span>
             <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-300" /> Belum Bayar</span>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Floating save bar */}
       {pendingCount > 0 && (
@@ -520,7 +669,7 @@ export default function Tagihan() {
         </div>
       )}
 
-      {/* Modal Bayar Manual - Per Kategori */}
+      {/* Modal Bayar Manual */}
       {modalBayar && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-6" onClick={() => setModalBayar(null)}>
           <div className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-xl bg-white shadow-xl" onClick={e => e.stopPropagation()}>
@@ -536,7 +685,6 @@ export default function Tagihan() {
               </div>
               <button onClick={() => setModalBayar(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"><X size={17} /></button>
             </div>
-
             <div className="px-5 py-4 space-y-3">
               {modalBayar.items.map((item, i) => (
                 <div key={item.kategori_id} className="flex items-center gap-3">
@@ -562,7 +710,6 @@ export default function Tagihan() {
                 </div>
               ))}
             </div>
-
             <div className="flex items-center justify-between border-t border-slate-200 px-5 py-3">
               <p className="text-[11px] text-slate-400">Kosongi jika belum bayar</p>
               <div className="flex gap-2">
@@ -597,7 +744,7 @@ export default function Tagihan() {
         </div>
       )}
 
-      {/* Modal Verifikasi Pembayaran */}
+      {/* Modal Verifikasi */}
       {showPendingModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-6" onClick={() => setShowPendingModal(false)}>
           <div className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-xl bg-white shadow-xl" onClick={e => e.stopPropagation()}>
@@ -613,7 +760,6 @@ export default function Tagihan() {
               </div>
               <button onClick={() => setShowPendingModal(false)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"><X size={17} /></button>
             </div>
-
             {pendingPembayaran.length === 0 ? (
               <div className="px-5 py-10 text-center">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-500 mb-3">
@@ -687,21 +833,10 @@ export default function Tagihan() {
               <AlertCircle size={24} className="text-red-500" />
             </div>
             <h3 className="text-center text-sm font-bold text-slate-800">Tolak Pembayaran?</h3>
-            <p className="mt-2 text-center text-xs text-slate-500">
-              Pembayaran ini akan ditolak dan dihapus. Tindakan ini tidak dapat dibatalkan.
-            </p>
+            <p className="mt-2 text-center text-xs text-slate-500">Pembayaran ini akan ditolak dan dihapus. Tindakan ini tidak dapat dibatalkan.</p>
             <div className="mt-5 flex gap-3">
-              <button
-                onClick={() => setConfirmRejectId(null)}
-                className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
-              >
-                Batal
-              </button>
-              <button
-                onClick={() => handleRejectPembayaran(confirmRejectId)}
-                disabled={rejectingId === confirmRejectId}
-                className="flex-1 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
-              >
+              <button onClick={() => setConfirmRejectId(null)} className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">Batal</button>
+              <button onClick={() => handleRejectPembayaran(confirmRejectId)} disabled={rejectingId === confirmRejectId} className="flex-1 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-50">
                 {rejectingId === confirmRejectId ? 'Menolak...' : 'Ya, Tolak'}
               </button>
             </div>

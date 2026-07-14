@@ -88,6 +88,16 @@ export default function DataBiayaKategori() {
     setShowModal(true)
   }
 
+  const openCreateSub = (parentId: number) => {
+    const parent = flatData.find(k => k.id === parentId)
+    const childCount = flatData.filter(k => k.parent_id === parentId).length
+    setEditItem(null)
+    setForm({ nama: '', kode: '', urutan: String(flatData.length + 1), deskripsi: '', parent_id: String(parentId) })
+    setError('')
+    setForm(f => ({ ...f, parent_id: String(parentId) }))
+    setShowModal(true)
+  }
+
   const openEdit = (item: Kategori) => {
     setEditItem(item)
     setForm({
@@ -260,6 +270,9 @@ export default function DataBiayaKategori() {
           </td>
           <td className="border border-slate-200 px-4 py-3 text-center">
             <div className="flex items-center justify-center gap-1">
+              <button onClick={() => openCreateSub(parent.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors" title="Tambah Sub">
+                <Plus size={15} />
+              </button>
               <button onClick={() => openEdit(parent)} className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors" title="Edit">
                 <Edit3 size={15} />
               </button>
@@ -351,8 +364,8 @@ export default function DataBiayaKategori() {
             <form onSubmit={handleSave}>
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
                 <div>
-                  <h5 className="font-bold text-gray-900 m-0">{editItem ? 'Edit Kategori' : 'Tambah Kategori'}</h5>
-                  <span className="text-[11px] text-blue-600 font-medium">{editItem ? 'Perbarui data kategori' : 'Buat kategori baru'}</span>
+                  <h5 className="font-bold text-gray-900 m-0">{editItem ? 'Edit Kategori' : form.parent_id ? 'Tambah Sub Kategori' : 'Tambah Kategori'}</h5>
+                  <span className="text-[11px] text-blue-600 font-medium">{editItem ? 'Perbarui data kategori' : form.parent_id ? `Sub dari ${selectedParent?.kode} — ${selectedParent?.nama}` : 'Buat kategori baru'}</span>
                 </div>
                 <button type="button" onClick={closeModal} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><X size={18} /></button>
               </div>

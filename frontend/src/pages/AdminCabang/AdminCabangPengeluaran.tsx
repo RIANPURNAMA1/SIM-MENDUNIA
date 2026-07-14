@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import {
-  Wallet, Plus, Search, Trash2, X, Eye, Edit3, Filter, FileText, Images, Camera, Upload, RotateCcw,
+  Wallet, Plus, Search, Trash2, X, Eye, Edit3, Filter, FileText, Camera, Upload, Image as ImageIcon, RotateCcw,
 } from 'lucide-react'
-import { pengeluaranApi, kategoriPengeluaranApi } from '../../services/api'
-import api from '../../services/api'
+import { pengeluaranApi, kategoriPengeluaranApi, adminCabangApi } from '../../services/api'
 
 interface Kategori {
   id: number
@@ -38,22 +37,19 @@ interface RekapItem {
 const formatRupiah = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n)
 
-const bulanNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']
-
-export default function DataPengeluaran() {
+export default function AdminCabangPengeluaran() {
   const [data, setData] = useState<PengeluaranItem[]>([])
   const [kategoris, setKategoris] = useState<Kategori[]>([])
+  const [branches, setBranches] = useState<Cabang[]>([])
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
 
   const [filterKategori, setFilterKategori] = useState('')
-  const [filterCabang, setFilterCabang] = useState('')
   const [filterMulai, setFilterMulai] = useState('')
   const [filterSampai, setFilterSampai] = useState('')
   const [search, setSearch] = useState('')
-  const [cabangs, setCabangs] = useState<Cabang[]>([])
 
   const [showForm, setShowForm] = useState(false)
   const [editItem, setEditItem] = useState<PengeluaranItem | null>(null)
@@ -67,12 +63,6 @@ export default function DataPengeluaran() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [deleting, setDeleting] = useState(false)
-
-  const [showRekap, setShowRekap] = useState(false)
-  const [rekapData, setRekapData] = useState<{ tahun: number; total_tahun: number; total_semua: number; rekap: RekapItem[] } | null>(null)
-  const [rekapTahun, setRekapTahun] = useState(new Date().getFullYear())
-
-  const [showCatatan, setShowCatatan] = useState(false)
 
   const [showCamera, setShowCamera] = useState(false)
   const [cameraReady, setCameraReady] = useState(false)
@@ -142,11 +132,14 @@ export default function DataPengeluaran() {
     return () => stopCamera()
   }, [showCamera, startCamera, stopCamera])
 
+  const [showRekap, setShowRekap] = useState(false)
+  const [rekapData, setRekapData] = useState<{ tahun: number; total_tahun: number; total_semua: number; rekap: RekapItem[] } | null>(null)
+  const [rekapTahun, setRekapTahun] = useState(new Date().getFullYear())
+
   const fetchData = (p = page) => {
     setLoading(true)
     const params: Record<string, string | number | undefined> = { page: p, per_page: 15 }
     if (filterKategori) params.kategori_id = filterKategori
-    if (filterCabang) params.cabang_id = filterCabang
     if (filterMulai) params.tanggal_mulai = filterMulai
     if (filterSampai) params.tanggal_sampai = filterSampai
     if (search) params.search = search
@@ -164,16 +157,20 @@ export default function DataPengeluaran() {
     kategoriPengeluaranApi.list().then(res => setKategoris(res.data)).catch(console.error)
   }
 
-  const fetchCabangs = () => {
-    api.get('/cabang').then(res => setCabangs(res.data?.data || [])).catch(console.error)
+  const fetchBranches = () => {
+    adminCabangApi.myBranches().then(res => {
+      const b = res.data?.data || res.data || []
+      setBranches(Array.isArray(b) ? b : [])
+    }).catch(console.error)
   }
 
-  useEffect(() => { fetchKategoris(); fetchCabangs() }, [])
-  useEffect(() => { fetchData(1); setPage(1) }, [filterKategori, filterCabang, filterMulai, filterSampai, search])
+  useEffect(() => { fetchKategoris(); fetchBranches() }, [])
+  useEffect(() => { fetchData(1); setPage(1) }, [filterKategori, filterMulai, filterSampai, search])
 
   const openCreate = () => {
     setEditItem(null)
-    setForm({ kategori_id: '', tanggal: new Date().toISOString().split('T')[0], nominal: '', keterangan: '', cabang_id: '' })
+    const defaultCabang = branches.length === 1 ? String(branches[0].id) : ''
+    setForm({ kategori_id: '', tanggal: new Date().toISOString().split('T')[0], nominal: '', keterangan: '', cabang_id: defaultCabang })
     setBuktiFile(null)
     setBuktiPreview(null)
     setError('')
@@ -257,13 +254,6 @@ export default function DataPengeluaran() {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => setShowCatatan(!showCatatan)}
-            className="inline-flex items-center gap-2 rounded-md bg-[#0D1F3C] px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#162d54]"
-          >
-            {showCatatan ? <FileText size={16} /> : <Images size={16} />}
-            {showCatatan ? 'Tabel' : 'Catatan'}
-          </button>
-          <button
             onClick={() => setShowRekap(true)}
             className="inline-flex items-center gap-2 rounded-md bg-[#0D1F3C] px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#162d54]"
           >
@@ -304,24 +294,11 @@ export default function DataPengeluaran() {
                 <option key={k.id} value={k.id}>{k.nama}</option>
               ))}
             </select>
-            {cabangs.length > 0 && (
-              <select
-                value={filterCabang}
-                onChange={e => setFilterCabang(e.target.value)}
-                className="rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              >
-                <option value="">Semua Cabang</option>
-                {cabangs.map(c => (
-                  <option key={c.id} value={c.id}>{c.nama_cabang}</option>
-                ))}
-              </select>
-            )}
             <input
               type="date"
               value={filterMulai}
               onChange={e => setFilterMulai(e.target.value)}
               className="rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              placeholder="Dari tanggal"
             />
             <span className="text-slate-400 text-sm">-</span>
             <input
@@ -329,14 +306,12 @@ export default function DataPengeluaran() {
               value={filterSampai}
               onChange={e => setFilterSampai(e.target.value)}
               className="rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              placeholder="Sampai tanggal"
             />
           </div>
         </div>
       </div>
 
       <div className="relative overflow-x-auto">
-        {!showCatatan ? (
         <table className="w-full min-w-full border-collapse text-left text-sm text-slate-700">
           <thead className="text-sm text-slate-600">
             <tr>
@@ -345,7 +320,6 @@ export default function DataPengeluaran() {
               <th className="border border-slate-200 px-4 py-3 font-medium">Keterangan</th>
               <th className="border border-slate-200 px-4 py-3 text-right font-medium">Nominal</th>
               <th className="border border-slate-200 px-4 py-3 font-medium">Cabang</th>
-              <th className="border border-slate-200 px-4 py-3 font-medium">Oleh</th>
               <th className="border border-slate-200 px-4 py-3 text-center font-medium">Aksi</th>
             </tr>
           </thead>
@@ -353,14 +327,14 @@ export default function DataPengeluaran() {
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i}>
-                  <td colSpan={7} className="border border-slate-200 px-4 py-3">
+                  <td colSpan={6} className="border border-slate-200 px-4 py-3">
                     <div className="h-3 bg-slate-200/70 rounded w-full animate-pulse" />
                   </td>
                 </tr>
               ))
             ) : data.length === 0 ? (
               <tr>
-                <td colSpan={7} className="border border-slate-200 px-6 py-10 text-center">
+                <td colSpan={6} className="border border-slate-200 px-6 py-10 text-center">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
                     <Wallet size={24} />
                   </div>
@@ -386,9 +360,6 @@ export default function DataPengeluaran() {
                   </td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-slate-500">
                     {item.cabang?.nama_cabang || '-'}
-                  </td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-500">
-                    {item.user?.name}
                   </td>
                   <td className="border border-slate-200 px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-1">
@@ -420,83 +391,6 @@ export default function DataPengeluaran() {
             )}
           </tbody>
         </table>
-        ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {loading ? (
-            Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="border border-slate-200 rounded-xl overflow-hidden animate-pulse">
-                <div className="h-40 bg-slate-200/70" />
-                <div className="p-3 space-y-2">
-                  <div className="h-3 bg-slate-200/70 rounded w-1/3" />
-                  <div className="h-4 bg-slate-200/70 rounded w-1/2" />
-                  <div className="h-3 bg-slate-200/70 rounded w-2/3" />
-                </div>
-              </div>
-            ))
-          ) : data.length === 0 ? (
-            <div className="col-span-full text-center py-10 text-sm text-slate-400">Belum ada catatan</div>
-          ) : (
-            data.map(item => (
-              <div key={item.id} className="border border-slate-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow bg-white">
-                {item.bukti ? (
-                  item.bukti.endsWith('.pdf') ? (
-                    <a href={`http://localhost:8000/storage/${item.bukti}`} target="_blank" rel="noreferrer" className="block h-40 bg-slate-100 flex items-center justify-center">
-                      <FileText size={32} className="text-slate-400" />
-                    </a>
-                  ) : (
-                    <img
-                      src={`http://localhost:8000/storage/${item.bukti}`}
-                      alt="Bukti"
-                      className="w-full h-40 object-cover cursor-pointer"
-                      onClick={() => { setDetailItem(item); setShowDetail(true) }}
-                    />
-                  )
-                ) : (
-                  <div className="h-40 bg-slate-100 flex items-center justify-center">
-                    <Wallet size={32} className="text-slate-300" />
-                  </div>
-                )}
-                <div className="p-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="inline-flex px-2 py-0.5 bg-orange-50 text-orange-700 text-[10px] font-semibold rounded">
-                      {item.kategori?.kode}
-                    </span>
-                    <span className="text-xs text-slate-400">
-                      {new Date(item.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </span>
-                  </div>
-                  <p className="text-sm font-bold text-red-600 mt-1">{formatRupiah(item.nominal)}</p>
-                  <p className="text-xs text-slate-500 mt-1 truncate">{item.keterangan || 'Tanpa keterangan'}</p>
-                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-[#0D1F3C] flex items-center justify-center text-[10px] font-bold text-white">
-                        {item.user?.name?.charAt(0)}
-                      </div>
-                      <span className="text-xs text-slate-600">{item.user?.name}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => openEdit(item)}
-                        className="p-1 rounded text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                        title="Edit"
-                      >
-                        <Edit3 size={13} />
-                      </button>
-                      <button
-                        onClick={() => { setDeleteItem(item); setShowDelete(true) }}
-                        className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                        title="Hapus"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-        )}
       </div>
 
       {totalPages > 1 && (
@@ -543,19 +437,29 @@ export default function DataPengeluaran() {
                 {error && (
                   <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{error}</div>
                 )}
-                {cabangs.length > 0 && (
+                {branches.length > 0 && (
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Cabang</label>
-                    <select
-                      value={form.cabang_id}
-                      onChange={e => setForm({ ...form, cabang_id: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                    >
-                      <option value="">Pilih Cabang (Opsional)</option>
-                      {cabangs.map(c => (
-                        <option key={c.id} value={c.id}>{c.nama_cabang}</option>
-                      ))}
-                    </select>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      Cabang <span className="text-red-500">*</span>
+                    </label>
+                    {branches.length === 1 ? (
+                      <input type="hidden" value={form.cabang_id} />
+                    ) : (
+                      <select
+                        required
+                        value={form.cabang_id}
+                        onChange={e => setForm({ ...form, cabang_id: e.target.value })}
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                      >
+                        <option value="">Pilih Cabang</option>
+                        {branches.map(b => (
+                          <option key={b.id} value={b.id}>{b.nama_cabang}</option>
+                        ))}
+                      </select>
+                    )}
+                    {branches.length === 1 && (
+                      <p className="text-xs text-slate-500 mt-1">{branches[0].nama_cabang}</p>
+                    )}
                   </div>
                 )}
                 <div>
@@ -733,9 +637,7 @@ export default function DataPengeluaran() {
               <Trash2 size={24} className="text-red-500" />
             </div>
             <h3 className="font-semibold text-gray-900 mb-1">Hapus Pengeluaran</h3>
-            <p className="text-sm text-gray-500 mb-2">
-              Yakin ingin menghapus pengeluaran ini?
-            </p>
+            <p className="text-sm text-gray-500 mb-2">Yakin ingin menghapus pengeluaran ini?</p>
             <p className="text-sm font-semibold text-red-600 mb-5">
               {formatRupiah(deleteItem.nominal)} - {deleteItem.kategori?.nama}
             </p>
@@ -798,8 +700,8 @@ export default function DataPengeluaran() {
                         </tr>
                       </thead>
                       <tbody>
-                        {rekapData.rekap.map(r => (
-                          <tr key={r.bulan} className="border-b border-slate-100">
+                        {rekapData.rekap.map((r, i) => (
+                          <tr key={i} className="border-b border-slate-100">
                             <td className="py-2 font-medium">{r.nama_bulan}</td>
                             <td className="py-2 text-center text-slate-500">{r.jumlah} transaksi</td>
                             <td className="py-2 text-right font-semibold text-red-600">{formatRupiah(r.total)}</td>

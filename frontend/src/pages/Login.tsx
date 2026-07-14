@@ -44,6 +44,8 @@ export default function Login() {
         window.location.href = "/guru-dashboard";
       } else if (role === "ADMIN_CABANG") {
         window.location.href = "/admin-cabang";
+      } else if (role === "ACCOUNTING") {
+        window.location.href = "/dashboard-keuangan";
       } else if (role === "MANAGER" || role === "HR" || role === "ADMIN") {
         window.location.href = "/";
       } else {

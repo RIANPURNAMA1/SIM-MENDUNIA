@@ -53,6 +53,8 @@ import DataAffiliate from './pages/Affiliate/DataAffiliate'
 import DataProduct from './pages/Affiliate/DataProduct'
 import DataCoupon from './pages/Affiliate/DataCoupon'
 import DataBiayaKategori from './pages/Affiliate/DataBiayaKategori'
+import DataNotifikasi from './pages/Affiliate/DataNotifikasi'
+import DataNotifikasiSetting from './pages/Affiliate/DataNotifikasiSetting'
 import DataKategoriPengeluaran from './pages/Keuangan/DataKategoriPengeluaran'
 import DataPengeluaran from './pages/Keuangan/DataPengeluaran'
 import DashboardKeuangan from './pages/Keuangan/DashboardKeuangan'
@@ -60,6 +62,7 @@ import DaftarAffiliate from './pages/Pendaftaran/DaftarAffiliate'
 import AffiliateDashboard from './pages/Affiliate/AffiliateDashboard'
 import DaftarAffiliateBaru from './pages/Pendaftaran/DaftarAffiliateBaru'
 import DaftarProgram from './pages/Pendaftaran/DaftarProgram'
+import SyaratKetentuan from './pages/SyaratKetentuan'
 import KaryawanDashboard from './pages/Karyawan/KaryawanDashboard'
 import RiwayatAbsensiKaryawan from './pages/Karyawan/RiwayatAbsensiKaryawan'
 import PengajuanIzin from './pages/Karyawan/PengajuanIzin'
@@ -84,6 +87,8 @@ import AdminCabangDashboard from './pages/AdminCabang/AdminCabangDashboard'
 import AdminCabangTagihan from './pages/AdminCabang/AdminCabangTagihan'
 import AdminCabangDataKandidat from './pages/AdminCabang/AdminCabangDataKandidat'
 import AdminCabangPendaftaran from './pages/AdminCabang/AdminCabangPendaftaran'
+import AdminCabangPengeluaran from './pages/AdminCabang/AdminCabangPengeluaran'
+import AdminCabangKategoriPengeluaran from './pages/AdminCabang/AdminCabangKategoriPengeluaran'
 
 function ProtectedRoute({ children, roleAllowed, roleBlocked }: { children: React.ReactNode; roleAllowed?: string; roleBlocked?: string[] }) {
   const { user, isAuthenticated, isLoading } = useAuth()
@@ -113,6 +118,7 @@ function ProtectedRoute({ children, roleAllowed, roleBlocked }: { children: Reac
       KARYAWAN: '/dashboard-karyawan',
       GURU: '/guru-dashboard',
       ADMIN_CABANG: '/admin-cabang',
+      ACCOUNTING: '/dashboard-keuangan',
     }
     return <Navigate to={map[user?.role || ''] || '/login'} replace />
   }
@@ -124,6 +130,7 @@ function ProtectedRoute({ children, roleAllowed, roleBlocked }: { children: Reac
       KARYAWAN: '/dashboard-karyawan',
       GURU: '/guru-dashboard',
       ADMIN_CABANG: '/admin-cabang',
+      ACCOUNTING: '/dashboard-keuangan',
     }
     return <Navigate to={map[user.role] || '/login'} replace />
   }
@@ -132,6 +139,7 @@ function ProtectedRoute({ children, roleAllowed, roleBlocked }: { children: Reac
     const map: Record<string, string> = {
       AFFILIATE: '/affiliate-dashboard',
       KANDIDAT: '/siswa-dashboard',
+      ACCOUNTING: '/dashboard-keuangan',
     }
     return <Navigate to={map[user?.role || ''] || '/login'} replace />
   }
@@ -167,6 +175,7 @@ function AppRoutes() {
       <Route path="/daftar-affiliate" element={<DaftarAffiliateBaru />} />
       <Route path="/daftar-program" element={<DaftarProgram />} />
       <Route path="/daftar-program/:id" element={<DaftarProgram />} />
+      <Route path="/syarat-ketentuan" element={<SyaratKetentuan />} />
 
       <Route
         path="/affiliate-dashboard"
@@ -230,7 +239,7 @@ function AppRoutes() {
       <Route
         path="/dashboard-karyawan"
         element={
-          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN', 'GURU']}>
+          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN', 'GURU', 'ACCOUNTING']}>
             <KaryawanDashboard />
           </ProtectedRoute>
         }
@@ -286,11 +295,31 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/admin-cabang/pengeluaran"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <AdminCabangPengeluaran />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-cabang/kategori-pengeluaran"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <AdminCabangKategoriPengeluaran />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
 
       <Route
         path="/riwayat-absensi-karyawan"
         element={
-          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN', 'GURU']}>
+          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN', 'GURU', 'ACCOUNTING']}>
             <RiwayatAbsensiKaryawan />
           </ProtectedRoute>
         }
@@ -299,7 +328,7 @@ function AppRoutes() {
       <Route
         path="/pengajuan-izin"
         element={
-          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN', 'GURU']}>
+          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN', 'GURU', 'ACCOUNTING']}>
             <PengajuanIzin />
           </ProtectedRoute>
         }
@@ -308,7 +337,7 @@ function AppRoutes() {
       <Route
         path="/lembur-karyawan"
         element={
-          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN', 'GURU']}>
+          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN', 'GURU', 'ACCOUNTING']}>
             <LemburKaryawan />
           </ProtectedRoute>
         }
@@ -317,7 +346,7 @@ function AppRoutes() {
       <Route
         path="/jadwal-karyawan"
         element={
-          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN', 'GURU']}>
+          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN', 'GURU', 'ACCOUNTING']}>
             <JadwalKaryawan />
           </ProtectedRoute>
         }
@@ -326,8 +355,179 @@ function AppRoutes() {
       <Route
         path="/profil-karyawan"
         element={
-          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN', 'GURU']}>
+          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN', 'GURU', 'ACCOUNTING']}>
             <ProfilKaryawan />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/dashboard-keuangan"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <DashboardKeuangan />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/kategori-pengeluaran"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <DataKategoriPengeluaran />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/pengeluaran"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <DataPengeluaran />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tagihan"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <Tagihan />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/rekap-per-batch"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <RekapBatch />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/pembayaran"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <Pembayaran />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/data-kandidat"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <DataKandidat />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/pendaftar"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <Pendaftar />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/pendaftar/:id/invoice"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <InvoicePendaftar />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/data-affiliate"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <DataAffiliate />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/data-product"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <DataProduct />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/data-coupon"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <DataCoupon />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/data-biaya-kategori"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <DataBiayaKategori />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/notifikasi-wa"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <DataNotifikasi />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/notifikasi-wa-setting"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <DataNotifikasiSetting />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/rekap-absensi"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <RekapAbsensi />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/rekap-kehadiran-sensei"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <RekapKehadiranSensei />
+            </DashboardLayout>
           </ProtectedRoute>
         }
       />
@@ -335,7 +535,7 @@ function AppRoutes() {
       <Route
         path="/*"
         element={
-          <ProtectedRoute roleBlocked={['KARYAWAN', 'GURU', 'KANDIDAT', 'AFFILIATE', 'ADMIN_CABANG']}>
+          <ProtectedRoute roleBlocked={['KARYAWAN', 'GURU', 'KANDIDAT', 'AFFILIATE', 'ADMIN_CABANG', 'ACCOUNTING']}>
             <DashboardLayout>
               <Routes>
                 <Route path="/dashboard-absensi" element={<DashboardAbsensi />} />
@@ -382,16 +582,12 @@ function AppRoutes() {
                 <Route path="/pendaftar" element={<Pendaftar />} />
                 <Route path="/pendaftar/:id/invoice" element={<InvoicePendaftar />} />
                 <Route path="/data-matching-job" element={<DataMatchingJob />} />
-                <Route path="/tagihan" element={<Tagihan />} />
-                <Route path="/rekap-per-batch" element={<RekapBatch />} />
-                <Route path="/pembayaran" element={<Pembayaran />} />
                 <Route path="/data-affiliate" element={<DataAffiliate />} />
                 <Route path="/data-product" element={<DataProduct />} />
                 <Route path="/data-coupon" element={<DataCoupon />} />
                 <Route path="/data-biaya-kategori" element={<DataBiayaKategori />} />
-                <Route path="/dashboard-keuangan" element={<DashboardKeuangan />} />
-                <Route path="/kategori-pengeluaran" element={<DataKategoriPengeluaran />} />
-                <Route path="/pengeluaran" element={<DataPengeluaran />} />
+                <Route path="/notifikasi-wa" element={<DataNotifikasi />} />
+                <Route path="/notifikasi-wa-setting" element={<DataNotifikasiSetting />} />
               </Routes>
             </DashboardLayout>
           </ProtectedRoute>

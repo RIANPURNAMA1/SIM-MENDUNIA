@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Building2, Upload } from 'lucide-react'
+import { Building2, Upload, Loader } from 'lucide-react'
 import { companyProfileApi } from '../../services/api'
 import type { CompanyProfile } from '../../types'
 

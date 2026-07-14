@@ -319,49 +319,6 @@ export default function InvoicePendaftar() {
             </div>
           </div>
 
-          {/* Payment History */}
-          {riwayat_pembayaran.length > 0 && (
-            <div className="mb-6">
-              <h3 className="mb-3 text-[11px] font-bold uppercase tracking-widest text-slate-400">Riwayat Pembayaran</h3>
-              <div className="overflow-hidden rounded-lg border border-slate-200">
-                <table className="w-full border-collapse text-left text-sm">
-                  <thead>
-                    <tr className="bg-slate-50">
-                      <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">#</th>
-                      <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Tanggal</th>
-                      <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-slate-500">Jumlah</th>
-                      <th className="px-4 py-2.5 text-center text-[10px] font-semibold uppercase tracking-wider text-slate-500">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {riwayat_pembayaran.map((r, i) => (
-                      <tr key={r.id} className="border-t border-slate-100 bg-white">
-                        <td className="px-4 py-2.5 text-xs text-slate-400">{i + 1}</td>
-                        <td className="px-4 py-2.5 text-xs text-slate-600">
-                          {new Date(r.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                        </td>
-                        <td className="px-4 py-2.5 text-right text-xs font-semibold text-slate-800">
-                          Rp {r.jumlah.toLocaleString('id-ID')}
-                        </td>
-                        <td className="px-4 py-2.5 text-center">
-                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                            r.status === 'verified' ? 'bg-emerald-100 text-emerald-700' :
-                            r.status === 'ditolak' ? 'bg-red-100 text-red-600' :
-                            'bg-amber-100 text-amber-700'
-                          }`}>
-                            {r.status === 'verified' ? <CheckCircle size={10} /> :
-                             r.status === 'ditolak' ? <XCircle size={10} /> :
-                             <Clock size={10} />}
-                            {r.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Footer */}

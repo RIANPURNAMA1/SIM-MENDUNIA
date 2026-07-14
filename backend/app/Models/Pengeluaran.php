@@ -15,6 +15,7 @@ class Pengeluaran extends Model
         'keterangan',
         'bukti',
         'user_id',
+        'cabang_id',
     ];
 
     protected $casts = [
@@ -30,5 +31,10 @@ class Pengeluaran extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function cabang()
+    {
+        return $this->belongsTo(Cabang::class, 'cabang_id');
     }
 }

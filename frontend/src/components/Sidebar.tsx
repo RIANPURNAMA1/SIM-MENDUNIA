@@ -38,6 +38,7 @@ import {
   Tag,
   ListOrdered,
   Wallet,
+  MessageSquare,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -93,6 +94,7 @@ const iconMap: Record<string, LucideIcon> = {
   Tag,
   ListOrdered,
   Wallet,
+  MessageSquare,
 };
 
 const navItems: NavItem[] = [
@@ -136,6 +138,8 @@ const navItems: NavItem[] = [
       { label: "Program", icon: "Package", href: "/data-product" },
       { label: "Data Coupon", icon: "CreditCard", href: "/data-coupon" },
       { label: "Kategori Bayar", icon: "ListOrdered", href: "/data-biaya-kategori" },
+      { label: "monitoring Notifikasi", icon: "MessageSquare", href: "/notifikasi-wa" },
+      { label: "Setting Notifikasi", icon: "Settings", href: "/notifikasi-wa-setting" },
     ],
   },
   {
@@ -219,6 +223,13 @@ const navItems: NavItem[] = [
     icon: "Wallet",
     children: [
       {
+        label: "Dashboard Keuangan",
+        icon: "LayoutDashboard",
+        href: "/dashboard-keuangan",
+      },
+      { label: "Pembayaran", icon: "CreditCard", href: "/pembayaran" },
+      { label: "Tagihan", icon: "FileText", href: "/tagihan" },
+      {
         label: "Kategori Pengeluaran",
         icon: "ListOrdered",
         href: "/kategori-pengeluaran",
@@ -246,8 +257,53 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     user?.role === "AFFILIATE" ||
     user?.role === "ADMIN_CABANG";
 
+  const isAccounting = user?.role === "ACCOUNTING";
+
   const filteredNavItems = isRestricted
     ? []
+    : isAccounting
+    ? (navItems
+        .filter(
+          (item) =>
+            item.label === "Keuangan" ||
+            item.label === "Manajemen Kandidat" ||
+            item.label === "Program & Affiliate" ||
+            item.label === "Manajemen Absensi",
+        )
+        .map((item) => {
+          if (item.label === "Manajemen Kandidat" && "children" in item) {
+            const group = item as NavGroup;
+            return {
+              ...group,
+              children: group.children.filter(
+                (child) =>
+                  child.label === "Data Kandidat" || child.label === "Pendaftaran",
+              ),
+            };
+          }
+          if (item.label === "Program & Affiliate" && "children" in item) {
+            const group = item as NavGroup;
+            return {
+              ...group,
+              children: group.children.filter(
+                (child) => child.label !== "Affiliate Dashboard",
+              ),
+            };
+          }
+          if (item.label === "Manajemen Absensi" && "children" in item) {
+            const group = item as NavGroup;
+            return {
+              ...group,
+              children: group.children.filter(
+                (child) =>
+                  child.label === "Rekap Absensi" ||
+                  child.label === "Rekap Kehadiran Sensei" ||
+                  child.label === "Rekap Jadwal Shift",
+              ),
+            };
+          }
+          return item;
+        }) as NavItem[])
     : (navItems
         .map((item) => {
           if (item.label === "Program & Affiliate" && "children" in item) {
@@ -264,7 +320,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             };
           }
           if (item.label === "Keuangan" && "children" in item) {
-            if (user?.role !== "HR" && user?.role !== "MANAGER") return null;
+            if (user?.role !== "HR" && user?.role !== "MANAGER" && user?.role !== "ACCOUNTING") return null;
           }
           return item;
         })

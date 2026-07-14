@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ClipboardList, Search, CheckCircle, Clock, XCircle, Eye, FileText, RotateCcw } from 'lucide-react'
 import { adminCabangApi } from '../../services/api'
+import Swal from 'sweetalert2'
 
 interface PendaftarItem {
   id: number
@@ -88,10 +89,12 @@ export default function AdminCabangPendaftaran() {
   }
 
   const handleApprove = async (id: number) => {
-    if (!confirm('Setujui pendaftaran ini?')) return
+    const result = await Swal.fire({ icon: 'question', title: 'Setujui Pendaftaran?', text: 'Pendaftar akan disetujui', showCancelButton: true, confirmButtonColor: '#0D1F3C', confirmButtonText: 'Setujui', cancelButtonText: 'Batal' })
+    if (!result.isConfirmed) return
     try {
       const { pendaftarApi } = await import('../../services/api')
       await pendaftarApi.approve(id)
+      Swal.fire({ icon: 'success', title: 'Disetujui!', text: 'Pendaftaran berhasil disetujui.', confirmButtonColor: '#0D1F3C', timer: 2000, timerProgressBar: true, showConfirmButton: false })
       fetchData()
     } catch (err) {
       console.error(err)
@@ -99,10 +102,12 @@ export default function AdminCabangPendaftaran() {
   }
 
   const handleReject = async (id: number) => {
-    if (!confirm('Tolak pendaftaran ini?')) return
+    const result = await Swal.fire({ icon: 'warning', title: 'Tolak Pendaftaran?', text: 'Pendaftar akan ditolak', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Tolak', cancelButtonText: 'Batal' })
+    if (!result.isConfirmed) return
     try {
       const { pendaftarApi } = await import('../../services/api')
       await pendaftarApi.reject(id)
+      Swal.fire({ icon: 'success', title: 'Ditolak', text: 'Pendaftaran ditolak.', confirmButtonColor: '#0D1F3C', timer: 2000, timerProgressBar: true, showConfirmButton: false })
       fetchData()
     } catch (err) {
       console.error(err)

@@ -76,6 +76,7 @@ class AuthController extends Controller
 
         $redirect = match ($user->role) {
             'HR', 'MANAGER' => route('dashboard'),
+            'ACCOUNTING'    => route('dashboard'),
             'KARYAWAN', 'KANDIDAT', 'GURU' => route('absensi.index'),
             default         => route('login')
         };
@@ -93,7 +94,7 @@ class AuthController extends Controller
             'name' => 'required|string|max:100',
             'email' => 'required|email|unique:users',
             'password' => 'required|min:6|confirmed',
-            'role' => 'required|in:HR,MANAGER,KARYAWAN,KANDIDAT',
+            'role' => 'required|in:HR,MANAGER,KARYAWAN,KANDIDAT,ACCOUNTING',
             'cabang_id' => 'nullable|integer'
         ]);
 

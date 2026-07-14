@@ -253,6 +253,7 @@ export default function DaftarProgram() {
   }
 
   function handleFinalSubmit(e: FormEvent) {
+    e.preventDefault();
     if (!bukti) {
       setError("Harap upload bukti pembayaran");
       return;

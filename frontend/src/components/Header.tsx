@@ -7,7 +7,7 @@ import {
   FileText, Clock, BarChart3, BookOpen, GraduationCap,
   Layers, Notebook, Presentation, UserPlus, User, Search,
   Briefcase, Zap, MessageCircle, CreditCard, Handshake, Package,
-  ListOrdered,
+  ListOrdered, MessageSquare, Wallet,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { izinApi, lemburApi } from '../services/api'
@@ -26,6 +26,7 @@ const navItems: { label: string; icon: React.ReactNode; href?: string; children?
       { label: 'Tagihan', icon: <FileText size={14} />, href: '/tagihan' },
       { label: 'Pembayaran', icon: <CreditCard size={14} />, href: '/pembayaran' },
       { label: 'Kategori Bayar', icon: <ListOrdered size={14} />, href: '/data-biaya-kategori' },
+      { label: 'Notifikasi WA', icon: <MessageCircle size={14} />, href: '/notifikasi-wa' },
     ],
   },
   {
@@ -74,6 +75,17 @@ const navItems: { label: string; icon: React.ReactNode; href?: string; children?
       { label: 'Shift Kerja', icon: <Timer size={14} />, href: '/shift' },
       { label: 'Jadwal Shift', icon: <CalendarPlus size={14} />, href: '/jadwal-shift' },
       { label: 'Daftar User', icon: <List size={14} />, href: '/daftar-user' },
+    ],
+  },
+  {
+    label: 'Keuangan', icon: <Wallet size={16} />,
+    children: [
+      { label: 'Dashboard Keuangan', icon: <LayoutDashboard size={14} />, href: '/dashboard-keuangan' },
+      { label: 'Tagihan', icon: <FileText size={14} />, href: '/tagihan' },
+      { label: 'Pembayaran', icon: <CreditCard size={14} />, href: '/pembayaran' },
+      { label: 'Rekap Per Batch', icon: <Layers size={14} />, href: '/rekap-per-batch' },
+      { label: 'Kategori Pengeluaran', icon: <ListOrdered size={14} />, href: '/kategori-pengeluaran' },
+      { label: 'Data Pengeluaran', icon: <Wallet size={14} />, href: '/pengeluaran' },
     ],
   },
   {
@@ -151,13 +163,50 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
     ? `http://localhost:8000/uploads/profil/${user.foto_profil}`
     : `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=e5e7eb&color=6b7280&size=36`
 
+  const isAccounting = user?.role === 'ACCOUNTING'
+  const isAdminCabang = user?.role === 'ADMIN_CABANG'
+
+  const filteredNavItems = isAdminCabang
+    ? navItems.filter(
+        (item) => item.label === 'Dashboard' || item.label === 'Keuangan',
+      )
+    : isAccounting
+    ? navItems
+        .filter(
+          (item) =>
+            item.label === 'Keuangan' ||
+            item.label === 'Kandidat' ||
+            item.label === 'Affiliate' ||
+            item.label === 'Absensi',
+        )
+        .map((item) => {
+          if (item.label === 'Kandidat' && item.children) {
+            return {
+              ...item,
+              children: item.children.filter(
+                (child) => child.label === 'Data Kandidat' || child.label === 'Pendaftar',
+              ),
+            }
+          }
+          if (item.label === 'Absensi' && item.children) {
+            return {
+              ...item,
+              children: item.children.filter(
+                (child) => child.label === 'Rekap Absensi',
+              ),
+            }
+          }
+          return item
+        })
+    : navItems
+
   const isActive = (href: string) => {
     if (href === '/') return path === '/'
     return path.startsWith(href)
   }
 
   const handleLogout = () => {
-    logout()
+    window.location.href = 'http://localhost:8000/logout-app'
   }
 
   return (
@@ -176,7 +225,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
         </Link>
 
         <nav className="hidden lg:flex items-center gap-1">
-          {navItems.map((item) => {
+          {filteredNavItems.map((item) => {
             if (item.href) {
               const active = isActive(item.href)
               return (

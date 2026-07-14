@@ -457,8 +457,8 @@ Route::prefix('admin-cabang')->middleware(['auth:sanctum'])->group(function () {
     Route::get('/batch-biaya/{batchId}', [BiayaController::class, 'batchBiayaIndex']);
 });
 
-// ========== Pengeluaran (HR & MANAGER only) ==========
-Route::middleware(['auth:sanctum', 'role:HR,MANAGER'])->prefix('pengeluaran')->group(function () {
+// ========== Pengeluaran (HR, MANAGER, ACCOUNTING & ADMIN CABANG) ==========
+Route::middleware(['auth:sanctum', 'role:HR,MANAGER,ACCOUNTING,ADMIN_CABANG'])->prefix('pengeluaran')->group(function () {
     Route::get('/kategori', [PengeluaranController::class, 'kategoriIndex']);
     Route::post('/kategori', [PengeluaranController::class, 'kategoriStore']);
     Route::put('/kategori/{id}', [PengeluaranController::class, 'kategoriUpdate']);
@@ -471,4 +471,19 @@ Route::middleware(['auth:sanctum', 'role:HR,MANAGER'])->prefix('pengeluaran')->g
     Route::get('/{id}', [PengeluaranController::class, 'show']);
     Route::put('/{id}', [PengeluaranController::class, 'update']);
     Route::delete('/{id}', [PengeluaranController::class, 'destroy']);
+});
+
+// ========== WhatsApp Notification Log ==========
+Route::middleware(['auth:sanctum'])->prefix('wa-notifications')->group(function () {
+    Route::get('/', [\App\Http\Controllers\WaNotificationController::class, 'index']);
+    Route::get('/stats', [\App\Http\Controllers\WaNotificationController::class, 'stats']);
+    Route::post('/send-reminder/{pendaftarId}', [\App\Http\Controllers\WaNotificationController::class, 'sendReminder']);
+});
+
+// ========== WhatsApp Notification Settings ==========
+Route::middleware(['auth:sanctum'])->prefix('wa-settings')->group(function () {
+    Route::get('/reminder', [\App\Http\Controllers\WaSettingController::class, 'reminderIndex']);
+    Route::put('/reminder', [\App\Http\Controllers\WaSettingController::class, 'reminderUpdate']);
+    Route::get('/global', [\App\Http\Controllers\WaSettingController::class, 'globalIndex']);
+    Route::put('/global', [\App\Http\Controllers\WaSettingController::class, 'globalUpdate']);
 });

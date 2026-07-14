@@ -120,8 +120,7 @@ export default function GuruProfil() {
   const handleLogout = async () => {
     const result = await Swal.fire({ icon: 'question', title: 'Yakin ingin logout?', showCancelButton: true, confirmButtonText: 'Logout', cancelButtonText: 'Batal' })
     if (result.isConfirmed) {
-      await logout()
-      window.location.href = '/login'
+      window.location.href = 'http://localhost:8000/logout-app'
     }
   }
 

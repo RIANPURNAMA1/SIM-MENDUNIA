@@ -248,8 +248,10 @@ export default function DataProduct() {
     if (!bkList || bkList.length === 0) return <span className="text-xs text-slate-400">-</span>
 
     const priceMap = new Map<number, number>()
+    const komisiMap = new Map<number, number>()
     for (const bk of bkList) {
       if (Number(bk.pivot.harga) > 0) priceMap.set(bk.id, Number(bk.pivot.harga))
+      if (Number(bk.pivot.komisi) > 0) komisiMap.set(bk.id, Number(bk.pivot.komisi))
     }
     if (priceMap.size === 0) return <span className="text-xs text-slate-400">-</span>
 
@@ -262,15 +264,26 @@ export default function DataProduct() {
       return sum
     }
 
+    function sumDescendantKomisi(node: BiayaKategori): number {
+      let sum = 0
+      for (const child of node.children || []) {
+        sum += komisiMap.get(child.id) || 0
+        sum += sumDescendantKomisi(child)
+      }
+      return sum
+    }
+
     function walk(nodes: BiayaKategori[], depth: number): any[] {
       const result: any[] = []
       for (const node of nodes) {
         const ownPrice = priceMap.get(node.id) || 0
+        const ownKomisi = komisiMap.get(node.id) || 0
         const children = node.children || []
         const childResults = walk(children, depth + 1)
         const hasVisible = ownPrice > 0 || childResults.length > 0
         if (!hasVisible) continue
         const displayPrice = ownPrice > 0 ? ownPrice : sumDescendantPrices(node)
+        const displayKomisi = ownKomisi > 0 ? ownKomisi : sumDescendantKomisi(node)
         result.push(
           <div key={node.id}>
             <div className={`flex items-center gap-1.5 text-[11px] ${depth > 0 ? 'ml-4 border-l-2 border-blue-100 pl-2' : ''}`}>
@@ -281,6 +294,9 @@ export default function DataProduct() {
               </span>
               {displayPrice > 0 && (
                 <span className="text-slate-500">Rp {displayPrice.toLocaleString('id-ID')}</span>
+              )}
+              {displayKomisi > 0 && (
+                <span className="text-emerald-500 text-[10px]">(Komisi: Rp {displayKomisi.toLocaleString('id-ID')})</span>
               )}
             </div>
             {childResults}

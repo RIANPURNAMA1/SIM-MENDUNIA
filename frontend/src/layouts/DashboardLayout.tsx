@@ -14,7 +14,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="lg:ml-64 transition-all duration-300">
         <Header onToggleSidebar={() => setSidebarOpen((prev) => !prev)} />
-        <main>
+        <main className="p-6">
           {children}
         </main>
       </div>

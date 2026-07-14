@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Search, CheckCircle, XCircle, FileText, Eye, Trash2, CheckSquare, RotateCcw, Users, CreditCard, X, Loader, AlertTriangle, DollarSign, Upload, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { pendaftarApi, pendaftarApi as apiModule } from '../../services/api'
 import api from '../../services/api'
+import Swal from 'sweetalert2'
 
 function fmt(n: number) {
   return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
@@ -139,7 +140,13 @@ export default function Pendaftar() {
     const action = confirm.type === 'approve' ? pendaftarApi.approve(confirm.id)
       : confirm.type === 'reject' ? pendaftarApi.reject(confirm.id)
       : pendaftarApi.destroy(confirm.id)
-    action.then(fetchData).finally(() => setConfirm({ open: false, title: '', message: '', type: 'approve', id: null }))
+    const labels: Record<string, string> = { approve: 'Pendaftaran disetujui!', reject: 'Pendaftaran ditolak', delete: 'Pendaftar dihapus' }
+    action.then(() => {
+      Swal.fire({ icon: 'success', title: labels[confirm.type!], confirmButtonColor: '#0D1F3C', timer: 2000, timerProgressBar: true, showConfirmButton: false })
+    }).finally(() => {
+      fetchData()
+      setConfirm({ open: false, title: '', message: '', type: 'approve', id: null })
+    })
   }
 
   function openRiwayat(id: number, nama: string) {

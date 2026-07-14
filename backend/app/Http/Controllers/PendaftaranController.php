@@ -317,6 +317,16 @@ class PendaftaranController extends Controller
             }
         }
 
+        // WA: Kirim notifikasi persetujuan + tagihan baru
+        try {
+            $waService = new \App\Services\WhatsAppService();
+            $waService->sendRegistrationApprovedNotification($pendaftar->fresh()->load('product'));
+            $noInvoice = 'INV/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . $pendaftar->created_at->format('Ym');
+            $waService->sendNewBillNotification($pendaftar->fresh()->load(['product', 'user']), $noInvoice);
+        } catch (\Exception $e) {
+            \Log::error('Gagal kirim notifikasi WA approve: ' . $e->getMessage());
+        }
+
         return response()->json(['message' => 'Pendaftar disetujui']);
     }
 
@@ -372,11 +382,25 @@ class PendaftaranController extends Controller
         try {
             $waService = new \App\Services\WhatsAppService();
             $kategoriNama = $pembayarans->first()?->kategori?->nama ?? 'Pembayaran';
-            $waService->sendPaymentVerifiedNotification(
-                $pendaftar->fresh()->load('user'),
-                $kategoriNama,
-                'verified'
-            );
+            $jumlahDibayar = $pembayarans->sum('jumlah');
+            $freshPendaftar = $pendaftar->fresh()->load(['user', 'product.biayaKategoris']);
+
+            // Hitung total tagihan dan sisa
+            $totalBiaya = 0;
+            if ($freshPendaftar->product && $freshPendaftar->product->relationLoaded('biayaKategoris')) {
+                $totalBiaya = $freshPendaftar->product->biayaKategoris->sum(fn($k) => (int) $k->pivot->harga);
+            }
+            $totalBiaya = $totalBiaya ?: ($freshPendaftar->product?->harga ?? 0);
+            $tagihan = $totalBiaya - ($freshPendaftar->diskon ?? 0);
+            $sisa = max(0, $tagihan - $totalDibayar);
+
+            if ($sisa <= 0 && $tagihan > 0) {
+                // Lunas
+                $waService->sendFullPaymentNotification($freshPendaftar);
+            } else {
+                // Cicilan / sebagian
+                $waService->sendPartialPaymentNotification($freshPendaftar, $kategoriNama, $jumlahDibayar);
+            }
         } catch (\Exception $e) {
             \Log::error('Gagal kirim notifikasi WA verifikasi: ' . $e->getMessage());
         }
@@ -431,10 +455,10 @@ class PendaftaranController extends Controller
             if ($pendaftar) {
                 $waService = new \App\Services\WhatsAppService();
                 $kategoriNama = $pembayaran->kategori?->nama ?? 'Pembayaran';
-                $waService->sendPaymentVerifiedNotification(
-                    $pendaftar->fresh()->load('user'),
+                $waService->sendPaymentRejectedNotification(
+                    $pendaftar->fresh()->load(['user', 'product']),
                     $kategoriNama,
-                    'ditolak'
+                    'Nominal tidak sesuai atau bukti kurang jelas'
                 );
             }
         } catch (\Exception $e) {
@@ -762,11 +786,14 @@ class PendaftaranController extends Controller
         // Kirim notifikasi WA ke kandidat (manual = langsung verified)
         try {
             $waService = new \App\Services\WhatsAppService();
-            $waService->sendPaymentVerifiedNotification(
-                $pendaftar->fresh()->load('user'),
-                $kategori?->nama ?? 'Pembayaran',
-                'verified'
-            );
+            $freshPendaftar = $pendaftar->fresh()->load(['user', 'product.biayaKategoris']);
+            $kategoriNama = $kategori?->nama ?? 'Pembayaran';
+
+            if ($totalDibayar >= $tagihan && $tagihan > 0) {
+                $waService->sendFullPaymentNotification($freshPendaftar);
+            } else {
+                $waService->sendPartialPaymentNotification($freshPendaftar, $kategoriNama, $request->jumlah);
+            }
         } catch (\Exception $e) {
             \Log::error('Gagal kirim notifikasi WA bayar manual: ' . $e->getMessage());
         }

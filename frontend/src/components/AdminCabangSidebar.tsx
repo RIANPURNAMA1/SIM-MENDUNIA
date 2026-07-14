@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { adminCabangApi } from '../services/api'
 import {
   LayoutDashboard, UserPlus, ClipboardList, FileText, Layers,
-  ChevronDown, LogOut, X, Receipt, MapPin,
+  ChevronDown, LogOut, X, Receipt, MapPin, Wallet,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -29,7 +29,7 @@ interface SidebarProps {
 
 const iconMap: Record<string, LucideIcon> = {
   LayoutDashboard, UserPlus, ClipboardList, FileText, Layers,
-  ChevronDown, LogOut, X, Receipt, MapPin,
+  ChevronDown, LogOut, X, Receipt, MapPin, Wallet,
 }
 
 const navItems: NavItem[] = [
@@ -46,6 +46,14 @@ const navItems: NavItem[] = [
       { label: 'Pendaftaran', icon: 'ClipboardList', href: '/admin-cabang/pendaftar' },
       { label: 'Tagihan', icon: 'FileText', href: '/admin-cabang/tagihan' },
       { label: 'Rekap Per Batch', icon: 'Layers', href: '/admin-cabang/rekap-per-batch' },
+    ],
+  },
+  {
+    label: 'Keuangan',
+    icon: 'Wallet',
+    children: [
+      { label: 'Kategori Pengeluaran', icon: 'FileText', href: '/admin-cabang/kategori-pengeluaran' },
+      { label: 'Data Pengeluaran', icon: 'Wallet', href: '/admin-cabang/pengeluaran' },
     ],
   },
 ]

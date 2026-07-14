@@ -10,6 +10,31 @@ use Illuminate\Support\Facades\DB;
 
 class PengeluaranController extends Controller
 {
+    private function isCabangScoped()
+    {
+        $role = request()->user()->role;
+        return $role === 'ADMIN_CABANG';
+    }
+
+    private function getCabangIds()
+    {
+        $user = request()->user();
+        return $user->cabang_ids ?? [];
+    }
+
+    private function scopeQuery($query)
+    {
+        if ($this->isCabangScoped()) {
+            $cabangIds = $this->getCabangIds();
+            if (!empty($cabangIds)) {
+                $query->whereIn('pengeluaran.cabang_id', $cabangIds);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+        return $query;
+    }
+
     // ========== Kategori Pengeluaran ==========
 
     public function kategoriIndex()
@@ -84,12 +109,18 @@ class PengeluaranController extends Controller
 
     public function index(Request $request)
     {
-        $query = Pengeluaran::with(['kategori', 'user'])
+        $query = Pengeluaran::with(['kategori', 'user', 'cabang'])
             ->orderBy('tanggal', 'desc')
             ->orderBy('id', 'desc');
 
+        $this->scopeQuery($query);
+
         if ($request->filled('kategori_id')) {
             $query->where('kategori_id', $request->kategori_id);
+        }
+
+        if ($request->filled('cabang_id') && !$this->isCabangScoped()) {
+            $query->where('pengeluaran.cabang_id', $request->cabang_id);
         }
 
         if ($request->filled('tanggal_mulai')) {
@@ -118,13 +149,22 @@ class PengeluaranController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $rules = [
             'kategori_id' => 'required|exists:kategori_pengeluaran,id',
             'tanggal' => 'required|date',
             'nominal' => 'required|numeric|min:1',
             'keterangan' => 'nullable|string|max:500',
             'bukti' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
-        ]);
+        ];
+
+        if ($this->isCabangScoped()) {
+            $cabangIds = $this->getCabangIds();
+            $rules['cabang_id'] = 'required|exists:cabangs,id';
+        } else {
+            $rules['cabang_id'] = 'nullable|exists:cabangs,id';
+        }
+
+        $request->validate($rules);
 
         $buktiPath = null;
         if ($request->hasFile('bukti')) {
@@ -138,24 +178,40 @@ class PengeluaranController extends Controller
             'keterangan' => $request->keterangan,
             'bukti' => $buktiPath,
             'user_id' => $request->user()->id,
+            'cabang_id' => $request->cabang_id,
         ]);
 
         return response()->json([
             'status' => 'success',
             'message' => 'Pengeluaran berhasil dicatat',
-            'data' => $pengeluaran->load(['kategori', 'user']),
+            'data' => $pengeluaran->load(['kategori', 'user', 'cabang']),
         ], 201);
     }
 
     public function show($id)
     {
-        $pengeluaran = Pengeluaran::with(['kategori', 'user'])->findOrFail($id);
+        $pengeluaran = Pengeluaran::with(['kategori', 'user', 'cabang'])->findOrFail($id);
+
+        if ($this->isCabangScoped()) {
+            $cabangIds = $this->getCabangIds();
+            if (!in_array($pengeluaran->cabang_id, $cabangIds)) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+        }
+
         return response()->json($pengeluaran);
     }
 
     public function update(Request $request, $id)
     {
         $pengeluaran = Pengeluaran::findOrFail($id);
+
+        if ($this->isCabangScoped()) {
+            $cabangIds = $this->getCabangIds();
+            if (!in_array($pengeluaran->cabang_id, $cabangIds)) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+        }
 
         $request->validate([
             'kategori_id' => 'required|exists:kategori_pengeluaran,id',
@@ -185,13 +241,20 @@ class PengeluaranController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Pengeluaran berhasil diupdate',
-            'data' => $pengeluaran->load(['kategori', 'user']),
+            'data' => $pengeluaran->load(['kategori', 'user', 'cabang']),
         ]);
     }
 
     public function destroy($id)
     {
         $pengeluaran = Pengeluaran::findOrFail($id);
+
+        if ($this->isCabangScoped()) {
+            $cabangIds = $this->getCabangIds();
+            if (!in_array($pengeluaran->cabang_id, $cabangIds)) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+        }
 
         if ($pengeluaran->bukti) {
             $path = storage_path('app/public/' . $pengeluaran->bukti);
@@ -212,13 +275,17 @@ class PengeluaranController extends Controller
     {
         $tahun = $request->get('tahun', date('Y'));
 
-        $rekap = Pengeluaran::select(
+        $query = Pengeluaran::select(
+            'pengeluaran.cabang_id',
             DB::raw('MONTH(tanggal) as bulan'),
             DB::raw('SUM(nominal) as total'),
             DB::raw('COUNT(*) as jumlah')
         )
-        ->whereYear('tanggal', $tahun)
-        ->groupBy(DB::raw('MONTH(tanggal)'))
+        ->whereYear('tanggal', $tahun);
+
+        $this->scopeQuery($query);
+
+        $rekap = $query->groupBy('pengeluaran.cabang_id', DB::raw('MONTH(tanggal)'))
         ->orderBy('bulan')
         ->get()
         ->map(function ($item) use ($tahun) {
@@ -228,6 +295,7 @@ class PengeluaranController extends Controller
                 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
             ];
             return [
+                'cabang_id' => $item->cabang_id,
                 'bulan' => $item->bulan,
                 'nama_bulan' => $namaBulan[$item->bulan],
                 'total' => (float) $item->total,
@@ -235,13 +303,18 @@ class PengeluaranController extends Controller
             ];
         });
 
-        $totalTahun = Pengeluaran::whereYear('tanggal', $tahun)->sum('nominal');
-        $totalAll = Pengeluaran::sum('nominal');
+        $totalQuery = Pengeluaran::whereYear('tanggal', $tahun);
+        $this->scopeQuery($totalQuery);
+        $totalTahun = (float) $totalQuery->sum('nominal');
+
+        $totalAllQuery = Pengeluaran::query();
+        $this->scopeQuery($totalAllQuery);
+        $totalAll = (float) $totalAllQuery->sum('nominal');
 
         return response()->json([
             'tahun' => (int) $tahun,
-            'total_tahun' => (float) $totalTahun,
-            'total_semua' => (float) $totalAll,
+            'total_tahun' => $totalTahun,
+            'total_semua' => $totalAll,
             'rekap' => $rekap,
         ]);
     }
@@ -252,10 +325,14 @@ class PengeluaranController extends Controller
         $bulanIni = $now->copy()->startOfMonth();
         $bulanLalu = $now->copy()->subMonth()->startOfMonth();
 
-        $totalBulanIni = (float) Pengeluaran::whereBetween('tanggal', [$bulanIni, $now])->sum('nominal');
-        $totalBulanLalu = (float) Pengeluaran::whereBetween('tanggal', [$bulanLalu, $bulanIni->copy()->subDay()])->sum('nominal');
-        $totalSemua = (float) Pengeluaran::sum('nominal');
-        $jumlahTransaksi = (int) Pengeluaran::whereBetween('tanggal', [$bulanIni, $now])->count();
+        $baseQuery = function ($q) {
+            $this->scopeQuery($q);
+        };
+
+        $totalBulanIni = (float) Pengeluaran::whereBetween('tanggal', [$bulanIni, $now])->when(true, $baseQuery)->sum('nominal');
+        $totalBulanLalu = (float) Pengeluaran::whereBetween('tanggal', [$bulanLalu, $bulanIni->copy()->subDay()])->when(true, $baseQuery)->sum('nominal');
+        $totalSemua = (float) Pengeluaran::query()->when(true, $baseQuery)->sum('nominal');
+        $jumlahTransaksi = (int) Pengeluaran::whereBetween('tanggal', [$bulanIni, $now])->when(true, $baseQuery)->count();
 
         $persentase = $totalBulanLalu > 0
             ? round(($totalBulanIni - $totalBulanLalu) / $totalBulanLalu * 100, 1)
@@ -267,6 +344,7 @@ class PengeluaranController extends Controller
             DB::raw('COUNT(*) as jumlah')
         )
         ->whereYear('tanggal', $now->year)
+        ->when(true, $baseQuery)
         ->groupBy(DB::raw('MONTH(tanggal)'))
         ->orderBy('bulan')
         ->get()
@@ -292,20 +370,29 @@ class PengeluaranController extends Controller
         )
         ->join('kategori_pengeluaran', 'pengeluaran.kategori_id', '=', 'kategori_pengeluaran.id')
         ->whereBetween('pengeluaran.tanggal', [$bulanIni, $now])
+        ->when(true, $baseQuery)
         ->groupBy('kategori_pengeluaran.id', 'kategori_pengeluaran.nama', 'kategori_pengeluaran.kode')
         ->orderByDesc('total')
         ->get();
 
-        $recentPengeluaran = Pengeluaran::with(['kategori', 'user'])
+        $recentQuery = Pengeluaran::with(['kategori', 'user', 'cabang'])
             ->latest('tanggal')
             ->latest('id')
-            ->limit(5)
-            ->get();
+            ->limit(5);
+        $this->scopeQuery($recentQuery);
+        $recentPengeluaran = $recentQuery->get();
 
-        $pendapatanBulanIni = (float) Pendaftar::where('status_pembayaran', 'verified')
+        $pendapatanQuery = Pendaftar::where('status_pembayaran', 'verified')
             ->whereMonth('created_at', $now->month)
-            ->whereYear('created_at', $now->year)
-            ->sum('nominal');
+            ->whereYear('created_at', $now->year);
+
+        if ($this->isCabangScoped()) {
+            $cabangIds = $this->getCabangIds();
+            $batchIds = \App\Models\Batch::whereIn('cabang_id', $cabangIds)->pluck('id');
+            $pendapatanQuery->whereIn('batch_id', $batchIds);
+        }
+
+        $pendapatanBulanIni = (float) $pendapatanQuery->sum('nominal');
 
         return response()->json([
             'total_bulan_ini' => $totalBulanIni,

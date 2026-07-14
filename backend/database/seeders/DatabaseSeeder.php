@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             ManagerUserSeeder::class,
+            AccountingUserSeeder::class,
             BiayaKategoriSeeder::class,
             AbsensiSeeder::class,
             AssessmentLevelSeeder::class,

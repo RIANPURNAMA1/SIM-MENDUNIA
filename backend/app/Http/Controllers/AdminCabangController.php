@@ -42,6 +42,9 @@ class AdminCabangController extends Controller
         $pendaftarPending = Pendaftar::whereIn('batch_id', $batchIds)
             ->where('status_pendaftaran', 'pending')
             ->count();
+        $pendaftarDitolak = Pendaftar::whereIn('batch_id', $batchIds)
+            ->where('status_pendaftaran', 'ditolak')
+            ->count();
 
         $totalTagihan = 0;
         $totalTerkumpul = 0;
@@ -72,6 +75,87 @@ class AdminCabangController extends Controller
             }])
             ->get();
 
+        $totalSiswaAktif = \App\Models\Siswa::whereIn('batch_id', $batchIds)
+            ->where('status', 'AKTIF')
+            ->count();
+
+        $now = now();
+        $totalPengeluaran = (float) \App\Models\Pengeluaran::whereIn('cabang_id', $branchIds)
+            ->whereMonth('tanggal', $now->month)
+            ->whereYear('tanggal', $now->year)
+            ->sum('nominal');
+
+        $recentPendaftar = Pendaftar::with(['batch', 'product'])
+            ->whereIn('batch_id', $batchIds)
+            ->latest()
+            ->limit(5)
+            ->get()
+            ->map(fn($p) => [
+                'id' => $p->id,
+                'nama' => $p->nama_lengkap ?? $p->name ?? '-',
+                'batch' => $p->batch?->nama_batch ?? '-',
+                'program' => $p->product?->nama_produk ?? '-',
+                'status' => $p->status_pendaftaran,
+                'created_at' => $p->created_at,
+            ]);
+
+        $recentPembayaran = \App\Models\PembayaranItem::whereIn('pendaftar_id', $pendaftarIds)
+            ->with(['pendaftar.batch'])
+            ->latest()
+            ->limit(5)
+            ->get()
+            ->map(fn($p) => [
+                'id' => $p->id,
+                'jumlah' => $p->jumlah,
+                'pendaftar' => $p->pendaftar?->nama_lengkap ?? $p->pendaftar?->name ?? '-',
+                'batch' => $p->pendaftar?->batch?->nama_batch ?? '-',
+                'created_at' => $p->created_at,
+            ]);
+
+        // === CHART DATA ===
+        $months = collect();
+        for ($i = 5; $i >= 0; $i--) {
+            $d = now()->subMonths($i);
+            $months->push([
+                'label' => $d->format('M Y'),
+                'month' => (int) $d->format('m'),
+                'year'  => (int) $d->format('Y'),
+            ]);
+        }
+
+        $rekapPendaftar = $months->map(function ($m) use ($batchIds) {
+            $count = Pendaftar::whereIn('batch_id', $batchIds)
+                ->whereMonth('created_at', $m['month'])
+                ->whereYear('created_at', $m['year'])
+                ->count();
+            return ['label' => $m['label'], 'total' => $count];
+        })->toArray();
+
+        $rekapPembayaran = $months->map(function ($m) use ($pendaftarIds) {
+            $total = \App\Models\PembayaranItem::whereIn('pendaftar_id', $pendaftarIds)
+                ->whereMonth('created_at', $m['month'])
+                ->whereYear('created_at', $m['year'])
+                ->sum('jumlah');
+            return ['label' => $m['label'], 'total' => (float) $total];
+        })->toArray();
+
+        $rekapPengeluaran = $months->map(function ($m) use ($branchIds) {
+            $total = \App\Models\Pengeluaran::whereIn('cabang_id', $branchIds)
+                ->whereMonth('tanggal', $m['month'])
+                ->whereYear('tanggal', $m['year'])
+                ->sum('nominal');
+            return ['label' => $m['label'], 'total' => (float) $total];
+        })->toArray();
+
+        $pengeluaranPerKategori = \App\Models\Pengeluaran::whereIn('cabang_id', $branchIds)
+            ->whereMonth('tanggal', $now->month)
+            ->whereYear('tanggal', $now->year)
+            ->join('kategori_pengeluaran', 'pengeluaran.kategori_id', '=', 'kategori_pengeluaran.id')
+            ->selectRaw('kategori_pengeluaran.nama as nama, kategori_pengeluaran.kode as kode, SUM(nominal) as total, COUNT(*) as jumlah')
+            ->groupBy('kategori_pengeluaran.nama', 'kategori_pengeluaran.kode')
+            ->orderByDesc('total')
+            ->get();
+
         return response()->json([
             'user' => [
                 'name' => $user->name,
@@ -83,11 +167,22 @@ class AdminCabangController extends Controller
                 'total_pendaftar' => $totalPendaftar,
                 'pendaftar_disetujui' => $pendaftarDisetujui,
                 'pendaftar_pending' => $pendaftarPending,
+                'pendaftar_ditolak' => $pendaftarDitolak,
                 'total_tagihan' => $totalTagihan,
                 'total_terkumpul' => $totalTerkumpul,
                 'total_outstanding' => $totalTagihan - $totalTerkumpul,
+                'total_siswa_aktif' => $totalSiswaAktif,
+                'total_pengeluaran_bulan_ini' => $totalPengeluaran,
             ],
             'batches' => $batches,
+            'recent_pendaftar' => $recentPendaftar,
+            'recent_pembayaran' => $recentPembayaran,
+            'charts' => [
+                'rekap_pendaftar' => $rekapPendaftar,
+                'rekap_pembayaran' => $rekapPembayaran,
+                'rekap_pengeluaran' => $rekapPengeluaran,
+                'pengeluaran_per_kategori' => $pengeluaranPerKategori,
+            ],
         ]);
     }
 

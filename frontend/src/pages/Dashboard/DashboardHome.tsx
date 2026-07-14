@@ -37,7 +37,7 @@ const dashboards = [
     description: 'Pencatatan pengeluaran, kategori biaya, dan rekap keuangan perusahaan',
     icon: Wallet,
     path: '/dashboard-keuangan',
-    roles: ['HR', 'MANAGER'],
+    roles: ['HR', 'MANAGER', 'ACCOUNTING'],
   },
 ]
 

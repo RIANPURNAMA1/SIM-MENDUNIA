@@ -22,7 +22,8 @@ api.interceptors.response.use(
     const url = error.config?.url || ''
     const isLoginRequest = url.includes('/login')
     const isUserCheck = url.includes('/auth/user')
-    if (error.response?.status === 401 && !isLoginRequest && !isUserCheck) {
+    const isLogoutRequest = url.includes('/auth/logout')
+    if (error.response?.status === 401 && !isLoginRequest && !isUserCheck && !isLogoutRequest) {
       window.location.href = '/login'
     }
     return Promise.reject(error)
@@ -443,6 +444,19 @@ export const pengeluaranApi = {
   destroy: (id: number) => api.delete(`/pengeluaran/${id}`),
   rekap: (tahun?: number) => api.get('/pengeluaran/rekap', { params: tahun ? { tahun } : undefined }),
   dashboard: () => api.get('/pengeluaran/dashboard'),
+}
+
+export const waNotificationApi = {
+  list: (params?: Record<string, string | number | undefined>) => api.get('/wa-notifications', { params }),
+  stats: () => api.get('/wa-notifications/stats'),
+  sendReminder: (pendaftarId: number) => api.post(`/wa-notifications/send-reminder/${pendaftarId}`),
+}
+
+export const waSettingApi = {
+  getReminderSettings: () => api.get('/wa-settings/reminder'),
+  updateReminderSettings: (settings: { kategori_id: number; jatuh_tempo_hari: number; reminder_days: number[]; is_enabled: boolean; template_pesan: string | null }[]) => api.put('/wa-settings/reminder', { settings }),
+  getGlobalSettings: () => api.get('/wa-settings/global'),
+  updateGlobalSettings: (settings: { key: string; is_enabled: boolean; value?: string }[]) => api.put('/wa-settings/global', { settings }),
 }
 
 export default api
