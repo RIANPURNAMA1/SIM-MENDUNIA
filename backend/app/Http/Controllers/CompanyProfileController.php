@@ -28,9 +28,12 @@ class CompanyProfileController extends Controller
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:255',
             'logo' => 'nullable|file|mimes:jpg,jpeg,png,webp,svg|max:2048',
+            'bank_nama' => 'nullable|string|max:255',
+            'bank_nomor_rekening' => 'nullable|string|max:100',
+            'bank_pemilik' => 'nullable|string|max:255',
         ]);
 
-        $data = $request->only(['company_name', 'pt_name', 'address', 'email', 'phone']);
+        $data = $request->only(['company_name', 'pt_name', 'address', 'email', 'phone', 'bank_nama', 'bank_nomor_rekening', 'bank_pemilik']);
 
         if ($request->hasFile('logo')) {
             if ($profile->logo) {

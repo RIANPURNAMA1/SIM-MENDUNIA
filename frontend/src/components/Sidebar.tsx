@@ -111,7 +111,7 @@ const navItems: NavItem[] = [
       { label: "Pendaftaran", icon: "ClipboardList", href: "/pendaftar" },
       { label: "Tagihan", icon: "FileText", href: "/tagihan" },
       { label: "Rekap Per Batch", icon: "Layers", href: "/rekap-per-batch" },
-      { label: "Pembayaran", icon: "CreditCard", href: "/pembayaran" },
+      { label: "Riwayat Pembayaran", icon: "CreditCard", href: "/pembayaran" },
     ],
   },
   {
@@ -193,6 +193,7 @@ const navItems: NavItem[] = [
       },
       { label: "Absensi Siswa", icon: "ClipboardList", href: "/absensi-siswa" },
     ],
+    
   },
   {
     label: "HR & Operasional",

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Pendaftar;
 use App\Models\Siswa;
+use App\Models\Product;
 use App\Models\AffiliateLink;
 use App\Models\KomisiAffiliate;
 use App\Models\Coupon;
@@ -75,15 +76,28 @@ class PendaftaranController extends Controller
             'kabupaten' => 'nullable|string|max:255',
             'kecamatan' => 'nullable|string|max:255',
             'desa' => 'nullable|string|max:255',
-            'bank_asal' => 'required|string|max:100',
-            'nama_rekening' => 'required|string|max:255',
-            'nominal' => 'required|numeric|min:0',
-            'bukti_pembayaran' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'selected_kategori_items' => 'nullable|string',
         ]);
 
-        $kupon = $this->applyCoupon($data['kode_kupon'] ?? null, $data['product_id'], $data['nominal']);
+        $product = Product::findOrFail($data['product_id']);
+        $nominal = $product->harga;
+        $selectedKategoriItems = !empty($data['selected_kategori_items']) ? json_decode($data['selected_kategori_items'], true) : [];
+        if (!empty($selectedKategoriItems) && is_array($selectedKategoriItems)) {
+            $first = $selectedKategoriItems[0] ?? null;
+            $kategoriItems = $product->kategori_items ?? [];
+            foreach ($kategoriItems as $item) {
+                if (is_string($first) && strtolower($item['name'] ?? '') === strtolower($first)) {
+                    $nominal = $item['harga'] ?? $nominal;
+                    break;
+                }
+                if (is_array($first) && strtolower($item['name'] ?? '') === strtolower($first['name'] ?? '')) {
+                    $nominal = $item['harga'] ?? $first['harga'] ?? $nominal;
+                    break;
+                }
+            }
+        }
 
-        $filePath = $request->file('bukti_pembayaran')->store('bukti_pembayaran', 'public');
+        $kupon = $this->applyCoupon($data['kode_kupon'] ?? null, $data['product_id'], $nominal);
 
         $user = User::create([
             'name' => $data['nama'],
@@ -106,19 +120,28 @@ class PendaftaranController extends Controller
             'kabupaten' => $data['kabupaten'] ?? null,
             'kecamatan' => $data['kecamatan'] ?? null,
             'desa' => $data['desa'] ?? null,
-            'bank_asal' => $data['bank_asal'],
-            'nama_rekening' => $data['nama_rekening'],
-            'nominal' => $data['nominal'],
+            'nominal' => $nominal,
             'diskon' => $kupon['diskon'],
-            'bukti_pembayaran' => $filePath,
             'status_pendaftaran' => 'pending',
-            'status_pembayaran' => 'processing',
+            'status_pembayaran' => 'unpaid',
             'user_id' => $user->id,
         ]);
 
+        $noReg = $pendaftar->no_registrasi ?? ('REG/' . now()->format('Ymd') . '/' . str_pad($pendaftar->id, 4, '0', STR_PAD_LEFT));
+
+        // Kirim WA notifikasi pendaftaran sukses
+        try {
+            $waService = new \App\Services\WhatsAppService();
+            $waService->sendRegistrationSuccessNotification($pendaftar->fresh()->load('product'));
+        } catch (\Exception $e) {
+            \Log::error('Gagal kirim WA notifikasi daftarLangsung: ' . $e->getMessage());
+        }
+
         return response()->json([
-            'message' => 'Pendaftaran berhasil, silakan tunggu konfirmasi admin',
-            'user' => $user,
+            'message' => 'Pendaftaran berhasil',
+            'id' => $pendaftar->id,
+            'no_registrasi' => $noReg,
+            'invoice_url' => '/pendaftar/' . $pendaftar->id . '/invoice',
         ], 201);
     }
 
@@ -133,17 +156,12 @@ class PendaftaranController extends Controller
             'password' => 'required|min:6',
             'telepon' => 'required|string|max:20',
             'alamat' => 'required|string',
-            'bank_asal' => 'required|string|max:100',
-            'nama_rekening' => 'required|string|max:255',
-            'nominal' => 'required|numeric|min:0',
-            'bukti_pembayaran' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
         ]);
 
         $link = AffiliateLink::with('product')->where('kode', $data['kode_link'])->firstOrFail();
+        $nominal = $link->product->harga ?? 0;
 
-        $kupon = $this->applyCoupon($data['kode_kupon'] ?? null, $link->product_id, $data['nominal']);
-
-        $filePath = $request->file('bukti_pembayaran')->store('bukti_pembayaran', 'public');
+        $kupon = $this->applyCoupon($data['kode_kupon'] ?? null, $link->product_id, $nominal);
 
         $user = User::create([
             'name' => $data['nama'],
@@ -163,23 +181,32 @@ class PendaftaranController extends Controller
             'password' => $user->password,
             'telepon' => $data['telepon'],
             'alamat' => $data['alamat'],
-            'bank_asal' => $data['bank_asal'],
-            'nama_rekening' => $data['nama_rekening'],
-            'nominal' => $data['nominal'],
+            'nominal' => $nominal,
             'diskon' => $kupon['diskon'],
-            'bukti_pembayaran' => $filePath,
             'status_pendaftaran' => 'pending',
-            'status_pembayaran' => 'processing',
+            'status_pembayaran' => 'unpaid',
             'user_id' => $user->id,
         ]);
 
         $link->increment('pendaftar_count');
 
+        $noReg = $pendaftar->no_registrasi ?? ('REG/' . now()->format('Ymd') . '/' . str_pad($pendaftar->id, 4, '0', STR_PAD_LEFT));
+
+        // Kirim WA notifikasi pendaftaran sukses
+        try {
+            $waService = new \App\Services\WhatsAppService();
+            $waService->sendRegistrationSuccessNotification($pendaftar->fresh()->load('product'));
+        } catch (\Exception $e) {
+            \Log::error('Gagal kirim WA notifikasi daftar: ' . $e->getMessage());
+        }
+
         Auth::login($user);
 
         return response()->json([
             'message' => 'Pendaftaran berhasil',
-            'user' => $user,
+            'id' => $pendaftar->id,
+            'no_registrasi' => $noReg,
+            'invoice_url' => '/pendaftar/' . $pendaftar->id . '/invoice',
             'redirect' => '/dashboard-kandidat',
         ], 201);
     }
@@ -382,6 +409,26 @@ class PendaftaranController extends Controller
             }
         }
 
+        // Update semua Pembayaran yang masih pending jadi verified
+        Pembayaran::where('pendaftar_id', $pendaftar->id)
+            ->where('status', 'pending')
+            ->update(['status' => 'verified']);
+
+        // Recalculate PembayaranItem dari semua verified Pembayaran
+        $verifiedByKategori = Pembayaran::where('pendaftar_id', $pendaftar->id)
+            ->where('status', 'verified')
+            ->whereNotNull('kategori_id')
+            ->selectRaw('kategori_id, SUM(jumlah) as total')
+            ->groupBy('kategori_id')
+            ->get();
+
+        foreach ($verifiedByKategori as $vb) {
+            PembayaranItem::updateOrCreate(
+                ['pendaftar_id' => $pendaftar->id, 'kategori_id' => $vb->kategori_id],
+                ['jumlah' => $vb->total]
+            );
+        }
+
         // WA: Kirim notifikasi persetujuan + tagihan baru
         try {
             $waService = new \App\Services\WhatsAppService();
@@ -435,11 +482,6 @@ class PendaftaranController extends Controller
                 ['jumlah' => $vb->total]
             );
         }
-
-        // Sync total nominal
-        $totalDibayar = PembayaranItem::where('pendaftar_id', $pendaftar->id)->sum('jumlah');
-        $pendaftar->nominal = $totalDibayar;
-        $pendaftar->save();
 
         $this->cekDanCatatKomisiAffiliate($pendaftar->fresh());
 
@@ -692,8 +734,8 @@ class PendaftaranController extends Controller
             'status' => 'pending',
         ]);
 
-        $pendaftar->increment('nominal', $request->jumlah);
         $pendaftar->status_pembayaran = 'processing';
+        $pendaftar->bukti_pembayaran = $filePath;
         $pendaftar->save();
 
         // Kirim notifikasi WA ke admin
@@ -722,25 +764,34 @@ class PendaftaranController extends Controller
     {
         $request->validate([
             'jumlah' => 'required|numeric|min:1',
+            'bank_pengirim' => 'nullable|string|max:100',
+            'nama_pengirim' => 'nullable|string|max:200',
             'bukti_pembayaran' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
         ]);
 
         $pendaftar = Pendaftar::with('batch', 'product.biayaKategoris')->findOrFail($id);
         $filePath = $request->file('bukti_pembayaran')->store('bukti_pembayaran', 'public');
 
-        // Order kategoris by product's kategori_items hierarchy
-        $allKategoris = BiayaKategori::orderBy('urutan')->get();
-        $orderedKategoris = collect();
+        // Order kategoris by product's kategori_items hierarchy — parent only
+        $allKategoris = BiayaKategori::orderBy('urutan')->get()->keyBy('id');
+        $parentOnly = collect();
         $usedIds = [];
 
         if ($pendaftar->product && is_array($pendaftar->product->kategori_items)) {
-            $walk = function ($items) use (&$walk, &$orderedKategoris, &$usedIds, $allKategoris) {
+            $walk = function ($items) use (&$walk, &$parentOnly, &$usedIds, $allKategoris) {
                 foreach ($items as $item) {
                     $name = strtolower(trim($item['name'] ?? ''));
                     if ($name !== '') {
                         $kategori = $allKategoris->first(fn($k) => strtolower($k->nama) === $name || strtolower($k->kode) === $name);
                         if ($kategori && !in_array($kategori->id, $usedIds)) {
-                            $orderedKategoris->push($kategori);
+                            $children = $item['children'] ?? [];
+                            $childIds = collect($children)->map(function ($c) use ($allKategoris) {
+                                $cn = strtolower(trim($c['name'] ?? ''));
+                                $ck = $allKategoris->first(fn($k) => strtolower($k->nama) === $cn || strtolower($k->kode) === $cn);
+                                return $ck ? $ck->id : null;
+                            })->filter()->values()->toArray();
+                            $kategori->child_ids = $childIds;
+                            $parentOnly->push($kategori);
                             $usedIds[] = $kategori->id;
                         }
                     }
@@ -751,13 +802,14 @@ class PendaftaranController extends Controller
             };
             $walk($pendaftar->product->kategori_items);
         }
-        // Append remaining
-        foreach ($allKategoris as $k) {
+        // Append remaining parents
+        foreach ($allKategoris->whereNull('parent_id') as $k) {
             if (!in_array($k->id, $usedIds)) {
-                $orderedKategoris->push($k);
+                $k->child_ids = [];
+                $parentOnly->push($k);
             }
         }
-        $kategoris = $orderedKategoris;
+        $kategoris = $parentOnly;
 
         // Ambil biaya per kategori dari product pivot
         $pivotHarga = collect();
@@ -789,49 +841,71 @@ class PendaftaranController extends Controller
             ->keyBy('kategori_id');
 
         $sisa = (int) $request->jumlah;
-        $createdPayments = [];
         $detailPerKategori = [];
 
         foreach ($kategoris as $k) {
             if ($sisa <= 0) break;
 
-            $biaya = $pivotHarga->get($k->id, 0);
-            if ($biaya <= 0) {
-                $biaya = $namaHarga->get(strtolower($k->nama), 0);
+            // Include child amounts in parent totals
+            $catIds = array_merge([$k->id], $k->child_ids ?? []);
+
+            $totalBiaya = 0;
+            $totalSudahBayar = 0;
+            foreach ($catIds as $cid) {
+                $h = $pivotHarga->get($cid, 0);
+                if ($h <= 0) {
+                    $childKat = $allKategoris->get($cid);
+                    $h = $childKat ? $namaHarga->get(strtolower($childKat->nama), 0) : 0;
+                }
+                $totalBiaya += $h;
+                $totalSudahBayar += $existingItems->has($cid) ? (int) $existingItems->get($cid)->jumlah : 0;
             }
-            if ($biaya <= 0) continue;
 
-            $sudahBayar = $existingItems->has($k->id) ? (int) $existingItems->get($k->id)->jumlah : 0;
-            $kurang = $biaya - $sudahBayar;
-
-            if ($kurang <= 0) continue; // sudah lunas
+            $kurang = $totalBiaya - $totalSudahBayar;
+            if ($kurang <= 0) continue;
 
             $bayar = min($sisa, $kurang);
             $sisa -= $bayar;
 
-            // Simpan Pembayaran (status pending, belum update PembayaranItem)
-            $pembayaran = Pembayaran::create([
-                'pendaftar_id' => $pendaftar->id,
-                'jumlah' => $bayar,
-                'kategori_id' => $k->id,
-                'bukti_pembayaran' => $filePath,
-                'status' => 'pending',
-            ]);
-            $createdPayments[] = $pembayaran;
+            // Distribute proportionally across parent + children
+            $remainingToDistribute = $bayar;
+            foreach ($catIds as $cid) {
+                if ($remainingToDistribute <= 0) break;
+                $h = $pivotHarga->get($cid, 0);
+                if ($h <= 0) {
+                    $childKat = $allKategoris->get($cid);
+                    $h = $childKat ? $namaHarga->get(strtolower($childKat->nama), 0) : 0;
+                }
+                $sdh = $existingItems->has($cid) ? (int) $existingItems->get($cid)->jumlah : 0;
+                $krg = $h - $sdh;
+                if ($krg <= 0) continue;
+                $alokasi = min($remainingToDistribute, $krg);
+                $remainingToDistribute -= $alokasi;
+
+                Pembayaran::create([
+                    'pendaftar_id' => $pendaftar->id,
+                    'jumlah' => $alokasi,
+                    'kategori_id' => $cid,
+                    'bukti_pembayaran' => $filePath,
+                    'status' => 'pending',
+                ]);
+            }
 
             $detailPerKategori[] = [
                 'kategori' => $k->nama,
-                'biaya' => $biaya,
-                'dibayar_sebelumnya' => $sudahBayar,
+                'biaya' => $totalBiaya,
+                'dibayar_sebelumnya' => $totalSudahBayar,
                 'dibayar_sekarang' => $bayar,
-                'total_dibayar' => $sudahBayar + $bayar,
-                'lunas' => ($sudahBayar + $bayar) >= $biaya,
+                'total_dibayar' => $totalSudahBayar + $bayar,
+                'lunas' => ($totalSudahBayar + $bayar) >= $totalBiaya,
             ];
         }
 
         // Update pendaftar
-        $pendaftar->increment('nominal', $request->jumlah - $sisa); // jumlah aktual yang terserap
         $pendaftar->status_pembayaran = 'processing';
+        $pendaftar->bukti_pembayaran = $filePath;
+        if ($request->filled('bank_pengirim')) $pendaftar->bank_pengirim = $request->bank_pengirim;
+        if ($request->filled('nama_pengirim')) $pendaftar->nama_pengirim = $request->nama_pengirim;
         $pendaftar->save();
 
         // Kirim notifikasi WA ke admin
@@ -866,18 +940,12 @@ class PendaftaranController extends Controller
 
         $kategori = BiayaKategori::find($request->kategori_id);
 
-        $pendaftar->increment('nominal', $request->jumlah);
-
         $totalBiaya = 0;
         if ($pendaftar->product && $pendaftar->product->relationLoaded('biayaKategoris')) {
             $totalBiaya = $pendaftar->product->biayaKategoris->sum(fn($k) => (int) $k->pivot->harga);
         }
         $totalBiaya = $totalBiaya ?: ($pendaftar->product?->harga ?? 0);
         $tagihan = $totalBiaya - ($pendaftar->diskon ?? 0);
-        $totalDibayar = $pendaftar->fresh()->nominal ?? 0;
-
-        $pendaftar->status_pembayaran = $totalDibayar >= $tagihan ? 'verified' : 'processing';
-        $pendaftar->save();
 
         Pembayaran::create([
             'pendaftar_id' => $pendaftar->id,
@@ -900,6 +968,13 @@ class PendaftaranController extends Controller
             ],
             ['jumlah' => $totalPerKategori]
         );
+
+        $totalDibayar = Pembayaran::where('pendaftar_id', $pendaftar->id)
+            ->where('status', 'verified')
+            ->sum('jumlah');
+
+        $pendaftar->status_pembayaran = $totalDibayar >= $tagihan ? 'verified' : 'processing';
+        $pendaftar->save();
 
         $this->cekDanCatatKomisiAffiliate($pendaftar->fresh());
 
@@ -946,7 +1021,7 @@ class PendaftaranController extends Controller
             ->get();
 
         $hargaProduk = (float) ($pendaftar->product?->harga ?? 0);
-        $totalDibayar = (float) $pendaftar->nominal;
+        $totalDibayar = (float) PembayaranItem::where('pendaftar_id', $pendaftar->id)->sum('jumlah');
         $diskon = (float) ($pendaftar->diskon ?? 0);
         $totalTagihan = $hargaProduk - $diskon;
         $sisa = max(0, $totalTagihan - $totalDibayar);
@@ -1053,6 +1128,9 @@ class PendaftaranController extends Controller
                 'user_id' => $p->user_id,
                 'keterangan' => $siswa?->keterangan ?? '-',
                 'posisi' => $p->product?->nama ?? '-',
+                'status_akademik' => $siswa?->status ?? 'AKTIF',
+                'is_cuti' => $siswa?->is_cuti ?? false,
+                'cuti_sejak' => $siswa?->cuti_sejak,
             ];
         };
 
@@ -1346,6 +1424,17 @@ class PendaftaranController extends Controller
 
         $pendaftar = Pendaftar::with(['siswa'])->findOrFail($id);
 
+        // Normalize: convert "-" and empty strings to null before validation
+        $normalized = [];
+        foreach ($request->all() as $k => $v) {
+            $normalized[$k] = ($v === '' || $v === '-' || $v === null) ? null : $v;
+        }
+        // batch_id 0 means no batch — convert to null
+        if (isset($normalized['batch_id']) && (int) $normalized['batch_id'] === 0) {
+            $normalized['batch_id'] = null;
+        }
+        $request->merge($normalized);
+
         $data = $request->validate([
             'nik' => 'nullable|string|max:50',
             'nama' => 'nullable|string|max:255',
@@ -1408,6 +1497,155 @@ class PendaftaranController extends Controller
         }
 
         return response()->json(['message' => 'Data kandidat berhasil diperbarui']);
+    }
+
+    public function toggleKandidatStatus($id)
+    {
+        $pendaftar = Pendaftar::with(['siswa'])->findOrFail($id);
+        $siswa = $pendaftar->siswa;
+
+        if (!$siswa) {
+            return response()->json(['message' => 'Data siswa tidak ditemukan'], 404);
+        }
+
+        $siswa->status = $siswa->status === 'AKTIF' ? 'NONAKTIF' : 'AKTIF';
+        $siswa->save();
+
+        return response()->json([
+            'message' => 'Status kandidat berhasil diubah menjadi ' . $siswa->status,
+            'status_akademik' => $siswa->status,
+        ]);
+    }
+
+    public function toggleCuti($id)
+    {
+        $pendaftar = Pendaftar::with(['siswa'])->findOrFail($id);
+        $siswa = $pendaftar->siswa;
+
+        if (!$siswa) {
+            return response()->json(['message' => 'Data siswa tidak ditemukan'], 404);
+        }
+
+        $siswa->is_cuti = !$siswa->is_cuti;
+        $siswa->cuti_sejak = $siswa->is_cuti ? now()->toDateString() : null;
+        $siswa->save();
+
+        return response()->json([
+            'message' => $siswa->is_cuti ? 'Kandidat sedang cuti' : 'Kandidat sudah aktif dari cuti',
+            'is_cuti' => $siswa->is_cuti,
+            'cuti_sejak' => $siswa->cuti_sejak,
+        ]);
+    }
+
+    /**
+     * Public endpoint: get pendaftar info + company profile for payment page
+     */
+    public function bayarInfo($id)
+    {
+        $pendaftar = Pendaftar::with('product')->findOrFail($id);
+
+        $hargaProduk = (float) ($pendaftar->product?->harga ?? 0);
+        $totalDibayar = (float) PembayaranItem::where('pendaftar_id', $pendaftar->id)->sum('jumlah');
+        $diskon = (float) ($pendaftar->diskon ?? 0);
+
+        $kategoriItems = collect();
+        if ($pendaftar->product) {
+            $pendaftar->product->load('biayaKategoris');
+            $pivotById = $pendaftar->product->biayaKategoris->keyBy('id');
+
+            // Aggregate children into parent based on kategori_items JSON
+            $jsonItems = is_array($pendaftar->product->kategori_items) ? $pendaftar->product->kategori_items : [];
+            $aggregated = collect();
+            $childIds = [];
+
+            $walkAgg = function ($items, $depth) use (&$walkAgg, $pivotById, &$aggregated, &$childIds) {
+                foreach ($items as $item) {
+                    $name = strtolower(trim($item['name'] ?? ''));
+                    if ($name === '') continue;
+                    $kategori = $pivotById->first(fn($k) => strtolower($k->nama) === $name || strtolower($k->kode) === $name);
+                    if (!$kategori) continue;
+
+                    $children = $item['children'] ?? [];
+                    $childHarga = 0;
+                    foreach ($children as $c) {
+                        $cn = strtolower(trim($c['name'] ?? ''));
+                        $ck = $pivotById->first(fn($k) => strtolower($k->nama) === $cn || strtolower($k->kode) === $cn);
+                        if ($ck) {
+                            $childHarga += (float) ($ck->pivot->harga ?? 0);
+                            $childIds[] = $ck->id;
+                        }
+                    }
+
+                    if ($depth === 0) {
+                        $hargaParent = (float) ($kategori->pivot->harga ?? 0);
+                        $aggregated->push([
+                            'id' => $kategori->id,
+                            'nama' => $kategori->nama,
+                            'harga' => $hargaParent + $childHarga,
+                            'komisi' => (float) ($kategori->pivot->komisi ?? 0),
+                        ]);
+                    }
+
+                    if (!empty($children)) {
+                        $walkAgg($children, $depth + 1);
+                    }
+                }
+            };
+            $walkAgg($jsonItems, 0);
+
+            // Add remaining parents not in JSON hierarchy
+            foreach ($pivotById as $k) {
+                $already = $aggregated->firstWhere('id', $k->id);
+                if (!$already && !in_array($k->id, $childIds)) {
+                    $aggregated->push([
+                        'id' => $k->id,
+                        'nama' => $k->nama,
+                        'harga' => (float) ($k->pivot->harga ?? 0),
+                        'komisi' => (float) ($k->pivot->komisi ?? 0),
+                    ]);
+                }
+            }
+
+            $kategoriItems = $aggregated->values();
+        }
+
+        $totalTagihan = max($hargaProduk, $kategoriItems->sum('harga')) - $diskon;
+        $sisa = max(0, $totalTagihan - $totalDibayar);
+        $noInvoice = 'INV/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . $pendaftar->created_at->format('Ym');
+        $company = \App\Models\CompanyProfile::getProfile();
+
+        return response()->json([
+            'no_invoice' => $noInvoice,
+            'pendaftar' => [
+                'id' => $pendaftar->id,
+                'nama' => $pendaftar->nama,
+                'email' => $pendaftar->email,
+                'telepon' => $pendaftar->telepon,
+                'created_at' => $pendaftar->created_at,
+                'status_pendaftaran' => $pendaftar->status_pendaftaran,
+                'status_pembayaran' => $pendaftar->status_pembayaran,
+            ],
+            'product' => $pendaftar->product ? [
+                'id' => $pendaftar->product->id,
+                'nama' => $pendaftar->product->nama,
+                'harga' => $hargaProduk,
+            ] : null,
+            'keuangan' => [
+                'harga_produk' => $hargaProduk,
+                'diskon' => $diskon,
+                'total_tagihan' => $totalTagihan,
+                'total_dibayar' => $totalDibayar,
+                'sisa' => $sisa,
+            ],
+            'company' => [
+                'bank_nama' => $company->bank_nama,
+                'bank_nomor_rekening' => $company->bank_nomor_rekening,
+                'bank_pemilik' => $company->bank_pemilik,
+                'company_name' => $company->company_name,
+                'pt_name' => $company->pt_name,
+            ],
+            'kategori_items' => $kategoriItems,
+        ]);
     }
 
     private function cekDanCatatKomisiAffiliate($pendaftar)
@@ -1534,5 +1772,44 @@ class PendaftaranController extends Controller
                 'status' => 'pending',
             ]);
         }
+    }
+
+    public function banks()
+    {
+        return response()->json([
+            'banks' => [
+                ['kode' => 'BCA', 'nama' => 'BCA'],
+                ['kode' => 'Mandiri', 'nama' => 'Bank Mandiri'],
+                ['kode' => 'BRI', 'nama' => 'BRI'],
+                ['kode' => 'BNI', 'nama' => 'BNI'],
+                ['kode' => 'BSI', 'nama' => 'BSI (Bank Syariah Indonesia)'],
+                ['kode' => 'BTN', 'nama' => 'BTN'],
+                ['kode' => 'CIMB Niaga', 'nama' => 'CIMB Niaga'],
+                ['kode' => 'Danamon', 'nama' => 'Danamon'],
+                ['kode' => 'Permata', 'nama' => 'Permata'],
+                ['kode' => 'Maybank', 'nama' => 'Maybank'],
+                ['kode' => 'Panin', 'nama' => 'Panin'],
+                ['kode' => 'OCBC NISP', 'nama' => 'OCBC NISP'],
+                ['kode' => 'UOB', 'nama' => 'UOB'],
+                ['kode' => 'HSBC', 'nama' => 'HSBC'],
+                ['kode' => 'Standard Chartered', 'nama' => 'Standard Chartered'],
+                ['kode' => 'Mega', 'nama' => 'Bank Mega'],
+                ['kode' => 'Bukopin', 'nama' => 'Bukopin'],
+                ['kode' => 'Artha Graha', 'nama' => 'Artha Graha'],
+                ['kode' => 'BPD', 'nama' => 'BPD (Bank Pembangunan Daerah)'],
+                ['kode' => 'Bank Lain', 'nama' => 'Bank Lain'],
+            ],
+            'ewallets' => [
+                ['kode' => 'GoPay', 'nama' => 'GoPay'],
+                ['kode' => 'OVO', 'nama' => 'OVO'],
+                ['kode' => 'DANA', 'nama' => 'DANA'],
+                ['kode' => 'LinkAja', 'nama' => 'LinkAja'],
+                ['kode' => 'ShopeePay', 'nama' => 'ShopeePay'],
+                ['kode' => 'PayLater', 'nama' => 'PayLater'],
+                ['kode' => 'Jenius', 'nama' => 'Jenius'],
+                ['kode' => 'Sakuku', 'nama' => 'Sakuku (BCA)'],
+                ['kode' => 'E-Wallet Lain', 'nama' => 'E-Wallet Lain'],
+            ],
+        ]);
     }
 }

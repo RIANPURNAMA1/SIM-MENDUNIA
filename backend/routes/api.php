@@ -340,6 +340,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/kandidat', [PendaftaranController::class, 'kandidat']);
     Route::post('/kandidat', [PendaftaranController::class, 'storeKandidat']);
     Route::put('/kandidat/{id}', [PendaftaranController::class, 'updateKandidat']);
+    Route::post('/kandidat/{id}/toggle-status', [PendaftaranController::class, 'toggleKandidatStatus']);
+    Route::post('/kandidat/{id}/toggle-cuti', [PendaftaranController::class, 'toggleCuti']);
 
     Route::prefix('pendaftar')->group(function () {
         Route::get('/', [PendaftaranController::class, 'index']);
@@ -413,6 +415,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // Public — daftar langsung tanpa affiliate
 Route::post('/pendaftaran/daftar-langsung', [PendaftaranController::class, 'daftarLangsung']);
+Route::get('/pendaftaran/bayar/{id}', [PendaftaranController::class, 'bayarInfo']);
+Route::get('/banks', [PendaftaranController::class, 'banks']);
 
 // Public — biaya kategori flat for registration page
 Route::get('/biaya-kategori-flat', [BiayaController::class, 'kategoriIndexFlat']);

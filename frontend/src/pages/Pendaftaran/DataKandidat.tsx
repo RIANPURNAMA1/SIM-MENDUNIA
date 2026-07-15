@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Users, Search, RotateCcw, Eye, Edit3, Trash2, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { Users, Search, RotateCcw, Eye, Edit3, Power, PowerOff, CalendarOff, Calendar, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { pendaftarApi } from '../../services/api'
 
@@ -32,6 +32,9 @@ interface Kandidat {
   nama_ortu: string
   no_hp_ortu: string
   status: string
+  status_akademik: string
+  is_cuti: boolean
+  cuti_sejak: string | null
   tanggalDaftar: string
   user_id: number | null
   keterangan: string
@@ -80,6 +83,8 @@ export default function DataKandidat() {
   })
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(25)
+  const [togglingId, setTogglingId] = useState<number | null>(null)
+  const [togglingCutiId, setTogglingCutiId] = useState<number | null>(null)
 
   useEffect(() => {
     fetchData()
@@ -135,6 +140,30 @@ export default function DataKandidat() {
     fetchData()
   }
 
+  async function handleToggleStatus(id: number) {
+    setTogglingId(id)
+    try {
+      await pendaftarApi.toggleKandidatStatus(id)
+      fetchData(search)
+    } catch {
+      alert('Gagal mengubah status kandidat')
+    } finally {
+      setTogglingId(null)
+    }
+  }
+
+  async function handleToggleCuti(id: number) {
+    setTogglingCutiId(id)
+    try {
+      await pendaftarApi.toggleKandidatCuti(id)
+      fetchData(search)
+    } catch {
+      alert('Gagal mengubah status cuti')
+    } finally {
+      setTogglingCutiId(null)
+    }
+  }
+
   function startEdit(k: Kandidat) {
     setEditingId(k.id)
     setEditForm({ ...k })
@@ -149,7 +178,12 @@ export default function DataKandidat() {
     if (!editingId) return
     setSaving(true)
     try {
-      await pendaftarApi.updateKandidat(editingId, editForm as Record<string, unknown>)
+      const payload: Record<string, unknown> = {}
+      for (const [k, v] of Object.entries(editForm as Record<string, unknown>)) {
+        if (v === '' || v === undefined) payload[k] = null
+        else payload[k] = v
+      }
+      await pendaftarApi.updateKandidat(editingId, payload)
       setKandidatList(prev => prev.map(k => k.id === editingId ? { ...k, ...editForm } as Kandidat : k))
       setEditingId(null)
       setEditForm({})
@@ -441,9 +475,9 @@ export default function DataKandidat() {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto max-h-[calc(100vh-260px)] overflow-y-auto rounded-lg border border-slate-200">
               <table className="w-full min-w-[3200px] border-collapse text-left text-sm text-slate-700">
-                <thead className="text-sm text-slate-600">
+                <thead className="text-sm text-slate-600 sticky top-0 z-20 bg-slate-50">
                   <tr>
                     <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium w-[40px]">No</th>
                     <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[170px]">NIK</th>
@@ -471,7 +505,7 @@ export default function DataKandidat() {
                     <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[150px]">No. Tlp Orang Tua</th>
                     <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium w-[80px]">Status</th>
                     <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[180px]">Ket.</th>
-                    <th scope="col" className="sticky right-0 z-10 border border-slate-200 bg-slate-50 px-4 py-3 text-center font-medium shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] w-[80px]">Aksi</th>
+                    <th scope="col" className="sticky right-0 z-30 border border-slate-200 bg-slate-50 px-4 py-3 text-center font-medium shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] w-[80px]">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -480,7 +514,7 @@ export default function DataKandidat() {
                       const isEditing = editingId === k.id
                       const rowNum = (safePage - 1) * perPage + idx + 1
                       return (
-                        <tr key={k.id} className={`${isEditing ? 'bg-blue-50/50' : 'bg-white'} transition hover:bg-slate-50`}>
+                        <tr key={k.id} className={`${isEditing ? 'bg-blue-50/50' : k.is_cuti ? 'bg-amber-50' : k.status_akademik === 'NONAKTIF' ? 'bg-red-50' : 'bg-white'} transition hover:bg-slate-50`}>
                           <td className="border border-slate-200 px-4 py-3 text-center text-sm text-slate-500">{rowNum}</td>
                           <td className="border border-slate-200 px-4 py-3 text-sm font-mono text-slate-700 whitespace-nowrap">
                             {isEditing ? <CellEdit field="nik" /> : k.nik || <span className="text-slate-300">-</span>}
@@ -497,7 +531,7 @@ export default function DataKandidat() {
                                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                                 />
                                 <div className="min-w-0">
-                                  <div className="text-sm font-semibold text-slate-800 truncate">{k.nama}</div>
+                                  <div className={`text-sm font-semibold truncate ${k.status_akademik === 'NONAKTIF' ? 'text-red-500' : 'text-slate-800'}`}>{k.nama}</div>
                                   <div className="text-xs text-slate-500 truncate">{k.email}</div>
                                 </div>
                               </div>
@@ -583,7 +617,19 @@ export default function DataKandidat() {
                           <td className="border border-slate-200 px-4 py-3 text-sm font-mono text-slate-700 whitespace-nowrap">
                             {isEditing ? <CellEdit field="no_hp_ortu" /> : k.no_hp_ortu || <span className="text-slate-300">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-center">{statusBadge(k.status)}</td>
+                           <td className="border border-slate-200 px-4 py-3 text-center">
+                             {statusBadge(k.status)}
+                             {k.status_akademik && (
+                               <span className={`mt-1 inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-medium ${k.status_akademik === 'AKTIF' ? 'border-emerald-200 bg-emerald-50 text-emerald-600' : 'border-red-200 bg-red-50 text-red-500'}`}>
+                                 {k.status_akademik}
+                               </span>
+                             )}
+                             {k.is_cuti ? (
+                               <span className="mt-1 inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-600">
+                                 CUTI{k.cuti_sejak ? ` ${k.cuti_sejak}` : ''}
+                               </span>
+                             ) : null}
+                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600 max-w-[180px]">
                             {isEditing ? <CellEdit field="keterangan" /> : <span className="truncate block" title={k.keterangan}>{k.keterangan || <span className="text-slate-300">-</span>}</span>}
                           </td>
@@ -603,18 +649,25 @@ export default function DataKandidat() {
                               ) : (
                                 <>
                                   <button onClick={() => setDetailKandidat(k)}
-                                    className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600" title="Detail">
+                                    className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-emerald-600 transition hover:bg-emerald-100" title="Detail">
                                     <Eye size={15} />
                                   </button>
                                   <button onClick={() => startEdit(k)}
-                                    className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-amber-200 hover:bg-amber-50 hover:text-amber-600" title="Edit">
+                                    className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-emerald-600 transition hover:bg-emerald-100" title="Edit">
                                     <Edit3 size={15} />
                                   </button>
-                                  <button className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600" title="Hapus">
-                                    <Trash2 size={15} />
+                                  <button onClick={() => handleToggleStatus(k.id)} disabled={togglingId === k.id}
+                                    className={`rounded-lg border p-2 transition ${k.status_akademik === 'NONAKTIF' ? 'border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100'} disabled:opacity-50`}
+                                    title={k.status_akademik === 'NONAKTIF' ? 'Aktifkan' : 'Nonaktifkan'}>
+                                    {togglingId === k.id ? <Loader2 size={15} className="animate-spin" /> : (k.status_akademik === 'NONAKTIF' ? <Power size={15} /> : <PowerOff size={15} />)}
+                                  </button>
+                                  <button onClick={() => handleToggleCuti(k.id)} disabled={togglingCutiId === k.id}
+                                    className={`rounded-lg border p-2 transition ${k.is_cuti ? 'border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100' : 'border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100'} disabled:opacity-50`}
+                                    title={k.is_cuti ? 'Aktifkan dari Cuti' : 'Cuti'}>
+                                    {togglingCutiId === k.id ? <Loader2 size={15} className="animate-spin" /> : (k.is_cuti ? <Calendar size={15} /> : <CalendarOff size={15} />)}
                                   </button>
                                   <Link to={`/pendaftar/${k.id}/invoice`}
-                                    className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600" title="Invoice">
+                                    className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-emerald-600 transition hover:bg-emerald-100" title="Invoice">
                                     <Receipt size={15} />
                                   </Link>
                                 </>
@@ -738,6 +791,16 @@ export default function DataKandidat() {
                   <p className="text-xs text-slate-500">{detailKandidat.email}</p>
                 </div>
                 <span className="ml-2">{statusBadge(detailKandidat.status)}</span>
+                {detailKandidat.status_akademik && (
+                  <span className={`ml-1 inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-medium ${detailKandidat.status_akademik === 'AKTIF' ? 'border-emerald-200 bg-emerald-50 text-emerald-600' : 'border-red-200 bg-red-50 text-red-500'}`}>
+                    {detailKandidat.status_akademik}
+                  </span>
+                )}
+                {detailKandidat.is_cuti ? (
+                  <span className="ml-1 inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-600">
+                    CUTI{detailKandidat.cuti_sejak ? ` ${detailKandidat.cuti_sejak}` : ''}
+                  </span>
+                ) : null}
               </div>
               <button onClick={() => setDetailKandidat(null)} className="rounded-lg p-1.5 hover:bg-slate-100 transition"><X size={18} className="text-slate-400" /></button>
             </div>

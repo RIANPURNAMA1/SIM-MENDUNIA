@@ -25,6 +25,8 @@ class Pendaftar extends Model
         'desa',
         'bank_asal',
         'nama_rekening',
+        'bank_pengirim',
+        'nama_pengirim',
         'nominal',
         'diskon',
         'bukti_pembayaran',

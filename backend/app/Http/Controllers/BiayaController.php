@@ -207,11 +207,6 @@ class BiayaController extends Controller
             );
         }
 
-        // Sync total nominal on pendaftar
-        $totalDibayar = PembayaranItem::where('pendaftar_id', $pendaftarId)->sum('jumlah');
-        $pendaftar->nominal = $totalDibayar;
-        $pendaftar->save();
-
         return response()->json([
             'status' => 'success',
             'message' => 'Pembayaran berhasil disimpan',

@@ -572,6 +572,34 @@ class WhatsAppService
     }
 
     /**
+     * Kirim notifikasi pendaftaran berhasil ke kandidat dengan link pembayaran
+     */
+    public function sendRegistrationSuccessNotification($pendaftar)
+    {
+        $noHp = $pendaftar->telepon ?? $pendaftar->user?->no_hp ?? null;
+        if (!$noHp) return false;
+
+        $nama = $pendaftar->nama;
+        $program = $pendaftar->product?->nama ?? '-';
+        $noReg = $pendaftar->no_registrasi ?? '-';
+        $noInvoice = 'INV/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . $pendaftar->created_at->format('Ym');
+        $linkBayar = env('FRONTEND_URL', 'http://localhost:5173') . '/bayar/' . $pendaftar->id;
+
+        $message = "Selamat, {$nama}!\n\n"
+            . "Pendaftaran Anda di program *{$program}* berhasil.\n\n"
+            . "*No. Registrasi:* {$noReg}\n"
+            . "*Invoice:* {$noInvoice}\n\n"
+            . "Silakan lakukan pembayaran melalui tautan berikut:\n"
+            . "🔗 {$linkBayar}\n\n"
+            . "Setelah transfer, upload bukti pembayaran di tautan tersebut agar segera diverifikasi.\n\n"
+            . "- Sistem SIM Mendunia";
+
+        $sent = $this->sendMessage($noHp, $message);
+        $this->logNotification($pendaftar->id ?? null, 'registration_success', $noHp, $message, $sent);
+        return $sent;
+    }
+
+    /**
      * Format nomor HP ke format 62
      */
     private function formatPhoneNumber($number)

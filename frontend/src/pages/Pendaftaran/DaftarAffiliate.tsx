@@ -2,7 +2,7 @@ import { useState, useEffect, type FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import {
   GraduationCap, CheckCircle, User, MessageCircle,
-  Upload, FileText, X,
+  FileText, ChevronRight, Loader, Tag,
 } from 'lucide-react'
 import { affiliateLinkApi, pendaftarApi, couponApi, batchApi } from '../../services/api'
 
@@ -23,7 +23,7 @@ interface Batch {
 const steps = [
   { id: 1, label: 'Data Diri', desc: 'Informasi dasar pendaftar' },
   { id: 2, label: 'Kontak', desc: 'Informasi komunikasi' },
-  { id: 3, label: 'Pembayaran', desc: 'Selesaikan transaksi' },
+  { id: 3, label: 'Ringkasan', desc: 'Konfirmasi pendaftaran' },
 ]
 
 export default function DaftarAffiliate() {
@@ -41,10 +41,6 @@ export default function DaftarAffiliate() {
   const [passwordConfirmation, setPasswordConfirmation] = useState('')
   const [telepon, setTelepon] = useState('')
   const [alamat, setAlamat] = useState('')
-  const [bankAsal, setBankAsal] = useState('')
-  const [namaRekening, setNamaRekening] = useState('')
-  const [nominal, setNominal] = useState('')
-  const [bukti, setBukti] = useState<File | null>(null)
   const [kodeKupon, setKodeKupon] = useState('')
   const [validasiKupon, setValidasiKupon] = useState<{
     valid: boolean
@@ -52,10 +48,9 @@ export default function DaftarAffiliate() {
     nominal_setelah_diskon?: number
     message?: string
   } | null>(null)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [batches, setBatches] = useState<Batch[]>([])
   const [batchId, setBatchId] = useState('')
-  const [fileError, setFileError] = useState('')
+  const [successInfo, setSuccessInfo] = useState<{ noRegistrasi: string; invoiceUrl: string } | null>(null)
 
   useEffect(() => {
     batchApi.list().then(res => setBatches(res.data.data || [])).catch(() => {})
@@ -72,14 +67,12 @@ export default function DaftarAffiliate() {
     }
   }, [kode])
 
-  useEffect(() => {
-    if (bukti && bukti.type.startsWith('image/')) {
-      const url = URL.createObjectURL(bukti)
-      setPreviewUrl(url)
-      return () => URL.revokeObjectURL(url)
+  const totalDisplay = (() => {
+    if (validasiKupon?.valid && validasiKupon.nominal_setelah_diskon !== undefined) {
+      return validasiKupon.nominal_setelah_diskon
     }
-    setPreviewUrl(null)
-  }, [bukti])
+    return link?.product?.harga || 0
+  })()
 
   async function cekKupon() {
     if (!kodeKupon || !link) return
@@ -116,18 +109,14 @@ export default function DaftarAffiliate() {
     if (kodeKupon) fd.append('kode_kupon', kodeKupon)
     if (telepon) fd.append('telepon', telepon)
     if (alamat) fd.append('alamat', alamat)
-    if (bankAsal) fd.append('bank_asal', bankAsal)
-    if (namaRekening) fd.append('nama_rekening', namaRekening)
     if (batchId) fd.append('batch_id', batchId)
-    fd.append('nominal', nominal)
-    fd.append('bukti_pembayaran', bukti!)
 
     pendaftarApi.daftar(fd)
       .then(res => {
+        const noReg = res.data?.no_registrasi || res.data?.noRegistrasi || '-'
+        const invoiceUrl = res.data?.invoice_url || `/pendaftar/${res.data?.id}/invoice`
+        setSuccessInfo({ noRegistrasi: noReg, invoiceUrl })
         setSuccess(true)
-        setTimeout(() => {
-          window.location.href = res.data.redirect || '/dashboard-kandidat'
-        }, 1500)
       })
       .catch(err => {
         setError(err.response?.data?.message || err.message || 'Terjadi kesalahan')
@@ -152,25 +141,7 @@ export default function DaftarAffiliate() {
     setStep(s => Math.min(s + 1, 3))
   }
 
-  function handleBuktiChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0] || null
-    setFileError('')
-    if (file && file.size > 5 * 1024 * 1024) {
-      setFileError('Ukuran file maksimal 5MB')
-      e.target.value = ''
-      return
-    }
-    setBukti(file)
-  }
 
-  function handleFinalSubmit(e: FormEvent) {
-    if (!bukti) {
-      setError('Harap upload bukti pembayaran')
-      return
-    }
-    if (fileError) return
-    handleSubmit(e)
-  }
 
   const Navbar = () => (
     <nav className="bg-white border-b border-gray-200">
@@ -233,10 +204,20 @@ export default function DaftarAffiliate() {
             <CheckCircle size={32} className="text-emerald-600" />
           </div>
           <h1 className="text-xl font-bold text-[#1c1e21] mb-2">Pendaftaran Berhasil!</h1>
-          <p className="text-sm text-[#606770]">Anda akan dialihkan ke dashboard...</p>
-          <div className="mt-6 flex justify-center">
-            <div className="w-8 h-8 border-2 border-[#0D1F3C]/30 border-t-[#0D1F3C] rounded-full animate-spin" />
+          <p className="text-sm text-[#606770] mb-6">Data pendaftaran Anda telah tersimpan.</p>
+          <div className="bg-[#f8f9fc] border border-[#e8eaf0] rounded-lg p-4 text-left mb-6">
+            <p className="text-xs text-gray-500 mb-1">Nomor Invoice</p>
+            <p className="text-sm font-mono font-bold text-gray-900">{successInfo?.noRegistrasi || '-'}</p>
           </div>
+          <p className="text-xs text-gray-500 mb-4">
+            Sistem telah mengirim notifikasi WhatsApp berisi tautan pembayaran. Silakan cek WhatsApp Anda untuk menyelesaikan pembayaran.
+          </p>
+          <a
+            href={successInfo?.invoiceUrl || '#'}
+            className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#0D1F3C] text-white rounded-lg text-sm font-semibold hover:bg-[#1a2d4a] transition-colors"
+          >
+            <FileText size={16} /> Lihat Invoice
+          </a>
         </div>
       </div>
     )
@@ -345,7 +326,7 @@ export default function DaftarAffiliate() {
                 <form
                   onSubmit={
                     step === 3
-                      ? handleFinalSubmit
+                      ? handleSubmit
                       : (e) => {
                           e.preventDefault()
                           nextStep()
@@ -464,7 +445,7 @@ export default function DaftarAffiliate() {
 
                         <div className="space-y-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Nomor Telepon <span className="text-red-500">*</span></label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Nomor WhatsApp <span className="text-red-500">*</span></label>
                             <input
                               type="text"
                               required
@@ -494,191 +475,69 @@ export default function DaftarAffiliate() {
                     <div className="space-y-8">
                       <div className="bg-[#f8f9fc] border border-[#e8eaf0] rounded-lg p-6">
                         <h4 className="text-xs font-bold text-[#0D1F3C] uppercase tracking-wider mb-4">
-                          3. Ringkasan & Pembayaran
+                          3. Ringkasan Pendaftaran
                         </h4>
 
                         <div className="mb-6 p-4 bg-white border border-gray-200 rounded text-sm">
                           <p className="text-gray-500 mb-1">Program yang dipilih:</p>
                           <p className="font-semibold text-gray-900">{link?.product?.nama}</p>
-                          <div className="flex items-center justify-between mt-2">
-                            <span className="text-xs text-gray-500">Harga Program</span>
-                            <p className="font-bold text-[#0D1F3C]">
-                              Rp {Number(link?.product?.harga || 0).toLocaleString('id-ID')}
+                          <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                            <span className="text-xs font-semibold text-gray-700">Total yang harus dibayar</span>
+                            <p className="font-bold text-lg text-[#0D1F3C]">
+                              Rp {Number(totalDisplay).toLocaleString('id-ID')}
                             </p>
                           </div>
+                          {validasiKupon?.valid && (
+                            <p className="text-[11px] text-green-600 mt-1">
+                              Kupon diterapkan: Hemat Rp {Number((link?.product?.harga || 0) - (validasiKupon.nominal_setelah_diskon || 0)).toLocaleString('id-ID')}
+                            </p>
+                          )}
                         </div>
 
                         <div className="mb-6">
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Dari Bank <span className="text-red-500">*</span>
+                            Kode Kupon (Opsional)
                           </label>
-                          <select
-                            value={bankAsal}
-                            onChange={e => setBankAsal(e.target.value)}
-                            required
-                            className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm appearance-none cursor-pointer"
-                          >
-                            <option value="">Pilih Bank</option>
-                            <option value="BCA">BCA</option>
-                            <option value="BNI">BNI</option>
-                            <option value="BRI">BRI</option>
-                            <option value="Mandiri">Mandiri</option>
-                            <option value="CIMB Niaga">CIMB Niaga</option>
-                            <option value="BSI">BSI</option>
-                            <option value="Danamon">Danamon</option>
-                            <option value="Permata">Permata</option>
-                            <option value="OCBC NISP">OCBC NISP</option>
-                            <option value="Maybank">Maybank</option>
-                            <option value="Panin">Panin</option>
-                            <option value="Mega">Mega</option>
-                            <option value="BTN">BTN</option>
-                            <option value="BTPN">BTPN</option>
-                            <option value="BJB">BJB</option>
-                            <option value="Sea Bank">Sea Bank</option>
-                            <option value="Neo Commerce">Neo Commerce</option>
-                            <option value="Jago">Jago</option>
-                            <option value="GoPay">GoPay</option>
-                            <option value="OVO">OVO</option>
-                            <option value="DANA">DANA</option>
-                            <option value="LinkAja">LinkAja</option>
-                            <option value="ShopeePay">ShopeePay</option>
-                            <option value="E-Wallet Lainnya">E-Wallet Lainnya</option>
-                            <option value="Bank Lainnya">Bank Lainnya</option>
-                          </select>
-                        </div>
-
-                        <div className="mb-6">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Nama Pemilik Rekening <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            value={namaRekening}
-                            onChange={e => setNamaRekening(e.target.value)}
-                            placeholder="Sesuai nama di rekening/bank"
-                            className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
-                          />
-                        </div>
-
-                        <div className="mb-6">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Nominal Pembayaran <span className="text-xs text-gray-400 font-normal">(isi jumlah yang ingin dibayarkan sekarang)</span>
-                          </label>
-                          <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-500">Rp</span>
+                          <div className="flex gap-2">
                             <input
                               type="text"
-                              required
-                              value={nominal ? Number(nominal).toLocaleString('id-ID') : ''}
+                              value={kodeKupon}
                               onChange={e => {
-                                const raw = e.target.value.replace(/\./g, '').replace(/,.*$/, '')
-                                if (raw === '' || /^\d+$/.test(raw)) setNominal(raw)
+                                setKodeKupon(e.target.value.toUpperCase())
+                                setValidasiKupon(null)
                               }}
-                              placeholder="0"
-                              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                              placeholder="Masukkan kode kupon"
+                              className="flex-1 px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm font-mono"
                             />
+                            <button
+                              type="button"
+                              onClick={cekKupon}
+                              disabled={!kodeKupon}
+                              className="px-6 py-2.5 bg-[#0D1F3C] text-white rounded text-sm font-medium hover:bg-[#1a2d4a] disabled:opacity-50 transition-colors"
+                            >
+                              Terapkan
+                            </button>
                           </div>
+                          {validasiKupon && (
+                            <div
+                              className={`mt-2 p-3 rounded text-sm ${validasiKupon.valid ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}
+                            >
+                              {validasiKupon.valid
+                                ? `Total setelah kupon: Rp ${Number(validasiKupon.nominal_setelah_diskon).toLocaleString('id-ID')}`
+                                : validasiKupon.message}
+                            </div>
+                          )}
                         </div>
 
-                        <div className="space-y-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Kode Kupon (Opsional)
-                            </label>
-                            <div className="flex gap-2">
-                              <input
-                                type="text"
-                                value={kodeKupon}
-                                onChange={e => {
-                                  setKodeKupon(e.target.value.toUpperCase())
-                                  setValidasiKupon(null)
-                                }}
-                                placeholder="Masukkan kode kupon"
-                                className="flex-1 px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm font-mono"
-                              />
-                              <button
-                                type="button"
-                                onClick={cekKupon}
-                                disabled={!kodeKupon}
-                                className="px-6 py-2.5 bg-[#0D1F3C] text-white rounded text-sm font-medium hover:bg-[#1a2d4a] disabled:opacity-50 transition-colors"
-                              >
-                                Terapkan
-                              </button>
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                          <div className="flex items-start gap-3">
+                            <Tag size={16} className="text-amber-600 mt-0.5 shrink-0" />
+                            <div>
+                              <p className="text-sm font-semibold text-amber-800">Cara Pembayaran</p>
+                              <p className="text-xs text-amber-700 mt-1">
+                                Setelah menekan tombol <strong>Daftar</strong>, sistem akan membuat Nomor Invoice dan mengirimkan notifikasi WhatsApp berisi tautan pembayaran ke nomor telepon Anda. Silakan cek WhatsApp untuk menyelesaikan pembayaran.
+                              </p>
                             </div>
-                            {validasiKupon && (
-                              <div
-                                className={`mt-2 p-3 rounded text-sm ${validasiKupon.valid ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}
-                              >
-                                {validasiKupon.valid
-                                  ? `Berhasil! Total Bayar: Rp ${Number(validasiKupon.nominal_setelah_diskon).toLocaleString('id-ID')}`
-                                  : validasiKupon.message}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="pt-4 border-t border-gray-200">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Upload Bukti Pembayaran
-                            </label>
-
-                            {bukti && previewUrl ? (
-                              <div className="relative rounded-lg overflow-hidden border border-gray-200 bg-white mb-3">
-                                <img
-                                  src={previewUrl}
-                                  alt="Preview"
-                                  className="w-full h-48 object-contain bg-[#f7f8fa]"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => setBukti(null)}
-                                  className="absolute top-2 right-2 w-7 h-7 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
-                                >
-                                  <X size={14} />
-                                </button>
-                              </div>
-                            ) : bukti && !previewUrl ? (
-                              <div className="relative rounded-lg border border-gray-200 bg-white p-4 mb-3 flex items-center gap-3">
-                                <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center flex-none">
-                                  <FileText size={20} className="text-red-500" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-gray-900 truncate">{bukti.name}</p>
-                                  <p className="text-xs text-gray-500">PDF</p>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => setBukti(null)}
-                                  className="w-7 h-7 bg-gray-100 text-gray-500 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors flex-none"
-                                >
-                                  <X size={14} />
-                                </button>
-                              </div>
-                            ) : null}
-
-                            <div className="flex items-center justify-center w-full">
-                              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-white hover:bg-gray-50 transition-colors">
-                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                  <Upload className="w-8 h-8 mb-3 text-gray-400" />
-                                  <p className="text-sm text-gray-500 font-semibold">
-                                    {bukti ? 'Ganti file' : 'Klik untuk upload'}
-                                  </p>
-                                  <p className="text-xs text-gray-400 mt-1">
-                                    .JPG, .PNG, atau .PDF
-                                  </p>
-                                </div>
-                                <input
-                                  type="file"
-                                  className="hidden"
-                                  accept=".jpg,.jpeg,.png,.pdf"
-                                  required
-                                  onChange={handleBuktiChange}
-                                />
-                              </label>
-                            </div>
-                            {fileError && (
-                              <p className="mt-2 text-sm text-red-600">{fileError}</p>
-                            )}
                           </div>
                         </div>
                       </div>
@@ -686,14 +545,14 @@ export default function DaftarAffiliate() {
                   )}
 
                   {/* Bottom Action Area */}
-                  <div className="mt-8 flex items-center gap-4">
-                    <label className="flex items-center gap-2 text-xs text-gray-500 flex-1">
+                  <div className="mt-8 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <label className="flex items-start gap-2 text-xs text-gray-500 flex-1">
                       {step === 3 && (
                         <>
                           <input
                             type="checkbox"
                             required
-                            className="w-4 h-4 text-[#0D1F3C] border-gray-300 rounded focus:ring-[#0D1F3C]"
+                            className="w-4 h-4 text-[#0D1F3C] border-gray-300 rounded focus:ring-[#0D1F3C] mt-0.5 shrink-0"
                           />
                           <span>
                             Saya menyetujui syarat & ketentuan Mendunia dan memastikan data benar.
@@ -702,29 +561,37 @@ export default function DaftarAffiliate() {
                       )}
                     </label>
 
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 w-full sm:w-auto">
                       {step > 1 && (
                         <button
                           type="button"
                           onClick={() => setStep(s => s - 1)}
-                          className="px-6 py-3 border border-gray-300 text-gray-700 rounded-md text-sm font-semibold hover:bg-gray-50 transition-colors"
+                          className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 border border-gray-300 text-gray-700 rounded-md text-sm font-semibold hover:bg-gray-50 transition-colors"
                         >
                           Kembali
                         </button>
                       )}
-                      <button
-                        type="submit"
-                        disabled={submitting}
-                        className="px-8 py-3 bg-[#42b72a] text-white rounded-md text-sm font-semibold hover:bg-[#3ba124] transition-colors disabled:opacity-70 flex items-center gap-2"
-                      >
-                        {submitting ? (
-                          <Loader size={16} className="animate-spin" />
-                        ) : step === 3 ? (
-                          'Kirim Pendaftaran'
-                        ) : (
-                          'Selanjutnya'
-                        )}
-                      </button>
+                      {step < 3 ? (
+                        <button
+                          type="submit"
+                          className="flex-1 sm:flex-none px-6 sm:px-8 py-2.5 bg-[#42b72a] text-white rounded-md text-sm font-semibold hover:bg-[#3ba124] transition-colors flex items-center justify-center gap-2"
+                        >
+                          Selanjutnya
+                          <ChevronRight size={16} />
+                        </button>
+                      ) : (
+                        <button
+                          type="submit"
+                          disabled={submitting}
+                          className="flex-1 sm:flex-none px-6 sm:px-8 py-2.5 bg-[#0D1F3C] text-white rounded-md text-sm font-semibold hover:bg-[#1a2d4a] transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
+                        >
+                          {submitting ? (
+                            <><Loader size={16} className="animate-spin" /> Mendaftarkan...</>
+                          ) : (
+                            <><FileText size={16} /> Daftar</>
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </form>

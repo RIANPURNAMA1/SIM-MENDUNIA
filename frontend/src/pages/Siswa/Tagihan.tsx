@@ -11,7 +11,8 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import {
   FileText, Search, Receipt, CheckCircle, Clock, AlertCircle, RotateCcw,
-  DollarSign, X, Save, Bell, Eye, Check, Loader, XCircle,
+  DollarSign, X, Save, Bell, Eye, Check, Loader, XCircle, Users,
+  ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import api, { pendaftarApi, batchApi, productApi } from '../../services/api'
 
@@ -96,11 +97,14 @@ export default function Tagihan() {
   const [savingInline, setSavingInline] = useState(false)
   const [pendingPembayaran, setPendingPembayaran] = useState<any[]>([])
   const [showPendingModal, setShowPendingModal] = useState(false)
+  const [selectedPendingPendaftarId, setSelectedPendingPendaftarId] = useState<number | null>(null)
   const [verifyingId, setVerifyingId] = useState<number | null>(null)
   const [rejectingId, setRejectingId] = useState<number | null>(null)
   const [confirmRejectId, setConfirmRejectId] = useState<number | null>(null)
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const [collapsedPrograms, setCollapsedPrograms] = useState<Set<number>>(new Set())
+  const [programPages, setProgramPages] = useState<Record<number, number>>({})
+  const programPerPage = 5
 
   const pendingCount = Object.keys(pendingChanges).length
 
@@ -207,7 +211,19 @@ export default function Tagihan() {
       group.kategoriColumns = columns
     })
 
-    return order.map(id => groupMap.get(id)!).sort((a, b) => a.productName.localeCompare(b.productName))
+    const hasPending = (pid: number) => {
+      const group = groupMap.get(pid)
+      if (!group) return false
+      return group.items.some(item =>
+        pendingPembayaran.some((pp: any) => pp.pendaftar_id === item.id)
+      )
+    }
+    return order.map(id => groupMap.get(id)!).sort((a, b) => {
+      const aPending = hasPending(a.productId) ? 0 : 1
+      const bPending = hasPending(b.productId) ? 0 : 1
+      if (aPending !== bPending) return aPending - bPending
+      return a.productName.localeCompare(b.productName)
+    })
   }, [filtered, kategoris, products])
 
   const stats = useMemo(() => {
@@ -357,11 +373,20 @@ export default function Tagihan() {
     const groupSisa = Math.max(0, groupTagihan - groupDibayar)
     const hasHierarchy = kategoriColumns.some(c => c.depth > 0)
 
+    const currentPage = programPages[productId] || 1
+    const totalPages = Math.max(1, Math.ceil(items.length / programPerPage))
+    const safePage = Math.min(currentPage, totalPages)
+    const pagedItems = items.slice((safePage - 1) * programPerPage, safePage * programPerPage)
+
+    const setPage = (page: number) => {
+      setProgramPages(prev => ({ ...prev, [productId]: page }))
+    }
+
     return (
-      <div key={productId} className="mb-6">
+      <div key={productId} className="mb-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <button
           onClick={() => toggleProgram(productId)}
-          className="w-full flex items-center justify-between px-4 py-3 bg-white rounded-t-lg border border-slate-200 border-b-0 hover:bg-slate-50 transition-colors"
+          className="w-full flex items-center justify-between px-4 py-3 bg-white hover:bg-slate-50 transition-colors"
         >
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0D1F3C]">
@@ -369,11 +394,11 @@ export default function Tagihan() {
             </div>
             <div className="text-left">
               <h3 className="text-sm font-bold text-slate-800">{productName}</h3>
-              <p className="text-[10px] text-slate-500">{items.length} pendaftar</p>
+              <p className="text-xs text-slate-500">{items.length} pendaftar</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-4 text-[10px]">
+            <div className="hidden sm:flex items-center gap-4 text-xs">
               <span className="text-slate-500">Tagihan: <span className="font-bold text-slate-700">Rp {fmt(groupTagihan)}</span></span>
               <span className="text-emerald-600">Dibayar: <span className="font-bold">Rp {fmt(groupDibayar)}</span></span>
               <span className="text-red-600">Sisa: <span className="font-bold">Rp {fmt(groupSisa)}</span></span>
@@ -383,65 +408,66 @@ export default function Tagihan() {
         </button>
 
         {!isCollapsed && (
-          <div className="overflow-x-auto border border-slate-200 border-t-0 rounded-b-lg bg-white shadow-sm">
+          <div className="overflow-x-auto border-t border-slate-200">
             <table className="w-full min-w-[900px] border-collapse text-left text-sm text-slate-700">
-              <thead className="text-[10px] text-slate-600 uppercase tracking-wide bg-slate-50">
+              <thead className="text-sm text-slate-600 bg-slate-50">
                 <tr>
-                  <th className="border border-slate-200 px-2 py-2.5 font-semibold w-[220px]">Pendaftar</th>
-                  <th className="border border-slate-200 px-2 py-2.5 font-semibold w-[100px]">Batch</th>
+                  <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[220px]">Pendaftar</th>
+                  <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[100px]">Batch</th>
                   {kategoriColumns.map(col => {
                     const k = col.kategori
                     return (
                       <th
                         key={k.id}
-                        className="border border-slate-200 px-2 py-2.5 text-right font-semibold w-[90px]"
+                        scope="col"
+                        className="border border-slate-200 px-4 py-3 text-right font-medium min-w-[120px] w-[130px]"
                       >
-                        <span className="font-semibold">{k.nama}</span>
+                        {k.nama}
                       </th>
                     )
                   })}
-                  <th className="border border-slate-200 px-2 py-2.5 text-right font-semibold w-[120px]">Tagihan</th>
-                  <th className="border border-slate-200 px-2 py-2.5 text-right font-semibold w-[120px]">Dibayar</th>
-                  <th className="border border-slate-200 px-2 py-2.5 text-right font-semibold w-[120px]">Sisa</th>
-                  <th className="border border-slate-200 px-2 py-2.5 text-center font-semibold w-[110px]">Status</th>
-                  <th className="border border-slate-200 px-2 py-2.5 text-center font-semibold w-[80px]">Invoice</th>
-                  <th className="border border-slate-200 px-2 py-2.5 text-center font-semibold w-[80px]">Aksi</th>
+                  <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium w-[120px]">Tagihan</th>
+                  <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium w-[120px]">Dibayar</th>
+                  <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium w-[120px]">Sisa</th>
+                  <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium w-[110px]">Status</th>
+                  <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium w-[80px]">Invoice</th>
+                  <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium w-[80px]">Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                {items.map(p => {
+                {pagedItems.map(p => {
                   const { tagihan, dibayar, sisa } = calcRow(p, kats)
                   return (
                     <tr key={p.id} className="bg-white transition hover:bg-slate-50">
-                      <td className="border border-slate-200 px-2 py-2">
-                        <div className="flex items-center gap-2">
+                      <td className="border border-slate-200 px-4 py-3">
+                        <div className="flex items-center gap-3">
                           <img
-                            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(p.nama)}&background=e5e7eb&color=6b7280&size=24`}
-                            className="h-6 w-6 rounded-full object-cover shrink-0"
+                            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(p.nama)}&background=e5e7eb&color=6b7280&size=28`}
+                            className="h-8 w-8 rounded-full object-cover shrink-0"
                             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                           />
                           <div className="min-w-0">
-                            <div className="text-xs font-semibold text-slate-800 truncate flex items-center gap-1">
+                            <div className="text-sm font-semibold text-slate-800 truncate flex items-center gap-1">
                               {p.nama}
                               {pendingPembayaran.some((pp: any) => pp.pendaftar_id === p.id) && (
                                 <button
-                                  onClick={() => setShowPendingModal(true)}
+                                  onClick={() => { setSelectedPendingPendaftarId(p.id); setShowPendingModal(true) }}
                                   title="Ada pembayaran menunggu verifikasi"
-                                  className="h-2.5 w-2.5 rounded-full bg-red-500 shrink-0"
+                                  className="h-2 w-2 rounded-full bg-red-500 shrink-0"
                                 />
                               )}
                             </div>
-                            <div className="text-[10px] text-slate-500 truncate">{p.email}</div>
+                            <div className="text-xs text-slate-500 truncate">{p.email}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="border border-slate-200 px-2 py-2 whitespace-nowrap text-xs">{p.batch?.nama_batch || '-'}</td>
+                      <td className="border border-slate-200 px-4 py-3 whitespace-nowrap text-sm text-slate-600">{p.batch?.nama_batch || '-'}</td>
                       {kategoriColumns.map(col => {
                         const k = col.kategori
                         const relevant = hasKategori(p, k.id)
                         if (!relevant) {
                           return (
-                            <td key={k.id} className="border border-slate-200 px-2 py-2 text-right text-xs text-slate-300">-</td>
+                            <td key={k.id} className="border border-slate-200 px-4 py-3 text-right text-sm text-slate-300 min-w-[120px]">-</td>
                           )
                         }
                         const key = `${p.id}_${k.id}`
@@ -451,11 +477,12 @@ export default function Tagihan() {
                         const isLunas = biayaKat > 0 && val >= biayaKat
                         const isPartial = val > 0 && !isLunas
                         return (
-                          <td key={k.id} className="border border-slate-200 px-2 py-2 text-right whitespace-nowrap">
+                          <td key={k.id} className="border border-slate-200 px-4 py-3 text-right whitespace-nowrap min-w-[120px]">
                             <input
                               ref={el => { inputRefs.current[key] = el }}
                               type="text"
                               value={val > 0 ? val.toLocaleString('id-ID') : ''}
+                              title={val > 0 ? val.toLocaleString('id-ID') : ''}
                               onChange={e => {
                                 const num = parseInput(e.target.value)
                                 setPendingChanges(prev => {
@@ -469,34 +496,34 @@ export default function Tagihan() {
                                 })
                               }}
                               onKeyDown={e => handleKeyDown(e, key, p, kats)}
-                              className={`w-full bg-transparent text-right text-xs outline-none transition ${isChanged ? 'font-semibold text-blue-700' : isLunas ? 'font-semibold text-emerald-700' : isPartial ? 'font-semibold text-orange-600' : 'text-slate-500'} placeholder:text-slate-300 focus:bg-blue-50 focus:rounded focus:px-1`}
+                              className={`w-full bg-transparent text-right text-sm outline-none transition ${isChanged ? 'font-semibold text-blue-700' : isLunas ? 'font-semibold text-emerald-700' : isPartial ? 'font-semibold text-orange-600' : 'text-slate-500'} placeholder:text-slate-300 focus:bg-blue-50 focus:rounded focus:px-1`}
                               placeholder="-"
                             />
                           </td>
                         )
                       })}
-                      <td className="border border-slate-200 px-2 py-2 text-right text-xs font-semibold text-slate-800 whitespace-nowrap">
+                      <td className="border border-slate-200 px-4 py-3 text-right text-sm font-semibold text-slate-800 whitespace-nowrap">
                         Rp {fmt(tagihan)}
                       </td>
-                      <td className="border border-slate-200 px-2 py-2 text-right text-xs font-semibold text-emerald-700 whitespace-nowrap">
+                      <td className="border border-slate-200 px-4 py-3 text-right text-sm font-semibold text-emerald-700 whitespace-nowrap">
                         Rp {fmt(dibayar)}
                       </td>
-                      <td className="border border-slate-200 px-2 py-2 text-right text-xs font-semibold text-red-600 whitespace-nowrap">
+                      <td className="border border-slate-200 px-4 py-3 text-right text-sm font-semibold text-red-600 whitespace-nowrap">
                         {sisa > 0 ? `Rp ${fmt(sisa)}` : '-'}
                       </td>
-                      <td className="border border-slate-200 px-2 py-2 text-center">
+                      <td className="border border-slate-200 px-4 py-3 text-center">
                         {statusBadge(p.status_pembayaran, dibayar, tagihan)}
                       </td>
-                      <td className="border border-slate-200 px-2 py-2 text-center">
+                      <td className="border border-slate-200 px-4 py-3 text-center">
                         <Link
                           to={`/pendaftar/${p.id}/invoice`}
-                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[10px] font-medium text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600"
+                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600"
+                          title="Invoice"
                         >
-                          <FileText size={11} />
-                          Invoice
+                          <FileText size={15} />
                         </Link>
                       </td>
-                      <td className="border border-slate-200 px-2 py-2 text-center">
+                      <td className="border border-slate-200 px-4 py-3 text-center">
                         <button
                           onClick={async () => {
                             try {
@@ -506,10 +533,10 @@ export default function Tagihan() {
                               console.error(err)
                             }
                           }}
-                          className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-medium text-emerald-700 transition hover:bg-emerald-100"
+                          className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-600"
+                          title="Bayar"
                         >
-                          <DollarSign size={11} />
-                          Bayar
+                          <DollarSign size={15} />
                         </button>
                       </td>
                     </tr>
@@ -517,19 +544,43 @@ export default function Tagihan() {
                 })}
               </tbody>
               <tfoot>
-                <tr className="bg-slate-50 font-semibold text-xs">
-                  <td className="border border-slate-200 px-2 py-2" colSpan={kategoriColumns.length + 2}>
+                <tr className="bg-slate-50 font-semibold text-sm">
+                  <td className="border border-slate-200 px-4 py-3" colSpan={kategoriColumns.length + 2}>
                     <span className="text-slate-500">Total {productName}</span>
                   </td>
-                  <td className="border border-slate-200 px-2 py-2 text-right text-slate-800">Rp {fmt(groupTagihan)}</td>
-                  <td className="border border-slate-200 px-2 py-2 text-right text-emerald-700">Rp {fmt(groupDibayar)}</td>
-                  <td className="border border-slate-200 px-2 py-2 text-right text-red-600">{groupSisa > 0 ? `Rp ${fmt(groupSisa)}` : '-'}</td>
-                  <td className="border border-slate-200 px-2 py-2 text-center text-slate-500">{items.length} orang</td>
-                  <td className="border border-slate-200 px-2 py-2" />
-                  <td className="border border-slate-200 px-2 py-2" />
+                  <td className="border border-slate-200 px-4 py-3 text-right text-slate-800">Rp {fmt(groupTagihan)}</td>
+                  <td className="border border-slate-200 px-4 py-3 text-right text-emerald-700">Rp {fmt(groupDibayar)}</td>
+                  <td className="border border-slate-200 px-4 py-3 text-right text-red-600">{groupSisa > 0 ? `Rp ${fmt(groupSisa)}` : '-'}</td>
+                  <td className="border border-slate-200 px-4 py-3 text-center text-slate-500">{items.length} orang</td>
+                  <td className="border border-slate-200 px-4 py-3" />
+                  <td className="border border-slate-200 px-4 py-3" />
                 </tr>
               </tfoot>
             </table>
+            {items.length > programPerPage && (
+              <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3">
+                <span className="text-sm text-slate-500">
+                  Menampilkan {pagedItems.length} dari {items.length} pendaftar
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setPage(safePage - 1)}
+                    disabled={safePage <= 1}
+                    className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <span className="min-w-[32px] text-center text-sm font-medium text-slate-600">{safePage} / {totalPages}</span>
+                  <button
+                    onClick={() => setPage(safePage + 1)}
+                    disabled={safePage >= totalPages}
+                    className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+          </div>
+        </div>
+      )}
           </div>
         )}
       </div>
@@ -539,10 +590,10 @@ export default function Tagihan() {
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-4 rounded-lg bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between border border-slate-200">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] border border-blue-100">
-            <Receipt size={20} className="text-white" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] text-white">
+            <Receipt size={20} />
           </div>
           <div>
             <h1 className="text-lg font-semibold text-slate-800">Tagihan</h1>
@@ -550,7 +601,7 @@ export default function Tagihan() {
           </div>
         </div>
         <button
-          onClick={() => setShowPendingModal(true)}
+          onClick={() => { setSelectedPendingPendaftarId(null); setShowPendingModal(true) }}
           className="relative inline-flex items-center gap-2 rounded-md bg-white border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
         >
           <span>Verifikasi</span>
@@ -564,26 +615,46 @@ export default function Tagihan() {
 
       {/* Stats */}
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-          <p className="text-xs font-medium text-slate-500">Total Tagihan</p>
-          <p className="text-lg font-bold text-slate-800">Rp {fmt(stats.total)}</p>
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
+            <Receipt size={18} className="text-blue-600" />
+          </div>
+          <div>
+            <p className="text-xs text-slate-500">Total Tagihan</p>
+            <p className="text-2xl font-bold text-slate-800">Rp {fmt(stats.total)}</p>
+          </div>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-          <p className="text-xs font-medium text-emerald-600">Terkumpul</p>
-          <p className="text-lg font-bold text-emerald-700">Rp {fmt(stats.paid)}</p>
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50">
+            <CheckCircle size={18} className="text-emerald-600" />
+          </div>
+          <div>
+            <p className="text-xs text-emerald-600">Terkumpul</p>
+            <p className="text-2xl font-bold text-emerald-700">Rp {fmt(stats.paid)}</p>
+          </div>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-          <p className="text-xs font-medium text-red-600">Outstanding</p>
-          <p className="text-lg font-bold text-red-600">Rp {fmt(stats.outstanding)}</p>
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-50">
+            <AlertCircle size={18} className="text-red-500" />
+          </div>
+          <div>
+            <p className="text-xs text-red-600">Outstanding</p>
+            <p className="text-2xl font-bold text-red-600">Rp {fmt(stats.outstanding)}</p>
+          </div>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-          <p className="text-xs font-medium text-slate-500">Total Pendaftar</p>
-          <p className="text-lg font-bold text-slate-800">{stats.count}</p>
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50">
+            <Users size={18} className="text-amber-600" />
+          </div>
+          <div>
+            <p className="text-xs text-slate-500">Total Pendaftar</p>
+            <p className="text-2xl font-bold text-slate-800">{stats.count}</p>
+          </div>
         </div>
       </div>
 
       {/* Filter */}
-      <div className="mb-4 rounded-lg p-4 shadow-sm">
+      <div className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative flex-1">
             <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -640,7 +711,7 @@ export default function Tagihan() {
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
             <Receipt size={24} />
           </div>
-          <p className="mt-3 text-sm font-medium text-slate-600">Tidak ada tagihan</p>
+          <p className="mt-3 text-sm font-medium text-slate-600">Tidak ada tagihan ditemukan</p>
         </div>
       ) : (
         programGroups.map(group => renderProgramTable(group))
@@ -761,8 +832,15 @@ export default function Tagihan() {
       )}
 
       {/* Modal Verifikasi */}
-      {showPendingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-6" onClick={() => setShowPendingModal(false)}>
+      {showPendingModal && (() => {
+        const filteredPembayaran = selectedPendingPendaftarId
+          ? pendingPembayaran.filter((pp: any) => pp.pendaftar_id === selectedPendingPendaftarId)
+          : pendingPembayaran
+        const filteredNama = selectedPendingPendaftarId
+          ? filteredPembayaran[0]?.pendaftar?.nama || ''
+          : ''
+        return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-6" onClick={() => { setShowPendingModal(false); setSelectedPendingPendaftarId(null) }}>
           <div className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-xl bg-white shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
               <div className="flex items-center gap-3">
@@ -771,12 +849,12 @@ export default function Tagihan() {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-800">Verifikasi Pembayaran</h3>
-                  <p className="text-xs text-slate-500">{pendingPembayaran.length} pembayaran menunggu verifikasi</p>
+                  <p className="text-xs text-slate-500">{filteredPembayaran.length} pembayaran menunggu verifikasi{filteredNama ? ` — ${filteredNama}` : ''}</p>
                 </div>
               </div>
-              <button onClick={() => setShowPendingModal(false)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"><X size={17} /></button>
+              <button onClick={() => { setShowPendingModal(false); setSelectedPendingPendaftarId(null) }} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"><X size={17} /></button>
             </div>
-            {pendingPembayaran.length === 0 ? (
+            {filteredPembayaran.length === 0 ? (
               <div className="px-5 py-10 text-center">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-500 mb-3">
                   <CheckCircle size={24} />
@@ -785,7 +863,7 @@ export default function Tagihan() {
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
-                {pendingPembayaran.map((pp: any) => (
+                {filteredPembayaran.map((pp: any) => (
                   <div key={pp.id} className="px-5 py-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
@@ -840,7 +918,8 @@ export default function Tagihan() {
             )}
           </div>
         </div>
-      )}
+        )
+      })()}
 
       {confirmRejectId !== null && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => setConfirmRejectId(null)}>

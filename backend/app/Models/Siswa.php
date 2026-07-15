@@ -42,6 +42,8 @@ class Siswa extends Model
         'foto',
         'status',
         'keterangan',
+        'is_cuti',
+        'cuti_sejak',
     ];
 
     protected $casts = [];

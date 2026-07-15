@@ -14,6 +14,11 @@ interface PendaftarItem {
   email: string
   no_registrasi: string | null
   telepon: string | null
+  alamat: string | null
+  provinsi: string | null
+  kabupaten: string | null
+  kecamatan: string | null
+  desa: string | null
   nominal: number | null
   diskon: number | null
   bukti_pembayaran: string | null
@@ -24,6 +29,8 @@ interface PendaftarItem {
   user: { id: number; name: string } | null
   batch: { id: number; nama_batch: string } | null
   affiliate_link?: { affiliate: { id: number; name: string; email: string } | null } | null
+  coupon?: { kode: string } | null
+  detail?: { kategori_id: number; kode: string; nama: string; biaya: number; dibayar: number }[]
 }
 
 interface ConfirmModal {
@@ -46,6 +53,7 @@ export default function Pendaftar() {
   const [riwayatData, setRiwayatData] = useState<any[]>([])
   const [riwayatLoading, setRiwayatLoading] = useState(false)
   const [confirm, setConfirm] = useState<ConfirmModal>({ open: false, title: '', message: '', type: 'approve', id: null })
+  const [detailModal, setDetailModal] = useState<PendaftarItem | null>(null)
   const [bayarModal, setBayarModal] = useState<{ pendaftarId: number; nama: string; biaya: number } | null>(null)
   const [bayarJumlah, setBayarJumlah] = useState('')
   const [bayarBukti, setBayarBukti] = useState<File | null>(null)
@@ -395,6 +403,10 @@ export default function Pendaftar() {
                   </td>
                   <td className="border border-slate-200 px-4 py-3 text-center">
                     <div className="flex justify-center gap-1.5">
+                      <button onClick={() => setDetailModal(p)}
+                        className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600" title="Detail Lengkap">
+                        <FileText size={15} />
+                      </button>
                       {p.status_pendaftaran === 'pending' && (
                         <>
                           <button onClick={() => handleApprove(p.id)}
@@ -695,6 +707,163 @@ export default function Pendaftar() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Detail Lengkap Modal */}
+      {detailModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setDetailModal(null)}>
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl bg-white border border-gray-200 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4">
+              <div>
+                <h2 className="text-base font-semibold text-gray-900">Detail Pendaftar</h2>
+                <p className="text-xs text-gray-400">{detailModal.no_registrasi || 'Belum ada no. registrasi'}</p>
+              </div>
+              <button onClick={() => setDetailModal(null)} className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors">
+                <X size={18} className="text-gray-400" />
+              </button>
+            </div>
+
+            <div className="px-6 py-4 space-y-5">
+              {/* Status */}
+              <div className="flex items-center gap-3">
+                {statusDaftarBadge(detailModal.status_pendaftaran)}
+                {statusBayarBadge(detailModal.status_pembayaran)}
+              </div>
+
+              {/* Data Diri */}
+              <div>
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Data Diri</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="rounded-lg bg-gray-50 p-3">
+                    <p className="text-[11px] text-gray-400">Nama</p>
+                    <p className="text-sm font-medium text-gray-800">{detailModal.nama}</p>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 p-3">
+                    <p className="text-[11px] text-gray-400">Email</p>
+                    <p className="text-sm font-medium text-gray-800">{detailModal.email}</p>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 p-3">
+                    <p className="text-[11px] text-gray-400">No. Registrasi</p>
+                    <p className="text-sm font-medium text-gray-800 font-mono">{detailModal.no_registrasi || '-'}</p>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 p-3">
+                    <p className="text-[11px] text-gray-400">Tanggal Daftar</p>
+                    <p className="text-sm font-medium text-gray-800">{new Date(detailModal.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Kontak */}
+              <div>
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Kontak</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="rounded-lg bg-gray-50 p-3">
+                    <p className="text-[11px] text-gray-400">Telepon</p>
+                    <p className="text-sm font-medium text-gray-800">{detailModal.telepon || '-'}</p>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 p-3 sm:col-span-2">
+                    <p className="text-[11px] text-gray-400">Alamat</p>
+                    <p className="text-sm font-medium text-gray-800">{detailModal.alamat || '-'}</p>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 p-3">
+                    <p className="text-[11px] text-gray-400">Provinsi</p>
+                    <p className="text-sm font-medium text-gray-800">{detailModal.provinsi || '-'}</p>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 p-3">
+                    <p className="text-[11px] text-gray-400">Kabupaten</p>
+                    <p className="text-sm font-medium text-gray-800">{detailModal.kabupaten || '-'}</p>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 p-3">
+                    <p className="text-[11px] text-gray-400">Kecamatan</p>
+                    <p className="text-sm font-medium text-gray-800">{detailModal.kecamatan || '-'}</p>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 p-3">
+                    <p className="text-[11px] text-gray-400">Desa</p>
+                    <p className="text-sm font-medium text-gray-800">{detailModal.desa || '-'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Program & Affiliate */}
+              <div>
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Program & Affiliate</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="rounded-lg bg-gray-50 p-3">
+                    <p className="text-[11px] text-gray-400">Program</p>
+                    <p className="text-sm font-medium text-gray-800">{detailModal.product?.nama || '-'}</p>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 p-3">
+                    <p className="text-[11px] text-gray-400">Batch</p>
+                    <p className="text-sm font-medium text-gray-800">{detailModal.batch?.nama_batch || '-'}</p>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 p-3">
+                    <p className="text-[11px] text-gray-400">Affiliate</p>
+                    <p className="text-sm font-medium text-gray-800">{detailModal.affiliate_link?.affiliate?.name || '-'}</p>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 p-3">
+                    <p className="text-[11px] text-gray-400">Kupon</p>
+                    <p className="text-sm font-medium text-gray-800">{detailModal.coupon?.kode || '-'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pembayaran */}
+              <div>
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Pembayaran</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                  <div className="rounded-lg bg-gray-50 p-3">
+                    <p className="text-[11px] text-gray-400">Nominal</p>
+                    <p className="text-sm font-bold text-gray-800">{detailModal.nominal ? `Rp ${Number(detailModal.nominal).toLocaleString('id-ID')}` : '-'}</p>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 p-3">
+                    <p className="text-[11px] text-gray-400">Diskon</p>
+                    <p className="text-sm font-bold text-emerald-600">{detailModal.diskon ? `Rp ${Number(detailModal.diskon).toLocaleString('id-ID')}` : '-'}</p>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 p-3">
+                    <p className="text-[11px] text-gray-400">Bukti Bayar</p>
+                    {detailModal.bukti_pembayaran ? (
+                      <a href={`http://localhost:8000/storage/${detailModal.bukti_pembayaran}`} target="_blank" rel="noreferrer"
+                        className="text-sm font-medium text-blue-600 hover:underline">Lihat Bukti</a>
+                    ) : (
+                      <p className="text-sm font-medium text-gray-800">-</p>
+                    )}
+                  </div>
+                </div>
+                {detailModal.detail && detailModal.detail.filter(d => d.biaya > 0 || d.dibayar > 0).length > 0 && (
+                  <div className="rounded-lg border border-gray-200 overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 text-left text-xs text-gray-500">
+                        <tr>
+                          <th className="px-3 py-2 font-medium">Kategori</th>
+                          <th className="px-3 py-2 font-medium text-right">Biaya</th>
+                          <th className="px-3 py-2 font-medium text-right">Dibayar</th>
+                          <th className="px-3 py-2 font-medium text-right">Sisa</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {detailModal.detail.filter(d => d.biaya > 0 || d.dibayar > 0).map((d, i) => (
+                          <tr key={i} className="bg-white">
+                            <td className="px-3 py-2 text-gray-700">{d.nama}</td>
+                            <td className="px-3 py-2 text-right text-gray-700">Rp {Number(d.biaya).toLocaleString('id-ID')}</td>
+                            <td className="px-3 py-2 text-right text-gray-700">Rp {Number(d.dibayar).toLocaleString('id-ID')}</td>
+                            <td className="px-3 py-2 text-right font-medium text-gray-800">Rp {Number(d.biaya - d.dibayar).toLocaleString('id-ID')}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="sticky bottom-0 border-t border-gray-100 bg-white px-6 py-3 text-right">
+              <button onClick={() => setDetailModal(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors">
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}

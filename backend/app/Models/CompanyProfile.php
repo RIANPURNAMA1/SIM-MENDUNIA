@@ -16,6 +16,9 @@ class CompanyProfile extends Model
         'email',
         'phone',
         'logo',
+        'bank_nama',
+        'bank_nomor_rekening',
+        'bank_pemilik',
     ];
 
     protected $appends = ['logo_url'];

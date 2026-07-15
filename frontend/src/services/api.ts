@@ -326,6 +326,15 @@ export const pendaftarApi = {
     api.post('/kandidat', data),
   updateKandidat: (id: number, data: Record<string, unknown>) =>
     api.put(`/kandidat/${id}`, data),
+  toggleKandidatStatus: (id: number) =>
+    api.post(`/kandidat/${id}/toggle-status`),
+  toggleKandidatCuti: (id: number) =>
+    api.post(`/kandidat/${id}/toggle-cuti`),
+  bayarInfo: (id: number) => api.get(`/pendaftaran/bayar/${id}`),
+  bayar: (id: number, data: FormData) =>
+    api.post(`/pendaftar/${id}/bayar`, data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
 }
 
 export const affiliateDashboardApi = {

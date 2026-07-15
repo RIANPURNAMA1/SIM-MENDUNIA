@@ -62,6 +62,7 @@ import DaftarAffiliate from './pages/Pendaftaran/DaftarAffiliate'
 import AffiliateDashboard from './pages/Affiliate/AffiliateDashboard'
 import DaftarAffiliateBaru from './pages/Pendaftaran/DaftarAffiliateBaru'
 import DaftarProgram from './pages/Pendaftaran/DaftarProgram'
+import Bayar from './pages/Bayar/Bayar'
 import SyaratKetentuan from './pages/SyaratKetentuan'
 import KaryawanDashboard from './pages/Karyawan/KaryawanDashboard'
 import RiwayatAbsensiKaryawan from './pages/Karyawan/RiwayatAbsensiKaryawan'
@@ -175,6 +176,7 @@ function AppRoutes() {
       <Route path="/daftar-affiliate" element={<DaftarAffiliateBaru />} />
       <Route path="/daftar-program" element={<DaftarProgram />} />
       <Route path="/daftar-program/:id" element={<DaftarProgram />} />
+      <Route path="/bayar/:id" element={<Bayar />} />
       <Route path="/syarat-ketentuan" element={<SyaratKetentuan />} />
 
       <Route
