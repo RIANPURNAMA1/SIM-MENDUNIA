@@ -235,21 +235,35 @@ class AuthController extends Controller
     public function registerAffiliate(Request $request)
     {
         $data = $request->validate([
-            'name'     => 'required|string|max:100',
-            'email'    => 'required|email|unique:users',
-            'password' => 'required|min:6',
-            'telepon'  => 'nullable|string|max:20',
-            'alamat'   => 'nullable|string',
+            'name'          => 'required|string|max:100',
+            'email'         => 'required|email|unique:users',
+            'password'      => 'required|min:6',
+            'telepon'       => 'nullable|string|max:20',
+            'alamat'        => 'nullable|string',
+            'provinsi'      => 'nullable|string|max:100',
+            'kabupaten'     => 'nullable|string|max:100',
+            'kecamatan'     => 'nullable|string|max:100',
+            'desa'          => 'nullable|string|max:100',
+            'nama_rekening' => 'nullable|string|max:100',
+            'no_rekening'   => 'nullable|string|max:30',
+            'bank'          => 'nullable|string|max:50',
         ]);
 
         $user = User::create([
-            'name'     => $data['name'],
-            'email'    => $data['email'],
-            'password' => Hash::make($data['password']),
-            'role'     => 'AFFILIATE',
-            'status'   => 'AKTIF',
-            'no_hp'    => $data['telepon'] ?? null,
-            'alamat'   => $data['alamat'] ?? null,
+            'name'          => $data['name'],
+            'email'         => $data['email'],
+            'password'      => Hash::make($data['password']),
+            'role'          => 'AFFILIATE',
+            'status'        => 'AKTIF',
+            'no_hp'         => $data['telepon'] ?? null,
+            'alamat'        => $data['alamat'] ?? null,
+            'provinsi'      => $data['provinsi'] ?? null,
+            'kabupaten'     => $data['kabupaten'] ?? null,
+            'kecamatan'     => $data['kecamatan'] ?? null,
+            'desa'          => $data['desa'] ?? null,
+            'nama_rekening' => $data['nama_rekening'] ?? null,
+            'no_rekening'   => $data['no_rekening'] ?? null,
+            'bank'          => $data['bank'] ?? null,
         ]);
 
         Auth::login($user, true);

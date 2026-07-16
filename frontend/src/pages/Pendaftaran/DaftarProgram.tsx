@@ -24,6 +24,7 @@ interface KategoriItem {
 interface Product {
   id: number;
   nama: string;
+  slug: string;
   deskripsi: string | null;
   harga: number;
   status: string;
@@ -53,7 +54,7 @@ const steps = [
 ];
 
 export default function DaftarProgram() {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState(1);
@@ -122,8 +123,8 @@ export default function DaftarProgram() {
         setProducts(active);
         const kats = (katRes.data || []).sort((a: BiayaKategori, b: BiayaKategori) => a.urutan - b.urutan);
         setBiayaKategoris(kats);
-        if (id) {
-          const found = active.find((p: Product) => String(p.id) === id);
+        if (slug) {
+          const found = active.find((p: Product) => p.slug === slug);
           if (found) {
             setSelectedProduct(found);
           }
@@ -131,7 +132,7 @@ export default function DaftarProgram() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [slug]);
 
   useEffect(() => {
     batchApi.list().then(res => setBatches(res.data.data || [])).catch(() => {})
@@ -291,7 +292,7 @@ export default function DaftarProgram() {
     </div>
   )
 
-  if (id) {
+  if (slug) {
     if (loading) {
       return <LoadingScreen />;
     }
@@ -875,7 +876,7 @@ export default function DaftarProgram() {
                     Rp {Number(product.harga).toLocaleString("id-ID")}
                   </p>
                   <a
-                    href={`/daftar-program/${product.id}`}
+                    href={`/daftar-program/${product.slug}`}
                     className="inline-flex items-center gap-1 px-4 py-2 bg-[#0D1F3C] text-white rounded-lg text-sm font-bold hover:bg-[#1a2d4a] transition-colors"
                   >
                     Daftar <ChevronRight size={14} />

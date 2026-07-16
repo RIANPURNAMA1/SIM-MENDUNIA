@@ -3,11 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Product extends Model
 {
     protected $fillable = [
         'nama',
+        'slug',
         'deskripsi',
         'kategori_items',
         'harga',
@@ -18,6 +20,36 @@ class Product extends Model
     protected $casts = [
         'kategori_items' => 'array',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Product $product) {
+            if (empty($product->slug)) {
+                $product->slug = static::generateUniqueSlug($product->nama);
+            }
+        });
+
+        static::updating(function (Product $product) {
+            if ($product->isDirty('nama') && empty($product->slug) || $product->getOriginal('slug') === Str::slug($product->getOriginal('nama'))) {
+                $product->slug = static::generateUniqueSlug($product->nama, $product->id);
+            }
+        });
+    }
+
+    private static function generateUniqueSlug(string $name, ?int $exceptId = null): string
+    {
+        $slug = Str::slug($name);
+        $original = $slug;
+        $n = 1;
+        $query = static::where('slug', $slug);
+        if ($exceptId) $query->where('id', '!=', $exceptId);
+        while ($query->exists()) {
+            $slug = $original . '-' . $n++;
+            $query = static::where('slug', $slug);
+            if ($exceptId) $query->where('id', '!=', $exceptId);
+        }
+        return $slug;
+    }
 
     public function affiliateLinks()
     {

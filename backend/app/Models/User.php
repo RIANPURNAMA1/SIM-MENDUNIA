@@ -41,6 +41,13 @@ class User extends Authenticatable
         'agama',
         'status_pernikahan',
         'can_access_khusus',
+        'provinsi',
+        'kabupaten',
+        'kecamatan',
+        'desa',
+        'nama_rekening',
+        'no_rekening',
+        'bank',
     ];
 
     protected $hidden = [

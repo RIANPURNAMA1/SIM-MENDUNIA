@@ -32,6 +32,7 @@ class Pendaftar extends Model
         'bukti_pembayaran',
         'status_pendaftaran',
         'status_pembayaran',
+        'tanggal_persetujuan',
         'user_id',
     ];
 
