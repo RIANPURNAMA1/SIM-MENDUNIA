@@ -72,8 +72,9 @@ class SendPaymentReminders extends Command
                 $isPaid = $this->isKategoriPaid($p, $k);
                 if ($isPaid) continue;
 
-                // Hitung jatuh tempo berdasarkan pengaturan dinamis
-                $jatuhTempo = $p->created_at->addDays($setting->jatuh_tempo_hari)->startOfDay();
+                // Hitung jatuh tempo berdasarkan tanggal persetujuan admin
+                $baseDate = $p->tanggal_persetujuan ?? $p->created_at;
+                $jatuhTempo = $baseDate->addDays($setting->jatuh_tempo_hari)->startOfDay();
                 $hariTersisa = (int) $today->diffInDays($jatuhTempo, false);
 
                 // Gunakan shouldRemind dari setting
@@ -142,7 +143,8 @@ class SendPaymentReminders extends Command
     private function processWithoutCategory($p, $today, $waService, &$sent, &$skipped)
     {
         // Gunakan default 30 hari
-        $jatuhTempo = $p->created_at->addDays(30)->startOfDay();
+        $baseDate = $p->tanggal_persetujuan ?? $p->created_at;
+        $jatuhTempo = $baseDate->addDays(30)->startOfDay();
         $hariTersisa = (int) $today->diffInDays($jatuhTempo, false);
 
         $reminderDays = [7, 3, 1, 0];

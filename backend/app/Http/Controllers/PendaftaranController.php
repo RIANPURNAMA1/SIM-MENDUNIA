@@ -342,6 +342,7 @@ class PendaftaranController extends Controller
             'status_pendaftaran' => 'disetujui',
             'status_pembayaran' => 'verified',
             'no_registrasi' => $noReg,
+            'tanggal_persetujuan' => now(),
         ]);
 
         if ($pendaftar->user_id) {

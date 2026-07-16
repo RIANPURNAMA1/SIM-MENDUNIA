@@ -43,6 +43,7 @@ interface BiayaKategori {
 interface Product {
   id: number
   nama: string
+  slug: string
   deskripsi: string | null
   kategori_items: KategoriItem[] | null
   harga: number
@@ -115,11 +116,18 @@ export default function DataProduct() {
       nama: p.nama, deskripsi: p.deskripsi || '',
       komisi: p.komisi ? String(p.komisi) : '', status: p.status,
       kategori_items: items,
-      komisi_tiers: (p.komisi_tiers || []).map(t => ({
-        ...t,
-        batch_id: t.batch_id ?? null,
-        kategori_name: t.kategori_name || p.biaya_kategoris?.find((bk: any) => bk.id === t.kategori_id)?.nama || '',
-      })),
+      komisi_tiers: (p.komisi_tiers || []).map(t => {
+        let resolvedName = t.kategori_name || ''
+        if (!resolvedName && t.kategori_id && p.biaya_kategoris) {
+          const bk = p.biaya_kategoris.find((bk: any) => bk.id === t.kategori_id)
+          if (bk) {
+            const parentMatch = p.kategori_items?.find((item: any) => item.name.toLowerCase() === bk.nama?.toLowerCase())
+            if (parentMatch) resolvedName = parentMatch.name
+            else resolvedName = bk.nama || ''
+          }
+        }
+        return { ...t, batch_id: t.batch_id ?? null, kategori_name: resolvedName }
+      }),
     })
     setExpanded({})
     setShowModal(true)
@@ -220,18 +228,29 @@ export default function DataProduct() {
       kategori_items: cleanItems(form.kategori_items),
       komisi: form.komisi ? parseFloat(form.komisi) : null,
       status: form.status,
-      komisi_tiers: form.komisi_tiers.map(t => ({
-        kategori_id: t.kategori_id, kategori_name: t.kategori_name || null,
-        batch_id: t.batch_id || null,
-        min_orang: t.min_orang,
-        max_orang: t.max_orang || null, komisi: t.komisi, urutan: t.urutan,
-      })),
+      komisi_tiers: form.komisi_tiers.map(t => {
+        let kid = t.kategori_id
+        if (!kid && t.kategori_name && editing) {
+          const matched = editing.biaya_kategoris?.find(
+            (bk: any) => bk.nama?.toLowerCase() === t.kategori_name!.toLowerCase() || bk.kode?.toLowerCase() === t.kategori_name!.toLowerCase()
+          )
+          kid = matched?.id || null
+        }
+        return {
+          kategori_id: kid, kategori_name: t.kategori_name || null,
+          batch_id: t.batch_id || null,
+          min_orang: t.min_orang,
+          max_orang: t.max_orang || null, komisi: t.komisi, urutan: t.urutan,
+        }
+      }),
     }
 
     const req = editing ? productApi.update(editing.id, payload) : productApi.store(payload)
     req.then(() => {
       setShowModal(false); fetchProducts()
       Swal.fire({ icon: 'success', title: 'Berhasil!', text: editing ? 'Produk berhasil diperbarui.' : 'Produk berhasil ditambahkan.', confirmButtonColor: '#0D1F3C', timer: 2000, timerProgressBar: true, showConfirmButton: false })
+    }).catch(() => {
+      Swal.fire({ icon: 'error', title: 'Gagal', text: 'Terjadi kesalahan saat menyimpan data.', confirmButtonColor: '#0D1F3C' })
     })
   }
 
@@ -240,7 +259,7 @@ export default function DataProduct() {
   }
 
   function copyLink(p: Product) {
-    navigator.clipboard.writeText(`${window.location.origin}/daftar-program/${p.id}`).then(() => {
+    navigator.clipboard.writeText(`${window.location.origin}/daftar-program/${p.slug}`).then(() => {
       setCopiedId(p.id); setTimeout(() => setCopiedId(null), 2000)
     })
   }
@@ -447,6 +466,7 @@ export default function DataProduct() {
                 <th className="border border-slate-200 px-4 py-3 font-medium">Nama Produk</th>
                 <th className="border border-slate-200 px-4 py-3 font-medium">Kategori / Harga</th>
                 <th className="border border-slate-200 px-4 py-3 font-medium">Deskripsi</th>
+                <th className="border border-slate-200 px-4 py-3 font-medium">Komisi Tier</th>
                 <th className="border border-slate-200 px-4 py-3 text-right font-medium">Total</th>
                 <th className="border border-slate-200 px-4 py-3 text-center font-medium">Status</th>
                 <th className="border border-slate-200 px-4 py-3 text-center font-medium">Aksi</th>
@@ -455,7 +475,7 @@ export default function DataProduct() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="border border-slate-200 px-6 py-10 text-center">
+                  <td colSpan={7} className="border border-slate-200 px-6 py-10 text-center">
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400"><Package size={24} /></div>
                     <p className="mt-3 text-sm font-medium text-slate-600">Belum ada produk</p>
                   </td>
@@ -470,6 +490,47 @@ export default function DataProduct() {
                   </td>
                   <td className="border border-slate-200 px-4 py-3">{renderKategoriDisplay(p)}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-slate-500 max-w-xs truncate">{p.deskripsi || '-'}</td>
+                  <td className="border border-slate-200 px-4 py-3">
+                    {p.komisi_tiers && p.komisi_tiers.length > 0 ? (
+                      <div className="space-y-1">
+                        {(() => {
+                          const grouped: Record<string, typeof p.komisi_tiers> = {}
+                          p.komisi_tiers.forEach(t => {
+                            let key = 'Global'
+                            if (t.kategori_id && p.biaya_kategoris) {
+                              const bk = p.biaya_kategoris.find((bk: any) => bk.id === t.kategori_id)
+                              if (bk) {
+                                const parentMatch = p.kategori_items?.find((item: any) => item.name.toLowerCase() === bk.nama?.toLowerCase())
+                                key = parentMatch?.name || bk.nama || 'Global'
+                              }
+                            } else if (t.kategori_name) {
+                              key = t.kategori_name
+                            }
+                            if (!grouped[key]) grouped[key] = []
+                            const isDuplicate = grouped[key].some(
+                              g => g.min_orang === t.min_orang && g.max_orang === t.max_orang && g.komisi === t.komisi
+                            )
+                            if (!isDuplicate) grouped[key].push(t)
+                          })
+                          return Object.entries(grouped).map(([name, tiers]) => (
+                            <div key={name} className="text-[11px]">
+                              <span className="font-semibold text-emerald-700">{name}</span>
+                              <div className="ml-1 space-y-0.5">
+                                {tiers.map((t, i) => (
+                                  <div key={i} className="flex items-center gap-1 text-slate-500">
+                                    <span className="text-[10px]">{t.min_orang}-{t.max_orang || '∞'} org:</span>
+                                    <span className="font-medium text-amber-600">Rp {Number(t.komisi).toLocaleString('id-ID')}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))
+                        })()}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-slate-400">-</span>
+                    )}
+                  </td>
                   <td className="border border-slate-200 px-4 py-3 text-right text-sm font-semibold text-slate-800">Rp {Number(p.harga).toLocaleString('id-ID')}</td>
                   <td className="border border-slate-200 px-4 py-3 text-center">{statusBadge(p.status)}</td>
                   <td className="border border-slate-200 px-4 py-3 text-center">
@@ -586,12 +647,15 @@ export default function DataProduct() {
                       )}
                       {form.kategori_items.filter(i => i.children && i.children.length > 0).map((parent, pIdx) => {
                         const parentIdx = form.kategori_items.indexOf(parent)
-                        const parentTiers = form.komisi_tiers.filter(t => t.kategori_name === parent.name)
+                        const parentTiers = form.komisi_tiers.filter(t => t.kategori_name?.toLowerCase() === parent.name.toLowerCase())
                         const childNames = parent.children.map(c => c.name).join(', ')
 
                         function addParentTier() {
+                          const matched = editing?.biaya_kategoris?.find(
+                            (bk: any) => bk.nama?.toLowerCase() === parent.name.toLowerCase() || bk.kode?.toLowerCase() === parent.name.toLowerCase()
+                          )
                           const newTier: KomisiTier = {
-                            kategori_id: null,
+                            kategori_id: matched?.id || null,
                             kategori_name: parent.name,
                             batch_id: null,
                             min_orang: parentTiers.length > 0
@@ -647,7 +711,7 @@ export default function DataProduct() {
                                           className="rounded-md border border-slate-200 bg-white px-2 py-2 text-xs text-slate-700 outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 text-center" />
                                         <div className="relative">
                                           <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-600">Rp</span>
-                                          <input type="number" min={0} value={t.komisi || ''}
+                                          <input type="number" min={0} value={t.komisi ?? 0}
                                             onChange={e => updateTier(globalIdx, 'komisi', parseFloat(e.target.value) || 0)}
                                             className="w-full rounded-md border border-emerald-200 bg-emerald-50 pl-9 pr-2 py-2 text-xs text-slate-800 font-semibold outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400" />
                                         </div>

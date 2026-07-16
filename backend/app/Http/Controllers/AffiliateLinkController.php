@@ -134,13 +134,13 @@ class AffiliateLinkController extends Controller
         $affiliates = User::where('role', 'AFFILIATE')
             ->withSum('affiliateLinks', 'pendaftar_count')
             ->withCount('affiliateLinks')
-            ->addSelect(['total_komisi_pending' => KomisiAffiliate::selectRaw('COALESCE(SUM(jumlah), 0)')
-                ->whereHas('affiliateLink', fn ($q) => $q->whereColumn('affiliate_id', 'users.id'))
-                ->where('status', 'pending'),
-            ])
-            ->addSelect(['total_komisi_paid' => KomisiAffiliate::selectRaw('COALESCE(SUM(jumlah), 0)')
-                ->whereHas('affiliateLink', fn ($q) => $q->whereColumn('affiliate_id', 'users.id'))
-                ->where('status', 'paid'),
+            ->addSelect([
+                'total_komisi_pending' => \Illuminate\Support\Facades\DB::raw(
+                    "(SELECT COALESCE(SUM(ka.jumlah), 0) FROM komisi_affiliates ka JOIN affiliate_links al ON al.id = ka.affiliate_link_id WHERE al.affiliate_id = users.id AND ka.status = 'pending')"
+                ),
+                'total_komisi_paid' => \Illuminate\Support\Facades\DB::raw(
+                    "(SELECT COALESCE(SUM(ka.jumlah), 0) FROM komisi_affiliates ka JOIN affiliate_links al ON al.id = ka.affiliate_link_id WHERE al.affiliate_id = users.id AND ka.status = 'paid')"
+                ),
             ])
             ->orderBy('name')
             ->get(['id', 'name', 'email', 'status', 'created_at']);

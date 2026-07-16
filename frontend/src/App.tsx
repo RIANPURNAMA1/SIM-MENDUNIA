@@ -175,7 +175,7 @@ function AppRoutes() {
       <Route path="/daftar/:kode" element={<DaftarAffiliate />} />
       <Route path="/daftar-affiliate" element={<DaftarAffiliateBaru />} />
       <Route path="/daftar-program" element={<DaftarProgram />} />
-      <Route path="/daftar-program/:id" element={<DaftarProgram />} />
+      <Route path="/daftar-program/:slug" element={<DaftarProgram />} />
       <Route path="/bayar/:id" element={<Bayar />} />
       <Route path="/syarat-ketentuan" element={<SyaratKetentuan />} />
 

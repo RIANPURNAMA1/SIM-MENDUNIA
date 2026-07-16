@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\KomisiTier;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
@@ -50,9 +51,15 @@ class ProductController extends Controller
         return response()->json($product->load(['biayaKategoris', 'komisiTiers']), 201);
     }
 
-    public function show($id)
+    public function show($slugOrId)
     {
-        return response()->json(Product::with(['biayaKategoris', 'komisiTiers'])->findOrFail($id));
+        $product = is_numeric($slugOrId)
+            ? Product::with(['biayaKategoris', 'komisiTiers'])->find($slugOrId)
+            : Product::with(['biayaKategoris', 'komisiTiers'])->where('slug', $slugOrId)->first();
+
+        if (!$product) return response()->json(['message' => 'Not found'], 404);
+
+        return response()->json($product);
     }
 
     public function update(Request $request, $id)
@@ -80,6 +87,10 @@ class ProductController extends Controller
         if ($request->has('deskripsi')) $updateData['deskripsi'] = $request->input('deskripsi');
         if ($request->has('komisi')) $updateData['komisi'] = $request->input('komisi');
         if ($request->has('status')) $updateData['status'] = $request->input('status');
+
+        if ($request->has('nama')) {
+            $updateData['slug'] = $this->generateUniqueSlug($request->input('nama'), $product->id);
+        }
 
         if ($request->has('kategori_items')) {
             $kategoriItems = $request->input('kategori_items', []);
@@ -140,6 +151,12 @@ class ProductController extends Controller
                 $kategoriId = $kategori?->id;
             }
 
+            // Fallback: search from kategori_items JSON tree
+            if (!$kategoriId && !empty($tier['kategori_name'])) {
+                $name = strtolower(trim($tier['kategori_name']));
+                $kategoriId = $this->findKategoriIdFromItems($product->kategori_items ?? [], $name);
+            }
+
             $product->komisiTiers()->create([
                 'kategori_id' => $kategoriId,
                 'batch_id' => $tier['batch_id'] ?? null,
@@ -149,5 +166,35 @@ class ProductController extends Controller
                 'urutan' => $tier['urutan'] ?? 0,
             ]);
         }
+    }
+
+    private function findKategoriIdFromItems(array $items, string $lowerName): ?int
+    {
+        foreach ($items as $item) {
+            if (strtolower(trim($item['name'] ?? '')) === $lowerName) {
+                $kategori = \App\Models\BiayaKategori::whereRaw('LOWER(nama) = ?', [$lowerName])->first();
+                if ($kategori) return $kategori->id;
+            }
+            if (!empty($item['children'])) {
+                $found = $this->findKategoriIdFromItems($item['children'], $lowerName);
+                if ($found) return $found;
+            }
+        }
+        return null;
+    }
+
+    private function generateUniqueSlug(string $name, ?int $exceptId = null): string
+    {
+        $slug = Str::slug($name);
+        $original = $slug;
+        $n = 1;
+        $query = Product::where('slug', $slug);
+        if ($exceptId) $query->where('id', '!=', $exceptId);
+        while ($query->exists()) {
+            $slug = $original . '-' . $n++;
+            $query = Product::where('slug', $slug);
+            if ($exceptId) $query->where('id', '!=', $exceptId);
+        }
+        return $slug;
     }
 }
