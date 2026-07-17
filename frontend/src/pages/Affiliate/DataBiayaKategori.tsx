@@ -134,7 +134,7 @@ export default function DataBiayaKategori() {
         icon: 'success',
         title: 'Berhasil!',
         text: editItem ? 'Kategori berhasil diperbarui.' : 'Kategori berhasil ditambahkan.',
-        confirmButtonColor: '#0D1F3C',
+        confirmButtonColor: '#0E6187',
         timer: 2000,
         timerProgressBar: true,
         showConfirmButton: false,
@@ -158,7 +158,7 @@ export default function DataBiayaKategori() {
         icon: 'success',
         title: 'Dihapus!',
         text: 'Kategori berhasil dihapus.',
-        confirmButtonColor: '#0D1F3C',
+        confirmButtonColor: '#0E6187',
         timer: 2000,
         timerProgressBar: true,
         showConfirmButton: false,
@@ -168,7 +168,7 @@ export default function DataBiayaKategori() {
         icon: 'error',
         title: 'Gagal',
         text: err.response?.data?.message || 'Gagal menghapus kategori.',
-        confirmButtonColor: '#0D1F3C',
+        confirmButtonColor: '#0E6187',
       })
     } finally {
       setDeleting(false)
@@ -242,7 +242,7 @@ export default function DataBiayaKategori() {
               ) : (
                 <span className="w-5" />
               )}
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#0D1F3C] text-white text-xs font-mono font-semibold rounded-lg">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#0E6187] text-white text-xs font-mono font-semibold rounded-lg">
                 <Hash size={11} />
                 {parent.kode}
               </span>
@@ -291,7 +291,7 @@ export default function DataBiayaKategori() {
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] border border-blue-100">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
             <ListOrdered size={20} className="text-white" />
           </div>
           <div>
@@ -332,7 +332,7 @@ export default function DataBiayaKategori() {
                   <td colSpan={4} className="border border-slate-200 px-4 py-20">
                     <div className="flex items-center justify-center">
                       <div className="relative w-14 h-14 flex items-center justify-center">
-                        <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+                        <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
                         <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
                       </div>
                     </div>

@@ -146,7 +146,7 @@ export default function DashboardAkademik() {
         labels: { usePointStyle: true, boxWidth: 8, padding: 16, font: { size: 11 } },
       },
       tooltip: {
-        backgroundColor: '#0D1F3C',
+        backgroundColor: '#0E6187',
         titleFont: { size: 12 },
         bodyFont: { size: 11 },
         padding: 10,
@@ -163,7 +163,7 @@ export default function DashboardAkademik() {
     return (
       <div className="flex min-h-[400px] items-center justify-center p-6">
         <div className="relative w-14 h-14 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+          <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
           <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
         </div>
       </div>

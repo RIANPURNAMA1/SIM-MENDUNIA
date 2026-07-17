@@ -65,7 +65,7 @@ export default function AdminCabangDashboard() {
     return (
       <div className="px-6 py-8 flex items-center justify-center min-h-[50vh]">
         <div className="relative w-14 h-14 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+          <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
           <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
         </div>
       </div>
@@ -176,7 +176,7 @@ export default function AdminCabangDashboard() {
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       {/* Header */}
       <div className="mb-6 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] border border-blue-100">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
           <LayoutDashboard size={20} className="text-white" />
         </div>
         <div>

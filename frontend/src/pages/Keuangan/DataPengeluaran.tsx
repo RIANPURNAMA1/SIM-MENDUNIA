@@ -247,7 +247,7 @@ export default function DataPengeluaran() {
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       <div className="mb-4 flex flex-col gap-3 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] border border-blue-100">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
             <Wallet size={20} className="text-white" />
           </div>
           <div>
@@ -258,14 +258,14 @@ export default function DataPengeluaran() {
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setShowCatatan(!showCatatan)}
-            className="inline-flex items-center gap-2 rounded-md bg-[#0D1F3C] px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#162d54]"
+            className="inline-flex items-center gap-2 rounded-md bg-[#0E6187] px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#1a5e6f]"
           >
             {showCatatan ? <FileText size={16} /> : <Images size={16} />}
             {showCatatan ? 'Tabel' : 'Catatan'}
           </button>
           <button
             onClick={() => setShowRekap(true)}
-            className="inline-flex items-center gap-2 rounded-md bg-[#0D1F3C] px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#162d54]"
+            className="inline-flex items-center gap-2 rounded-md bg-[#0E6187] px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#1a5e6f]"
           >
             <FileText size={16} />
             Rekap Bulanan
@@ -469,7 +469,7 @@ export default function DataPengeluaran() {
                   <p className="text-xs text-slate-500 mt-1 truncate">{item.keterangan || 'Tanpa keterangan'}</p>
                   <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-[#0D1F3C] flex items-center justify-center text-[10px] font-bold text-white">
+                      <div className="w-6 h-6 rounded-full bg-[#0E6187] flex items-center justify-center text-[10px] font-bold text-white">
                         {item.user?.name?.charAt(0)}
                       </div>
                       <span className="text-xs text-slate-600">{item.user?.name}</span>

@@ -97,7 +97,7 @@ export default function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="Masukkan email atau nama"
-                className="w-full h-11 px-3.5 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] text-gray-900 placeholder-gray-400 transition-colors"
+                className="w-full h-11 px-3.5 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187] text-gray-900 placeholder-gray-400 transition-colors"
               />
             </div>
 
@@ -110,7 +110,7 @@ export default function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   placeholder="Masukkan kata sandi"
-                  className="w-full h-11 px-3.5 pr-12 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] text-gray-900 placeholder-gray-400 transition-colors"
+                  className="w-full h-11 px-3.5 pr-12 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187] text-gray-900 placeholder-gray-400 transition-colors"
                 />
                 <button
                   type="button"
@@ -131,7 +131,7 @@ export default function Login() {
                   className="sm:flex-none w-full sm:w-[88px] h-11 bg-gray-100 rounded-lg border border-gray-300 flex items-center justify-center select-none relative overflow-hidden group cursor-pointer hover:bg-gray-200 transition-colors"
                 >
                   <span className="text-lg font-black tracking-[0.2em] text-gray-700">{captcha}</span>
-                  <div className="absolute inset-0 bg-[#0D1F3C]/90 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-[11px] font-bold">
+                  <div className="absolute inset-0 bg-[#0E6187]/90 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-[11px] font-bold">
                     <RefreshCw size={13} />
                     <span>Ulang</span>
                   </div>
@@ -142,7 +142,7 @@ export default function Login() {
                   onChange={(e) => setCaptchaInput(e.target.value)}
                   required
                   placeholder="Masukkan kode"
-                  className="w-full h-11 px-3.5 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] text-gray-900 placeholder-gray-400 transition-colors"
+                  className="w-full h-11 px-3.5 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187] text-gray-900 placeholder-gray-400 transition-colors"
                 />
               </div>
               <p className="text-[11px] text-gray-400 mt-1.5">Klik kode di samping untuk memperbarui</p>
@@ -151,7 +151,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full mt-2 h-11 bg-[#0D1F3C] text-white font-semibold text-sm rounded-lg hover:bg-[#1a2d4a] active:scale-[0.99] transition-all flex justify-center items-center disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full mt-2 h-11 bg-[#0E6187] text-white font-semibold text-sm rounded-lg hover:bg-[#1a5e6f] active:scale-[0.99] transition-all flex justify-center items-center disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <div className="flex items-center gap-2">
@@ -167,7 +167,7 @@ export default function Login() {
             </button>
 
             <div className="text-center pt-1">
-              <Link to="/forgot-password" className="text-sm text-[#0D1F3C] font-medium hover:underline">
+              <Link to="/forgot-password" className="text-sm text-[#0E6187] font-medium hover:underline">
                 Lupa kata sandi?
               </Link>
             </div>
@@ -185,9 +185,9 @@ export default function Login() {
       </div>
 
       {/* Right - Info Panel */}
-      <div className="hidden lg:flex w-1/2 bg-[#0D1F3C] items-center justify-center p-12 relative overflow-hidden">
+      <div className="hidden lg:flex w-1/2 bg-[#0E6187] items-center justify-center p-12 relative overflow-hidden">
         <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url(https://awsimages.detik.net.id/community/media/visual/2022/09/13/lanskap-gunung-fuji-yang-indahnya-engga-ada-obat-1_169.jpeg?w=600&q=90)" }}>
-          <div className="absolute inset-0 bg-[#0D1F3C]/60" />
+          <div className="absolute inset-0 bg-[#0E6187]/60" />
         </div>
         <div className="max-w-md text-center fade-in relative z-10" style={{ animationDelay: '0.2s' }}>
           <div className="w-20 h-20 bg-white/10 backdrop-blur rounded-full flex items-center justify-center mx-auto mb-8 ring-1 ring-white/20">

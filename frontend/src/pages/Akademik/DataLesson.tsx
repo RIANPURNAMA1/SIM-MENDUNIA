@@ -208,7 +208,7 @@ export default function DataLesson() {
     return (
       <div className="p-6 flex items-center justify-center min-h-[50vh]">
         <div className="relative w-14 h-14 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+          <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
           <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
         </div>
       </div>
@@ -222,7 +222,7 @@ export default function DataLesson() {
           <div className="flex items-center gap-2 mb-1">
             <button
               onClick={() => navigate('/lms')}
-              className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-[#0D1F3C] transition-colors"
+              className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-[#0E6187] transition-colors"
             >
               <ArrowLeft size={14} />
               Kembali
@@ -231,7 +231,7 @@ export default function DataLesson() {
             <span className="text-xs text-slate-500">{course?.title || 'Kursus'}</span>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#0D1F3C] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-[#0E6187] flex items-center justify-center">
               <BookOpen size={20} className="text-white" />
             </div>
             <div>
@@ -242,7 +242,7 @@ export default function DataLesson() {
         </div>
         <button
           onClick={openCreate}
-          className="flex items-center gap-2 bg-[#0D1F3C] hover:bg-[#0D1F3C]/90 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm"
+          className="flex items-center gap-2 bg-[#0E6187] hover:bg-[#0E6187]/90 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm"
         >
           <Plus size={18} />
           Tambah Pelajaran
@@ -368,7 +368,7 @@ export default function DataLesson() {
                   {uploading && (
                     <div className="absolute inset-0 z-10 bg-white/70 flex items-center justify-center rounded-lg">
                       <div className="flex items-center gap-2 text-sm text-slate-500">
-                        <div className="w-4 h-4 border-2 border-slate-300 border-t-[#0D1F3C] rounded-full animate-spin" />
+                        <div className="w-4 h-4 border-2 border-slate-300 border-t-[#0E6187] rounded-full animate-spin" />
                         Mengupload...
                       </div>
                     </div>
@@ -412,7 +412,7 @@ export default function DataLesson() {
               <button onClick={() => setShowModal(false)} className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
                 Batal
               </button>
-              <button onClick={handleSave} disabled={saving} className="px-4 py-2.5 bg-[#0D1F3C] text-white rounded-lg text-sm font-semibold hover:bg-[#0D1F3C]/90 disabled:opacity-50 transition-colors">
+              <button onClick={handleSave} disabled={saving} className="px-4 py-2.5 bg-[#0E6187] text-white rounded-lg text-sm font-semibold hover:bg-[#0E6187]/90 disabled:opacity-50 transition-colors">
                 {saving ? 'Menyimpan...' : editing ? 'Simpan' : 'Buat Pelajaran'}
               </button>
             </div>

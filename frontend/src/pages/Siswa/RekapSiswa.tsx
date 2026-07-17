@@ -87,7 +87,7 @@ export default function RekapSiswaPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <BarChart3 className="w-6 h-6 text-[#0D1F3C]" />
+          <BarChart3 className="w-6 h-6 text-[#0E6187]" />
           <h1 className="text-xl font-bold text-gray-800">Rekap Absensi Siswa</h1>
         </div>
         <div className="flex items-center gap-2">
@@ -104,7 +104,7 @@ export default function RekapSiswaPage() {
           <div className="flex flex-wrap items-end gap-3">
             <div className="w-44">
               <label className="block text-xs font-medium text-gray-500 mb-1">Batch</label>
-              <select value={filterBatch} onChange={(e) => setFilterBatch(e.target.value)} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D1F3C]">
+              <select value={filterBatch} onChange={(e) => setFilterBatch(e.target.value)} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]">
               <option value="">Semua Batch</option>
               {batchList.map((b) => (
                 <option key={b.id} value={b.id}>{b.nama_batch}</option>
@@ -113,7 +113,7 @@ export default function RekapSiswaPage() {
           </div>
           <div className="w-28">
             <label className="block text-xs font-medium text-gray-500 mb-1">Level</label>
-            <select value={filterLevel} onChange={(e) => setFilterLevel(e.target.value)} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D1F3C]">
+            <select value={filterLevel} onChange={(e) => setFilterLevel(e.target.value)} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]">
               <option value="">Semua</option>
               {levels.map((l) => (
                 <option key={l} value={l}>Level {l}</option>
@@ -122,13 +122,13 @@ export default function RekapSiswaPage() {
           </div>
           <div className="w-40">
             <label className="block text-xs font-medium text-gray-500 mb-1">Dari Tanggal</label>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D1F3C]" />
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]" />
           </div>
           <div className="w-40">
             <label className="block text-xs font-medium text-gray-500 mb-1">Sampai Tanggal</label>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D1F3C]" />
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]" />
           </div>
-          <button onClick={handleFilter} className="flex items-center gap-1 px-3 py-1.5 bg-[#0D1F3C] text-white rounded-lg hover:bg-[#0a1629] text-sm">
+          <button onClick={handleFilter} className="flex items-center gap-1 px-3 py-1.5 bg-[#0E6187] text-white rounded-lg hover:bg-[#0a1629] text-sm">
             <Search className="w-4 h-4" /> Cari
           </button>
           <button onClick={resetFilter} className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 text-sm">

@@ -252,7 +252,7 @@ export default function DataNotifikasiSetting() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="animate-spin text-[#0D1F3C]" size={32} />
+        <Loader2 className="animate-spin text-[#0E6187]" size={32} />
       </div>
     )
   }
@@ -260,7 +260,7 @@ export default function DataNotifikasiSetting() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-[#0D1F3C]">Pengaturan Notifikasi WA</h1>
+        <h1 className="text-2xl font-bold text-[#0E6187]">Pengaturan Notifikasi WA</h1>
         <p className="text-sm text-slate-500 mt-1">
           Kelola pengiriman notifikasi WhatsApp otomatis per program
         </p>
@@ -283,18 +283,18 @@ export default function DataNotifikasiSetting() {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#0D1F3C]/10 flex items-center justify-center">
-              <Settings size={20} className="text-[#0D1F3C]" />
+            <div className="w-10 h-10 rounded-xl bg-[#0E6187]/10 flex items-center justify-center">
+              <Settings size={20} className="text-[#0E6187]" />
             </div>
             <div>
-              <h2 className="font-semibold text-[#0D1F3C]">Pengaturan Global</h2>
+              <h2 className="font-semibold text-[#0E6187]">Pengaturan Global</h2>
               <p className="text-xs text-slate-500">Aktifkan/nonaktifkan jenis notifikasi</p>
             </div>
           </div>
           <button
             onClick={saveGlobal}
             disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 bg-[#0D1F3C] text-white rounded-xl text-sm font-medium hover:bg-[#1a2d4d] disabled:opacity-50 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-[#0E6187] text-white rounded-xl text-sm font-medium hover:bg-[#1a2d4d] disabled:opacity-50 transition-colors"
           >
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
             Simpan
@@ -323,7 +323,7 @@ export default function DataNotifikasiSetting() {
                     value={setting.value || ''}
                     onChange={e => handleGlobalValueChange(setting.key, e.target.value)}
                     placeholder="628xxxxxxxxxx,628xxxxxxxxxx"
-                    className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-[#0D1F3C]/20"
+                    className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20"
                   />
                 )}
                 <button
@@ -352,14 +352,14 @@ export default function DataNotifikasiSetting() {
               <Package size={20} className="text-blue-600" />
             </div>
             <div>
-              <h2 className="font-semibold text-[#0D1F3C]">Pengingat per Program</h2>
+              <h2 className="font-semibold text-[#0E6187]">Pengingat per Program</h2>
               <p className="text-xs text-slate-500">Pilih program, lalu atur pengingat per kategori pembayaran</p>
             </div>
           </div>
           <button
             onClick={saveReminders}
             disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 bg-[#0D1F3C] text-white rounded-xl text-sm font-medium hover:bg-[#1a2d4d] disabled:opacity-50 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-[#0E6187] text-white rounded-xl text-sm font-medium hover:bg-[#1a2d4d] disabled:opacity-50 transition-colors"
           >
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
             Simpan Semua
@@ -482,7 +482,7 @@ export default function DataNotifikasiSetting() {
                                   max={365}
                                   value={kategori.jatuh_tempo_hari}
                                   onChange={e => handleJatuhTempoChange(product.id, kategori.kategori_id, parseInt(e.target.value) || 30)}
-                                  className="w-16 px-2 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#0D1F3C]/20 bg-white"
+                                  className="w-16 px-2 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 bg-white"
                                 />
                                 <span className="text-[10px] text-slate-400">hari</span>
                               </div>
@@ -503,8 +503,8 @@ export default function DataNotifikasiSetting() {
                                       onClick={() => handleReminderDaysToggle(product.id, kategori.kategori_id, day)}
                                       className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
                                         isActive
-                                          ? 'bg-[#0D1F3C] text-white'
-                                          : 'bg-white border border-slate-200 text-slate-500 hover:border-[#0D1F3C]'
+                                          ? 'bg-[#0E6187] text-white'
+                                          : 'bg-white border border-slate-200 text-slate-500 hover:border-[#0E6187]'
                                       }`}
                                     >
                                       H-{day}
@@ -522,7 +522,7 @@ export default function DataNotifikasiSetting() {
                               </label>
                               <button
                                 onClick={() => openTemplateModal(product.id, kategori.kategori_id, kategori.template_pesan || '')}
-                                className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs text-left bg-white hover:border-[#0D1F3C]/50 transition-colors flex items-center justify-between gap-1"
+                                className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs text-left bg-white hover:border-[#0E6187]/50 transition-colors flex items-center justify-between gap-1"
                               >
                                 <span className={`truncate ${kategori.template_pesan ? 'text-slate-700' : 'text-slate-400'}`}>
                                   {kategori.template_pesan ? 'Teredit' : 'Default'}
@@ -566,7 +566,7 @@ export default function DataNotifikasiSetting() {
                   <MessageSquare size={20} className="text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-[#0D1F3C]">Edit Template Pesan</h3>
+                  <h3 className="font-semibold text-[#0E6187]">Edit Template Pesan</h3>
                   <p className="text-xs text-slate-500">Kosongkan untuk menggunakan pesan default</p>
                 </div>
               </div>
@@ -606,7 +606,7 @@ export default function DataNotifikasiSetting() {
                     <button
                       key={ex.label}
                       onClick={() => applyExample(ex.template)}
-                      className="px-3 py-2 border border-slate-200 rounded-lg text-left hover:border-[#0D1F3C]/50 hover:bg-slate-50 transition-colors"
+                      className="px-3 py-2 border border-slate-200 rounded-lg text-left hover:border-[#0E6187]/50 hover:bg-slate-50 transition-colors"
                     >
                       <p className="text-[10px] font-semibold text-slate-500 uppercase">{ex.label}</p>
                       <p className="text-[10px] text-slate-400 truncate mt-0.5">{ex.template.substring(0, 60)}...</p>
@@ -623,7 +623,7 @@ export default function DataNotifikasiSetting() {
                   value={templateDraft}
                   onChange={e => setTemplateDraft(e.target.value)}
                   placeholder="Tulis pesan custom di sini..."
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#0D1F3C]/20 resize-none"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 resize-none"
                 />
               </div>
 
@@ -656,7 +656,7 @@ export default function DataNotifikasiSetting() {
                 </button>
                 <button
                   onClick={saveTemplate}
-                  className="px-4 py-2 bg-[#0D1F3C] text-white rounded-xl text-sm font-medium hover:bg-[#1a2d4d] transition-colors"
+                  className="px-4 py-2 bg-[#0E6187] text-white rounded-xl text-sm font-medium hover:bg-[#1a2d4d] transition-colors"
                 >
                   Simpan Template
                 </button>

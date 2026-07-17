@@ -162,7 +162,7 @@ export default function ShiftPage() {
       {/* Header */}
       <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] border border-blue-100">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
             <Timer size={20} className="text-white" />
           </div>
           <div>
@@ -312,7 +312,7 @@ export default function ShiftPage() {
           >
             <form onSubmit={handleSave}>
               <div className="flex items-center justify-between px-5 py-4 sticky top-0 z-10 rounded-t-2xl"
-                style={{ background: 'linear-gradient(135deg, #0D1F3C 0%, #1a2d4a 100%)' }}>
+                style={{ background: 'linear-gradient(135deg, #0E6187 0%, #1a5e6f 100%)' }}>
                 <div className="flex items-center gap-2">
                   <Clock size={16} className="text-blue-200" />
                   <div>
@@ -450,7 +450,7 @@ export default function ShiftPage() {
                   <button
                     type="submit"
                     disabled={saving}
-                    className="flex-1 py-2.5 text-sm font-medium rounded-lg bg-[#0D1F3C] text-white hover:bg-[#1a2d4a] disabled:opacity-50 transition-colors shadow-sm"
+                    className="flex-1 py-2.5 text-sm font-medium rounded-lg bg-[#0E6187] text-white hover:bg-[#1a5e6f] disabled:opacity-50 transition-colors shadow-sm"
                   >
                     {saving ? 'Menyimpan...' : editItem ? 'Simpan Perubahan' : 'Simpan Shift'}
                   </button>

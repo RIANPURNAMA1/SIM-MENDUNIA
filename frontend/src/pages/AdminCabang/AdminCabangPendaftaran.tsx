@@ -89,12 +89,12 @@ export default function AdminCabangPendaftaran() {
   }
 
   const handleApprove = async (id: number) => {
-    const result = await Swal.fire({ icon: 'question', title: 'Setujui Pendaftaran?', text: 'Pendaftar akan disetujui', showCancelButton: true, confirmButtonColor: '#0D1F3C', confirmButtonText: 'Setujui', cancelButtonText: 'Batal' })
+    const result = await Swal.fire({ icon: 'question', title: 'Setujui Pendaftaran?', text: 'Pendaftar akan disetujui', showCancelButton: true, confirmButtonColor: '#0E6187', confirmButtonText: 'Setujui', cancelButtonText: 'Batal' })
     if (!result.isConfirmed) return
     try {
       const { pendaftarApi } = await import('../../services/api')
       await pendaftarApi.approve(id)
-      Swal.fire({ icon: 'success', title: 'Disetujui!', text: 'Pendaftaran berhasil disetujui.', confirmButtonColor: '#0D1F3C', timer: 2000, timerProgressBar: true, showConfirmButton: false })
+      Swal.fire({ icon: 'success', title: 'Disetujui!', text: 'Pendaftaran berhasil disetujui.', confirmButtonColor: '#0E6187', timer: 2000, timerProgressBar: true, showConfirmButton: false })
       fetchData()
     } catch (err) {
       console.error(err)
@@ -107,7 +107,7 @@ export default function AdminCabangPendaftaran() {
     try {
       const { pendaftarApi } = await import('../../services/api')
       await pendaftarApi.reject(id)
-      Swal.fire({ icon: 'success', title: 'Ditolak', text: 'Pendaftaran ditolak.', confirmButtonColor: '#0D1F3C', timer: 2000, timerProgressBar: true, showConfirmButton: false })
+      Swal.fire({ icon: 'success', title: 'Ditolak', text: 'Pendaftaran ditolak.', confirmButtonColor: '#0E6187', timer: 2000, timerProgressBar: true, showConfirmButton: false })
       fetchData()
     } catch (err) {
       console.error(err)
@@ -118,7 +118,7 @@ export default function AdminCabangPendaftaran() {
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] border border-blue-100">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
             <ClipboardList size={20} className="text-white" />
           </div>
           <div>

@@ -78,7 +78,7 @@ export default function Pembayaran() {
       {/* Header */}
       <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] border border-blue-100">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
             <CreditCard size={20} className="text-white" />
           </div>
           <div>
@@ -161,7 +161,7 @@ export default function Pembayaran() {
                 <td colSpan={7} className="border border-slate-200 px-4 py-20">
                   <div className="flex items-center justify-center">
                     <div className="relative w-14 h-14 flex items-center justify-center">
-                      <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+                      <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
                       <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
                     </div>
                   </div>
