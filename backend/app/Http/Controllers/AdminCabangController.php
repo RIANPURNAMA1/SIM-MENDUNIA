@@ -256,6 +256,7 @@ class AdminCabangController extends Controller
 
         $query = Pendaftar::with(['product.biayaKategoris', 'batch', 'user'])
             ->whereIn('batch_id', $batchIds)
+            ->where('status_pendaftaran', 'disetujui')
             ->orderBy('created_at', 'desc');
 
         if ($request->search) {
