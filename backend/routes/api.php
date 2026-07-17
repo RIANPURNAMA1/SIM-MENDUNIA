@@ -354,7 +354,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{id}/reject', [PendaftaranController::class, 'reject']);
         Route::post('/{id}/verify-payment', [PendaftaranController::class, 'verifyPayment']);
         Route::post('/pembayaran/{pembayaranId}/reject-payment', [PendaftaranController::class, 'rejectPayment']);
-        Route::post('/{id}/bayar', [PendaftaranController::class, 'bayar']);
         Route::post('/{id}/bayar-all', [PendaftaranController::class, 'bayarAll']);
         Route::post('/{id}/bayar-manual', [PendaftaranController::class, 'bayarManual']);
         Route::get('/pending-count', [PendaftaranController::class, 'pendingCount']);
@@ -447,6 +446,7 @@ Route::middleware('auth:sanctum')->group(function () {
 // Public — daftar langsung tanpa affiliate
 Route::post('/pendaftaran/daftar-langsung', [PendaftaranController::class, 'daftarLangsung']);
 Route::get('/pendaftaran/bayar/{id}', [PendaftaranController::class, 'bayarInfo']);
+Route::post('/pendaftar/{id}/bayar', [PendaftaranController::class, 'bayar']);
 Route::get('/banks', [PendaftaranController::class, 'banks']);
 
 // Public — biaya kategori flat for registration page
