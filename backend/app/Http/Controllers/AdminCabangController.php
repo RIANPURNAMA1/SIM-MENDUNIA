@@ -7,7 +7,6 @@ use App\Models\Batch;
 use App\Models\BatchBiaya;
 use App\Models\BiayaKategori;
 use App\Models\PembayaranItem;
-use App\Models\Pembayaran;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -257,7 +256,6 @@ class AdminCabangController extends Controller
 
         $query = Pendaftar::with(['product.biayaKategoris', 'batch', 'user'])
             ->whereIn('batch_id', $batchIds)
-            ->where('status_pendaftaran', 'disetujui')
             ->orderBy('created_at', 'desc');
 
         if ($request->search) {
@@ -325,18 +323,12 @@ class AdminCabangController extends Controller
         }
 
         $pendaftarIds = $data->pluck('id');
-
-        // Hitung dibayar langsung dari tabel Pembayaran (verified) per kategori
-        $allPembayaranVerified = Pembayaran::whereIn('pendaftar_id', $pendaftarIds)
-            ->where('status', 'verified')
-            ->whereNotNull('kategori_id')
-            ->selectRaw('pendaftar_id, kategori_id, SUM(jumlah) as total')
-            ->groupBy('pendaftar_id', 'kategori_id')
+        $allPembayaran = PembayaranItem::whereIn('pendaftar_id', $pendaftarIds)
             ->get()
             ->groupBy('pendaftar_id');
 
-        $result = $data->map(function ($p) use ($kategoris, $allPembayaranVerified) {
-            $pembayaranByKategori = $allPembayaranVerified->get($p->id, collect())->keyBy('kategori_id');
+        $result = $data->map(function ($p) use ($kategoris, $allPembayaran) {
+            $pembayaranItems = $allPembayaran->get($p->id, collect())->keyBy('kategori_id');
             $product = $p->product;
 
             // Build price map from product_biaya_kategori pivot
@@ -363,18 +355,18 @@ class AdminCabangController extends Controller
                 $flatten($product->kategori_items);
             }
 
-            // Build a name-based dibayar map from verified pembayaran
+            // Build a name-based dibayar map from pembayaran_items
             $namaDibayar = collect();
             $kategoriMap = $kategoris->keyBy('id');
-            foreach ($pembayaranByKategori as $katId => $pb) {
+            foreach ($pembayaranItems as $katId => $pi) {
                 $katModel = $kategoriMap->get($katId);
                 if ($katModel) {
-                    $namaDibayar->put(strtolower($katModel->nama), (int) $pb->total);
+                    $namaDibayar->put(strtolower($katModel->nama), (int) $pi->jumlah);
                 }
             }
 
-            $detail = $kategoris->map(function ($k) use ($pembayaranByKategori, $pivotPrices, $namaPrices, $namaDibayar) {
-                $pb = $pembayaranByKategori->get($k->id);
+            $detail = $kategoris->map(function ($k) use ($pembayaranItems, $pivotPrices, $namaPrices, $namaDibayar) {
+                $pi = $pembayaranItems->get($k->id);
                 $biaya = $pivotPrices->get($k->id, 0);
                 if ($biaya === 0) {
                     $biaya = $namaPrices->get(strtolower($k->nama), 0);
@@ -382,7 +374,7 @@ class AdminCabangController extends Controller
                 if ($biaya === 0) {
                     $biaya = $namaPrices->get(strtolower($k->kode), 0);
                 }
-                $dibayar = $pb ? (int) $pb->total : 0;
+                $dibayar = $pi ? (int) $pi->jumlah : 0;
                 if ($dibayar === 0) {
                     $dibayar = $namaDibayar->get(strtolower($k->nama), 0);
                 }
