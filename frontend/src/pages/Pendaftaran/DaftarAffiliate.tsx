@@ -57,7 +57,7 @@ export default function DaftarAffiliate() {
   } | null>(null)
   const [batches, setBatches] = useState<Batch[]>([])
   const [batchId, setBatchId] = useState('')
-  const [successInfo, setSuccessInfo] = useState<{ noRegistrasi: string; invoiceUrl: string } | null>(null)
+  const [successInfo, setSuccessInfo] = useState<{ noRegistrasi: string; invoiceUrl: string; pendaftarId: number | null } | null>(null)
 
   function getFlattenedItems(items: KategoriItem[], parentOnly = false): { item: KategoriItem; depth: number }[] {
     const result: { item: KategoriItem; depth: number }[] = []
@@ -193,7 +193,7 @@ export default function DaftarAffiliate() {
       .then(res => {
         const noReg = res.data?.no_registrasi || res.data?.noRegistrasi || '-'
         const invoiceUrl = res.data?.invoice_url || `/pendaftar/${res.data?.id}/invoice`
-        setSuccessInfo({ noRegistrasi: noReg, invoiceUrl })
+        setSuccessInfo({ noRegistrasi: noReg, invoiceUrl, pendaftarId: res.data?.id || null })
         setSuccess(true)
       })
       .catch(err => {
@@ -290,12 +290,20 @@ export default function DaftarAffiliate() {
           <p className="text-xs text-gray-500 mb-4">
             Sistem telah mengirim notifikasi WhatsApp berisi tautan pembayaran. Silakan cek WhatsApp Anda untuk menyelesaikan pembayaran.
           </p>
-          <a
-            href={successInfo?.invoiceUrl || '#'}
-            className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#0D1F3C] text-white rounded-lg text-sm font-semibold hover:bg-[#1a2d4a] transition-colors"
-          >
-            <FileText size={16} /> Lihat Invoice
-          </a>
+          <div className="flex flex-col gap-3">
+            <a
+              href={`/bayar/${successInfo?.pendaftarId}`}
+              className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-[#0D1F3C] text-white rounded-lg text-sm font-semibold hover:bg-[#1a2d4a] transition-colors"
+            >
+              <FileText size={16} /> Bayar Sekarang
+            </a>
+            <a
+              href={successInfo?.invoiceUrl || '#'}
+              className="inline-flex items-center justify-center gap-2 px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors"
+            >
+              Lihat Invoice
+            </a>
+          </div>
         </div>
       </div>
     )

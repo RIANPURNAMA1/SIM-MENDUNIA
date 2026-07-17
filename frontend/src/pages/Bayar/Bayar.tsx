@@ -208,23 +208,104 @@ export default function Bayar() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-[#f0f2f5] flex items-center justify-center px-4">
-        <div className="bg-white rounded-lg p-8 max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle size={32} className="text-emerald-600" />
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-blue-50 flex items-center justify-center px-4 relative overflow-hidden">
+        {/* Confetti decorations */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="confetti confetti-1" />
+          <div className="confetti confetti-2" />
+          <div className="confetti confetti-3" />
+          <div className="confetti confetti-4" />
+          <div className="confetti confetti-5" />
+          <div className="confetti confetti-6" />
+          <div className="confetti confetti-7" />
+          <div className="confetti confetti-8" />
+          <div className="confetti confetti-9" />
+          <div className="confetti confetti-10" />
+          <div className="confetti confetti-11" />
+          <div className="confetti confetti-12" />
+          <div className="absolute top-[10%] left-[5%] text-4xl animate-bounce" style={{ animationDelay: '0.2s' }}>🎉</div>
+          <div className="absolute top-[15%] right-[8%] text-3xl animate-bounce" style={{ animationDelay: '0.5s' }}>🎊</div>
+          <div className="absolute bottom-[20%] left-[10%] text-3xl animate-bounce" style={{ animationDelay: '0.8s' }}>🎺</div>
+          <div className="absolute bottom-[25%] right-[5%] text-4xl animate-bounce" style={{ animationDelay: '0.3s' }}>🎉</div>
+          <div className="absolute top-[40%] left-[3%] text-2xl animate-bounce" style={{ animationDelay: '1s' }}>✨</div>
+          <div className="absolute top-[50%] right-[3%] text-2xl animate-bounce" style={{ animationDelay: '0.7s' }}>✨</div>
+          <div className="absolute top-[8%] left-[45%] text-2xl animate-bounce" style={{ animationDelay: '0.4s' }}>🎊</div>
+          <div className="absolute bottom-[10%] right-[20%] text-3xl animate-bounce" style={{ animationDelay: '0.6s' }}>🎺</div>
+        </div>
+
+        <style>{`
+          @keyframes confetti-fall {
+            0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+          }
+          .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            animation: confetti-fall linear infinite;
+          }
+          .confetti-1 { left: 5%; background: #10b981; animation-duration: 3s; animation-delay: 0s; }
+          .confetti-2 { left: 15%; background: #f59e0b; animation-duration: 2.5s; animation-delay: 0.3s; width: 8px; height: 12px; border-radius: 50%; }
+          .confetti-3 { left: 25%; background: #3b82f6; animation-duration: 3.5s; animation-delay: 0.6s; }
+          .confetti-4 { left: 35%; background: #ef4444; animation-duration: 2.8s; animation-delay: 0.2s; width: 12px; height: 8px; }
+          .confetti-5 { left: 45%; background: #8b5cf6; animation-duration: 3.2s; animation-delay: 0.8s; border-radius: 50%; }
+          .confetti-6 { left: 55%; background: #10b981; animation-duration: 2.7s; animation-delay: 0.1s; width: 6px; height: 10px; }
+          .confetti-7 { left: 65%; background: #f59e0b; animation-duration: 3.3s; animation-delay: 0.5s; }
+          .confetti-8 { left: 75%; background: #ec4899; animation-duration: 2.9s; animation-delay: 0.4s; width: 10px; height: 6px; border-radius: 50%; }
+          .confetti-9 { left: 85%; background: #3b82f6; animation-duration: 3.1s; animation-delay: 0.7s; }
+          .confetti-10 { left: 92%; background: #ef4444; animation-duration: 2.6s; animation-delay: 0.9s; width: 8px; height: 12px; border-radius: 50%; }
+          .confetti-11 { left: 50%; background: #10b981; animation-duration: 3.4s; animation-delay: 0.15s; width: 7px; height: 7px; border-radius: 50%; }
+          .confetti-12 { left: 20%; background: #f59e0b; animation-duration: 2.4s; animation-delay: 0.65s; width: 11px; height: 7px; }
+        `}</style>
+
+        <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-8 max-w-md w-full text-center relative z-10 fade-in border border-emerald-100">
+          {/* Animated checkmark */}
+          <div className="relative w-24 h-24 mx-auto mb-6">
+            <div className="absolute inset-0 rounded-full bg-emerald-100 animate-ping opacity-20" />
+            <div className="relative w-24 h-24 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center shadow-lg shadow-emerald-200">
+              <CheckCircle size={48} className="text-white" />
+            </div>
           </div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">
-            Bukti Berhasil Diupload!
-          </h1>
-          <p className="text-sm text-gray-500 mb-6">
-            Tim admin akan memverifikasi pembayaran Anda. akan kami kirim
-            notifikasi setelah pembayaran dikonfirmasi.
+
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Pembayaran Berhasil!</h1>
+          <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+            Bukti pembayaran Anda telah berhasil dikirim.<br />
+            Silakan tunggu verifikasi dari admin.
           </p>
+
+          {/* Info card */}
+          <div className="bg-gradient-to-r from-emerald-50 to-blue-50 border border-emerald-100 rounded-xl p-4 mb-6 text-left">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center">
+                <span className="text-sm">📋</span>
+              </div>
+              <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wide">Detail Pembayaran</p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Invoice</span>
+                <span className="font-mono font-bold text-gray-900">{data?.no_invoice || '-'}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Status</span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                  Menunggu Verifikasi
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-xs text-gray-400 mb-6 flex items-center justify-center gap-1.5">
+            <span>💬</span> Notifikasi akan dikirim via WhatsApp setelah diverifikasi
+          </p>
+
           <a
             href="/"
-            className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#0D1F3C] text-white rounded-lg text-sm font-semibold"
+            className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-[#0D1F3C] to-[#1a3a5c] text-white rounded-xl text-sm font-semibold hover:from-[#1a2d4a] hover:to-[#243f5e] transition-all shadow-lg shadow-[#0D1F3C]/20 hover:shadow-xl hover:shadow-[#0D1F3C]/30"
           >
-            Kembali
+            Kembali ke Beranda
           </a>
         </div>
       </div>
