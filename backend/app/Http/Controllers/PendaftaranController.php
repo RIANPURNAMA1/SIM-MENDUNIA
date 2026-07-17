@@ -1080,7 +1080,8 @@ class PendaftaranController extends Controller
 
     public function kandidat(Request $request)
     {
-        $query = Pendaftar::with(['product', 'batch', 'user', 'siswa']);
+        $query = Pendaftar::with(['product', 'batch', 'user', 'siswa'])
+            ->where('status_pendaftaran', 'disetujui');
 
         if ($request->search) {
             $s = $request->search;

@@ -416,7 +416,8 @@ class AdminCabangController extends Controller
         $batchIds = $this->getBranchBatchIds();
 
         $query = Pendaftar::with(['product', 'batch', 'user', 'siswa'])
-            ->whereIn('batch_id', $batchIds);
+            ->whereIn('batch_id', $batchIds)
+            ->where('status_pendaftaran', 'disetujui');
 
         if ($request->search) {
             $s = $request->search;
