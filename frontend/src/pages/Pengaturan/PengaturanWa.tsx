@@ -84,7 +84,7 @@ export default function PengaturanWaPage() {
     return (
       <div className="px-3 py-3 sm:px-6 sm:py-4 max-w-3xl flex items-center justify-center min-h-[50vh]">
         <div className="relative w-14 h-14 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+          <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
           <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
         </div>
       </div>
@@ -94,7 +94,7 @@ export default function PengaturanWaPage() {
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4 max-w-3xl">
       <div className="mb-4 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] border border-blue-100">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
           <MessageCircle size={20} className="text-white" />
         </div>
         <div>
@@ -220,7 +220,7 @@ export default function PengaturanWaPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="inline-flex items-center gap-2 rounded-lg bg-[#0D1F3C] px-5 py-2 text-sm font-medium text-white hover:bg-[#1a3054] disabled:opacity-50 transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg bg-[#0E6187] px-5 py-2 text-sm font-medium text-white hover:bg-[#1a5e6f] disabled:opacity-50 transition-colors"
         >
           {saving ? 'Menyimpan...' : 'Simpan Pengaturan'}
         </button>

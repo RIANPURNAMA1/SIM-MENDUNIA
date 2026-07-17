@@ -192,7 +192,7 @@ export default function JadwalShiftPage() {
       {/* Header */}
       <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] border border-blue-100">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
             <Calendar size={20} className="text-white" />
           </div>
           <div>
@@ -288,7 +288,7 @@ export default function JadwalShiftPage() {
                 <Trash2 size={14} /> Hapus
               </button>
               <button onClick={confirmSave} disabled={selectedDates.length === 0 || !selectedShift || loading}
-                className="flex-1 py-2 text-sm font-medium rounded-lg bg-[#0D1F3C] text-white hover:bg-[#1a2d4a] disabled:opacity-50 transition-colors flex items-center justify-center gap-1">
+                className="flex-1 py-2 text-sm font-medium rounded-lg bg-[#0E6187] text-white hover:bg-[#1a5e6f] disabled:opacity-50 transition-colors flex items-center justify-center gap-1">
                 <Save size={14} /> Simpan
               </button>
             </div>
@@ -365,7 +365,7 @@ export default function JadwalShiftPage() {
                                 <div
                                   onClick={() => toggleDate(dateStr)}
                                   className={`relative flex flex-col items-center justify-center min-h-[56px] rounded-lg cursor-pointer transition-all duration-150
-                                    ${isSelected ? 'bg-[#0D1F3C] text-white shadow-md scale-105' : 'hover:bg-slate-50 hover:shadow-sm'}
+                                    ${isSelected ? 'bg-[#0E6187] text-white shadow-md scale-105' : 'hover:bg-slate-50 hover:shadow-sm'}
                                     ${isToday(dayNum) && !isSelected ? 'ring-2 ring-blue-400' : ''}
                                   `}
                                 >
@@ -466,7 +466,7 @@ export default function JadwalShiftPage() {
               </button>
               <button onClick={confirmAction === 'save' ? handleSave : handleDelete}
                 disabled={loading}
-                className="flex-1 py-2 text-sm font-medium rounded-lg bg-[#0D1F3C] text-white hover:bg-[#1a2d4a] disabled:opacity-50 transition-colors">
+                className="flex-1 py-2 text-sm font-medium rounded-lg bg-[#0E6187] text-white hover:bg-[#1a5e6f] disabled:opacity-50 transition-colors">
                 {loading ? 'Memproses...' : 'Ya, Lanjutkan'}
               </button>
             </div>

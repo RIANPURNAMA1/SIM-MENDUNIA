@@ -155,7 +155,7 @@ export default function DaftarAffiliateBaru() {
           <p className="text-sm text-[#606770] mb-6">Akun affiliate Anda telah dibuat.</p>
           <a
             href="/affiliate-dashboard"
-            className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-[#0D1F3C] text-white rounded-lg text-sm font-semibold hover:bg-[#1a2d4a] transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-[#0E6187] text-white rounded-lg text-sm font-semibold hover:bg-[#1a5e6f] transition-colors"
           >
             <FileText size={16} /> Menuju Dashboard
           </a>
@@ -209,16 +209,16 @@ export default function DaftarAffiliateBaru() {
                       <div
                         className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-semibold border-2 z-10 ${
                           isActive
-                            ? "bg-[#0D1F3C] border-[#0D1F3C] text-white"
+                            ? "bg-[#0E6187] border-[#0E6187] text-white"
                             : isPassed
-                              ? "bg-[#e8eaf0] border-[#e8eaf0] text-[#0D1F3C]"
+                              ? "bg-[#e8eaf0] border-[#e8eaf0] text-[#0E6187]"
                               : "bg-white border-gray-300 text-gray-400"
                         }`}
                       >
                         {isPassed ? <CheckCircle size={14} /> : s.id}
                       </div>
                       <div className="pt-0.5">
-                        <p className={`text-sm font-semibold ${isActive || isPassed ? "text-[#0D1F3C]" : "text-gray-400"}`}>
+                        <p className={`text-sm font-semibold ${isActive || isPassed ? "text-[#0E6187]" : "text-gray-400"}`}>
                           {s.label}
                         </p>
                         {(isActive || isPassed) && (
@@ -241,21 +241,21 @@ export default function DaftarAffiliateBaru() {
                   return (
                     <div key={s.id} className="flex items-center gap-1.5 flex-1">
                       {i > 0 && (
-                        <div className={`h-0.5 flex-1 ${isPassed || isActive ? "bg-[#0D1F3C]" : "bg-gray-200"}`} />
+                        <div className={`h-0.5 flex-1 ${isPassed || isActive ? "bg-[#0E6187]" : "bg-gray-200"}`} />
                       )}
                       <div className="flex flex-col items-center">
                         <div
                           className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 shrink-0 ${
                             isActive
-                              ? "bg-[#0D1F3C] border-[#0D1F3C] text-white"
+                              ? "bg-[#0E6187] border-[#0E6187] text-white"
                               : isPassed
-                                ? "bg-[#e8eaf0] border-[#e8eaf0] text-[#0D1F3C]"
+                                ? "bg-[#e8eaf0] border-[#e8eaf0] text-[#0E6187]"
                                 : "bg-white border-gray-300 text-gray-400"
                           }`}
                         >
                           {isPassed ? <CheckCircle size={10} /> : s.id}
                         </div>
-                        <span className={`text-[9px] mt-1 leading-tight text-center ${isActive ? "text-[#0D1F3C] font-semibold" : isPassed ? "text-[#0D1F3C]" : "text-gray-400"}`}>
+                        <span className={`text-[9px] mt-1 leading-tight text-center ${isActive ? "text-[#0E6187] font-semibold" : isPassed ? "text-[#0E6187]" : "text-gray-400"}`}>
                           {s.label}
                         </span>
                       </div>
@@ -294,7 +294,7 @@ export default function DaftarAffiliateBaru() {
                     <div className="space-y-8">
                       <div className="flex items-start gap-3">
                         <div className="w-8 h-8 rounded-full bg-[#eef1f6] flex items-center justify-center flex-shrink-0">
-                          <User size={16} className="text-[#0D1F3C]" />
+                          <User size={16} className="text-[#0E6187]" />
                         </div>
                         <div>
                           <h3 className="text-base font-semibold text-gray-800">Data Pendaftar</h3>
@@ -303,7 +303,7 @@ export default function DaftarAffiliateBaru() {
                       </div>
 
                       <div className="bg-[#f8f9fc] border border-[#e8eaf0] rounded-lg p-6">
-                        <h4 className="text-xs font-bold text-[#0D1F3C] uppercase tracking-wider mb-4">1. Informasi Dasar</h4>
+                        <h4 className="text-xs font-bold text-[#0E6187] uppercase tracking-wider mb-4">1. Informasi Dasar</h4>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                           <div>
@@ -314,7 +314,7 @@ export default function DaftarAffiliateBaru() {
                               value={name}
                               onChange={(e) => setName(e.target.value)}
                               placeholder="Nama Lengkap"
-                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm"
                             />
                           </div>
                           <div>
@@ -326,7 +326,7 @@ export default function DaftarAffiliateBaru() {
                               onChange={(e) => setPassword(e.target.value)}
                               minLength={6}
                               placeholder="Password (Min. 6 Karakter)"
-                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm"
                             />
                           </div>
                         </div>
@@ -339,7 +339,7 @@ export default function DaftarAffiliateBaru() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="Alamat Email Aktif"
-                            className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                            className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm"
                           />
                         </div>
                       </div>
@@ -349,7 +349,7 @@ export default function DaftarAffiliateBaru() {
                   {step === 2 && (
                     <div className="space-y-8">
                       <div className="bg-[#f8f9fc] border border-[#e8eaf0] rounded-lg p-6">
-                        <h4 className="text-xs font-bold text-[#0D1F3C] uppercase tracking-wider mb-4">2. Kontak & Wilayah</h4>
+                        <h4 className="text-xs font-bold text-[#0E6187] uppercase tracking-wider mb-4">2. Kontak & Wilayah</h4>
 
                         <div className="space-y-4">
                           <div>
@@ -362,7 +362,7 @@ export default function DaftarAffiliateBaru() {
                               value={telepon}
                               onChange={(e) => setTelepon(e.target.value)}
                               placeholder="08123456789"
-                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm"
                             />
                           </div>
                           <div>
@@ -375,7 +375,7 @@ export default function DaftarAffiliateBaru() {
                               onChange={(e) => setAlamat(e.target.value)}
                               placeholder="Alamat Lengkap"
                               rows={3}
-                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm resize-none"
+                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm resize-none"
                             />
                           </div>
                           <div className="grid grid-cols-2 gap-4">
@@ -389,7 +389,7 @@ export default function DaftarAffiliateBaru() {
                                   setKecamatan("");
                                   setDesa("");
                                 }}
-                                className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                                className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm"
                               >
                                 <option value="">Pilih Provinsi</option>
                                 {provinces.map((p) => (
@@ -409,7 +409,7 @@ export default function DaftarAffiliateBaru() {
                                   setDesa("");
                                 }}
                                 disabled={!provinsi || loadingRegencies}
-                                className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm disabled:bg-gray-50 disabled:text-gray-400"
+                                className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm disabled:bg-gray-50 disabled:text-gray-400"
                               >
                                 <option value="">{loadingRegencies ? "Memuat..." : "Pilih Kabupaten"}</option>
                                 {regencies.map((r) => (
@@ -430,7 +430,7 @@ export default function DaftarAffiliateBaru() {
                                   setDesa("");
                                 }}
                                 disabled={!kabupaten || loadingDistricts}
-                                className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm disabled:bg-gray-50 disabled:text-gray-400"
+                                className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm disabled:bg-gray-50 disabled:text-gray-400"
                               >
                                 <option value="">{loadingDistricts ? "Memuat..." : "Pilih Kecamatan"}</option>
                                 {districts.map((d) => (
@@ -446,7 +446,7 @@ export default function DaftarAffiliateBaru() {
                                 value={desa}
                                 onChange={(e) => setDesa(e.target.value)}
                                 disabled={!kecamatan || loadingVillages}
-                                className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm disabled:bg-gray-50 disabled:text-gray-400"
+                                className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm disabled:bg-gray-50 disabled:text-gray-400"
                               >
                                 <option value="">{loadingVillages ? "Memuat..." : "Pilih Desa"}</option>
                                 {villages.map((v) => (
@@ -465,7 +465,7 @@ export default function DaftarAffiliateBaru() {
                   {step === 3 && (
                     <div className="space-y-8">
                       <div className="bg-[#f8f9fc] border border-[#e8eaf0] rounded-lg p-6">
-                        <h4 className="text-xs font-bold text-[#0D1F3C] uppercase tracking-wider mb-4">3. Rekening Bank</h4>
+                        <h4 className="text-xs font-bold text-[#0E6187] uppercase tracking-wider mb-4">3. Rekening Bank</h4>
 
                         <div className="space-y-4">
                           <div>
@@ -475,7 +475,7 @@ export default function DaftarAffiliateBaru() {
                               value={namaRekening}
                               onChange={(e) => setNamaRekening(e.target.value)}
                               placeholder="Nama sesuai rekening"
-                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm"
                             />
                           </div>
                           <div>
@@ -485,7 +485,7 @@ export default function DaftarAffiliateBaru() {
                               value={noRekening}
                               onChange={(e) => setNoRekening(e.target.value)}
                               placeholder="Nomor rekening"
-                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm"
                             />
                           </div>
                           <div>
@@ -493,7 +493,7 @@ export default function DaftarAffiliateBaru() {
                             <select
                               value={bank}
                               onChange={(e) => setBank(e.target.value)}
-                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm appearance-none cursor-pointer"
+                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm appearance-none cursor-pointer"
                             >
                               <option value="">Pilih Bank</option>
                               {bankOptions.map((b) => (
@@ -507,7 +507,7 @@ export default function DaftarAffiliateBaru() {
                       </div>
 
                       <div className="bg-[#f8f9fc] border border-[#e8eaf0] rounded-lg p-6">
-                        <h4 className="text-xs font-bold text-[#0D1F3C] uppercase tracking-wider mb-4">Ringkasan Pendaftaran</h4>
+                        <h4 className="text-xs font-bold text-[#0E6187] uppercase tracking-wider mb-4">Ringkasan Pendaftaran</h4>
 
                         <div className="p-4 bg-white border border-gray-200 rounded text-sm space-y-2">
                           <div className="flex justify-between">
@@ -554,7 +554,7 @@ export default function DaftarAffiliateBaru() {
                           <input
                             type="checkbox"
                             required
-                            className="w-4 h-4 text-[#0D1F3C] border-gray-300 rounded focus:ring-[#0D1F3C] mt-0.5 shrink-0"
+                            className="w-4 h-4 text-[#0E6187] border-gray-300 rounded focus:ring-[#0E6187] mt-0.5 shrink-0"
                           />
                           <span>
                             Saya menyetujui syarat & ketentuan Mendunia dan memastikan data benar.

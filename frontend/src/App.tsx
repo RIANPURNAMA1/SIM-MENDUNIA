@@ -63,6 +63,8 @@ import AffiliateDashboard from './pages/Affiliate/AffiliateDashboard'
 import DaftarAffiliateBaru from './pages/Pendaftaran/DaftarAffiliateBaru'
 import DaftarProgram from './pages/Pendaftaran/DaftarProgram'
 import Bayar from './pages/Bayar/Bayar'
+import CheckoutBerhasil from './pages/Pendaftaran/CheckoutBerhasil'
+import KonfirmasiPembayaran from './pages/Pendaftaran/KonfirmasiPembayaran'
 import SyaratKetentuan from './pages/SyaratKetentuan'
 import KaryawanDashboard from './pages/Karyawan/KaryawanDashboard'
 import RiwayatAbsensiKaryawan from './pages/Karyawan/RiwayatAbsensiKaryawan'
@@ -102,7 +104,7 @@ function ProtectedRoute({ children, roleAllowed, roleBlocked }: { children: Reac
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="relative w-14 h-14 flex items-center justify-center mx-auto mb-4">
-            <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+            <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
             <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
           </div>
           <p className="text-sm text-slate-500 font-medium">Memuat...</p>
@@ -159,7 +161,7 @@ function AppRoutes() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="relative w-14 h-14 flex items-center justify-center mx-auto mb-4">
-            <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+            <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
             <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
           </div>
           <p className="text-sm text-slate-500 font-medium">Memuat...</p>
@@ -180,6 +182,9 @@ function AppRoutes() {
       <Route path="/daftar-program" element={<DaftarProgram />} />
       <Route path="/daftar-program/:slug" element={<DaftarProgram />} />
       <Route path="/bayar/:id" element={<Bayar />} />
+      <Route path="/checkout-berhasil/:id" element={<CheckoutBerhasil />} />
+      <Route path="/konfirmasi-pembayaran" element={<KonfirmasiPembayaran />} />
+      <Route path="/konfirmasi-pembayaran/:id" element={<KonfirmasiPembayaran />} />
       <Route path="/syarat-ketentuan" element={<SyaratKetentuan />} />
 
       <Route

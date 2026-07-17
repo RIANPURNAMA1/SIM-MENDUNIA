@@ -100,7 +100,7 @@ export default function PengaturanPage() {
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] border border-blue-100">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
             <Settings size={20} className="text-white" />
           </div>
           <div>
@@ -109,7 +109,7 @@ export default function PengaturanPage() {
           </div>
         </div>
         <button onClick={openCreate}
-          className="inline-flex items-center gap-2 rounded-lg bg-[#0D1F3C] px-4 py-2 text-sm font-medium text-white hover:bg-[#1a3054] transition-colors">
+          className="inline-flex items-center gap-2 rounded-lg bg-[#0E6187] px-4 py-2 text-sm font-medium text-white hover:bg-[#1a5e6f] transition-colors">
           <Plus size={16} />
           Tambah Akun
         </button>
@@ -249,7 +249,7 @@ export default function PengaturanPage() {
                 Batal
               </button>
               <button onClick={handleSubmit} disabled={submitting}
-                className="flex-1 py-2 text-sm font-medium rounded-lg bg-[#0D1F3C] text-white hover:bg-[#1a3054] disabled:opacity-50 transition-colors">
+                className="flex-1 py-2 text-sm font-medium rounded-lg bg-[#0E6187] text-white hover:bg-[#1a5e6f] disabled:opacity-50 transition-colors">
                 {submitting ? 'Menyimpan...' : editing ? 'Simpan' : 'Tambah'}
               </button>
             </div>

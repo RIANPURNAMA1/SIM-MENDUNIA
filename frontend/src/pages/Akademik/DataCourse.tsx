@@ -284,7 +284,7 @@ export default function DataCourse() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#0D1F3C] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-[#0E6187] flex items-center justify-center">
             <BookOpen size={20} className="text-white" />
           </div>
           <div>
@@ -294,7 +294,7 @@ export default function DataCourse() {
         </div>
         <button
           onClick={openCreate}
-          className="flex items-center gap-2 bg-[#0D1F3C] hover:bg-[#0D1F3C]/90 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm"
+          className="flex items-center gap-2 bg-[#0E6187] hover:bg-[#0E6187]/90 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm"
         >
           <Plus size={18} />
           Tambah Kursus
@@ -337,7 +337,7 @@ export default function DataCourse() {
 
         {loading ? (
           <div className="p-12 flex justify-center">
-            <div className="w-8 h-8 border-4 border-slate-200 border-t-[#0D1F3C] rounded-full animate-spin" />
+            <div className="w-8 h-8 border-4 border-slate-200 border-t-[#0E6187] rounded-full animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center">
@@ -460,7 +460,7 @@ export default function DataCourse() {
                   {uploading && (
                     <div className="absolute inset-0 z-10 bg-white/70 flex items-center justify-center rounded-lg">
                       <div className="flex items-center gap-2 text-sm text-slate-500">
-                        <div className="w-4 h-4 border-2 border-slate-300 border-t-[#0D1F3C] rounded-full animate-spin" />
+                        <div className="w-4 h-4 border-2 border-slate-300 border-t-[#0E6187] rounded-full animate-spin" />
                         Mengupload...
                       </div>
                     </div>
@@ -563,7 +563,7 @@ export default function DataCourse() {
                   <label className="inline-flex items-center gap-2 px-4 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors">
                     {fileUploading ? (
                       <>
-                        <div className="w-4 h-4 border-2 border-slate-300 border-t-[#0D1F3C] rounded-full animate-spin" />
+                        <div className="w-4 h-4 border-2 border-slate-300 border-t-[#0E6187] rounded-full animate-spin" />
                         Mengupload...
                       </>
                     ) : (
@@ -659,7 +659,7 @@ export default function DataCourse() {
               <button onClick={() => setShowModal(false)} className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
                 Batal
               </button>
-              <button onClick={handleSave} disabled={saving} className="px-4 py-2.5 bg-[#0D1F3C] text-white rounded-lg text-sm font-semibold hover:bg-[#0D1F3C]/90 disabled:opacity-50 transition-colors">
+              <button onClick={handleSave} disabled={saving} className="px-4 py-2.5 bg-[#0E6187] text-white rounded-lg text-sm font-semibold hover:bg-[#0E6187]/90 disabled:opacity-50 transition-colors">
                 {saving ? 'Menyimpan...' : editing ? 'Simpan' : 'Buat Kursus'}
               </button>
             </div>

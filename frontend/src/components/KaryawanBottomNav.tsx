@@ -48,7 +48,7 @@ export default function KaryawanBottomNav({
           <button
             onClick={handleAbsen}
             disabled={absenStatus === 'pulang'}
-            className="relative flex items-center justify-center w-14 h-14 rounded-full bg-[#0069b0] text-white shadow-lg shadow-[#0069b0]/30 hover:bg-[#1a2d4a] transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed">
+            className="relative flex items-center justify-center w-14 h-14 rounded-full bg-[#0069b0] text-white shadow-lg shadow-[#0069b0]/30 hover:bg-[#1a5e6f] transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed">
             {absenStatus === 'pulang' ? (
               <CheckCircle size={22} className="text-white" />
             ) : (

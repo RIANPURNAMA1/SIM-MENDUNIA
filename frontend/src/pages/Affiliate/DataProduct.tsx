@@ -208,7 +208,7 @@ export default function DataProduct() {
     e.preventDefault()
     const validItems = form.kategori_items.filter(i => i.name.trim() !== '')
     if (validItems.length === 0) {
-      Swal.fire({ icon: 'warning', title: 'Perhatian', text: 'Tambahkan minimal satu kategori.', confirmButtonColor: '#0D1F3C' })
+      Swal.fire({ icon: 'warning', title: 'Perhatian', text: 'Tambahkan minimal satu kategori.', confirmButtonColor: '#0E6187' })
       return
     }
 
@@ -248,9 +248,9 @@ export default function DataProduct() {
     const req = editing ? productApi.update(editing.id, payload) : productApi.store(payload)
     req.then(() => {
       setShowModal(false); fetchProducts()
-      Swal.fire({ icon: 'success', title: 'Berhasil!', text: editing ? 'Produk berhasil diperbarui.' : 'Produk berhasil ditambahkan.', confirmButtonColor: '#0D1F3C', timer: 2000, timerProgressBar: true, showConfirmButton: false })
+      Swal.fire({ icon: 'success', title: 'Berhasil!', text: editing ? 'Produk berhasil diperbarui.' : 'Produk berhasil ditambahkan.', confirmButtonColor: '#0E6187', timer: 2000, timerProgressBar: true, showConfirmButton: false })
     }).catch(() => {
-      Swal.fire({ icon: 'error', title: 'Gagal', text: 'Terjadi kesalahan saat menyimpan data.', confirmButtonColor: '#0D1F3C' })
+      Swal.fire({ icon: 'error', title: 'Gagal', text: 'Terjadi kesalahan saat menyimpan data.', confirmButtonColor: '#0E6187' })
     })
   }
 
@@ -393,7 +393,7 @@ export default function DataProduct() {
       {/* Header */}
       <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] text-white border border-blue-100">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white border border-blue-100">
             <Package size={20} />
           </div>
           <div>
@@ -411,17 +411,17 @@ export default function DataProduct() {
       {activeProducts.length > 0 && (
         <div className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#0D1F3C]">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#0E6187]">
               <LinkIcon size={14} className="text-white" />
             </div>
             <h2 className="text-sm font-bold text-slate-700">Link Pendaftaran (Non-Affiliate)</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
             {activeProducts.map(p => (
-              <div key={p.id} className="flex items-center justify-between gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5 hover:border-[#0D1F3C]/20 hover:bg-[#f5f6fa] transition-all group">
+              <div key={p.id} className="flex items-center justify-between gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5 hover:border-[#0E6187]/20 hover:bg-[#f5f6fa] transition-all group">
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
                   <div className="flex h-7 w-7 items-center justify-center rounded-md bg-white shadow-sm flex-none">
-                    <GraduationCap size={14} className="text-[#0D1F3C]" />
+                    <GraduationCap size={14} className="text-[#0E6187]" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-semibold text-slate-700 truncate">{p.nama}</p>
@@ -429,7 +429,7 @@ export default function DataProduct() {
                   </div>
                 </div>
                 <button onClick={() => copyLink(p)}
-                  className="flex-none rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-[10px] font-bold text-slate-500 transition hover:border-[#0D1F3C]/30 hover:bg-[#0D1F3C] hover:text-white group/btn">
+                  className="flex-none rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-[10px] font-bold text-slate-500 transition hover:border-[#0E6187]/30 hover:bg-[#0E6187] hover:text-white group/btn">
                   {copiedId === p.id ? (
                     <span className="text-emerald-600 group-hover/btn:text-white flex items-center gap-1"><Check size={11} /> Tersalin</span>
                   ) : (
@@ -553,7 +553,7 @@ export default function DataProduct() {
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 sticky top-0 bg-white z-10 rounded-t-xl">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] text-white">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
                   <Package size={20} />
                 </div>
                 <div>
@@ -606,7 +606,7 @@ export default function DataProduct() {
                     </div>
                     <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 bg-white">
                       <span className="text-sm font-bold text-slate-700">Total Harga</span>
-                      <span className="text-sm font-bold text-[#0D1F3C] bg-slate-100 px-3 py-1 rounded-lg">Rp {totalHarga.toLocaleString('id-ID')}</span>
+                      <span className="text-sm font-bold text-[#0E6187] bg-slate-100 px-3 py-1 rounded-lg">Rp {totalHarga.toLocaleString('id-ID')}</span>
                     </div>
                   </div>
                 </div>
@@ -766,7 +766,7 @@ export default function DataProduct() {
 
               {/* Action Buttons */}
               <div className="mt-6 flex gap-3">
-                <button type="submit" className="flex-1 rounded-lg bg-[#0D1F3C] py-3 text-sm font-bold text-white transition hover:bg-[#162d54] shadow-sm">
+                <button type="submit" className="flex-1 rounded-lg bg-[#0E6187] py-3 text-sm font-bold text-white transition hover:bg-[#1a5e6f] shadow-sm">
                   {editing ? 'Simpan Perubahan' : 'Buat Produk'}
                 </button>
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 rounded-lg bg-slate-100 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-200 hover:text-slate-800">

@@ -128,7 +128,7 @@ export default function RekapJadwalShiftPage() {
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] border border-blue-100">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
             <CalendarCheck size={20} className="text-white" />
           </div>
           <div>

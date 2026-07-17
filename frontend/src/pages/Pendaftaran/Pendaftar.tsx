@@ -150,7 +150,7 @@ export default function Pendaftar() {
       : pendaftarApi.destroy(confirm.id)
     const labels: Record<string, string> = { approve: 'Pendaftaran disetujui!', reject: 'Pendaftaran ditolak', delete: 'Pendaftar dihapus' }
     action.then(() => {
-      Swal.fire({ icon: 'success', title: labels[confirm.type!], confirmButtonColor: '#0D1F3C', timer: 2000, timerProgressBar: true, showConfirmButton: false })
+      Swal.fire({ icon: 'success', title: labels[confirm.type!], confirmButtonColor: '#0E6187', timer: 2000, timerProgressBar: true, showConfirmButton: false })
     }).finally(() => {
       fetchData()
       setConfirm({ open: false, title: '', message: '', type: 'approve', id: null })
@@ -235,7 +235,7 @@ export default function Pendaftar() {
     return (
       <div className="flex min-h-[400px] items-center justify-center p-6">
         <div className="relative w-14 h-14 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+          <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
           <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
         </div>
       </div>
@@ -247,7 +247,7 @@ export default function Pendaftar() {
       {/* Header */}
       <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] text-white border border-blue-100">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white border border-blue-100">
             <FileText size={20} />
           </div>
           <div>
@@ -384,7 +384,12 @@ export default function Pendaftar() {
                     {p.affiliate_link?.affiliate?.name || <span className="text-slate-300">-</span>}
                   </td>
                   <td className="border border-slate-200 px-4 py-3 text-right text-sm font-medium text-slate-800">
-                    {p.nominal ? `Rp ${Number(p.nominal).toLocaleString('id-ID')}` : '-'}
+                    {(() => {
+                      const totalDibayar = p.detail?.reduce((sum: number, d: { dibayar?: number }) => sum + (d.dibayar || 0), 0) || 0
+                      if (totalDibayar > 0) return `Rp ${totalDibayar.toLocaleString('id-ID')}`
+                      if (p.nominal) return `Rp ${Number(p.nominal).toLocaleString('id-ID')}`
+                      return '-'
+                    })()}
                   </td>
                   <td className="border border-slate-200 px-4 py-3 text-right text-sm font-medium text-emerald-600">
                     {p.diskon ? `Rp ${Number(p.diskon).toLocaleString('id-ID')}` : '-'}
@@ -673,17 +678,17 @@ export default function Pendaftar() {
                   max={bayarModal.biaya}
                   value={bayarJumlah}
                   onChange={e => setBayarJumlah(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                  className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm"
                   placeholder="Masukkan jumlah"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Upload Bukti Pembayaran</label>
-                <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-white hover:border-[#0D1F3C] transition-colors">
+                <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-white hover:border-[#0E6187] transition-colors">
                   {bayarBukti ? (
                     <div className="flex flex-col items-center">
-                      <Upload className="w-6 h-6 text-[#0D1F3C]" />
+                      <Upload className="w-6 h-6 text-[#0E6187]" />
                       <p className="text-xs text-gray-600 mt-1 font-medium">{bayarBukti.name}</p>
                       <p className="text-[10px] text-gray-400">Klik untuk ganti</p>
                     </div>
@@ -702,7 +707,7 @@ export default function Pendaftar() {
                 <button type="button" onClick={() => setBayarModal(null)}
                   className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-md text-sm font-semibold hover:bg-gray-50 transition-colors">Batal</button>
                 <button type="submit" disabled={bayarSubmitting}
-                  className="px-6 py-2.5 bg-[#0D1F3C] text-white rounded-md text-sm font-semibold hover:bg-[#1a2d4a] transition-colors disabled:opacity-70 inline-flex items-center gap-2">
+                  className="px-6 py-2.5 bg-[#0E6187] text-white rounded-md text-sm font-semibold hover:bg-[#1a5e6f] transition-colors disabled:opacity-70 inline-flex items-center gap-2">
                   {bayarSubmitting ? <><span className="animate-spin">&#9696;</span> Mengirim</> : 'Kirim Pembayaran'}
                 </button>
               </div>

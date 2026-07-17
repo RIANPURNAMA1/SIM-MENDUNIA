@@ -547,4 +547,7 @@ export interface CompanyProfile {
   phone: string
   logo: string | null
   logo_url: string | null
+  bank_nama: string | null
+  bank_nomor_rekening: string | null
+  bank_pemilik: string | null
 }

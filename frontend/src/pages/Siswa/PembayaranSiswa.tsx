@@ -70,7 +70,7 @@ export default function PembayaranSiswa() {
     return (
       <div className="min-h-screen bg-[#F0F2F5] flex items-center justify-center">
         <div className="relative w-14 h-14 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+          <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
           <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
         </div>
       </div>
@@ -177,7 +177,7 @@ export default function PembayaranSiswa() {
         icon: 'info',
         title: 'Pembayaran Sedang Diproses',
         html: '<p style="text-align:left">Anda sudah melakukan pembayaran yang sedang menunggu verifikasi dari admin.<br><br>Mohon tunggu admin akan mengecek dan memverifikasi pembayaran Anda sebelum melakukan pembayaran baru.</p>',
-        confirmButtonColor: '#0D1F3C',
+        confirmButtonColor: '#0E6187',
         confirmButtonText: 'Mengerti',
       })
       return
@@ -249,7 +249,7 @@ export default function PembayaranSiswa() {
         icon: 'success',
         title: 'Pembayaran Terkirim!',
         text: 'Bukti pembayaran Anda telah dikirim dan menunggu verifikasi.',
-        confirmButtonColor: '#0D1F3C',
+        confirmButtonColor: '#0E6187',
         timer: 3000,
         showConfirmButton: false,
       })
@@ -268,7 +268,7 @@ export default function PembayaranSiswa() {
         <div className={`${fbCardClass} p-4 flex items-center justify-between`}>
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100">
-              <CreditCard size={20} className="text-[#0D1F3C]" />
+              <CreditCard size={20} className="text-[#0E6187]" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900 leading-tight">Keuangan Anda</h1>
@@ -471,7 +471,7 @@ export default function PembayaranSiswa() {
                         required
                         value={jumlahDisplay}
                         onChange={handleJumlahInput}
-                        className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                        className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm"
                         placeholder={`Maksimal Rp ${tunggakan.toLocaleString('id-ID')}`}
                       />
                     </div>
@@ -508,7 +508,7 @@ export default function PembayaranSiswa() {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Bank / E-Wallet Pengirim <span className="text-red-500">*</span></label>
                       <select required value={bankPengirim} onChange={e => setBankPengirim(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm">
+                        className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm">
                         <option value="">Pilih Bank / E-Wallet</option>
                         {banks.length > 0 && (
                           <optgroup label="Bank">
@@ -527,15 +527,14 @@ export default function PembayaranSiswa() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Nama Pemilik Rekening <span className="text-red-500">*</span></label>
                       <input type="text" required value={namaPengirim} onChange={e => setNamaPengirim(e.target.value)}
                         placeholder="Nama di rekening"
-                        className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm" />
+                        className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm" />
                     </div>
-
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Upload Bukti Pembayaran</label>
-                      <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-white hover:border-[#0D1F3C] transition-colors">
+                      <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-white hover:border-[#0E6187] transition-colors">
                         {bukti ? (
                           <div className="flex flex-col items-center">
-                            <Upload className="w-6 h-6 text-[#0D1F3C]" />
+                            <Upload className="w-6 h-6 text-[#0E6187]" />
                             <p className="text-xs text-gray-600 mt-1 font-medium">{bukti.name}</p>
                             <p className="text-[10px] text-gray-400">Klik untuk ganti</p>
                           </div>
@@ -554,7 +553,7 @@ export default function PembayaranSiswa() {
                       <button type="button" onClick={() => setShowModal(false)}
                         className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-md text-sm font-semibold hover:bg-gray-50 transition-colors">Batal</button>
                       <button type="submit" disabled={submitting}
-                        className="px-8 py-2.5 bg-[#0D1F3C] text-white rounded-md text-sm font-semibold hover:bg-[#1a2d4a] transition-colors disabled:opacity-70 inline-flex items-center gap-2">
+                        className="px-8 py-2.5 bg-[#0E6187] text-white rounded-md text-sm font-semibold hover:bg-[#1a5e6f] transition-colors disabled:opacity-70 inline-flex items-center gap-2">
                         {submitting ? <><span className="animate-spin">&#9696;</span> Mengirim</> : 'Kirim Pembayaran'}
                       </button>
                     </div>

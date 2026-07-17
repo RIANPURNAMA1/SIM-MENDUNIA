@@ -54,8 +54,8 @@ interface Wilayah {
   name: string
 }
 
-const inputClass = "w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
-const selectClass = "w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm appearance-none cursor-pointer"
+const inputClass = "w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm"
+const selectClass = "w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm appearance-none cursor-pointer"
 const labelClass = "block text-sm font-medium text-gray-700 mb-1"
 const cardClass = "bg-white border border-gray-200 rounded-lg shadow-sm"
 
@@ -328,7 +328,7 @@ export default function DataDiri() {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="relative w-14 h-14 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+          <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
           <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
         </div>
       </div>
@@ -356,7 +356,7 @@ export default function DataDiri() {
     <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-4">
       <div className={`${cardClass} p-4 sm:p-5`}>
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] text-white">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
             <User size={20} />
           </div>
           <div>
@@ -377,7 +377,7 @@ export default function DataDiri() {
                 onClick={() => { setActiveStep(idx); setErrors([]) }}
                 className={`flex items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
                   isActive
-                    ? 'bg-[#0D1F3C] text-white shadow-sm'
+                    ? 'bg-[#0E6187] text-white shadow-sm'
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
@@ -453,7 +453,7 @@ export default function DataDiri() {
             </div>
             <div className="mt-5 flex justify-end">
               <button onClick={savePribadi} disabled={savingPribadi}
-                className="px-6 py-2.5 bg-[#0D1F3C] text-white rounded-md text-sm font-semibold hover:bg-[#1a3a5c] transition-colors disabled:opacity-70 inline-flex items-center gap-2">
+                className="px-6 py-2.5 bg-[#0E6187] text-white rounded-md text-sm font-semibold hover:bg-[#1a3a5c] transition-colors disabled:opacity-70 inline-flex items-center gap-2">
                 {savingPribadi ? (
                   <><div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> Menyimpan</>
                 ) : successPribadi ? (
@@ -477,7 +477,7 @@ export default function DataDiri() {
               <div className="sm:col-span-2">
                 <label className={labelClass}>Alamat Lengkap</label>
                 <textarea value={formAlamat.alamat} onChange={e => setFormAlamat({ ...formAlamat, alamat: e.target.value })} rows={2}
-                  className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm resize-none" placeholder="Alamat lengkap" />
+                  className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm resize-none" placeholder="Alamat lengkap" />
               </div>
 
               {/* Provinsi */}
@@ -577,7 +577,7 @@ export default function DataDiri() {
             </div>
             <div className="mt-5 flex justify-end">
               <button onClick={saveAlamat} disabled={savingAlamat}
-                className="px-6 py-2.5 bg-[#0D1F3C] text-white rounded-md text-sm font-semibold hover:bg-[#1a3a5c] transition-colors disabled:opacity-70 inline-flex items-center gap-2">
+                className="px-6 py-2.5 bg-[#0E6187] text-white rounded-md text-sm font-semibold hover:bg-[#1a3a5c] transition-colors disabled:opacity-70 inline-flex items-center gap-2">
                 {savingAlamat ? (
                   <><div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> Menyimpan</>
                 ) : successAlamat ? (
@@ -654,7 +654,7 @@ export default function DataDiri() {
             </div>
             <div className="mt-5 flex justify-end">
               <button onClick={saveTambahan} disabled={savingTambahan}
-                className="px-6 py-2.5 bg-[#0D1F3C] text-white rounded-md text-sm font-semibold hover:bg-[#1a3a5c] transition-colors disabled:opacity-70 inline-flex items-center gap-2">
+                className="px-6 py-2.5 bg-[#0E6187] text-white rounded-md text-sm font-semibold hover:bg-[#1a3a5c] transition-colors disabled:opacity-70 inline-flex items-center gap-2">
                 {savingTambahan ? (
                   <><div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> Menyimpan</>
                 ) : successTambahan ? (
@@ -686,7 +686,7 @@ export default function DataDiri() {
             </div>
             <div className="mt-5 flex justify-end">
               <button onClick={saveKeluarga} disabled={savingKeluarga}
-                className="px-6 py-2.5 bg-[#0D1F3C] text-white rounded-md text-sm font-semibold hover:bg-[#1a3a5c] transition-colors disabled:opacity-70 inline-flex items-center gap-2">
+                className="px-6 py-2.5 bg-[#0E6187] text-white rounded-md text-sm font-semibold hover:bg-[#1a3a5c] transition-colors disabled:opacity-70 inline-flex items-center gap-2">
                 {savingKeluarga ? (
                   <><div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> Menyimpan</>
                 ) : successKeluarga ? (
@@ -715,7 +715,7 @@ export default function DataDiri() {
             </div>
             <div className="mt-5 flex justify-end">
               <button onClick={saveDokumen} disabled={savingDokumen}
-                className="px-6 py-2.5 bg-[#0D1F3C] text-white rounded-md text-sm font-semibold hover:bg-[#1a3a5c] transition-colors disabled:opacity-70 inline-flex items-center gap-2">
+                className="px-6 py-2.5 bg-[#0E6187] text-white rounded-md text-sm font-semibold hover:bg-[#1a3a5c] transition-colors disabled:opacity-70 inline-flex items-center gap-2">
                 {savingDokumen ? (
                   <><div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> Menyimpan</>
                 ) : successDokumen ? (
@@ -748,14 +748,14 @@ function DocUpload({ label, file, existing, onChange }: { label: string; file: F
     <div className="rounded-lg border border-gray-200 p-4">
       <label className={labelClass}>{label}</label>
       <div className="flex items-center gap-3 mt-1">
-        <label className="flex-1 flex cursor-pointer items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-3 text-sm font-semibold text-[#0D1F3C] transition hover:border-[#0D1F3C] hover:bg-white">
+        <label className="flex-1 flex cursor-pointer items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-3 text-sm font-semibold text-[#0E6187] transition hover:border-[#0E6187] hover:bg-white">
           <Camera size={16} />
           {file ? <span className="truncate max-w-[120px]">{file.name}</span> : 'Pilih file'}
           <input type="file" accept="image/*" className="hidden" onChange={onChange} />
         </label>
         {existing && (
           <a href={`${APP_URL}/${existing}`} target="_blank" rel="noreferrer"
-            className="shrink-0 px-4 py-2.5 flex items-center rounded-md bg-gray-100 text-sm font-semibold text-[#0D1F3C] transition hover:bg-gray-200">
+            className="shrink-0 px-4 py-2.5 flex items-center rounded-md bg-gray-100 text-sm font-semibold text-[#0E6187] transition hover:bg-gray-200">
             Lihat
           </a>
         )}

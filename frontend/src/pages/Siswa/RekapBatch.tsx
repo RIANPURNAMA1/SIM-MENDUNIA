@@ -129,7 +129,7 @@ export default function RekapBatch() {
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] border border-blue-100">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
             <Layers size={20} className="text-white" />
           </div>
           <div>
@@ -196,7 +196,7 @@ export default function RekapBatch() {
       {loading ? (
         <div className="flex items-center justify-center py-16">
           <div className="relative w-14 h-14 flex items-center justify-center">
-            <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+            <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
             <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
           </div>
         </div>
@@ -214,7 +214,7 @@ export default function RekapBatch() {
                 className="flex w-full items-center justify-between bg-slate-50 px-4 py-3 text-left transition hover:bg-slate-100"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0D1F3C]/10"><Layers size={15} className="text-[#0D1F3C]" /></div>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0E6187]/10"><Layers size={15} className="text-[#0E6187]" /></div>
                   <div>
                     <p className="text-sm font-bold text-slate-800">{batch.batch}</p>
                     <p className="text-[11px] text-slate-500">{batch.siswas_count} kandidat</p>

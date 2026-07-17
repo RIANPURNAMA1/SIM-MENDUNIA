@@ -81,7 +81,7 @@ export default function AffiliateDashboard() {
     return (
       <div className="px-3 py-3 sm:px-6 sm:py-4 flex items-center justify-center min-h-[50vh]">
         <div className="relative w-14 h-14 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+          <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
           <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
         </div>
       </div>
@@ -95,7 +95,7 @@ export default function AffiliateDashboard() {
           <X size={28} className="text-red-400" />
         </div>
         <p className="mt-4 text-sm font-medium text-slate-600">Gagal memuat data</p>
-        <button onClick={fetchData} className="mt-3 rounded-lg bg-[#0D1F3C] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#0a1628]">Coba Lagi</button>
+        <button onClick={fetchData} className="mt-3 rounded-lg bg-[#0E6187] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1a5e6f]">Coba Lagi</button>
       </div>
     )
   }
@@ -108,7 +108,7 @@ export default function AffiliateDashboard() {
       {/* Header */}
       <div className="mb-4 flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] text-white">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
             <Link2 size={20} />
           </div>
           <div>
@@ -125,12 +125,12 @@ export default function AffiliateDashboard() {
       {/* Tabs */}
       <div className="mb-4 flex gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
         <button onClick={() => setTab('dashboard')}
-          className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${tab === 'dashboard' ? 'bg-[#0D1F3C] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
+          className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${tab === 'dashboard' ? 'bg-[#0E6187] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
           <LayoutDashboard size={16} />
           Dashboard
         </button>
         <button onClick={() => setTab('pendaftar')}
-          className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${tab === 'pendaftar' ? 'bg-[#0D1F3C] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
+          className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${tab === 'pendaftar' ? 'bg-[#0E6187] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
           <Table size={16} />
           Data Pendaftar
           {pendaftar.length > 0 && (
@@ -146,7 +146,7 @@ export default function AffiliateDashboard() {
           {/* Affiliate Profile */}
           <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#0D1F3C] text-white shrink-0">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#0E6187] text-white shrink-0">
                 <User size={26} />
               </div>
               <div className="flex-1 min-w-0">

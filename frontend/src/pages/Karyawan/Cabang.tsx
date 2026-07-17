@@ -211,7 +211,7 @@ export default function CabangPage() {
       {/* Header */}
       <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] border border-blue-100">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
             <MapPin size={20} className="text-white" />
           </div>
           <div>
@@ -363,13 +363,13 @@ export default function CabangPage() {
                   <div className="flex items-center justify-center gap-3 mb-3">
                     <img src="/logo-sm.png" alt="Logo" className="h-9 w-auto" />
                     <div className="text-left">
-                      <h2 className="text-lg font-bold text-[#0D1F3C] tracking-wide leading-tight">ABSENSI MENDUNIA</h2>
+                      <h2 className="text-lg font-bold text-[#0E6187] tracking-wide leading-tight">ABSENSI MENDUNIA</h2>
                       <p className="text-[10px] text-slate-500">Sistem Informasi Absensi</p>
                     </div>
                   </div>
                   <hr className="border-slate-200 mb-4" />
                   <p className="text-xs font-semibold text-slate-600 uppercase tracking-widest mb-1">QR Code Absensi</p>
-                  <p className="text-base font-bold text-[#0D1F3C] mb-4">{qrItem.nama_cabang}</p>
+                  <p className="text-base font-bold text-[#0E6187] mb-4">{qrItem.nama_cabang}</p>
                   <div className="flex justify-center mb-3">
                     <canvas ref={qrCanvasRef} className="rounded-xl border-2 border-slate-200" />
                   </div>
@@ -381,7 +381,7 @@ export default function CabangPage() {
                 <div className="px-5 pb-5 flex flex-col gap-2">
                   <button
                     onClick={handleDownloadPdf}
-                    className="w-full py-2.5 text-sm font-semibold rounded-xl bg-[#0D1F3C] text-white hover:bg-[#1a3054] transition-colors flex items-center justify-center gap-2"
+                    className="w-full py-2.5 text-sm font-semibold rounded-xl bg-[#0E6187] text-white hover:bg-[#1a5e6f] transition-colors flex items-center justify-center gap-2"
                   >
                     <Download size={16} />
                     Download PDF
