@@ -7,7 +7,7 @@ import {
   ChevronRight,
   CheckCircle,
   User,
-  MessageCircle,
+
   Upload,
   Home,
   LogIn,
@@ -16,12 +16,20 @@ import {
   Loader,
 } from "lucide-react";
 
+interface KategoriItem {
+  name: string;
+  harga: number;
+  komisi: number;
+  children: KategoriItem[];
+}
+
 interface Product {
   id: number;
   nama: string;
   deskripsi: string | null;
   harga: number;
   status: string;
+  kategori_items?: KategoriItem[];
   biaya_kategoris?: { id: number; kode: string; pivot: { harga: number } }[];
 }
 
@@ -90,6 +98,27 @@ export default function DaftarProgram() {
   const [loadingDistricts, setLoadingDistricts] = useState(false);
   const [loadingVillages, setLoadingVillages] = useState(false);
 
+  function getFlattenedItems(items: KategoriItem[], parentOnly = false): { item: KategoriItem; depth: number }[] {
+    const result: { item: KategoriItem; depth: number }[] = [];
+    function walk(list: KategoriItem[], depth: number) {
+      for (const item of list) {
+        if (item.harga > 0) {
+          result.push({ item, depth });
+        }
+        if (!parentOnly && item.children?.length) walk(item.children, depth + 1);
+      }
+    }
+    walk(items, 0);
+    return result;
+  }
+
+  const selectedTotal = (() => {
+    if (!selectedProduct?.kategori_items?.length) return selectedProduct?.harga || 0;
+    const flat = getFlattenedItems(selectedProduct.kategori_items, true);
+    if (flat.length === 0) return 0;
+    return flat[0].item.harga || 0;
+  })();
+
   useEffect(() => {
     Promise.all([
       productApi.list(),
@@ -104,13 +133,6 @@ export default function DaftarProgram() {
           const found = active.find((p: Product) => String(p.id) === id);
           if (found) {
             setSelectedProduct(found);
-            const firstKat = kats[0];
-            if (firstKat) {
-              const pivot = found.biaya_kategoris?.find((bk: any) => bk.id === firstKat.id);
-              if (pivot) {
-                setNominal(String(pivot.pivot.harga));
-              }
-            }
           }
         }
       })
@@ -121,6 +143,20 @@ export default function DaftarProgram() {
   useEffect(() => {
     batchApi.list().then(res => setBatches(res.data.data || [])).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (selectedProduct?.kategori_items?.length) {
+      setNominal(String(selectedTotal));
+    } else if (selectedProduct) {
+      const firstKat = biayaKategoris[0];
+      if (firstKat && selectedProduct.biaya_kategoris) {
+        const pivot = selectedProduct.biaya_kategoris.find((bk: any) => bk.id === firstKat.id);
+        if (pivot) setNominal(String(pivot.pivot.harga));
+      } else {
+        setNominal(String(selectedProduct.harga));
+      }
+    }
+  }, [selectedTotal, selectedProduct, biayaKategoris]);
 
   useEffect(() => {
     if (bukti && bukti.type.startsWith("image/")) {
@@ -171,7 +207,7 @@ export default function DaftarProgram() {
       const res = await couponApi.validate({
         kode: kodeKupon,
         product_id: selectedProduct.id,
-        nominal: Number(nominal || selectedProduct.harga),
+        nominal: Number(nominal || selectedTotal),
       });
       setValidasiKupon(res.data);
     } catch (err: unknown) {
@@ -185,6 +221,11 @@ export default function DaftarProgram() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!selectedProduct) return;
+    if (selectedProduct.kategori_items?.length && selectedTotal <= 0) {
+      setError("Pilih minimal satu kategori pembayaran");
+      setIsSubmitting(false);
+      return;
+    }
     setError("");
     setIsSubmitting(true);
 
@@ -205,6 +246,12 @@ export default function DaftarProgram() {
       if (namaRekening) formData.append("nama_rekening", namaRekening);
       if (batchId) formData.append("batch_id", batchId);
       formData.append("nominal", nominal);
+      if (selectedProduct.kategori_items?.length) {
+        const flat = getFlattenedItems(selectedProduct.kategori_items, true);
+        if (flat.length > 0) {
+          formData.append("selected_kategori_items", JSON.stringify([flat[0].item.name]));
+        }
+      }
       formData.append("bukti_pembayaran", bukti!);
 
       await pendaftarApi.daftarLangsung(formData);
@@ -351,7 +398,7 @@ export default function DaftarProgram() {
                 </div>
               </div>
               <p className="text-sm md:text-lg font-bold text-[#0D1F3C] shrink-0">
-                Rp {Number(selectedProduct?.harga || 0).toLocaleString("id-ID")}
+                Rp {Number(selectedProduct?.kategori_items?.length ? selectedTotal : (selectedProduct?.harga || 0)).toLocaleString("id-ID")}
               </p>
             </div>
           </div>
@@ -395,18 +442,6 @@ export default function DaftarProgram() {
                     );
                   })}
                 </div>
-              </div>
-
-              <div className="mt-12 bg-white border border-gray-200 rounded-lg p-5 shadow-sm fade-in" style={{ animationDelay: '0.15s' }}>
-                <h4 className="text-sm font-bold text-gray-800 mb-1">
-                  BUTUH BANTUAN?
-                </h4>
-                <p className="text-xs text-gray-500 mb-4">
-                  Tulis pesan kepada kami dan kami akan menyelesaikannya
-                </p>
-                <button className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-[#eef1f6] text-[#0D1F3C] rounded-md text-sm font-semibold hover:bg-[#e4e7ec] transition-colors">
-                  <MessageCircle size={16} /> HUBUNGI KAMI
-                </button>
               </div>
             </div>
 
@@ -532,13 +567,13 @@ export default function DaftarProgram() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Batch</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Batch <span className="text-gray-400 font-normal">(opsional)</span></label>
                             <select
                               value={batchId}
                               onChange={(e) => setBatchId(e.target.value)}
                               className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm appearance-none cursor-pointer"
                             >
-                              <option value="">Pilih Batch</option>
+                              <option value="">Belum ditentukan</option>
                               {batches.map((b) => {
                                 const penuh = b.is_penuh && b.kuota !== null && (b.siswas_count ?? 0) >= b.kuota
                                 return (
@@ -548,6 +583,7 @@ export default function DaftarProgram() {
                                 )
                               })}
                             </select>
+                            <p className="text-[11px] text-gray-400 mt-1">Opsional — admin dapat menentukan batch nanti</p>
                             {batchId && (() => {
                               const selectedBatch = batches.find(b => String(b.id) === batchId)
                               if (selectedBatch?.is_penuh) {
@@ -664,33 +700,36 @@ export default function DaftarProgram() {
                             <p className="font-semibold text-gray-900">
                               {selectedProduct.nama}
                             </p>
-                            <div className="flex items-center justify-between mt-2">
-                              <span className="text-xs text-gray-500">Harga Program</span>
+
+                            {selectedProduct.kategori_items && selectedProduct.kategori_items.length > 0 && (() => {
+                              const flat = getFlattenedItems(selectedProduct.kategori_items, true);
+                              if (flat.length === 0) return null;
+                              const firstItem = flat[0];
+                              return (
+                                <div className="mt-3 pt-3 border-t border-gray-100">
+                                  <p className="text-xs font-semibold text-gray-700 mb-2">Kategori Pembayaran:</p>
+                                  <div className="space-y-1.5">
+                                    <div
+                                      className="flex items-center gap-2.5 py-1.5 px-2.5 rounded bg-blue-50 border border-blue-200"
+                                    >
+                                      <span className="text-xs font-medium text-gray-700">{firstItem.item.name}</span>
+                                      <span className="ml-auto text-xs font-bold text-gray-900">
+                                        Rp {Number(firstItem.item.harga).toLocaleString("id-ID")}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  {flat.length > 1 && (
+                                    <p className="text-[11px] text-gray-400 mt-2">Pembayaran tahapan lainnya dilakukan setelah pendaftaran</p>
+                                  )}
+                                </div>
+                              );
+                            })()}
+
+                            <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                              <span className="text-xs font-semibold text-gray-700">Total yang dipilih</span>
                               <p className="font-bold text-[#0D1F3C]">
-                                Rp {Number(selectedProduct.harga).toLocaleString("id-ID")}
+                                Rp {Number(selectedTotal).toLocaleString("id-ID")}
                               </p>
-                            </div>
-                            <div className="mt-3 pt-3 border-t border-gray-100">
-                              <p className="text-xs font-semibold text-gray-700 mb-2">Pembayaran Awal:</p>
-                              {(() => {
-                                const firstKat = biayaKategoris[0];
-                                if (firstKat && selectedProduct.biaya_kategoris) {
-                                  const pivot = selectedProduct.biaya_kategoris.find(bk => bk.id === firstKat.id);
-                                  if (pivot && pivot.pivot.harga > 0) {
-                                    return (
-                                      <div className="flex items-center justify-between bg-blue-50 rounded px-3 py-2">
-                                        <span className="text-xs font-medium text-blue-800">
-                                          {firstKat.kode} - {firstKat.nama}
-                                        </span>
-                                        <span className="text-sm font-bold text-blue-800">
-                                          Rp {Number(pivot.pivot.harga).toLocaleString("id-ID")}
-                                        </span>
-                                      </div>
-                                    );
-                                  }
-                                }
-                                return null;
-                              })()}
                             </div>
                           </div>
 
@@ -749,7 +788,7 @@ export default function DaftarProgram() {
 
                           <div className="mb-6">
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Nominal Pembayaran <span className="text-xs text-gray-400 font-normal">(pembayaran awal {biayaKategoris[0]?.kode || 'DAFTAR'})</span>
+                              Nominal Pembayaran <span className="text-xs text-gray-400 font-normal">(total: Rp {selectedTotal.toLocaleString("id-ID")})</span>
                             </label>
                             <div className="relative">
                               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-500">Rp</span>

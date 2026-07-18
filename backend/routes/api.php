@@ -365,7 +365,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/biaya-kategori', [BiayaController::class, 'kategoriStore']);
     Route::put('/biaya-kategori/{id}', [BiayaController::class, 'kategoriUpdate']);
     Route::delete('/biaya-kategori/{id}', [BiayaController::class, 'kategoriDestroy']);
-    Route::get('/biaya-kategori-flat', [BiayaController::class, 'kategoriIndexFlat']);
     Route::get('/batch-biaya/{batchId}', [BiayaController::class, 'batchBiayaIndex']);
     Route::post('/batch-biaya/{batchId}', [BiayaController::class, 'batchBiayaStore']);
     Route::get('/pembayaran-item/{pendaftarId}', [BiayaController::class, 'pembayaranItemIndex']);
@@ -414,6 +413,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // Public — daftar langsung tanpa affiliate
 Route::post('/pendaftaran/daftar-langsung', [PendaftaranController::class, 'daftarLangsung']);
+
+// Public — biaya kategori flat for registration page
+Route::get('/biaya-kategori-flat', [BiayaController::class, 'kategoriIndexFlat']);
 
 // ========== Coupon / Diskon ==========
 Route::prefix('coupons')->group(function () {

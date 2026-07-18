@@ -9,6 +9,7 @@ class KomisiTier extends Model
     protected $fillable = [
         'product_id',
         'kategori_id',
+        'batch_id',
         'min_orang',
         'max_orang',
         'komisi',
@@ -23,5 +24,10 @@ class KomisiTier extends Model
     public function kategori()
     {
         return $this->belongsTo(BiayaKategori::class, 'kategori_id');
+    }
+
+    public function batch()
+    {
+        return $this->belongsTo(Batch::class);
     }
 }

@@ -217,28 +217,69 @@ class PendaftaranController extends Controller
         $data = $pendaftars->get();
 
         // Include per-kategori payments
-        $kategoris = BiayaKategori::orderBy('urutan')->get();
+        $allKategoris = BiayaKategori::orderBy('urutan')->get();
         $pendaftarIds = $data->pluck('id');
         $allPembayaran = PembayaranItem::whereIn('pendaftar_id', $pendaftarIds)
             ->get()
             ->groupBy('pendaftar_id');
 
-        $result = $data->map(function ($p) use ($kategoris, $allPembayaran) {
+        $result = $data->map(function ($p) use ($allKategoris, $allPembayaran) {
             $pembayaranItems = $allPembayaran->get($p->id, collect())->keyBy('kategori_id');
             $product = $p->product;
             $pivotPrices = collect();
             if ($product && $product->relationLoaded('biayaKategoris')) {
                 $pivotPrices = $product->biayaKategoris->keyBy('id')->map(fn($k) => (int) $k->pivot->harga);
             }
-            $detail = $kategoris->map(function ($k) use ($pembayaranItems, $pivotPrices) {
+
+            // Name-based fallback from kategori_items JSON
+            $namaPrices = collect();
+            if ($product && is_array($product->kategori_items)) {
+                $flatten = function ($items) use (&$flatten, &$namaPrices) {
+                    foreach ($items as $item) {
+                        $name = trim($item['name'] ?? '');
+                        $harga = (int) ($item['harga'] ?? 0);
+                        if ($name !== '' && $harga > 0) {
+                            $namaPrices->put(strtolower($name), $harga);
+                        }
+                        if (!empty($item['children'])) {
+                            $flatten($item['children']);
+                        }
+                    }
+                };
+                $flatten($product->kategori_items);
+            }
+
+            $namaDibayar = collect();
+            $kategoriMap = $allKategoris->keyBy('id');
+            foreach ($pembayaranItems as $katId => $pi) {
+                $katModel = $kategoriMap->get($katId);
+                if ($katModel) {
+                    $namaDibayar->put(strtolower($katModel->nama), (int) $pi->jumlah);
+                }
+            }
+
+            $detail = $allKategoris->map(function ($k) use ($pembayaranItems, $pivotPrices, $namaPrices, $namaDibayar) {
                 $pi = $pembayaranItems->get($k->id);
-                $default = $pivotPrices->get($k->id, 0);
+                $biaya = $pivotPrices->get($k->id, 0);
+                if ($biaya === 0) {
+                    $biaya = $namaPrices->get(strtolower($k->nama), 0);
+                }
+                if ($biaya === 0) {
+                    $biaya = $namaPrices->get(strtolower($k->kode), 0);
+                }
+                $dibayar = $pi ? (int) $pi->jumlah : 0;
+                if ($dibayar === 0) {
+                    $dibayar = $namaDibayar->get(strtolower($k->nama), 0);
+                }
+                if ($dibayar === 0) {
+                    $dibayar = $namaDibayar->get(strtolower($k->kode), 0);
+                }
                 return [
                     'kategori_id' => $k->id,
                     'kode' => $k->kode,
                     'nama' => $k->nama,
-                    'biaya' => $default,
-                    'dibayar' => $pi ? (int) $pi->jumlah : 0,
+                    'biaya' => $biaya,
+                    'dibayar' => $dibayar,
                 ];
             });
             return array_merge($p->toArray(), ['detail' => $detail]);
@@ -295,22 +336,46 @@ class PendaftaranController extends Controller
 
         // Komisi affiliate dicatat saat Level 1 LUNAS (lihat cekDanCatatKomisiAffiliate)
 
-        // Auto-create PembayaranItem and Pembayaran for first category if none exist
+        // Auto-create PembayaranItem and Pembayaran for first parent category if none exist
         $existingItems = PembayaranItem::where('pendaftar_id', $pendaftar->id)->count();
-        if ($existingItems === 0) {
-            $firstKat = BiayaKategori::orderBy('urutan')->first();
-            if ($firstKat && $pendaftar->nominal > 0) {
+        if ($existingItems === 0 && $pendaftar->nominal > 0) {
+            // Find the first parent kategori from product's kategori_items JSON
+            $firstParentName = null;
+            if (is_array($pendaftar->product->kategori_items)) {
+                foreach ($pendaftar->product->kategori_items as $item) {
+                    $harga = (int) ($item['harga'] ?? 0);
+                    $name = trim($item['name'] ?? '');
+                    if ($name !== '' && $harga > 0) {
+                        $firstParentName = $name;
+                        break;
+                    }
+                }
+            }
+
+            // Find the BiayaKategori matching by name (case-insensitive)
+            $kategori = null;
+            if ($firstParentName) {
+                $kategori = BiayaKategori::whereRaw('LOWER(nama) = ?', [strtolower($firstParentName)])
+                    ->orWhereRaw('LOWER(kode) = ?', [strtolower($firstParentName)])
+                    ->first();
+            }
+            // Fallback: use first kategori by urutan
+            if (!$kategori) {
+                $kategori = BiayaKategori::orderBy('urutan')->first();
+            }
+
+            if ($kategori) {
                 PembayaranItem::updateOrCreate(
                     [
                         'pendaftar_id' => $pendaftar->id,
-                        'kategori_id' => $firstKat->id,
+                        'kategori_id' => $kategori->id,
                     ],
                     ['jumlah' => $pendaftar->nominal]
                 );
                 Pembayaran::create([
                     'pendaftar_id' => $pendaftar->id,
                     'jumlah' => $pendaftar->nominal,
-                    'kategori_id' => $firstKat->id,
+                    'kategori_id' => $kategori->id,
                     'status' => 'verified',
                     'bukti_pembayaran' => $pendaftar->bukti_pembayaran ?? 'auto',
                 ]);
@@ -389,6 +454,12 @@ class PendaftaranController extends Controller
             $totalBiaya = 0;
             if ($freshPendaftar->product && $freshPendaftar->product->relationLoaded('biayaKategoris')) {
                 $totalBiaya = $freshPendaftar->product->biayaKategoris->sum(fn($k) => (int) $k->pivot->harga);
+            }
+            // Fallback: sum from kategori_items JSON (parent only)
+            if ($totalBiaya === 0 && is_array($freshPendaftar->product->kategori_items)) {
+                foreach ($freshPendaftar->product->kategori_items as $item) {
+                    $totalBiaya += (int) ($item['harga'] ?? 0);
+                }
             }
             $totalBiaya = $totalBiaya ?: ($freshPendaftar->product?->harga ?? 0);
             $tagihan = $totalBiaya - ($freshPendaftar->diskon ?? 0);
@@ -657,13 +728,59 @@ class PendaftaranController extends Controller
         $pendaftar = Pendaftar::with('batch', 'product.biayaKategoris')->findOrFail($id);
         $filePath = $request->file('bukti_pembayaran')->store('bukti_pembayaran', 'public');
 
-        // Ambil semua kategori biaya, urutkan
-        $kategoris = BiayaKategori::orderBy('urutan')->get();
+        // Order kategoris by product's kategori_items hierarchy
+        $allKategoris = BiayaKategori::orderBy('urutan')->get();
+        $orderedKategoris = collect();
+        $usedIds = [];
+
+        if ($pendaftar->product && is_array($pendaftar->product->kategori_items)) {
+            $walk = function ($items) use (&$walk, &$orderedKategoris, &$usedIds, $allKategoris) {
+                foreach ($items as $item) {
+                    $name = strtolower(trim($item['name'] ?? ''));
+                    if ($name !== '') {
+                        $kategori = $allKategoris->first(fn($k) => strtolower($k->nama) === $name || strtolower($k->kode) === $name);
+                        if ($kategori && !in_array($kategori->id, $usedIds)) {
+                            $orderedKategoris->push($kategori);
+                            $usedIds[] = $kategori->id;
+                        }
+                    }
+                    if (!empty($item['children'])) {
+                        $walk($item['children']);
+                    }
+                }
+            };
+            $walk($pendaftar->product->kategori_items);
+        }
+        // Append remaining
+        foreach ($allKategoris as $k) {
+            if (!in_array($k->id, $usedIds)) {
+                $orderedKategoris->push($k);
+            }
+        }
+        $kategoris = $orderedKategoris;
 
         // Ambil biaya per kategori dari product pivot
         $pivotHarga = collect();
         if ($pendaftar->product && $pendaftar->product->relationLoaded('biayaKategoris')) {
             $pivotHarga = $pendaftar->product->biayaKategoris->keyBy('id')->map(fn($k) => (int) $k->pivot->harga);
+        }
+
+        // Fallback: name-based prices from kategori_items JSON
+        $namaHarga = collect();
+        if ($pendaftar->product && is_array($pendaftar->product->kategori_items)) {
+            $buildHarga = function ($items) use (&$buildHarga, &$namaHarga) {
+                foreach ($items as $item) {
+                    $name = strtolower(trim($item['name'] ?? ''));
+                    $harga = (int) ($item['harga'] ?? 0);
+                    if ($name !== '' && $harga > 0) {
+                        $namaHarga->put($name, $harga);
+                    }
+                    if (!empty($item['children'])) {
+                        $buildHarga($item['children']);
+                    }
+                }
+            };
+            $buildHarga($pendaftar->product->kategori_items);
         }
 
         // Ambil sudah dibayar per kategori
@@ -679,6 +796,9 @@ class PendaftaranController extends Controller
             if ($sisa <= 0) break;
 
             $biaya = $pivotHarga->get($k->id, 0);
+            if ($biaya <= 0) {
+                $biaya = $namaHarga->get(strtolower($k->nama), 0);
+            }
             if ($biaya <= 0) continue;
 
             $sudahBayar = $existingItems->has($k->id) ? (int) $existingItems->get($k->id)->jumlah : 0;
@@ -1300,48 +1420,119 @@ class PendaftaranController extends Controller
         $product->load(['biayaKategoris', 'komisiTiers']);
         if ($product->biayaKategoris->isEmpty()) return;
 
-        $batchCount = \App\Models\Pendaftar::where('affiliate_link_id', $pendaftar->affiliate_link_id)
-            ->where('batch_id', $pendaftar->batch_id)
-            ->count();
+        // Build parent→children map from kategori_items JSON
+        $kategoriItems = $product->kategori_items ?? [];
+        $parentMap = []; // kategori_id => ['name' => ..., 'children_ids' => [...], 'children_count' => N]
 
-        foreach ($product->biayaKategoris as $kategori) {
-            $hargaKategori = (float) $kategori->pivot->harga;
-            if ($hargaKategori <= 0) continue;
+        foreach ($kategoriItems as $item) {
+            $name = strtolower(trim($item['name'] ?? ''));
+            if (empty($item['children']) || count($item['children']) === 0) continue;
+
+            $parentKategori = $product->biayaKategoris->first(
+                fn($k) => strtolower($k->nama) === $name || strtolower($k->kode) === $name
+            );
+            if (!$parentKategori) continue;
+
+            $childrenIds = [];
+            foreach ($item['children'] as $child) {
+                $childName = strtolower(trim($child['name'] ?? ''));
+                $childKategori = $product->biayaKategoris->first(
+                    fn($k) => strtolower($k->nama) === $childName || strtolower($k->kode) === $childName
+                );
+                if ($childKategori) $childrenIds[] = $childKategori->id;
+            }
+
+            $parentMap[$parentKategori->id] = [
+                'name' => $parentKategori->nama,
+                'children_ids' => $childrenIds,
+                'children_count' => count($childrenIds),
+            ];
+        }
+
+        // For each parent kategori, check if this pendaftar is lunas (all children fully paid)
+        foreach ($parentMap as $parentId => $info) {
+            if ($info['children_count'] === 0) continue;
 
             $existing = KomisiAffiliate::where('pendaftar_id', $pendaftar->id)
-                ->where('kategori_id', $kategori->id)
+                ->where('kategori_id', $parentId)
                 ->first();
             if ($existing) continue;
 
-            $dibayar = PembayaranItem::where('pendaftar_id', $pendaftar->id)
-                ->where('kategori_id', $kategori->id)
-                ->sum('jumlah');
+            // Check all children are fully paid
+            $allLunas = true;
+            foreach ($info['children_ids'] as $childId) {
+                $childBiaya = $product->biayaKategoris->first(fn($k) => $k->id === $childId);
+                $hargaChild = $childBiaya ? (float) $childBiaya->pivot->harga : 0;
+                if ($hargaChild <= 0) continue;
 
-            if ($dibayar >= $hargaKategori) {
-                $komisiPerKategori = 0;
-
-                $tier = $product->komisiTiers
-                    ->where('kategori_id', $kategori->id)
-                    ->filter(fn($t) => $batchCount >= $t->min_orang && ($t->max_orang === null || $batchCount <= $t->max_orang))
-                    ->sortBy('min_orang')
-                    ->last();
-
-                if ($tier) {
-                    $komisiPerKategori = (float) $tier->komisi;
-                } else {
-                    $komisiPerKategori = (float) ($kategori->pivot->komisi ?? 0);
+                $dibayar = PembayaranItem::where('pendaftar_id', $pendaftar->id)
+                    ->where('kategori_id', $childId)
+                    ->sum('jumlah');
+                if ($dibayar < $hargaChild) {
+                    $allLunas = false;
+                    break;
                 }
-
-                if ($komisiPerKategori <= 0) continue;
-
-                KomisiAffiliate::create([
-                    'affiliate_link_id' => $pendaftar->affiliate_link_id,
-                    'pendaftar_id' => $pendaftar->id,
-                    'kategori_id' => $kategori->id,
-                    'jumlah' => $komisiPerKategori,
-                    'status' => 'pending',
-                ]);
             }
+
+            if (!$allLunas) continue;
+
+            // Count how many other pendaftar from same affiliate in same batch are also lunas at this parent
+            $affiliatePendaftars = \App\Models\Pendaftar::where('affiliate_link_id', $pendaftar->affiliate_link_id)
+                ->where('batch_id', $pendaftar->batch_id)
+                ->where('status', '!=', 'rejected')
+                ->get();
+
+            $lunasCount = 0;
+            foreach ($affiliatePendaftars as $ap) {
+                $isLunas = true;
+                foreach ($info['children_ids'] as $childId) {
+                    $childBiaya = $product->biayaKategoris->first(fn($k) => $k->id === $childId);
+                    $hargaChild = $childBiaya ? (float) $childBiaya->pivot->harga : 0;
+                    if ($hargaChild <= 0) continue;
+
+                    $dibayar = PembayaranItem::where('pendaftar_id', $ap->id)
+                        ->where('kategori_id', $childId)
+                        ->sum('jumlah');
+                    if ($dibayar < $hargaChild) {
+                        $isLunas = false;
+                        break;
+                    }
+                }
+                if ($isLunas) $lunasCount++;
+            }
+
+            // Find matching tier: prefer batch-specific, fallback to global (batch_id=null)
+            $komisiAmount = 0;
+
+            $batchTiers = $product->komisiTiers
+                ->where('kategori_id', $parentId)
+                ->where('batch_id', $pendaftar->batch_id)
+                ->filter(fn($t) => $lunasCount >= $t->min_orang && ($t->max_orang === null || $lunasCount <= $t->max_orang))
+                ->sortBy('min_orang')
+                ->last();
+
+            $globalTiers = $product->komisiTiers
+                ->where('kategori_id', $parentId)
+                ->whereNull('batch_id')
+                ->filter(fn($t) => $lunasCount >= $t->min_orang && ($t->max_orang === null || $lunasCount <= $t->max_orang))
+                ->sortBy('min_orang')
+                ->last();
+
+            $tier = $batchTiers ?? $globalTiers;
+
+            if ($tier) {
+                $komisiAmount = (float) $tier->komisi;
+            }
+
+            if ($komisiAmount <= 0) continue;
+
+            KomisiAffiliate::create([
+                'affiliate_link_id' => $pendaftar->affiliate_link_id,
+                'pendaftar_id' => $pendaftar->id,
+                'kategori_id' => $parentId,
+                'jumlah' => $komisiAmount,
+                'status' => 'pending',
+            ]);
         }
     }
 }

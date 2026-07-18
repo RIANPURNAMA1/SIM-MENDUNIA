@@ -49,17 +49,18 @@ class Product extends Model
             $name = trim($item['name'] ?? '');
             if ($name === '') continue;
 
-            $find = ['kode' => $name];
-            if ($parentId !== null) {
-                $find['parent_id'] = $parentId;
-            } else {
-                $find['parent_id'] = null;
-            }
+            // Match existing kategori case-insensitively by kode or nama
+            $kategori = BiayaKategori::whereRaw('LOWER(kode) = ?', [strtolower($name)])
+                ->orWhereRaw('LOWER(nama) = ?', [strtolower($name)])
+                ->first();
 
-            $kategori = BiayaKategori::firstOrCreate($find, [
-                'nama' => $name,
-                'urutan' => 0,
-            ]);
+            if (!$kategori) {
+                $kategori = BiayaKategori::create([
+                    'kode' => $name,
+                    'nama' => $name,
+                    'urutan' => 0,
+                ]);
+            }
 
             $sync[$kategori->id] = [
                 'harga' => $item['harga'] ?? 0,

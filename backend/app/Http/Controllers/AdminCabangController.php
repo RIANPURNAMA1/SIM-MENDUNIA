@@ -280,7 +280,48 @@ class AdminCabangController extends Controller
 
         $data = $query->get();
 
-        $kategoris = BiayaKategori::orderBy('urutan')->get();
+        // Build ordered kategori list from all products' kategori_items (hierarchical order)
+        $orderedNames = [];
+        foreach ($data as $p) {
+            if ($p->product && is_array($p->product->kategori_items)) {
+                $walk = function ($items) use (&$walk, &$orderedNames) {
+                    foreach ($items as $item) {
+                        $name = strtolower(trim($item['name'] ?? ''));
+                        if ($name !== '' && !in_array($name, $orderedNames)) {
+                            $orderedNames[] = $name;
+                        }
+                        if (!empty($item['children'])) {
+                            $walk($item['children']);
+                        }
+                    }
+                };
+                $walk($p->product->kategori_items);
+            }
+        }
+
+        // Get all kategoris from DB
+        $allKategoris = BiayaKategori::orderBy('urutan')->get();
+
+        // Sort: kategoris matching ordered names first (in hierarchical order), then remaining
+        $kategoriByName = $allKategoris->keyBy(fn($k) => strtolower($k->nama));
+        $kategoriByKode = $allKategoris->keyBy(fn($k) => strtolower($k->kode));
+        $kategoris = collect();
+        $usedIds = [];
+
+        foreach ($orderedNames as $name) {
+            $k = $kategoriByName->get($name) ?? $kategoriByKode->get($name);
+            if ($k && !in_array($k->id, $usedIds)) {
+                $kategoris->push($k);
+                $usedIds[] = $k->id;
+            }
+        }
+        // Append remaining kategoris not in any product's kategori_items
+        foreach ($allKategoris as $k) {
+            if (!in_array($k->id, $usedIds)) {
+                $kategoris->push($k);
+            }
+        }
+
         $pendaftarIds = $data->pluck('id');
         $allPembayaran = PembayaranItem::whereIn('pendaftar_id', $pendaftarIds)
             ->get()
@@ -289,19 +330,63 @@ class AdminCabangController extends Controller
         $result = $data->map(function ($p) use ($kategoris, $allPembayaran) {
             $pembayaranItems = $allPembayaran->get($p->id, collect())->keyBy('kategori_id');
             $product = $p->product;
+
+            // Build price map from product_biaya_kategori pivot
             $pivotPrices = collect();
             if ($product && $product->relationLoaded('biayaKategoris')) {
                 $pivotPrices = $product->biayaKategoris->keyBy('id')->map(fn($k) => (int) $k->pivot->harga);
             }
-            $detail = $kategoris->map(function ($k) use ($pembayaranItems, $pivotPrices) {
+
+            // Also build a name-based price map from kategori_items JSON as fallback
+            $namaPrices = collect();
+            if ($product && is_array($product->kategori_items)) {
+                $flatten = function ($items) use (&$flatten, &$namaPrices) {
+                    foreach ($items as $item) {
+                        $name = trim($item['name'] ?? '');
+                        $harga = (int) ($item['harga'] ?? 0);
+                        if ($name !== '' && $harga > 0) {
+                            $namaPrices->put(strtolower($name), $harga);
+                        }
+                        if (!empty($item['children'])) {
+                            $flatten($item['children']);
+                        }
+                    }
+                };
+                $flatten($product->kategori_items);
+            }
+
+            // Build a name-based dibayar map from pembayaran_items
+            $namaDibayar = collect();
+            $kategoriMap = $kategoris->keyBy('id');
+            foreach ($pembayaranItems as $katId => $pi) {
+                $katModel = $kategoriMap->get($katId);
+                if ($katModel) {
+                    $namaDibayar->put(strtolower($katModel->nama), (int) $pi->jumlah);
+                }
+            }
+
+            $detail = $kategoris->map(function ($k) use ($pembayaranItems, $pivotPrices, $namaPrices, $namaDibayar) {
                 $pi = $pembayaranItems->get($k->id);
-                $default = $pivotPrices->get($k->id, 0);
+                $biaya = $pivotPrices->get($k->id, 0);
+                if ($biaya === 0) {
+                    $biaya = $namaPrices->get(strtolower($k->nama), 0);
+                }
+                if ($biaya === 0) {
+                    $biaya = $namaPrices->get(strtolower($k->kode), 0);
+                }
+                $dibayar = $pi ? (int) $pi->jumlah : 0;
+                if ($dibayar === 0) {
+                    $dibayar = $namaDibayar->get(strtolower($k->nama), 0);
+                }
+                if ($dibayar === 0) {
+                    $dibayar = $namaDibayar->get(strtolower($k->kode), 0);
+                }
                 return [
                     'kategori_id' => $k->id,
                     'kode' => $k->kode,
                     'nama' => $k->nama,
-                    'biaya' => $default,
-                    'dibayar' => $pi ? (int) $pi->jumlah : 0,
+                    'biaya' => $biaya,
+                    'dibayar' => $dibayar,
                 ];
             });
             return array_merge($p->toArray(), ['detail' => $detail]);

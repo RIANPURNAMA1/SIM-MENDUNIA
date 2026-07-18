@@ -81,9 +81,55 @@ export default function PembayaranSiswa() {
   const paidKategoriIds = kategoriItems.filter(i => i.dibayar >= i.biaya && i.biaya > 0).map(i => i.kategori_id)
   const partialKategoriIds = kategoriItems.filter(i => i.dibayar > 0 && i.dibayar < i.biaya).map(i => i.kategori_id)
 
-  const sortedKat = [...kategoris]
-    .filter(k => !k.parent_id && kategoriItems.some(i => i.kategori_id === k.id))
-    .sort((a, b) => a.urutan - b.urutan)
+  // Also check pending payments from riwayat for "Proses" status
+  const pendingKategoriIds = new Set<number>()
+  if (riwayat?.length) {
+    for (const r of riwayat) {
+      if (r.status === 'pending' && r.kategori_id && !paidKategoriIds.includes(r.kategori_id)) {
+        pendingKategoriIds.add(r.kategori_id)
+      }
+    }
+  }
+
+  // Order kategoris by product's kategori_items hierarchy
+  const productKategoriItems = pendaftar?.product?.kategori_items as { name: string; harga: number; komisi: number; children: any[] }[] | undefined
+  const orderedColumns: Kategori[] = []
+  const matchedIds = new Set<number>()
+
+  if (productKategoriItems && productKategoriItems.length > 0) {
+    // Collect all child names from hierarchy
+    const childNames = new Set<string>()
+    const collectChildren = (items: any[]) => {
+      for (const item of items) {
+        if (item.children?.length) {
+          for (const c of item.children) {
+            childNames.add((c.name || '').toLowerCase())
+          }
+          collectChildren(item.children)
+        }
+      }
+    }
+    collectChildren(productKategoriItems)
+
+    // Only add parent-level items
+    const walk = (items: any[]) => {
+      for (const item of items) {
+        const name = (item.name || '').toLowerCase()
+        const kategori = kategoris.find(k =>
+          k.nama.toLowerCase() === name || k.kode.toLowerCase() === name
+        )
+        if (kategori && kategoriItems.some(i => i.kategori_id === kategori.id) && !matchedIds.has(kategori.id)) {
+          orderedColumns.push(kategori)
+          matchedIds.add(kategori.id)
+        }
+      }
+    }
+    walk(productKategoriItems)
+  }
+
+  // No remaining fallback — only show parent kategoris from kategori_items
+
+  const sortedKat = orderedColumns
   const nextKat = sortedKat.find(k => {
     const item = kategoriItems.find(i => i.kategori_id === k.id)
     return item ? item.dibayar < item.biaya : true
@@ -214,7 +260,7 @@ export default function PembayaranSiswa() {
                   {sortedKat.map((k, idx) => {
                     const item = kategoriItems.find(i => i.kategori_id === k.id)
                     const isLunas = paidKategoriIds.includes(k.id)
-                    const isPartial = partialKategoriIds.includes(k.id)
+                    const isPartial = partialKategoriIds.includes(k.id) || pendingKategoriIds.has(k.id)
                     const isNext = k.id === nextKat?.id
                     const isBelumBayar = !isLunas && !isPartial
                     const katBiaya = item?.biaya || 0
@@ -224,30 +270,30 @@ export default function PembayaranSiswa() {
                         isLunas
                           ? 'border-emerald-400 bg-emerald-50'
                           : isPartial
-                            ? 'border-amber-400 bg-amber-50'
+                            ? 'border-blue-400 bg-blue-50'
                             : isNext
-                              ? 'border-blue-400 bg-blue-50 ring-2 ring-blue-200'
+                              ? 'border-blue-300 bg-blue-50/50'
                               : 'border-gray-200 bg-gray-50 opacity-50'
                       }`}>
                         <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
                           isLunas
                             ? 'border-emerald-500 bg-emerald-100 text-emerald-700'
                             : isPartial
-                              ? 'border-amber-500 bg-amber-100 text-amber-700'
+                              ? 'border-blue-500 bg-blue-100 text-blue-700'
                               : isNext
-                                ? 'border-blue-500 bg-blue-100 text-blue-700'
+                                ? 'border-blue-400 bg-blue-50 text-blue-600'
                                 : 'border-gray-300 bg-gray-100 text-gray-400'
                         }`}>
-                          {isLunas ? <CheckCircle size={14} className="text-emerald-600" /> : isPartial ? <Clock size={12} className="text-amber-600" /> : idx + 1}
+                          {isLunas ? <CheckCircle size={14} className="text-emerald-600" /> : isPartial ? <Clock size={12} className="text-blue-600" /> : idx + 1}
                         </div>
                         <p className={`text-[10px] sm:text-xs font-bold text-center leading-tight ${
-                          isLunas ? 'text-emerald-800' : isPartial ? 'text-amber-800' : isNext ? 'text-blue-700' : 'text-gray-400'
+                          isLunas ? 'text-emerald-800' : isPartial ? 'text-blue-800' : isNext ? 'text-blue-600' : 'text-gray-400'
                         }`}>
                           {k.nama}
                         </p>
                         {katBiaya > 0 && (
                           <p className={`text-[7px] sm:text-[9px] font-medium ${
-                            isLunas ? 'text-emerald-600' : isPartial ? 'text-amber-600' : isNext ? 'text-blue-600' : 'text-gray-400'
+                            isLunas ? 'text-emerald-600' : isPartial ? 'text-blue-600' : isNext ? 'text-blue-500' : 'text-gray-400'
                           }`}>
                             Rp {katBiaya.toLocaleString('id-ID')}
                           </p>
@@ -256,7 +302,10 @@ export default function PembayaranSiswa() {
                           <span className="text-[7px] sm:text-[9px] font-bold text-emerald-700 bg-emerald-200 px-1.5 py-0.5 rounded-full">Lunas</span>
                         )}
                         {isPartial && (
-                          <span className="text-[7px] sm:text-[9px] font-bold text-amber-700 bg-amber-200 px-1.5 py-0.5 rounded-full">Belum Lunas</span>
+                          <span className="text-[7px] sm:text-[9px] font-bold text-blue-700 bg-blue-200 px-1.5 py-0.5 rounded-full">Proses</span>
+                        )}
+                        {isBelumBayar && (
+                          <span className="text-[7px] sm:text-[9px] font-bold text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded-full">Belum Bayar</span>
                         )}
                       </div>
                     )

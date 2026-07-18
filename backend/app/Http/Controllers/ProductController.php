@@ -23,6 +23,8 @@ class ProductController extends Controller
             'status' => 'nullable|in:aktif,nonaktif',
             'komisi_tiers' => 'nullable|array',
             'komisi_tiers.*.kategori_id' => 'nullable|exists:biaya_kategoris,id',
+            'komisi_tiers.*.kategori_name' => 'nullable|string|max:255',
+            'komisi_tiers.*.batch_id' => 'nullable|exists:batches,id',
             'komisi_tiers.*.min_orang' => 'required|integer|min:1',
             'komisi_tiers.*.max_orang' => 'nullable|integer|min:1',
             'komisi_tiers.*.komisi' => 'required|numeric|min:0',
@@ -65,6 +67,8 @@ class ProductController extends Controller
             'status' => 'nullable|in:aktif,nonaktif',
             'komisi_tiers' => 'nullable|array',
             'komisi_tiers.*.kategori_id' => 'nullable|exists:biaya_kategoris,id',
+            'komisi_tiers.*.kategori_name' => 'nullable|string|max:255',
+            'komisi_tiers.*.batch_id' => 'nullable|exists:batches,id',
             'komisi_tiers.*.min_orang' => 'required|integer|min:1',
             'komisi_tiers.*.max_orang' => 'nullable|integer|min:1',
             'komisi_tiers.*.komisi' => 'required|numeric|min:0',
@@ -121,9 +125,24 @@ class ProductController extends Controller
 
         $product->komisiTiers()->delete();
 
+        // Reload biayaKategoris to resolve kategori_name → kategori_id
+        $product->load('biayaKategoris');
+
         foreach ($request->komisi_tiers as $tier) {
+            $kategoriId = $tier['kategori_id'] ?? null;
+
+            // Resolve kategori_name to kategori_id if not provided
+            if (!$kategoriId && !empty($tier['kategori_name'])) {
+                $name = strtolower(trim($tier['kategori_name']));
+                $kategori = $product->biayaKategoris->first(
+                    fn($k) => strtolower($k->nama) === $name || strtolower($k->kode) === $name
+                );
+                $kategoriId = $kategori?->id;
+            }
+
             $product->komisiTiers()->create([
-                'kategori_id' => $tier['kategori_id'] ?? null,
+                'kategori_id' => $kategoriId,
+                'batch_id' => $tier['batch_id'] ?? null,
                 'min_orang' => $tier['min_orang'],
                 'max_orang' => $tier['max_orang'] ?? null,
                 'komisi' => $tier['komisi'],

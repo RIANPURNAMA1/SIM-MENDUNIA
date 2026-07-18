@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import {
   Package, Plus, Edit3, Trash2, X, Search, RotateCcw, Link as LinkIcon,
   Check, GraduationCap, ExternalLink, Trash, ChevronDown, ChevronRight,
+  Info, Tag, DollarSign, Award, Users, Layers,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 import api, { productApi } from '../../services/api'
@@ -16,10 +17,17 @@ interface KategoriItem {
 interface KomisiTier {
   id?: number
   kategori_id: number | null
+  kategori_name?: string
+  batch_id: number | null
   min_orang: number
   max_orang: number | null
   komisi: number
   urutan: number
+}
+
+interface Batch {
+  id: number
+  nama_batch: string
 }
 
 interface BiayaKategori {
@@ -69,9 +77,11 @@ export default function DataProduct() {
   })
   const [copiedId, setCopiedId] = useState<number | null>(null)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+  const [batches, setBatches] = useState<Batch[]>([])
 
-  useEffect(() => { fetchProducts() }, [])
+  useEffect(() => { fetchProducts(); fetchBatches() }, [])
   function fetchProducts() { productApi.list().then(res => setProducts(res.data)) }
+  function fetchBatches() { api.get('/batches').then(res => setBatches(res.data.data || res.data)).catch(() => {}) }
 
   const totalHarga = useMemo(
     () => form.kategori_items.reduce((sum, item) => sum + sumHargaDeep(item), 0),
@@ -104,7 +114,12 @@ export default function DataProduct() {
     setForm({
       nama: p.nama, deskripsi: p.deskripsi || '',
       komisi: p.komisi ? String(p.komisi) : '', status: p.status,
-      kategori_items: items, komisi_tiers: p.komisi_tiers || [],
+      kategori_items: items,
+      komisi_tiers: (p.komisi_tiers || []).map(t => ({
+        ...t,
+        batch_id: t.batch_id ?? null,
+        kategori_name: t.kategori_name || p.biaya_kategoris?.find((bk: any) => bk.id === t.kategori_id)?.nama || '',
+      })),
     })
     setExpanded({})
     setShowModal(true)
@@ -169,18 +184,6 @@ export default function DataProduct() {
     setExpanded(prev => ({ ...prev, [key]: !prev[key] }))
   }
 
-  function addTier() {
-    setForm(prev => ({
-      ...prev,
-      komisi_tiers: [...prev.komisi_tiers, {
-        kategori_id: null,
-        min_orang: prev.komisi_tiers.length > 0
-          ? Math.max(...prev.komisi_tiers.map(t => (t.max_orang || t.min_orang) + 1)) : 1,
-        max_orang: null, komisi: 0, urutan: prev.komisi_tiers.length,
-      }],
-    }))
-  }
-
   function updateTier(index: number, field: string, value: any) {
     setForm(prev => {
       const tiers = [...prev.komisi_tiers]
@@ -218,7 +221,9 @@ export default function DataProduct() {
       komisi: form.komisi ? parseFloat(form.komisi) : null,
       status: form.status,
       komisi_tiers: form.komisi_tiers.map(t => ({
-        kategori_id: t.kategori_id, min_orang: t.min_orang,
+        kategori_id: t.kategori_id, kategori_name: t.kategori_name || null,
+        batch_id: t.batch_id || null,
+        min_orang: t.min_orang,
         max_orang: t.max_orang || null, komisi: t.komisi, urutan: t.urutan,
       })),
     }
@@ -293,70 +298,70 @@ export default function DataProduct() {
     const ownTotal = sumHargaDeep(item)
 
     return (
-      <div key={key} className={depth > 0 ? 'ml-4 mt-1.5 border-l-2 border-blue-100 pl-3' : ''}>
-        <div className={`rounded-lg border ${ownTotal > 0 ? 'border-blue-200 bg-blue-50/30' : 'border-slate-200 bg-white'}`}>
-          <div className="flex items-end gap-2 p-2.5">
+      <div key={key} className={depth > 0 ? 'ml-4 mt-2 border-l-2 border-indigo-200 pl-3' : ''}>
+        <div className={`rounded-lg border ${depth === 0 ? 'border-slate-300 bg-white shadow-sm' : 'border-slate-200 bg-slate-50'}`}>
+          <div className="flex items-end gap-2 p-3">
             {hasChildren ? (
               <button type="button" onClick={() => toggleExpand(key)}
-                className="flex-none p-1 rounded hover:bg-slate-100 transition mb-0.5">
-                {isExpanded ? <ChevronDown size={14} className="text-slate-400" /> : <ChevronRight size={14} className="text-slate-400" />}
+                className="flex-none p-1 rounded-md hover:bg-slate-100 transition mb-0.5">
+                {isExpanded ? <ChevronDown size={16} className="text-slate-500" /> : <ChevronRight size={16} className="text-slate-500" />}
               </button>
-            ) : <span className="w-5 flex-none" />}
+            ) : <span className="w-6 flex-none" />}
             <div className="flex-1 min-w-0">
-              <label className="block text-[10px] text-slate-400 mb-1">{depth === 0 ? 'Nama Kategori' : 'Nama Sub'}</label>
-              <input type="text" placeholder={depth === 0 ? 'Contoh: Level 1, SPP, Ujian...' : 'Contoh: Asrama Level 1, MCU...'}
+              <label className="block text-xs font-bold text-slate-600 mb-1.5">{depth === 0 ? 'Nama Kategori' : 'Nama Sub-Kategori'}</label>
+              <input type="text" placeholder={depth === 0 ? 'Contoh: Level 1, SPP, Ujian...' : 'Contoh: MCU, Pembelajaran, Asrama...'}
                 value={item.name}
                 onChange={e => updateItem(path, 'name', e.target.value)}
-                className="w-full rounded-md bg-slate-50 border border-slate-200 px-3 py-2 text-sm text-slate-700 placeholder-slate-300 outline-none transition focus:bg-white focus:border-slate-300" />
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
             </div>
-            <div className="w-28 flex-none">
-              <label className="block text-[10px] text-slate-400 mb-1">Harga</label>
+            <div className="w-32 flex-none">
+              <label className="block text-xs font-bold text-slate-600 mb-1.5">Harga (Rp)</label>
               <div className="relative">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-slate-400">Rp</span>
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Rp</span>
                 <input type="number" min={0} placeholder="0"
                   value={item.harga || ''}
                   onChange={e => updateItem(path, 'harga', parseFloat(e.target.value) || 0)}
-                  className="w-full rounded-md bg-slate-50 border border-slate-200 pl-7 pr-1.5 py-2 text-sm text-slate-700 placeholder-slate-300 outline-none transition focus:bg-white focus:border-slate-300" />
+                  className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-2 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
               </div>
             </div>
-            <div className="w-28 flex-none">
-              <label className="block text-[10px] text-emerald-500 mb-1">Komisi</label>
+            <div className="w-32 flex-none">
+              <label className="block text-xs font-bold text-emerald-600 mb-1.5">Komisi (Rp)</label>
               <div className="relative">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-slate-400">Rp</span>
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-400">Rp</span>
                 <input type="number" min={0} placeholder="0"
                   value={item.komisi || ''}
                   onChange={e => updateItem(path, 'komisi', parseFloat(e.target.value) || 0)}
-                  className="w-full rounded-md bg-emerald-50 border border-emerald-200 pl-7 pr-1.5 py-2 text-sm text-slate-700 placeholder-slate-300 outline-none transition focus:bg-white focus:border-emerald-400" />
+                  className="w-full rounded-lg border border-emerald-300 bg-emerald-50 pl-9 pr-2 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
               </div>
             </div>
             <button type="button" onClick={() => removeItem(path)}
-              className="flex-none rounded-md border border-slate-200 bg-white p-2 text-slate-400 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-500 mb-0.5">
-              <Trash2 size={14} />
+              className="flex-none rounded-lg border border-slate-200 bg-white p-2 text-slate-400 transition hover:border-red-300 hover:bg-red-50 hover:text-red-500 mb-0.5">
+              <Trash2 size={15} />
             </button>
           </div>
           {/* Total badge for parent with children */}
           {hasChildren && depth === 0 && (
-            <div className="flex items-center justify-between px-2.5 pb-2 -mt-1">
+            <div className="flex items-center justify-between px-3 pb-2.5 -mt-1">
               <button type="button" onClick={() => addItem(path)}
-                className="text-[10px] font-semibold text-blue-500 hover:text-blue-700 transition">
-                + Tambah Sub
+                className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition">
+                <Plus size={12} className="inline mr-0.5" /> Tambah Sub
               </button>
-              <span className="text-[10px] font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
+              <span className="text-xs font-bold text-indigo-700 bg-indigo-100 px-3 py-1 rounded-full">
                 Total: Rp {ownTotal.toLocaleString('id-ID')}
               </span>
             </div>
           )}
           {!hasChildren && depth === 0 && (
-            <div className="flex justify-end px-2.5 pb-2 -mt-1">
+            <div className="flex justify-end px-3 pb-2.5 -mt-1">
               <button type="button" onClick={() => addItem(path)}
-                className="text-[10px] font-semibold text-blue-500 hover:text-blue-700 transition">
-                + Tambah Sub
+                className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition">
+                <Plus size={12} className="inline mr-0.5" /> Tambah Sub
               </button>
             </div>
           )}
         </div>
         {hasChildren && isExpanded && (
-          <div className="space-y-1.5">
+          <div className="space-y-2 mt-1">
             {item.children!.map((child, ci) => renderKategoriRow(child, [...path, ci], depth + 1))}
           </div>
         )}
@@ -483,110 +488,226 @@ export default function DataProduct() {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4 pt-[5vh] overflow-y-auto" onClick={() => setShowModal(false)}>
-          <div className="w-full max-w-2xl rounded-lg bg-white shadow-2xl mb-4" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10 rounded-t-lg">
-              <div>
-                <h2 className="text-lg font-bold text-gray-800">{editing ? 'Edit Produk' : 'Tambah Produk'}</h2>
-                <span className="text-[11px] text-slate-400 font-medium">{editing ? 'Perbarui data produk' : 'Buat produk baru'}</span>
+          <div className="w-full max-w-2xl rounded-xl bg-white shadow-2xl mb-4" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 sticky top-0 bg-white z-10 rounded-t-xl">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] text-white">
+                  <Package size={20} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900">{editing ? 'Edit Produk' : 'Tambah Produk Baru'}</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">{editing ? 'Perbarui data produk dan pengaturan komisi' : 'Lengkapi data produk untuk memulai'}</p>
+                </div>
               </div>
-              <button onClick={() => setShowModal(false)} className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200 text-slate-500 transition hover:bg-slate-300"><X size={18} /></button>
+              <button onClick={() => setShowModal(false)} className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-700"><X size={18} /></button>
             </div>
-            <form onSubmit={handleSubmit} className="px-5 pb-5 pt-4">
-              <div className="space-y-4 max-h-[75vh] overflow-y-auto">
-                {/* Nama Produk */}
+
+            <form onSubmit={handleSubmit} className="px-6 pb-6 pt-6">
+              <div className="space-y-6 max-h-[75vh] overflow-y-auto">
+
+                {/* ===== Section 1: Info Dasar ===== */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Nama Produk <span className="text-red-500">*</span></label>
-                  <input type="text" required placeholder="Masukkan nama produk" value={form.nama} onChange={e => setForm({ ...form, nama: e.target.value })}
-                    className="w-full rounded-md bg-[#f0f2f5] px-3 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:bg-white focus:ring-1 focus:ring-blue-500" />
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100"><Tag size={14} className="text-blue-600" /></div>
+                    <h3 className="text-sm font-bold text-slate-800">Informasi Dasar</h3>
+                  </div>
+                  <div className="space-y-3.5">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Nama Produk <span className="text-red-500">*</span></label>
+                      <input type="text" required placeholder="Contoh: Program Tahfidz 2026" value={form.nama} onChange={e => setForm({ ...form, nama: e.target.value })}
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Deskripsi <span className="text-slate-400 font-normal">(opsional)</span></label>
+                      <textarea placeholder="Jelaskan tentang produk ini..." value={form.deskripsi} onChange={e => setForm({ ...form, deskripsi: e.target.value })} rows={2}
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+                  </div>
                 </div>
 
-                {/* Deskripsi */}
+                {/* ===== Section 2: Rincian Harga per Kategori ===== */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Deskripsi</label>
-                  <textarea placeholder="Deskripsi produk (opsional)" value={form.deskripsi} onChange={e => setForm({ ...form, deskripsi: e.target.value })} rows={2}
-                    className="w-full rounded-md bg-[#f0f2f5] px-3 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:bg-white focus:ring-1 focus:ring-blue-500" />
-                </div>
-
-                {/* Kategori Items */}
-                <div className="border border-slate-200 rounded-lg bg-white overflow-hidden">
-                  <div className="px-4 py-2.5 border-b border-slate-200">
-                    <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">Rincian Harga per Kategori</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Tambahkan kategori bayar beserta sub-nya (jika ada).</p>
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-100"><Layers size={14} className="text-indigo-600" /></div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-800">Rincian Harga per Kategori</h3>
+                      <p className="text-xs text-slate-500 mt-0.5">Definisikan tahapan pembayaran. Kategori utama bisa memiliki sub-kategori.</p>
+                    </div>
                   </div>
-                  <div className="p-3 space-y-2">
-                    {form.kategori_items.map((item, idx) => renderKategoriRow(item, [idx], 0))}
-                    <button type="button" onClick={() => addItem([])}
-                      className="w-full rounded-md border border-dashed border-blue-300 bg-blue-50/50 py-2 text-xs font-semibold text-blue-600 transition hover:bg-blue-50 hover:border-blue-400">
-                      + Tambah Kategori
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between px-4 py-2.5 border-t border-slate-200">
-                    <span className="text-xs font-bold text-slate-600">Total Harga</span>
-                    <span className="text-xs font-bold text-slate-800">Rp {totalHarga.toLocaleString('id-ID')}</span>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
+                    <div className="p-3 space-y-2">
+                      {form.kategori_items.map((item, idx) => renderKategoriRow(item, [idx], 0))}
+                      <button type="button" onClick={() => addItem([])}
+                        className="w-full rounded-lg border-2 border-dashed border-blue-300 bg-white py-2.5 text-xs font-semibold text-blue-600 transition hover:bg-blue-50 hover:border-blue-400">
+                        <Plus size={14} className="inline mr-1" /> Tambah Kategori Baru
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 bg-white">
+                      <span className="text-sm font-bold text-slate-700">Total Harga</span>
+                      <span className="text-sm font-bold text-[#0D1F3C] bg-slate-100 px-3 py-1 rounded-lg">Rp {totalHarga.toLocaleString('id-ID')}</span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Komisi Tier */}
-                <div className="border border-slate-200 rounded-lg bg-white overflow-hidden">
-                  <div className="px-4 py-2.5 border-b border-slate-200">
-                    <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Komisi Tier per Jumlah Orang</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Atur komisi berdasarkan jumlah pendaftar per batch.</p>
+                {/* ===== Section 3: Komisi Tier ===== */}
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100"><Award size={14} className="text-emerald-600" /></div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-800">Komisi Tier per Kategori</h3>
+                      <p className="text-xs text-slate-500 mt-0.5">Atur komisi affiliate berdasarkan jumlah kandidat yang lunas per batch.</p>
+                    </div>
                   </div>
-                  <div className="p-3 space-y-3">
-                    {form.komisi_tiers.length > 0 && (
-                      <div className="space-y-1.5">
-                        <div className="grid grid-cols-[50px_50px_1fr_28px] gap-1.5 text-[9px] font-semibold text-slate-400 px-1">
-                          <span>Min</span><span>Max</span><span>Komisi (Rp)</span><span></span>
-                        </div>
-                        {form.komisi_tiers.map((t, idx) => (
-                          <div key={idx} className="grid grid-cols-[50px_50px_1fr_28px] gap-1.5 items-center">
-                            <input type="number" min={1} value={t.min_orang}
-                              onChange={e => updateTier(idx, 'min_orang', parseInt(e.target.value) || 1)}
-                              className="rounded border border-slate-200 bg-slate-50 px-1.5 py-1.5 text-xs text-slate-700 outline-none focus:border-slate-300 text-center" />
-                            <input type="number" min={t.min_orang} placeholder="∞" value={t.max_orang ?? ''}
-                              onChange={e => updateTier(idx, 'max_orang', e.target.value ? parseInt(e.target.value) : null)}
-                              className="rounded border border-slate-200 bg-slate-50 px-1.5 py-1.5 text-xs text-slate-700 outline-none focus:border-slate-300 text-center" />
-                            <div className="relative">
-                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">Rp</span>
-                              <input type="number" min={0} value={t.komisi || ''}
-                                onChange={e => updateTier(idx, 'komisi', parseFloat(e.target.value) || 0)}
-                                className="w-full rounded border border-emerald-200 bg-emerald-50 pl-6 pr-1.5 py-1.5 text-xs text-slate-700 outline-none focus:border-emerald-400" />
-                            </div>
-                            <button type="button" onClick={() => removeTier(idx)} className="rounded p-1 text-slate-300 hover:text-red-500 transition-colors">
-                              <Trash size={13} />
-                            </button>
-                          </div>
-                        ))}
+
+                  {/* How it works */}
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 mb-3">
+                    <div className="flex items-start gap-2">
+                      <Info size={14} className="text-emerald-600 mt-0.5 flex-none" />
+                      <div className="text-[11px] text-emerald-800 leading-relaxed">
+                        <p className="font-semibold mb-1">Cara kerja:</p>
+                        <ul className="space-y-0.5 list-disc list-inside">
+                          <li>Komisi di-trigger saat <strong>semua sub-kategori lunas</strong> (misal: MCU + Pembelajaran terbayar penuh)</li>
+                          <li>Tier dihitung per batch — pilih batch spesifik atau "Semua Batch" sebagai default</li>
+                          <li>Komisi diterima affiliate per kandidat yang mencapai lunas</li>
+                        </ul>
                       </div>
-                    )}
-                    <button type="button" onClick={addTier}
-                      className="w-full rounded border border-dashed border-emerald-200 py-1.5 text-[10px] font-semibold text-emerald-500 hover:text-emerald-700 hover:border-emerald-300 transition-colors">
-                      + Tambah Tier
-                    </button>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
+                    <div className="p-3 space-y-4">
+                      {form.kategori_items.filter(i => i.children && i.children.length > 0).length === 0 && (
+                        <div className="text-center py-4">
+                          <Users size={28} className="mx-auto text-slate-300 mb-2" />
+                          <p className="text-sm text-slate-500">Belum ada kategori dengan sub-kategori</p>
+                          <p className="text-[11px] text-slate-400 mt-1">Tambahkan sub-kategori di atas untuk mengatur komisi tier</p>
+                        </div>
+                      )}
+                      {form.kategori_items.filter(i => i.children && i.children.length > 0).map((parent, pIdx) => {
+                        const parentIdx = form.kategori_items.indexOf(parent)
+                        const parentTiers = form.komisi_tiers.filter(t => t.kategori_name === parent.name)
+                        const childNames = parent.children.map(c => c.name).join(', ')
+
+                        function addParentTier() {
+                          const newTier: KomisiTier = {
+                            kategori_id: null,
+                            kategori_name: parent.name,
+                            batch_id: null,
+                            min_orang: parentTiers.length > 0
+                              ? Math.max(...parentTiers.map(t => (t.max_orang || t.min_orang) + 1)) : 1,
+                            max_orang: null, komisi: 0, urutan: parentTiers.length,
+                          }
+                          setForm(prev => ({
+                            ...prev,
+                            komisi_tiers: [...prev.komisi_tiers, newTier],
+                          }))
+                        }
+
+                        return (
+                          <div key={parentIdx} className="rounded-xl border border-emerald-200 bg-white overflow-hidden shadow-sm">
+                            {/* Parent Header */}
+                            <div className="px-4 py-3 border-b border-emerald-200 bg-gradient-to-r from-emerald-50 to-white flex items-center justify-between">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-bold text-slate-800">{parent.name}</span>
+                                  <span className="text-[10px] font-medium text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">{parentTiers.length} tier</span>
+                                </div>
+                                <p className="text-[11px] text-slate-500 mt-0.5">Sub: {childNames}</p>
+                              </div>
+                            </div>
+
+                            {/* Tier Table */}
+                            <div className="p-3">
+                              {parentTiers.length > 0 ? (
+                                <div className="space-y-2">
+                                  {/* Header */}
+                                  <div className="grid grid-cols-[110px_50px_50px_1fr_32px] gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider px-1">
+                                    <span>Batch</span>
+                                    <span className="text-center">Min</span>
+                                    <span className="text-center">Max</span>
+                                    <span>Komisi/org</span>
+                                    <span></span>
+                                  </div>
+                                  {parentTiers.map((t, ti) => {
+                                    const globalIdx = form.komisi_tiers.indexOf(t)
+                                    return (
+                                      <div key={globalIdx} className="grid grid-cols-[110px_50px_50px_1fr_32px] gap-2 items-center bg-slate-50 rounded-lg p-1.5">
+                                        <select value={t.batch_id ?? ''}
+                                          onChange={e => updateTier(globalIdx, 'batch_id', e.target.value ? parseInt(e.target.value) : null)}
+                                          className="rounded-md border border-slate-200 bg-white px-2 py-2 text-xs text-slate-700 outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 truncate">
+                                          <option value="">Semua Batch</option>
+                                          {batches.map(b => <option key={b.id} value={b.id}>{b.nama_batch}</option>)}
+                                        </select>
+                                        <input type="number" min={1} value={t.min_orang}
+                                          onChange={e => updateTier(globalIdx, 'min_orang', parseInt(e.target.value) || 1)}
+                                          className="rounded-md border border-slate-200 bg-white px-2 py-2 text-xs text-slate-700 outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 text-center font-semibold" />
+                                        <input type="number" min={t.min_orang} placeholder="∞" value={t.max_orang ?? ''}
+                                          onChange={e => updateTier(globalIdx, 'max_orang', e.target.value ? parseInt(e.target.value) : null)}
+                                          className="rounded-md border border-slate-200 bg-white px-2 py-2 text-xs text-slate-700 outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 text-center" />
+                                        <div className="relative">
+                                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-600">Rp</span>
+                                          <input type="number" min={0} value={t.komisi || ''}
+                                            onChange={e => updateTier(globalIdx, 'komisi', parseFloat(e.target.value) || 0)}
+                                            className="w-full rounded-md border border-emerald-200 bg-emerald-50 pl-9 pr-2 py-2 text-xs text-slate-800 font-semibold outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400" />
+                                        </div>
+                                        <button type="button" onClick={() => removeTier(globalIdx)} className="rounded-md p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                                          <Trash size={13} />
+                                        </button>
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-slate-400 text-center py-2">Belum ada tier. Klik tombol di bawah untuk menambahkan.</p>
+                              )}
+                              <button type="button" onClick={addParentTier}
+                                className="mt-2 w-full rounded-lg border-2 border-dashed border-emerald-300 py-2 text-xs font-semibold text-emerald-600 hover:text-emerald-800 hover:border-emerald-400 hover:bg-emerald-50 transition-colors">
+                                <Plus size={13} className="inline mr-1" /> Tambah Tier untuk {parent.name}
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
                 </div>
 
-                {/* Global Komisi & Status */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-emerald-600 mb-1">Komisi Global (Rp)</label>
-                    <input type="number" min={0} placeholder="0" value={form.komisi} onChange={e => setForm({ ...form, komisi: e.target.value })}
-                      className="w-full rounded-md bg-emerald-50 border border-emerald-200 px-3 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:bg-white focus:border-emerald-400" />
+                {/* ===== Section 4: Pengaturan Lainnya ===== */}
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-100"><DollarSign size={14} className="text-amber-600" /></div>
+                    <h3 className="text-sm font-bold text-slate-800">Pengaturan Lainnya</h3>
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Status</label>
-                    <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}
-                      className="w-full rounded-md bg-[#f0f2f5] px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:bg-white focus:ring-1 focus:ring-blue-500">
-                      <option value="aktif">Aktif</option>
-                      <option value="nonaktif">Nonaktif</option>
-                    </select>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-lg border border-slate-200 bg-white p-3">
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Komisi Global <span className="text-slate-400 font-normal">(Rp)</span></label>
+                      <input type="number" min={0} placeholder="0" value={form.komisi} onChange={e => setForm({ ...form, komisi: e.target.value })}
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:ring-2 focus:ring-amber-500 focus:border-amber-500" />
+                      <p className="text-[10px] text-slate-400 mt-1.5">Dibayarkan saat kandidat di-approve</p>
+                    </div>
+                    <div className="rounded-lg border border-slate-200 bg-white p-3">
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Status Produk</label>
+                      <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="aktif">Aktif</option>
+                        <option value="nonaktif">Nonaktif</option>
+                      </select>
+                      <p className="text-[10px] text-slate-400 mt-1.5">Nonaktif = tidak bisa didaftar</p>
+                    </div>
                   </div>
                 </div>
-                <p className="text-[11px] text-slate-400 leading-tight">Komisi: diterima affiliate saat kategori lunas. Komisi global: diterima saat pendaftar di-approve.</p>
+
               </div>
-              <div className="mt-5 flex gap-2">
-                <button type="submit" className="flex-1 rounded-md bg-emerald-600 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700">{editing ? 'Simpan' : 'Tambah'}</button>
-                <button type="button" onClick={() => setShowModal(false)} className="flex-1 rounded-md bg-[#e4e6eb] py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-[#d8dadf]">Batal</button>
+
+              {/* Action Buttons */}
+              <div className="mt-6 flex gap-3">
+                <button type="submit" className="flex-1 rounded-lg bg-[#0D1F3C] py-3 text-sm font-bold text-white transition hover:bg-[#162d54] shadow-sm">
+                  {editing ? 'Simpan Perubahan' : 'Buat Produk'}
+                </button>
+                <button type="button" onClick={() => setShowModal(false)} className="flex-1 rounded-lg bg-slate-100 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-200 hover:text-slate-800">
+                  Batal
+                </button>
               </div>
             </form>
           </div>

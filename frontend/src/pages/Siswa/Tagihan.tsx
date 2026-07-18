@@ -40,7 +40,7 @@ interface TagihanItem {
   status_pendaftaran: string
   status_pembayaran: string
   created_at: string
-  product: { id: number; nama: string; harga: number } | null
+  product: { id: number; nama: string; harga: number; kategori_items?: { name: string; harga: number; komisi: number; children: any[] }[] } | null
   batch: { id: number; nama_batch: string } | null
   detail?: DetailItem[]
 }
@@ -61,6 +61,7 @@ interface BatchOption {
 interface ProductOption {
   id: number
   nama: string
+  kategori_items?: { name: string; harga: number; komisi: number; children: any[] }[]
 }
 
 interface KategoriColumn {
@@ -166,33 +167,48 @@ export default function Tagihan() {
           if (d.biaya > 0) usedIds.add(d.kategori_id)
         })
       })
-      const used = kategoris.filter(k => usedIds.has(k.id))
-      group.kategoris = used
 
-      const byId = new Map(used.map(k => [k.id, k]))
-      const childMap = new Map<number, KategoriInfo[]>()
-      const roots: KategoriInfo[] = []
-
-      used.forEach(k => {
-        if (k.parent_id && byId.has(k.parent_id)) {
-          if (!childMap.has(k.parent_id)) childMap.set(k.parent_id, [])
-          childMap.get(k.parent_id)!.push(k)
-        } else {
-          roots.push(k)
-        }
-      })
+      // Get product's kategori_items for ordering
+      const productData = products.find(pr => pr.id === group.productId)
+      const kategoriItems = productData?.kategori_items
 
       const columns: KategoriColumn[] = []
-      roots.forEach(r => {
-        columns.push({ kategori: r, depth: 0 })
-        const children = childMap.get(r.id) || []
-        children.forEach(c => columns.push({ kategori: c, depth: 1 }))
-      })
+      const matchedIds = new Set<number>()
+
+      if (kategoriItems && kategoriItems.length > 0) {
+        // Order by kategori_items hierarchy
+        const walk = (items: any[], depth: number) => {
+          for (const item of items) {
+            const name = (item.name || '').toLowerCase()
+            const kategori = kategoris.find(k =>
+              k.nama.toLowerCase() === name || k.kode.toLowerCase() === name
+            )
+            if (kategori && usedIds.has(kategori.id) && !matchedIds.has(kategori.id)) {
+              columns.push({ kategori, depth })
+              matchedIds.add(kategori.id)
+            }
+            if (item.children?.length) {
+              walk(item.children, depth + 1)
+            }
+          }
+        }
+        walk(kategoriItems, 0)
+      }
+
+      // Append remaining kategoris not in kategori_items
+      for (const k of kategoris) {
+        if (usedIds.has(k.id) && !matchedIds.has(k.id)) {
+          columns.push({ kategori: k, depth: 0 })
+          matchedIds.add(k.id)
+        }
+      }
+
+      group.kategoris = columns.map(c => c.kategori)
       group.kategoriColumns = columns
     })
 
     return order.map(id => groupMap.get(id)!).sort((a, b) => a.productName.localeCompare(b.productName))
-  }, [filtered, kategoris])
+  }, [filtered, kategoris, products])
 
   const stats = useMemo(() => {
     const total = data.reduce((sum, p) => {

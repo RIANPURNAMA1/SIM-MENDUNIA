@@ -422,13 +422,13 @@ export default function DaftarAffiliate() {
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Batch</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Batch <span className="text-gray-400 font-normal">(opsional)</span></label>
                           <select
                             value={batchId}
                             onChange={e => setBatchId(e.target.value)}
                             className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm appearance-none cursor-pointer"
                           >
-                            <option value="">Pilih Batch</option>
+                            <option value="">Belum ditentukan</option>
                             {batches.map((b) => {
                               const penuh = b.is_penuh && b.kuota !== null && (b.siswas_count ?? 0) >= b.kuota
                               return (
@@ -438,6 +438,7 @@ export default function DaftarAffiliate() {
                               )
                             })}
                            </select>
+                          <p className="text-[11px] text-gray-400 mt-1">Opsional — admin dapat menentukan batch nanti</p>
                           {batchId && (() => {
                             const selectedBatch = batches.find(b => String(b.id) === batchId)
                             if (selectedBatch?.is_penuh) {
