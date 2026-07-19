@@ -14,7 +14,7 @@ import {
   RotateCcw,
   CheckCircle,
 } from "lucide-react";
-import { karyawanApi, referensiApi } from "../../services/api";
+import { karyawanApi, referensiApi, APP_URL } from "../../services/api";
 import type {
   Karyawan,
   Divisi,
@@ -994,7 +994,7 @@ export default function KaryawanPage() {
                                 </span>
                                 {doc.file ? (
                                   <a
-                                    href={`http://localhost:8000/uploads/${doc.key}/${doc.file}`}
+                                    href={`${APP_URL}/uploads/${doc.key}/${doc.file}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-xs font-medium text-blue-600 hover:underline"

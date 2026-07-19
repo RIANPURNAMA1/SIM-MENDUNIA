@@ -24,6 +24,23 @@ class SiswaDashboardController extends Controller
             ->first();
 
         $siswa = Siswa::where('user_id', $user->id)->first();
+
+        // Auto-sync address from pendaftar to siswa if siswa doesn't have it
+        if ($siswa && $pendaftar) {
+            $synced = false;
+            foreach (['provinsi', 'kabupaten', 'kecamatan', 'desa', 'alamat'] as $field) {
+                if (empty($siswa->$field) && !empty($pendaftar->$field)) {
+                    $siswa->$field = $pendaftar->$field;
+                    $synced = true;
+                }
+            }
+            if (empty($siswa->no_hp) && !empty($pendaftar->telepon)) {
+                $siswa->no_hp = $pendaftar->telepon;
+                $synced = true;
+            }
+            if ($synced) $siswa->save();
+        }
+
         $batches = Batch::aktif()->orderBy('nama_batch')->get(['id', 'nama_batch']);
 
         $hasClass = false;

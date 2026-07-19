@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { ClipboardList, Search, RotateCcw, X, ChevronDown, ChevronUp, Image } from "lucide-react";
-import { kehadiranSenseiApi } from "../../services/api";
+import { kehadiranSenseiApi, APP_URL } from "../../services/api";
 import type { KehadiranSenseiGroup, Karyawan } from "../../types";
 
 const STATUS_OPTIONS = [
@@ -258,7 +258,7 @@ export default function DataKehadiranSenseiPage() {
                             {item.jam_masuk ? (
                               <span className="inline-flex items-center gap-1">
                                 {item.foto_masuk && (
-                                  <a href={`http://localhost:8000/uploads/sensei/${item.foto_masuk}`} target="_blank" rel="noopener noreferrer" className="text-slate-300 hover:text-slate-500">
+                                  <a href={`${APP_URL}/uploads/sensei/${item.foto_masuk}`} target="_blank" rel="noopener noreferrer" className="text-slate-300 hover:text-slate-500">
                                     <Image size={12} />
                                   </a>
                                 )}
@@ -270,7 +270,7 @@ export default function DataKehadiranSenseiPage() {
                             {item.jam_keluar ? (
                               <span className="inline-flex items-center gap-1">
                                 {item.foto_pulang && (
-                                  <a href={`http://localhost:8000/uploads/sensei/${item.foto_pulang}`} target="_blank" rel="noopener noreferrer" className="text-slate-300 hover:text-slate-500">
+                                  <a href={`${APP_URL}/uploads/sensei/${item.foto_pulang}`} target="_blank" rel="noopener noreferrer" className="text-slate-300 hover:text-slate-500">
                                     <Image size={12} />
                                   </a>
                                 )}

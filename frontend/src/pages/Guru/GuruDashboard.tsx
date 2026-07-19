@@ -5,7 +5,7 @@ import {
   QrCode, History, BookOpen, ClipboardList, Camera, MapPin, Notebook,
   Award, BarChart3,
 } from 'lucide-react'
-import api, { guruKelasApi } from '../../services/api'
+import api, { guruKelasApi, APP_URL } from '../../services/api'
 import Swal from 'sweetalert2'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
 
@@ -316,7 +316,7 @@ export default function GuruDashboard() {
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-[#eef1f6] overflow-hidden flex items-center justify-center flex-none">
               {user?.foto_profil && user.foto_profil.trim() ? (
-                <img src={`http://localhost:8000/uploads/karyawan/${user.foto_profil}`} alt="" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                <img src={`${APP_URL}/uploads/karyawan/${user.foto_profil}`} alt="" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
               ) : (
                 <User size={20} className="text-[#8B90A0]" />
               )}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { BarChart3, Search, RotateCcw, Download } from "lucide-react";
-import { absensiSiswaApi } from "../../services/api";
+import { absensiSiswaApi, APP_URL } from "../../services/api";
 import type { RekapSiswaItem } from "../../types";
 
 export default function RekapSiswaPage() {
@@ -71,7 +71,7 @@ export default function RekapSiswaPage() {
     params.set("end_date", endDate);
     if (filterBatch) params.set("batch_id", filterBatch);
     if (filterLevel) params.set("level", filterLevel);
-    window.open(`http://localhost:8000/absensi-siswa/rekap/export-excel?${params.toString()}`, "_blank");
+    window.open(`${APP_URL}/absensi-siswa/rekap/export-excel?${params.toString()}`, "_blank");
   };
 
   const handleExportPdf = () => {
@@ -80,7 +80,7 @@ export default function RekapSiswaPage() {
     params.set("end_date", endDate);
     if (filterBatch) params.set("batch_id", filterBatch);
     if (filterLevel) params.set("level", filterLevel);
-    window.open(`http://localhost:8000/absensi-siswa/rekap/export-pdf?${params.toString()}`, "_blank");
+    window.open(`${APP_URL}/absensi-siswa/rekap/export-pdf?${params.toString()}`, "_blank");
   };
 
   return (

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Clock, Search, RotateCcw, CheckCircle, XCircle, AlertTriangle, Image } from 'lucide-react'
-import { lemburApi } from '../../services/api'
+import { lemburApi, APP_URL } from '../../services/api'
 import type { Lembur, Pagination } from '../../types'
 
 const statusColors: Record<string, string> = {
@@ -79,7 +79,7 @@ export default function ApprovalLemburPage() {
     return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
   }
 
-  const fotoUrl = (foto: string) => `http://localhost:8000/uploads/lembur/${foto}`
+  const fotoUrl = (foto: string) => `${APP_URL}/uploads/lembur/${foto}`
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">

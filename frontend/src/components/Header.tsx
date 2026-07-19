@@ -10,7 +10,7 @@ import {
   ListOrdered, MessageSquare, Wallet,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { izinApi, lemburApi } from '../services/api'
+import { izinApi, lemburApi, APP_URL } from '../services/api'
 
 interface HeaderProps {
   onToggleSidebar: () => void
@@ -160,7 +160,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
   }
 
   const avatarUrl = user?.foto_profil
-    ? `http://localhost:8000/uploads/profil/${user.foto_profil}`
+    ? `${APP_URL}/uploads/profil/${user.foto_profil}`
     : `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=e5e7eb&color=6b7280&size=36`
 
   const isAccounting = user?.role === 'ACCOUNTING'
@@ -206,7 +206,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
   }
 
   const handleLogout = () => {
-    window.location.href = 'http://localhost:8000/logout-app'
+    window.location.href = `${APP_URL}/logout-app`
   }
 
   return (

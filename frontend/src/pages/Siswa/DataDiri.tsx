@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { User, CheckCircle, Camera, ChevronDown, Loader } from 'lucide-react'
-import api from '../../services/api'
+import api, { APP_URL } from '../../services/api'
 
 interface PendaftarData {
   id: number
@@ -162,23 +162,24 @@ export default function DataDiri() {
     if (!userData && !siswa) return
     const u = userData || {} as Partial<UserData>
     const s = siswa || {} as Partial<SiswaData>
+    const p = pendaftar || {} as any
     setFormPribadi({
       name: u.name || '',
-      nik: s.nik || u.nik || '',
-      tempat_lahir: s.tempat_lahir || u.tempat_lahir || '',
-      tanggal_lahir: s.tanggal_lahir || u.tanggal_lahir || '',
-      jenis_kelamin: s.jenis_kelamin || u.jenis_kelamin || '',
+      nik: s.nik || u.nik || p.nik || '',
+      tempat_lahir: s.tempat_lahir || u.tempat_lahir || p.tempat_lahir || '',
+      tanggal_lahir: s.tanggal_lahir || u.tanggal_lahir || p.tanggal_lahir || '',
+      jenis_kelamin: s.jenis_kelamin || u.jenis_kelamin || p.jenis_kelamin || '',
       agama: s.agama || u.agama || '',
     })
     setFormAlamat({
-      alamat: s.alamat || u.alamat || '',
-      desa: s.desa || '',
-      kecamatan: s.kecamatan || '',
-      kabupaten: s.kabupaten || '',
-      provinsi: s.provinsi || '',
+      alamat: s.alamat || u.alamat || p.alamat || '',
+      desa: s.desa || p.desa || '',
+      kecamatan: s.kecamatan || p.kecamatan || '',
+      kabupaten: s.kabupaten || p.kabupaten || '',
+      provinsi: s.provinsi || p.provinsi || '',
     })
     setFormTambahan({
-      no_hp: s.no_hp || u.no_hp || '',
+      no_hp: s.no_hp || u.no_hp || p.telepon || '',
       pendidikan_terakhir: s.pendidikan_terakhir || u.pendidikan_terakhir || '',
       tahun_lulus: s.tahun_lulus || '',
       tinggi_badan: s.tinggi_badan || '',
@@ -192,7 +193,7 @@ export default function DataDiri() {
       nama_ortu: s.nama_ortu || '',
       no_hp_ortu: s.no_hp_ortu || '',
     })
-  }, [userData, siswa])
+  }, [userData, siswa, pendaftar])
 
   useEffect(() => {
     if (!provinsiList.length || !formAlamat.provinsi) return
@@ -334,7 +335,7 @@ export default function DataDiri() {
     )
   }
 
-  const fotoSrc = userData?.foto_profil ? `http://localhost:8000/${userData.foto_profil}` : null
+  const fotoSrc = userData?.foto_profil ? `${APP_URL}/${userData.foto_profil}` : null
   const hasData = (field: string) => {
     const s = siswa as any
     const u = userData as any
@@ -753,7 +754,7 @@ function DocUpload({ label, file, existing, onChange }: { label: string; file: F
           <input type="file" accept="image/*" className="hidden" onChange={onChange} />
         </label>
         {existing && (
-          <a href={`http://localhost:8000/${existing}`} target="_blank" rel="noreferrer"
+          <a href={`${APP_URL}/${existing}`} target="_blank" rel="noreferrer"
             className="shrink-0 px-4 py-2.5 flex items-center rounded-md bg-gray-100 text-sm font-semibold text-[#0D1F3C] transition hover:bg-gray-200">
             Lihat
           </a>

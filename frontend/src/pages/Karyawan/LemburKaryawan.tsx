@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { lemburApi } from '../../services/api'
+import { lemburApi, APP_URL } from '../../services/api'
 import { Clock, Camera, X, CheckCircle, ArrowLeft, Image } from 'lucide-react'
 import Swal from 'sweetalert2'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
@@ -155,7 +155,7 @@ export default function LemburKaryawan() {
     }
   }
 
-  const fotoUrl = (foto: string) => `http://localhost:8000/uploads/lembur/${foto}`
+  const fotoUrl = (foto: string) => `${APP_URL}/uploads/lembur/${foto}`
 
   return (
     <div className="min-h-screen bg-[#F4F5F8] pb-24">

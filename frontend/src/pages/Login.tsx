@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Eye, EyeOff, LogIn } from "lucide-react";
 
 function generateCaptcha() {
   let result = "";
@@ -68,100 +68,117 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-white">
       {/* Left - Form */}
-      <div className="w-full lg:w-1/2 bg-white flex items-center justify-center p-6">
-        <div className="w-full max-w-[420px] fade-in">
-    
-          <div className="p-8">
-            <h1 className="text-2xl font-bold text-[#1c1e21] mb-1">Masuk</h1>
-            <p className="text-sm text-[#606770] mb-6">Login untuk melanjutkan</p>
+      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-6 sm:p-10">
+        <div className="w-full max-w-[400px] fade-in">
+          <div className="mb-8">
+            <div className="flex items-center gap-2.5 mb-6">
+              <img src="/logo-sm.png" alt="Mendunia" className="w-10 h-10" />
+              <span className="text-xl font-bold text-gray-900 tracking-tight">mendunia.id</span>
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">Masuk</h1>
+            <p className="text-sm text-gray-500">Masukkan kredensial Anda untuk melanjutkan</p>
+          </div>
 
-            {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm font-semibold text-red-700 text-center">
-                {error}
-              </div>
-            )}
+          {error && (
+            <div className="mb-5 p-3.5 bg-red-50 border border-red-200 rounded-lg text-sm font-medium text-red-600 flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
+              {error}
+            </div>
+          )}
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
               <input
                 type="text"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                placeholder="Email atau Nama"
-                className="w-full h-[52px] px-4 text-[17px] bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:outline-none focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] text-[#1c1e21] placeholder-[#8d949e]"
+                placeholder="Masukkan email atau nama"
+                className="w-full h-11 px-3.5 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] text-gray-900 placeholder-gray-400 transition-colors"
               />
+            </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Kata Sandi</label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  placeholder="Kata Sandi"
-                  className="w-full h-[52px] px-4 text-[17px] bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:outline-none focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] text-[#1c1e21] placeholder-[#8d949e]"
+                  placeholder="Masukkan kata sandi"
+                  className="w-full h-11 px-3.5 pr-12 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] text-gray-900 placeholder-gray-400 transition-colors"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#0D1F3C] hover:underline"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  {showPassword ? "Sembunyikan" : "Tampilkan"}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+            </div>
 
-              <div className="flex gap-2 items-center">
-                <div className="flex-none w-24 h-[52px] bg-[#f5f6f7] rounded-lg border border-[#dddfe2] flex items-center justify-center select-none relative overflow-hidden group">
-                  <span className="text-lg font-black tracking-widest text-[#1c1e21]">{captcha}</span>
-                  <button
-                    type="button"
-                    onClick={() => { setCaptcha(generateCaptcha()); setCaptchaInput("") }}
-                    className="absolute inset-0 bg-[#0D1F3C]/90 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 text-white text-xs font-bold"
-                  >
-                    <RefreshCw size={14} />
-                  </button>
-                </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Kode Verifikasi</label>
+              <div className="flex gap-3 items-center">
+                <button
+                  type="button"
+                  onClick={() => { setCaptcha(generateCaptcha()); setCaptchaInput("") }}
+                  className="flex-none w-[88px] h-11 bg-gray-100 rounded-lg border border-gray-300 flex items-center justify-center select-none relative overflow-hidden group cursor-pointer hover:bg-gray-200 transition-colors"
+                >
+                  <span className="text-lg font-black tracking-[0.2em] text-gray-700">{captcha}</span>
+                  <div className="absolute inset-0 bg-[#0D1F3C]/90 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-[11px] font-bold">
+                    <RefreshCw size={13} />
+                    <span>Ulang</span>
+                  </div>
+                </button>
                 <input
                   type="text"
                   value={captchaInput}
                   onChange={(e) => setCaptchaInput(e.target.value)}
                   required
-                  placeholder="Kode verifikasi"
-                  className="flex-1 h-[52px] px-3 text-[15px] bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:outline-none focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] text-[#1c1e21] placeholder-[#8d949e]"
+                  placeholder="Masukkan kode"
+                  className="flex-1 h-11 px-3.5 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] text-gray-900 placeholder-gray-400 transition-colors"
                 />
               </div>
+              <p className="text-[11px] text-gray-400 mt-1.5">Klik kode di samping untuk memperbarui</p>
+            </div>
 
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full mt-1 bg-[#0D1F3C] text-white font-bold text-[18px] py-3 rounded-lg hover:bg-[#1a2d4a] transition-colors flex justify-center items-center h-[48px] disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Memproses...</span>
-                  </div>
-                ) : (
-                  "Masuk"
-                )}
-              </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full mt-2 h-11 bg-[#0D1F3C] text-white font-semibold text-sm rounded-lg hover:bg-[#1a2d4a] active:scale-[0.99] transition-all flex justify-center items-center disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Memproses...</span>
+                </div>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <LogIn size={16} />
+                  Masuk
+                </span>
+              )}
+            </button>
 
-              <div className="text-center">
-                <Link to="/forgot-password" className="text-sm text-[#0D1F3C] font-medium hover:underline">
-                  Lupa kata sandi?
-                </Link>
-              </div>
+            <div className="text-center pt-1">
+              <Link to="/forgot-password" className="text-sm text-[#0D1F3C] font-medium hover:underline">
+                Lupa kata sandi?
+              </Link>
+            </div>
+          </form>
 
-            </form>
-          </div>
-
-          <div className="mt-6 text-center">
-            <p className="text-[13px] text-[#606770]">
-              Dengan mendaftar, Anda menyetujui{" "}
-              <a href="/kebijakan-privasi" className="font-semibold text-[#1c1e21] hover:underline">Kebijakan Privasi</a>{" "}
-              &middot;{" "}
-              <a href="/syarat-ketentuan" className="font-semibold text-[#1c1e21] hover:underline">Syarat & Ketentuan</a>
+          <div className="mt-10 pt-5 border-t border-gray-100 text-center">
+            <p className="text-xs text-gray-400 leading-relaxed">
+              Dengan masuk, Anda menyetujui{" "}
+              <a href="/kebijakan-privasi" className="text-gray-600 font-medium hover:underline">Kebijakan Privasi</a>
+              {" "}&{" "}
+              <a href="/syarat-ketentuan" className="text-gray-600 font-medium hover:underline">Syarat & Ketentuan</a>
             </p>
           </div>
         </div>
@@ -179,16 +196,16 @@ export default function Login() {
           <h2 className="text-3xl font-bold text-white mb-3">Peluang Kerja Mendunia</h2>
           <p className="text-xl font-semibold text-[#f0c040] mb-2">di Jepang & Korea Selatan</p>
           <p className="text-[#b0b8cc] leading-relaxed mb-10 max-w-sm mx-auto">
-            Kami bersamai sampai kamu bisa Sukses Kerja ke Jepang dan Korea Selatan
+            Kami menemani sampai kamu bisa Sukses Kerja ke Jepang dan Korea Selatan
           </p>
           <div className="grid grid-cols-1 gap-4">
-            <div className="flex items-start gap-4 p-5 bg-white/5 backdrop-blur rounded-xl border border-white/10 hover:bg-white/10 transition-colors group">
+            <div className="flex items-start gap-4 p-5 bg-white/5 backdrop-blur rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
               <div className="text-left">
                 <p className="text-sm font-bold text-white">Program Jepang</p>
                 <p className="text-xs text-[#8a94a8] mt-1 leading-relaxed">Pelatihan bahasa & budaya Jepang, persiapan kerja di Jepang</p>
               </div>
             </div>
-            <div className="flex items-start gap-4 p-5 bg-white/5 backdrop-blur rounded-xl border border-white/10 hover:bg-white/10 transition-colors group">
+            <div className="flex items-start gap-4 p-5 bg-white/5 backdrop-blur rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
               <div className="text-left">
                 <p className="text-sm font-bold text-white">Program Korea Selatan</p>
                 <p className="text-xs text-[#8a94a8] mt-1 leading-relaxed">Pelatihan bahasa & budaya Korea, persiapan kerja di Korea</p>

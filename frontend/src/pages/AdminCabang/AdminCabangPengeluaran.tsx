@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Wallet, Plus, Search, Trash2, X, Eye, Edit3, Filter, FileText, Camera, Upload, Image as ImageIcon, RotateCcw,
 } from 'lucide-react'
-import { pengeluaranApi, kategoriPengeluaranApi, adminCabangApi } from '../../services/api'
+import { pengeluaranApi, kategoriPengeluaranApi, adminCabangApi, APP_URL } from '../../services/api'
 
 interface Kategori {
   id: number
@@ -187,7 +187,7 @@ export default function AdminCabangPengeluaran() {
       cabang_id: item.cabang ? String(item.cabang.id) : '',
     })
     setBuktiFile(null)
-    setBuktiPreview(item.bukti ? `http://localhost:8000/storage/${item.bukti}` : null)
+    setBuktiPreview(item.bukti ? `${APP_URL}/storage/${item.bukti}` : null)
     setError('')
     setShowForm(true)
   }
@@ -618,9 +618,9 @@ export default function AdminCabangPengeluaran() {
                 <div className="pt-2 border-t border-slate-100">
                   <p className="text-slate-500 mb-2">Bukti:</p>
                   {detailItem.bukti.endsWith('.pdf') ? (
-                    <a href={`http://localhost:8000/storage/${detailItem.bukti}`} target="_blank" rel="noreferrer" className="text-blue-600 underline text-sm">Lihat PDF</a>
+                    <a href={`${APP_URL}/storage/${detailItem.bukti}`} target="_blank" rel="noreferrer" className="text-blue-600 underline text-sm">Lihat PDF</a>
                   ) : (
-                    <img src={`http://localhost:8000/storage/${detailItem.bukti}`} alt="Bukti" className="max-w-full rounded-lg border" />
+                    <img src={`${APP_URL}/storage/${detailItem.bukti}`} alt="Bukti" className="max-w-full rounded-lg border" />
                   )}
                 </div>
               )}

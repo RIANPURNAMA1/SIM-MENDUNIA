@@ -281,36 +281,36 @@ export default function AdminCabangDataKandidat() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[3200px] border-collapse text-left text-xs text-slate-700">
-              <thead className="bg-slate-50 text-[11px] text-slate-600 uppercase tracking-wide sticky top-0">
+            <table className="w-full min-w-[3200px] border-collapse text-left text-sm text-slate-700">
+              <thead className="bg-slate-50 text-sm text-slate-600 uppercase tracking-wide sticky top-0">
                 <tr>
-                  <th className="border border-slate-200 px-2 py-2 text-center font-semibold w-[40px]">No</th>
-                  <th className="border border-slate-200 px-2 py-2 font-semibold w-[170px]">NIK</th>
-                  <th className="border border-slate-200 px-2 py-2 font-semibold w-[160px]">No. Registrasi</th>
-                  <th className="border border-slate-200 px-2 py-2 font-semibold w-[200px]">Nama Kandidat</th>
-                  <th className="border border-slate-200 px-2 py-2 font-semibold w-[100px]">Batch</th>
-                  <th className="border border-slate-200 px-2 py-2 font-semibold w-[100px]">Real Batch</th>
-                  <th className="border border-slate-200 px-2 py-2 text-center font-semibold w-[40px]">JK</th>
-                  <th className="border border-slate-200 px-2 py-2 font-semibold w-[220px]">Tempat, Tanggal Lahir</th>
-                  <th className="border border-slate-200 px-2 py-2 font-semibold w-[250px]">Alamat</th>
-                  <th className="border border-slate-200 px-2 py-2 font-semibold w-[140px]">Desa</th>
-                  <th className="border border-slate-200 px-2 py-2 font-semibold w-[140px]">Kecamatan</th>
-                  <th className="border border-slate-200 px-2 py-2 font-semibold w-[140px]">Kab./Kota</th>
-                  <th className="border border-slate-200 px-2 py-2 font-semibold w-[140px]">Provinsi</th>
-                  <th className="border border-slate-200 px-2 py-2 font-semibold w-[130px]">Pend. Terakhir</th>
-                  <th className="border border-slate-200 px-2 py-2 text-center font-semibold w-[80px]">Tahun Lulus</th>
-                  <th className="border border-slate-200 px-2 py-2 text-center font-semibold w-[50px]">TB</th>
-                  <th className="border border-slate-200 px-2 py-2 text-center font-semibold w-[50px]">BB</th>
-                  <th className="border border-slate-200 px-2 py-2 text-center font-semibold w-[60px]">Goldar</th>
-                  <th className="border border-slate-200 px-2 py-2 text-center font-semibold w-[70px]">Uk. Baju</th>
-                  <th className="border border-slate-200 px-2 py-2 font-semibold w-[110px]">Status Nikah</th>
-                  <th className="border border-slate-200 px-2 py-2 font-semibold w-[220px]">E-mail</th>
-                  <th className="border border-slate-200 px-2 py-2 font-semibold w-[150px]">No. Tlp</th>
-                  <th className="border border-slate-200 px-2 py-2 font-semibold w-[180px]">Nama Orang Tua/Wali</th>
-                  <th className="border border-slate-200 px-2 py-2 font-semibold w-[150px]">No. Tlp Orang Tua</th>
-                  <th className="border border-slate-200 px-2 py-2 text-center font-semibold w-[80px]">Status</th>
-                  <th className="border border-slate-200 px-2 py-2 font-semibold w-[180px]">Ket.</th>
-                  <th className="sticky right-0 z-10 border border-slate-200 bg-slate-50 px-2 py-2 text-center font-semibold shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] w-[80px]">Aksi</th>
+                  <th className="border border-slate-200 px-4 py-3 text-center font-semibold w-[40px]">No</th>
+                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[170px]">NIK</th>
+                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[160px]">No. Registrasi</th>
+                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[200px]">Nama Kandidat</th>
+                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[100px]">Batch</th>
+                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[100px]">Real Batch</th>
+                  <th className="border border-slate-200 px-4 py-3 text-center font-semibold w-[40px]">JK</th>
+                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[220px]">Tempat, Tanggal Lahir</th>
+                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[250px]">Alamat</th>
+                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[140px]">Desa</th>
+                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[140px]">Kecamatan</th>
+                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[140px]">Kab./Kota</th>
+                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[140px]">Provinsi</th>
+                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[130px]">Pend. Terakhir</th>
+                  <th className="border border-slate-200 px-4 py-3 text-center font-semibold w-[80px]">Tahun Lulus</th>
+                  <th className="border border-slate-200 px-4 py-3 text-center font-semibold w-[50px]">TB</th>
+                  <th className="border border-slate-200 px-4 py-3 text-center font-semibold w-[50px]">BB</th>
+                  <th className="border border-slate-200 px-4 py-3 text-center font-semibold w-[60px]">Goldar</th>
+                  <th className="border border-slate-200 px-4 py-3 text-center font-semibold w-[70px]">Uk. Baju</th>
+                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[110px]">Status Nikah</th>
+                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[220px]">E-mail</th>
+                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[150px]">No. Tlp</th>
+                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[180px]">Nama Orang Tua/Wali</th>
+                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[150px]">No. Tlp Orang Tua</th>
+                  <th className="border border-slate-200 px-4 py-3 text-center font-semibold w-[80px]">Status</th>
+                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[180px]">Ket.</th>
+                  <th className="sticky right-0 z-10 border border-slate-200 bg-slate-50 px-4 py-3 text-center font-semibold shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] w-[80px]">Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -319,15 +319,15 @@ export default function AdminCabangDataKandidat() {
                     const isEditing = editingId === k.id
                     return (
                       <tr key={k.id} className={`${isEditing ? 'bg-blue-50/50' : 'bg-white'} transition hover:bg-slate-50`}>
-                        <td className="border border-slate-200 px-2 py-2 text-center font-medium text-slate-500">{idx + 1}</td>
-                        <td className="border border-slate-200 px-2 py-2 whitespace-nowrap">
+                        <td className="border border-slate-200 px-4 py-3 text-center font-medium text-slate-500">{idx + 1}</td>
+                        <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
                           {isEditing ? <CellEdit field="nik" /> : k.nik || '-'}
                         </td>
-                        <td className="border border-slate-200 px-2 py-2 whitespace-nowrap font-mono">{k.no_registrasi || '-'}</td>
-                        <td className="border border-slate-200 px-2 py-2 font-semibold text-slate-800 whitespace-nowrap">
+                        <td className="border border-slate-200 px-4 py-3 whitespace-nowrap font-mono">{k.no_registrasi || '-'}</td>
+                        <td className="border border-slate-200 px-4 py-3 font-semibold text-slate-800 whitespace-nowrap">
                           {isEditing ? <CellEdit field="nama" /> : k.nama}
                         </td>
-                        <td className="border border-slate-200 px-2 py-2 whitespace-nowrap">
+                        <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
                           <select
                             value={String(k.batch_id ?? '')}
                             onChange={e => handlePindahBatch(k.id, e.target.value)}
@@ -339,13 +339,13 @@ export default function AdminCabangDataKandidat() {
                             ))}
                           </select>
                         </td>
-                        <td className="border border-slate-200 px-2 py-2 whitespace-nowrap">
+                        <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
                           {isEditing ? <CellEdit field="real_batch" /> : k.real_batch || '-'}
                         </td>
-                        <td className="border border-slate-200 px-2 py-2 text-center">
+                        <td className="border border-slate-200 px-4 py-3 text-center">
                           {isEditing ? <CellEdit field="jenis_kelamin" type="select" /> : (k.jenis_kelamin === 'L' ? 'L' : k.jenis_kelamin === 'P' ? 'P' : '-')}
                         </td>
-                        <td className="border border-slate-200 px-2 py-2 whitespace-nowrap">
+                        <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
                           {isEditing ? (
                             <div className="flex gap-1">
                               <CellEdit field="tempat_lahir" />
@@ -353,59 +353,59 @@ export default function AdminCabangDataKandidat() {
                             </div>
                           ) : (k.tempat_lahir !== '-' && k.tanggal_lahir !== '-' ? `${k.tempat_lahir}, ${k.tanggal_lahir}` : '-')}
                         </td>
-                        <td className="border border-slate-200 px-2 py-2 max-w-[250px]">
+                        <td className="border border-slate-200 px-4 py-3 max-w-[250px]">
                           {isEditing ? <CellEdit field="alamat" /> : <span className="truncate block" title={k.alamat}>{k.alamat || '-'}</span>}
                         </td>
-                        <td className="border border-slate-200 px-2 py-2 whitespace-nowrap">
+                        <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
                           {isEditing ? <CellEdit field="desa" /> : k.desa || '-'}
                         </td>
-                        <td className="border border-slate-200 px-2 py-2 whitespace-nowrap">
+                        <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
                           {isEditing ? <CellEdit field="kecamatan" /> : k.kecamatan || '-'}
                         </td>
-                        <td className="border border-slate-200 px-2 py-2 whitespace-nowrap">
+                        <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
                           {isEditing ? <CellEdit field="kabupaten" /> : k.kabupaten || '-'}
                         </td>
-                        <td className="border border-slate-200 px-2 py-2 whitespace-nowrap">
+                        <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
                           {isEditing ? <CellEdit field="provinsi" /> : k.provinsi || '-'}
                         </td>
-                        <td className="border border-slate-200 px-2 py-2 whitespace-nowrap">
+                        <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
                           {isEditing ? <CellEdit field="pendidikan_terakhir" type="select" /> : k.pendidikan_terakhir || '-'}
                         </td>
-                        <td className="border border-slate-200 px-2 py-2 text-center whitespace-nowrap">
+                        <td className="border border-slate-200 px-4 py-3 text-center whitespace-nowrap">
                           {isEditing ? <CellEdit field="tahun_lulus" /> : k.tahun_lulus || '-'}
                         </td>
-                        <td className="border border-slate-200 px-2 py-2 text-center">
+                        <td className="border border-slate-200 px-4 py-3 text-center">
                           {isEditing ? <CellEdit field="tinggi_badan" type="number" /> : k.tinggi_badan || '-'}
                         </td>
-                        <td className="border border-slate-200 px-2 py-2 text-center">
+                        <td className="border border-slate-200 px-4 py-3 text-center">
                           {isEditing ? <CellEdit field="berat_badan" type="number" /> : k.berat_badan || '-'}
                         </td>
-                        <td className="border border-slate-200 px-2 py-2 text-center">
+                        <td className="border border-slate-200 px-4 py-3 text-center">
                           {isEditing ? <CellEdit field="goldar" type="select" /> : k.goldar || '-'}
                         </td>
-                        <td className="border border-slate-200 px-2 py-2 text-center">
+                        <td className="border border-slate-200 px-4 py-3 text-center">
                           {isEditing ? <CellEdit field="ukuran_baju" type="select" /> : k.ukuran_baju || '-'}
                         </td>
-                        <td className="border border-slate-200 px-2 py-2">
+                        <td className="border border-slate-200 px-4 py-3">
                           {isEditing ? <CellEdit field="status_pernikahan" type="select" /> : k.status_pernikahan || '-'}
                         </td>
-                        <td className="border border-slate-200 px-2 py-2 whitespace-nowrap">
+                        <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
                           {isEditing ? <CellEdit field="email" /> : k.email}
                         </td>
-                        <td className="border border-slate-200 px-2 py-2 whitespace-nowrap">
+                        <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
                           {isEditing ? <CellEdit field="no_hp" /> : k.no_hp || '-'}
                         </td>
-                        <td className="border border-slate-200 px-2 py-2">
+                        <td className="border border-slate-200 px-4 py-3">
                           {isEditing ? <CellEdit field="nama_ortu" /> : k.nama_ortu || '-'}
                         </td>
-                        <td className="border border-slate-200 px-2 py-2 whitespace-nowrap">
+                        <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
                           {isEditing ? <CellEdit field="no_hp_ortu" /> : k.no_hp_ortu || '-'}
                         </td>
-                        <td className="border border-slate-200 px-2 py-2 text-center">{statusBadge(k.status)}</td>
-                        <td className="border border-slate-200 px-2 py-2 max-w-[180px]">
+                        <td className="border border-slate-200 px-4 py-3 text-center">{statusBadge(k.status)}</td>
+                        <td className="border border-slate-200 px-4 py-3 max-w-[180px]">
                           {isEditing ? <CellEdit field="keterangan" /> : <span className="truncate block" title={k.keterangan}>{k.keterangan || '-'}</span>}
                         </td>
-                        <td className={`sticky right-0 z-10 border border-slate-200 px-2 py-2 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] ${isEditing ? 'bg-blue-50/50' : 'bg-white'}`}>
+                        <td className={`sticky right-0 z-10 border border-slate-200 px-4 py-3 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] ${isEditing ? 'bg-blue-50/50' : 'bg-white'}`}>
                           <div className="flex justify-center gap-1">
                             {isEditing ? (
                               <>

@@ -515,53 +515,46 @@ export default function DataKandidat() {
                       const rowNum = (safePage - 1) * perPage + idx + 1
                       return (
                         <tr key={k.id} className={`${isEditing ? 'bg-blue-50/50' : k.is_cuti ? 'bg-amber-50' : k.status_akademik === 'NONAKTIF' ? 'bg-red-50' : 'bg-white'} transition hover:bg-slate-50`}>
-                          <td className="border border-slate-200 px-4 py-3 text-center text-sm text-slate-500">{rowNum}</td>
-                          <td className="border border-slate-200 px-4 py-3 text-sm font-mono text-slate-700 whitespace-nowrap">
+                          <td className="border border-slate-200 px-4 py-3 text-center text-xs text-slate-500">{rowNum}</td>
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-mono text-slate-700 whitespace-nowrap">
                             {isEditing ? <CellEdit field="nik" /> : k.nik || <span className="text-slate-300">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-sm font-mono text-slate-700 whitespace-nowrap">
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-mono text-slate-700 whitespace-nowrap">
                             {k.no_registrasi || <span className="text-slate-300">-</span>}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 max-w-[200px] overflow-hidden">
                             {isEditing ? <CellEdit field="nama" /> : (
-                              <div className="flex items-center gap-3 min-w-0">
+                              <div className="flex items-center gap-2 min-w-0">
                                 <img
-                                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(k.nama)}&background=e5e7eb&color=6b7280&size=28`}
-                                  className="h-8 w-8 rounded-full object-cover flex-none"
+                                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(k.nama)}&background=e5e7eb&color=6b7280&size=24`}
+                                  className="h-6 w-6 rounded-full object-cover flex-none"
                                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                                 />
                                 <div className="min-w-0">
-                                  <div className={`text-sm font-semibold truncate ${k.status_akademik === 'NONAKTIF' ? 'text-red-500' : 'text-slate-800'}`}>{k.nama}</div>
-                                  <div className="text-xs text-slate-500 truncate">{k.email}</div>
+                                  <div className={`font-semibold truncate ${k.status_akademik === 'NONAKTIF' ? 'text-red-500' : 'text-slate-800'}`}>{k.nama}</div>
                                 </div>
                               </div>
                             )}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">
-                            {isEditing ? (
-                              <select
-                                value={String(k.batch_id ?? '')}
-                                onChange={e => handlePindahBatch(k.id, e.target.value)}
-                                className="w-full rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-sm text-slate-700 outline-none cursor-pointer transition hover:border-blue-300 hover:bg-blue-50 focus:border-blue-400 focus:ring-1 focus:ring-blue-200"
-                              >
-                                <option value="">-</option>
-                                {batchOptions.map(b => (
-                                  <option key={b.id} value={b.id}>{b.nama}</option>
-                                ))}
-                              </select>
-                            ) : (
-                              <span className="inline-block rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-sm font-medium text-slate-700">
-                                {batchOptions.find(b => String(b.id) === String(k.batch_id))?.nama || <span className="text-slate-300">-</span>}
-                              </span>
-                            )}
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600">
+                            <select
+                              value={String(k.batch_id ?? '')}
+                              onChange={e => handlePindahBatch(k.id, e.target.value)}
+                              className="w-full bg-transparent text-xs text-slate-700 outline-none cursor-pointer"
+                            >
+                              <option value="">-</option>
+                              {batchOptions.map(b => (
+                                <option key={b.id} value={b.id}>{b.nama}</option>
+                              ))}
+                            </select>
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
                             {isEditing ? <CellEdit field="real_batch" /> : k.real_batch || <span className="text-slate-300">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600 text-center">
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 text-center">
                             {isEditing ? <CellEdit field="jenis_kelamin" type="select" /> : (k.jenis_kelamin === 'L' ? 'L' : k.jenis_kelamin === 'P' ? 'P' : '-')}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
                             {isEditing ? (
                               <div className="flex gap-1">
                                 <CellEdit field="tempat_lahir" />
@@ -569,52 +562,52 @@ export default function DataKandidat() {
                               </div>
                             ) : (k.tempat_lahir !== '-' && k.tanggal_lahir !== '-' ? `${k.tempat_lahir}, ${k.tanggal_lahir}` : '-')}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600 max-w-[250px]">
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 max-w-[250px]">
                             {isEditing ? <CellEdit field="alamat" /> : <span className="truncate block" title={k.alamat}>{k.alamat || '-'}</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
                             {isEditing ? <CellEdit field="desa" /> : k.desa || <span className="text-slate-300">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
                             {isEditing ? <CellEdit field="kecamatan" /> : k.kecamatan || <span className="text-slate-300">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
                             {isEditing ? <CellEdit field="kabupaten" /> : k.kabupaten || <span className="text-slate-300">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
                             {isEditing ? <CellEdit field="provinsi" /> : k.provinsi || <span className="text-slate-300">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
                             {isEditing ? <CellEdit field="pendidikan_terakhir" type="select" /> : k.pendidikan_terakhir || <span className="text-slate-300">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600 text-center">
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 text-center">
                             {isEditing ? <CellEdit field="tahun_lulus" /> : k.tahun_lulus || <span className="text-slate-300">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600 text-center">
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 text-center">
                             {isEditing ? <CellEdit field="tinggi_badan" type="number" /> : (k.tinggi_badan || <span className="text-slate-300">-</span>)}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600 text-center">
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 text-center">
                             {isEditing ? <CellEdit field="berat_badan" type="number" /> : (k.berat_badan || <span className="text-slate-300">-</span>)}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600 text-center">
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 text-center">
                             {isEditing ? <CellEdit field="goldar" type="select" /> : k.goldar || <span className="text-slate-300">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600 text-center">
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 text-center">
                             {isEditing ? <CellEdit field="ukuran_baju" type="select" /> : k.ukuran_baju || <span className="text-slate-300">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600">
                             {isEditing ? <CellEdit field="status_pernikahan" type="select" /> : k.status_pernikahan || <span className="text-slate-300">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-sm font-mono text-slate-700 whitespace-nowrap">
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-mono text-slate-700 whitespace-nowrap">
                             {isEditing ? <CellEdit field="email" /> : k.email}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-sm font-mono text-slate-700 whitespace-nowrap">
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-mono text-slate-700 whitespace-nowrap">
                             {isEditing ? <CellEdit field="no_hp" /> : k.no_hp || <span className="text-slate-300">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600">
                             {isEditing ? <CellEdit field="nama_ortu" /> : k.nama_ortu || <span className="text-slate-300">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-sm font-mono text-slate-700 whitespace-nowrap">
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-mono text-slate-700 whitespace-nowrap">
                             {isEditing ? <CellEdit field="no_hp_ortu" /> : k.no_hp_ortu || <span className="text-slate-300">-</span>}
                           </td>
                            <td className="border border-slate-200 px-4 py-3 text-center">
@@ -630,7 +623,7 @@ export default function DataKandidat() {
                                </span>
                              ) : null}
                            </td>
-                          <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600 max-w-[180px]">
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 max-w-[180px]">
                             {isEditing ? <CellEdit field="keterangan" /> : <span className="truncate block" title={k.keterangan}>{k.keterangan || <span className="text-slate-300">-</span>}</span>}
                           </td>
                           <td className={`sticky right-0 z-10 border border-slate-200 px-4 py-3 text-center shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] ${isEditing ? 'bg-blue-50/50' : 'bg-white'}`}>
@@ -705,7 +698,7 @@ export default function DataKandidat() {
             <select
               value={perPage}
               onChange={e => { setPerPage(Number(e.target.value)); setPage(1) }}
-              className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="rounded-md border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             >
               {[10, 25, 50, 100].map(n => (
                 <option key={n} value={n}>{n}</option>
@@ -747,7 +740,7 @@ export default function DataKandidat() {
                   <button
                     key={p}
                     onClick={() => setPage(p)}
-                    className={`min-w-[32px] rounded-md border px-2 py-1.5 text-sm font-medium transition ${
+                    className={`min-w-[32px] rounded-md border px-4 py-3 text-sm font-medium transition ${
                       p === safePage
                         ? 'border-slate-200 bg-slate-800 text-white'
                         : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Search, CheckCircle, XCircle, FileText, Eye, Trash2, CheckSquare, RotateCcw, Users, CreditCard, X, Loader, AlertTriangle, DollarSign, Upload, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { pendaftarApi, pendaftarApi as apiModule } from '../../services/api'
-import api from '../../services/api'
+import api, { APP_URL } from '../../services/api'
 import Swal from 'sweetalert2'
 
 function fmt(n: number) {
@@ -393,7 +393,7 @@ export default function Pendaftar() {
                   <td className="border border-slate-200 px-4 py-3 text-center">{statusBayarBadge(p.status_pembayaran)}</td>
                   <td className="border border-slate-200 px-4 py-3 text-center">
                     {p.bukti_pembayaran ? (
-                      <button onClick={() => setPreviewImg(`http://localhost:8000/storage/${p.bukti_pembayaran}`)}
+                      <button onClick={() => setPreviewImg(`${APP_URL}/storage/${p.bukti_pembayaran}`)}
                         className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600">
                         <Eye size={15} />
                       </button>
@@ -569,7 +569,7 @@ export default function Pendaftar() {
                       </span>
                       {r.bukti_pembayaran ? (
                         <a
-                          href={`http://localhost:8000/storage/${r.bukti_pembayaran}`}
+                          href={`${APP_URL}/storage/${r.bukti_pembayaran}`}
                           target="_blank"
                           rel="noreferrer"
                           className="rounded-lg border border-gray-200 p-1.5 text-gray-400 hover:border-blue-200 hover:text-blue-600 transition-colors"
@@ -824,7 +824,7 @@ export default function Pendaftar() {
                   <div className="rounded-lg bg-gray-50 p-3">
                     <p className="text-[11px] text-gray-400">Bukti Bayar</p>
                     {detailModal.bukti_pembayaran ? (
-                      <a href={`http://localhost:8000/storage/${detailModal.bukti_pembayaran}`} target="_blank" rel="noreferrer"
+                      <a href={`${APP_URL}/storage/${detailModal.bukti_pembayaran}`} target="_blank" rel="noreferrer"
                         className="text-sm font-medium text-blue-600 hover:underline">Lihat Bukti</a>
                     ) : (
                       <p className="text-sm font-medium text-gray-800">-</p>

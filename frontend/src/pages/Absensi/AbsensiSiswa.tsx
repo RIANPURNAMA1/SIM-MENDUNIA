@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { ClipboardCheck, Search, RotateCcw, Plus, Users, Pencil } from "lucide-react";
-import { absensiSiswaApi, kelasSenseiApi } from "../../services/api";
+import { absensiSiswaApi, kelasSenseiApi, APP_URL } from "../../services/api";
 import type { AbsensiSiswaItem, KelasSenseiData } from "../../types";
 
 const STATUS_STYLE: Record<string, string> = {
@@ -75,7 +75,7 @@ export default function AbsensiSiswaPage() {
   };
 
   const fotoUrl = (s: AbsensiSiswaItem["siswa"]) => {
-    if (s?.foto) return `http://localhost:8000/uploads/siswa/${s.foto}`;
+    if (s?.foto) return `${APP_URL}/uploads/siswa/${s.foto}`;
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(s?.nama || "")}&background=e5e7eb&color=6b7280&size=32`;
   };
 
