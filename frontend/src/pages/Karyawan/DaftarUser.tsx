@@ -159,6 +159,7 @@ export default function DaftarUserPage() {
       MANAGER: 'bg-amber-100 text-amber-700',
       KARYAWAN: 'bg-emerald-100 text-emerald-700',
       GURU: 'bg-sky-100 text-sky-700',
+      ACCOUNTING: 'bg-teal-100 text-teal-700',
       KANDIDAT: 'bg-rose-100 text-rose-700',
       AFFILIATE: 'bg-orange-100 text-orange-700',
       ADMIN_CABANG: 'bg-indigo-100 text-indigo-700',
@@ -221,6 +222,7 @@ export default function DaftarUserPage() {
             <option value="MANAGER">MANAGER</option>
             <option value="KARYAWAN">KARYAWAN</option>
             <option value="GURU">GURU</option>
+            <option value="ACCOUNTING">ACCOUNTING</option>
             <option value="KANDIDAT">KANDIDAT</option>
             <option value="AFFILIATE">AFFILIATE</option>
             <option value="ADMIN_CABANG">ADMIN CABANG</option>
@@ -423,6 +425,7 @@ export default function DaftarUserPage() {
                     <option value="MANAGER">MANAGER</option>
                     <option value="KARYAWAN">KARYAWAN</option>
                     <option value="GURU">GURU</option>
+                    <option value="ACCOUNTING">ACCOUNTING</option>
                     <option value="KANDIDAT">KANDIDAT</option>
                     <option value="AFFILIATE">AFFILIATE</option>
                     <option value="ADMIN_CABANG">ADMIN CABANG</option>
