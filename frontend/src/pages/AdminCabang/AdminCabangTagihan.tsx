@@ -10,7 +10,7 @@ function parseInput(v: string): number {
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { FileText, Search, Receipt, CheckCircle, Clock, AlertCircle, RotateCcw, DollarSign, X, Save, Bell, Eye, Check, Loader, XCircle } from 'lucide-react'
-import { adminCabangApi } from '../../services/api'
+import { adminCabangApi, APP_URL } from '../../services/api'
 
 interface KategoriInfo {
   id: number
@@ -630,7 +630,7 @@ export default function AdminCabangTagihan() {
                       <div className="flex flex-col items-end gap-2 shrink-0">
                         {pp.bukti_pembayaran && pp.bukti_pembayaran !== 'manual' && pp.bukti_pembayaran !== 'auto' && (
                           <a
-                            href={`http://localhost:8000/storage/${pp.bukti_pembayaran}`}
+                            href={`${APP_URL}/storage/${pp.bukti_pembayaran}`}
                             target="_blank"
                             rel="noreferrer"
                             className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[10px] font-medium text-slate-600 transition hover:border-blue-200 hover:text-blue-600"

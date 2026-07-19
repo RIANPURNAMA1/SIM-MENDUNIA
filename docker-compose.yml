@@ -1,0 +1,101 @@
+services:
+
+  # ─── MySQL ──────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: mendunia-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootsecret}
+      MYSQL_DATABASE: ${DB_DATABASE:-db_mendunia}
+      MYSQL_USER: ${DB_USERNAME:-mendunia}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-mendunia123}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./db_sim.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mendunia
+
+  # ─── Backend (Laravel PHP-FPM) ──────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mendunia-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ./backend:/var/www/html
+      - backend_uploads:/var/www/html/storage/app/public
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE:-db_mendunia}
+      - DB_USERNAME=${DB_USERNAME:-mendunia}
+      - DB_PASSWORD=${DB_PASSWORD:-mendunia123}
+    networks:
+      - mendunia
+
+  # ─── Nginx (Reverse Proxy + Frontend) ──────────────
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+      args:
+        - VITE_API_URL=http://localhost/api
+        - VITE_APP_URL=http://localhost
+    container_name: mendunia-nginx
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    volumes:
+      - backend_uploads:/var/www/backend/storage:ro
+    networks:
+      - mendunia
+
+  # ─── Queue Worker ───────────────────────────────────
+  queue:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mendunia-queue
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ./backend:/var/www/html
+      - backend_uploads:/var/www/html/storage/app/public
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE:-db_mendunia}
+      - DB_USERNAME=${DB_USERNAME:-mendunia}
+      - DB_PASSWORD=${DB_PASSWORD:-mendunia123}
+    command: php artisan queue:work --sleep=3 --tries=1 --max-time=3600
+    networks:
+      - mendunia
+
+volumes:
+  mysql_data:
+  backend_uploads:
+
+networks:
+  mendunia:
+    driver: bridge

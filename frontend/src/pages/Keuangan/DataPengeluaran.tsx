@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Wallet, Plus, Search, Trash2, X, Eye, Edit3, Filter, FileText, Images, Camera, Upload, RotateCcw,
 } from 'lucide-react'
-import { pengeluaranApi, kategoriPengeluaranApi } from '../../services/api'
+import { pengeluaranApi, kategoriPengeluaranApi, APP_URL } from '../../services/api'
 import api from '../../services/api'
 
 interface Kategori {
@@ -190,7 +190,7 @@ export default function DataPengeluaran() {
       cabang_id: item.cabang ? String(item.cabang.id) : '',
     })
     setBuktiFile(null)
-    setBuktiPreview(item.bukti ? `http://localhost:8000/storage/${item.bukti}` : null)
+    setBuktiPreview(item.bukti ? `${APP_URL}/storage/${item.bukti}` : null)
     setError('')
     setShowForm(true)
   }
@@ -440,12 +440,12 @@ export default function DataPengeluaran() {
               <div key={item.id} className="border border-slate-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow bg-white">
                 {item.bukti ? (
                   item.bukti.endsWith('.pdf') ? (
-                    <a href={`http://localhost:8000/storage/${item.bukti}`} target="_blank" rel="noreferrer" className="block h-40 bg-slate-100 flex items-center justify-center">
+                    <a href={`${APP_URL}/storage/${item.bukti}`} target="_blank" rel="noreferrer" className="block h-40 bg-slate-100 flex items-center justify-center">
                       <FileText size={32} className="text-slate-400" />
                     </a>
                   ) : (
                     <img
-                      src={`http://localhost:8000/storage/${item.bukti}`}
+                      src={`${APP_URL}/storage/${item.bukti}`}
                       alt="Bukti"
                       className="w-full h-40 object-cover cursor-pointer"
                       onClick={() => { setDetailItem(item); setShowDetail(true) }}
@@ -714,9 +714,9 @@ export default function DataPengeluaran() {
                 <div className="pt-2 border-t border-slate-100">
                   <p className="text-slate-500 mb-2">Bukti:</p>
                   {detailItem.bukti.endsWith('.pdf') ? (
-                    <a href={`http://localhost:8000/storage/${detailItem.bukti}`} target="_blank" rel="noreferrer" className="text-blue-600 underline text-sm">Lihat PDF</a>
+                    <a href={`${APP_URL}/storage/${detailItem.bukti}`} target="_blank" rel="noreferrer" className="text-blue-600 underline text-sm">Lihat PDF</a>
                   ) : (
-                    <img src={`http://localhost:8000/storage/${detailItem.bukti}`} alt="Bukti" className="max-w-full rounded-lg border" />
+                    <img src={`${APP_URL}/storage/${detailItem.bukti}`} alt="Bukti" className="max-w-full rounded-lg border" />
                   )}
                 </div>
               )}

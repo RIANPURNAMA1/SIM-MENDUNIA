@@ -4,7 +4,7 @@ function fmt(n: number) {
 
 import { useState, useEffect, useMemo } from 'react'
 import { CreditCard, Search, RotateCcw, Eye, CheckCircle, Clock, XCircle, Loader, UserCheck } from 'lucide-react'
-import { pembayaranApi } from '../../services/api'
+import { pembayaranApi, APP_URL } from '../../services/api'
 
 interface PaymentItem {
   id: number
@@ -212,7 +212,7 @@ export default function Pembayaran() {
                   <td className="border border-slate-200 px-4 py-3 text-center">
                     {p.bukti_pembayaran ? (
                       <a
-                        href={`http://localhost:8000/storage/${p.bukti_pembayaran}`}
+                        href={`${APP_URL}/storage/${p.bukti_pembayaran}`}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"

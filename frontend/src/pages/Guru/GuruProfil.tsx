@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
-import { guruProfileApi, profileApi } from '../../services/api'
+import { guruProfileApi, profileApi, APP_URL } from '../../services/api'
 import { User, Camera, ChevronLeft, Save, Lock, LogOut } from 'lucide-react'
 import Swal from 'sweetalert2'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
@@ -120,12 +120,12 @@ export default function GuruProfil() {
   const handleLogout = async () => {
     const result = await Swal.fire({ icon: 'question', title: 'Yakin ingin logout?', showCancelButton: true, confirmButtonText: 'Logout', cancelButtonText: 'Batal' })
     if (result.isConfirmed) {
-      window.location.href = 'http://localhost:8000/logout-app'
+      window.location.href = `${APP_URL}/logout-app`
     }
   }
 
   const fotoUrl = user?.foto_profil
-    ? `http://localhost:8000/uploads/foto_profil/${user.foto_profil}`
+    ? `${APP_URL}/uploads/foto_profil/${user.foto_profil}`
     : null
 
   const previewUrl = fotoPreview || fotoUrl

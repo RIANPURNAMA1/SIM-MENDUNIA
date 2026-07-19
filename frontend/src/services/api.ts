@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios'
 
 const api: AxiosInstance = axios.create({
-  baseURL: 'http://localhost:8000/api',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',
   withCredentials: true,
   headers: {
     'Accept': 'application/json',
@@ -467,5 +467,7 @@ export const waSettingApi = {
   getGlobalSettings: () => api.get('/wa-settings/global'),
   updateGlobalSettings: (settings: { key: string; is_enabled: boolean; value?: string }[]) => api.put('/wa-settings/global', { settings }),
 }
+
+export const APP_URL = import.meta.env.VITE_APP_URL || 'http://localhost:8000'
 
 export default api

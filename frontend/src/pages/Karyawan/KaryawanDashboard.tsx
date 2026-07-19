@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
-import { absensiKaryawanApi, agendaApi, kelasSenseiApi } from '../../services/api'
+import { absensiKaryawanApi, agendaApi, kelasSenseiApi, APP_URL } from '../../services/api'
 import { Camera, MapPin, CheckCircle, X, Calendar,
   Plus, Users, User,
   ChevronRight, Briefcase, LogIn, LogOut,
@@ -408,7 +408,7 @@ export default function KaryawanDashboard() {
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-[#eef1f6] overflow-hidden flex items-center justify-center flex-none">
             {user?.foto_profil && user.foto_profil.trim() ? (
-              <img src={`http://localhost:8000/uploads/karyawan/${user.foto_profil}`} alt="" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+              <img src={`${APP_URL}/uploads/karyawan/${user.foto_profil}`} alt="" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
             ) : (
               <User size={20} className="text-[#8B90A0]" />
             )}

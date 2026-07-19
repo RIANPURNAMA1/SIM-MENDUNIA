@@ -3,7 +3,7 @@ import {
   GraduationCap, Search, RotateCcw, Plus, Upload, Bot, Timer,
   Trash2, Pencil, Check, X,
 } from "lucide-react";
-import { siswaApi } from "../../services/api";
+import { siswaApi, APP_URL } from "../../services/api";
 import type { Siswa } from "../../types";
 
 const AGAMA_OPTIONS = ["ISLAM", "KRISTEN", "KATOLIK", "HINDU", "BUDDHA", "KONGHUCU"];
@@ -94,7 +94,7 @@ export default function SiswaPage() {
   };
 
   const fotoUrl = (s: Siswa) => {
-    if (s.foto) return `http://localhost:8000/uploads/siswa/${s.foto}`;
+    if (s.foto) return `${APP_URL}/uploads/siswa/${s.foto}`;
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(s.nama)}&background=e5e7eb&color=6b7280&size=32`;
   };
 

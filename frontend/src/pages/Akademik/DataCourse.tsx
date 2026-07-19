@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { BookOpen, Plus, Edit3, Trash2, Search, Layers, X, Image as ImageIcon, FileText, Download } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
-import { lmsAdminApi } from '../../services/api'
+import { lmsAdminApi, APP_URL } from '../../services/api'
 import Swal from 'sweetalert2'
 
 interface Course {
@@ -159,7 +159,7 @@ export default function DataCourse() {
       status: course.status,
     })
     setImageFile(null)
-    setImagePreview(course.image ? `http://localhost:8000/storage/${course.image}` : null)
+    setImagePreview(course.image ? `${APP_URL}/storage/${course.image}` : null)
     setCourseFiles([])
     setShowModal(true)
     lmsAdminApi.courseFiles(course.id).then(res => {
@@ -365,7 +365,7 @@ export default function DataCourse() {
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 overflow-hidden">
                           {course.image ? (
-                            <img src={`http://localhost:8000/storage/${course.image}`} alt="" className="w-full h-full object-cover" />
+                            <img src={`${APP_URL}/storage/${course.image}`} alt="" className="w-full h-full object-cover" />
                           ) : (
                             <BookOpen size={16} className="text-slate-500" />
                           )}
@@ -611,7 +611,7 @@ export default function DataCourse() {
                               {f.file_size && <p className="text-xs text-slate-400">{formatFileSize(f.file_size)}</p>}
                             </div>
                             <a
-                              href={`http://localhost:8000/storage/${f.file_path}`}
+                              href={`${APP_URL}/storage/${f.file_path}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="p-1.5 rounded-lg text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-colors"

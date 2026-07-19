@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Calendar, Search, RotateCcw, ChevronLeft, ChevronRight, Image } from "lucide-react";
-import { agendaApi } from "../../services/api";
+import { agendaApi, APP_URL } from "../../services/api";
 import type { Agenda, Divisi, Cabang, Pagination } from "../../types";
 
 export default function DataAgendaPage() {
@@ -214,7 +214,7 @@ export default function DataAgendaPage() {
                     <td className="border border-slate-200 px-3 py-2.5 text-center">
                       {item.foto ? (
                         <a
-                          href={`http://localhost:8000/uploads/agenda/${item.foto}`}
+                          href={`${APP_URL}/uploads/agenda/${item.foto}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center justify-center rounded-md bg-slate-100 p-1.5 text-slate-500 transition hover:bg-slate-200"
