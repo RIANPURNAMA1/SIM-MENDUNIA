@@ -35,7 +35,10 @@ interface AffiliateDetailLink {
   pendaftar_count: number
   status: boolean
   created_at: string
-  product: { id: number; nama: string; harga: number }
+  product: { id: number; nama: string; harga: number; komisi: number | null } | null
+  komisi_dibayar: number
+  komisi_pending: number
+  total_komisi: number
   pendaftar: {
     id: number
     nama: string
@@ -44,14 +47,16 @@ interface AffiliateDetailLink {
     status_pendaftaran: string
     status_pembayaran: string
     created_at: string
-    product?: { nama: string }
+    product?: { nama: string; harga: number; komisi: number | null }
+    komisi_diperoleh: number
+    komisi_pending: number
   }[]
 }
 
 interface AffiliateDetail {
   affiliate: { id: number; name: string; email: string }
   links: AffiliateDetailLink[]
-  stats: { total_links: number; total_views: number; total_pendaftar: number }
+  stats: { total_links: number; total_views: number; total_pendaftar: number; komisi_paid: number; komisi_pending: number }
 }
 
 interface AffiliateStat {
@@ -265,9 +270,14 @@ export default function DataAffiliate() {
                       </span>
                     </td>
                     <td className="border border-slate-200 px-4 py-3 text-center">
-                      <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-700 shadow-sm">
-                        Rp {Number(s.total_komisi_pending || 0).toLocaleString('id-ID')}
-                      </span>
+                      <div className="inline-flex flex-col items-center gap-0.5">
+                        <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-700 shadow-sm">
+                          Rp {Number((s.total_komisi_pending || 0) + (s.total_komisi_paid || 0)).toLocaleString('id-ID')}
+                        </span>
+                        {s.total_komisi_paid > 0 && (
+                          <span className="text-[10px] text-emerald-600">Dibayar: Rp {Number(s.total_komisi_paid).toLocaleString('id-ID')}</span>
+                        )}
+                      </div>
                     </td>
                     <td className="border border-slate-200 px-4 py-3 text-center">{statusUserBadge(s.status)}</td>
                     <td className="border border-slate-200 px-4 py-3 text-sm text-slate-500">
@@ -435,7 +445,7 @@ export default function DataAffiliate() {
             </div>
 
             <div className="px-5 py-4">
-              <div className="mb-4 grid grid-cols-3 gap-3">
+              <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-center">
                   <p className="text-xs text-slate-500">Total Link</p>
                   <p className="text-xl font-bold text-slate-800">{detailAffiliate.stats.total_links}</p>
@@ -447,6 +457,13 @@ export default function DataAffiliate() {
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-center">
                   <p className="text-xs text-slate-500">Total Kandidat</p>
                   <p className="text-xl font-bold text-slate-800">{detailAffiliate.stats.total_pendaftar}</p>
+                </div>
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-center">
+                  <p className="text-xs text-amber-600">Total Komisi</p>
+                  <p className="text-xl font-bold text-amber-700">Rp {Number(detailAffiliate.stats.komisi_paid + detailAffiliate.stats.komisi_pending).toLocaleString('id-ID')}</p>
+                  {detailAffiliate.stats.komisi_pending > 0 && (
+                    <p className="text-[10px] text-amber-500 mt-0.5">+ Rp {Number(detailAffiliate.stats.komisi_pending).toLocaleString('id-ID')} pending</p>
+                  )}
                 </div>
               </div>
 
@@ -469,8 +486,14 @@ export default function DataAffiliate() {
                           <p className="text-[10px] text-slate-400 truncate">{linkBase}{link.kode}</p>
                         </div>
                         <span className="shrink-0 text-xs text-slate-500">{link.product?.nama}</span>
+                        {link.product?.komisi && (
+                          <span className="shrink-0 rounded bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700">Rp {Number(link.product.komisi).toLocaleString('id-ID')}/org</span>
+                        )}
                         <span className="shrink-0 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">{link.views} views</span>
                         <span className="shrink-0 rounded bg-purple-50 px-2 py-0.5 text-[10px] font-medium text-purple-700">{link.pendaftar_count} kandidat</span>
+                        {link.total_komisi > 0 && (
+                          <span className="shrink-0 rounded bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">Rp {Number(link.total_komisi).toLocaleString('id-ID')}</span>
+                        )}
                       </button>
                       {expandedLinks[link.id] && (
                         <div className="border-t border-slate-100 px-4 py-3">
@@ -489,12 +512,20 @@ export default function DataAffiliate() {
                                     <p className="text-xs font-semibold text-slate-800 truncate">{p.nama}</p>
                                     <p className="text-[10px] text-slate-500 truncate">{p.email}</p>
                                   </div>
-                                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                                  {p.product?.komisi && (
+                                    <span className="shrink-0 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-600">Rp {Number(p.product.komisi).toLocaleString('id-ID')}/org</span>
+                                  )}
+                                  <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${
                                     p.status_pendaftaran === 'disetujui' ? 'bg-emerald-50 text-emerald-700' :
                                     p.status_pendaftaran === 'pending' ? 'bg-amber-50 text-amber-700' :
                                     'bg-red-50 text-red-600'
                                   }`}>{p.status_pendaftaran}</span>
-                                  <span className="text-[10px] text-slate-400">
+                                  {(p.komisi_diperoleh > 0 || p.komisi_pending > 0) && (
+                                    <span className="shrink-0 text-[10px] font-medium text-amber-600">
+                                      {p.komisi_diperoleh > 0 ? `Rp ${Number(p.komisi_diperoleh).toLocaleString('id-ID')}` : `Rp ${Number(p.komisi_pending).toLocaleString('id-ID')} (pending)`}
+                                    </span>
+                                  )}
+                                  <span className="shrink-0 text-[10px] text-slate-400">
                                     {new Date(p.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                                   </span>
                                 </div>

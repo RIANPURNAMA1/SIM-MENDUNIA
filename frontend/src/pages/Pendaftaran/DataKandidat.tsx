@@ -630,8 +630,8 @@ export default function DataKandidat() {
                             <div className="flex justify-center gap-1.5">
                               {isEditing ? (
                                 <>
-                                  <button onClick={saveEdit} disabled={saving}
-                                    className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-emerald-600 transition hover:bg-emerald-100 disabled:opacity-50" title="Simpan">
+                                   <button onClick={saveEdit} disabled={saving}
+                                    className="rounded-lg border border-blue-200 bg-blue-50 p-2 text-blue-600 transition hover:bg-blue-100 disabled:opacity-50" title="Simpan">
                                     <Check size={15} />
                                   </button>
                                   <button onClick={cancelEdit}
@@ -642,25 +642,25 @@ export default function DataKandidat() {
                               ) : (
                                 <>
                                   <button onClick={() => setDetailKandidat(k)}
-                                    className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-emerald-600 transition hover:bg-emerald-100" title="Detail">
+                                    className="rounded-lg border border-slate-200 bg-slate-50 p-2 text-slate-600 transition hover:bg-slate-100" title="Detail">
                                     <Eye size={15} />
                                   </button>
                                   <button onClick={() => startEdit(k)}
-                                    className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-emerald-600 transition hover:bg-emerald-100" title="Edit">
+                                    className="rounded-lg border border-blue-200 bg-blue-50 p-2 text-blue-600 transition hover:bg-blue-100" title="Edit">
                                     <Edit3 size={15} />
                                   </button>
                                   <button onClick={() => handleToggleStatus(k.id)} disabled={togglingId === k.id}
-                                    className={`rounded-lg border p-2 transition ${k.status_akademik === 'NONAKTIF' ? 'border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100'} disabled:opacity-50`}
+                                    className={`rounded-lg border p-2 transition ${k.status_akademik === 'NONAKTIF' ? 'border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100'} disabled:opacity-50`}
                                     title={k.status_akademik === 'NONAKTIF' ? 'Aktifkan' : 'Nonaktifkan'}>
                                     {togglingId === k.id ? <Loader2 size={15} className="animate-spin" /> : (k.status_akademik === 'NONAKTIF' ? <Power size={15} /> : <PowerOff size={15} />)}
                                   </button>
                                   <button onClick={() => handleToggleCuti(k.id)} disabled={togglingCutiId === k.id}
-                                    className={`rounded-lg border p-2 transition ${k.is_cuti ? 'border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100' : 'border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100'} disabled:opacity-50`}
+                                    className={`rounded-lg border p-2 transition ${k.is_cuti ? 'border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'} disabled:opacity-50`}
                                     title={k.is_cuti ? 'Aktifkan dari Cuti' : 'Cuti'}>
                                     {togglingCutiId === k.id ? <Loader2 size={15} className="animate-spin" /> : (k.is_cuti ? <Calendar size={15} /> : <CalendarOff size={15} />)}
                                   </button>
                                   <Link to={`/pendaftar/${k.id}/invoice`}
-                                    className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-emerald-600 transition hover:bg-emerald-100" title="Invoice">
+                                    className="rounded-lg border border-slate-200 bg-slate-50 p-2 text-slate-600 transition hover:bg-slate-100" title="Invoice">
                                     <Receipt size={15} />
                                   </Link>
                                 </>
