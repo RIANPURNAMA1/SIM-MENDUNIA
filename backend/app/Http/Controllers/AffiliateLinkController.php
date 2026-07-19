@@ -154,7 +154,7 @@ class AffiliateLinkController extends Controller
 
         $links = AffiliateLink::with(['product', 'pendaftar' => function ($q) {
             $q->select('id', 'nama', 'email', 'telepon', 'status_pendaftaran', 'status_pembayaran', 'affiliate_link_id', 'created_at')
-              ->with('product:id,nama');
+              ->with('product:id,nama,harga,komisi');
         }])
             ->where('affiliate_id', $id)
             ->orderBy('created_at', 'desc')
@@ -163,13 +163,62 @@ class AffiliateLinkController extends Controller
         $totalPendaftar = $links->sum('pendaftar_count');
         $totalViews = $links->sum('views');
 
+        // Add komisi data per link
+        $linksData = $links->map(function ($link) {
+            $linkKomisiPaid = KomisiAffiliate::where('affiliate_link_id', $link->id)
+                ->where('status', 'paid')->sum('jumlah');
+            $linkKomisiPending = KomisiAffiliate::where('affiliate_link_id', $link->id)
+                ->where('status', 'pending')->sum('jumlah');
+
+            $pendaftarData = $link->pendaftar->map(function ($p) {
+                $komisi = KomisiAffiliate::where('pendaftar_id', $p->id)->get();
+                return [
+                    'id' => $p->id,
+                    'nama' => $p->nama,
+                    'email' => $p->email,
+                    'telepon' => $p->telepon,
+                    'status_pendaftaran' => $p->status_pendaftaran,
+                    'status_pembayaran' => $p->status_pembayaran,
+                    'created_at' => $p->created_at,
+                    'product' => $p->product,
+                    'komisi_diperoleh' => (float) $komisi->where('status', 'paid')->sum('jumlah'),
+                    'komisi_pending' => (float) $komisi->where('status', 'pending')->sum('jumlah'),
+                ];
+            });
+
+            return [
+                'id' => $link->id,
+                'kode' => $link->kode,
+                'nama_link' => $link->nama_link,
+                'views' => $link->views,
+                'pendaftar_count' => $link->pendaftar_count,
+                'status' => $link->status,
+                'created_at' => $link->created_at,
+                'product' => $link->product ? [
+                    'id' => $link->product->id,
+                    'nama' => $link->product->nama,
+                    'harga' => $link->product->harga,
+                    'komisi' => $link->product->komisi,
+                ] : null,
+                'komisi_dibayar' => (float) $linkKomisiPaid,
+                'komisi_pending' => (float) $linkKomisiPending,
+                'total_komisi' => (float) ($linkKomisiPaid + $linkKomisiPending),
+                'pendaftar' => $pendaftarData,
+            ];
+        });
+
+        $totalKomisiPaid = $linksData->sum('komisi_dibayar');
+        $totalKomisiPending = $linksData->sum('komisi_pending');
+
         return response()->json([
             'affiliate' => $affiliate,
-            'links' => $links,
+            'links' => $linksData,
             'stats' => [
                 'total_links' => $links->count(),
                 'total_views' => $totalViews,
                 'total_pendaftar' => $totalPendaftar,
+                'komisi_paid' => (float) $totalKomisiPaid,
+                'komisi_pending' => (float) $totalKomisiPending,
             ],
         ]);
     }

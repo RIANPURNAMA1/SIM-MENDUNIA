@@ -124,11 +124,11 @@ export default function Login() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Kode Verifikasi</label>
-              <div className="flex gap-3 items-center">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   type="button"
                   onClick={() => { setCaptcha(generateCaptcha()); setCaptchaInput("") }}
-                  className="flex-none w-[88px] h-11 bg-gray-100 rounded-lg border border-gray-300 flex items-center justify-center select-none relative overflow-hidden group cursor-pointer hover:bg-gray-200 transition-colors"
+                  className="sm:flex-none w-full sm:w-[88px] h-11 bg-gray-100 rounded-lg border border-gray-300 flex items-center justify-center select-none relative overflow-hidden group cursor-pointer hover:bg-gray-200 transition-colors"
                 >
                   <span className="text-lg font-black tracking-[0.2em] text-gray-700">{captcha}</span>
                   <div className="absolute inset-0 bg-[#0D1F3C]/90 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-[11px] font-bold">
@@ -142,7 +142,7 @@ export default function Login() {
                   onChange={(e) => setCaptchaInput(e.target.value)}
                   required
                   placeholder="Masukkan kode"
-                  className="flex-1 h-11 px-3.5 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] text-gray-900 placeholder-gray-400 transition-colors"
+                  className="w-full h-11 px-3.5 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] text-gray-900 placeholder-gray-400 transition-colors"
                 />
               </div>
               <p className="text-[11px] text-gray-400 mt-1.5">Klik kode di samping untuk memperbarui</p>

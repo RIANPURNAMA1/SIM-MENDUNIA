@@ -13,8 +13,8 @@ interface Product {
 interface DashboardData {
   affiliate: { name: string; email: string; telepon: string | null; alamat: string | null }
   stats: { total_links: number; total_views: number; total_pendaftar: number; pending: number; disetujui: number; komisi_pending: number; komisi_paid: number }
-  links: { id: number; kode: string; nama_link: string | null; views: number; pendaftar_count: number; product: { nama: string; harga: number } }[]
-  pendaftar: { id: number; nama: string; email: string; nominal: number; status_pendaftaran: string; status_pembayaran: string; created_at: string; product: { nama: string } }[]
+  links: { id: number; kode: string; nama_link: string | null; views: number; pendaftar_count: number; product: { id: number; nama: string; harga: number; komisi: number | null } | null; komisi_dibayar: number; komisi_pending: number; total_komisi: number }[]
+  pendaftar: { id: number; nama: string; email: string; nominal: number; status_pendaftaran: string; status_pembayaran: string; created_at: string; product: { nama: string; harga: number; komisi: number | null } | null; komisi_diperoleh: number; komisi_pending: number }[]
 }
 
 function toast(msg: string) {
@@ -227,9 +227,17 @@ export default function AffiliateDashboard() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-slate-800">{link.nama_link || 'Link ' + link.kode}</p>
                       <p className="text-xs text-slate-400">{link.product?.nama} · Rp {Number(link.product?.harga || 0).toLocaleString('id-ID')}</p>
-                      <div className="mt-1.5 flex items-center gap-3 text-xs text-slate-500">
+                      {link.product?.komisi ? (
+                        <p className="mt-0.5 text-[11px] font-medium text-blue-600">Komisi: Rp {Number(link.product.komisi).toLocaleString('id-ID')}/kandidat</p>
+                      ) : null}
+                      <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-slate-500">
                         <span className="flex items-center gap-1"><Eye size={12} /> {link.views}</span>
                         <span className="flex items-center gap-1"><Users size={12} /> {link.pendaftar_count}</span>
+                        {link.total_komisi > 0 && (
+                          <span className="flex items-center gap-1 text-amber-600 font-medium">
+                            <Wallet size={12} /> Rp {Number(link.total_komisi).toLocaleString('id-ID')}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
@@ -273,6 +281,12 @@ export default function AffiliateDashboard() {
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-slate-800 truncate">{p.nama}</p>
                         <p className="text-xs text-slate-400">{p.product?.nama}</p>
+                        {(p.komisi_diperoleh > 0 || p.komisi_pending > 0) && (
+                          <div className="mt-0.5 flex items-center gap-2 text-[11px]">
+                            {p.komisi_diperoleh > 0 && <span className="text-emerald-600 font-medium">Dibayar: Rp {Number(p.komisi_diperoleh).toLocaleString('id-ID')}</span>}
+                            {p.komisi_pending > 0 && <span className="text-amber-600 font-medium">Pending: Rp {Number(p.komisi_pending).toLocaleString('id-ID')}</span>}
+                          </div>
+                        )}
                       </div>
                       <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
                         p.status_pendaftaran === 'disetujui' ? 'bg-emerald-100 text-emerald-700' :
@@ -324,6 +338,7 @@ export default function AffiliateDashboard() {
                       <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Nama</th>
                       <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Email</th>
                       <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Program</th>
+                      <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Komisi</th>
                       <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Tanggal</th>
                     </tr>
                   </thead>
@@ -332,7 +347,17 @@ export default function AffiliateDashboard() {
                       <tr key={p.id} className="border-t border-slate-100 bg-white transition hover:bg-slate-50">
                         <td className="px-4 py-3 text-sm font-semibold text-slate-800">{p.nama}</td>
                         <td className="px-4 py-3 text-sm text-slate-500">{p.email}</td>
-                        <td className="px-4 py-3 text-sm text-slate-600">{p.product?.nama || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-slate-600">
+                          {p.product?.nama || '-'}
+                          {p.product?.komisi && <span className="ml-1 text-[10px] text-blue-500">(Rp {Number(p.product.komisi).toLocaleString('id-ID')}/org)</span>}
+                        </td>
+                        <td className="px-4 py-3 text-xs">
+                          {p.komisi_diperoleh > 0 ? (
+                            <span className="text-emerald-600 font-semibold">Rp {Number(p.komisi_diperoleh).toLocaleString('id-ID')}</span>
+                          ) : p.komisi_pending > 0 ? (
+                            <span className="text-amber-600 font-medium">Rp {Number(p.komisi_pending).toLocaleString('id-ID')} (pending)</span>
+                          ) : <span className="text-slate-400">-</span>}
+                        </td>
                         <td className="px-4 py-3 text-sm text-slate-500">
                           {new Date(p.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </td>
@@ -363,7 +388,7 @@ export default function AffiliateDashboard() {
                   <option value="">-- Pilih Produk --</option>
                   {products.map(p => (
                     <option key={p.id} value={p.id}>
-                      {p.nama} — Rp {Number(p.harga).toLocaleString('id-ID')}{p.komisi ? ` (komisi: Rp ${Number(p.komisi).toLocaleString('id-ID')})` : ''}
+                      {p.nama} — Rp {Number(p.harga).toLocaleString('id-ID')}{p.komisi ? ` (komisi: Rp ${Number(p.komisi).toLocaleString('id-ID')}/kandidat)` : ''}
                     </option>
                   ))}
                 </select>

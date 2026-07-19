@@ -498,7 +498,7 @@ export default function DaftarAffiliate() {
                           <label className="block text-sm font-medium text-gray-700 mb-1">
                             Kode Kupon (Opsional)
                           </label>
-                          <div className="flex gap-2">
+                          <div className="flex flex-col sm:flex-row gap-2">
                             <input
                               type="text"
                               value={kodeKupon}
@@ -507,7 +507,7 @@ export default function DaftarAffiliate() {
                                 setValidasiKupon(null)
                               }}
                               placeholder="Masukkan kode kupon"
-                              className="flex-1 px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm font-mono"
+                              className="flex-1 w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm font-mono"
                             />
                             <button
                               type="button"
