@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('company_name')->default('MENDUNIA.ID');
             $table->string('pt_name')->default('PT INDONESIA SUKSES MENDUNIA');
-            $table->text('address')->nullable()->default('Jl. Contoh No. 123, Jakarta');
+            $table->text('address')->nullable();
             $table->string('email')->nullable()->default('info@simmendunia.com');
             $table->string('phone')->nullable()->default('(021) 1234-5678');
             $table->string('logo')->nullable();
