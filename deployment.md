@@ -209,7 +209,7 @@ File database sudah tersedia di `db_sim.sql` (project root). Import langsung ke 
 php artisan key:generate
 
 # Import database dari file SQL (sudah berisi seluruh struktur + data)
-mysql -u mendunia -p db_mendunia < /var/www/sim-mendunia/db_sim.sql
+ 
 
 # Verifikasi tabel
 php artisan tinker --execute="echo \ Illuminate\Support\Facades\Schema::getTables()->pluck('name')->implode(', ');"
@@ -233,10 +233,10 @@ php artisan event:cache
 ### 2.6 Set Permissions
 
 ```bash
-sudo chown -R www-data:www-data /var/www/sim-mendunia/backend/storage
-sudo chown -R www-data:www-data /var/www/sim-mendunia/backend/bootstrap/cache
-sudo chmod -R 775 /var/www/sim-mendunia/backend/storage
-sudo chmod -R 775 /var/www/sim-mendunia/backend/bootstrap/cache
+sudo chown -R www-data:www-data /var/www/SIM-MENDUNIA/backend/storage
+sudo chown -R www-data:www-data /var/www/SIM-MENDUNIA/backend/bootstrap/cache
+sudo chmod -R 775 /var/www/SIM-MENDUNIA/backend/storage
+sudo chmod -R 775 /var/www/SIM-MENDUNIA/backend/bootstrap/cache
 ```
 
 ---
@@ -270,8 +270,8 @@ Output statik ada di `frontend/dist/`.
 ### 3.2 Set Permissions
 
 ```bash
-sudo chown -R www-data:www-data /var/www/sim-mendunia/frontend/dist
-sudo chmod -R 755 /var/www/sim-mendunia/frontend/dist
+sudo chown -R www-data:www-data /var/www/SIM-MENDUNIA/frontend/dist
+sudo chmod -R 755 /var/www/SIM-MENDUNIA/frontend/dist
 ```
 
 ---
@@ -437,7 +437,7 @@ sudo nano /etc/supervisor/conf.d/mendunia-worker.conf
 ```ini
 [program:mendunia-worker]
 process_name=%(program_name)s_%(process_num)02d
-command=php /var/www/sim-mendunia/backend/artisan queue:work --sleep=3 --tries=1 --max-time=3600
+command=php /var/www/SIM-MENDUNIA/backend/artisan queue:work --sleep=3 --tries=1 --max-time=3600
 autostart=true
 autorestart=true
 stopasgroup=true
