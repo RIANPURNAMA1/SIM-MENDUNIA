@@ -234,9 +234,12 @@ Route::prefix('siswa')->group(function () {
     Route::post('/import-ai', [SiswaController::class, 'importAi']);
     Route::post('/profile', [SiswaDashboardController::class, 'updateProfile'])->middleware('auth:sanctum');
     Route::get('/absensi-saya', [SiswaDashboardController::class, 'absensiSaya'])->middleware('auth:sanctum');
+    Route::get('/siswa-batches', [SiswaDashboardController::class, 'siswaBatches'])->middleware('auth:sanctum');
     Route::get('/nilai-saya/{batchId}', [SiswaDashboardController::class, 'nilaiSaya'])->middleware('auth:sanctum');
     Route::get('/nilai-lms', [SiswaDashboardController::class, 'nilaiLms'])->middleware('auth:sanctum');
     Route::get('/evaluations', [SiswaDashboardController::class, 'evaluations'])->middleware('auth:sanctum');
+    Route::post('/evaluasi-guru', [SiswaDashboardController::class, 'storeStudentEvaluation'])->middleware('auth:sanctum');
+    Route::get('/evaluasi-guru', [SiswaDashboardController::class, 'getStudentEvaluations'])->middleware('auth:sanctum');
     Route::post('/scan-qr', [AbsensiController::class, 'scanQrSiswa'])->middleware('auth:sanctum');
     Route::post('/{id}', [SiswaController::class, 'update']);
     Route::delete('/{id}', [SiswaController::class, 'destroy']);
