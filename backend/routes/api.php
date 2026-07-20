@@ -359,6 +359,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/pembayaran/{pembayaranId}/reject-payment', [PendaftaranController::class, 'rejectPayment']);
         Route::post('/{id}/bayar-all', [PendaftaranController::class, 'bayarAll']);
         Route::post('/{id}/bayar-manual', [PendaftaranController::class, 'bayarManual']);
+        Route::post('/{id}/update-status', [PendaftaranController::class, 'updateStatus']);
         Route::get('/pending-count', [PendaftaranController::class, 'pendingCount']);
         Route::get('/{id}/riwayat-pembayaran', [PendaftaranController::class, 'riwayatPembayaran']);
         Route::delete('/{id}', [PendaftaranController::class, 'destroy']);
@@ -528,6 +529,7 @@ Route::middleware(['auth:sanctum'])->prefix('wa-settings')->group(function () {
     Route::put('/global', [\App\Http\Controllers\WaSettingController::class, 'globalUpdate']);
 
     // Batch + kategori deadline CRUD
+    Route::get('/batch-kategoris', [\App\Http\Controllers\WaSettingController::class, 'batchKategoris']);
     Route::get('/batch-deadlines', [\App\Http\Controllers\WaSettingController::class, 'batchDeadlineIndex']);
     Route::put('/batch-deadlines', [\App\Http\Controllers\WaSettingController::class, 'batchDeadlineBulkUpdate']);
     Route::delete('/batch-deadlines/{id}', [\App\Http\Controllers\WaSettingController::class, 'batchDeadlineDestroy']);
@@ -539,3 +541,22 @@ Route::middleware(['auth:sanctum'])->prefix('wa-settings')->group(function () {
 
 // Public — batch deadlines untuk countdown frontend
 Route::get('/wa-settings/batch-deadlines-public', [\App\Http\Controllers\WaSettingController::class, 'batchDeadlinePublic']);
+
+// ========== Payment Settings & Bank Accounts ==========
+Route::middleware(['auth:sanctum'])->prefix('payment-settings')->group(function () {
+    Route::get('/', [\App\Http\Controllers\PaymentController::class, 'settingsIndex']);
+    Route::put('/', [\App\Http\Controllers\PaymentController::class, 'settingsUpdate']);
+});
+
+Route::middleware(['auth:sanctum'])->prefix('bank-accounts')->group(function () {
+    Route::get('/', [\App\Http\Controllers\PaymentController::class, 'bankAccountIndex']);
+    Route::post('/', [\App\Http\Controllers\PaymentController::class, 'bankAccountStore']);
+    Route::put('/{id}', [\App\Http\Controllers\PaymentController::class, 'bankAccountUpdate']);
+    Route::delete('/{id}', [\App\Http\Controllers\PaymentController::class, 'bankAccountDestroy']);
+});
+
+// Public — bank accounts for candidates
+Route::get('/bank-accounts-public', [\App\Http\Controllers\PaymentController::class, 'bankAccountsPublic']);
+
+// Public — payment settings for registration forms
+Route::get('/payment-settings-public', [\App\Http\Controllers\PaymentController::class, 'paymentSettingsPublic']);

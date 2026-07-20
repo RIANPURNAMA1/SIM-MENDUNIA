@@ -6,23 +6,16 @@ import api, { APP_URL } from '../../services/api'
 // Class bergaya kartu Facebook
 const fbCardClass = "bg-white rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.12)]"
 
-function getDeadlineInfo(tanggalPersetujuan: string | null, jatuhTempoHari: number, tanggalAkhir?: string | null): { deadline: Date; diff: number; days: number; hours: number; minutes: number; expired: boolean; formatted: string } | null {
-  let deadline: Date
-  if (tanggalAkhir) {
-    deadline = new Date(tanggalAkhir + 'T23:59:59')
-  } else if (tanggalPersetujuan && jatuhTempoHari) {
-    const base = new Date(tanggalPersetujuan)
-    deadline = new Date(base.getTime() + jatuhTempoHari * 24 * 60 * 60 * 1000)
-  } else {
-    return null
-  }
+function getDeadlineInfo(dueAt?: string | null): { deadline: Date; diff: number; days: number; hours: number; minutes: number; expired: boolean; formatted: string } | null {
+  if (!dueAt) return null
+  const deadline = new Date(dueAt)
   const now = new Date()
   const diff = deadline.getTime() - now.getTime()
   const expired = diff <= 0
   const days = Math.floor(Math.abs(diff) / (1000 * 60 * 60 * 24))
   const hours = Math.floor((Math.abs(diff) % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
   const minutes = Math.floor((Math.abs(diff) % (1000 * 60 * 60)) / (1000 * 60))
-  const formatted = deadline.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+  const formatted = deadline.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })
   return { deadline, diff, days, hours, minutes, expired, formatted }
 }
 
@@ -41,7 +34,21 @@ interface KategoriItem {
   biaya: number
   dibayar: number
   jatuh_tempo_hari?: number
-  tanggal_akhir?: string | null
+  due_at?: string | null
+  kode_unik?: number
+  total_transfer?: number
+  payment_code?: string | null
+}
+
+interface BankAccount {
+  id: number
+  bank_name: string
+  bank_logo: string | null
+  account_holder: string
+  account_number: string
+  branch: string | null
+  additional_info: string | null
+  is_active: boolean
 }
 
 export default function PembayaranSiswa() {
@@ -63,6 +70,8 @@ export default function PembayaranSiswa() {
   const [company, setCompany] = useState<{ bank_nama: string; bank_nomor_rekening: string; bank_pemilik: string } | null>(null)
   const [copiedField, setCopiedField] = useState<string | null>(null)
   const [tanggalPersetujuan, setTanggalPersetujuan] = useState<string | null>(null)
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
+  const [paymentSettings, setPaymentSettings] = useState<{ manual_payment_enabled: boolean; unique_code_max: number; unique_code_operation: string } | null>(null)
 
   function loadData() {
     setLoading(true)
@@ -94,6 +103,17 @@ export default function PembayaranSiswa() {
       const c = r.data?.data || r.data
       if (c) setCompany({ bank_nama: c.bank_nama || 'BCA', bank_nomor_rekening: c.bank_nomor_rekening || '1831813364', bank_pemilik: c.bank_pemilik || 'PT. INDONESIA SUKSES MENDUNIA' })
     }).catch(() => {})
+    api.get('/bank-accounts-public').then(r => {
+      setBankAccounts(r.data || [])
+    }).catch(() => {})
+    api.get('/payment-settings').then(r => {
+      const s = r.data
+      setPaymentSettings({
+        manual_payment_enabled: s.manual_payment_enabled?.is_enabled ?? false,
+        unique_code_max: parseInt(s.unique_code_max?.value ?? '99'),
+        unique_code_operation: s.unique_code_operation?.value ?? 'add',
+      })
+    }).catch(() => {})
   }, [])
 
   if (loading) {
@@ -109,11 +129,11 @@ export default function PembayaranSiswa() {
 
   const diskon = Number(pendaftar?.diskon || 0)
   
-  const kategoriByName = new Map<string, { kategori: Kategori; biaya: number; dibayar: number; jatuh_tempo_hari: number; tanggal_akhir: string | null }>()
+  const kategoriByName = new Map<string, { kategori: Kategori; biaya: number; dibayar: number; jatuh_tempo_hari: number; due_at: string | null }>()
   for (const item of kategoriItems) {
     const kat = kategoris.find(k => k.id === item.kategori_id)
     if (kat) {
-      const val = { kategori: kat, biaya: item.biaya, dibayar: item.dibayar, jatuh_tempo_hari: item.jatuh_tempo_hari ?? 30, tanggal_akhir: item.tanggal_akhir ?? null }
+      const val = { kategori: kat, biaya: item.biaya, dibayar: item.dibayar, jatuh_tempo_hari: item.jatuh_tempo_hari ?? 30, due_at: item.due_at ?? null }
       kategoriByName.set(kat.nama.toLowerCase(), val)
       kategoriByName.set(kat.kode.toLowerCase(), val)
     }
@@ -155,7 +175,7 @@ export default function PembayaranSiswa() {
           biaya: totalBiaya,
           dibayar: totalDibayar,
           jatuh_tempo_hari: entry.jatuh_tempo_hari,
-          tanggal_akhir: entry.tanggal_akhir,
+          due_at: entry.due_at,
         })
       }
 
@@ -349,8 +369,8 @@ export default function PembayaranSiswa() {
                       const katDibayar = item?.dibayar || 0
                       const isUnpaid = !isLunas && katBiaya > 0
                       const jatuhTempoHari = item?.jatuh_tempo_hari ?? 30
-                      const tanggalAkhir = item?.tanggal_akhir
-                      const deadlineInfo = isUnpaid ? getDeadlineInfo(tanggalPersetujuan, jatuhTempoHari, tanggalAkhir) : null
+                      const dueAt = item?.due_at
+                      const deadlineInfo = isUnpaid ? getDeadlineInfo(dueAt) : null
 
                       return (
                         <div key={k.id} className={`snap-start flex-none w-[130px] flex flex-col p-3 rounded-xl border transition-all ${
@@ -520,7 +540,7 @@ export default function PembayaranSiswa() {
                       </div>
                     </div>
 
-                    {company && (
+                    {company && bankAccounts.length === 0 && (
                       <div className="bg-[#E8FAFF] border border-blue-100 rounded-lg p-4 space-y-3">
                         <div className="flex items-center gap-2 mb-1">
                           <Building2 size={16} className="text-[#0E6187]" />
@@ -544,6 +564,44 @@ export default function PembayaranSiswa() {
                             </button>
                           </div>
                         </div>
+                      </div>
+                    )}
+
+                    {bankAccounts.filter(b => b.is_active).length > 0 && (
+                      <div className="bg-[#E8FAFF] border border-blue-100 rounded-lg p-4 space-y-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Building2 size={16} className="text-[#0E6187]" />
+                          <p className="text-[13px] font-bold text-gray-800">Informasi Rekening Tujuan</p>
+                        </div>
+                        {bankAccounts.filter(b => b.is_active).map(acc => (
+                          <div key={acc.id} className="border-t border-blue-200 pt-3 first:border-0 first:pt-0">
+                            <div className="flex items-center gap-2 mb-2">
+                              {acc.bank_logo ? (
+                                <img src={`/storage/${acc.bank_logo}`} alt={acc.bank_name} className="w-6 h-6 rounded object-contain" />
+                              ) : (
+                                <Building2 size={14} className="text-[#0E6187]" />
+                              )}
+                              <span className="text-[13px] font-bold text-gray-800">{acc.bank_name}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm">
+                              <span className="text-gray-500">Atas Nama</span>
+                              <span className="font-semibold text-gray-900">{acc.account_holder}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm">
+                              <span className="text-gray-500">No. Rekening</span>
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold font-mono text-[#0E6187]">{acc.account_number}</span>
+                                <button type="button" onClick={() => copyToClipboard(acc.account_number, `rek-${acc.id}`)}
+                                  className="p-1 rounded hover:bg-gray-200 transition-colors" title="Salin">
+                                  <Copy size={13} className={copiedField === `rek-${acc.id}` ? 'text-green-600' : 'text-gray-400'} />
+                                </button>
+                              </div>
+                            </div>
+                            {acc.additional_info && (
+                              <p className="mt-1.5 text-[11px] text-gray-500">{acc.additional_info}</p>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     )}
 

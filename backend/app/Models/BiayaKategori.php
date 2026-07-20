@@ -6,7 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class BiayaKategori extends Model
 {
-    protected $fillable = ['nama', 'kode', 'urutan', 'deskripsi', 'parent_id'];
+    protected $fillable = [
+        'nama', 'kode', 'urutan', 'deskripsi', 'parent_id',
+        'trigger_type', 'trigger_value', 'due_type', 'due_value', 'reminder_setting',
+        'channel', 'template_pesan', 'template_email', 'subject_email',
+    ];
+
+    protected $casts = [
+        'reminder_setting' => 'array',
+    ];
 
     public function parent()
     {

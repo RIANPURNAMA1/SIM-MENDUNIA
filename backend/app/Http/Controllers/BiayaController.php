@@ -161,7 +161,7 @@ class BiayaController extends Controller
                 ->map(fn($k) => (int) $k->pivot->harga);
         }
 
-        // Resolve deadlines: prefer batch_kategori_deadlines (per-batch), fallback to wa_reminder_settings (global)
+        // Resolve deadlines: prefer batch_kategori_deadlines (per-batch), then product billing settings, fallback to wa_reminder_settings (global)
         $batchDeadlines = collect();
         if ($batchId) {
             $batchDeadlines = BatchKategoriDeadline::where('batch_id', $batchId)
@@ -173,36 +173,61 @@ class BiayaController extends Controller
         $reminderSettings = \App\Models\WaReminderSetting::where('is_enabled', true)
             ->pluck('jatuh_tempo_hari', 'kategori_id');
 
+        // Build billing settings map from biaya_kategoris
+        $billingMap = $pendaftar->product && $pendaftar->product->relationLoaded('biayaKategoris')
+            ? $pendaftar->product->biayaKategoris->keyBy('id')
+            : collect();
+
         $kategoris = BiayaKategori::orderBy('urutan')->get();
         $result = $kategoris->filter(function ($k) use ($data, $biayaBatch, $pivotPrices) {
             $bb = $biayaBatch->get($k->id);
             $pi = $data->get($k->id);
             $biaya = $bb ? (int) $bb->biaya : $pivotPrices->get($k->id, 0);
             return $biaya > 0;
-        })->values()->map(function ($k) use ($data, $biayaBatch, $pivotPrices, $batchDeadlines, $reminderSettings, $pendaftar) {
+        })->values()->map(function ($k) use ($data, $biayaBatch, $pivotPrices, $batchDeadlines, $reminderSettings, $billingMap, $pendaftar) {
             $bb = $biayaBatch->get($k->id);
             $pi = $data->get($k->id);
             $biaya = $bb ? (int) $bb->biaya : $pivotPrices->get($k->id, 0);
 
-            // Prefer batch deadline (tanggal_akhir is absolute date)
             $batchDl = $batchDeadlines->get($k->id);
-            $tanggal_akhir = null;
-            $jatuh_tempo_hari = null;
+            $dueAt = null;
+            $jatuh_tempo_hari = 30;
 
             if ($batchDl && $batchDl->tanggal_akhir) {
-                $tanggal_akhir = $batchDl->tanggal_akhir->format('Y-m-d');
-                // Also compute days remaining from tanggal_persetujuan for fallback
+                // Priority 1: Batch deadline (absolute date) — end of day
+                $dueAt = $batchDl->tanggal_akhir->copy()->setTime(23, 59, 59)->timezone('Asia/Jakarta')->toIso8601String();
                 if ($pendaftar->tanggal_persetujuan) {
                     $jatuh_tempo_hari = \Carbon\Carbon::parse($pendaftar->tanggal_persetujuan)
                         ->diffInDays($batchDl->tanggal_akhir);
                 }
             } else {
-                // Fallback to global reminder settings
-                $jatuh_tempo_hari = (int) ($reminderSettings[$k->id] ?? 30);
-                if ($pendaftar->tanggal_persetujuan) {
-                    $tanggal_akhir = \Carbon\Carbon::parse($pendaftar->tanggal_persetujuan)
-                        ->addDays($jatuh_tempo_hari)
-                        ->format('Y-m-d');
+                // Priority 2: Product billing settings (due_type + due_value)
+                $billing = $billingMap->get($k->id);
+                $dueType = $billing->due_type ?? null;
+                $dueValue = $billing->due_value ?? null;
+
+                if ($dueType && $dueType !== 'none' && $dueType !== 'manual') {
+                    $baseDate = $pendaftar->tanggal_persetujuan
+                        ? \Carbon\Carbon::parse($pendaftar->tanggal_persetujuan)
+                        : \Carbon\Carbon::now();
+
+                    if ($dueType === 'days_after_invoice' && $dueValue) {
+                        $jatuh_tempo_hari = (int) $dueValue;
+                        $dueAt = $baseDate->copy()->addDays($jatuh_tempo_hari)->timezone('Asia/Jakarta')->toIso8601String();
+                    } elseif ($dueType === 'fixed_date' && $dueValue) {
+                        $dueAt = \Carbon\Carbon::parse($dueValue)->setTime(23, 59, 59)->timezone('Asia/Jakarta')->toIso8601String();
+                        if ($pendaftar->tanggal_persetujuan) {
+                            $jatuh_tempo_hari = $baseDate->diffInDays(\Carbon\Carbon::parse($dueValue));
+                        }
+                    }
+                } else {
+                    // Priority 3: Global reminder settings (fallback)
+                    $jatuh_tempo_hari = (int) ($reminderSettings[$k->id] ?? 30);
+                    if ($pendaftar->tanggal_persetujuan) {
+                        $dueAt = \Carbon\Carbon::parse($pendaftar->tanggal_persetujuan)
+                            ->addDays($jatuh_tempo_hari)
+                            ->timezone('Asia/Jakarta')->toIso8601String();
+                    }
                 }
             }
 
@@ -213,7 +238,10 @@ class BiayaController extends Controller
                 'biaya' => $biaya,
                 'dibayar' => $pi ? (int) $pi->jumlah : 0,
                 'jatuh_tempo_hari' => $jatuh_tempo_hari ?? 30,
-                'tanggal_akhir' => $tanggal_akhir,
+                'due_at' => $dueAt,
+                'kode_unik' => $pi->kode_unik ?? 0,
+                'total_transfer' => $pi->total_transfer ?? $biaya,
+                'payment_code' => $pi->payment_code ?? null,
             ];
         });
 

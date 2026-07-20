@@ -67,7 +67,7 @@ const steps = [
   { id: 'dokumen', label: 'Upload Dokumen' },
 ]
 
-const API_BASE = 'https://www.emsifa.com/api-wilayah-indonesia'
+const API_BASE = 'https://cdn.jsdelivr.net/gh/izzulabadi/api-wilayah-indonesia-2026@v1.0.4/api'
 
 export default function DataDiri() {
   const [pendaftar, setPendaftar] = useState<PendaftarData | null>(null)

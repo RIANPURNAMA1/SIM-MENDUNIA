@@ -41,6 +41,7 @@ import Pengaturan from './pages/Pengaturan/Pengaturan'
 import PengaturanShift from './pages/Karyawan/PengaturanShift'
 import PengaturanWa from './pages/Pengaturan/PengaturanWa'
 import CompanyProfile from './pages/Pengaturan/CompanyProfile'
+import PengaturanPembayaran from './pages/Pengaturan/PengaturanPembayaran'
 import DataKandidat from './pages/Pendaftaran/DataKandidat'
 import Pendaftar from './pages/Pendaftaran/Pendaftar'
 import InvoicePendaftar from './pages/Pendaftaran/InvoicePendaftar'
@@ -545,6 +546,16 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/pengaturan-pembayaran"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <PengaturanPembayaran />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/rekap-absensi"
         element={
           <ProtectedRoute>
@@ -621,6 +632,7 @@ function AppRoutes() {
                 <Route path="/data-biaya-kategori" element={<DataBiayaKategori />} />
                 <Route path="/notifikasi-wa" element={<DataNotifikasi />} />
                 <Route path="/notifikasi-wa-setting" element={<DataNotifikasiSetting />} />
+                <Route path="/pengaturan-pembayaran" element={<PengaturanPembayaran />} />
               </Routes>
             </DashboardLayout>
           </ProtectedRoute>
