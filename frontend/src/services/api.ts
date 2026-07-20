@@ -410,6 +410,9 @@ export const guruKelasApi = {
   simpanPenilaianHarian: (data: { siswa_id: number; kelas_sensei_id: number; tanggal: string; is_terisi: boolean; catatan?: string; scores?: { component_id: number; nilai: number | null }[] }) =>
     api.post('/guru/penilaian-harian', data),
   batchDanNilai: () => api.get('/guru/batch-dan-nilai'),
+  ranking: (batchId: number) => api.get(`/guru/ranking/${batchId}`),
+  storeLevelEvaluation: (data: { siswa_id: number; batch_id: number; level: string; evaluasi: string }) => api.post('/guru/level-evaluation', data),
+  getLevelEvaluations: (batchId: number, level: string) => api.get(`/guru/level-evaluations/${batchId}/${level}`),
 }
 
 export const lmsApi = {
@@ -418,6 +421,11 @@ export const lmsApi = {
   lessonDetail: (id: number) => api.get(`/lms/lessons/${id}`),
   completeLesson: (id: number) => api.post(`/lms/lessons/${id}/complete`),
   uncompleteLesson: (id: number) => api.delete(`/lms/lessons/${id}/complete`),
+  // Student Assignments
+  courseAssignments: (courseId: number) => api.get(`/lms/courses/${courseId}/assignments`),
+  submitAssignment: (assignmentId: number, data: FormData) => api.post(`/lms/assignments/${assignmentId}/submit`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  nilaiLms: () => api.get('/siswa/nilai-lms'),
+  evaluations: () => api.get('/siswa/evaluations'),
 }
 
 export const lmsAdminApi = {
@@ -433,6 +441,15 @@ export const lmsAdminApi = {
   upload: (data: FormData) => api.post('/admin/lms/upload', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   storeCourseFile: (data: FormData) => api.post('/admin/lms/files', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   deleteCourseFile: (id: number) => api.delete(`/admin/lms/files/${id}`),
+}
+
+export const assignmentApi = {
+  list: (courseId: number) => api.get(`/guru/assignments/${courseId}`),
+  store: (data: FormData) => api.post('/guru/assignments', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  update: (id: number, data: FormData) => api.post(`/guru/assignments/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  delete: (id: number) => api.delete(`/guru/assignments/${id}`),
+  submissions: (id: number) => api.get(`/guru/assignments/${id}/submissions`),
+  grade: (id: number, data: { score: number; feedback?: string }) => api.post(`/guru/assignments/${id}/grade`, data),
 }
 
 export const kategoriPengeluaranApi = {
@@ -466,6 +483,21 @@ export const waSettingApi = {
   updateReminderSettings: (settings: { kategori_id: number; jatuh_tempo_hari: number; reminder_days: number[]; is_enabled: boolean; template_pesan: string | null }[]) => api.put('/wa-settings/reminder', { settings }),
   getGlobalSettings: () => api.get('/wa-settings/global'),
   updateGlobalSettings: (settings: { key: string; is_enabled: boolean; value?: string }[]) => api.put('/wa-settings/global', { settings }),
+}
+
+export const guruLmsApi = {
+  courses: () => api.get('/guru/lms-courses'),
+  courseDetail: (id: number) => api.get(`/guru/lms-courses/${id}`),
+  storeCourse: (data: FormData) => api.post('/guru/lms-courses', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  updateCourse: (id: number, data: FormData) => api.post(`/guru/lms-courses/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  deleteCourse: (id: number) => api.delete(`/guru/lms-courses/${id}`),
+  courseFiles: (courseId: number) => api.get(`/guru/lms-courses/${courseId}/files`),
+  storeCourseFile: (data: FormData) => api.post('/guru/lms-courses/files', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  deleteCourseFile: (id: number) => api.delete(`/guru/lms-courses/files/${id}`),
+  lessons: (courseId: number) => api.get(`/guru/lms-courses/${courseId}/lessons`),
+  storeLesson: (data: FormData) => api.post('/guru/lms-lessons', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  updateLesson: (id: number, data: FormData) => api.post(`/guru/lms-lessons/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  deleteLesson: (id: number) => api.delete(`/guru/lms-lessons/${id}`),
 }
 
 export const APP_URL = import.meta.env.VITE_APP_URL || 'http://localhost:8000'

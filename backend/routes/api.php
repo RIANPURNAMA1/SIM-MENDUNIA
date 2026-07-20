@@ -235,6 +235,8 @@ Route::prefix('siswa')->group(function () {
     Route::post('/profile', [SiswaDashboardController::class, 'updateProfile'])->middleware('auth:sanctum');
     Route::get('/absensi-saya', [SiswaDashboardController::class, 'absensiSaya'])->middleware('auth:sanctum');
     Route::get('/nilai-saya/{batchId}', [SiswaDashboardController::class, 'nilaiSaya'])->middleware('auth:sanctum');
+    Route::get('/nilai-lms', [SiswaDashboardController::class, 'nilaiLms'])->middleware('auth:sanctum');
+    Route::get('/evaluations', [SiswaDashboardController::class, 'evaluations'])->middleware('auth:sanctum');
     Route::post('/scan-qr', [AbsensiController::class, 'scanQrSiswa'])->middleware('auth:sanctum');
     Route::post('/{id}', [SiswaController::class, 'update']);
     Route::delete('/{id}', [SiswaController::class, 'destroy']);
@@ -386,6 +388,31 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/guru/penilaian-harian', [GuruDashboardController::class, 'simpanPenilaianHarian']);
     Route::get('/guru/profile', [GuruDashboardController::class, 'profile']);
     Route::get('/guru/batch-dan-nilai', [GuruDashboardController::class, 'batchDanNilai']);
+    Route::get('/guru/ranking/{batchId}', [GuruDashboardController::class, 'rankingBatch']);
+    Route::post('/guru/level-evaluation', [GuruDashboardController::class, 'storeLevelEvaluation']);
+    Route::get('/guru/level-evaluations/{batchId}/{level}', [GuruDashboardController::class, 'getLevelEvaluations']);
+
+    // Guru LMS (static routes BEFORE wildcard routes)
+    Route::get('/guru/lms-courses', [GuruDashboardController::class, 'lmsCourses']);
+    Route::post('/guru/lms-courses', [GuruDashboardController::class, 'lmsStoreCourse']);
+    Route::post('/guru/lms-courses/files', [GuruDashboardController::class, 'lmsStoreCourseFile']);
+    Route::delete('/guru/lms-courses/files/{id}', [GuruDashboardController::class, 'lmsDeleteCourseFile']);
+    Route::post('/guru/lms-lessons', [GuruDashboardController::class, 'guruStoreLesson']);
+    Route::post('/guru/lms-lessons/{id}', [GuruDashboardController::class, 'guruUpdateLesson']);
+    Route::delete('/guru/lms-lessons/{id}', [GuruDashboardController::class, 'guruDeleteLesson']);
+    Route::get('/guru/lms-courses/{courseId}/files', [GuruDashboardController::class, 'lmsCourseFiles']);
+    Route::get('/guru/lms-courses/{courseId}/lessons', [GuruDashboardController::class, 'guruLessons']);
+    Route::get('/guru/lms-courses/{id}', [GuruDashboardController::class, 'lmsCourseDetail']);
+    Route::post('/guru/lms-courses/{id}', [GuruDashboardController::class, 'lmsUpdateCourse']);
+    Route::delete('/guru/lms-courses/{id}', [GuruDashboardController::class, 'lmsDeleteCourse']);
+
+    // Guru Assignments
+    Route::get('/guru/assignments/{courseId}', [GuruDashboardController::class, 'lmsAssignments']);
+    Route::post('/guru/assignments', [GuruDashboardController::class, 'lmsStoreAssignment']);
+    Route::post('/guru/assignments/{id}', [GuruDashboardController::class, 'lmsUpdateAssignment']);
+    Route::delete('/guru/assignments/{id}', [GuruDashboardController::class, 'lmsDeleteAssignment']);
+    Route::get('/guru/assignments/{id}/submissions', [GuruDashboardController::class, 'lmsAssignmentSubmissions']);
+    Route::post('/guru/assignments/{id}/grade', [GuruDashboardController::class, 'lmsGradeSubmission']);
 
     // LMS
     Route::prefix('lms')->group(function () {
@@ -394,6 +421,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/lessons/{id}', [LmsController::class, 'lessonDetail']);
         Route::post('/lessons/{id}/complete', [LmsController::class, 'completeLesson']);
         Route::delete('/lessons/{id}/complete', [LmsController::class, 'uncompleteLesson']);
+
+        // Student Assignments
+        Route::get('/courses/{courseId}/assignments', [LmsController::class, 'courseAssignments']);
+        Route::post('/assignments/{assignmentId}/submit', [LmsController::class, 'submitAssignment']);
     });
 
     // LMS Admin

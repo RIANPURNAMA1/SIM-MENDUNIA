@@ -4,35 +4,33 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Lesson extends Model
+class LmsAssignment extends Model
 {
-    protected $table = 'lms_lessons';
+    protected $table = 'lms_assignments';
 
     protected $fillable = [
         'course_id',
         'title',
-        'content',
-        'video_url',
+        'description',
         'file_path',
         'file_name',
-        'file_type',
-        'file_size',
-        'sort',
+        'due_date',
+        'max_score',
         'status',
     ];
 
     protected $casts = [
-        'content' => 'string',
+        'due_date' => 'date:Y-m-d',
     ];
 
     public function course()
     {
-        return $this->belongsTo(Course::class);
+        return $this->belongsTo(Course::class, 'course_id');
     }
 
-    public function progress()
+    public function submissions()
     {
-        return $this->hasMany(LmsProgress::class, 'lesson_id');
+        return $this->hasMany(LmsSubmission::class, 'assignment_id');
     }
 
     public function scopeAktif($query)

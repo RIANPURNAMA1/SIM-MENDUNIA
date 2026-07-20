@@ -5,7 +5,7 @@ import {
   QrCode, History, BookOpen, ClipboardList, Camera, MapPin, Notebook,
   Award, BarChart3,
 } from 'lucide-react'
-import api, { guruKelasApi, APP_URL } from '../../services/api'
+import api, { guruKelasApi, jadwalLevelApi, APP_URL } from '../../services/api'
 import Swal from 'sweetalert2'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
 
@@ -114,6 +114,7 @@ export default function GuruDashboard() {
   const coordsRef = useRef<{ latitude: number; longitude: number } | null>(null)
   const [batchNilaiList, setBatchNilaiList] = useState<BatchNilai[]>([])
   const [expandedLevel, setExpandedLevel] = useState<string | null>(null)
+  const [jadwalLevels, setJadwalLevels] = useState<Record<string, { tanggal_mulai: string; tanggal_selesai: string }>>({})
 
   const absenStatus: 'belum' | 'masuk' | 'pulang' = kelasList.some(k => absenPerKelas[k.id]?.jam_masuk && !absenPerKelas[k.id]?.jam_keluar)
     ? 'masuk'
@@ -138,11 +139,13 @@ export default function GuruDashboard() {
       api.get('/guru-dashboard'),
       guruKelasApi.list(),
       guruKelasApi.batchDanNilai(),
-    ]).then(([dashRes, kelasRes, nilaiRes]) => {
+      jadwalLevelApi.list(),
+    ]).then(([dashRes, kelasRes, nilaiRes, jadwalRes]) => {
       setData(dashRes.data)
       setKelasList(kelasRes.data.kelas)
       setBatches(kelasRes.data.batches || [])
       setBatchNilaiList(nilaiRes.data.batches || [])
+      setJadwalLevels(jadwalRes.data.jadwal || {})
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [])
@@ -172,12 +175,14 @@ export default function GuruDashboard() {
     setSaving(true)
     try {
       const batchName = batches.find(b => b.id === Number(form.batch_id))?.nama_batch || ''
+      const jadwalKey = `${form.batch_id}-${form.level}`
+      const jadwal = jadwalLevels[jadwalKey]
       const res = await guruKelasApi.store({
         nama_kelas: batchName,
         batch_id: form.batch_id ? Number(form.batch_id) : null,
         level: form.level,
-        tanggal_mulai: form.tanggal_mulai,
-        tanggal_selesai: form.tanggal_selesai,
+        tanggal_mulai: jadwal?.tanggal_mulai || form.tanggal_mulai,
+        tanggal_selesai: jadwal?.tanggal_selesai || form.tanggal_selesai,
         catatan: form.catatan || null,
       })
       setKelasList(prev => [res.data.data, ...prev])
@@ -187,6 +192,8 @@ export default function GuruDashboard() {
       setSaving(false)
     }
   }
+
+  const selectedJadwal = form.batch_id && form.level ? jadwalLevels[`${form.batch_id}-${form.level}`] : null
 
   const startCamera = useCallback(async (kelasId: number, mode: 'masuk' | 'pulang') => {
     setCameraKelasId(kelasId)
@@ -547,6 +554,7 @@ export default function GuruDashboard() {
               { icon: FileText, label: 'Izin/Sakit', href: '/pengajuan-izin' },
               { icon: History, label: 'Riwayat', href: '/riwayat-absensi-karyawan' },
               { icon: Clock, label: 'Lembur', href: '/lembur-karyawan' },
+              { icon: BookOpen, label: 'LMS', href: '/guru-lms' },
             ].map((item, i) => (
               <button key={i} onClick={() => item.href ? window.location.href = item.href : item.action?.()}
                 className="flex flex-col items-center gap-2 py-3 rounded-lg hover:bg-[#F4F5F8] transition-colors">
@@ -715,14 +723,28 @@ export default function GuruDashboard() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Tanggal Mulai <span className="text-red-500">*</span></label>
-                  <input type="date" required value={form.tanggal_mulai} onChange={e => setForm(f => ({ ...f, tanggal_mulai: e.target.value }))}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]" />
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Tanggal Mulai <span className="text-gray-400 font-normal">(otomatis dari jadwal)</span></label>
+                  {selectedJadwal ? (
+                    <div className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+                      {new Date(selectedJadwal.tanggal_mulai + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </div>
+                  ) : (
+                    <input type="date" value={form.tanggal_mulai} onChange={e => setForm(f => ({ ...f, tanggal_mulai: e.target.value }))}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]"
+                      placeholder="Pilih batch & level untuk otomatis" />
+                  )}
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Tanggal Selesai <span className="text-red-500">*</span></label>
-                  <input type="date" required value={form.tanggal_selesai} onChange={e => setForm(f => ({ ...f, tanggal_selesai: e.target.value }))}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]" />
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Tanggal Selesai <span className="text-gray-400 font-normal">(otomatis dari jadwal)</span></label>
+                  {selectedJadwal ? (
+                    <div className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+                      {new Date(selectedJadwal.tanggal_selesai + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </div>
+                  ) : (
+                    <input type="date" value={form.tanggal_selesai} onChange={e => setForm(f => ({ ...f, tanggal_selesai: e.target.value }))}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]"
+                      placeholder="Pilih batch & level untuk otomatis" />
+                  )}
                 </div>
               </div>
               <div>

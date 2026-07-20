@@ -310,4 +310,131 @@ class SiswaDashboardController extends Controller
             'daily' => array_values($daily),
         ]);
     }
+
+    public function nilaiLms()
+    {
+        $user = Auth::guard('sanctum')->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $siswa = Siswa::where('user_id', $user->id)->first();
+        if (!$siswa) {
+            return response()->json(['message' => 'Data siswa tidak ditemukan'], 404);
+        }
+
+        $batchId = $siswa->batch_id;
+        if (!$batchId) {
+            return response()->json([
+                'batch' => null,
+                'levels' => [],
+                'summary' => ['overall_avg' => null, 'total_penilaian' => 0, 'total_hari' => 0],
+            ]);
+        }
+
+        $batch = Batch::find($batchId);
+
+        $assessments = \App\Models\StudentAssessment::where('siswa_id', $siswa->id)
+            ->where('batch_id', $batchId)
+            ->whereNotNull('nilai')
+            ->with('component.category')
+            ->get();
+
+        $dailyGroups = $assessments->groupBy('tanggal')->sortKeysDesc();
+
+        $daily = [];
+        foreach ($dailyGroups as $tanggal => $items) {
+            $componentScores = [];
+            $totalAvg = 0;
+            $countComponents = 0;
+
+            foreach ($items as $item) {
+                $compName = $item->component->sub_komponen ?? '-';
+                $level = $item->component->category->level ?? '-';
+                $componentScores[] = [
+                    'nama' => $compName,
+                    'nilai' => (float) $item->nilai,
+                    'level' => $level,
+                ];
+                $totalAvg += (float) $item->nilai;
+                $countComponents++;
+            }
+
+            $daily[] = [
+                'tanggal' => $tanggal,
+                'rata_rata' => $countComponents > 0 ? round($totalAvg / $countComponents, 1) : null,
+                'komponen' => $componentScores,
+            ];
+        }
+
+        $allNilai = $assessments->pluck('nilai')->map(fn($v) => (float) $v);
+        $overallAvg = $allNilai->isNotEmpty() ? round($allNilai->avg(), 1) : null;
+
+        $levelGroups = $assessments->groupBy(fn($a) => $a->component->category->level ?? 'Umum');
+        $levels = [];
+        foreach ($levelGroups as $levelName => $levelAssessments) {
+            $levelDaily = $levelAssessments->groupBy('tanggal')->sortKeysDesc();
+            $levelDailyArr = [];
+            foreach ($levelDaily as $tanggal => $items) {
+                $componentScores = [];
+                $totalAvg = 0;
+                $count = 0;
+                foreach ($items as $item) {
+                    $componentScores[] = [
+                        'nama' => $item->component->sub_komponen ?? '-',
+                        'nilai' => (float) $item->nilai,
+                    ];
+                    $totalAvg += (float) $item->nilai;
+                    $count++;
+                }
+                $levelDailyArr[] = [
+                    'tanggal' => $tanggal,
+                    'rata_rata' => $count > 0 ? round($totalAvg / $count, 1) : null,
+                    'komponen' => $componentScores,
+                ];
+            }
+            $levelNilai = $levelAssessments->pluck('nilai')->map(fn($v) => (float) $v);
+            $levels[] = [
+                'level' => $levelName,
+                'rata_rata' => $levelNilai->isNotEmpty() ? round($levelNilai->avg(), 1) : null,
+                'total_pertemuan' => $levelDaily->count(),
+                'total_nilai' => $levelNilai->count(),
+                'daily' => $levelDailyArr,
+            ];
+        }
+        usort($levels, fn($a, $b) => strcmp($a['level'], $b['level']));
+
+        return response()->json([
+            'batch' => $batch ? [
+                'id' => $batch->id,
+                'nama_batch' => $batch->nama_batch,
+                'tanggal_mulai' => $batch->tanggal_mulai?->format('Y-m-d'),
+                'tanggal_selesai' => $batch->tanggal_selesai?->format('Y-m-d'),
+            ] : null,
+            'levels' => $levels,
+            'summary' => [
+                'overall_avg' => $overallAvg,
+                'total_penilaian' => $allNilai->count(),
+                'total_hari' => $dailyGroups->count(),
+            ],
+            'daily' => $daily,
+        ]);
+    }
+
+    public function evaluations()
+    {
+        $user = Auth::guard('sanctum')->user();
+        if (!$user) return response()->json(['message' => 'Unauthenticated'], 401);
+
+        $siswa = Siswa::where('user_id', $user->id)->first();
+        if (!$siswa) return response()->json(['message' => 'Data siswa tidak ditemukan'], 404);
+
+        $evaluations = \App\Models\LevelEvaluation::where('siswa_id', $siswa->id)
+            ->where('batch_id', $siswa->batch_id)
+            ->with('user:name')
+            ->get()
+            ->keyBy('level');
+
+        return response()->json(['evaluations' => $evaluations]);
+    }
 }

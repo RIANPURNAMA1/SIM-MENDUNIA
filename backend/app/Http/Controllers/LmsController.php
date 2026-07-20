@@ -6,6 +6,8 @@ use App\Models\Batch;
 use App\Models\Course;
 use App\Models\CourseFile;
 use App\Models\Lesson;
+use App\Models\LmsAssignment;
+use App\Models\LmsSubmission;
 use App\Models\LmsProgress;
 use App\Models\Siswa;
 use Illuminate\Http\Request;
@@ -134,6 +136,92 @@ class LmsController extends Controller
         return response()->json(['message' => 'Progress removed']);
     }
 
+    // ========== Student Assignments ==========
+
+    public function courseAssignments($courseId)
+    {
+        $siswa = $this->getSiswa();
+        if (!$siswa) return response()->json(['message' => 'Siswa not found'], 404);
+
+        $assignments = LmsAssignment::withCount('submissions')
+            ->where('course_id', $courseId)
+            ->aktif()
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $submittedIds = LmsSubmission::whereIn('assignment_id', $assignments->pluck('id'))
+            ->where('siswa_id', $siswa->id)
+            ->get()
+            ->keyBy('assignment_id');
+
+        $result = $assignments->map(function ($a) use ($submittedIds) {
+            $sub = $submittedIds->get($a->id);
+            return [
+                'id' => $a->id,
+                'course_id' => $a->course_id,
+                'title' => $a->title,
+                'description' => $a->description,
+                'file_path' => $a->file_path,
+                'file_name' => $a->file_name,
+                'due_date' => $a->due_date?->format('Y-m-d'),
+                'max_score' => $a->max_score,
+                'submission' => $sub ? [
+                    'id' => $sub->id,
+                    'file_path' => $sub->file_path,
+                    'file_name' => $sub->file_name,
+                    'notes' => $sub->notes,
+                    'score' => $sub->score,
+                    'feedback' => $sub->feedback,
+                    'submitted_at' => $sub->submitted_at?->format('Y-m-d H:i'),
+                    'graded_at' => $sub->graded_at?->format('Y-m-d H:i'),
+                ] : null,
+            ];
+        });
+
+        return response()->json(['assignments' => $result]);
+    }
+
+    public function submitAssignment(Request $request, $assignmentId)
+    {
+        $siswa = $this->getSiswa();
+        if (!$siswa) return response()->json(['message' => 'Siswa not found'], 404);
+
+        $assignment = LmsAssignment::aktif()->findOrFail($assignmentId);
+
+        if ($assignment->due_date && $assignment->due_date->isPast()) {
+            return response()->json(['message' => 'Tenggat waktu pengumpulan tugas telah berakhir.'], 422);
+        }
+
+        $data = $request->validate([
+            'notes' => 'nullable|string|max:1000',
+            'file' => 'required|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt,jpg,jpeg,png,zip,rar|max:51200',
+        ]);
+
+        $existing = LmsSubmission::where('assignment_id', $assignmentId)
+            ->where('siswa_id', $siswa->id)
+            ->first();
+
+        if ($existing) {
+            Storage::disk('public')->delete($existing->file_path);
+            $existing->delete();
+        }
+
+        $file = $request->file('file');
+        $path = $file->store('lms/submissions', 'public');
+
+        $submission = LmsSubmission::create([
+            'assignment_id' => $assignmentId,
+            'siswa_id' => $siswa->id,
+            'notes' => $data['notes'] ?? null,
+            'file_path' => $path,
+            'file_name' => $file->getClientOriginalName(),
+            'file_size' => $file->getSize(),
+            'submitted_at' => now(),
+        ]);
+
+        return response()->json(['submission' => $submission], 201);
+    }
+
     // ========== Admin CRUD ==========
 
     public function adminCourses()
@@ -212,10 +300,20 @@ class LmsController extends Controller
             'title' => 'required|string|max:255',
             'content' => 'nullable|string',
             'video_url' => 'nullable|string|max:500',
+            'file' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt|max:51200',
             'sort' => 'nullable|integer|min:0',
             'status' => 'nullable|in:aktif,nonaktif',
         ]);
 
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $data['file_path'] = $file->store('lms/lesson-files', 'public');
+            $data['file_name'] = $file->getClientOriginalName();
+            $data['file_type'] = $file->getMimeType();
+            $data['file_size'] = $file->getSize();
+        }
+
+        unset($data['file']);
         $lesson = Lesson::create($data);
         return response()->json(['lesson' => $lesson], 201);
     }
@@ -228,10 +326,23 @@ class LmsController extends Controller
             'title' => 'sometimes|string|max:255',
             'content' => 'nullable|string',
             'video_url' => 'nullable|string|max:500',
+            'file' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt|max:51200',
             'sort' => 'nullable|integer|min:0',
             'status' => 'nullable|in:aktif,nonaktif',
         ]);
 
+        if ($request->hasFile('file')) {
+            if ($lesson->file_path) {
+                Storage::disk('public')->delete($lesson->file_path);
+            }
+            $file = $request->file('file');
+            $data['file_path'] = $file->store('lms/lesson-files', 'public');
+            $data['file_name'] = $file->getClientOriginalName();
+            $data['file_type'] = $file->getMimeType();
+            $data['file_size'] = $file->getSize();
+        }
+
+        unset($data['file']);
         $lesson->update($data);
         return response()->json(['lesson' => $lesson->fresh()]);
     }
