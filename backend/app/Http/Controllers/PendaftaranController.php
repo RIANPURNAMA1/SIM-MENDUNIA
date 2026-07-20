@@ -71,7 +71,7 @@ class PendaftaranController extends Controller
             'email' => 'required|email|unique:pendaftar,email|unique:users,email',
             'password' => 'required|min:6',
             'telepon' => 'required|string|max:20',
-            'alamat' => 'required|string',
+            'alamat' => 'nullable|string',
             'provinsi' => 'nullable|string|max:255',
             'kabupaten' => 'nullable|string|max:255',
             'kecamatan' => 'nullable|string|max:255',
@@ -115,7 +115,7 @@ class PendaftaranController extends Controller
             'email' => $data['email'],
             'password' => $user->password,
             'telepon' => $data['telepon'],
-            'alamat' => $data['alamat'],
+            'alamat' => $data['alamat'] ?? null,
             'provinsi' => $data['provinsi'] ?? null,
             'kabupaten' => $data['kabupaten'] ?? null,
             'kecamatan' => $data['kecamatan'] ?? null,
@@ -155,7 +155,7 @@ class PendaftaranController extends Controller
             'email' => 'required|email|unique:pendaftar,email|unique:users,email',
             'password' => 'required|min:6',
             'telepon' => 'required|string|max:20',
-            'alamat' => 'required|string',
+            'alamat' => 'nullable|string',
         ]);
 
         $link = AffiliateLink::with('product')->where('kode', $data['kode_link'])->firstOrFail();
@@ -180,7 +180,7 @@ class PendaftaranController extends Controller
             'email' => $data['email'],
             'password' => $user->password,
             'telepon' => $data['telepon'],
-            'alamat' => $data['alamat'],
+            'alamat' => $data['alamat'] ?? null,
             'nominal' => $nominal,
             'diskon' => $kupon['diskon'],
             'status_pendaftaran' => 'pending',
@@ -743,6 +743,19 @@ class PendaftaranController extends Controller
             'bukti_pembayaran' => $filePath,
             'status' => 'pending',
         ]);
+
+        // Update PembayaranItem untuk kategori ini (jumlah submitted, bukan hanya verified)
+        $totalPerKategori = Pembayaran::where('pendaftar_id', $pendaftar->id)
+            ->where('kategori_id', $request->kategori_id)
+            ->sum('jumlah');
+
+        PembayaranItem::updateOrCreate(
+            [
+                'pendaftar_id' => $pendaftar->id,
+                'kategori_id' => $request->kategori_id,
+            ],
+            ['jumlah' => $totalPerKategori]
+        );
 
         $pendaftar->status_pembayaran = 'processing';
         $pendaftar->bukti_pembayaran = $filePath;
@@ -1625,6 +1638,21 @@ class PendaftaranController extends Controller
         $noInvoice = 'INV/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . $pendaftar->created_at->format('Ym');
         $company = \App\Models\CompanyProfile::getProfile();
 
+        // Per-kategori paid amounts
+        $paidPerKategori = PembayaranItem::where('pendaftar_id', $pendaftar->id)
+            ->pluck('jumlah', 'kategori_id');
+        $kategoriItemsEnriched = $kategoriItems->map(function ($item) use ($paidPerKategori) {
+            $dibayar = (float) ($paidPerKategori[$item['id']] ?? 0);
+            return [
+                'id'      => $item['id'],
+                'nama'    => $item['nama'],
+                'harga'   => $item['harga'],
+                'komisi'  => $item['komisi'],
+                'dibayar' => $dibayar,
+                'sisa'    => max(0, $item['harga'] - $dibayar),
+            ];
+        });
+
         return response()->json([
             'no_invoice' => $noInvoice,
             'pendaftar' => [
@@ -1655,7 +1683,7 @@ class PendaftaranController extends Controller
                 'company_name' => $company->company_name,
                 'pt_name' => $company->pt_name,
             ],
-            'kategori_items' => $kategoriItems,
+            'kategori_items' => $kategoriItemsEnriched,
         ]);
     }
 

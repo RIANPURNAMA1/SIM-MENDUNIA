@@ -20,7 +20,7 @@ export default function SiswaLayout() {
         </button>
         <div className="flex items-center gap-2">
           <img src="/logo-sm.png" alt="Mendunia" className="h-7 w-auto" />
-          <span className="text-sm font-bold text-[#0D1F3C]">SIM Mendunia</span>
+          <span className="text-sm font-bold text-[#0E6187]">SIM Mendunia</span>
         </div>
         <div className="w-10" />
       </div>

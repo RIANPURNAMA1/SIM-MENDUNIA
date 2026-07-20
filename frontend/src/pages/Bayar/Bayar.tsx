@@ -41,6 +41,8 @@ interface BayarData {
     nama: string;
     harga: number;
     komisi: number;
+    dibayar: number;
+    sisa: number;
   }[];
 }
 
@@ -53,6 +55,7 @@ export default function Bayar() {
   const [bankPengirim, setBankPengirim] = useState("");
   const [namaPemilik, setNamaPemilik] = useState("");
   const [nominalBayar, setNominalBayar] = useState("");
+  const [selectedKategoriId, setSelectedKategoriId] = useState<number | null>(null);
   const [fileBukti, setFileBukti] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -95,7 +98,14 @@ export default function Bayar() {
       data.kategori_items.length > 0 &&
       !nominalBayar
     ) {
-      setNominalBayar(String(data.kategori_items[0].harga));
+      const firstUnpaid = data.kategori_items.find((k) => k.sisa > 0);
+      if (firstUnpaid) {
+        setSelectedKategoriId(firstUnpaid.id);
+        setNominalBayar(String(firstUnpaid.sisa));
+      } else {
+        setSelectedKategoriId(data.kategori_items[0].id);
+        setNominalBayar(String(data.kategori_items[0].harga));
+      }
     }
   }, [data]);
 
@@ -110,7 +120,7 @@ export default function Bayar() {
     try {
       const fd = new FormData();
       fd.append("jumlah", nominalBayar);
-      fd.append("kategori_id", "1");
+      fd.append("kategori_id", String(selectedKategoriId || data.kategori_items?.[0]?.id || 1));
       fd.append("bukti_pembayaran", fileBukti);
       fd.append("bank_pengirim", bankPengirim);
       fd.append("nama_pengirim", namaPemilik);
@@ -148,7 +158,7 @@ export default function Bayar() {
     return (
       <div className="min-h-screen bg-[#f0f2f5] flex items-center justify-center">
         <div className="relative w-14 h-14 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+          <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
           <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
         </div>
       </div>
@@ -170,7 +180,7 @@ export default function Bayar() {
           </p>
           <a
             href="/"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#0D1F3C] text-white rounded-lg text-sm"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#0E6187] text-white rounded-lg text-sm"
           >
             Kembali ke Beranda
           </a>
@@ -197,7 +207,7 @@ export default function Bayar() {
           </p>
           <a
             href="/"
-            className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#0D1F3C] text-white rounded-lg text-sm font-semibold"
+            className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#0E6187] text-white rounded-lg text-sm font-semibold"
           >
             Kembali
           </a>
@@ -303,7 +313,7 @@ export default function Bayar() {
 
           <a
             href="/"
-            className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-[#0D1F3C] to-[#1a3a5c] text-white rounded-xl text-sm font-semibold hover:from-[#1a2d4a] hover:to-[#243f5e] transition-all shadow-lg shadow-[#0D1F3C]/20 hover:shadow-xl hover:shadow-[#0D1F3C]/30"
+            className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-[#0E6187] to-[#1a3a5c] text-white rounded-xl text-sm font-semibold hover:from-[#1a5e6f] hover:to-[#243f5e] transition-all shadow-lg shadow-[#0E6187]/20 hover:shadow-xl hover:shadow-[#0E6187]/30"
           >
             Kembali ke Beranda
           </a>
@@ -347,7 +357,7 @@ export default function Bayar() {
             <div className="bg-white rounded-lg border border-slate-200 p-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-lg bg-[#eef1f6] flex items-center justify-center">
-                  <FileText size={18} className="text-[#0D1F3C]" />
+                  <FileText size={18} className="text-[#0E6187]" />
                 </div>
                 <div>
                   <p className="text-xs text-slate-500">Invoice</p>
@@ -410,7 +420,7 @@ export default function Bayar() {
                 {data.keuangan.sisa > 0 && (
                   <div className="flex justify-between text-base font-bold border-t border-slate-100 pt-2">
                     <span>Sisa yang harus dibayar</span>
-                    <span className="text-[#0D1F3C]">
+                    <span className="text-[#0E6187]">
                       {fmt(data.keuangan.sisa)}
                     </span>
                   </div>
@@ -437,7 +447,7 @@ export default function Bayar() {
                   </div>
                   <div>
                     <p className="text-xs text-slate-500">Nomor Rekening</p>
-                    <p className="text-lg font-bold font-mono tracking-wider text-[#0D1F3C]">
+                    <p className="text-lg font-bold font-mono tracking-wider text-[#0E6187]">
                       {data.company.bank_nomor_rekening}
                     </p>
                   </div>
@@ -495,7 +505,7 @@ export default function Bayar() {
                             required
                             value={bankPengirim}
                             onChange={(e) => setBankPengirim(e.target.value)}
-                            className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                            className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm"
                           >
                             <option value="">Pilih Bank / E-Wallet</option>
                             {banks.length > 0 && (
@@ -530,12 +540,27 @@ export default function Bayar() {
                             value={namaPemilik}
                             onChange={(e) => setNamaPemilik(e.target.value)}
                             placeholder="Nama di rekening"
-                            className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                            className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm"
                           />
                           <p className="text-xs text-slate-400 mt-1">
                             Sesuai dengan nama yang tercantum di rekening
                           </p>
                         </div>
+
+                        {data.kategori_items && data.kategori_items.find((k) => k.sisa > 0) && (() => {
+                          const currentKategori = data.kategori_items!.find((k) => k.sisa > 0)!;
+                          return (
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-1">
+                                Bayar untuk
+                              </label>
+                              <div className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded text-sm">
+                                <span className="font-semibold text-slate-900">{currentKategori.nama}</span>
+                                <span className="text-slate-500 ml-2">— Sisa {fmt(currentKategori.sisa)}</span>
+                              </div>
+                            </div>
+                          );
+                        })()}
 
                         <div>
                           <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -555,16 +580,17 @@ export default function Bayar() {
                                 setNominalBayar(e.target.value)
                               }
                               placeholder="0"
-                              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm"
                             />
                           </div>
                           <p className="text-xs text-slate-400 mt-1">
                             Transfer sesuai nominal{" "}
-                            {data.kategori_items?.[0]?.nama || "tagihan"}:{" "}
+                            {data.kategori_items?.find((k) => k.id === selectedKategoriId)?.nama || "tagihan"}:{" "}
                             <strong>
-                              {data.kategori_items?.[0]
-                                ? fmt(data.kategori_items[0].harga)
-                                : fmt(data.keuangan.total_tagihan)}
+                              {(() => {
+                                const sel = data.kategori_items?.find((k) => k.id === selectedKategoriId);
+                                return sel ? fmt(sel.sisa > 0 ? sel.sisa : sel.harga) : fmt(data.keuangan.total_tagihan);
+                              })()}
                             </strong>
                           </p>
                         </div>
@@ -599,7 +625,7 @@ export default function Bayar() {
                               onChange={(e) =>
                                 setFileBukti(e.target.files?.[0] || null)
                               }
-                              className="mt-3 w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-4 file:rounded file:border-0 file:text-xs file:font-medium file:bg-[#0D1F3C] file:text-white hover:file:bg-[#1a2d4a] cursor-pointer"
+                              className="mt-3 w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-4 file:rounded file:border-0 file:text-xs file:font-medium file:bg-[#0E6187] file:text-white hover:file:bg-[#1a5e6f] cursor-pointer"
                             />
                           </div>
                         </div>

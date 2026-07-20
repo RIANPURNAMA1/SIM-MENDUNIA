@@ -255,7 +255,7 @@ export default function DashboardAbsensi() {
             labels: { usePointStyle: true, boxWidth: 8, padding: 16, font: { size: 11 } },
           },
           tooltip: {
-            backgroundColor: '#0D1F3C',
+            backgroundColor: '#0E6187',
             titleFont: { size: 11 },
             bodyFont: { size: 10 },
             padding: 8,
@@ -297,7 +297,7 @@ export default function DashboardAbsensi() {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="relative w-14 h-14 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+          <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
           <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
         </div>
       </div>
@@ -309,7 +309,7 @@ export default function DashboardAbsensi() {
       {/* Header */}
       <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] text-white border border-blue-100">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white border border-blue-100">
             <CalendarCheck size={20} />
           </div>
           <div>
@@ -365,7 +365,7 @@ export default function DashboardAbsensi() {
             </div>
             <div className="col-span-2 mt-2 flex items-center justify-between border-t border-slate-100 pt-2">
               <span className="text-xs text-slate-500">Total Karyawan</span>
-              <span className="text-lg font-bold text-[#0D1F3C]">{totalKaryawan} Orang</span>
+              <span className="text-lg font-bold text-[#0E6187]">{totalKaryawan} Orang</span>
             </div>
           </div>
         </div>

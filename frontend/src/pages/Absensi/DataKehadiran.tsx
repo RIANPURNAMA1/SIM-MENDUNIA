@@ -111,7 +111,7 @@ export default function DataKehadiranPage() {
       {/* Header */}
       <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] border border-blue-100">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
             <CalendarCheck size={20} className="text-white" />
           </div>
           <div>
@@ -287,7 +287,7 @@ export default function DataKehadiranPage() {
                 Batal
               </button>
               <button onClick={handleUpdateStatus} disabled={submitting || newStatus === selected.status}
-                className="flex-1 py-2 text-sm font-medium rounded-lg bg-[#0D1F3C] text-white hover:bg-[#1a2d4a] disabled:opacity-50 transition-colors">
+                className="flex-1 py-2 text-sm font-medium rounded-lg bg-[#0E6187] text-white hover:bg-[#1a5e6f] disabled:opacity-50 transition-colors">
                 {submitting ? 'Menyimpan...' : 'Simpan'}
               </button>
             </div>

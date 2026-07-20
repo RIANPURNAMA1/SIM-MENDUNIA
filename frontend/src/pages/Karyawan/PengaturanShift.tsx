@@ -34,7 +34,7 @@ export default function PengaturanShiftPage() {
     return (
       <div className="px-3 py-3 sm:px-6 sm:py-4 flex items-center justify-center min-h-[50vh]">
         <div className="relative w-14 h-14 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+          <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
           <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
         </div>
       </div>
@@ -44,7 +44,7 @@ export default function PengaturanShiftPage() {
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4 max-w-3xl">
       <div className="mb-4 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] border border-blue-100">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
           <Timer size={20} className="text-white" />
         </div>
         <div>
@@ -65,14 +65,14 @@ export default function PengaturanShiftPage() {
           <p className="text-sm text-gray-500 mb-4">Pilih mode yang digunakan untuk menentukan shift karyawan saat absensi.</p>
 
           <div className="space-y-3">
-            <label className={`flex items-start gap-3 p-4 border rounded-xl cursor-pointer transition ${mode === 'fixed' ? 'border-[#0D1F3C] bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
+            <label className={`flex items-start gap-3 p-4 border rounded-xl cursor-pointer transition ${mode === 'fixed' ? 'border-[#0E6187] bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
               <input
                 type="radio"
                 name="shift_mode"
                 value="fixed"
                 checked={mode === 'fixed'}
                 onChange={(e) => setMode(e.target.value)}
-                className="mt-0.5 h-4 w-4 text-[#0D1F3C] focus:ring-[#0D1F3C]"
+                className="mt-0.5 h-4 w-4 text-[#0E6187] focus:ring-[#0E6187]"
               />
               <div>
                 <span className="block text-sm font-medium text-gray-800">Shift Tetap (Default)</span>
@@ -80,14 +80,14 @@ export default function PengaturanShiftPage() {
               </div>
             </label>
 
-            <label className={`flex items-start gap-3 p-4 border rounded-xl cursor-pointer transition ${mode === 'jadwal' ? 'border-[#0D1F3C] bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
+            <label className={`flex items-start gap-3 p-4 border rounded-xl cursor-pointer transition ${mode === 'jadwal' ? 'border-[#0E6187] bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
               <input
                 type="radio"
                 name="shift_mode"
                 value="jadwal"
                 checked={mode === 'jadwal'}
                 onChange={(e) => setMode(e.target.value)}
-                className="mt-0.5 h-4 w-4 text-[#0D1F3C] focus:ring-[#0D1F3C]"
+                className="mt-0.5 h-4 w-4 text-[#0E6187] focus:ring-[#0E6187]"
               />
               <div>
                 <span className="block text-sm font-medium text-gray-800">Jadwal Shift (Per Tanggal)</span>
@@ -100,7 +100,7 @@ export default function PengaturanShiftPage() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#0D1F3C] px-5 py-2 text-sm font-medium text-white hover:bg-[#1a3054] disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#0E6187] px-5 py-2 text-sm font-medium text-white hover:bg-[#1a5e6f] disabled:opacity-50 transition-colors"
             >
               {saving ? 'Menyimpan...' : 'Simpan'}
             </button>

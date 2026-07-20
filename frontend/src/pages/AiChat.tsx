@@ -185,7 +185,7 @@ export default function AiChatPage() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Bot className="w-6 h-6 text-[#0D1F3C]" />
+            <Bot className="w-6 h-6 text-[#0E6187]" />
             <div>
               <h1 className="text-lg font-bold text-gray-800">AI Assistant</h1>
               <p className="text-xs text-gray-500">Tanyakan apapun tentang data sistem</p>
@@ -205,7 +205,7 @@ export default function AiChatPage() {
         <div className="h-[520px] overflow-y-auto p-6 bg-gray-50/50 space-y-4" style={{ scrollBehavior: "smooth" }}>
           {messages.length === 0 && (
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-9 h-9 bg-[#0D1F3C] text-white rounded-full flex items-center justify-center">
+              <div className="flex-shrink-0 w-9 h-9 bg-[#0E6187] text-white rounded-full flex items-center justify-center">
                 <Bot className="w-5 h-5" />
               </div>
               <div className="bg-white rounded-xl shadow-sm p-4 max-w-[80%] rounded-tl-none">
@@ -227,7 +227,7 @@ export default function AiChatPage() {
 
           {messages.map((msg, idx) => (
             <div key={idx} className={`flex items-start gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
-              <div className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center ${msg.role === "user" ? "bg-gray-500 text-white" : "bg-[#0D1F3C] text-white"}`}>
+              <div className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center ${msg.role === "user" ? "bg-gray-500 text-white" : "bg-[#0E6187] text-white"}`}>
                 {msg.role === "user" ? <User className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
               </div>
               <div className={`rounded-xl shadow-sm p-4 max-w-[80%] ${msg.role === "user" ? "bg-blue-50 rounded-tr-none" : "bg-white rounded-tl-none"}`}>
@@ -244,7 +244,7 @@ export default function AiChatPage() {
 
           {loading && (
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-9 h-9 bg-[#0D1F3C] text-white rounded-full flex items-center justify-center">
+              <div className="flex-shrink-0 w-9 h-9 bg-[#0E6187] text-white rounded-full flex items-center justify-center">
                 <Bot className="w-5 h-5" />
               </div>
               <div className="bg-white rounded-xl shadow-sm p-4 rounded-tl-none">
@@ -270,13 +270,13 @@ export default function AiChatPage() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Tanyakan sesuatu tentang data..."
-              className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0D1F3C] focus:border-[#0D1F3C]"
+              className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187] focus:border-[#0E6187]"
               disabled={loading}
             />
             <button
               onClick={handleSend}
               disabled={loading || !input.trim()}
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#0D1F3C] text-white rounded-lg hover:bg-[#1a3054] disabled:opacity-50 text-sm font-medium"
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#0E6187] text-white rounded-lg hover:bg-[#1a5e6f] disabled:opacity-50 text-sm font-medium"
             >
               <Send className="w-4 h-4" />
               Kirim

@@ -389,7 +389,7 @@ export default function Tagihan() {
           className="w-full flex items-center justify-between px-4 py-3 bg-white hover:bg-slate-50 transition-colors"
         >
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0D1F3C]">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0E6187]">
               <Receipt size={14} className="text-white" />
             </div>
             <div className="text-left">
@@ -592,7 +592,7 @@ export default function Tagihan() {
       {/* Header */}
       <div className="mb-4 flex flex-col gap-4 rounded-lg bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between border border-slate-200">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] text-white">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
             <Receipt size={20} />
           </div>
           <div>
@@ -702,7 +702,7 @@ export default function Tagihan() {
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="relative w-14 h-14 flex items-center justify-center">
-            <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+            <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
             <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
           </div>
         </div>

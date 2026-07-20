@@ -192,7 +192,7 @@ export default function AdminCabangDataKandidat() {
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       <div className="mb-4 flex flex-col gap-4 rounded-lg bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between border border-slate-200">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] text-white">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
             <Users size={20} />
           </div>
           <div>
@@ -275,7 +275,7 @@ export default function AdminCabangDataKandidat() {
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="relative w-14 h-14 flex items-center justify-center">
-              <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+              <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
               <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
             </div>
           </div>
@@ -460,7 +460,7 @@ export default function AdminCabangDataKandidat() {
           <div className="w-full max-w-5xl rounded-xl bg-white shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-[#0D1F3C] flex items-center justify-center">
+                <div className="h-10 w-10 rounded-full bg-[#0E6187] flex items-center justify-center">
                   <span className="text-sm font-bold text-white">{detailKandidat.nama?.charAt(0)?.toUpperCase()}</span>
                 </div>
                 <div>
@@ -506,7 +506,7 @@ export default function AdminCabangDataKandidat() {
 
             <div className="flex items-center gap-3 border-t border-slate-200 px-6 py-3.5">
               <button onClick={() => { setDetailKandidat(null); startEdit(detailKandidat); }}
-                className="flex items-center gap-2 rounded-lg bg-[#0D1F3C] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1a3a5c]">
+                className="flex items-center gap-2 rounded-lg bg-[#0E6187] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1a3a5c]">
                 <Edit3 size={14} /> Edit Data
               </button>
               <Link to={`/pendaftar/${detailKandidat.id}/invoice`}

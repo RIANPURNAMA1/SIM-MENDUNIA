@@ -69,7 +69,7 @@ export default function SiswaDashboard() {
     return (
       <div className="min-h-screen bg-[#f0f2f5] flex items-center justify-center">
         <div className="relative w-14 h-14 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+          <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
           <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
         </div>
       </div>
@@ -126,7 +126,7 @@ export default function SiswaDashboard() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#eef1f6]">
-              <User size={22} className="text-[#0D1F3C]" />
+              <User size={22} className="text-[#0E6187]" />
             </div>
             <div>
               <h1 className="text-lg font-bold text-gray-900">Halo, {user?.name}!</h1>
@@ -169,7 +169,7 @@ export default function SiswaDashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <CreditCard size={20} className="text-blue-600" />
+                <CreditCard size={20} className="text-[#0E6187]" />
                 <div>
                   <p className="text-xs text-gray-500">Status Pembayaran</p>
                   <span className={`mt-0.5 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${paymentColor[pendaftar.status_pembayaran]}`}>
@@ -179,7 +179,7 @@ export default function SiswaDashboard() {
               </div>
               {pendaftar.product && (
                 <div className="flex items-center gap-3">
-                  <Package size={20} className="text-purple-600" />
+                  <Package size={20} className="text-[#0E6187]" />
                   <div>
                     <p className="text-xs text-gray-500">Program</p>
                     <p className="font-semibold text-gray-900">{pendaftar.product.nama}</p>
@@ -198,7 +198,7 @@ export default function SiswaDashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Link to="/siswa-dashboard/data-diri"
                   className="rounded-lg border border-gray-200 p-4 flex items-center gap-3 hover:bg-gray-50 transition-colors">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C]/10 text-[#0D1F3C]">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187]/10 text-[#0E6187]">
                     <User size={18} />
                   </div>
                   <div className="flex-1">
@@ -207,7 +207,7 @@ export default function SiswaDashboard() {
                   </div>
                 </Link>
                 <div className="rounded-lg border border-gray-200 p-4 flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187]/10 text-[#0E6187]">
                     <CheckCircle size={18} />
                   </div>
                   <div className="flex-1">

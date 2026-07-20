@@ -497,7 +497,7 @@ export default function GuruLMS() {
     return (
       <div className="min-h-screen bg-[#F4F5F8] flex items-center justify-center pb-24">
         <div className="relative w-14 h-14 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+          <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
           <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
         </div>
       </div>
@@ -519,7 +519,7 @@ export default function GuruLMS() {
             </button>
             <div className="flex items-start justify-between">
               <div className="flex items-start gap-3">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0D1F3C] to-[#1a3355] flex items-center justify-center shrink-0 overflow-hidden">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0E6187] to-[#1a3355] flex items-center justify-center shrink-0 overflow-hidden">
                   {selectedCourse.image ? (
                     <img src={`${APP_URL}/storage/${selectedCourse.image}`} alt="" className="w-full h-full object-cover" />
                   ) : (
@@ -1065,7 +1065,7 @@ export default function GuruLMS() {
             {filtered.map(course => (
               <button key={course.id} onClick={() => openCourse(course)}
                 className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-all text-left group">
-                <div className="h-32 bg-gradient-to-br from-[#0D1F3C] to-[#1a3355] flex items-center justify-center relative overflow-hidden">
+                <div className="h-32 bg-gradient-to-br from-[#0E6187] to-[#1a3355] flex items-center justify-center relative overflow-hidden">
                   {course.image ? (
                     <img src={`${APP_URL}/storage/${course.image}`} alt="" className="w-full h-full object-cover" />
                   ) : (
