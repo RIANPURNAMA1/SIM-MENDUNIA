@@ -800,7 +800,7 @@ export default function DaftarProgram() {
                             {isSubmitting ? (
                               <><Loader size={16} className="animate-spin" /> Mendaftarkan...</>
                             ) : (
-                              <><FileText size={16} /> Daftar {selectedProduct?.nama || ''}</>
+                              <><FileText size={16} /> Daftar</>
                             )}
                           </button>
                         )}
@@ -880,7 +880,7 @@ export default function DaftarProgram() {
                     href={`/daftar-program/${product.slug}`}
                     className="inline-flex items-center gap-1 px-4 py-2 bg-[#0D1F3C] text-white rounded-lg text-sm font-bold hover:bg-[#1a2d4a] transition-colors"
                   >
-                    Daftar {product.nama} <ChevronRight size={14} />
+                    Daftar <ChevronRight size={14} />
                   </a>
                 </div>
               </div>

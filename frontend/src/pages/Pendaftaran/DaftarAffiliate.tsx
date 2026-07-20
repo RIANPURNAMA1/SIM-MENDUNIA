@@ -6,10 +6,17 @@ import {
 } from 'lucide-react'
 import { affiliateLinkApi, pendaftarApi, couponApi, batchApi } from '../../services/api'
 
+interface KategoriItem {
+  name: string
+  harga: number
+  komisi: number
+  children: KategoriItem[]
+}
+
 interface LinkData {
   kode: string
   affiliate: { id: number; name: string; email: string }
-  product: { id: number; nama: string; deskripsi: string; harga: number }
+  product: { id: number; nama: string; deskripsi: string; harga: number; kategori_items?: KategoriItem[] }
 }
 
 interface Batch {
@@ -51,6 +58,27 @@ export default function DaftarAffiliate() {
   const [batches, setBatches] = useState<Batch[]>([])
   const [batchId, setBatchId] = useState('')
   const [successInfo, setSuccessInfo] = useState<{ noRegistrasi: string; invoiceUrl: string } | null>(null)
+
+  function getFlattenedItems(items: KategoriItem[], parentOnly = false): { item: KategoriItem; depth: number }[] {
+    const result: { item: KategoriItem; depth: number }[] = []
+    function walk(list: KategoriItem[], depth: number) {
+      for (const item of list) {
+        if (item.harga > 0) {
+          result.push({ item, depth })
+        }
+        if (!parentOnly && item.children?.length) walk(item.children, depth + 1)
+      }
+    }
+    walk(items, 0)
+    return result
+  }
+
+  const selectedTotal = (() => {
+    if (!link?.product?.kategori_items?.length) return link?.product?.harga || 0
+    const flat = getFlattenedItems(link.product.kategori_items, true)
+    if (flat.length === 0) return 0
+    return flat[0].item.harga || 0
+  })()
 
   const [provinsi, setProvinsi] = useState('')
   const [kabupaten, setKabupaten] = useState('')
@@ -117,7 +145,7 @@ export default function DaftarAffiliate() {
     if (validasiKupon?.valid && validasiKupon.nominal_setelah_diskon !== undefined) {
       return validasiKupon.nominal_setelah_diskon
     }
-    return link?.product?.harga || 0
+    return selectedTotal
   })()
 
   async function cekKupon() {
@@ -126,7 +154,7 @@ export default function DaftarAffiliate() {
       const res = await couponApi.validate({
         kode: kodeKupon,
         product_id: link.product.id,
-        nominal: link.product.harga,
+        nominal: selectedTotal,
       })
       setValidasiKupon(res.data)
     } catch (err: unknown) {
@@ -583,6 +611,29 @@ export default function DaftarAffiliate() {
                         <div className="mb-6 p-4 bg-white border border-gray-200 rounded text-sm">
                           <p className="text-gray-500 mb-1">Program yang dipilih:</p>
                           <p className="font-semibold text-gray-900">{link?.product?.nama}</p>
+
+                          {link?.product?.kategori_items && link.product.kategori_items.length > 0 && (() => {
+                            const flat = getFlattenedItems(link.product.kategori_items!, true)
+                            if (flat.length === 0) return null
+                            const firstItem = flat[0]
+                            return (
+                              <div className="mt-3 pt-3 border-t border-gray-100">
+                                <p className="text-xs font-semibold text-gray-700 mb-2">Kategori Pembayaran:</p>
+                                <div className="space-y-1.5">
+                                  <div className="flex items-center gap-2.5 py-1.5 px-2.5 rounded bg-blue-50 border border-blue-200">
+                                    <span className="text-xs font-medium text-gray-700">{firstItem.item.name}</span>
+                                    <span className="ml-auto text-xs font-bold text-gray-900">
+                                      Rp {Number(firstItem.item.harga).toLocaleString('id-ID')}
+                                    </span>
+                                  </div>
+                                </div>
+                                {flat.length > 1 && (
+                                  <p className="text-[11px] text-gray-400 mt-2">Pembayaran tahapan lainnya dilakukan setelah pendaftaran</p>
+                                )}
+                              </div>
+                            )
+                          })()}
+
                           <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
                             <span className="text-xs font-semibold text-gray-700">Total yang harus dibayar</span>
                             <p className="font-bold text-lg text-[#0D1F3C]">
@@ -591,7 +642,7 @@ export default function DaftarAffiliate() {
                           </div>
                           {validasiKupon?.valid && (
                             <p className="text-[11px] text-green-600 mt-1">
-                              Kupon diterapkan: Hemat Rp {Number((link?.product?.harga || 0) - (validasiKupon.nominal_setelah_diskon || 0)).toLocaleString('id-ID')}
+                              Kupon diterapkan: Hemat Rp {Number(selectedTotal - (validasiKupon.nominal_setelah_diskon || 0)).toLocaleString('id-ID')}
                             </p>
                           )}
                         </div>
@@ -690,7 +741,7 @@ export default function DaftarAffiliate() {
                           {submitting ? (
                             <><Loader size={16} className="animate-spin" /> Mendaftarkan...</>
                           ) : (
-                            <><FileText size={16} /> Daftar {link?.product?.nama || ''}</>
+                            <><FileText size={16} /> Daftar</>
                           )}
                         </button>
                       )}
