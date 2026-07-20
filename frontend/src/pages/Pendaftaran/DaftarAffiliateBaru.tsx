@@ -43,7 +43,7 @@ export default function DaftarAffiliateBaru() {
   ];
 
   useEffect(() => {
-    fetch("https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json")
+    fetch("https://cdn.jsdelivr.net/gh/izzulabadi/api-wilayah-indonesia-2026@v1.0.4/api/provinces.json")
       .then((r) => r.json())
       .then((data: { id: string; name: string }[]) => setProvinces(data))
       .catch(() => {});
@@ -60,7 +60,7 @@ export default function DaftarAffiliateBaru() {
       return;
     }
     setLoadingRegencies(true);
-    fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${provinsi}.json`)
+    fetch(`https://cdn.jsdelivr.net/gh/izzulabadi/api-wilayah-indonesia-2026@v1.0.4/api/regencies/${provinsi}.json`)
       .then((r) => r.json())
       .then((data: { id: string; name: string }[]) => {
         setRegencies(data);
@@ -78,7 +78,7 @@ export default function DaftarAffiliateBaru() {
       return;
     }
     setLoadingDistricts(true);
-    fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${kabupaten}.json`)
+    fetch(`https://cdn.jsdelivr.net/gh/izzulabadi/api-wilayah-indonesia-2026@v1.0.4/api/districts/${kabupaten}.json`)
       .then((r) => r.json())
       .then((data: { id: string; name: string }[]) => {
         setDistricts(data);
@@ -94,7 +94,7 @@ export default function DaftarAffiliateBaru() {
       return;
     }
     setLoadingVillages(true);
-    fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${kecamatan}.json`)
+    fetch(`https://cdn.jsdelivr.net/gh/izzulabadi/api-wilayah-indonesia-2026@v1.0.4/api/villages/${kecamatan}.json`)
       .then((r) => r.json())
       .then((data: { id: string; name: string }[]) => {
         setVillages(data);

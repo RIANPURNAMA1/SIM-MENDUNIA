@@ -1,6 +1,6 @@
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, useEffect, useCallback, type FormEvent } from "react";
 import { useParams } from "react-router-dom";
-import { productApi, pendaftarApi, couponApi } from "../../services/api";
+import { productApi, pendaftarApi, couponApi, paymentSettingApi } from "../../services/api";
 import {
   User,
   Loader,
@@ -13,6 +13,13 @@ interface KategoriItem {
   komisi: number;
   children: KategoriItem[];
 }
+
+interface Wilayah {
+  id: string;
+  name: string;
+}
+
+const API_BASE = 'https://cdn.jsdelivr.net/gh/izzulabadi/api-wilayah-indonesia-2026@v1.0.4/api';
 
 interface Product {
   id: number;
@@ -37,6 +44,11 @@ export default function DaftarProgram() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [telepon, setTelepon] = useState("");
+  const [alamat, setAlamat] = useState("");
+  const [provinsi, setProvinsi] = useState("");
+  const [kabupaten, setKabupaten] = useState("");
+  const [kecamatan, setKecamatan] = useState("");
+  const [desa, setDesa] = useState("");
   const [kodeKupon, setKodeKupon] = useState("");
   const [validasiKupon, setValidasiKupon] = useState<{
     valid: boolean;
@@ -48,6 +60,22 @@ export default function DaftarProgram() {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  const [provinsiList, setProvinsiList] = useState<Wilayah[]>([]);
+  const [kabupatenList, setKabupatenList] = useState<Wilayah[]>([]);
+  const [kecamatanList, setKecamatanList] = useState<Wilayah[]>([]);
+  const [desaList, setDesaList] = useState<Wilayah[]>([]);
+  const [wilayahLoading, setWilayahLoading] = useState({ provinsi: false, kabupaten: false, kecamatan: false, desa: false });
+  const [paymentSettings, setPaymentSettings] = useState<{ manual_payment_enabled: boolean; unique_code_max: number; unique_code_operation: string } | null>(null);
+  const [previewKodeUnik] = useState(() => {
+    const max = 99;
+    const key = `preview_kode_unik_${slug}`;
+    const saved = sessionStorage.getItem(key);
+    if (saved) return Number(saved);
+    const val = Math.floor(Math.random() * max) + 1;
+    sessionStorage.setItem(key, String(val));
+    return val;
+  });
 
   function getFlattenedItems(items: KategoriItem[], parentOnly = false): { item: KategoriItem; depth: number }[] {
     const result: { item: KategoriItem; depth: number }[] = [];
@@ -86,7 +114,62 @@ export default function DaftarProgram() {
         if (found) setSelectedProduct(found);
       }
     }).catch(() => {}).finally(() => setLoading(false));
+
+    paymentSettingApi.getPublicSettings().then((res) => {
+      setPaymentSettings(res.data);
+    }).catch(() => {});
   }, [slug]);
+
+  useEffect(() => {
+    setWilayahLoading(p => ({ ...p, provinsi: true }));
+    fetch(`${API_BASE}/provinces.json`)
+      .then(r => r.json())
+      .then((data: Wilayah[]) => setProvinsiList(data))
+      .catch(() => {})
+      .finally(() => setWilayahLoading(p => ({ ...p, provinsi: false })));
+  }, []);
+
+  const fetchKabupaten = useCallback((provId: string) => {
+    setKabupatenList([]);
+    setKecamatanList([]);
+    setDesaList([]);
+    setKabupaten("");
+    setKecamatan("");
+    setDesa("");
+    if (!provId) return;
+    setWilayahLoading(p => ({ ...p, kabupaten: true }));
+    fetch(`${API_BASE}/regencies/${provId}.json`)
+      .then(r => r.json())
+      .then((data: Wilayah[]) => setKabupatenList(data))
+      .catch(() => {})
+      .finally(() => setWilayahLoading(p => ({ ...p, kabupaten: false })));
+  }, []);
+
+  const fetchKecamatan = useCallback((kabId: string) => {
+    setKecamatanList([]);
+    setDesaList([]);
+    setKecamatan("");
+    setDesa("");
+    if (!kabId) return;
+    setWilayahLoading(p => ({ ...p, kecamatan: true }));
+    fetch(`${API_BASE}/districts/${kabId}.json`)
+      .then(r => r.json())
+      .then((data: Wilayah[]) => setKecamatanList(data))
+      .catch(() => {})
+      .finally(() => setWilayahLoading(p => ({ ...p, kecamatan: false })));
+  }, []);
+
+  const fetchDesa = useCallback((kecId: string) => {
+    setDesaList([]);
+    setDesa("");
+    if (!kecId) return;
+    setWilayahLoading(p => ({ ...p, desa: true }));
+    fetch(`${API_BASE}/villages/${kecId}.json`)
+      .then(r => r.json())
+      .then((data: Wilayah[]) => setDesaList(data))
+      .catch(() => {})
+      .finally(() => setWilayahLoading(p => ({ ...p, desa: false })));
+  }, []);
 
   async function cekKupon() {
     if (!kodeKupon || !selectedProduct) return;
@@ -131,6 +214,23 @@ export default function DaftarProgram() {
       formData.append("email", email);
       formData.append("password", password);
       if (telepon) formData.append("telepon", telepon);
+      if (alamat) formData.append("alamat", alamat);
+      if (provinsi) {
+        const namaProv = provinsiList.find(p => p.id === provinsi)?.name || "";
+        formData.append("provinsi", namaProv);
+      }
+      if (kabupaten) {
+        const namaKab = kabupatenList.find(k => k.id === kabupaten)?.name || "";
+        formData.append("kabupaten", namaKab);
+      }
+      if (kecamatan) {
+        const namaKec = kecamatanList.find(k => k.id === kecamatan)?.name || "";
+        formData.append("kecamatan", namaKec);
+      }
+      if (desa) {
+        const namaDesa = desaList.find(d => d.id === desa)?.name || "";
+        formData.append("desa", namaDesa);
+      }
       if (selectedProduct.batch_id) formData.append("batch_id", String(selectedProduct.batch_id));
       if (selectedProduct.kategori_items?.length) {
         const flat = getFlattenedItems(selectedProduct.kategori_items, true);
@@ -138,6 +238,7 @@ export default function DaftarProgram() {
           formData.append("selected_kategori_items", JSON.stringify([flat[0].item.name]));
         }
       }
+      formData.append("kode_unik", String(previewKodeUnik));
 
       const res = await pendaftarApi.daftarLangsung(formData);
       const pendaftarId = res.data?.id;
@@ -227,25 +328,33 @@ export default function DaftarProgram() {
                     {selectedProduct.batch.nama_batch}
                   </span>
                 )}
-                <p className="text-lg font-bold text-[#0E6187] mt-1">{fmt(selectedTotal)}</p>
+                <p className="text-lg font-bold text-[#0E6187] mt-1">
+                  {paymentSettings?.manual_payment_enabled && paymentSettings.unique_code_max > 0
+                    ? fmt(paymentSettings.unique_code_operation === 'subtract'
+                      ? selectedTotal - previewKodeUnik
+                      : selectedTotal + previewKodeUnik)
+                    : fmt(selectedTotal)
+                  }
+                </p>
               </div>
 
-              <div className="space-y-3 pb-4 mb-4 border-b border-gray-100">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Biaya Transaksi</span>
-                  <span className="font-medium text-gray-800">Rp 0</span>
+              {validasiKupon?.valid && validasiKupon.nominal_setelah_diskon !== undefined && (
+                <div className="flex justify-between text-sm text-green-600 pb-4 mb-4 border-b border-gray-100">
+                  <span>Diskon</span>
+                  <span>-{fmt(selectedTotal - validasiKupon.nominal_setelah_diskon)}</span>
                 </div>
-                {validasiKupon?.valid && validasiKupon.nominal_setelah_diskon !== undefined && (
-                  <div className="flex justify-between text-sm text-green-600">
-                    <span>Diskon</span>
-                    <span>-{fmt(selectedTotal - validasiKupon.nominal_setelah_diskon)}</span>
-                  </div>
-                )}
-              </div>
+              )}
 
               <div className="flex justify-between items-center">
                 <span className="text-sm font-bold text-gray-900">Total</span>
-                <span className="text-lg font-bold text-[#0E6187]">{fmt(totalDisplay)}</span>
+                <span className="text-lg font-bold text-[#0E6187]">
+                  {paymentSettings?.manual_payment_enabled && paymentSettings.unique_code_max > 0
+                    ? fmt(paymentSettings.unique_code_operation === 'subtract'
+                      ? selectedTotal - previewKodeUnik
+                      : selectedTotal + previewKodeUnik)
+                    : fmt(totalDisplay)
+                  }
+                </span>
               </div>
 
               <div className="mt-4 flex items-center gap-2 text-xs text-gray-500">
@@ -390,12 +499,116 @@ export default function DaftarProgram() {
                   )}
                 </div>
 
+                {/* Section Alamat */}
+                <div className="pt-2 border-t border-gray-100">
+                  <h3 className="text-sm font-bold text-gray-900 mb-3">Informasi Alamat</h3>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        Provinsi
+                      </label>
+                      <select
+                        value={provinsi}
+                        onChange={(e) => {
+                          setProvinsi(e.target.value);
+                          fetchKabupaten(e.target.value);
+                        }}
+                        disabled={wilayahLoading.provinsi}
+                        className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]/20 outline-none transition-colors focus:border-[#0E6187] appearance-none cursor-pointer disabled:opacity-50"
+                      >
+                        <option value="">{wilayahLoading.provinsi ? "Memuat..." : "Pilih Provinsi"}</option>
+                        {provinsiList.map(p => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        Kabupaten / Kota
+                      </label>
+                      <select
+                        value={kabupaten}
+                        onChange={(e) => {
+                          setKabupaten(e.target.value);
+                          fetchKecamatan(e.target.value);
+                        }}
+                        disabled={!provinsi || wilayahLoading.kabupaten}
+                        className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]/20 outline-none transition-colors focus:border-[#0E6187] appearance-none cursor-pointer disabled:opacity-50"
+                      >
+                        <option value="">{wilayahLoading.kabupaten ? "Memuat..." : "Pilih Kabupaten/Kota"}</option>
+                        {kabupatenList.map(k => (
+                          <option key={k.id} value={k.id}>{k.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        Kecamatan
+                      </label>
+                      <select
+                        value={kecamatan}
+                        onChange={(e) => {
+                          setKecamatan(e.target.value);
+                          fetchDesa(e.target.value);
+                        }}
+                        disabled={!kabupaten || wilayahLoading.kecamatan}
+                        className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]/20 outline-none transition-colors focus:border-[#0E6187] appearance-none cursor-pointer disabled:opacity-50"
+                      >
+                        <option value="">{wilayahLoading.kecamatan ? "Memuat..." : "Pilih Kecamatan"}</option>
+                        {kecamatanList.map(k => (
+                          <option key={k.id} value={k.id}>{k.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        Desa / Kelurahan
+                      </label>
+                      <select
+                        value={desa}
+                        onChange={(e) => setDesa(e.target.value)}
+                        disabled={!kecamatan || wilayahLoading.desa}
+                        className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]/20 outline-none transition-colors focus:border-[#0E6187] appearance-none cursor-pointer disabled:opacity-50"
+                      >
+                        <option value="">{wilayahLoading.desa ? "Memuat..." : "Pilih Desa/Kelurahan"}</option>
+                        {desaList.map(d => (
+                          <option key={d.id} value={d.id}>{d.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        Alamat Lengkap
+                      </label>
+                      <textarea
+                        value={alamat}
+                        onChange={(e) => setAlamat(e.target.value)}
+                        placeholder="Masukkan alamat lengkap (jalan, RT/RW, nomor rumah)"
+                        rows={3}
+                        className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]/20 outline-none transition-colors focus:border-[#0E6187] resize-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Ringkasan Pembayaran */}
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                   <h3 className="text-sm font-bold text-gray-900 mb-3">Ringkasan Pembayaran</h3>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Total Bayar</span>
-                    <span className="text-lg font-bold text-[#0E6187]">{fmt(totalDisplay)}</span>
+                    <span className="text-lg font-bold text-[#0E6187]">
+                      {paymentSettings?.manual_payment_enabled && paymentSettings.unique_code_max > 0
+                        ? fmt(paymentSettings.unique_code_operation === 'subtract'
+                          ? totalDisplay - previewKodeUnik
+                          : totalDisplay + previewKodeUnik)
+                        : fmt(totalDisplay)
+                      }
+                    </span>
                   </div>
                 </div>
 

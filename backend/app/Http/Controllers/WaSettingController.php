@@ -7,6 +7,7 @@ use App\Models\NotificationSetting;
 use App\Models\Product;
 use App\Models\BiayaKategori;
 use App\Models\Batch;
+use App\Models\BatchBiaya;
 use App\Models\BatchKategoriDeadline;
 use App\Models\EmailNotification;
 use Illuminate\Http\Request;
@@ -30,7 +31,7 @@ class WaSettingController extends Controller
                 'kategori_id' => $katId,
                 'jatuh_tempo_hari' => 30,
                 'reminder_days' => [7, 3, 1],
-                'is_enabled' => true,
+                'is_enabled' => false,
             ]);
         }
 
@@ -49,9 +50,14 @@ class WaSettingController extends Controller
                     'kode' => $k->kode,
                     'harga' => (int) $k->pivot->harga,
                     'komisi' => (int) $k->pivot->komisi,
+                    'trigger_type' => $k->trigger_type ?? 'registration',
+                    'trigger_value' => $k->trigger_value,
+                    'due_type' => $k->due_type ?? 'days_after_invoice',
+                    'due_value' => $k->due_value,
+                    'reminder_setting' => $k->reminder_setting,
                     'jatuh_tempo_hari' => $setting->jatuh_tempo_hari ?? 30,
                     'reminder_days' => $setting->reminder_days ?? [7, 3, 1],
-                    'is_enabled' => $setting->is_enabled ?? true,
+                    'is_enabled' => $setting->is_enabled ?? false,
                     'template_pesan' => $setting->template_pesan ?? null,
                 ];
             });
@@ -101,6 +107,29 @@ class WaSettingController extends Controller
     }
 
     // ==================== BATCH KATEGORI DEADLINES ====================
+
+    /**
+     * Ambil kategori yang dimiliki oleh batch tertentu (dari batch_biayas).
+     */
+    public function batchKategoris(Request $request)
+    {
+        $batchId = $request->input('batch_id');
+        if (!$batchId) {
+            return response()->json(['message' => 'batch_id wajib'], 422);
+        }
+
+        $kategoris = BatchBiaya::with('kategori')
+            ->where('batch_id', $batchId)
+            ->get()
+            ->map(fn($bb) => [
+                'kategori_id' => $bb->kategori_id,
+                'nama' => $bb->kategori->nama ?? '-',
+                'kode' => $bb->kategori->kode ?? '-',
+                'urutan' => $bb->kategori->urutan ?? 0,
+            ]);
+
+        return response()->json($kategoris);
+    }
 
     /**
      * Ambil semua deadline per batch + kategori.

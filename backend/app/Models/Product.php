@@ -100,6 +100,19 @@ class Product extends Model
                 ]);
             }
 
+            // Sync billing settings from kategori_items
+            $kategori->update([
+                'trigger_type' => $item['trigger_type'] ?? 'registration',
+                'trigger_value' => $item['trigger_value'] ?? null,
+                'due_type' => $item['due_type'] ?? 'days_after_invoice',
+                'due_value' => $item['due_value'] ?? null,
+                'reminder_setting' => $item['reminder_setting'] ?? null,
+                'channel' => $item['channel'] ?? 'wa',
+                'template_pesan' => $item['template_pesan'] ?? null,
+                'template_email' => $item['template_email'] ?? null,
+                'subject_email' => $item['subject_email'] ?? null,
+            ]);
+
             $sync[$kategori->id] = [
                 'harga' => $item['harga'] ?? 0,
                 'komisi' => $item['komisi'] ?? 0,

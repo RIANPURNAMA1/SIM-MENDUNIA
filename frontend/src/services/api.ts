@@ -311,6 +311,7 @@ export const pendaftarApi = {
   reject: (id: number) => api.post(`/pendaftar/${id}/reject`),
   verifyPayment: (id: number) => api.post(`/pendaftar/${id}/verify-payment`),
   riwayatPembayaran: (id: number) => api.get(`/pendaftar/${id}/riwayat-pembayaran`),
+  updateStatus: (id: number, data: Record<string, string>) => api.post(`/pendaftar/${id}/update-status`, data),
   destroy: (id: number) => api.delete(`/pendaftar/${id}`),
   daftar: (data: FormData) =>
     api.post('/pendaftaran/daftar', data, {
@@ -485,6 +486,7 @@ export const waSettingApi = {
   updateGlobalSettings: (settings: { key: string; is_enabled: boolean; value?: string }[]) => api.put('/wa-settings/global', { settings }),
 
   // Batch deadlines (per batch + kategori)
+  getBatchKategoris: (batchId: number) => api.get('/wa-settings/batch-kategoris', { params: { batch_id: batchId } }),
   getBatchDeadlines: (batchId?: number) => api.get('/wa-settings/batch-deadlines', { params: batchId ? { batch_id: batchId } : {} }),
   saveBatchDeadlines: (deadlines: { batch_id: number; kategori_id: number; tanggal_awal: string | null; tanggal_akhir: string | null; reminder_days: number[]; is_enabled: boolean; template_pesan: string | null; channel?: string; template_email?: string | null; subject_email?: string | null }[]) =>
     api.put('/wa-settings/batch-deadlines', { deadlines }),
@@ -509,6 +511,16 @@ export const guruLmsApi = {
   storeLesson: (data: FormData) => api.post('/guru/lms-lessons', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   updateLesson: (id: number, data: FormData) => api.post(`/guru/lms-lessons/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   deleteLesson: (id: number) => api.delete(`/guru/lms-lessons/${id}`),
+}
+
+export const paymentSettingApi = {
+  getSettings: () => api.get('/payment-settings'),
+  updateSettings: (data: Record<string, any>) => api.put('/payment-settings', data),
+  getBankAccounts: () => api.get('/bank-accounts'),
+  createBankAccount: (data: FormData) => api.post('/bank-accounts', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  updateBankAccount: (id: number, data: FormData) => api.put(`/bank-accounts/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  deleteBankAccount: (id: number) => api.delete(`/bank-accounts/${id}`),
+  getPublicSettings: () => api.get('/payment-settings-public'),
 }
 
 export const APP_URL = import.meta.env.VITE_APP_URL || 'http://localhost:8000'

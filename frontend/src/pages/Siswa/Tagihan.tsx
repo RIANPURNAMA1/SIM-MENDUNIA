@@ -85,6 +85,8 @@ export default function Tagihan() {
   const [filterStatus, setFilterStatus] = useState('')
   const [filterBatch, setFilterBatch] = useState('')
   const [filterProduct, setFilterProduct] = useState('')
+  const [filterDateFrom, setFilterDateFrom] = useState('')
+  const [filterDateTo, setFilterDateTo] = useState('')
   const [batches, setBatches] = useState<BatchOption[]>([])
   const [products, setProducts] = useState<ProductOption[]>([])
   const [kategoris, setKategoris] = useState<KategoriInfo[]>([])
@@ -136,14 +138,20 @@ export default function Tagihan() {
       const matchStatus = !filterStatus || p.status_pembayaran === filterStatus
       const matchBatch = !filterBatch || String(p.batch?.id) === filterBatch
       const matchProduct = !filterProduct || String(p.product?.nama) === filterProduct
-      return matchSearch && matchStatus && matchBatch && matchProduct
+      const d = new Date(p.created_at); d.setHours(0, 0, 0, 0)
+      const from = filterDateFrom ? new Date(filterDateFrom) : null
+      if (from) from.setHours(0, 0, 0, 0)
+      const to = filterDateTo ? new Date(filterDateTo) : null
+      if (to) to.setHours(23, 59, 59, 999)
+      const matchDate = (!from || d >= from) && (!to || d <= to)
+      return matchSearch && matchStatus && matchBatch && matchProduct && matchDate
     })
     return result.sort((a, b) => {
       const aHasPending = pendingPembayaran.some((pp: any) => pp.pendaftar_id === a.id) ? 0 : 1
       const bHasPending = pendingPembayaran.some((pp: any) => pp.pendaftar_id === b.id) ? 0 : 1
       return aHasPending - bHasPending
     })
-  }, [data, search, filterStatus, filterBatch, filterProduct, pendingPembayaran])
+  }, [data, search, filterStatus, filterBatch, filterProduct, filterDateFrom, filterDateTo, pendingPembayaran])
 
   const programGroups = useMemo<ProgramGroup[]>(() => {
     const groupMap = new Map<number, ProgramGroup>()
@@ -666,6 +674,10 @@ export default function Tagihan() {
               className="w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
           </div>
+          <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)}
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+          <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)}
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
           <select value={filterBatch} onChange={e => setFilterBatch(e.target.value)}
             className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
             <option value="">Semua Batch</option>
@@ -689,7 +701,7 @@ export default function Tagihan() {
             <option value="verified">Lunas</option>
           </select>
           <button
-            onClick={() => { setSearch(''); setFilterStatus(''); setFilterBatch(''); setFilterProduct(''); setPendingChanges({}); setCollapsedPrograms(new Set()) }}
+            onClick={() => { setSearch(''); setFilterStatus(''); setFilterBatch(''); setFilterProduct(''); setFilterDateFrom(''); setFilterDateTo(''); setPendingChanges({}); setCollapsedPrograms(new Set()) }}
             className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
           >
             <RotateCcw size={16} />

@@ -8,7 +8,7 @@ class PembayaranItem extends Model
 {
     protected $table = 'pembayaran_items';
 
-    protected $fillable = ['pendaftar_id', 'kategori_id', 'jumlah'];
+    protected $fillable = ['pendaftar_id', 'kategori_id', 'jumlah', 'kode_unik', 'total_transfer', 'payment_code'];
 
     public function pendaftar()
     {

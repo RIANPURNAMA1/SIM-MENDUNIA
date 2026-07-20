@@ -13,6 +13,7 @@ use App\Models\BatchKategoriDeadline;
 use App\Models\BiayaKategori;
 use App\Models\Pembayaran;
 use App\Models\PembayaranItem;
+use App\Models\PaymentSetting;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -78,6 +79,7 @@ class PendaftaranController extends Controller
             'kecamatan' => 'nullable|string|max:255',
             'desa' => 'nullable|string|max:255',
             'selected_kategori_items' => 'nullable|string',
+            'kode_unik' => 'nullable|integer|min:0|max:999',
         ]);
 
         $product = Product::findOrFail($data['product_id']);
@@ -130,6 +132,46 @@ class PendaftaranController extends Controller
 
         $noReg = $pendaftar->no_registrasi ?? ('REG/' . now()->format('Ymd') . '/' . str_pad($pendaftar->id, 4, '0', STR_PAD_LEFT));
 
+        // Generate kode_unik and create PembayaranItem
+        $firstParentName = null;
+        if (!empty($selectedKategoriItems) && is_array($selectedKategoriItems)) {
+            $firstParentName = trim((string) ($selectedKategoriItems[0] ?? ''));
+        }
+        if (!$firstParentName && is_array($product->kategori_items)) {
+            foreach ($product->kategori_items as $item) {
+                $name = trim($item['name'] ?? '');
+                if ($name !== '' && ($item['harga'] ?? 0) > 0) {
+                    $firstParentName = $name;
+                    break;
+                }
+            }
+        }
+
+        $kategori = null;
+        if ($firstParentName) {
+            $kategori = \App\Models\BiayaKategori::whereRaw('LOWER(nama) = ?', [strtolower($firstParentName)])
+                ->orWhereRaw('LOWER(kode) = ?', [strtolower($firstParentName)])
+                ->first();
+        }
+        if (!$kategori) {
+            $kategori = \App\Models\BiayaKategori::orderBy('urutan')->first();
+        }
+
+        if ($kategori && $nominal > 0) {
+            $kodeUnik = isset($data['kode_unik']) && $data['kode_unik'] !== '' ? (int) $data['kode_unik'] : \App\Models\PaymentSetting::generateUniqueCode();
+            $totalTransfer = \App\Models\PaymentSetting::calculateTotalTransfer($nominal, $kodeUnik);
+            $paymentCode = 'PAY/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . now()->format('Ym');
+
+            \App\Models\PembayaranItem::create([
+                'pendaftar_id' => $pendaftar->id,
+                'kategori_id' => $kategori->id,
+                'jumlah' => $nominal,
+                'kode_unik' => $kodeUnik,
+                'total_transfer' => $totalTransfer,
+                'payment_code' => $paymentCode,
+            ]);
+        }
+
         // Kirim WA notifikasi pendaftaran sukses
         try {
             $waService = new \App\Services\WhatsAppService();
@@ -157,6 +199,7 @@ class PendaftaranController extends Controller
             'password' => 'required|min:6',
             'telepon' => 'required|string|max:20',
             'alamat' => 'nullable|string',
+            'kode_unik' => 'nullable|integer|min:0|max:999',
         ]);
 
         $link = AffiliateLink::with('product')->where('kode', $data['kode_link'])->firstOrFail();
@@ -192,6 +235,42 @@ class PendaftaranController extends Controller
         $link->increment('pendaftar_count');
 
         $noReg = $pendaftar->no_registrasi ?? ('REG/' . now()->format('Ymd') . '/' . str_pad($pendaftar->id, 4, '0', STR_PAD_LEFT));
+
+        // Generate kode_unik and create PembayaranItem — match kategori by product's kategori_items
+        $firstParentName = null;
+        if (is_array($link->product->kategori_items)) {
+            foreach ($link->product->kategori_items as $item) {
+                $name = trim($item['name'] ?? '');
+                if ($name !== '' && ($item['harga'] ?? 0) > 0) {
+                    $firstParentName = $name;
+                    break;
+                }
+            }
+        }
+
+        $kategori = null;
+        if ($firstParentName) {
+            $kategori = \App\Models\BiayaKategori::whereRaw('LOWER(nama) = ?', [strtolower($firstParentName)])
+                ->orWhereRaw('LOWER(kode) = ?', [strtolower($firstParentName)])
+                ->first();
+        }
+        if (!$kategori) {
+            $kategori = \App\Models\BiayaKategori::orderBy('urutan')->first();
+        }
+        if ($kategori && $nominal > 0) {
+            $kodeUnik = isset($data['kode_unik']) && $data['kode_unik'] !== '' ? (int) $data['kode_unik'] : \App\Models\PaymentSetting::generateUniqueCode();
+            $totalTransfer = \App\Models\PaymentSetting::calculateTotalTransfer($nominal, $kodeUnik);
+            $paymentCode = 'PAY/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . now()->format('Ym');
+
+            \App\Models\PembayaranItem::create([
+                'pendaftar_id' => $pendaftar->id,
+                'kategori_id' => $kategori->id,
+                'jumlah' => $nominal,
+                'kode_unik' => $kodeUnik,
+                'total_transfer' => $totalTransfer,
+                'payment_code' => $paymentCode,
+            ]);
+        }
 
         // Kirim WA notifikasi pendaftaran sukses
         try {
@@ -251,8 +330,14 @@ class PendaftaranController extends Controller
             ->get()
             ->groupBy('pendaftar_id');
 
-        $result = $data->map(function ($p) use ($allKategoris, $allPembayaran) {
+        $allBayar = \App\Models\Pembayaran::whereIn('pendaftar_id', $pendaftarIds)
+            ->where('status', 'verified')
+            ->get()
+            ->groupBy('pendaftar_id');
+
+        $result = $data->map(function ($p) use ($allKategoris, $allPembayaran, $allBayar) {
             $pembayaranItems = $allPembayaran->get($p->id, collect())->keyBy('kategori_id');
+            $pembayaranList = $allBayar->get($p->id, collect());
             $product = $p->product;
             $pivotPrices = collect();
             if ($product && $product->relationLoaded('biayaKategoris')) {
@@ -286,7 +371,7 @@ class PendaftaranController extends Controller
                 }
             }
 
-            $detail = $allKategoris->map(function ($k) use ($pembayaranItems, $pivotPrices, $namaPrices, $namaDibayar) {
+            $detail = $allKategoris->map(function ($k) use ($pembayaranItems, $pembayaranList, $pivotPrices, $namaPrices, $namaDibayar) {
                 $pi = $pembayaranItems->get($k->id);
                 $biaya = $pivotPrices->get($k->id, 0);
                 if ($biaya === 0) {
@@ -302,12 +387,16 @@ class PendaftaranController extends Controller
                 if ($dibayar === 0) {
                     $dibayar = $namaDibayar->get(strtolower($k->kode), 0);
                 }
+                $pembayaran = $pembayaranList->firstWhere('kategori_id', $k->id);
                 return [
                     'kategori_id' => $k->id,
                     'kode' => $k->kode,
                     'nama' => $k->nama,
                     'biaya' => $biaya,
                     'dibayar' => $dibayar,
+                    'kode_unik' => $pi ? ($pi->kode_unik ?? 0) : 0,
+                    'total_transfer' => $pi ? ($pi->total_transfer ?? $biaya) : 0,
+                    'tanggal_bayar' => $pembayaran ? $pembayaran->created_at : null,
                 ];
             });
             return array_merge($p->toArray(), ['detail' => $detail]);
@@ -403,12 +492,21 @@ class PendaftaranController extends Controller
             }
 
             if ($kategori) {
+                $kodeUnik = PaymentSetting::generateUniqueCode();
+                $totalTransfer = PaymentSetting::calculateTotalTransfer($pendaftar->nominal, $kodeUnik);
+                $paymentCode = 'PAY/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . now()->format('Ym');
+
                 PembayaranItem::updateOrCreate(
                     [
                         'pendaftar_id' => $pendaftar->id,
                         'kategori_id' => $kategori->id,
                     ],
-                    ['jumlah' => $pendaftar->nominal]
+                    [
+                        'jumlah' => $pendaftar->nominal,
+                        'kode_unik' => $kodeUnik,
+                        'total_transfer' => $totalTransfer,
+                        'payment_code' => $paymentCode,
+                    ]
                 );
                 Pembayaran::create([
                     'pendaftar_id' => $pendaftar->id,
@@ -418,6 +516,17 @@ class PendaftaranController extends Controller
                     'bukti_pembayaran' => $pendaftar->bukti_pembayaran ?? 'auto',
                 ]);
             }
+        }
+
+        // Ensure existing PembayaranItems have kode_unik and total_transfer set
+        $itemsWithoutUnique = PembayaranItem::where('pendaftar_id', $pendaftar->id)
+            ->where(function ($q) { $q->where('kode_unik', 0)->orWhereNull('kode_unik'); })
+            ->get();
+        foreach ($itemsWithoutUnique as $pi) {
+            $ku = PaymentSetting::generateUniqueCode();
+            $tt = PaymentSetting::calculateTotalTransfer((float) $pi->jumlah, $ku);
+            $pc = $pi->payment_code ?? ('PAY/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . now()->format('Ym'));
+            $pi->update(['kode_unik' => $ku, 'total_transfer' => $tt, 'payment_code' => $pc]);
         }
 
         // Update semua Pembayaran yang masih pending jadi verified
@@ -530,6 +639,66 @@ class PendaftaranController extends Controller
         }
 
         return response()->json(['message' => 'Pembayaran terverifikasi']);
+    }
+
+    public function updateStatus(Request $request, $id)
+    {
+        $pendaftar = \App\Models\Pendaftar::findOrFail($id);
+
+        $data = $request->validate([
+            'status_pembayaran' => 'nullable|string|in:unpaid,pending,processing,verified,ditolak,refund',
+            'status_pendaftaran' => 'nullable|string|in:pending,disetujui,ditolak',
+        ]);
+
+        if (isset($data['status_pembayaran'])) {
+            $pendaftar->status_pembayaran = $data['status_pembayaran'];
+        }
+        if (isset($data['status_pendaftaran'])) {
+            $pendaftar->status_pendaftaran = $data['status_pendaftaran'];
+        }
+        $pendaftar->save();
+
+        // Saat admin memilih status "Selesai", status header pendaftar dan
+        // seluruh transaksi harus selalu disinkronkan. Sebelumnya blok ini
+        // dilewati bila status pendaftar sudah verified, sehingga transaksi
+        // yang dibuat belakangan tetap pending di dashboard siswa.
+        if (isset($data['status_pembayaran']) && $data['status_pembayaran'] === 'verified') {
+            // Verify all pending/processing Pembayaran records
+            \App\Models\Pembayaran::where('pendaftar_id', $pendaftar->id)
+                ->whereIn('status', ['pending', 'processing'])
+                ->update(['status' => 'verified']);
+
+            // Ensure all product kategoris have a PembayaranItem set to full payment
+            $product = $pendaftar->product;
+            if ($product) {
+                $product->load('biayaKategoris');
+                $biayaKategoris = $product->biayaKategoris;
+                foreach ($biayaKategoris as $kat) {
+                    $existing = \App\Models\PembayaranItem::where('pendaftar_id', $pendaftar->id)
+                        ->where('kategori_id', $kat->id)
+                        ->first();
+
+                    if (!$existing || $existing->jumlah == 0) {
+                        $harga = (int) $kat->pivot->harga;
+                        if ($harga > 0) {
+                            \App\Models\PembayaranItem::updateOrCreate(
+                                ['pendaftar_id' => $pendaftar->id, 'kategori_id' => $kat->id],
+                                ['jumlah' => $harga]
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+        // When setting to ditolak/refund, also update Pembayaran records
+        if (isset($data['status_pembayaran']) && in_array($data['status_pembayaran'], ['ditolak', 'refund'])) {
+            \App\Models\Pembayaran::where('pendaftar_id', $pendaftar->id)
+                ->whereIn('status', ['pending', 'processing'])
+                ->update(['status' => $data['status_pembayaran']]);
+        }
+
+        return response()->json(['message' => 'Status berhasil diperbarui']);
     }
 
     /**
@@ -680,6 +849,14 @@ class PendaftaranController extends Controller
     public function riwayatPembayaran($id)
     {
         $pendaftar = Pendaftar::with('product.biayaKategoris')->findOrFail($id);
+
+        // Perbaiki data lama yang sudah dinyatakan selesai oleh admin, tetapi
+        // record transaksi individualnya masih tertinggal pada status pending.
+        if ($pendaftar->status_pembayaran === 'verified') {
+            Pembayaran::where('pendaftar_id', $pendaftar->id)
+                ->whereIn('status', ['pending', 'processing'])
+                ->update(['status' => 'verified']);
+        }
 
         $pembayaran = Pembayaran::with('kategori')->where('pendaftar_id', $pendaftar->id)
             ->orderBy('created_at', 'desc')
@@ -1639,11 +1816,14 @@ class PendaftaranController extends Controller
         $noInvoice = 'INV/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . $pendaftar->created_at->format('Ym');
         $company = \App\Models\CompanyProfile::getProfile();
 
-        // Per-kategori paid amounts + deadline
-        $paidPerKategori = PembayaranItem::where('pendaftar_id', $pendaftar->id)
-            ->pluck('jumlah', 'kategori_id');
+        // Per-kategori paid amounts from verified payments only
+        $paidPerKategori = Pembayaran::where('pendaftar_id', $pendaftar->id)
+            ->where('status', 'verified')
+            ->selectRaw('kategori_id, SUM(jumlah) as total')
+            ->groupBy('kategori_id')
+            ->pluck('total', 'kategori_id');
 
-        // Resolve deadlines: prefer batch deadlines, fallback to global reminder settings
+        // Resolve deadlines: prefer batch deadlines, then product billing settings, fallback to global reminder settings
         $batchId = $pendaftar->batch_id;
         $batchDeadlines = collect();
         if ($batchId) {
@@ -1655,23 +1835,72 @@ class PendaftaranController extends Controller
         $reminderSettings = \App\Models\WaReminderSetting::where('is_enabled', true)
             ->pluck('jatuh_tempo_hari', 'kategori_id');
 
-        $kategoriItemsEnriched = $kategoriItems->map(function ($item) use ($paidPerKategori, $reminderSettings, $batchDeadlines, $pendaftar) {
+        // Load billing settings from biaya_kategoris
+        $billingMap = collect();
+        if ($pendaftar->product) {
+            $pendaftar->product->load('biayaKategoris');
+            $billingMap = $pendaftar->product->biayaKategoris->keyBy('id');
+        }
+
+        $kategoriItemsEnriched = $kategoriItems->map(function ($item) use ($paidPerKategori, $reminderSettings, $batchDeadlines, $billingMap, $pendaftar) {
             $dibayar = (float) ($paidPerKategori[$item['id']] ?? 0);
 
             $batchDl = $batchDeadlines->get($item['id']);
-            $tanggal_akhir = null;
+            $dueAt = null;
+            $jatuh_tempo_hari = 30;
 
             if ($batchDl && $batchDl->tanggal_akhir) {
-                $tanggal_akhir = $batchDl->tanggal_akhir->format('Y-m-d');
+                $dueAt = $batchDl->tanggal_akhir->copy()->setTime(23, 59, 59)->timezone('Asia/Jakarta')->toIso8601String();
                 $jatuh_tempo_hari = $pendaftar->tanggal_persetujuan
                     ? \Carbon\Carbon::parse($pendaftar->tanggal_persetujuan)->diffInDays($batchDl->tanggal_akhir)
                     : (int) ($reminderSettings[$item['id']] ?? 30);
             } else {
-                $jatuh_tempo_hari = (int) ($reminderSettings[$item['id']] ?? 30);
-                if ($pendaftar->tanggal_persetujuan) {
-                    $tanggal_akhir = \Carbon\Carbon::parse($pendaftar->tanggal_persetujuan)
-                        ->addDays($jatuh_tempo_hari)->format('Y-m-d');
+                $billing = $billingMap->get($item['id']);
+                $dueType = $billing->due_type ?? null;
+                $dueValue = $billing->due_value ?? null;
+
+                if ($dueType && $dueType !== 'none' && $dueType !== 'manual') {
+                    $baseDate = $pendaftar->tanggal_persetujuan
+                        ? \Carbon\Carbon::parse($pendaftar->tanggal_persetujuan)
+                        : \Carbon\Carbon::now();
+
+                    if ($dueType === 'days_after_invoice' && $dueValue) {
+                        $jatuh_tempo_hari = (int) $dueValue;
+                        $dueAt = $baseDate->copy()->addDays($jatuh_tempo_hari)->timezone('Asia/Jakarta')->toIso8601String();
+                    } elseif ($dueType === 'fixed_date' && $dueValue) {
+                        $dueAt = \Carbon\Carbon::parse($dueValue)->setTime(23, 59, 59)->timezone('Asia/Jakarta')->toIso8601String();
+                        $jatuh_tempo_hari = $pendaftar->tanggal_persetujuan
+                            ? $baseDate->diffInDays(\Carbon\Carbon::parse($dueValue))
+                            : (int) ($reminderSettings[$item['id']] ?? 30);
+                    }
+                } else {
+                    $jatuh_tempo_hari = (int) ($reminderSettings[$item['id']] ?? 30);
+                    if ($pendaftar->tanggal_persetujuan) {
+                        $dueAt = \Carbon\Carbon::parse($pendaftar->tanggal_persetujuan)
+                            ->addDays($jatuh_tempo_hari)->timezone('Asia/Jakarta')->toIso8601String();
+                    }
                 }
+            }
+
+            // Get or create kode_unik from pembayaran_items
+            $pi = PembayaranItem::where('pendaftar_id', $pendaftar->id)
+                ->where('kategori_id', $item['id'])
+                ->first();
+            if ($pi) {
+                if ((!$pi->kode_unik || $pi->kode_unik == 0) && $item['harga'] > 0) {
+                    $ku = PaymentSetting::generateUniqueCode();
+                    $tt = PaymentSetting::calculateTotalTransfer((float) $item['harga'], $ku);
+                    $pc = $pi->payment_code ?? ('PAY/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . now()->format('Ym'));
+                    $pi->update(['kode_unik' => $ku, 'total_transfer' => $tt, 'payment_code' => $pc]);
+                    $pi->refresh();
+                }
+                $kodeUnik = $pi->kode_unik ?? 0;
+                $totalTransfer = $pi->total_transfer ?? $item['harga'];
+                $paymentCode = $pi->payment_code ?? null;
+            } else {
+                $kodeUnik = 0;
+                $totalTransfer = $item['harga'];
+                $paymentCode = null;
             }
 
             return [
@@ -1682,7 +1911,10 @@ class PendaftaranController extends Controller
                 'dibayar' => $dibayar,
                 'sisa'    => max(0, $item['harga'] - $dibayar),
                 'jatuh_tempo_hari' => $jatuh_tempo_hari ?? 30,
-                'tanggal_akhir' => $tanggal_akhir,
+                'due_at' => $dueAt,
+                'kode_unik' => $kodeUnik,
+                'total_transfer' => $totalTransfer,
+                'payment_code' => $paymentCode,
             ];
         });
 
@@ -1697,6 +1929,7 @@ class PendaftaranController extends Controller
                 'tanggal_persetujuan' => $pendaftar->tanggal_persetujuan,
                 'status_pendaftaran' => $pendaftar->status_pendaftaran,
                 'status_pembayaran' => $pendaftar->status_pembayaran,
+                'bukti_pembayaran' => $pendaftar->bukti_pembayaran,
             ],
             'product' => $pendaftar->product ? [
                 'id' => $pendaftar->product->id,
@@ -1716,6 +1949,12 @@ class PendaftaranController extends Controller
                 'bank_pemilik' => $company->bank_pemilik,
                 'company_name' => $company->company_name,
                 'pt_name' => $company->pt_name,
+            ],
+            'bank_accounts' => \App\Models\BankAccount::active()->get(),
+            'payment_settings' => [
+                'manual_payment_enabled' => \App\Models\PaymentSetting::isEnabled('manual_payment_enabled'),
+                'unique_code_max' => \App\Models\PaymentSetting::getUniqueCodeMax(),
+                'unique_code_operation' => \App\Models\PaymentSetting::getUniqueCodeOperation(),
             ],
             'kategori_items' => $kategoriItemsEnriched,
         ]);

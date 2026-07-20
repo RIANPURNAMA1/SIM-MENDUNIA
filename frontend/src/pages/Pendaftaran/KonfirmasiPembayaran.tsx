@@ -21,6 +21,7 @@ interface BayarData {
     created_at: string;
     status_pendaftaran: string;
     status_pembayaran: string;
+    bukti_pembayaran: string | null;
   };
   product: { id: number; nama: string; harga: number } | null;
   keuangan: {
@@ -44,6 +45,8 @@ interface BayarData {
     komisi: number;
     dibayar: number;
     sisa: number;
+    kode_unik: number;
+    total_transfer: number;
   }[];
 }
 
@@ -168,16 +171,12 @@ export default function KonfirmasiPembayaran() {
 
     try {
       const fd = new FormData();
-      const firstKategori = data.kategori_items?.[0];
-      const jumlah = firstKategori
-        ? firstKategori.sisa > 0
-          ? firstKategori.sisa
-          : firstKategori.harga
-        : data.keuangan.sisa > 0
-          ? data.keuangan.sisa
-          : data.keuangan.total_tagihan;
-
-      fd.append("jumlah", String(jumlah));
+      const firstKat = data.kategori_items?.[0];
+      const katKodeUnik = firstKat ? Number(firstKat.kode_unik) : 0;
+      const katTotalTransfer = firstKat ? Number(firstKat.total_transfer) : 0;
+      const katHarga = firstKat ? (firstKat.sisa > 0 ? firstKat.sisa : firstKat.harga) : data.keuangan.sisa > 0 ? data.keuangan.sisa : data.keuangan.total_tagihan;
+      const totalTransferAmt = katTotalTransfer > 0 ? katTotalTransfer : (katHarga + katKodeUnik);
+      fd.append("jumlah", String(totalTransferAmt));
       fd.append("kategori_id", String(firstKategori?.id || 1));
       fd.append("bukti_pembayaran", fileBukti);
 
@@ -328,6 +327,8 @@ export default function KonfirmasiPembayaran() {
 
   // --- MAIN FORM SCREEN (Data Loaded) ---
   const firstKategori = data.kategori_items?.[0];
+  const fkKodeUnik = firstKategori ? Number(firstKategori.kode_unik) : 0;
+  const fkTotalTransfer = firstKategori ? Number(firstKategori.total_transfer) : 0;
   const totalBayar = firstKategori
     ? firstKategori.sisa > 0
       ? firstKategori.sisa
@@ -335,9 +336,11 @@ export default function KonfirmasiPembayaran() {
     : data.keuangan.sisa > 0
       ? data.keuangan.sisa
       : data.keuangan.total_tagihan;
+  const totalTransfer = fkTotalTransfer > 0 ? fkTotalTransfer : (totalBayar + fkKodeUnik);
 
   const isPaid = data.pendaftar.status_pembayaran === "verified";
-  const isProcessing = data.pendaftar.status_pembayaran === "processing";
+  const hasSubmittedPayment = data.pendaftar.status_pembayaran === "processing" && !!data.pendaftar.bukti_pembayaran;
+  const isProcessing = hasSubmittedPayment;
 
   return (
     <div className="min-h-screen bg-[#0E6187] py-12 px-4 font-sans flex flex-col items-center">
@@ -423,10 +426,15 @@ export default function KonfirmasiPembayaran() {
               </span>
             </div>
 
+            <div className="flex justify-between items-center py-2 border-b border-gray-100">
+              <span className="text-gray-500">kode unik:</span>
+              <span className="font-bold text-[#0E6187]">{fkKodeUnik > 0 ? fkKodeUnik : '-'}</span>
+            </div>
+
             <div className="flex justify-between items-center py-2">
-              <span className="text-gray-500">transfer:</span>
+              <span className="text-gray-500">total transfer:</span>
               <span className="font-bold text-[#0E6187]">
-                {fmt(totalBayar)}
+                {fmt(totalTransfer)}
               </span>
             </div>
           </div>

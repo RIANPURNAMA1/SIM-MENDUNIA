@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { Check, Copy, AlertTriangle, ShieldCheck, ChevronDown, ChevronUp } from "lucide-react";
+import { Check, Copy, AlertTriangle, ShieldCheck, ChevronDown, ChevronUp, Building2 } from "lucide-react";
 import api from "../../services/api";
 
 interface KategoriItem {
@@ -11,7 +11,21 @@ interface KategoriItem {
   dibayar: number;
   sisa: number;
   jatuh_tempo_hari: number;
-  tanggal_akhir: string | null;
+  due_at: string | null;
+  kode_unik: number;
+  total_transfer: number;
+  payment_code: string | null;
+}
+
+interface BankAccount {
+  id: number;
+  bank_name: string;
+  bank_logo: string | null;
+  account_holder: string;
+  account_number: string;
+  branch: string | null;
+  additional_info: string | null;
+  is_active: boolean;
 }
 
 interface CheckoutData {
@@ -39,12 +53,18 @@ interface CheckoutData {
     bank_pemilik: string | null;
     company_name: string;
   };
+  bank_accounts: BankAccount[];
+  payment_settings: {
+    manual_payment_enabled: boolean;
+    unique_code_max: number;
+    unique_code_operation: string;
+  };
   no_invoice: string;
   kategori_items?: KategoriItem[];
 }
 
-function fmt(n: number) {
-  return "Rp " + n.toLocaleString("id-ID").replace(/,/g, ".");
+function fmt(n: number | string) {
+  return "Rp " + Number(n).toLocaleString("id-ID").replace(/,/g, ".");
 }
 
 export default function CheckoutBerhasil() {
@@ -79,12 +99,10 @@ export default function CheckoutBerhasil() {
       for (const k of data!.kategori_items!) {
         if (k.sisa <= 0) continue;
 
-        // Use tanggal_akhir from API (absolute date) if available
         let deadline: Date;
-        if (k.tanggal_akhir) {
-          deadline = new Date(k.tanggal_akhir + 'T23:59:59');
+        if (k.due_at) {
+          deadline = new Date(k.due_at);
         } else {
-          // Fallback: compute from tanggal_persetujuan + jatuh_tempo_hari
           const baseDate = data!.pendaftar.tanggal_persetujuan
             ? new Date(data!.pendaftar.tanggal_persetujuan)
             : new Date(data!.pendaftar.created_at);
@@ -159,13 +177,22 @@ export default function CheckoutBerhasil() {
   const bankName = data.company.bank_nama || "BCA";
   const bankAccount = data.company.bank_nomor_rekening || "1831813364";
   const bankOwner = data.company.bank_pemilik || "PT. INDONESIA SUKSES MENDUNIA";
-  const unpaidItems = (data.kategori_items || []).filter(k => k.sisa > 0);
+  const unpaidItems = (data.kategori_items || []).filter(k => Number(k.sisa) > 0);
+  const paidItems = (data.kategori_items || []).filter(k => Number(k.sisa) <= 0);
   const firstKategori = unpaidItems[0] || data.kategori_items?.[0];
+  const fkHarga = firstKategori ? Number(firstKategori.harga) : 0;
+  const fkSisa = firstKategori ? Number(firstKategori.sisa) : 0;
+  const fkTotalTransfer = firstKategori ? Number(firstKategori.total_transfer) : 0;
+  const fkKodeUnik = firstKategori ? Number(firstKategori.kode_unik) : 0;
   const totalBayar = firstKategori
-    ? (firstKategori.sisa > 0 ? firstKategori.sisa : firstKategori.harga)
-    : (data.keuangan.sisa > 0 ? data.keuangan.sisa : data.keuangan.total_tagihan);
+    ? (fkSisa > 0 ? fkSisa : fkHarga)
+    : (data.keuangan.sisa > 0 ? Number(data.keuangan.sisa) : Number(data.keuangan.total_tagihan));
+  const totalTransfer = fkTotalTransfer > 0 ? fkTotalTransfer : (totalBayar + fkKodeUnik);
+  const kodeUnik = fkKodeUnik;
+  const paymentCode = firstKategori?.payment_code ?? null;
   const primaryCountdown = firstKategori ? countdowns[firstKategori.id] : null;
-  const paidItems = (data.kategori_items || []).filter(k => k.sisa <= 0);
+  const activeBankAccounts = (data.bank_accounts || []).filter(b => b.is_active);
+  const paymentEnabled = data.payment_settings?.manual_payment_enabled ?? false;
 
   return (
     <div className="min-h-screen bg-[#0E6187] py-12 px-4 font-sans flex flex-col items-center">
@@ -185,18 +212,16 @@ export default function CheckoutBerhasil() {
 
           <div className="flex items-center justify-between mb-2">
             <span className="text-[13px] text-gray-500 leading-tight max-w-[100px]">
-              {unpaidItems.length > 1 ? `Batas ${unpaidItems.length} tagihan` : 'Batas akhir pembayaran'}
+              Batas Pembayaran
             </span>
             {primaryCountdown && (
               <div className="flex gap-4">
-                {primaryCountdown.days > 0 && (
-                  <div className="flex flex-col items-center">
-                    <span className="text-2xl font-bold text-red-500 tabular-nums tracking-widest">
-                      {String(primaryCountdown.days).padStart(2, "0").split("").join(" ")}
-                    </span>
-                    <span className="text-[10px] text-red-500 font-medium">Hari</span>
-                  </div>
-                )}
+                <div className="flex flex-col items-center">
+                  <span className="text-2xl font-bold text-red-500 tabular-nums tracking-widest">
+                    {String(primaryCountdown.days).padStart(2, "0").split("").join(" ")}
+                  </span>
+                  <span className="text-[10px] text-red-500 font-medium">Hari</span>
+                </div>
                 <div className="flex flex-col items-center">
                   <span className="text-2xl font-bold text-red-500 tabular-nums tracking-widest">
                     {String(primaryCountdown.hours).padStart(2, "0").split("").join(" ")}
@@ -221,44 +246,43 @@ export default function CheckoutBerhasil() {
           
           {primaryCountdown && (
             <div className="text-right text-[11px] text-gray-500 mb-2">
-              Jatuh tempo {formatDate(primaryCountdown.deadline.toISOString())}
+              Jatuh Tempo {formatDate(primaryCountdown.deadline.toISOString())}
             </div>
           )}
 
-          {/* Per-Category Deadline List */}
-          {unpaidItems.length > 0 && (
-            <div className="space-y-2 mb-4">
-              {unpaidItems.map(k => {
-                const cd = countdowns[k.id];
-                if (!cd) return null;
-                return (
-                  <div key={k.id} className={`flex items-center justify-between rounded-md px-3 py-2 text-[12px] ${
-                    cd.expired ? 'bg-red-50 border border-red-200' : 'bg-[#FFF9E5] border border-yellow-100'
-                  }`}>
-                    <div className="flex items-center gap-2">
-                      <span className={`font-semibold ${cd.expired ? 'text-red-600' : 'text-gray-800'}`}>{k.nama}</span>
-                      <span className="text-gray-400">•</span>
-                      <span className={`font-medium ${cd.expired ? 'text-red-500' : 'text-gray-600'}`}>
-                        {fmt(k.sisa > 0 ? k.sisa : k.harga)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[11px] font-semibold">
-                      {cd.expired ? (
-                        <span className="text-red-600">Lewat {cd.days} hari</span>
-                      ) : (
-                        <span className="text-amber-700">
-                          {cd.days > 0 && <>{cd.days}h </>}
-                          {cd.hours}j {cd.minutes}m
-                        </span>
-                      )}
-                      <span className="text-gray-400">•</span>
-                      <span className="text-gray-500">{formatDate(cd.deadline.toISOString()).split(',').slice(0, 2).join(',')}</span>
-                    </div>
+          {/* Per-Category Deadline List - hanya tampilkan kategori pertama */}
+          {firstKategori && firstKategori.sisa > 0 && (() => {
+            const k = firstKategori;
+            const cd = countdowns[k.id];
+            if (!cd) return null;
+            return (
+              <div className="mb-4">
+                <div className={`flex items-center justify-between rounded-md px-3 py-2 text-[12px] ${
+                  cd.expired ? 'bg-red-50 border border-red-200' : 'bg-[#FFF9E5] border border-yellow-100'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    <span className={`font-semibold ${cd.expired ? 'text-red-600' : 'text-gray-800'}`}>{k.nama}</span>
+                    <span className="text-gray-400">•</span>
+                    <span className={`font-medium ${cd.expired ? 'text-red-500' : 'text-gray-600'}`}>
+                      {fmt(k.sisa > 0 ? k.sisa : k.harga)}
+                    </span>
                   </div>
-                );
-              })}
-            </div>
-          )}
+                  <div className="flex items-center gap-1.5 text-[11px] font-semibold">
+                    {cd.expired ? (
+                      <span className="text-red-600">Lewat {cd.days} hari</span>
+                    ) : (
+                      <span className="text-amber-700">
+                        {cd.days > 0 && <>{cd.days}h </>}
+                        {cd.hours}j {cd.minutes}m
+                      </span>
+                    )}
+                    <span className="text-gray-400">•</span>
+                    <span className="text-gray-500">{formatDate(cd.deadline.toISOString()).split(',').slice(0, 2).join(',')}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Paid categories badge */}
           {paidItems.length > 0 && (
@@ -273,9 +297,17 @@ export default function CheckoutBerhasil() {
 
           <div className="bg-[#FFF9E5] rounded-md p-4 flex gap-3 items-start border border-yellow-100">
             <AlertTriangle size={18} className="text-yellow-500 shrink-0 mt-0.5" />
-            <div className="text-[13px] text-gray-700 leading-snug">
-              <p className="font-bold mb-1">Yuk, buruan selesaikan pembayaranmu,</p>
-              <p>Kami verifikasi pesananmu kurang dari 15 menit setelah pembayaran berhasil dan paling lambat 1x24 jam.</p>
+            <div className="text-[13px] text-gray-700 leading-snug space-y-2">
+              {primaryCountdown && (
+                <div>
+                  <p className="font-bold mb-0.5">Batas Pembayaran</p>
+                  <p>Silakan selesaikan pembayaran sebelum <strong>{formatDate(primaryCountdown.deadline.toISOString())}</strong>.</p>
+                </div>
+              )}
+              <div>
+                <p className="font-bold mb-0.5">Verifikasi Pembayaran</p>
+                <p>Pembayaran yang berhasil akan diverifikasi kurang dari 15 menit dan paling lambat 1×24 jam setelah bukti pembayaran diterima.</p>
+              </div>
             </div>
           </div>
         </div>
@@ -296,49 +328,115 @@ export default function CheckoutBerhasil() {
             </div>
           )}
 
+          {paymentCode && (
+            <div className="mb-4 bg-gray-50 rounded-md p-3 flex justify-between items-center border border-gray-100">
+              <span className="text-[12px] text-gray-500">Kode Pembayaran</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold font-mono text-gray-800">{paymentCode}</span>
+                <button onClick={() => copyToClipboard(paymentCode)} className="p-1 rounded hover:bg-gray-200 transition-colors">
+                  <Copy size={12} className={copiedField === "payment_code" ? "text-green-500" : "text-gray-400"} />
+                </button>
+              </div>
+            </div>
+          )}
+
           <h2 className="text-[15px] font-bold text-gray-800 mb-4">Tolong transfer ke</h2>
-          
-          <div className="flex justify-end mb-4">
-            <span className="text-[13px] font-bold text-gray-800">
-              {bankName} a.n {bankOwner}
-            </span>
-          </div>
-          
+
+          {/* Bank Accounts from DB */}
+          {activeBankAccounts.length > 0 ? (
+            <div className="space-y-3 mb-4">
+              {activeBankAccounts.map(acc => (
+                <div key={acc.id} className="border border-gray-100 rounded-lg p-3">
+                  <div className="flex items-center gap-3 mb-2">
+                    {acc.bank_logo ? (
+                      <img src={`/storage/${acc.bank_logo}`} alt={acc.bank_name} className="w-8 h-8 rounded object-contain" />
+                    ) : (
+                      <div className="w-8 h-8 rounded bg-[#0E6187]/10 flex items-center justify-center">
+                        <Building2 size={14} className="text-[#0E6187]" />
+                      </div>
+                    )}
+                    <span className="text-[13px] font-bold text-gray-800">{acc.bank_name} a.n {acc.account_holder}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-[11px] text-gray-400">No. Rekening</p>
+                      <p className="text-[14px] font-bold font-mono text-red-500">{acc.account_number}</p>
+                    </div>
+                    <button onClick={() => copyToClipboard(acc.account_number)}
+                      className="flex items-center gap-1 text-[11px] font-semibold text-gray-500 hover:text-gray-800 transition-colors">
+                      {copiedField === `rek-${acc.id}` ? "Tersalin" : "Salin"}
+                      <Copy size={12} className={copiedField === `rek-${acc.id}` ? "text-green-500" : ""} />
+                    </button>
+                  </div>
+                  {acc.additional_info && (
+                    <p className="mt-1.5 text-[11px] text-gray-400">{acc.additional_info}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex justify-end mb-4">
+              <span className="text-[13px] font-bold text-gray-800">
+                {bankName} a.n {bankOwner}
+              </span>
+            </div>
+          )}
+
           <div className="border-t border-gray-100 my-4"></div>
 
           <div className="space-y-4">
+            {/* Nominal Asli */}
             <div className="flex justify-between items-center">
               <div>
-                <p className="text-[13px] font-bold text-gray-800 mb-0.5">No. rekening</p>
-                <p className="text-[15px] font-bold text-red-500">{bankAccount}</p>
+                <p className="text-[13px] font-bold text-gray-800 mb-0.5">Nominal Tagihan</p>
               </div>
-              <button
-                onClick={() => copyToClipboard(bankAccount, "rek")}
-                className="flex items-center gap-1.5 text-[12px] font-semibold text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                {copiedField === "rek" ? "Tersalin" : "Salin"}
-                <Copy size={14} className={copiedField === "rek" ? "text-green-500" : ""} />
-              </button>
+              <span className="text-[15px] font-medium text-gray-700">{fmt(totalBayar)}</span>
             </div>
 
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-[13px] font-bold text-gray-800 mb-0.5">Total Pembayaran</p>
-                <p className="text-[15px] font-bold text-red-500">{fmt(totalBayar)}</p>
+            {/* Total Transfer */}
+            {kodeUnik > 0 && paymentEnabled && (
+              <>
+                <div className="border-t border-gray-100 my-2"></div>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-[13px] font-bold text-gray-800 mb-0.5">Total yang harus ditransfer</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[17px] font-bold text-red-500">{fmt(totalTransfer)}</p>
+                    <button
+                      onClick={() => copyToClipboard(String(totalTransfer).replace(/[^0-9]/g, ""), "nominal")}
+                      className="flex items-center gap-1 text-[12px] font-semibold text-gray-500 hover:text-gray-800 transition-colors ml-auto"
+                    >
+                      {copiedField === "nominal" ? "Tersalin" : "Salin"}
+                      <Copy size={14} className={copiedField === "nominal" ? "text-green-500" : ""} />
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {(!kodeUnik || !paymentEnabled) && (
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-[13px] font-bold text-gray-800 mb-0.5">Total Pembayaran</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[17px] font-bold text-red-500">{fmt(totalBayar)}</p>
+                  <button
+                    onClick={() => copyToClipboard(String(totalBayar).replace(/[^0-9]/g, ""), "nominal")}
+                    className="flex items-center gap-1 text-[12px] font-semibold text-gray-500 hover:text-gray-800 transition-colors ml-auto"
+                  >
+                    {copiedField === "nominal" ? "Tersalin" : "Salin"}
+                    <Copy size={14} className={copiedField === "nominal" ? "text-green-500" : ""} />
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={() => copyToClipboard(String(totalBayar).replace(/[^0-9]/g, ""), "nominal")}
-                className="flex items-center gap-1.5 text-[12px] font-semibold text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                {copiedField === "nominal" ? "Tersalin" : "Salin"}
-                <Copy size={14} className={copiedField === "nominal" ? "text-green-500" : ""} />
-              </button>
-            </div>
+            )}
           </div>
 
           <div className="mt-6 bg-[#E8FAFF] rounded-md p-3 text-center text-[12px] text-gray-700 leading-relaxed">
-            <span className="font-bold">Penting!</span> Mohon transfer sampai 3 digit terakhir yaitu{" "}
-            <span className="font-bold text-red-500">{fmt(totalBayar)}</span> Karena sistem kami tidak bisa mengenali pembayaranmu bila jumlahnya tidak sesuai
+            <span className="font-bold">Penting!</span> Mohon transfer sesuai nominal hingga digit terakhir yaitu{" "}
+            <span className="font-bold text-red-500">{fmt(kodeUnik > 0 && paymentEnabled ? totalTransfer : totalBayar)}</span> agar pembayaran dapat diverifikasi dengan lebih mudah.
           </div>
         </div>
 
@@ -383,20 +481,9 @@ export default function CheckoutBerhasil() {
               <p>Invoice ID: {data.no_invoice}</p>
               <p className="mt-0.5">{data.product?.nama || "-"}</p>
               {firstKategori && (
-                <p className="mt-0.5 text-[#0E6187] font-semibold">{firstKategori.nama} — {fmt(firstKategori.harga)}</p>
-              )}
-              {data.kategori_items && data.kategori_items.length > 1 && (
-                <p className="text-[11px] text-gray-400 mt-0.5">{data.kategori_items.length} kategori pembayaran</p>
+                <p className="mt-0.5 text-[#0E6187] font-semibold">{firstKategori.nama} — {fmt(fkHarga)}</p>
               )}
             </div>
-            <div className="text-gray-800 font-medium">
-              {fmt(firstKategori ? firstKategori.harga : data.keuangan.harga_produk)}
-            </div>
-          </div>
-
-          <div className="flex justify-between items-center mb-6 text-[13px] font-bold text-gray-800">
-            <span>Total Pembayaran</span>
-            <span>{fmt(totalBayar)}</span>
           </div>
 
           <div className="border-t border-gray-100 my-6"></div>
