@@ -490,25 +490,25 @@ export default function DaftarProgram() {
                           </div>
                         </div>
 
-                        <div className="bg-[#f8f9fc] border border-[#e8eaf0] rounded-lg p-6">
+                        <div className="bg-[#f8f9fc] border border-[#e8eaf0] rounded-lg p-4 md:p-6">
                           <h4 className="text-xs font-bold text-[#0D1F3C] uppercase tracking-wider mb-4">
                             1. Informasi Dasar
                           </h4>
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-4">
                             <div>
-                              <label className="sr-only">Nama Lengkap</label>
+                              <label className="block text-xs font-medium text-gray-600 mb-1 md:hidden">Nama Lengkap</label>
                               <input
                                 type="text"
                                 required
                                 value={nama}
                                 onChange={(e) => setNama(e.target.value)}
                                 placeholder="Nama Lengkap"
-                                className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                                className="w-full px-4 py-3 md:py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
                               />
                             </div>
                             <div>
-                              <label className="sr-only">Password</label>
+                              <label className="block text-xs font-medium text-gray-600 mb-1 md:hidden">Password</label>
                               <input
                                 type="password"
                                 required
@@ -516,29 +516,29 @@ export default function DaftarProgram() {
                                 onChange={(e) => setPassword(e.target.value)}
                                 minLength={6}
                                 placeholder="Password (Min. 6 Karakter)"
-                                className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                                className="w-full px-4 py-3 md:py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
                               />
                             </div>
                           </div>
 
-                          <div>
-                            <label className="sr-only">Email Aktif</label>
+                          <div className="mb-4">
+                            <label className="block text-xs font-medium text-gray-600 mb-1 md:hidden">Email Aktif</label>
                             <input
                               type="email"
                               required
                               value={email}
                               onChange={(e) => setEmail(e.target.value)}
                               placeholder="Alamat Email Aktif"
-                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                              className="w-full px-4 py-3 md:py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
                             />
                           </div>
 
                           <div className="mt-5 pt-5 border-t border-gray-200">
-                            <label className="block text-sm font-medium text-gray-700 mb-1.5">Pilih Batch <span className="text-gray-400 font-normal">(opsional)</span></label>
+                            <label className="block text-xs font-medium text-gray-600 mb-1.5">Pilih Batch <span className="text-gray-400 font-normal">(opsional)</span></label>
                             <select
                               value={batchId}
                               onChange={(e) => setBatchId(e.target.value)}
-                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm appearance-none cursor-pointer"
+                              className="w-full px-4 py-3 md:py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm appearance-none cursor-pointer"
                             >
                               <option value="">Belum ditentukan</option>
                               {batches.map((b) => {
@@ -569,79 +569,79 @@ export default function DaftarProgram() {
 
                     {step === 2 && (
                       <div className="space-y-8">
-                        <div className="bg-[#f8f9fc] border border-[#e8eaf0] rounded-lg p-6">
+                        <div className="bg-[#f8f9fc] border border-[#e8eaf0] rounded-lg p-4 md:p-6">
                           <h4 className="text-xs font-bold text-[#0D1F3C] uppercase tracking-wider mb-4">
                             2. Detail Kontak
                           </h4>
 
-                          <div className="space-y-4">
+                          <div className="space-y-3 md:space-y-4">
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Nomor WhatsApp <span className="text-red-500">*</span></label>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">Nomor WhatsApp <span className="text-red-500">*</span></label>
                               <input
                                 type="text"
                                 required
                                 value={telepon}
                                 onChange={(e) => setTelepon(e.target.value)}
                                 placeholder="08123456789"
-                                className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                                className="w-full px-4 py-3 md:py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
                               />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Alamat Lengkap <span className="text-red-500">*</span></label>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">Alamat Lengkap <span className="text-red-500">*</span></label>
                               <textarea
                                 required
                                 value={alamat}
                                 onChange={(e) => setAlamat(e.target.value)}
                                 placeholder="Alamat Lengkap"
                                 rows={3}
-                                className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm resize-none"
+                                className="w-full px-4 py-3 md:py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm resize-none"
                               />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                               <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Provinsi</label>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Provinsi</label>
                                 <select
                                   value={provinsi}
                                   onChange={(e) => { setProvinsi(e.target.value); setKabupaten(""); setKecamatan(""); setDesa(""); }}
-                                  className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                                  className="w-full px-4 py-3 md:py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
                                 >
                                   <option value="">Pilih Provinsi</option>
                                   {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                                 </select>
                               </div>
                               <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Kabupaten / Kota</label>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Kabupaten / Kota</label>
                                 <select
                                   value={kabupaten}
                                   onChange={(e) => { setKabupaten(e.target.value); setKecamatan(""); setDesa(""); }}
                                   disabled={!provinsi || loadingRegencies}
-                                  className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm disabled:bg-gray-50 disabled:text-gray-400"
+                                  className="w-full px-4 py-3 md:py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm disabled:bg-gray-50 disabled:text-gray-400"
                                 >
                                   <option value="">{loadingRegencies ? 'Memuat...' : 'Pilih Kabupaten'}</option>
                                   {regencies.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                                 </select>
                               </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                               <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Kecamatan</label>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Kecamatan</label>
                                 <select
                                   value={kecamatan}
                                   onChange={(e) => { setKecamatan(e.target.value); setDesa(""); }}
                                   disabled={!kabupaten || loadingDistricts}
-                                  className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm disabled:bg-gray-50 disabled:text-gray-400"
+                                  className="w-full px-4 py-3 md:py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm disabled:bg-gray-50 disabled:text-gray-400"
                                 >
                                   <option value="">{loadingDistricts ? 'Memuat...' : 'Pilih Kecamatan'}</option>
                                   {districts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                 </select>
                               </div>
                               <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Desa / Kelurahan</label>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Desa / Kelurahan</label>
                                 <select
                                   value={desa}
                                   onChange={(e) => setDesa(e.target.value)}
                                   disabled={!kecamatan || loadingVillages}
-                                  className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm disabled:bg-gray-50 disabled:text-gray-400"
+                                  className="w-full px-4 py-3 md:py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm disabled:bg-gray-50 disabled:text-gray-400"
                                 >
                                   <option value="">{loadingVillages ? 'Memuat...' : 'Pilih Desa'}</option>
                                   {villages.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
@@ -655,12 +655,12 @@ export default function DaftarProgram() {
 
                     {step === 3 && (
                       <div className="space-y-8">
-                        <div className="bg-[#f8f9fc] border border-[#e8eaf0] rounded-lg p-6">
+                        <div className="bg-[#f8f9fc] border border-[#e8eaf0] rounded-lg p-4 md:p-6">
                           <h4 className="text-xs font-bold text-[#0D1F3C] uppercase tracking-wider mb-4">
                             3. Ringkasan Pendaftaran
                           </h4>
 
-                          <div className="mb-6 p-4 bg-white border border-gray-200 rounded text-sm">
+                          <div className="mb-4 md:mb-6 p-3 md:p-4 bg-white border border-gray-200 rounded text-sm">
                             <p className="text-gray-500 mb-1">
                               Program yang dipilih:
                             </p>
@@ -694,7 +694,7 @@ export default function DaftarProgram() {
 
                             <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
                               <span className="text-xs font-semibold text-gray-700">Total yang harus dibayar</span>
-                              <p className="font-bold text-lg text-[#0D1F3C]">
+                              <p className="font-bold text-base md:text-lg text-[#0D1F3C]">
                                 Rp {Number(totalDisplay).toLocaleString("id-ID")}
                               </p>
                             </div>
@@ -705,8 +705,8 @@ export default function DaftarProgram() {
                             )}
                           </div>
 
-                          <div className="mb-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <div className="mb-4 md:mb-6">
+                            <label className="block text-xs font-medium text-gray-600 mb-1">
                               Kode Kupon (Opsional)
                             </label>
                             <div className="flex flex-col sm:flex-row gap-2">
@@ -740,12 +740,12 @@ export default function DaftarProgram() {
                             )}
                           </div>
 
-                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                            <div className="flex items-start gap-3">
-                              <Tag size={16} className="text-amber-600 mt-0.5 shrink-0" />
+                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 md:p-4">
+                            <div className="flex items-start gap-2.5 md:gap-3">
+                              <Tag size={14} className="text-amber-600 mt-0.5 shrink-0" />
                               <div>
-                                <p className="text-sm font-semibold text-amber-800">Cara Pembayaran</p>
-                                <p className="text-xs text-amber-700 mt-1">
+                                <p className="text-xs md:text-sm font-semibold text-amber-800">Cara Pembayaran</p>
+                                <p className="text-[11px] md:text-xs text-amber-700 mt-1 leading-relaxed">
                                   Setelah menekan tombol <strong>Daftar</strong>, sistem akan membuat Nomor Invoice dan mengirimkan notifikasi WhatsApp berisi tautan pembayaran ke nomor telepon Anda. Silakan cek WhatsApp untuk menyelesaikan pembayaran.
                                 </p>
                               </div>
@@ -756,29 +756,27 @@ export default function DaftarProgram() {
                     )}
 
                     {/* Bottom Action Area */}
-                    <div className="mt-8 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                      <label className="flex items-start gap-2 text-xs text-gray-500 flex-1">
-                        {step === 3 && (
-                          <>
-                            <input
-                              type="checkbox"
-                              required
-                              className="w-4 h-4 text-[#0D1F3C] border-gray-300 rounded focus:ring-[#0D1F3C] mt-0.5 shrink-0"
-                            />
-                            <span>
-                              Saya menyetujui syarat & ketentuan Mendunia dan
-                              memastikan data benar.
-                            </span>
-                          </>
-                        )}
-                      </label>
+                    <div className="mt-6 md:mt-8 flex flex-col gap-3 md:gap-4">
+                      {step === 3 && (
+                        <label className="flex items-start gap-2 text-xs text-gray-500">
+                          <input
+                            type="checkbox"
+                            required
+                            className="w-4 h-4 text-[#0D1F3C] border-gray-300 rounded focus:ring-[#0D1F3C] mt-0.5 shrink-0"
+                          />
+                          <span className="leading-relaxed">
+                            Saya menyetujui syarat & ketentuan Mendunia dan
+                            memastikan data benar.
+                          </span>
+                        </label>
+                      )}
 
-                      <div className="flex gap-3 w-full sm:w-auto">
+                      <div className="flex gap-3">
                         {step > 1 && (
                           <button
                             type="button"
                             onClick={() => setStep((s) => s - 1)}
-                            className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 border border-gray-300 text-gray-700 rounded-md text-sm font-semibold hover:bg-gray-50 transition-colors"
+                            className="flex-1 px-4 py-3 md:py-2.5 border border-gray-300 text-gray-700 rounded-md text-sm font-semibold hover:bg-gray-50 transition-colors"
                           >
                             Kembali
                           </button>
@@ -786,7 +784,7 @@ export default function DaftarProgram() {
                         {step < 3 ? (
                           <button
                             type="submit"
-                            className="flex-1 sm:flex-none px-6 sm:px-8 py-2.5 bg-[#42b72a] text-white rounded-md text-sm font-semibold hover:bg-[#3ba124] transition-colors flex items-center justify-center gap-2"
+                            className="flex-1 px-6 py-3 md:py-2.5 bg-[#42b72a] text-white rounded-md text-sm font-semibold hover:bg-[#3ba124] transition-colors flex items-center justify-center gap-2"
                           >
                             Selanjutnya
                             <ChevronRight size={16} />
@@ -795,7 +793,7 @@ export default function DaftarProgram() {
                           <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="flex-1 sm:flex-none px-6 sm:px-8 py-2.5 bg-[#42b72a] text-white rounded-md text-sm font-semibold hover:bg-[#3ba124] transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
+                            className="flex-1 px-6 py-3 md:py-2.5 bg-[#42b72a] text-white rounded-md text-sm font-semibold hover:bg-[#3ba124] transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
                           >
                             {isSubmitting ? (
                               <><Loader size={16} className="animate-spin" /> Mendaftarkan...</>
