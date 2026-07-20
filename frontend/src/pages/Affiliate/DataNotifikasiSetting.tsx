@@ -207,7 +207,7 @@ export default function DataNotifikasiSetting() {
       .replace('{kategori}', 'DAFTAR')
       .replace('{jumlah}', 'Rp 400.000')
       .replace('{hari}', 'dalam 3 hari')
-      .replace('{link}', 'http://localhost:5173/pendaftar/1/invoice')
+      .replace('{link}', `${window.location.origin}/pendaftar/1/invoice`)
   }
 
   const saveGlobal = async () => {

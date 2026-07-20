@@ -187,7 +187,7 @@ export default function DaftarAffiliate() {
           </div>
           <h1 className="text-xl font-bold text-[#1c1e21] mb-2">Link Tidak Valid</h1>
           <p className="text-sm text-[#606770]">{error}</p>
-          <a href="http://localhost:5173/login"
+          <a href={`${window.location.origin}/login`}
             className="inline-block mt-6 h-10 px-6 bg-[#0D1F3C] text-white rounded-lg font-bold text-sm hover:bg-[#1a2d4a] transition-colors leading-10">
             Kembali ke Login
           </a>

@@ -226,7 +226,7 @@
                  </a>
                  <ul class="pc-submenu">
                      <li class="pc-item">
-                         <a href="http://localhost:5173/" class="pc-link">
+                         <a href="{{ env('FRONTEND_URL', 'http://localhost:5173') }}/" class="pc-link">
                              <span class="pc-micon"><i class="ph ph-chart-pie"></i></span>
                              <span class="pc-mtext">Dashboard</span>
                          </a>
