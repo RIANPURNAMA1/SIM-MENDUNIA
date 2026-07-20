@@ -199,11 +199,28 @@ class PendaftaranController extends Controller
             'password' => 'required|min:6',
             'telepon' => 'required|string|max:20',
             'alamat' => 'nullable|string',
+            'provinsi' => 'nullable|string|max:255',
+            'kabupaten' => 'nullable|string|max:255',
+            'kecamatan' => 'nullable|string|max:255',
+            'desa' => 'nullable|string|max:255',
             'kode_unik' => 'nullable|integer|min:0|max:999',
         ]);
 
         $link = AffiliateLink::with('product')->where('kode', $data['kode_link'])->firstOrFail();
         $nominal = $link->product->harga ?? 0;
+
+        // Samakan nominal awal pendaftaran affiliate dengan pendaftaran
+        // langsung: tagihan pertama adalah kategori induk pertama (mis.
+        // "Daftar"), bukan total harga seluruh program.
+        if (is_array($link->product->kategori_items)) {
+            foreach ($link->product->kategori_items as $item) {
+                $hargaKategoriPertama = (float) ($item['harga'] ?? 0);
+                if ($hargaKategoriPertama > 0) {
+                    $nominal = $hargaKategoriPertama;
+                    break;
+                }
+            }
+        }
 
         $kupon = $this->applyCoupon($data['kode_kupon'] ?? null, $link->product_id, $nominal);
 
@@ -218,13 +235,19 @@ class PendaftaranController extends Controller
         $pendaftar = Pendaftar::create([
             'affiliate_link_id' => $link->id,
             'product_id' => $link->product_id,
-            'batch_id' => $data['batch_id'] ?? $link->product->batch_id ?? null,
+            // Batch affiliate selalu mengikuti batch yang telah ditetapkan
+            // pada produk, bukan pilihan dari form pendaftar.
+            'batch_id' => $link->product->batch_id,
             'coupon_id' => $kupon['coupon_id'],
             'nama' => $data['nama'],
             'email' => $data['email'],
             'password' => $user->password,
             'telepon' => $data['telepon'],
             'alamat' => $data['alamat'] ?? null,
+            'provinsi' => $data['provinsi'] ?? null,
+            'kabupaten' => $data['kabupaten'] ?? null,
+            'kecamatan' => $data['kecamatan'] ?? null,
+            'desa' => $data['desa'] ?? null,
             'nominal' => $nominal,
             'diskon' => $kupon['diskon'],
             'status_pendaftaran' => 'pending',
@@ -1840,6 +1863,30 @@ class PendaftaranController extends Controller
         if ($pendaftar->product) {
             $pendaftar->product->load('biayaKategoris');
             $billingMap = $pendaftar->product->biayaKategoris->keyBy('id');
+        }
+
+        // Perbaiki data affiliate lama yang tersimpan dengan harga seluruh
+        // program. Selama belum ada transaksi dan tagihannya masih unpaid,
+        // nominal invoice pertama harus mengikuti harga kategori pertama.
+        $kategoriPertama = $kategoriItems->first();
+        $sudahAdaTransaksi = Pembayaran::where('pendaftar_id', $pendaftar->id)->exists();
+        if ($kategoriPertama && !$sudahAdaTransaksi && $pendaftar->status_pembayaran === 'unpaid') {
+            $nominalAwal = (float) $kategoriPertama['harga'];
+            $itemPertama = PembayaranItem::where('pendaftar_id', $pendaftar->id)
+                ->where('kategori_id', $kategoriPertama['id'])
+                ->first();
+
+            if ($itemPertama && (float) $itemPertama->jumlah !== $nominalAwal) {
+                $kodeUnik = (int) ($itemPertama->kode_unik ?? 0);
+                $itemPertama->update([
+                    'jumlah' => $nominalAwal,
+                    'total_transfer' => PaymentSetting::calculateTotalTransfer($nominalAwal, $kodeUnik),
+                ]);
+            }
+
+            if ((float) $pendaftar->nominal !== $nominalAwal) {
+                $pendaftar->update(['nominal' => $nominalAwal]);
+            }
         }
 
         $kategoriItemsEnriched = $kategoriItems->map(function ($item) use ($paidPerKategori, $reminderSettings, $batchDeadlines, $billingMap, $pendaftar) {

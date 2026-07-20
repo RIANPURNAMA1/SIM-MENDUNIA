@@ -51,7 +51,7 @@ class AffiliateLinkController extends Controller
 
     public function showByKode($kode)
     {
-        $link = AffiliateLink::with(['affiliate', 'product'])
+        $link = AffiliateLink::with(['affiliate', 'product.batch'])
             ->where('kode', $kode)
             ->where('status', true)
             ->firstOrFail();
