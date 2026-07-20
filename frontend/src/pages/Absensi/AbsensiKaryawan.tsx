@@ -209,7 +209,7 @@ export default function AbsensiKaryawan() {
       {/* Header */}
       <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] text-white border border-blue-100">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white border border-blue-100">
             <CalendarCheck size={20} />
           </div>
           <div>
@@ -226,7 +226,7 @@ export default function AbsensiKaryawan() {
       </div>
 
       {/* Absensi Masuk/Pulang */}
-      <div className="mb-4 rounded-lg bg-gradient-to-r from-[#0D1F3C] to-[#1a2d4a] p-5 text-white shadow-sm">
+      <div className="mb-4 rounded-lg bg-gradient-to-r from-[#0E6187] to-[#1a5e6f] p-5 text-white shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h3 className="text-lg font-bold">Absensi Hari Ini</h3>
@@ -334,7 +334,7 @@ export default function AbsensiKaryawan() {
             </div>
             <div className="col-span-2 mt-2 flex items-center justify-between border-t border-slate-100 pt-2">
               <span className="text-xs text-slate-500">Total Karyawan</span>
-              <span className="text-lg font-bold text-[#0D1F3C]">20 Orang</span>
+              <span className="text-lg font-bold text-[#0E6187]">20 Orang</span>
             </div>
           </div>
         </div>

@@ -137,12 +137,12 @@ export default function DashboardKandidat() {
       {
         label: 'Total Pendaftar',
         data: monthlyData.map(d => d.total),
-        borderColor: '#0D1F3C',
+        borderColor: '#0E6187',
         backgroundColor: 'rgba(13, 31, 60, 0.12)',
         fill: true,
         tension: 0.4,
         pointRadius: 4,
-        pointBackgroundColor: '#0D1F3C',
+        pointBackgroundColor: '#0E6187',
         borderWidth: 2,
       },
       {
@@ -179,7 +179,7 @@ export default function DashboardKandidat() {
         labels: { usePointStyle: true, boxWidth: 8, padding: 16, font: { size: 11 } },
       },
       tooltip: {
-        backgroundColor: '#0D1F3C',
+        backgroundColor: '#0E6187',
         titleFont: { size: 12 },
         bodyFont: { size: 11 },
         padding: 10,
@@ -206,7 +206,7 @@ export default function DashboardKandidat() {
       countMap[nama] = (countMap[nama] || 0) + 1
     })
     const sorted = Object.entries(countMap).sort((a, b) => b[1] - a[1])
-    const colors = ['#0D1F3C', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6']
+    const colors = ['#0E6187', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6']
     return {
       labels: sorted.map(([name]) => name),
       datasets: [{
@@ -228,7 +228,7 @@ export default function DashboardKandidat() {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#0D1F3C',
+        backgroundColor: '#0E6187',
         titleFont: { size: 12 },
         bodyFont: { size: 11 },
         padding: 10,
@@ -252,7 +252,7 @@ export default function DashboardKandidat() {
   }
 
   const breakdownStats = [
-    { label: 'Total Pendaftar', value: pendaftar.length, icon: Users, color: 'text-[#0D1F3C]', bg: 'bg-[#0D1F3C]/5' },
+    { label: 'Total Pendaftar', value: pendaftar.length, icon: Users, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/5' },
     { label: 'Disetujui', value: pendaftar.filter(p => p.status_pendaftaran === 'disetujui').length, icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { label: 'Pending', value: pendaftar.filter(p => p.status_pendaftaran === 'pending').length, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
     { label: 'Ditolak', value: pendaftar.filter(p => p.status_pendaftaran === 'ditolak').length, icon: XCircle, color: 'text-red-600', bg: 'bg-red-50' },
@@ -262,7 +262,7 @@ export default function DashboardKandidat() {
     return (
       <div className="flex min-h-[400px] items-center justify-center p-6">
         <div className="relative w-14 h-14 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+          <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
           <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
         </div>
       </div>
@@ -339,8 +339,8 @@ export default function DashboardKandidat() {
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0D1F3C]/5">
-                <BarChart3 size={18} className="text-[#0D1F3C]" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0E6187]/5">
+                <BarChart3 size={18} className="text-[#0E6187]" />
               </div>
               <div>
                 <h2 className="text-sm font-bold text-gray-800">Grafik Pendaftaran</h2>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Building2, Upload, Loader } from 'lucide-react'
+import { Building2, Upload, Loader, CreditCard } from 'lucide-react'
 import { companyProfileApi } from '../../services/api'
 import type { CompanyProfile } from '../../types'
 
@@ -48,6 +48,9 @@ export default function CompanyProfilePage() {
       formData.append('address', profile.address || '')
       formData.append('email', profile.email || '')
       formData.append('phone', profile.phone || '')
+      formData.append('bank_nama', profile.bank_nama || '')
+      formData.append('bank_nomor_rekening', profile.bank_nomor_rekening || '')
+      formData.append('bank_pemilik', profile.bank_pemilik || '')
       if (logoFile) {
         formData.append('logo', logoFile)
       }
@@ -69,7 +72,7 @@ export default function CompanyProfilePage() {
     return (
       <div className="px-3 py-3 sm:px-6 sm:py-4 flex items-center justify-center min-h-[50vh]">
         <div className="relative w-14 h-14 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+          <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
           <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
         </div>
       </div>
@@ -91,7 +94,7 @@ export default function CompanyProfilePage() {
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4 max-w-3xl">
       <div className="mb-4 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] border border-blue-100">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
           <Building2 size={20} className="text-white" />
         </div>
         <div>
@@ -146,7 +149,7 @@ export default function CompanyProfilePage() {
                 name="company_name"
                 value={profile.company_name}
                 onChange={handleChange}
-                className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm text-gray-800 focus:border-[#0D1F3C] focus:outline-none focus:ring-1 focus:ring-[#0D1F3C]"
+                className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm text-gray-800 focus:border-[#0E6187] focus:outline-none focus:ring-1 focus:ring-[#0E6187]"
                 required
               />
             </div>
@@ -160,7 +163,7 @@ export default function CompanyProfilePage() {
                 name="pt_name"
                 value={profile.pt_name}
                 onChange={handleChange}
-                className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm text-gray-800 focus:border-[#0D1F3C] focus:outline-none focus:ring-1 focus:ring-[#0D1F3C]"
+                className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm text-gray-800 focus:border-[#0E6187] focus:outline-none focus:ring-1 focus:ring-[#0E6187]"
                 required
               />
             </div>
@@ -174,7 +177,7 @@ export default function CompanyProfilePage() {
                 value={profile.address || ''}
                 onChange={handleChange}
                 rows={3}
-                className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm text-gray-800 focus:border-[#0D1F3C] focus:outline-none focus:ring-1 focus:ring-[#0D1F3C]"
+                className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm text-gray-800 focus:border-[#0E6187] focus:outline-none focus:ring-1 focus:ring-[#0E6187]"
               />
             </div>
 
@@ -188,7 +191,7 @@ export default function CompanyProfilePage() {
                   name="email"
                   value={profile.email || ''}
                   onChange={handleChange}
-                  className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm text-gray-800 focus:border-[#0D1F3C] focus:outline-none focus:ring-1 focus:ring-[#0D1F3C]"
+                  className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm text-gray-800 focus:border-[#0E6187] focus:outline-none focus:ring-1 focus:ring-[#0E6187]"
                 />
               </div>
               <div>
@@ -199,8 +202,54 @@ export default function CompanyProfilePage() {
                   name="phone"
                   value={profile.phone || ''}
                   onChange={handleChange}
-                  className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm text-gray-800 focus:border-[#0D1F3C] focus:outline-none focus:ring-1 focus:ring-[#0D1F3C]"
+                  className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm text-gray-800 focus:border-[#0E6187] focus:outline-none focus:ring-1 focus:ring-[#0E6187]"
                 />
+              </div>
+            </div>
+
+            <hr className="border-gray-200" />
+
+            {/* Bank Info */}
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <CreditCard size={16} className="text-gray-600" />
+                <label className="block text-sm font-semibold text-gray-800">Informasi Rekening Bank</label>
+              </div>
+              <p className="text-sm text-gray-500 mb-3">Rekening yang ditampilkan di halaman pembayaran.</p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nama Bank</label>
+                  <input
+                    type="text"
+                    name="bank_nama"
+                    value={profile.bank_nama || ''}
+                    onChange={handleChange}
+                    placeholder="BCA"
+                    className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm text-gray-800 focus:border-[#0E6187] focus:outline-none focus:ring-1 focus:ring-[#0E6187]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nomor Rekening</label>
+                  <input
+                    type="text"
+                    name="bank_nomor_rekening"
+                    value={profile.bank_nomor_rekening || ''}
+                    onChange={handleChange}
+                    placeholder="1831813364"
+                    className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm text-gray-800 focus:border-[#0E6187] focus:outline-none focus:ring-1 focus:ring-[#0E6187]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Atas Nama</label>
+                  <input
+                    type="text"
+                    name="bank_pemilik"
+                    value={profile.bank_pemilik || ''}
+                    onChange={handleChange}
+                    placeholder="PT. Nama Perusahaan"
+                    className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm text-gray-800 focus:border-[#0E6187] focus:outline-none focus:ring-1 focus:ring-[#0E6187]"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -210,7 +259,7 @@ export default function CompanyProfilePage() {
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#0D1F3C] px-5 py-2 text-sm font-medium text-white hover:bg-[#1a3054] disabled:opacity-50 transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg bg-[#0E6187] px-5 py-2 text-sm font-medium text-white hover:bg-[#1a5e6f] disabled:opacity-50 transition-colors"
           >
             {saving ? <Loader size={16} className="animate-spin" /> : null}
             {saving ? 'Menyimpan...' : 'Simpan'}

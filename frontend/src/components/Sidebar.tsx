@@ -383,7 +383,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       <aside
         className={`
-        w-64 bg-[#0D1F3C] h-screen flex flex-col fixed left-0 top-0 z-40
+        w-64 bg-[#0E6187] h-screen flex flex-col fixed left-0 top-0 z-40
         transition-transform duration-300 ease-in-out shadow-[8px_0_30px_rgba(0,0,0,0.15)]
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0

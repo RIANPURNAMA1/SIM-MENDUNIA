@@ -152,7 +152,7 @@ export default function AbsensiSaya() {
     return (
       <div className="p-6 flex items-center justify-center min-h-[50vh]">
         <div className="relative w-14 h-14 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+          <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
           <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
         </div>
       </div>
@@ -218,7 +218,7 @@ export default function AbsensiSaya() {
                 )
                 setShowQr(true)
               }}
-              className="rounded-xl bg-[#0D1F3C] text-white px-4 py-3.5 flex items-center gap-3 active:scale-[0.97] transition-transform"
+              className="rounded-xl bg-[#0E6187] text-white px-4 py-3.5 flex items-center gap-3 active:scale-[0.97] transition-transform"
             >
               <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center">
                 <QrCode size={18} />
@@ -234,22 +234,22 @@ export default function AbsensiSaya() {
           {siswa.shift && (
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-6 h-6 rounded-md bg-[#0D1F3C] flex items-center justify-center">
+                <div className="w-6 h-6 rounded-md bg-[#0E6187] flex items-center justify-center">
                   <Clock size={12} className="text-white" />
                 </div>
                 <p className="text-xs font-semibold text-gray-800 uppercase tracking-wide">Jadwal Shift</p>
               </div>
               <div className="flex items-center gap-3">
-                <div className="flex-1 bg-[#0D1F3C]/[0.04] rounded-lg p-3 text-center">
+                <div className="flex-1 bg-[#0E6187]/[0.04] rounded-lg p-3 text-center">
                   <p className="text-[10px] text-gray-500 font-medium uppercase">Masuk</p>
-                  <p className="text-lg font-bold text-[#0D1F3C]">
+                  <p className="text-lg font-bold text-[#0E6187]">
                     {siswa.shift.jam_masuk ? new Date(`2000-01-01T${siswa.shift.jam_masuk}`).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}
                   </p>
                 </div>
                 <div className="text-gray-300 font-bold">—</div>
-                <div className="flex-1 bg-[#0D1F3C]/[0.04] rounded-lg p-3 text-center">
+                <div className="flex-1 bg-[#0E6187]/[0.04] rounded-lg p-3 text-center">
                   <p className="text-[10px] text-gray-500 font-medium uppercase">Pulang</p>
-                  <p className="text-lg font-bold text-[#0D1F3C]">
+                  <p className="text-lg font-bold text-[#0E6187]">
                     {siswa.shift.jam_pulang ? new Date(`2000-01-01T${siswa.shift.jam_pulang}`).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}
                   </p>
                 </div>
@@ -265,7 +265,7 @@ export default function AbsensiSaya() {
           {kelasAktif.length > 0 && (
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-[#0D1F3C] flex items-center justify-center">
+                <div className="w-6 h-6 rounded-md bg-[#0E6187] flex items-center justify-center">
                   <CalendarDays size={12} className="text-white" />
                 </div>
                 <p className="text-xs font-semibold text-gray-800 uppercase tracking-wide">Kelas Aktif</p>
@@ -277,7 +277,7 @@ export default function AbsensiSaya() {
                   <div key={k.id} className="px-4 py-3.5">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-white bg-[#0D1F3C] rounded-full w-5 h-5 flex items-center justify-center">{i + 1}</span>
+                        <span className="text-[10px] font-bold text-white bg-[#0E6187] rounded-full w-5 h-5 flex items-center justify-center">{i + 1}</span>
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                           k.status === 'aktif' ? 'bg-emerald-100 text-emerald-700' :
                           k.status === 'belum_mulai' ? 'bg-blue-100 text-blue-700' :
@@ -303,7 +303,7 @@ export default function AbsensiSaya() {
                     </div>
                     <button
                       onClick={() => openNilaiModal(k.batch_id, k.batch, k.level)}
-                      className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-[#0D1F3C] bg-[#0D1F3C]/[0.05] hover:bg-[#0D1F3C]/[0.1] px-3 py-1.5 rounded-lg transition-colors"
+                      className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-[#0E6187] bg-[#0E6187]/[0.05] hover:bg-[#0E6187]/[0.1] px-3 py-1.5 rounded-lg transition-colors"
                     >
                       <Award size={13} />
                       Lihat Nilai
@@ -360,7 +360,7 @@ export default function AbsensiSaya() {
                         <td className="px-4 py-2.5 text-center">
                           <button
                             onClick={() => openNilaiModal(k.batch_id, k.batch, k.level)}
-                            className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#0D1F3C] bg-[#0D1F3C]/[0.05] hover:bg-[#0D1F3C]/[0.1] px-2.5 py-1 rounded-md transition-colors"
+                            className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#0E6187] bg-[#0E6187]/[0.05] hover:bg-[#0E6187]/[0.1] px-2.5 py-1 rounded-md transition-colors"
                           >
                             <Award size={11} />
                             Lihat
@@ -377,7 +377,7 @@ export default function AbsensiSaya() {
           {/* Riwayat Absensi */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-              <div className="w-6 h-6 rounded-md bg-[#0D1F3C] flex items-center justify-center">
+              <div className="w-6 h-6 rounded-md bg-[#0E6187] flex items-center justify-center">
                 <History size={12} className="text-white" />
               </div>
               <p className="text-xs font-semibold text-gray-800 uppercase tracking-wide">Riwayat Absensi</p>
@@ -473,7 +473,7 @@ export default function AbsensiSaya() {
           <div className="h-full sm:h-auto sm:w-full sm:max-w-md bg-white sm:rounded-xl shadow-2xl border sm:border-gray-200 overflow-hidden flex flex-col">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
               <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-[#0D1F3C] text-white">
+                <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-[#0E6187] text-white">
                   <QrCode size={15} />
                 </span>
                 Scan QR Absensi
@@ -506,7 +506,7 @@ export default function AbsensiSaya() {
           <div className="w-full sm:max-w-lg sm:mx-4 bg-white sm:rounded-xl shadow-xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#0D1F3C] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-[#0E6187] flex items-center justify-center">
                   <Award size={15} className="text-white" />
                 </div>
                 <div>
@@ -521,7 +521,7 @@ export default function AbsensiSaya() {
             <div className="flex-1 overflow-y-auto p-5">
               {nilaiLoading ? (
                 <div className="flex items-center justify-center py-12">
-                  <div className="w-8 h-8 border-3 border-gray-200 border-t-[#0D1F3C] rounded-full animate-spin" />
+                  <div className="w-8 h-8 border-3 border-gray-200 border-t-[#0E6187] rounded-full animate-spin" />
                 </div>
               ) : !nilaiData?.daily?.length ? (
                 <div className="text-center py-12">
@@ -531,10 +531,10 @@ export default function AbsensiSaya() {
               ) : (
                 <div className="space-y-4">
                   {/* Summary card */}
-                  <div className="rounded-xl bg-[#0D1F3C]/[0.04] border border-[#0D1F3C]/[0.08] p-4">
+                  <div className="rounded-xl bg-[#0E6187]/[0.04] border border-[#0E6187]/[0.08] p-4">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Rata-rata Keseluruhan</span>
-                      <span className={`text-xl font-bold tabular-nums ${nilaiData.overall_avg >= 85 ? 'text-emerald-600' : nilaiData.overall_avg >= 70 ? 'text-[#0D1F3C]' : nilaiData.overall_avg >= 55 ? 'text-amber-600' : 'text-red-600'}`}>
+                      <span className={`text-xl font-bold tabular-nums ${nilaiData.overall_avg >= 85 ? 'text-emerald-600' : nilaiData.overall_avg >= 70 ? 'text-[#0E6187]' : nilaiData.overall_avg >= 55 ? 'text-amber-600' : 'text-red-600'}`}>
                         {nilaiData.overall_avg}
                       </span>
                     </div>
@@ -555,7 +555,7 @@ export default function AbsensiSaya() {
                           </p>
                         </div>
                         {day.rata_rata !== null && (
-                          <span className={`text-sm font-bold tabular-nums ${day.rata_rata >= 85 ? 'text-emerald-600' : day.rata_rata >= 70 ? 'text-[#0D1F3C]' : day.rata_rata >= 55 ? 'text-amber-600' : 'text-red-600'}`}>
+                          <span className={`text-sm font-bold tabular-nums ${day.rata_rata >= 85 ? 'text-emerald-600' : day.rata_rata >= 70 ? 'text-[#0E6187]' : day.rata_rata >= 55 ? 'text-amber-600' : 'text-red-600'}`}>
                             {day.rata_rata}
                           </span>
                         )}

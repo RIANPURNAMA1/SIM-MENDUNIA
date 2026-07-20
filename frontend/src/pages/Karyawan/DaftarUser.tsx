@@ -185,7 +185,7 @@ export default function DaftarUserPage() {
       {/* Header */}
       <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] border border-blue-100">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
             <List size={20} className="text-white" />
           </div>
           <div>
@@ -195,7 +195,7 @@ export default function DaftarUserPage() {
         </div>
         <button
           onClick={openCreateModal}
-          className="inline-flex items-center gap-2 rounded-lg bg-[#0D1F3C] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#1a2d4a]"
+          className="inline-flex items-center gap-2 rounded-lg bg-[#0E6187] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#1a5e6f]"
         >
           <UserPlus size={16} />
           Tambah User
@@ -491,7 +491,7 @@ export default function DaftarUserPage() {
               <button
                 onClick={handleCreate}
                 disabled={creating}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-[#0D1F3C] px-5 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-[#1a2d4a] disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[#0E6187] px-5 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-[#1a5e6f] disabled:opacity-50"
               >
                 {creating ? (
                   <>

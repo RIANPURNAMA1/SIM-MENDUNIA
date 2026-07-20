@@ -70,7 +70,7 @@ export default function ForgotPassword() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="Email"
-                className="w-full h-[52px] px-4 text-[17px] bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:outline-none focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] text-[#1c1e21] placeholder-[#8d949e]"
+                className="w-full h-[52px] px-4 text-[17px] bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:outline-none focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187] text-[#1c1e21] placeholder-[#8d949e]"
               />
 
               <div className="relative">
@@ -81,12 +81,12 @@ export default function ForgotPassword() {
                   required
                   minLength={6}
                   placeholder="Password Baru"
-                  className="w-full h-[52px] px-4 text-[17px] bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:outline-none focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] text-[#1c1e21] placeholder-[#8d949e]"
+                  className="w-full h-[52px] px-4 text-[17px] bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:outline-none focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187] text-[#1c1e21] placeholder-[#8d949e]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#0D1F3C] hover:underline"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#0E6187] hover:underline"
                 >
                   {showPassword ? "Sembunyikan" : "Tampilkan"}
                 </button>
@@ -99,13 +99,13 @@ export default function ForgotPassword() {
                 required
                 minLength={6}
                 placeholder="Konfirmasi Password Baru"
-                className="w-full h-[52px] px-4 text-[17px] bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:outline-none focus:border-[#0D1F3C] focus:ring-1 focus:ring-[#0D1F3C] text-[#1c1e21] placeholder-[#8d949e]"
+                className="w-full h-[52px] px-4 text-[17px] bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:outline-none focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187] text-[#1c1e21] placeholder-[#8d949e]"
               />
 
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full mt-1 bg-[#0D1F3C] text-white font-bold text-[18px] py-3 rounded-lg hover:bg-[#1a2d4a] transition-colors flex justify-center items-center h-[48px] disabled:opacity-70 disabled:cursor-not-allowed"
+                className="w-full mt-1 bg-[#0E6187] text-white font-bold text-[18px] py-3 rounded-lg hover:bg-[#1a5e6f] transition-colors flex justify-center items-center h-[48px] disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (
                   <div className="flex items-center gap-2">
@@ -121,7 +121,7 @@ export default function ForgotPassword() {
                 <button
                   type="button"
                   onClick={() => navigate("/login")}
-                  className="text-sm text-[#0D1F3C] font-medium hover:underline"
+                  className="text-sm text-[#0E6187] font-medium hover:underline"
                 >
                   Kembali ke Login
                 </button>
@@ -132,7 +132,7 @@ export default function ForgotPassword() {
       </div>
 
       {/* Right - Info Panel */}
-      <div className="hidden lg:flex w-1/2 bg-[#0D1F3C] items-center justify-center p-12 relative overflow-hidden">
+      <div className="hidden lg:flex w-1/2 bg-[#0E6187] items-center justify-center p-12 relative overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
@@ -140,7 +140,7 @@ export default function ForgotPassword() {
               "url(https://awsimages.detik.net.id/community/media/visual/2022/09/13/lanskap-gunung-fuji-yang-indahnya-engga-ada-obat-1_169.jpeg?w=600&q=90)",
           }}
         >
-          <div className="absolute inset-0 bg-[#0D1F3C]/60" />
+          <div className="absolute inset-0 bg-[#0E6187]/60" />
         </div>
         <div
           className="max-w-md text-center fade-in relative z-10"

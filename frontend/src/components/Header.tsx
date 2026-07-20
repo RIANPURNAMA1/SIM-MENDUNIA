@@ -110,7 +110,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
               key={item.label}
               to={item.href!}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
-                isActive(item.href!) ? 'bg-[#0D1F3C] text-white font-medium' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                isActive(item.href!) ? 'bg-[#0E6187] text-white font-medium' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
               }`}
             >
               {item.icon}
@@ -156,7 +156,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
                   })
                 )}
               </div>
-              <div className="p-2 border-t border-gray-100 flex justify-center gap-3 text-xs text-[#0D1F3C]">
+              <div className="p-2 border-t border-gray-100 flex justify-center gap-3 text-xs text-[#0E6187]">
                 <button onClick={() => setNotifFilter('all')} className={`hover:underline ${notifFilter === 'all' ? 'font-bold' : ''}`}>Semua</button>
                 <span className="text-gray-300">|</span>
                 <button onClick={() => setNotifFilter('izin')} className={`hover:underline ${notifFilter === 'izin' ? 'font-bold' : ''}`}>Semua Izin</button>

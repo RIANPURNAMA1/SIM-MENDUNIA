@@ -184,7 +184,7 @@ export default function LMS() {
     return (
       <div className="min-h-screen bg-[#F7F8FC] flex items-center justify-center pb-24">
         <div className="relative w-14 h-14 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C] animate-spin" />
+          <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
           <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
         </div>
       </div>
@@ -212,7 +212,7 @@ export default function LMS() {
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-[#0D1F3C]/10 text-[#0D1F3C] text-[10px] font-bold shrink-0">
+                <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-[#0E6187]/10 text-[#0E6187] text-[10px] font-bold shrink-0">
                   {currentIdx + 1}
                 </span>
                 <h1 className="text-sm font-bold text-gray-900 truncate">{selectedLesson.title}</h1>
@@ -314,7 +314,7 @@ export default function LMS() {
                     className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
                       lessonDetail?.completed
                         ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        : 'bg-[#0D1F3C] text-white hover:bg-[#0D1F3C]/90 shadow-lg shadow-[#0D1F3C]/20'
+                        : 'bg-[#0E6187] text-white hover:bg-[#0E6187]/90 shadow-lg shadow-[#0E6187]/20'
                     } disabled:opacity-50`}>
                     {completing ? 'Memproses...' : lessonDetail?.completed ? 'Batal Selesai' : 'Selesai'}
                   </button>
@@ -369,14 +369,14 @@ export default function LMS() {
                       <button key={lesson.id} onClick={() => openLesson(lesson)}
                         className={`w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] transition-all ${
                           isActive
-                            ? 'bg-[#0D1F3C]/10 text-[#0D1F3C] font-bold'
+                            ? 'bg-[#0E6187]/10 text-[#0E6187] font-bold'
                             : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
                         }`}>
                         <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 text-[9px] font-bold ${
                           isCompleted
                             ? 'bg-emerald-500 text-white'
                             : isActive
-                              ? 'bg-[#0D1F3C] text-white'
+                              ? 'bg-[#0E6187] text-white'
                               : 'bg-gray-100 text-gray-400'
                         }`}>
                           {isCompleted ? <CheckCircle size={10} /> : idx + 1}
@@ -405,12 +405,12 @@ export default function LMS() {
       <>
       <div className="min-h-screen bg-[#F7F8FC] pb-24">
         {/* Hero */}
-        <div className="relative h-52 bg-gradient-to-br from-[#0D1F3C] to-[#1a3355] overflow-hidden">
+        <div className="relative h-52 bg-gradient-to-br from-[#0E6187] to-[#1a3355] overflow-hidden">
           {selectedCourse.image && (
             <img src={`${APP_URL}/storage/${selectedCourse.image}`} alt=""
               className="absolute inset-0 w-full h-full object-cover opacity-30" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0D1F3C] via-[#0D1F3C]/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0E6187] via-[#0E6187]/60 to-transparent" />
           <div className="relative max-w-5xl mx-auto px-4 h-full flex flex-col justify-end pb-6">
             <button onClick={goBack}
               className="flex items-center gap-1.5 text-[11px] font-bold text-white/50 hover:text-white transition-colors mb-4 self-start">
@@ -837,7 +837,7 @@ export default function LMS() {
         <div className="max-w-5xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0D1F3C] to-[#1a3355] flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0E6187] to-[#1a3355] flex items-center justify-center">
                 <GraduationCap size={18} className="text-white" />
               </div>
               <div>
@@ -881,7 +881,7 @@ export default function LMS() {
               {courses.map(course => (
                 <button key={course.id} onClick={() => openCourse(course)}
                   className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-lg hover:shadow-gray-200/50 hover:border-gray-300 transition-all text-left group">
-                  <div className="h-36 bg-gradient-to-br from-[#0D1F3C] to-[#1a3355] flex items-center justify-center relative overflow-hidden">
+                  <div className="h-36 bg-gradient-to-br from-[#0E6187] to-[#1a3355] flex items-center justify-center relative overflow-hidden">
                     {course.image ? (
                       <img src={`${APP_URL}/storage/${course.image}`} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     ) : (

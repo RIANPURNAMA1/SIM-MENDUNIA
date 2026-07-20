@@ -84,7 +84,7 @@ export default function DataNotifikasi() {
       text: 'Kirim ulang pengingat pembayaran via WhatsApp',
       icon: 'question',
       showCancelButton: true,
-      confirmButtonColor: '#0D1F3C',
+      confirmButtonColor: '#0E6187',
       confirmButtonText: 'Kirim',
     }).then(result => {
       if (result.isConfirmed) {
@@ -115,7 +115,7 @@ export default function DataNotifikasi() {
       {/* Header */}
       <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0D1F3C] text-white">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
             <MessageSquare size={20} />
           </div>
           <div>
@@ -212,7 +212,7 @@ export default function DataNotifikasi() {
               {loading ? (
                 <tr>
                   <td colSpan={7} className="border border-slate-200 px-6 py-10 text-center">
-                    <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[#0D1F3C]/10 border-t-[#0D1F3C]" />
+                    <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187]" />
                   </td>
                 </tr>
               ) : notifications.length === 0 ? (

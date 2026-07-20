@@ -93,7 +93,7 @@ export default function SyaratKetentuan() {
           <div className="px-6 md:px-8 py-6 border-b border-gray-100 bg-gradient-to-r from-[#f8f9fc] to-white">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-[#eef1f6] flex items-center justify-center">
-                <Shield size={20} className="text-[#0D1F3C]" />
+                <Shield size={20} className="text-[#0E6187]" />
               </div>
               <div>
                 <h1 className="text-lg md:text-xl font-bold text-gray-900">Syarat & Ketentuan</h1>
