@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { BookOpen, Users, ChevronLeft, Calendar, X, Check, Minus } from 'lucide-react'
+import { BookOpen, Users, ChevronLeft, Calendar, X, Check, Minus, Award, Trophy, TrendingUp, MessageSquare } from 'lucide-react'
 import { guruKelasApi, absensiSiswaApi, penilaianApi } from '../../services/api'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
+import api from '../../services/api'
 
 interface KelasItem {
   id: number
@@ -142,10 +143,18 @@ export default function GuruDataSiswa() {
   const [loading, setLoading] = useState(true)
   const [selectedKelas, setSelectedKelas] = useState<DataSiswaResponse | null>(null)
   const [loadingSiswa, setLoadingSiswa] = useState(false)
-  const [tab, setTab] = useState<'kehadiran' | 'penilaian'>('kehadiran')
+  const [tab, setTab] = useState<'kehadiran' | 'penilaian' | 'peringkat' | 'evaluasi'>('kehadiran')
 
   const [penilaianHarian, setPenilaianHarian] = useState<PenilaianHarianResponse | null>(null)
   const [loadingPenilaianHarian, setLoadingPenilaianHarian] = useState(false)
+
+  const [rankings, setRankings] = useState<any[]>([])
+  const [loadingRanking, setLoadingRanking] = useState(false)
+
+  const [evaluations, setEvaluations] = useState<Record<number, string>>({})
+  const [loadingEvaluations, setLoadingEvaluations] = useState(false)
+  const [savingEvaluation, setSavingEvaluation] = useState(false)
+  const [savingSiswaId, setSavingSiswaId] = useState<number | null>(null)
 
   const [showAbsenModal, setShowAbsenModal] = useState(false)
   const [editSiswa, setEditSiswa] = useState<SiswaItem | null>(null)
@@ -209,10 +218,66 @@ export default function GuruDataSiswa() {
     }
   }
 
-  const switchTab = (t: 'kehadiran' | 'penilaian') => {
+  const loadRanking = async () => {
+    if (!selectedKelas?.kelas?.batch_id || rankings.length > 0) return
+    setLoadingRanking(true)
+    try {
+      const res = await guruKelasApi.ranking(selectedKelas.kelas.batch_id)
+      setRankings(res.data.rankings || [])
+    } catch {
+      setRankings([])
+    } finally {
+      setLoadingRanking(false)
+    }
+  }
+
+  const loadEvaluations = async () => {
+    if (!selectedKelas || Object.keys(evaluations).length > 0) return
+    setLoadingEvaluations(true)
+    try {
+      const res = await api.get(`/guru/level-evaluations/${selectedKelas.kelas.batch_id}/${selectedKelas.kelas.level}`)
+      const raw = res.data.evaluations || {}
+      const results: Record<number, string> = {}
+      for (const [siswaId, ev] of Object.entries(raw)) {
+        results[Number(siswaId)] = (ev as any).evaluasi || ''
+      }
+      setEvaluations(results)
+    } catch {
+      // ignore
+    } finally {
+      setLoadingEvaluations(false)
+    }
+  }
+
+  const saveEvaluation = async (siswaId: number) => {
+    if (!selectedKelas) return
+    setSavingSiswaId(siswaId)
+    setSavingEvaluation(true)
+    try {
+      await api.post('/guru/level-evaluation', {
+        siswa_id: siswaId,
+        batch_id: selectedKelas.kelas.batch_id,
+        level: selectedKelas.kelas.level,
+        evaluasi: evaluations[siswaId] || '',
+      })
+    } catch {
+      alert('Gagal menyimpan evaluasi')
+    } finally {
+      setSavingEvaluation(false)
+      setSavingSiswaId(null)
+    }
+  }
+
+  const switchTab = (t: 'kehadiran' | 'penilaian' | 'peringkat' | 'evaluasi') => {
     setTab(t)
     if (t === 'penilaian') {
       loadPenilaianHarian()
+    }
+    if (t === 'peringkat') {
+      loadRanking()
+    }
+    if (t === 'evaluasi') {
+      loadEvaluations()
     }
   }
 
@@ -427,26 +492,46 @@ export default function GuruDataSiswa() {
               </div>
 
               {/* Tab Navigation */}
-              <div className="flex gap-3">
+              <div className="grid grid-cols-4 gap-2">
                 <button
                   onClick={() => switchTab('kehadiran')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-colors ${
+                  className={`flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold transition-colors ${
                     tab === 'kehadiran'
                       ? 'bg-[#0069b0] text-white'
                       : 'bg-white text-[#4B5063] border border-[#E5E7EF] hover:bg-[#F4F5F8]'
                   }`}
                 >
-                  <Calendar size={14} /> Kehadiran Siswa
+                  <Calendar size={13} /> <span className="hidden sm:inline">Kehadiran</span><span className="sm:hidden">Absen</span>
                 </button>
                 <button
                   onClick={() => switchTab('penilaian')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-colors ${
+                  className={`flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold transition-colors ${
                     tab === 'penilaian'
                       ? 'bg-[#0069b0] text-white'
                       : 'bg-white text-[#4B5063] border border-[#E5E7EF] hover:bg-[#F4F5F8]'
                   }`}
                 >
-                  <BookOpen size={14} /> Penilaian Siswa
+                  <BookOpen size={13} /> <span className="hidden sm:inline">Penilaian</span><span className="sm:hidden">Nilai</span>
+                </button>
+                <button
+                  onClick={() => switchTab('peringkat')}
+                  className={`flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold transition-colors ${
+                    tab === 'peringkat'
+                      ? 'bg-[#0069b0] text-white'
+                      : 'bg-white text-[#4B5063] border border-[#E5E7EF] hover:bg-[#F4F5F8]'
+                  }`}
+                >
+                  <Award size={13} /> Peringkat
+                </button>
+                <button
+                  onClick={() => switchTab('evaluasi')}
+                  className={`flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold transition-colors ${
+                    tab === 'evaluasi'
+                      ? 'bg-[#0069b0] text-white'
+                      : 'bg-white text-[#4B5063] border border-[#E5E7EF] hover:bg-[#F4F5F8]'
+                  }`}
+                >
+                  <MessageSquare size={13} /> Evaluasi
                 </button>
               </div>
 
@@ -595,6 +680,152 @@ export default function GuruDataSiswa() {
                         </div>
                       )}
                     </>
+                  )}
+                </div>
+              )}
+
+              {/* Peringkat Tab */}
+              {tab === 'peringkat' && (
+                <div className="bg-white rounded-xl border border-[#E5E7EF] overflow-hidden">
+                  <div className="p-4 pb-3 flex items-center gap-2 border-b border-[#E5E7EF]">
+                    <Award size={14} className="text-[#0069b0]" />
+                    <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Peringkat Siswa</h3>
+                  </div>
+
+                  {loadingRanking ? (
+                    <div className="p-8 text-center">
+                      <div className="relative w-8 h-8 mx-auto flex items-center justify-center">
+                        <div className="absolute inset-0 rounded-full border-2 border-[#0069b0]/10 border-t-[#0069b0] animate-spin" />
+                      </div>
+                      <p className="text-[11px] text-[#8B90A0] mt-2">Memuat peringkat...</p>
+                    </div>
+                  ) : rankings.length === 0 ? (
+                    <div className="p-8 text-center">
+                      <Trophy size={24} className="text-gray-200 mx-auto mb-2" />
+                      <p className="text-xs text-gray-400">Belum ada data penilaian</p>
+                    </div>
+                  ) : (
+                    <div>
+                      {/* Top 3 podium */}
+                      {rankings.length >= 2 && (
+                        <div className="p-4 pb-2">
+                          <div className="flex items-end justify-center gap-3">
+                            {rankings[1] && (
+                              <div className="flex-1 text-center">
+                                <div className="w-10 h-10 rounded-full border-2 border-gray-300 bg-white flex items-center justify-center mx-auto mb-1.5">
+                                  <span className="text-xs font-bold text-gray-500">2</span>
+                                </div>
+                                <div className="h-14 bg-gray-100 rounded-t-lg flex items-center justify-center border border-gray-200 border-b-0">
+                                  <Trophy size={14} className="text-gray-300" />
+                                </div>
+                                <p className="text-[10px] font-bold text-gray-700 mt-1.5 truncate">{rankings[1].nama}</p>
+                                <p className="text-[10px] font-semibold text-gray-400">{rankings[1].rata_rata}</p>
+                              </div>
+                            )}
+                            {rankings[0] && (
+                              <div className="flex-1 text-center">
+                                <div className="w-12 h-12 rounded-full border-2 border-[#0069b0] bg-[#0069b0]/5 flex items-center justify-center mx-auto mb-1.5">
+                                  <Trophy size={16} className="text-[#0069b0]" />
+                                </div>
+                                <div className="h-20 bg-[#0069b0]/5 rounded-t-lg flex items-center justify-center border border-[#0069b0]/20 border-b-0">
+                                  <Trophy size={18} className="text-[#0069b0]" />
+                                </div>
+                                <p className="text-[10px] font-bold text-gray-900 mt-1.5 truncate">{rankings[0].nama}</p>
+                                <p className="text-[10px] font-semibold text-[#0069b0]">{rankings[0].rata_rata}</p>
+                              </div>
+                            )}
+                            {rankings[2] && (
+                              <div className="flex-1 text-center">
+                                <div className="w-10 h-10 rounded-full border-2 border-amber-300 bg-white flex items-center justify-center mx-auto mb-1.5">
+                                  <span className="text-xs font-bold text-amber-500">3</span>
+                                </div>
+                                <div className="h-10 bg-amber-50 rounded-t-lg flex items-center justify-center border border-amber-200 border-b-0">
+                                  <Trophy size={12} className="text-amber-400" />
+                                </div>
+                                <p className="text-[10px] font-bold text-gray-700 mt-1.5 truncate">{rankings[2].nama}</p>
+                                <p className="text-[10px] font-semibold text-gray-400">{rankings[2].rata_rata}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Full ranking list */}
+                      <div className="divide-y divide-[#E5E7EF]">
+                        {rankings.map((r, idx) => (
+                          <div key={r.siswa_id} className="flex items-center gap-3 px-4 py-3">
+                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                              idx === 0 ? 'bg-[#0069b0] text-white' :
+                              idx === 1 ? 'bg-gray-200 text-gray-600' :
+                              idx === 2 ? 'bg-amber-100 text-amber-600' :
+                              'bg-gray-50 text-gray-400 border border-gray-200'
+                            }`}>
+                              <span className="text-[10px] font-bold">{r.rank ?? '-'}</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-bold text-gray-800 truncate">{r.nama}</p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-[10px] text-[#8B90A0]">Lv {r.level}</span>
+                                <span className="text-[10px] text-[#8B90A0]">·</span>
+                                <span className="text-[10px] text-[#8B90A0]">{r.total_nilai} nilai</span>
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <span className="text-sm font-bold text-gray-900">{r.rata_rata ?? '-'}</span>
+                              <p className="text-[9px] text-[#8B90A0]">rata-rata</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Evaluasi Tab */}
+              {tab === 'evaluasi' && (
+                <div className="bg-white rounded-xl border border-[#E5E7EF] overflow-hidden">
+                  <div className="p-4 pb-3 flex items-center gap-2 border-b border-[#E5E7EF]">
+                    <MessageSquare size={14} className="text-[#0069b0]" />
+                    <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Evaluasi Siswa — Level {selectedKelas?.kelas.level}</h3>
+                  </div>
+
+                  {loadingEvaluations ? (
+                    <div className="p-8 text-center">
+                      <div className="relative w-8 h-8 mx-auto flex items-center justify-center">
+                        <div className="absolute inset-0 rounded-full border-2 border-[#0069b0]/10 border-t-[#0069b0] animate-spin" />
+                      </div>
+                      <p className="text-[11px] text-[#8B90A0] mt-2">Memuat evaluasi...</p>
+                    </div>
+                  ) : selectedKelas?.siswa.length === 0 ? (
+                    <div className="p-8 text-center">
+                      <Users size={24} className="text-gray-200 mx-auto mb-2" />
+                      <p className="text-xs text-gray-400">Tidak ada siswa aktif</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-[#E5E7EF]">
+                      {selectedKelas?.siswa.map(s => (
+                        <div key={s.id} className="p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs font-bold text-[#14182B]">{s.nama}</p>
+                            <button
+                              onClick={() => saveEvaluation(s.id)}
+                              disabled={savingEvaluation && savingSiswaId === s.id}
+                              className="px-3 py-1.5 text-[10px] font-bold text-white bg-[#0069b0] rounded-lg hover:bg-[#004d7a] transition disabled:opacity-50"
+                            >
+                              {savingEvaluation && savingSiswaId === s.id ? 'Menyimpan...' : 'Simpan'}
+                            </button>
+                          </div>
+                          <textarea
+                            value={evaluations[s.id] ?? ''}
+                            onChange={e => setEvaluations(prev => ({ ...prev, [s.id]: e.target.value }))}
+                            placeholder="Tulis evaluasi untuk siswa ini..."
+                            rows={3}
+                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-700 placeholder:text-gray-300 focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0] resize-none"
+                          />
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               )}

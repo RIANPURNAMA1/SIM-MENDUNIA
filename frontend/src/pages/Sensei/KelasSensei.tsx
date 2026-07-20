@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { BookOpen, Search, RotateCcw, Plus, Trash2, X } from "lucide-react";
-import { kelasSenseiApi, guruApi } from "../../services/api";
+import { kelasSenseiApi, guruApi, jadwalLevelApi } from "../../services/api";
 import type { KelasSenseiData, Guru } from "../../types";
 
 function formatDate(iso: string) {
@@ -22,6 +22,7 @@ export default function KelasSenseiPage() {
   const [listSensei, setListSensei] = useState<{ id: number; name: string }[]>([]);
   const [listBatch, setListBatch] = useState<{ id: number; nama_batch: string }[]>([]);
   const [gurus, setGurus] = useState<Guru[]>([]);
+  const [jadwalLevels, setJadwalLevels] = useState<Record<string, { tanggal_mulai: string; tanggal_selesai: string }>>({});
   const [loading, setLoading] = useState(true);
 
   const [startDate, setStartDate] = useState("");
@@ -59,6 +60,7 @@ export default function KelasSenseiPage() {
 
   useEffect(() => {
     fetchData();
+    jadwalLevelApi.list().then(res => setJadwalLevels(res.data.jadwal || {})).catch(() => {});
   }, []);
 
   const openAddModal = async () => {
@@ -70,8 +72,15 @@ export default function KelasSenseiPage() {
     setShowModal(true);
   };
 
+  const selectedJadwal = form.batch_id && form.level ? jadwalLevels[`${form.batch_id}-${form.level}`] : null;
+
   const handleAdd = async () => {
-    if (!form.nama_kelas || !form.user_id || !form.tanggal_mulai || !form.tanggal_selesai) return;
+    if (!form.nama_kelas || !form.user_id) return;
+    const jadwalKey = `${form.batch_id}-${form.level}`;
+    const jadwal = form.batch_id && form.level ? jadwalLevels[jadwalKey] : null;
+    const tanggalMulai = jadwal?.tanggal_mulai || form.tanggal_mulai;
+    const tanggalSelesai = jadwal?.tanggal_selesai || form.tanggal_selesai;
+    if (!tanggalMulai || !tanggalSelesai) return;
     setSubmitting(true);
     try {
       await kelasSenseiApi.store({
@@ -79,8 +88,8 @@ export default function KelasSenseiPage() {
         level: form.level,
         user_id: Number(form.user_id),
         batch_id: form.batch_id ? Number(form.batch_id) : null,
-        tanggal_mulai: form.tanggal_mulai,
-        tanggal_selesai: form.tanggal_selesai,
+        tanggal_mulai: tanggalMulai,
+        tanggal_selesai: tanggalSelesai,
         catatan: form.catatan || null,
       });
       setShowModal(false);
@@ -275,12 +284,24 @@ export default function KelasSenseiPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-500">Tanggal Mulai <span className="text-rose-500">*</span></label>
-                  <input type="date" value={form.tanggal_mulai} onChange={(e) => setForm({ ...form, tanggal_mulai: e.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                  <label className="mb-1 block text-xs font-semibold text-slate-500">Tanggal Mulai <span className="text-slate-400 font-normal">(otomatis dari jadwal)</span></label>
+                  {selectedJadwal ? (
+                    <div className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                      {new Date(selectedJadwal.tanggal_mulai + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </div>
+                  ) : (
+                    <input type="date" value={form.tanggal_mulai} onChange={(e) => setForm({ ...form, tanggal_mulai: e.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                  )}
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-500">Tanggal Selesai <span className="text-rose-500">*</span></label>
-                  <input type="date" value={form.tanggal_selesai} onChange={(e) => setForm({ ...form, tanggal_selesai: e.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                  <label className="mb-1 block text-xs font-semibold text-slate-500">Tanggal Selesai <span className="text-slate-400 font-normal">(otomatis dari jadwal)</span></label>
+                  {selectedJadwal ? (
+                    <div className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                      {new Date(selectedJadwal.tanggal_selesai + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </div>
+                  ) : (
+                    <input type="date" value={form.tanggal_selesai} onChange={(e) => setForm({ ...form, tanggal_selesai: e.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                  )}
                 </div>
               </div>
               <div>
@@ -290,7 +311,7 @@ export default function KelasSenseiPage() {
             </div>
             <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3">
               <button onClick={() => setShowModal(false)} className="rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">Batal</button>
-              <button onClick={handleAdd} disabled={submitting || !form.nama_kelas || !form.user_id || !form.tanggal_mulai || !form.tanggal_selesai} className="rounded-md bg-slate-800 px-4 py-2 text-xs font-medium text-white transition hover:bg-slate-700 disabled:opacity-50">
+              <button onClick={handleAdd} disabled={submitting || !form.nama_kelas || !form.user_id} className="rounded-md bg-slate-800 px-4 py-2 text-xs font-medium text-white transition hover:bg-slate-700 disabled:opacity-50">
                 {submitting ? "Menyimpan..." : "Simpan"}
               </button>
             </div>

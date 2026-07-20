@@ -75,11 +75,14 @@ import SiswaLayout from './layouts/SiswaLayout'
 import PembayaranSiswa from './pages/Siswa/PembayaranSiswa'
 import AbsensiSaya from './pages/Absensi/AbsensiSaya'
 import LMS from './pages/Akademik/LMS'
+import SiswaNilai from './pages/Siswa/SiswaNilai'
 import DataCourse from './pages/Akademik/DataCourse'
 import DataLesson from './pages/Akademik/DataLesson'
 import DashboardManagement from './pages/Dashboard/DashboardManagement'
 import GuruDashboard from './pages/Guru/GuruDashboard'
 import GuruDataSiswa from './pages/Guru/GuruDataSiswa'
+import GuruLMS from './pages/Guru/GuruLMS'
+import GuruLMSAssignment from './pages/Guru/GuruLMSAssignment'
 import GuruProfil from './pages/Guru/GuruProfil'
 
 import GuruLayout from './layouts/GuruLayout'
@@ -203,6 +206,7 @@ function AppRoutes() {
         <Route path="absensi" element={<AbsensiSaya />} />
         <Route path="pembayaran" element={<PembayaranSiswa />} />
         <Route path="lms" element={<LMS />} />
+        <Route path="nilai" element={<SiswaNilai />} />
       </Route>
 
       <Route
@@ -233,6 +237,28 @@ function AppRoutes() {
           <ProtectedRoute roleAllowed="GURU">
             <GuruLayout>
               <GuruProfil />
+            </GuruLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/guru-lms"
+        element={
+          <ProtectedRoute roleAllowed="GURU">
+            <GuruLayout>
+              <GuruLMS />
+            </GuruLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/guru-lms/assignments/:courseId"
+        element={
+          <ProtectedRoute roleAllowed="GURU">
+            <GuruLayout>
+              <GuruLMSAssignment />
             </GuruLayout>
           </ProtectedRoute>
         }
