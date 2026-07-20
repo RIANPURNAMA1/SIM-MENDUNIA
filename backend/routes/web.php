@@ -60,7 +60,7 @@ Route::get('/logout-app', function () {
         request()->session()->invalidate();
         request()->session()->regenerateToken();
     }
-    return redirect('http://localhost:5173/login');
+    return redirect(env('FRONTEND_URL', 'http://localhost:5173') . '/login');
 });
 
 /*

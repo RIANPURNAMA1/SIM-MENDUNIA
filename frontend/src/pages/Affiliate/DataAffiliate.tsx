@@ -160,12 +160,12 @@ export default function DataAffiliate() {
   }
 
   function copyLink(kode: string, id: number) {
-    navigator.clipboard.writeText(`http://localhost:5173/daftar/${kode}`)
+    navigator.clipboard.writeText(`${window.location.origin}/daftar/${kode}`)
     setCopied(id)
     setTimeout(() => setCopied(null), 2000)
   }
 
-  const linkBase = 'http://localhost:5173/daftar/'
+  const linkBase = `${window.location.origin}/daftar/`
 
   const filteredLinks = links.filter(l =>
     !search || l.affiliate?.name?.toLowerCase().includes(search.toLowerCase()) || l.product?.nama?.toLowerCase().includes(search.toLowerCase()) || l.nama_link?.toLowerCase().includes(search.toLowerCase())
@@ -206,8 +206,8 @@ export default function DataAffiliate() {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
             <span className="text-slate-500">Daftar Affiliate:</span>
-            <code className="text-slate-700">http://localhost:5173/daftar-affiliate</code>
-            <button onClick={() => { navigator.clipboard.writeText('http://localhost:5173/daftar-affiliate'); setCopiedDaftar(true); setTimeout(() => setCopiedDaftar(false), 2000) }}
+            <code className="text-slate-700">{`${window.location.origin}/daftar-affiliate`}</code>
+            <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/daftar-affiliate`); setCopiedDaftar(true); setTimeout(() => setCopiedDaftar(false), 2000) }}
               className="ml-1 rounded-md border border-slate-200 bg-white p-1.5 text-slate-400 transition hover:border-blue-200 hover:text-blue-600">
               {copiedDaftar ? <CheckCircle size={14} className="text-emerald-500" /> : <Copy size={14} />}
             </button>
