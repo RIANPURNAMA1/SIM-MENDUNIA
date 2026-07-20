@@ -172,22 +172,26 @@ export default function GuruDashboard() {
 
   const handleTambahKelas = async (e: React.FormEvent) => {
     e.preventDefault()
+    const jadwalKey = `${form.batch_id}-${form.level}`
+    const jadwal = jadwalLevels[jadwalKey]
+    if (!jadwal) return
     setSaving(true)
     try {
       const batchName = batches.find(b => b.id === Number(form.batch_id))?.nama_batch || ''
-      const jadwalKey = `${form.batch_id}-${form.level}`
-      const jadwal = jadwalLevels[jadwalKey]
       const res = await guruKelasApi.store({
         nama_kelas: batchName,
         batch_id: form.batch_id ? Number(form.batch_id) : null,
         level: form.level,
-        tanggal_mulai: jadwal?.tanggal_mulai || form.tanggal_mulai,
-        tanggal_selesai: jadwal?.tanggal_selesai || form.tanggal_selesai,
+        tanggal_mulai: jadwal.tanggal_mulai,
+        tanggal_selesai: jadwal.tanggal_selesai,
         catatan: form.catatan || null,
       })
       setKelasList(prev => [res.data.data, ...prev])
       setShowModal(false)
       setForm({ batch_id: '', level: '', tanggal_mulai: '', tanggal_selesai: '', catatan: '' })
+      Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Kelas berhasil ditambahkan', timer: 2000, showConfirmButton: false })
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal menambahkan kelas' })
     } finally {
       setSaving(false)
     }
@@ -721,32 +725,27 @@ export default function GuruDashboard() {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Tanggal Mulai <span className="text-gray-400 font-normal">(otomatis dari jadwal)</span></label>
-                  {selectedJadwal ? (
+              {form.batch_id && form.level && !selectedJadwal && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                  Jadwal belum diatur untuk batch & level ini. Silakan hubungi admin untuk mengatur jadwal terlebih dahulu.
+                </div>
+              )}
+              {selectedJadwal && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Tanggal Mulai</label>
                     <div className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
                       {new Date(selectedJadwal.tanggal_mulai + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </div>
-                  ) : (
-                    <input type="date" value={form.tanggal_mulai} onChange={e => setForm(f => ({ ...f, tanggal_mulai: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]"
-                      placeholder="Pilih batch & level untuk otomatis" />
-                  )}
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Tanggal Selesai <span className="text-gray-400 font-normal">(otomatis dari jadwal)</span></label>
-                  {selectedJadwal ? (
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Tanggal Selesai</label>
                     <div className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
                       {new Date(selectedJadwal.tanggal_selesai + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </div>
-                  ) : (
-                    <input type="date" value={form.tanggal_selesai} onChange={e => setForm(f => ({ ...f, tanggal_selesai: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]"
-                      placeholder="Pilih batch & level untuk otomatis" />
-                  )}
+                  </div>
                 </div>
-              </div>
+              )}
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Catatan <span className="text-gray-400">(Opsional)</span></label>
                 <textarea value={form.catatan} onChange={e => setForm(f => ({ ...f, catatan: e.target.value }))}
@@ -757,7 +756,7 @@ export default function GuruDashboard() {
                   className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition">
                   Batal
                 </button>
-                <button type="submit" disabled={saving}
+                <button type="submit" disabled={saving || !selectedJadwal}
                   className="rounded-lg bg-[#0069b0] px-4 py-2 text-xs font-semibold text-white hover:bg-[#004d7a] transition disabled:opacity-50 flex items-center gap-1.5">
                   {saving ? 'Menyimpan...' : 'Simpan'}
                 </button>

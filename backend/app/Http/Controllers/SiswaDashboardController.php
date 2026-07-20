@@ -244,6 +244,51 @@ class SiswaDashboardController extends Controller
         ]);
     }
 
+    public function siswaBatches()
+    {
+        $user = Auth::guard('sanctum')->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $siswa = Siswa::where('user_id', $user->id)->first();
+        if (!$siswa) {
+            return response()->json(['message' => 'Data siswa tidak ditemukan'], 404);
+        }
+
+        $batchIds = \App\Models\StudentAssessment::where('siswa_id', $siswa->id)
+            ->whereNotNull('nilai')
+            ->distinct()
+            ->pluck('batch_id');
+
+        if ($batchIds->isEmpty() && $siswa->batch_id) {
+            $batchIds->push($siswa->batch_id);
+        }
+
+        $batches = Batch::whereIn('id', $batchIds)
+            ->orderByDesc('id')
+            ->get()
+            ->map(function ($b) {
+                $jadwalLevels = \App\Models\JadwalLevel::where('batch_id', $b->id)
+                    ->orderBy('level')
+                    ->get(['level', 'tanggal_mulai', 'tanggal_selesai']);
+
+                return [
+                    'id' => $b->id,
+                    'nama_batch' => $b->nama_batch,
+                    'tanggal_mulai' => $b->tanggal_mulai?->format('Y-m-d'),
+                    'tanggal_selesai' => $b->tanggal_selesai?->format('Y-m-d'),
+                    'levels' => $jadwalLevels->map(fn($j) => [
+                        'level' => $j->level,
+                        'tanggal_mulai' => $j->tanggal_mulai?->format('Y-m-d'),
+                        'tanggal_selesai' => $j->tanggal_selesai?->format('Y-m-d'),
+                    ]),
+                ];
+            });
+
+        return response()->json(['batches' => $batches]);
+    }
+
     public function nilaiSaya(Request $request, $batchId)
     {
         $user = Auth::guard('sanctum')->user();
@@ -311,7 +356,7 @@ class SiswaDashboardController extends Controller
         ]);
     }
 
-    public function nilaiLms()
+    public function nilaiLms(Request $request)
     {
         $user = Auth::guard('sanctum')->user();
         if (!$user) {
@@ -323,7 +368,7 @@ class SiswaDashboardController extends Controller
             return response()->json(['message' => 'Data siswa tidak ditemukan'], 404);
         }
 
-        $batchId = $siswa->batch_id;
+        $batchId = $request->query('batch_id') ?: $siswa->batch_id;
         if (!$batchId) {
             return response()->json([
                 'batch' => null,
@@ -421,7 +466,7 @@ class SiswaDashboardController extends Controller
         ]);
     }
 
-    public function evaluations()
+    public function evaluations(Request $request)
     {
         $user = Auth::guard('sanctum')->user();
         if (!$user) return response()->json(['message' => 'Unauthenticated'], 401);
@@ -429,9 +474,52 @@ class SiswaDashboardController extends Controller
         $siswa = Siswa::where('user_id', $user->id)->first();
         if (!$siswa) return response()->json(['message' => 'Data siswa tidak ditemukan'], 404);
 
+        $batchId = $request->query('batch_id') ?: $siswa->batch_id;
+
         $evaluations = \App\Models\LevelEvaluation::where('siswa_id', $siswa->id)
-            ->where('batch_id', $siswa->batch_id)
+            ->where('batch_id', $batchId)
             ->with('user:name')
+            ->get()
+            ->keyBy('level');
+
+        return response()->json(['evaluations' => $evaluations]);
+    }
+
+    public function storeStudentEvaluation(Request $request)
+    {
+        $user = Auth::guard('sanctum')->user();
+        if (!$user) return response()->json(['message' => 'Unauthenticated'], 401);
+
+        $siswa = Siswa::where('user_id', $user->id)->first();
+        if (!$siswa) return response()->json(['message' => 'Data siswa tidak ditemukan'], 404);
+
+        $request->validate([
+            'batch_id' => 'required|exists:batches,id',
+            'level' => 'required|string',
+            'rating' => 'required|integer|min:1|max:5',
+            'komentar' => 'nullable|string|max:1000',
+        ]);
+
+        $eval = \App\Models\StudentEvaluation::updateOrCreate(
+            ['siswa_id' => $siswa->id, 'batch_id' => $request->batch_id, 'level' => $request->level],
+            ['rating' => $request->rating, 'komentar' => $request->komentar]
+        );
+
+        return response()->json(['success' => true, 'data' => $eval], 201);
+    }
+
+    public function getStudentEvaluations(Request $request)
+    {
+        $user = Auth::guard('sanctum')->user();
+        if (!$user) return response()->json(['message' => 'Unauthenticated'], 401);
+
+        $siswa = Siswa::where('user_id', $user->id)->first();
+        if (!$siswa) return response()->json(['message' => 'Data siswa tidak ditemukan'], 404);
+
+        $batchId = $request->query('batch_id') ?: $siswa->batch_id;
+
+        $evaluations = \App\Models\StudentEvaluation::where('siswa_id', $siswa->id)
+            ->where('batch_id', $batchId)
             ->get()
             ->keyBy('level');
 
