@@ -532,8 +532,9 @@ export default function DaftarProgram() {
                               className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
                             />
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Batch <span className="text-gray-400 font-normal">(opsional)</span></label>
+
+                          <div className="mt-5 pt-5 border-t border-gray-200">
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">Pilih Batch <span className="text-gray-400 font-normal">(opsional)</span></label>
                             <select
                               value={batchId}
                               onChange={(e) => setBatchId(e.target.value)}
@@ -549,7 +550,7 @@ export default function DaftarProgram() {
                                 )
                               })}
                             </select>
-                            <p className="text-[11px] text-gray-400 mt-1">Opsional — admin dapat menentukan batch nanti</p>
+                            <p className="text-[11px] text-gray-400 mt-1.5">Opsional — admin dapat menentukan batch nanti</p>
                             {batchId && (() => {
                               const selectedBatch = batches.find(b => String(b.id) === batchId)
                               if (selectedBatch?.is_penuh) {
@@ -794,12 +795,12 @@ export default function DaftarProgram() {
                           <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="flex-1 sm:flex-none px-6 sm:px-8 py-2.5 bg-[#0D1F3C] text-white rounded-md text-sm font-semibold hover:bg-[#1a2d4a] transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
+                            className="flex-1 sm:flex-none px-6 sm:px-8 py-2.5 bg-[#42b72a] text-white rounded-md text-sm font-semibold hover:bg-[#3ba124] transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
                           >
                             {isSubmitting ? (
                               <><Loader size={16} className="animate-spin" /> Mendaftarkan...</>
                             ) : (
-                              <><FileText size={16} /> Daftar</>
+                              <><FileText size={16} /> Daftar {selectedProduct?.nama || ''}</>
                             )}
                           </button>
                         )}
@@ -879,7 +880,7 @@ export default function DaftarProgram() {
                     href={`/daftar-program/${product.slug}`}
                     className="inline-flex items-center gap-1 px-4 py-2 bg-[#0D1F3C] text-white rounded-lg text-sm font-bold hover:bg-[#1a2d4a] transition-colors"
                   >
-                    Daftar <ChevronRight size={14} />
+                    Daftar {product.nama} <ChevronRight size={14} />
                   </a>
                 </div>
               </div>

@@ -585,7 +585,7 @@ export default function DaftarAffiliateBaru() {
                         <button
                           type="submit"
                           disabled={submitting}
-                          className="flex-1 sm:flex-none px-6 sm:px-8 py-2.5 bg-[#0D1F3C] text-white rounded-md text-sm font-semibold hover:bg-[#1a2d4a] transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
+                          className="flex-1 sm:flex-none px-6 sm:px-8 py-2.5 bg-[#42b72a] text-white rounded-md text-sm font-semibold hover:bg-[#3ba124] transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
                         >
                           {submitting ? (
                             <>
