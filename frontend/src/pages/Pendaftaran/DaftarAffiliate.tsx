@@ -52,9 +52,55 @@ export default function DaftarAffiliate() {
   const [batchId, setBatchId] = useState('')
   const [successInfo, setSuccessInfo] = useState<{ noRegistrasi: string; invoiceUrl: string } | null>(null)
 
+  const [provinsi, setProvinsi] = useState('')
+  const [kabupaten, setKabupaten] = useState('')
+  const [kecamatan, setKecamatan] = useState('')
+  const [desa, setDesa] = useState('')
+  const [provinces, setProvinces] = useState<{ id: string; name: string }[]>([])
+  const [regencies, setRegencies] = useState<{ id: string; name: string }[]>([])
+  const [districts, setDistricts] = useState<{ id: string; name: string }[]>([])
+  const [villages, setVillages] = useState<{ id: string; name: string }[]>([])
+  const [loadingRegencies, setLoadingRegencies] = useState(false)
+  const [loadingDistricts, setLoadingDistricts] = useState(false)
+  const [loadingVillages, setLoadingVillages] = useState(false)
+
   useEffect(() => {
     batchApi.list().then(res => setBatches(res.data.data || [])).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    fetch("https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json")
+      .then(r => r.json())
+      .then((data: { id: string; name: string }[]) => setProvinces(data))
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    if (!provinsi) { setRegencies([]); setKabupaten(""); setDistricts([]); setKecamatan(""); setVillages([]); setDesa(""); return }
+    setLoadingRegencies(true)
+    fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${provinsi}.json`)
+      .then(r => r.json())
+      .then((data: { id: string; name: string }[]) => { setRegencies(data); setLoadingRegencies(false) })
+      .catch(() => setLoadingRegencies(false))
+  }, [provinsi])
+
+  useEffect(() => {
+    if (!kabupaten) { setDistricts([]); setKecamatan(""); setVillages([]); setDesa(""); return }
+    setLoadingDistricts(true)
+    fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${kabupaten}.json`)
+      .then(r => r.json())
+      .then((data: { id: string; name: string }[]) => { setDistricts(data); setLoadingDistricts(false) })
+      .catch(() => setLoadingDistricts(false))
+  }, [kabupaten])
+
+  useEffect(() => {
+    if (!kecamatan) { setVillages([]); setDesa(""); return }
+    setLoadingVillages(true)
+    fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${kecamatan}.json`)
+      .then(r => r.json())
+      .then((data: { id: string; name: string }[]) => { setVillages(data); setLoadingVillages(false) })
+      .catch(() => setLoadingVillages(false))
+  }, [kecamatan])
 
   useEffect(() => {
     if (kode) {
@@ -109,6 +155,10 @@ export default function DaftarAffiliate() {
     if (kodeKupon) fd.append('kode_kupon', kodeKupon)
     if (telepon) fd.append('telepon', telepon)
     if (alamat) fd.append('alamat', alamat)
+    if (provinsi) fd.append('provinsi', provinces.find(p => p.id === provinsi)?.name || provinsi)
+    if (kabupaten) fd.append('kabupaten', regencies.find(r => r.id === kabupaten)?.name || kabupaten)
+    if (kecamatan) fd.append('kecamatan', districts.find(d => d.id === kecamatan)?.name || kecamatan)
+    if (desa) fd.append('desa', villages.find(v => v.id === desa)?.name || desa)
     if (batchId) fd.append('batch_id', batchId)
 
     pendaftarApi.daftar(fd)
@@ -402,8 +452,9 @@ export default function DaftarAffiliate() {
                             className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
                           />
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Batch <span className="text-gray-400 font-normal">(opsional)</span></label>
+
+                        <div className="mt-5 pt-5 border-t border-gray-200">
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">Pilih Batch <span className="text-gray-400 font-normal">(opsional)</span></label>
                           <select
                             value={batchId}
                             onChange={e => setBatchId(e.target.value)}
@@ -419,7 +470,7 @@ export default function DaftarAffiliate() {
                               )
                             })}
                            </select>
-                          <p className="text-[11px] text-gray-400 mt-1">Opsional — admin dapat menentukan batch nanti</p>
+                          <p className="text-[11px] text-gray-400 mt-1.5">Opsional — admin dapat menentukan batch nanti</p>
                           {batchId && (() => {
                             const selectedBatch = batches.find(b => String(b.id) === batchId)
                             if (selectedBatch?.is_penuh) {
@@ -465,6 +516,57 @@ export default function DaftarAffiliate() {
                               rows={3}
                               className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm resize-none"
                             />
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Provinsi</label>
+                              <select
+                                value={provinsi}
+                                onChange={e => { setProvinsi(e.target.value); setKabupaten(""); setKecamatan(""); setDesa(""); }}
+                                className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm"
+                              >
+                                <option value="">Pilih Provinsi</option>
+                                {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Kabupaten / Kota</label>
+                              <select
+                                value={kabupaten}
+                                onChange={e => { setKabupaten(e.target.value); setKecamatan(""); setDesa(""); }}
+                                disabled={!provinsi || loadingRegencies}
+                                className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm disabled:bg-gray-50 disabled:text-gray-400"
+                              >
+                                <option value="">{loadingRegencies ? 'Memuat...' : 'Pilih Kabupaten'}</option>
+                                {regencies.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                              </select>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Kecamatan</label>
+                              <select
+                                value={kecamatan}
+                                onChange={e => { setKecamatan(e.target.value); setDesa(""); }}
+                                disabled={!kabupaten || loadingDistricts}
+                                className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm disabled:bg-gray-50 disabled:text-gray-400"
+                              >
+                                <option value="">{loadingDistricts ? 'Memuat...' : 'Pilih Kecamatan'}</option>
+                                {districts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Desa / Kelurahan</label>
+                              <select
+                                value={desa}
+                                onChange={e => setDesa(e.target.value)}
+                                disabled={!kecamatan || loadingVillages}
+                                className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0D1F3C] focus:border-[#0D1F3C] outline-none transition-colors text-sm disabled:bg-gray-50 disabled:text-gray-400"
+                              >
+                                <option value="">{loadingVillages ? 'Memuat...' : 'Pilih Desa'}</option>
+                                {villages.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                              </select>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -583,12 +685,12 @@ export default function DaftarAffiliate() {
                         <button
                           type="submit"
                           disabled={submitting}
-                          className="flex-1 sm:flex-none px-6 sm:px-8 py-2.5 bg-[#0D1F3C] text-white rounded-md text-sm font-semibold hover:bg-[#1a2d4a] transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
+                          className="flex-1 sm:flex-none px-6 sm:px-8 py-2.5 bg-[#42b72a] text-white rounded-md text-sm font-semibold hover:bg-[#3ba124] transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
                         >
                           {submitting ? (
                             <><Loader size={16} className="animate-spin" /> Mendaftarkan...</>
                           ) : (
-                            <><FileText size={16} /> Daftar</>
+                            <><FileText size={16} /> Daftar {link?.product?.nama || ''}</>
                           )}
                         </button>
                       )}
