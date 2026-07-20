@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import {
   User, Loader, Shield,
 } from 'lucide-react'
-import { affiliateLinkApi, pendaftarApi, couponApi, batchApi, paymentSettingApi } from '../../services/api'
+import { affiliateLinkApi, pendaftarApi, couponApi, paymentSettingApi } from '../../services/api'
 
 interface KategoriItem {
   name: string
@@ -15,15 +15,14 @@ interface KategoriItem {
 interface LinkData {
   kode: string
   affiliate: { id: number; name: string; email: string }
-  product: { id: number; nama: string; deskripsi: string; harga: number; kategori_items?: KategoriItem[] }
-}
-
-interface Batch {
-  id: number
-  nama_batch: string
-  kuota: number | null
-  siswas_count?: number
-  is_penuh?: boolean
+  product: {
+    id: number
+    nama: string
+    deskripsi: string
+    harga: number
+    kategori_items?: KategoriItem[]
+    batch?: { id: number; nama_batch: string } | null
+  }
 }
 
 interface Wilayah {
@@ -54,9 +53,6 @@ export default function DaftarAffiliate() {
     nominal_setelah_diskon?: number
     message?: string
   } | null>(null)
-  const [batches, setBatches] = useState<Batch[]>([])
-  const [batchId, setBatchId] = useState('')
-
   const [provinsi, setProvinsi] = useState('')
   const [kabupaten, setKabupaten] = useState('')
   const [kecamatan, setKecamatan] = useState('')
@@ -105,7 +101,6 @@ export default function DaftarAffiliate() {
   })()
 
   useEffect(() => {
-    batchApi.list().then(res => setBatches(res.data.data || [])).catch(() => {})
     paymentSettingApi.getPublicSettings().then(res => setPaymentSettings(res.data)).catch(() => {})
   }, [])
 
@@ -199,7 +194,6 @@ export default function DaftarAffiliate() {
     if (kabupaten) fd.append('kabupaten', kabupatenList.find(r => r.id === kabupaten)?.name || kabupaten)
     if (kecamatan) fd.append('kecamatan', kecamatanList.find(d => d.id === kecamatan)?.name || kecamatan)
     if (desa) fd.append('desa', desaList.find(v => v.id === desa)?.name || desa)
-    if (batchId) fd.append('batch_id', batchId)
     fd.append('kode_unik', String(previewKodeUnik))
 
     pendaftarApi.daftar(fd)
@@ -302,6 +296,11 @@ export default function DaftarAffiliate() {
 
               <div className="pb-4 mb-4 border-b border-gray-100">
                 <p className="text-sm font-semibold text-gray-800 leading-snug">{link?.product?.nama}</p>
+                {link?.product?.batch && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0E6187] bg-[#E8FAFF] px-2 py-0.5 rounded-full mt-1 border border-[#0E6187]/20">
+                    {link.product.batch.nama_batch}
+                  </span>
+                )}
                 <p className="text-lg font-bold text-[#0E6187] mt-1">
                   {paymentSettings?.manual_payment_enabled && paymentSettings.unique_code_max > 0
                     ? fmt(paymentSettings.unique_code_operation === 'subtract'
@@ -543,7 +542,7 @@ export default function DaftarAffiliate() {
                   </div>
                 </div>
 
-                {/* Batch Selection */}
+                {/*
                 <div className="pt-2 border-t border-gray-100">
                   <h3 className="text-sm font-bold text-gray-900 mb-3">Pilih Batch <span className="text-gray-400 font-normal text-xs">(opsional)</span></h3>
                   <select
@@ -563,6 +562,8 @@ export default function DaftarAffiliate() {
                   </select>
                   <p className="text-[11px] text-gray-400 mt-1.5">Opsional — admin dapat menentukan batch nanti</p>
                 </div>
+
+                */}
 
                 {/* Ringkasan Pembayaran */}
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">

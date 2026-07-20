@@ -47,6 +47,7 @@ class BiayaController extends Controller
 
         return response()->json([
             'status' => 'success',
+            
             'message' => 'Kategori berhasil ditambahkan',
             'data' => $kategori,
         ]);
