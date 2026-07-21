@@ -192,6 +192,8 @@ export const siswaApi = {
   importAi: (data: FormData) => api.post('/siswa/import-ai', data, {
     headers: { 'Content-Type': 'multipart/form-data' },
   }),
+  updateLevelStatus: (id: number, data: { level: number; status: string }) =>
+    api.post(`/siswa/${id}/level-status`, data),
 }
 
 export const batchApi = {
@@ -368,6 +370,8 @@ export const adminCabangApi = {
     api.get('/admin-cabang/tagihan', { params }),
   kandidat: (params?: Record<string, string>) =>
     api.get('/admin-cabang/kandidat', { params }),
+  siswa: (params?: Record<string, string | number | undefined>) =>
+    api.get('/admin-cabang/siswa', { params }),
   batches: () => api.get('/admin-cabang/batches'),
   pendingCount: () => api.get('/admin-cabang/pending-count'),
   pendingPembayaran: () => api.get('/admin-cabang/pending-pembayaran'),
@@ -386,6 +390,18 @@ export const adminCabangApi = {
   batchBiaya: (batchId: number) => api.get(`/admin-cabang/batch-biaya/${batchId}`),
   updateKandidat: (id: number, data: Record<string, unknown>) =>
     api.post(`/admin-cabang/pendaftar/${id}/update-kandidat`, data),
+
+  // Akademik
+  guru: () => api.get('/admin-cabang/guru'),
+  kelasSensei: (params?: Record<string, string | number | undefined>) =>
+    api.get('/admin-cabang/kelas-sensei', { params }),
+  jadwalLevel: () => api.get('/admin-cabang/jadwal-level'),
+  rekapSiswa: (params?: Record<string, string | number | undefined>) =>
+    api.get('/admin-cabang/rekap-siswa', { params }),
+  penilaian: (params?: Record<string, string | number | undefined>) =>
+    api.get('/admin-cabang/penilaian', { params }),
+  lms: (params?: Record<string, string | number | undefined>) =>
+    api.get('/admin-cabang/lms', { params }),
 }
 
 export const profileApi = {
@@ -459,6 +475,7 @@ export const kategoriPengeluaranApi = {
   update: (id: number, data: { nama: string; kode: string; urutan?: number }) => api.put(`/pengeluaran/kategori/${id}`, data),
   destroy: (id: number) => api.delete(`/pengeluaran/kategori/${id}`),
 }
+
 
 export const pengeluaranApi = {
   list: (params?: Record<string, string | number | undefined>) => api.get('/pengeluaran', { params }),

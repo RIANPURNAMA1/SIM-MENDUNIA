@@ -340,11 +340,83 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/admin-cabang/siswa"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <Siswa />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/admin-cabang/kategori-pengeluaran"
         element={
           <ProtectedRoute roleAllowed="ADMIN_CABANG">
             <AdminCabangLayout>
               <AdminCabangKategoriPengeluaran />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Admin Cabang - Akademik */}
+      <Route
+        path="/admin-cabang/guru"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <Guru />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-cabang/kelas-sensei"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <KelasSensei />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-cabang/jadwal-level"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <JadwalLevel />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-cabang/rekap-siswa"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <RekapSiswa />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-cabang/penilaian"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <Penilaian />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-cabang/lms"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <DataCourse />
             </AdminCabangLayout>
           </ProtectedRoute>
         }

@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react'
-import { Search, FileText, Eye, Trash2, RotateCcw, CreditCard, X, Loader, AlertTriangle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Users } from 'lucide-react'
+import { useState, useEffect, useMemo, useRef } from 'react'
+import { Search, FileText, Eye, Trash2, RotateCcw, CreditCard, X, Loader, AlertTriangle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Users, MoreHorizontal, BadgeCheck, Ban, RefreshCw, Clock, CheckCircle2, Banknote } from 'lucide-react'
 import { pendaftarApi, pendaftarApi as apiModule } from '../../services/api'
 import api, { APP_URL } from '../../services/api'
 import Swal from 'sweetalert2'
@@ -64,9 +64,21 @@ export default function Pendaftar() {
   const [kategoriItems, setKategoriItems] = useState<Record<number, { kategori_id: number; biaya: number; dibayar: number }[]>>({})
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(25)
+  const [openActionId, setOpenActionId] = useState<number | null>(null)
+  const actionRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     fetchData()
+  }, [])
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (actionRef.current && !actionRef.current.contains(e.target as Node)) {
+        setOpenActionId(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   function fetchData() {
@@ -302,11 +314,23 @@ export default function Pendaftar() {
 
       {/* Table */}
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-        <table className="w-full min-w-full border-collapse text-left text-sm text-slate-700">
+        <table className="w-full border-collapse text-left text-sm text-slate-700" style={{ tableLayout: 'fixed', minWidth: '900px' }}>
+          <colgroup>
+            <col className="w-[220px]" />
+            <col className="w-[130px]" />
+            <col className="w-[100px]" />
+            <col className="w-[150px]" />
+            <col className="w-[140px]" />
+            <col className="w-[100px]" />
+            <col className="w-[100px]" />
+            <col className="w-[90px]" />
+            <col className="w-[90px]" />
+            <col className="w-[50px]" />
+          </colgroup>
           <thead className="text-sm text-slate-600">
             <tr>
               <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Nama</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">No. Registrasi</th>
+              <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">No. Reg</th>
               <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Tgl. Daftar</th>
               <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Program</th>
               <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Batch</th>
@@ -314,7 +338,6 @@ export default function Pendaftar() {
               <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium">Nominal</th>
               <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium">Diskon</th>
               <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Status</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Bukti</th>
               <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Aksi</th>
             </tr>
           </thead>
@@ -322,7 +345,7 @@ export default function Pendaftar() {
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i}>
-                  <td colSpan={11} className="border border-slate-200 px-4 py-3">
+                  <td colSpan={10} className="border border-slate-200 px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="h-8 w-8 rounded-full bg-slate-200/70" />
                       <div className="flex-1 space-y-2">
@@ -335,7 +358,7 @@ export default function Pendaftar() {
               ))
             ) : pagedList.length === 0 ? (
               <tr>
-                <td colSpan={11} className="border border-slate-200 px-6 py-10 text-center">
+                <td colSpan={10} className="border border-slate-200 px-6 py-10 text-center">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
                     <Users size={24} />
                   </div>
@@ -345,106 +368,127 @@ export default function Pendaftar() {
             ) : (
               pagedList.map(p => (
                 <tr key={p.id} className="bg-white transition hover:bg-slate-50">
-                  <td className="border border-slate-200 px-4 py-3">
-                    <div className="flex items-center gap-3">
+                  <td className="border border-slate-200 px-3 py-3">
+                    <div className="flex items-center gap-2 overflow-hidden">
                       <img
                         src={`https://ui-avatars.com/api/?name=${encodeURIComponent(p.nama)}&background=e5e7eb&color=6b7280&size=28`}
-                        className="h-8 w-8 rounded-full object-cover"
+                        className="h-8 w-8 shrink-0 rounded-full object-cover"
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                       />
-                      <div>
-                        <div className="text-sm font-semibold text-slate-800">{p.nama}</div>
-                        <div className="text-xs text-slate-500">{p.email}</div>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold text-slate-800">{p.nama}</div>
+                        <div className="truncate text-xs text-slate-500">{p.email}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm font-mono text-slate-700">
-                    {p.no_registrasi || <span className="text-slate-300">-</span>}
+                  <td className="border border-slate-200 px-3 py-3 text-sm font-mono text-slate-700">
+                    <span className="block truncate">{p.no_registrasi || <span className="text-slate-300">-</span>}</span>
                   </td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
+                  <td className="border border-slate-200 px-3 py-3 text-sm text-slate-600 whitespace-nowrap">
                     {new Date(p.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">{p.product?.nama || '-'}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">{p.batch?.nama_batch || '-'}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">
-                    {p.affiliate_link?.affiliate?.name || <span className="text-slate-300">-</span>}
+                  <td className="border border-slate-200 px-3 py-3 text-sm text-slate-600">
+                    <span className="block truncate" title={p.product?.nama || '-'}>{p.product?.nama || '-'}</span>
                   </td>
-                  <td className="border border-slate-200 px-4 py-3 text-right text-sm font-medium text-slate-800">
+                  <td className="border border-slate-200 px-3 py-3 text-sm text-slate-600">
+                    <span className="block truncate" title={p.batch?.nama_batch || '-'}>{p.batch?.nama_batch || '-'}</span>
+                  </td>
+                  <td className="border border-slate-200 px-3 py-3 text-sm text-slate-600">
+                    <span className="block truncate">{p.affiliate_link?.affiliate?.name || <span className="text-slate-300">-</span>}</span>
+                  </td>
+                  <td className="border border-slate-200 px-3 py-3 text-right text-sm font-medium text-slate-800 whitespace-nowrap">
                     {(() => {
-                      const paidDetail = p.detail?.find((d: { kode_unik?: number, total_transfer?: number | string }) => Number(d.kode_unik || 0) > 0 && Number(d.total_transfer || 0) > 0)
-                      const totalTransfer = paidDetail ? Number(paidDetail.total_transfer || 0) : 0
-                      if (totalTransfer > 0) return `Rp ${totalTransfer.toLocaleString('id-ID')}`
+                      const firstCategory = p.detail?.[0]
+                      if (firstCategory) {
+                        if (firstCategory.dibayar > 0) return `Rp ${Number(firstCategory.total_transfer || firstCategory.dibayar).toLocaleString('id-ID')}`
+                        return `Rp ${Number(firstCategory.biaya).toLocaleString('id-ID')}`
+                      }
                       if (p.nominal) return `Rp ${Number(p.nominal).toLocaleString('id-ID')}`
                       return '-'
                     })()}
                   </td>
-                  <td className="border border-slate-200 px-4 py-3 text-right text-sm font-medium text-emerald-600">
+                  <td className="border border-slate-200 px-3 py-3 text-right text-sm font-medium text-emerald-600 whitespace-nowrap">
                     {p.diskon ? `Rp ${Number(p.diskon).toLocaleString('id-ID')}` : '-'}
                   </td>
-                  <td className="border border-slate-200 px-4 py-3 text-center">
+                  <td className="border border-slate-200 px-3 py-3 text-center">
                     {(() => { const s = combinedStatus(p); return (<span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium shadow-sm ${s.bg}`}>{s.label}</span>) })()}
                   </td>
-                  <td className="border border-slate-200 px-4 py-3 text-center">
-                    {p.bukti_pembayaran ? (
-                      <button onClick={() => setPreviewImg(`${APP_URL}/storage/${p.bukti_pembayaran}`)}
-                        className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600">
-                        <Eye size={15} />
-                      </button>
-                    ) : (
-                      <span className="text-slate-300">-</span>
-                    )}
-                  </td>
-                  <td className="border border-slate-200 px-4 py-3 text-center">
-                    <div className="flex justify-center gap-1.5">
-                      <button onClick={() => setDetailModal(p)}
-                        className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600" title="Detail Lengkap">
-                        <FileText size={15} />
-                      </button>
-                      <button onClick={() => openRiwayat(p.id, p.nama)}
-                        className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600" title="Riwayat Pembayaran">
-                        <CreditCard size={15} />
-                      </button>
-                      <select
-                        value=""
-                        onChange={(e) => {
-                          const val = e.target.value
-                          if (!val) return
-                          const statusMap: Record<string, Record<string, string>> = {
-                            waiting_payment: { status_pembayaran: 'unpaid', status_pendaftaran: 'pending' },
-                            confirmed: { status_pembayaran: 'processing', status_pendaftaran: 'pending' },
-                            proses: { status_pembayaran: 'processing', status_pendaftaran: 'disetujui' },
-                            selesai: { status_pembayaran: 'verified', status_pendaftaran: 'disetujui' },
-                            batal: { status_pembayaran: 'ditolak', status_pendaftaran: 'ditolak' },
-                            refund: { status_pembayaran: 'refund', status_pendaftaran: 'ditolak' },
-                          }
-                          const target = statusMap[val]
-                          if (!target) return
-                          ;(async () => {
-                            try {
-                              await pendaftarApi.updateStatus(p.id, target)
-                              setData(prev => prev.map(item =>
-                                item.id === p.id ? { ...item, ...target } : item
-                              ))
-                              Swal.fire({ icon: 'success', title: 'Berhasil', timer: 1200, showConfirmButton: false })
-                            } catch {
-                              Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal memperbarui status' })
-                            }
-                          })()
-                        }}
-                        className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-[11px] text-slate-600 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  <td className="border border-slate-200 px-2 py-3">
+                    <div className="relative flex justify-center" ref={openActionId === p.id ? actionRef : undefined}>
+                      <button
+                        onClick={() => setOpenActionId(openActionId === p.id ? null : p.id)}
+                        className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
+                        title="Aksi"
                       >
-                        <option value="">Ubah Status</option>
-                        <option value="waiting_payment">Menunggu Pembayaran</option>
-                        <option value="confirmed">Pembayaran di Konfirmasi</option>
-                        <option value="proses">Proses</option>
-                        <option value="selesai">Selesai</option>
-                        <option value="batal">Batal</option>
-                        <option value="refund">Refund</option>
-                      </select>
-                      <button onClick={() => handleDelete(p.id)}
-                        className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600" title="Hapus">
-                        <Trash2 size={15} />
+                        <MoreHorizontal size={16} />
                       </button>
+                      {openActionId === p.id && (
+                        <div className="absolute right-0 top-full z-30 mt-1 w-52 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+                          <button onClick={() => { setDetailModal(p); setOpenActionId(null) }}
+                            className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                            <FileText size={14} className="text-slate-400" />
+                            <span>Detail Lengkap</span>
+                          </button>
+                          <button onClick={() => { openRiwayat(p.id, p.nama); setOpenActionId(null) }}
+                            className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                            <CreditCard size={14} className="text-slate-400" />
+                            <span>Riwayat Pembayaran</span>
+                          </button>
+                          {p.bukti_pembayaran && (
+                            <button onClick={() => { setPreviewImg(`${APP_URL}/storage/${p.bukti_pembayaran}`); setOpenActionId(null) }}
+                              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                              <Eye size={14} className="text-slate-400" />
+                              <span>Lihat Bukti Bayar</span>
+                            </button>
+                          )}
+                          <div className="my-1 border-t border-slate-100" />
+                          <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Ubah Status</p>
+                          {[
+                            { val: 'waiting_payment', label: 'Menunggu Pembayaran', icon: Clock, iconColor: 'text-slate-400' },
+                            { val: 'confirmed', label: 'Pembayaran dikonfirmasi', icon: BadgeCheck, iconColor: 'text-amber-400' },
+                            { val: 'proses', label: 'Proses', icon: RefreshCw, iconColor: 'text-blue-400' },
+                            { val: 'selesai', label: 'Selesai', icon: CheckCircle2, iconColor: 'text-emerald-400' },
+                            { val: 'batal', label: 'Batal', icon: Ban, iconColor: 'text-red-400' },
+                            { val: 'refund', label: 'Refund', icon: Banknote, iconColor: 'text-purple-400' },
+                          ].map(opt => {
+                            const statusMap: Record<string, Record<string, string>> = {
+                              waiting_payment: { status_pembayaran: 'unpaid', status_pendaftaran: 'pending' },
+                              confirmed: { status_pembayaran: 'processing', status_pendaftaran: 'pending' },
+                              proses: { status_pembayaran: 'processing', status_pendaftaran: 'disetujui' },
+                              selesai: { status_pembayaran: 'verified', status_pendaftaran: 'disetujui' },
+                              batal: { status_pembayaran: 'ditolak', status_pendaftaran: 'ditolak' },
+                              refund: { status_pembayaran: 'refund', status_pendaftaran: 'ditolak' },
+                            }
+                            const Icon = opt.icon
+                            return (
+                              <button key={opt.val}
+                                onClick={async () => {
+                                  setOpenActionId(null)
+                                  const target = statusMap[opt.val]
+                                  if (!target) return
+                                  try {
+                                    await pendaftarApi.updateStatus(p.id, target)
+                                    setData(prev => prev.map(item => item.id === p.id ? { ...item, ...target } : item))
+                                    Swal.fire({ icon: 'success', title: 'Berhasil', timer: 1200, showConfirmButton: false })
+                                  } catch {
+                                    Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal memperbarui status' })
+                                  }
+                                }}
+                                className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                              >
+                                <Icon size={14} className={opt.iconColor} />
+                                <span>{opt.label}</span>
+                              </button>
+                            )
+                          })}
+                          <div className="my-1 border-t border-slate-100" />
+                          <button onClick={() => { handleDelete(p.id); setOpenActionId(null) }}
+                            className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 transition-colors">
+                            <Trash2 size={14} className="text-red-400" />
+                            <span>Hapus</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -822,9 +866,11 @@ export default function Pendaftar() {
                     <p className="text-[11px] text-gray-400">Nominal</p>
                     <p className="text-sm font-bold text-gray-800">
                       {(() => {
-                        const first = detailModal.detail?.find((d: { kode_unik?: number, total_transfer?: number | string }) => Number(d.kode_unik || 0) > 0 && Number(d.total_transfer || 0) > 0)
-                        const total = first ? Number(first.total_transfer || 0) : 0
-                        if (total > 0) return `Rp ${total.toLocaleString('id-ID')}`
+                        const firstCategory = detailModal.detail?.[0]
+                        if (firstCategory) {
+                          if (firstCategory.dibayar > 0) return `Rp ${Number(firstCategory.total_transfer || firstCategory.dibayar).toLocaleString('id-ID')}`
+                          return `Rp ${Number(firstCategory.biaya).toLocaleString('id-ID')}`
+                        }
                         return detailModal.nominal ? `Rp ${Number(detailModal.nominal).toLocaleString('id-ID')}` : '-'
                       })()}
                     </p>
@@ -843,26 +889,22 @@ export default function Pendaftar() {
                     )}
                   </div>
                 </div>
-                {detailModal.detail && detailModal.detail.filter(d => Number(d.kode_unik || 0) > 0 && Number(d.total_transfer || 0) > 0).length > 0 && (
+                {detailModal.detail && detailModal.detail.length > 0 && (
                   <div className="rounded-lg border border-gray-200 overflow-hidden">
                     <table className="w-full text-sm">
                       <thead className="bg-gray-50 text-left text-xs text-gray-500">
                         <tr>
                           <th className="px-3 py-2 font-medium">Kategori</th>
                           <th className="px-3 py-2 font-medium text-right">Biaya</th>
-                          <th className="px-3 py-2 font-medium text-center">Tgl. Bayar</th>
-                          <th className="px-3 py-2 font-medium text-right">Total Transfer</th>
+                          <th className="px-3 py-2 font-medium text-right">Dibayar</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
-                        {detailModal.detail.filter(d => Number(d.kode_unik || 0) > 0 && Number(d.total_transfer || 0) > 0).map((d, i) => (
+                        {detailModal.detail.map((d, i) => (
                           <tr key={i} className="bg-white">
                             <td className="px-3 py-2 text-gray-700">{d.nama}</td>
                             <td className="px-3 py-2 text-right text-gray-700">Rp {Number(d.biaya).toLocaleString('id-ID')}</td>
-                            <td className="px-3 py-2 text-center text-gray-600 text-xs">
-                              {d.tanggal_bayar ? new Date(d.tanggal_bayar).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
-                            </td>
-                            <td className="px-3 py-2 text-right text-gray-800 font-semibold">Rp {Number(d.total_transfer).toLocaleString('id-ID')}</td>
+                            <td className="px-3 py-2 text-right text-gray-800 font-semibold">Rp {Number(d.dibayar).toLocaleString('id-ID')}</td>
                           </tr>
                         ))}
                       </tbody>

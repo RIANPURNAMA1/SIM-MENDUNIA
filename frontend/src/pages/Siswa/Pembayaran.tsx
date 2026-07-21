@@ -13,12 +13,15 @@ interface PaymentItem {
   status: string
   created_at: string
   bukti_pembayaran: string | null
+  kategori_id: number | null
+  kategori: { nama: string } | null
   pendaftar: {
     id: number
     nama: string
     email: string
     telepon: string | null
     product: { nama: string } | null
+    batch: { nama_batch: string } | null
   } | null
 }
 
@@ -148,6 +151,8 @@ export default function Pembayaran() {
             <tr>
               <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Kandidat</th>
               <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Program</th>
+              <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Batch</th>
+              <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Kategori Bayar</th>
               <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium">Jumlah</th>
               <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Status</th>
               <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Tanggal</th>
@@ -158,7 +163,7 @@ export default function Pembayaran() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} className="border border-slate-200 px-4 py-20">
+                <td colSpan={9} className="border border-slate-200 px-4 py-20">
                   <div className="flex items-center justify-center">
                     <div className="relative w-14 h-14 flex items-center justify-center">
                       <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
@@ -169,7 +174,7 @@ export default function Pembayaran() {
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} className="border border-slate-200 px-6 py-10 text-center">
+                <td colSpan={9} className="border border-slate-200 px-6 py-10 text-center">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
                     <CreditCard size={24} />
                   </div>
@@ -194,6 +199,12 @@ export default function Pembayaran() {
                   </td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">
                     {p.pendaftar?.product?.nama || '-'}
+                  </td>
+                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">
+                    {p.pendaftar?.batch?.nama_batch || <span className="text-slate-300">-</span>}
+                  </td>
+                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">
+                    {p.kategori?.nama || <span className="text-slate-300">-</span>}
                   </td>
                   <td className="border border-slate-200 px-4 py-3 text-right text-sm font-bold text-slate-800">
                     Rp {fmt(Number(p.jumlah))}

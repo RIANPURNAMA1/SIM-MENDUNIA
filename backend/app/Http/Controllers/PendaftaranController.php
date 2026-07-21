@@ -8,7 +8,8 @@ use App\Models\Product;
 use App\Models\AffiliateLink;
 use App\Models\KomisiAffiliate;
 use App\Models\Coupon;
-use App\Models\BatchBiaya;
+use App\Models\Batch;
+
 use App\Models\BatchKategoriDeadline;
 use App\Models\BiayaKategori;
 use App\Models\Pembayaran;
@@ -347,7 +348,6 @@ class PendaftaranController extends Controller
         $data = $pendaftars->get();
 
         // Include per-kategori payments
-        $allKategoris = BiayaKategori::orderBy('urutan')->get();
         $pendaftarIds = $data->pluck('id');
         $allPembayaran = PembayaranItem::whereIn('pendaftar_id', $pendaftarIds)
             ->get()
@@ -358,67 +358,75 @@ class PendaftaranController extends Controller
             ->get()
             ->groupBy('pendaftar_id');
 
-        $result = $data->map(function ($p) use ($allKategoris, $allPembayaran, $allBayar) {
+        $result = $data->map(function ($p) use ($allPembayaran, $allBayar) {
             $pembayaranItems = $allPembayaran->get($p->id, collect())->keyBy('kategori_id');
             $pembayaranList = $allBayar->get($p->id, collect());
             $product = $p->product;
-            $pivotPrices = collect();
+            $pivotById = collect();
             if ($product && $product->relationLoaded('biayaKategoris')) {
-                $pivotPrices = $product->biayaKategoris->keyBy('id')->map(fn($k) => (int) $k->pivot->harga);
+                $pivotById = $product->biayaKategoris->keyBy('id');
             }
 
-            // Name-based fallback from kategori_items JSON
-            $namaPrices = collect();
+            // Build aggregated kategori items from product's kategori_items JSON (same as bayarInfo)
+            $aggregated = collect();
             if ($product && is_array($product->kategori_items)) {
-                $flatten = function ($items) use (&$flatten, &$namaPrices) {
+                $walkAgg = function ($items, $depth) use (&$walkAgg, $pivotById, &$aggregated) {
                     foreach ($items as $item) {
-                        $name = trim($item['name'] ?? '');
-                        $harga = (int) ($item['harga'] ?? 0);
-                        if ($name !== '' && $harga > 0) {
-                            $namaPrices->put(strtolower($name), $harga);
+                        $name = strtolower(trim($item['name'] ?? ''));
+                        if ($name === '') continue;
+                        $kategori = $pivotById->first(fn($k) => strtolower($k->nama) === $name || strtolower($k->kode) === $name);
+                        if (!$kategori) continue;
+
+                        $children = $item['children'] ?? [];
+                        $childHarga = 0;
+                        foreach ($children as $c) {
+                            $cn = strtolower(trim($c['name'] ?? ''));
+                            $ck = $pivotById->first(fn($k) => strtolower($k->nama) === $cn || strtolower($k->kode) === $cn);
+                            if ($ck) $childHarga += (float) ($ck->pivot->harga ?? 0);
                         }
-                        if (!empty($item['children'])) {
-                            $flatten($item['children']);
+
+                        if ($depth === 0) {
+                            $aggregated->push([
+                                'id' => $kategori->id,
+                                'kode' => $kategori->kode,
+                                'nama' => $kategori->nama,
+                                'biaya' => (float) ($kategori->pivot->harga ?? 0) + $childHarga,
+                            ]);
+                        }
+
+                        if (!empty($children)) {
+                            $walkAgg($children, $depth + 1);
                         }
                     }
                 };
-                $flatten($product->kategori_items);
+                $walkAgg($product->kategori_items, 0);
             }
 
-            $namaDibayar = collect();
-            $kategoriMap = $allKategoris->keyBy('id');
-            foreach ($pembayaranItems as $katId => $pi) {
-                $katModel = $kategoriMap->get($katId);
-                if ($katModel) {
-                    $namaDibayar->put(strtolower($katModel->nama), (int) $pi->jumlah);
+            // Add remaining kategoris not in JSON hierarchy
+            $allKategoris = BiayaKategori::orderBy('urutan')->get();
+            foreach ($allKategoris as $k) {
+                if (!$aggregated->firstWhere('id', $k->id)) {
+                    $aggregated->push([
+                        'id' => $k->id,
+                        'kode' => $k->kode,
+                        'nama' => $k->nama,
+                        'biaya' => (float) ($pivotById->get($k->id)?->pivot->harga ?? 0),
+                    ]);
                 }
             }
 
-            $detail = $allKategoris->map(function ($k) use ($pembayaranItems, $pembayaranList, $pivotPrices, $namaPrices, $namaDibayar) {
-                $pi = $pembayaranItems->get($k->id);
-                $biaya = $pivotPrices->get($k->id, 0);
-                if ($biaya === 0) {
-                    $biaya = $namaPrices->get(strtolower($k->nama), 0);
-                }
-                if ($biaya === 0) {
-                    $biaya = $namaPrices->get(strtolower($k->kode), 0);
-                }
+            $detail = $aggregated->map(function ($item) use ($pembayaranItems, $pembayaranList) {
+                $pi = $pembayaranItems->get($item['id']);
                 $dibayar = $pi ? (int) $pi->jumlah : 0;
-                if ($dibayar === 0) {
-                    $dibayar = $namaDibayar->get(strtolower($k->nama), 0);
-                }
-                if ($dibayar === 0) {
-                    $dibayar = $namaDibayar->get(strtolower($k->kode), 0);
-                }
-                $pembayaran = $pembayaranList->firstWhere('kategori_id', $k->id);
+                $pembayaran = $pembayaranList->firstWhere('kategori_id', $item['id']);
                 return [
-                    'kategori_id' => $k->id,
-                    'kode' => $k->kode,
-                    'nama' => $k->nama,
-                    'biaya' => $biaya,
+                    'kategori_id' => $item['id'],
+                    'kode' => $item['kode'],
+                    'nama' => $item['nama'],
+                    'biaya' => $item['biaya'],
                     'dibayar' => $dibayar,
                     'kode_unik' => $pi ? ($pi->kode_unik ?? 0) : 0,
-                    'total_transfer' => $pi ? ($pi->total_transfer ?? $biaya) : 0,
+                    'total_transfer' => $pi ? ($pi->total_transfer ?? $item['biaya']) : 0,
                     'tanggal_bayar' => $pembayaran ? $pembayaran->created_at : null,
                 ];
             });
@@ -683,10 +691,51 @@ class PendaftaranController extends Controller
         }
         $pendaftar->save();
 
-        // Saat admin memilih status "Selesai", status header pendaftar dan
-        // seluruh transaksi harus selalu disinkronkan. Sebelumnya blok ini
-        // dilewati bila status pendaftar sudah verified, sehingga transaksi
-        // yang dibuat belakangan tetap pending di dashboard siswa.
+        if (isset($data['status_pendaftaran']) && $data['status_pendaftaran'] === 'disetujui') {
+            if (!$pendaftar->no_registrasi) {
+                $today = now()->format('Ymd');
+                $lastReg = \App\Models\Pendaftar::where('no_registrasi', 'like', "REG/{$today}/%")
+                    ->orderByDesc('no_registrasi')
+                    ->value('no_registrasi');
+                if ($lastReg) {
+                    $lastNum = (int) substr($lastReg, -4);
+                    $nextNum = str_pad($lastNum + 1, 4, '0', STR_PAD_LEFT);
+                } else {
+                    $nextNum = '0001';
+                }
+                $pendaftar->no_registrasi = "REG/{$today}/{$nextNum}";
+            }
+            if (!$pendaftar->tanggal_persetujuan) {
+                $pendaftar->tanggal_persetujuan = now();
+            }
+            $pendaftar->save();
+
+            if ($pendaftar->user_id) {
+                $user = \App\Models\User::find($pendaftar->user_id);
+                if ($user) {
+                    \App\Models\Siswa::updateOrCreate(
+                        ['user_id' => $user->id],
+                        [
+                            'nama' => $pendaftar->nama,
+                            'batch_id' => $pendaftar->batch_id,
+                            'no_hp' => $pendaftar->telepon,
+                            'nik' => $pendaftar->nik,
+                            'alamat' => $pendaftar->alamat,
+                            'provinsi' => $pendaftar->provinsi,
+                            'kabupaten' => $pendaftar->kabupaten,
+                            'kecamatan' => $pendaftar->kecamatan,
+                            'desa' => $pendaftar->desa,
+                            'tempat_lahir' => $pendaftar->tempat_lahir,
+                            'tanggal_lahir' => $pendaftar->tanggal_lahir,
+                            'jenis_kelamin' => $pendaftar->jenis_kelamin,
+                            'no_registrasi' => $pendaftar->no_registrasi,
+                            'status' => 'AKTIF',
+                        ]
+                    );
+                }
+            }
+        }
+
         if (isset($data['status_pembayaran']) && $data['status_pembayaran'] === 'verified') {
             // Verify all pending/processing Pembayaran records
             \App\Models\Pembayaran::where('pendaftar_id', $pendaftar->id)
@@ -707,9 +756,19 @@ class PendaftaranController extends Controller
                     $harga = (int) $kat->pivot->harga;
                     if ($totalVerified > 0) {
                         $jumlah = $harga > 0 ? min((int) $totalVerified, $harga) : (int) $totalVerified;
+                        $existingPi = \App\Models\PembayaranItem::where('pendaftar_id', $pendaftar->id)
+                            ->where('kategori_id', $kat->id)->first();
+                        $ku = $existingPi ? ($existingPi->kode_unik ?: \App\Models\PaymentSetting::generateUniqueCode()) : \App\Models\PaymentSetting::generateUniqueCode();
+                        $tt = \App\Models\PaymentSetting::calculateTotalTransfer($jumlah, $ku);
+                        $pc = $existingPi?->payment_code ?? ('PAY/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . now()->format('Ym'));
                         \App\Models\PembayaranItem::updateOrCreate(
                             ['pendaftar_id' => $pendaftar->id, 'kategori_id' => $kat->id],
-                            ['jumlah' => $jumlah]
+                            [
+                                'jumlah' => $jumlah,
+                                'kode_unik' => $ku,
+                                'total_transfer' => $tt,
+                                'payment_code' => $pc,
+                            ]
                         );
                     }
                 }
@@ -795,7 +854,7 @@ class PendaftaranController extends Controller
 
     public function allPembayaran(Request $request)
     {
-        $query = Pembayaran::with(['pendaftar.product']);
+        $query = Pembayaran::with(['pendaftar.product', 'pendaftar.batch', 'kategori']);
 
         if ($request->status) {
             $query->where('status', $request->status);
@@ -1370,10 +1429,10 @@ class PendaftaranController extends Controller
                 'tempat_lahir' => $siswa?->tempat_lahir ?? '-',
                 'tanggal_lahir' => $siswa?->tanggal_lahir ? \Carbon\Carbon::parse($siswa->tanggal_lahir)->format('d M Y') : '-',
                 'alamat' => $siswa?->alamat ?? $p->alamat ?? '-',
-                'desa' => $siswa?->desa ?? '-',
-                'kecamatan' => $siswa?->kecamatan ?? '-',
-                'kabupaten' => $siswa?->kabupaten ?? '-',
-                'provinsi' => $siswa?->provinsi ?? '-',
+                'desa' => $siswa?->desa ?? $p->desa ?? '-',
+                'kecamatan' => $siswa?->kecamatan ?? $p->kecamatan ?? '-',
+                'kabupaten' => $siswa?->kabupaten ?? $p->kabupaten ?? '-',
+                'provinsi' => $siswa?->provinsi ?? $p->provinsi ?? '-',
                 'pendidikan_terakhir' => $siswa?->pendidikan_terakhir ?? $user?->pendidikan_terakhir ?? '-',
                 'tahun_lulus' => $siswa?->tahun_lulus ?? '-',
                 'tinggi_badan' => $siswa?->tinggi_badan ?? '-',
@@ -1395,6 +1454,9 @@ class PendaftaranController extends Controller
                 'status_akademik' => $siswa?->status ?? 'AKTIF',
                 'is_cuti' => $siswa?->is_cuti ?? false,
                 'cuti_sejak' => $siswa?->cuti_sejak,
+                'level_status_keluar' => $siswa && $siswa->level_status
+                    ? collect($siswa->level_status)->contains('Keluar')
+                    : false,
             ];
         };
 
@@ -1431,43 +1493,101 @@ class PendaftaranController extends Controller
     public function rekapPerBatch()
     {
         $batches = \App\Models\Batch::aktif()->orderBy('nama_batch')->get();
-        $kategoris = BiayaKategori::orderBy('urutan')->get();
+        $allKategoris = BiayaKategori::orderBy('urutan')->get();
 
         $result = [];
 
         foreach ($batches as $batch) {
-            $pendaftar = Pendaftar::with(['product'])
+            $pendaftar = Pendaftar::with(['product.biayaKategoris'])
                 ->where('batch_id', $batch->id)
                 ->orderBy('nama')
                 ->get();
 
             if ($pendaftar->isEmpty()) continue;
 
-            $biayaBatch = BatchBiaya::where('batch_id', $batch->id)
-                ->get()
-                ->keyBy('kategori_id');
-
-            $pembayaranBatch = PembayaranItem::whereIn('pendaftar_id', $pendaftar->pluck('id'))
+            $allPendaftarIds = $pendaftar->pluck('id');
+            $allPembayaran = PembayaranItem::whereIn('pendaftar_id', $allPendaftarIds)
                 ->get()
                 ->groupBy('pendaftar_id');
 
-            $items = $pendaftar->map(function ($p) use ($kategoris, $biayaBatch, $pembayaranBatch) {
-                $pembayaranItems = $pembayaranBatch->get($p->id, collect())->keyBy('kategori_id');
+            $allBayar = \App\Models\Pembayaran::whereIn('pendaftar_id', $allPendaftarIds)
+                ->where('status', 'verified')
+                ->get()
+                ->groupBy('pendaftar_id');
 
-                $detail = $kategoris->map(function ($k) use ($biayaBatch, $pembayaranItems) {
-                    $bb = $biayaBatch->get($k->id);
-                    $pi = $pembayaranItems->get($k->id);
-                    $biaya = $bb ? (int) $bb->biaya : 0;
+            $batchKategoriUsedIds = new \Illuminate\Support\Collection();
+
+            $items = $pendaftar->map(function ($p) use ($allKategoris, $allPembayaran, $allBayar, &$batchKategoriUsedIds) {
+                $pembayaranItems = $allPembayaran->get($p->id, collect())->keyBy('kategori_id');
+                $pembayaranList = $allBayar->get($p->id, collect());
+                $product = $p->product;
+
+                $pivotById = collect();
+                if ($product && $product->relationLoaded('biayaKategoris')) {
+                    $pivotById = $product->biayaKategoris->keyBy('id');
+                }
+
+                $aggregated = collect();
+                if ($product && is_array($product->kategori_items)) {
+                    $walkAgg = function ($items, $depth) use (&$walkAgg, $pivotById, &$aggregated) {
+                        foreach ($items as $item) {
+                            $name = strtolower(trim($item['name'] ?? ''));
+                            if ($name === '') continue;
+                            $kategori = $pivotById->first(fn($k) => strtolower($k->nama) === $name || strtolower($k->kode) === $name);
+                            if (!$kategori) continue;
+
+                            $children = $item['children'] ?? [];
+                            $childHarga = 0;
+                            foreach ($children as $c) {
+                                $cn = strtolower(trim($c['name'] ?? ''));
+                                $ck = $pivotById->first(fn($k) => strtolower($k->nama) === $cn || strtolower($k->kode) === $cn);
+                                if ($ck) $childHarga += (float) ($ck->pivot->harga ?? 0);
+                            }
+
+                            if ($depth === 0) {
+                                $aggregated->push([
+                                    'id' => $kategori->id,
+                                    'kode' => $kategori->kode,
+                                    'nama' => $kategori->nama,
+                                    'biaya' => (float) ($kategori->pivot->harga ?? 0) + $childHarga,
+                                ]);
+                            }
+
+                            if (!empty($children)) {
+                                $walkAgg($children, $depth + 1);
+                            }
+                        }
+                    };
+                    $walkAgg($product->kategori_items, 0);
+                }
+
+                foreach ($allKategoris as $k) {
+                    if (!$aggregated->firstWhere('id', $k->id)) {
+                        $aggregated->push([
+                            'id' => $k->id,
+                            'kode' => $k->kode,
+                            'nama' => $k->nama,
+                            'biaya' => (float) ($pivotById->get($k->id)?->pivot->harga ?? 0),
+                        ]);
+                    }
+                }
+
+                $detail = $aggregated->map(function ($item) use ($pembayaranItems, $pembayaranList) {
+                    $pi = $pembayaranItems->get($item['id']);
                     $dibayar = $pi ? (int) $pi->jumlah : 0;
+                    $pembayaran = $pembayaranList->firstWhere('kategori_id', $item['id']);
                     return [
-                        'kategori_id' => $k->id,
-                        'kode' => $k->kode,
-                        'nama' => $k->nama,
-                        'biaya' => $biaya,
+                        'kategori_id' => $item['id'],
+                        'kode' => $item['kode'],
+                        'nama' => $item['nama'],
+                        'biaya' => $item['biaya'],
                         'dibayar' => $dibayar,
-                        'sisa' => max(0, $biaya - $dibayar),
+                        'kode_unik' => $pi ? ($pi->kode_unik ?? 0) : 0,
+                        'total_transfer' => $pi ? ($pi->total_transfer ?? $item['biaya']) : $item['biaya'],
                     ];
                 });
+
+                $detail->filter(fn($d) => $d['biaya'] > 0)->each(fn($d) => $batchKategoriUsedIds->push($d['kategori_id']));
 
                 $totalBiaya = $detail->sum('biaya');
                 $totalDibayar = $detail->sum('dibayar');
@@ -1476,7 +1596,12 @@ class PendaftaranController extends Controller
                     'id' => $p->id,
                     'nama' => $p->nama,
                     'email' => $p->email,
-                    'program' => $p->product?->nama ?? '-',
+                    'batch' => $p->batch?->nama_batch ?? '-',
+                    'product' => $p->product ? [
+                        'id' => $p->product->id,
+                        'nama' => $p->product->nama,
+                        'kategori_items' => $p->product->kategori_items ?? [],
+                    ] : null,
                     'created_at' => $p->created_at->toDateString(),
                     'total_biaya' => $totalBiaya,
                     'total_dibayar' => $totalDibayar,
@@ -1487,6 +1612,7 @@ class PendaftaranController extends Controller
                 ];
             });
 
+            $usedKats = $allKategoris->filter(fn($k) => $batchKategoriUsedIds->contains($k->id));
             $grandBiaya = $items->sum('total_biaya');
             $grandDibayar = $items->sum('total_dibayar');
 
@@ -1498,6 +1624,7 @@ class PendaftaranController extends Controller
                 'total_biaya' => $grandBiaya,
                 'total_dibayar' => $grandDibayar,
                 'total_sisa' => $grandBiaya - $grandDibayar,
+                'kategoris' => $usedKats->map(fn($k) => ['id' => $k->id, 'kode' => $k->kode, 'nama' => $k->nama])->values(),
                 'items' => $items,
             ];
         }
@@ -1510,7 +1637,6 @@ class PendaftaranController extends Controller
             'grand_total_biaya' => $grandBiaya,
             'grand_total_dibayar' => $grandDibayar,
             'grand_total_sisa' => $grandBiaya - $grandDibayar,
-            'kategoris' => $kategoris->map(fn($k) => ['id' => $k->id, 'kode' => $k->kode, 'nama' => $k->nama]),
         ]);
     }
 
@@ -1687,6 +1813,16 @@ class PendaftaranController extends Controller
         ];
 
         $pendaftar = Pendaftar::with(['siswa'])->findOrFail($id);
+
+        // Authorization: admin-cabang can only update kandidat in their own batches
+        $user = Auth::user();
+        if ($user && $user->role === 'ADMIN_CABANG') {
+            $branchIds = $user->cabang_ids ?? [];
+            $allowedBatchIds = Batch::whereIn('cabang_id', $branchIds)->pluck('id')->toArray();
+            if (!in_array($pendaftar->batch_id, $allowedBatchIds)) {
+                return response()->json(['message' => 'Akses ditolak. Data ini bukan milik cabang Anda.'], 403);
+            }
+        }
 
         // Normalize: convert "-" and empty strings to null before validation
         $normalized = [];
@@ -1984,9 +2120,20 @@ class PendaftaranController extends Controller
                 $totalTransfer = $pi->total_transfer ?? $item['harga'];
                 $paymentCode = $pi->payment_code ?? null;
             } else {
-                $kodeUnik = 0;
-                $totalTransfer = $item['harga'];
-                $paymentCode = null;
+                $ku = PaymentSetting::generateUniqueCode();
+                $tt = PaymentSetting::calculateTotalTransfer((float) $item['harga'], $ku);
+                $pc = 'PAY/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . now()->format('Ym');
+                PembayaranItem::create([
+                    'pendaftar_id' => $pendaftar->id,
+                    'kategori_id' => $item['id'],
+                    'jumlah' => 0,
+                    'kode_unik' => $ku,
+                    'total_transfer' => $tt,
+                    'payment_code' => $pc,
+                ]);
+                $kodeUnik = $ku;
+                $totalTransfer = $tt;
+                $paymentCode = $pc;
             }
 
             return [

@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Presentation, Plus, Trash2, X, Check, AlertTriangle } from "lucide-react";
-import { guruApi, APP_URL } from "../../services/api";
+import { guruApi, adminCabangApi, APP_URL } from "../../services/api";
 import type { Guru } from "../../types";
 
 export default function GuruPage() {
+  const location = useLocation();
+  const isAdminCabang = location.pathname.startsWith('/admin-cabang');
   const [gurus, setGurus] = useState<Guru[]>([]);
   const [availableUsers, setAvailableUsers] = useState<{ id: number; name: string; email: string; role: string; foto_profil: string | null; already_guru: boolean }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -14,7 +17,7 @@ export default function GuruPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await guruApi.list();
+      const res = isAdminCabang ? await adminCabangApi.guru() : await guruApi.list();
       setGurus(res.data.data || []);
       setAvailableUsers(res.data.available_users || []);
     } catch (err) {

@@ -3,8 +3,9 @@ import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { adminCabangApi } from '../services/api'
 import {
-  LayoutDashboard, UserPlus, ClipboardList, FileText, Layers,
-  ChevronDown, LogOut, X, Receipt, MapPin, Wallet,
+  LayoutDashboard, UserPlus, ClipboardList, FileText, Layers, GraduationCap,
+  ChevronDown, LogOut, X, Receipt, MapPin, Wallet, BookOpen, Presentation,
+  Calendar, BarChart3, Notebook,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -28,8 +29,9 @@ interface SidebarProps {
 }
 
 const iconMap: Record<string, LucideIcon> = {
-  LayoutDashboard, UserPlus, ClipboardList, FileText, Layers,
-  ChevronDown, LogOut, X, Receipt, MapPin, Wallet,
+  LayoutDashboard, UserPlus, ClipboardList, FileText, Layers, GraduationCap,
+  ChevronDown, LogOut, X, Receipt, MapPin, Wallet, BookOpen, Presentation,
+  Calendar, BarChart3, Notebook,
 }
 
 const navItems: NavItem[] = [
@@ -45,7 +47,18 @@ const navItems: NavItem[] = [
       { label: 'Data Kandidat', icon: 'UserPlus', href: '/admin-cabang/kandidat' },
       { label: 'Pendaftaran', icon: 'ClipboardList', href: '/admin-cabang/pendaftar' },
       { label: 'Tagihan', icon: 'FileText', href: '/admin-cabang/tagihan' },
+      { label: 'Kelas Kandidat', icon: 'GraduationCap', href: '/admin-cabang/siswa' },
       { label: 'Rekap Per Batch', icon: 'Layers', href: '/admin-cabang/rekap-per-batch' },
+    ],
+  },
+  {
+    label: 'Akademik',
+    icon: 'BookOpen',
+    children: [
+      { label: 'Kelas Sensei', icon: 'BookOpen', href: '/admin-cabang/kelas-sensei' },
+      { label: 'Rekap Siswa', icon: 'BarChart3', href: '/admin-cabang/rekap-siswa' },
+      { label: 'Penilaian Siswa', icon: 'Notebook', href: '/admin-cabang/penilaian' },
+      { label: 'LMS', icon: 'BookOpen', href: '/admin-cabang/lms' },
     ],
   },
   {

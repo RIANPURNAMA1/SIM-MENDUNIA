@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Users, Search, RotateCcw, Eye, Edit3, Power, PowerOff, CalendarOff, Calendar, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { useEffect, useState, useRef } from 'react'
+import { Users, Search, RotateCcw, Eye, Edit3, Power, PowerOff, CalendarOff, Calendar, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, FileText } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { pendaftarApi } from '../../services/api'
 
@@ -35,6 +35,7 @@ interface Kandidat {
   status_akademik: string
   is_cuti: boolean
   cuti_sejak: string | null
+  level_status_keluar: boolean
   tanggalDaftar: string
   user_id: number | null
   keterangan: string
@@ -85,9 +86,21 @@ export default function DataKandidat() {
   const [perPage, setPerPage] = useState(25)
   const [togglingId, setTogglingId] = useState<number | null>(null)
   const [togglingCutiId, setTogglingCutiId] = useState<number | null>(null)
+  const [openActionId, setOpenActionId] = useState<number | null>(null)
+  const actionRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     fetchData()
+  }, [])
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (actionRef.current && !actionRef.current.contains(e.target as Node)) {
+        setOpenActionId(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   function fetchData(s?: string) {
@@ -330,15 +343,15 @@ export default function DataKandidat() {
   const pagedList = filteredList.slice((safePage - 1) * perPage, safePage * perPage)
 
   const statusBadge = (status: string) => {
-    const map: Record<string, { dot: string; label: string }> = {
-      Disetujui: { dot: 'bg-emerald-500', label: 'Disetujui' },
-      Ditolak: { dot: 'bg-red-500', label: 'Ditolak' },
-      Pending: { dot: 'bg-amber-500', label: 'Pending' },
+    const map: Record<string, { bg: string; text: string; label: string }> = {
+      Disetujui: { bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700', label: 'Disetujui' },
+      Ditolak: { bg: 'bg-red-50 border-red-200', text: 'text-red-700', label: 'Ditolak' },
+      Pending: { bg: 'bg-amber-50 border-amber-200', text: 'text-amber-700', label: 'Pending' },
     }
-    const s = map[status] || { dot: 'bg-slate-300', label: status }
+    const s = map[status] || { bg: 'bg-slate-50 border-slate-200', text: 'text-slate-600', label: status }
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 shadow-sm">
-        <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
+      <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${s.bg} ${s.text}`}>
+        <span className={`h-1.5 w-1.5 rounded-full ${status === 'Disetujui' ? 'bg-emerald-500' : status === 'Ditolak' ? 'bg-red-500' : 'bg-amber-500'}`} />
         {s.label}
       </span>
     )
@@ -395,30 +408,30 @@ export default function DataKandidat() {
 
       {/* Summary */}
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
-            <Users size={18} className="text-blue-600" />
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-4 transition hover:shadow-md">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-50 to-blue-100">
+            <Users size={20} className="text-blue-600" />
           </div>
           <div>
-            <p className="text-xs text-slate-500">Total Batch</p>
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Total Batch</p>
             <p className="text-2xl font-bold text-slate-800">{totalBatch}</p>
           </div>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50">
-            <Users size={18} className="text-emerald-600" />
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-4 transition hover:shadow-md">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100">
+            <Users size={20} className="text-emerald-600" />
           </div>
           <div>
-            <p className="text-xs text-slate-500">Total Kandidat</p>
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Total Kandidat</p>
             <p className="text-2xl font-bold text-slate-800">{totalKandidat}</p>
           </div>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50">
-            <Users size={18} className="text-amber-600" />
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-4 transition hover:shadow-md">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-amber-50 to-amber-100">
+            <Users size={20} className="text-amber-600" />
           </div>
           <div>
-            <p className="text-xs text-slate-500">Kandidat Aktif</p>
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Kandidat Aktif</p>
             <p className="text-2xl font-bold text-slate-800">{kandidatAktif}</p>
           </div>
         </div>
@@ -434,29 +447,32 @@ export default function DataKandidat() {
               placeholder="Cari nama, email, atau NIK..."
               value={search}
               onChange={handleSearch}
-              className="w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-slate-300 bg-slate-50 py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
             />
           </div>
-          <select
-            value={filterBatch}
-            onChange={handleFilterBatch}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          >
-            <option value="">Semua Batch</option>
-            {batchOptions.map(b => (
-              <option key={b.id} value={b.id}>{b.nama}</option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              value={filterBatch}
+              onChange={handleFilterBatch}
+              className="appearance-none rounded-lg border border-slate-300 bg-slate-50 px-8 py-2.5 pr-8 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
+            >
+              <option value="">Semua Batch</option>
+              {batchOptions.map(b => (
+                <option key={b.id} value={b.id}>{b.nama}</option>
+              ))}
+            </select>
+            <svg className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+          </div>
           <button
             onClick={() => fetchData(search)}
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-slate-800 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-700"
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0E6187] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#1a3a5c]"
           >
             <Search size={16} />
             Filter
           </button>
           <button
             onClick={resetFilter}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-800"
           >
             <RotateCcw size={16} />
             Reset
@@ -477,35 +493,35 @@ export default function DataKandidat() {
           <>
             <div className="overflow-x-auto max-h-[calc(100vh-260px)] overflow-y-auto rounded-lg border border-slate-200">
               <table className="w-full min-w-[3200px] border-collapse text-left text-sm text-slate-700">
-                <thead className="text-sm text-slate-600 sticky top-0 z-20 bg-slate-50">
-                  <tr>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium w-[40px]">No</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[170px]">NIK</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[160px]">No. Registrasi</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[200px]">Nama Kandidat</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[140px]">Batch</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[120px]">Real Batch</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium w-[40px]">JK</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[220px]">Tempat, Tanggal Lahir</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[250px]">Alamat</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[140px]">Desa</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[140px]">Kecamatan</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[140px]">Kab./Kota</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[140px]">Provinsi</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[130px]">Pend. Terakhir</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium w-[80px]">Tahun Lulus</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium w-[50px]">TB</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium w-[50px]">BB</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium w-[60px]">Goldar</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium w-[70px]">Uk. Baju</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[110px]">Status Nikah</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[220px]">E-mail</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[150px]">No. Tlp</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[180px]">Nama Orang Tua/Wali</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[150px]">No. Tlp Orang Tua</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium w-[80px]">Status</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[180px]">Ket.</th>
-                    <th scope="col" className="sticky right-0 z-30 border border-slate-200 bg-slate-50 px-4 py-3 text-center font-medium shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] w-[80px]">Aksi</th>
+                <thead className="sticky top-0 z-20">
+                  <tr className="bg-gradient-to-r from-slate-50 to-slate-100">
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[40px]">No</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[170px]">NIK</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[160px]">No. Registrasi</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[200px]">Nama Kandidat</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[140px]">Batch</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[120px]">Real Batch</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[40px]">JK</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[220px]">Tempat, Tanggal Lahir</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[250px]">Alamat</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[140px]">Desa</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[140px]">Kecamatan</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[140px]">Kab./Kota</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[140px]">Provinsi</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[130px]">Pend. Terakhir</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[80px]">Tahun Lulus</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[50px]">TB</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[50px]">BB</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[60px]">Goldar</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[70px]">Uk. Baju</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[110px]">Status Nikah</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[220px]">E-mail</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[150px]">No. Tlp</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[180px]">Nama Orang Tua/Wali</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[150px]">No. Tlp Orang Tua</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[80px]">Status</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[180px]">Ket.</th>
+                    <th scope="col" className="sticky right-0 z-30 border border-slate-200 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-500 bg-gradient-to-l from-slate-50 to-slate-100 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] w-[80px]">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -514,7 +530,7 @@ export default function DataKandidat() {
                       const isEditing = editingId === k.id
                       const rowNum = (safePage - 1) * perPage + idx + 1
                       return (
-                        <tr key={k.id} className={`${isEditing ? 'bg-blue-50/50' : k.is_cuti ? 'bg-amber-50' : k.status_akademik === 'NONAKTIF' ? 'bg-red-50' : 'bg-white'} transition hover:bg-slate-50`}>
+                        <tr key={k.id} className={`${isEditing ? 'bg-blue-50/50' : k.level_status_keluar ? 'bg-red-50/70' : k.is_cuti ? 'bg-amber-50/50' : k.status_akademik === 'NONAKTIF' ? 'bg-red-50/50' : 'bg-white'} transition hover:bg-slate-50 group`}>
                           <td className="border border-slate-200 px-4 py-3 text-center text-xs text-slate-500">{rowNum}</td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-mono text-slate-700 whitespace-nowrap">
                             {isEditing ? <CellEdit field="nik" /> : k.nik || <span className="text-slate-300">-</span>}
@@ -531,22 +547,26 @@ export default function DataKandidat() {
                                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                                 />
                                 <div className="min-w-0">
-                                  <div className={`font-semibold truncate ${k.status_akademik === 'NONAKTIF' ? 'text-red-500' : 'text-slate-800'}`}>{k.nama}</div>
+                                  <div className={`font-semibold truncate ${k.level_status_keluar ? 'text-red-500' : k.status_akademik === 'NONAKTIF' ? 'text-red-500' : 'text-slate-800'}`}>{k.nama}</div>
                                 </div>
                               </div>
                             )}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600">
-                            <select
-                              value={String(k.batch_id ?? '')}
-                              onChange={e => handlePindahBatch(k.id, e.target.value)}
-                              className="w-full bg-transparent text-xs text-slate-700 outline-none cursor-pointer"
-                            >
-                              <option value="">-</option>
-                              {batchOptions.map(b => (
-                                <option key={b.id} value={b.id}>{b.nama}</option>
-                              ))}
-                            </select>
+                          <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-slate-100 to-slate-200 px-2.5 py-1 text-xs font-bold text-slate-700 whitespace-nowrap leading-none">
+                              {k.batch_nama || '-'}
+                              <select
+                                value={String(k.batch_id ?? '')}
+                                onChange={e => handlePindahBatch(k.id, e.target.value)}
+                                className="cursor-pointer rounded border border-slate-300 bg-white p-0.5 text-[9px] text-slate-400 outline-none transition hover:border-slate-400 hover:text-slate-600"
+                                title="Pindah Batch"
+                              >
+                                <option value="">-</option>
+                                {batchOptions.map(b => (
+                                  <option key={b.id} value={b.id}>{b.nama}</option>
+                                ))}
+                              </select>
+                            </span>
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
                             {isEditing ? <CellEdit field="real_batch" /> : k.real_batch || <span className="text-slate-300">-</span>}
@@ -610,62 +630,86 @@ export default function DataKandidat() {
                           <td className="border border-slate-200 px-4 py-3 text-xs font-mono text-slate-700 whitespace-nowrap">
                             {isEditing ? <CellEdit field="no_hp_ortu" /> : k.no_hp_ortu || <span className="text-slate-300">-</span>}
                           </td>
-                           <td className="border border-slate-200 px-4 py-3 text-center">
-                             {statusBadge(k.status)}
-                             {k.status_akademik && (
-                               <span className={`mt-1 inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-medium ${k.status_akademik === 'AKTIF' ? 'border-emerald-200 bg-emerald-50 text-emerald-600' : 'border-red-200 bg-red-50 text-red-500'}`}>
-                                 {k.status_akademik}
-                               </span>
-                             )}
-                             {k.is_cuti ? (
-                               <span className="mt-1 inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-600">
-                                 CUTI{k.cuti_sejak ? ` ${k.cuti_sejak}` : ''}
-                               </span>
-                             ) : null}
+                           <td className="border border-slate-200 px-4 py-3">
+                             <div className="flex flex-col items-center gap-1">
+                               {statusBadge(k.status)}
+                               {k.status_akademik && (
+                                 <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${k.status_akademik === 'AKTIF' ? 'border-emerald-200 bg-emerald-50 text-emerald-600' : 'border-red-200 bg-red-50 text-red-500'}`}>
+                                   <span className={`h-1 w-1 rounded-full ${k.status_akademik === 'AKTIF' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                                   {k.status_akademik}
+                                 </span>
+                               )}
+                               {k.is_cuti ? (
+                                 <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-600">
+                                   <span className="h-1 w-1 rounded-full bg-amber-500" />
+                                   CUTI{k.cuti_sejak ? ` ${k.cuti_sejak}` : ''}
+                                 </span>
+                               ) : null}
+                             </div>
                            </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 max-w-[180px]">
                             {isEditing ? <CellEdit field="keterangan" /> : <span className="truncate block" title={k.keterangan}>{k.keterangan || <span className="text-slate-300">-</span>}</span>}
                           </td>
-                          <td className={`sticky right-0 z-10 border border-slate-200 px-4 py-3 text-center shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] ${isEditing ? 'bg-blue-50/50' : 'bg-white'}`}>
-                            <div className="flex justify-center gap-1.5">
-                              {isEditing ? (
-                                <>
-                                   <button onClick={saveEdit} disabled={saving}
-                                    className="rounded-lg border border-blue-200 bg-blue-50 p-2 text-blue-600 transition hover:bg-blue-100 disabled:opacity-50" title="Simpan">
-                                    <Check size={15} />
-                                  </button>
-                                  <button onClick={cancelEdit}
-                                    className="rounded-lg border border-red-200 bg-red-50 p-2 text-red-600 transition hover:bg-red-100" title="Batal">
-                                    <X size={15} />
-                                  </button>
-                                </>
-                              ) : (
-                                <>
-                                  <button onClick={() => setDetailKandidat(k)}
-                                    className="rounded-lg border border-slate-200 bg-slate-50 p-2 text-slate-600 transition hover:bg-slate-100" title="Detail">
-                                    <Eye size={15} />
-                                  </button>
-                                  <button onClick={() => startEdit(k)}
-                                    className="rounded-lg border border-blue-200 bg-blue-50 p-2 text-blue-600 transition hover:bg-blue-100" title="Edit">
-                                    <Edit3 size={15} />
-                                  </button>
-                                  <button onClick={() => handleToggleStatus(k.id)} disabled={togglingId === k.id}
-                                    className={`rounded-lg border p-2 transition ${k.status_akademik === 'NONAKTIF' ? 'border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100'} disabled:opacity-50`}
-                                    title={k.status_akademik === 'NONAKTIF' ? 'Aktifkan' : 'Nonaktifkan'}>
-                                    {togglingId === k.id ? <Loader2 size={15} className="animate-spin" /> : (k.status_akademik === 'NONAKTIF' ? <Power size={15} /> : <PowerOff size={15} />)}
-                                  </button>
-                                  <button onClick={() => handleToggleCuti(k.id)} disabled={togglingCutiId === k.id}
-                                    className={`rounded-lg border p-2 transition ${k.is_cuti ? 'border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'} disabled:opacity-50`}
-                                    title={k.is_cuti ? 'Aktifkan dari Cuti' : 'Cuti'}>
-                                    {togglingCutiId === k.id ? <Loader2 size={15} className="animate-spin" /> : (k.is_cuti ? <Calendar size={15} /> : <CalendarOff size={15} />)}
-                                  </button>
-                                  <Link to={`/pendaftar/${k.id}/invoice`}
-                                    className="rounded-lg border border-slate-200 bg-slate-50 p-2 text-slate-600 transition hover:bg-slate-100" title="Invoice">
-                                    <Receipt size={15} />
-                                  </Link>
-                                </>
-                              )}
-                            </div>
+                          <td className={`sticky right-0 z-10 border border-slate-200 px-3 py-3 text-center shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] ${isEditing ? 'bg-blue-50/50' : 'bg-white'}`}>
+                            {isEditing ? (
+                              <div className="flex justify-center gap-1">
+                                <button onClick={saveEdit} disabled={saving}
+                                  className="rounded-lg border border-emerald-200 bg-emerald-50 p-1.5 text-emerald-600 transition hover:bg-emerald-100 disabled:opacity-50" title="Simpan">
+                                  <Check size={14} />
+                                </button>
+                                <button onClick={cancelEdit}
+                                  className="rounded-lg border border-red-200 bg-red-50 p-1.5 text-red-500 transition hover:bg-red-100" title="Batal">
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="relative flex justify-center" ref={openActionId === k.id ? actionRef : undefined}>
+                                <button
+                                  onClick={() => setOpenActionId(openActionId === k.id ? null : k.id)}
+                                  className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
+                                  title="Aksi"
+                                >
+                                  <MoreHorizontal size={16} />
+                                </button>
+                                {openActionId === k.id && (
+                                  <div className="absolute right-0 top-full z-30 mt-1 w-52 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+                                    <button onClick={() => { setDetailKandidat(k); setOpenActionId(null) }}
+                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                                      <Eye size={14} className="text-slate-400" />
+                                      <span>Detail Lengkap</span>
+                                    </button>
+                                    <button onClick={() => { startEdit(k); setOpenActionId(null) }}
+                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                                      <Edit3 size={14} className="text-slate-400" />
+                                      <span>Edit Data</span>
+                                    </button>
+                                    <Link to={`/pendaftar/${k.id}/invoice`} onClick={() => setOpenActionId(null)}
+                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                                      <Receipt size={14} className="text-slate-400" />
+                                      <span>Lihat Invoice</span>
+                                    </Link>
+                                    <div className="my-1 border-t border-slate-100" />
+                                    <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Aksi</p>
+                                    <button onClick={() => { handleToggleStatus(k.id); setOpenActionId(null) }}
+                                      disabled={togglingId === k.id}
+                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50">
+                                      {k.status_akademik === 'NONAKTIF'
+                                        ? <Power size={14} className="text-emerald-400" />
+                                        : <PowerOff size={14} className="text-amber-400" />}
+                                      <span>{k.status_akademik === 'NONAKTIF' ? 'Aktifkan' : 'Nonaktifkan'}</span>
+                                    </button>
+                                    <button onClick={() => { handleToggleCuti(k.id); setOpenActionId(null) }}
+                                      disabled={togglingCutiId === k.id}
+                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50">
+                                      {k.is_cuti
+                                        ? <Calendar size={14} className="text-amber-400" />
+                                        : <CalendarOff size={14} className="text-slate-400" />}
+                                      <span>{k.is_cuti ? 'Aktifkan dari Cuti' : 'Cuti'}</span>
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </td>
                         </tr>
                       )
@@ -694,31 +738,34 @@ export default function DataKandidat() {
       {!loading && filteredList.length > 0 && (
         <div className="mt-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3 text-sm text-slate-500">
-            <span>Per halaman</span>
-            <select
-              value={perPage}
-              onChange={e => { setPerPage(Number(e.target.value)); setPage(1) }}
-              className="rounded-md border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            >
-              {[10, 25, 50, 100].map(n => (
-                <option key={n} value={n}>{n}</option>
-              ))}
-            </select>
+            <span className="text-xs font-medium">Per halaman</span>
+            <div className="relative">
+              <select
+                value={perPage}
+                onChange={e => { setPerPage(Number(e.target.value)); setPage(1) }}
+                className="appearance-none rounded-lg border border-slate-200 bg-slate-50 px-7 py-1.5 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
+              >
+                {[10, 25, 50, 100].map(n => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+              <svg className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            </div>
           </div>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setPage(1)}
               disabled={safePage <= 1}
-              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none"
+              className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:bg-slate-50 hover:text-slate-600 disabled:opacity-30 disabled:pointer-events-none"
             >
-              <ChevronsLeft size={16} />
+              <ChevronsLeft size={15} />
             </button>
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={safePage <= 1}
-              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none"
+              className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:bg-slate-50 hover:text-slate-600 disabled:opacity-30 disabled:pointer-events-none"
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={15} />
             </button>
             {(() => {
               const pages: (number | '...')[] = []
@@ -735,15 +782,15 @@ export default function DataKandidat() {
               }
               return pages.map((p, i) =>
                 p === '...' ? (
-                  <span key={`dots-${i}`} className="px-1 text-sm text-slate-300">...</span>
+                  <span key={`dots-${i}`} className="px-1.5 text-sm text-slate-300">...</span>
                 ) : (
                   <button
                     key={p}
                     onClick={() => setPage(p)}
-                    className={`min-w-[32px] rounded-md border px-4 py-3 text-sm font-medium transition ${
+                    className={`min-w-[34px] rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
                       p === safePage
-                        ? 'border-slate-200 bg-slate-800 text-white'
-                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                        ? 'border-[#0E6187] bg-[#0E6187] text-white shadow-sm'
+                        : 'border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50 hover:text-slate-800'
                     }`}
                   >
                     {p}
@@ -754,16 +801,16 @@ export default function DataKandidat() {
             <button
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={safePage >= totalPages}
-              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none"
+              className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:bg-slate-50 hover:text-slate-600 disabled:opacity-30 disabled:pointer-events-none"
             >
-              <ChevronRight size={16} />
+              <ChevronRight size={15} />
             </button>
             <button
               onClick={() => setPage(totalPages)}
               disabled={safePage >= totalPages}
-              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none"
+              className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:bg-slate-50 hover:text-slate-600 disabled:opacity-30 disabled:pointer-events-none"
             >
-              <ChevronsRight size={16} />
+              <ChevronsRight size={15} />
             </button>
           </div>
         </div>

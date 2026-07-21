@@ -723,10 +723,6 @@ export default function SiswaDashboard() {
 
 function TimelineStages({ jadwalLevels }: { jadwalLevels: Record<string, { tanggal_mulai: string; tanggal_selesai: string }> }) {
   const stages = [
-    { level: -4, label: 'Wawancara' },
-    { level: -3, label: 'Rapat Orang Tua' },
-    { level: -2, label: 'MCU' },
-    { level: -1, label: 'Pembukaan Kelas' },
     { level: 1, label: 'Level 1' },
     { level: 2, label: 'Level 2' },
     { level: 3, label: 'Level 3' },
