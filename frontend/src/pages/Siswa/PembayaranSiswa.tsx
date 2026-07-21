@@ -192,6 +192,8 @@ export default function PembayaranSiswa() {
   }
 
   const orderedColumns: Kategori[] = []
+  const uniqueCodeOp = paymentSettings?.unique_code_operation ?? 'add'
+
   const aggregatedItems: KategoriItem[] = []
   const processedIds = new Set<number>()
 
@@ -215,8 +217,9 @@ export default function PembayaranSiswa() {
         for (const id of allIds) {
           const kItem = itemByKategoriId.get(id)
           if (kItem) {
-            totalBiaya += kItem.biaya
-            totalDibayar += kItem.dibayar
+            const effBiaya = uniqueCodeOp === 'subtract' && kItem.total_transfer ? Number(kItem.total_transfer) : Number(kItem.biaya)
+            totalBiaya += effBiaya
+            totalDibayar += Number(kItem.dibayar)
             if (kItem.due_at && (!dueAt || kItem.due_at < dueAt)) {
               dueAt = kItem.due_at
             }

@@ -146,6 +146,10 @@ class GuruDashboardController extends Controller
             'status' => 'aktif',
         ]);
 
+        $kelas->load('batchRelasi');
+        $kelas->tanggal_mulai_formatted = \Carbon\Carbon::parse($kelas->tanggal_mulai)->format('d M');
+        $kelas->tanggal_selesai_formatted = \Carbon\Carbon::parse($kelas->tanggal_selesai)->format('d M');
+
         return response()->json([
             'success' => true,
             'message' => 'Kelas berhasil ditambahkan',

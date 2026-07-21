@@ -13,7 +13,7 @@ class JadwalLevelController extends Controller
     public function index()
     {
         $batches = Batch::aktif()->get();
-        $levels = [-4, -3, -2, -1, 1, 2, 3, 4];
+        $levels = [1, 2, 3, 4];
         $jadwal = JadwalLevel::with('batch')->get()->keyBy(function ($item) {
             return $item->batch_id . '-' . $item->level;
         });
@@ -24,7 +24,7 @@ class JadwalLevelController extends Controller
     public function apiIndex()
     {
         $batches = Batch::aktif()->get();
-        $levels = [-4, -3, -2, -1, 1, 2, 3, 4];
+        $levels = [1, 2, 3, 4];
         $jadwal = JadwalLevel::with('batch')->get()->keyBy(function ($item) {
             return $item->batch_id . '-' . $item->level;
         });

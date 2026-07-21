@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { BarChart3, Search, RotateCcw, Download } from "lucide-react";
-import { absensiSiswaApi, APP_URL } from "../../services/api";
+import { absensiSiswaApi, adminCabangApi, APP_URL } from "../../services/api";
 import type { RekapSiswaItem } from "../../types";
 
 export default function RekapSiswaPage() {
+  const location = useLocation();
+  const isAdminCabang = location.pathname.startsWith('/admin-cabang');
   const [rekap, setRekap] = useState<RekapSiswaItem[]>([]);
   const [batchList, setBatchList] = useState<{ id: number; nama_batch: string }[]>([]);
   const [levels] = useState([1, 2, 3, 4]);
@@ -27,7 +30,7 @@ export default function RekapSiswaPage() {
       };
       if (filterBatch) params.batch_id = filterBatch;
       if (filterLevel) params.level = filterLevel;
-      const res = await absensiSiswaApi.rekap(params);
+      const res = isAdminCabang ? await adminCabangApi.rekapSiswa(params) : await absensiSiswaApi.rekap(params);
       setRekap(res.data.rekap || []);
       setBatchList(res.data.batch_list || []);
     } catch (err) {

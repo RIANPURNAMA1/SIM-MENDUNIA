@@ -189,6 +189,7 @@ export default function GuruDashboard() {
       setKelasList(prev => [res.data.data, ...prev])
       setShowModal(false)
       setForm({ batch_id: '', level: '', tanggal_mulai: '', tanggal_selesai: '', catatan: '' })
+      fetchDashboard()
       Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Kelas berhasil ditambahkan', timer: 2000, showConfirmButton: false })
     } catch {
       Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal menambahkan kelas' })
@@ -454,7 +455,7 @@ export default function GuruDashboard() {
         </section>
 
         {/* Batch & Nilai */}
-        {batchNilaiList.length > 0 && (
+        {batchNilaiList.some(batch => batch.levels.some(lvl => lvl.total_penilaian > 0)) && (
           <section className="bg-white rounded-xl border border-[#E5E7EF] p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Batch & Nilai</h3>

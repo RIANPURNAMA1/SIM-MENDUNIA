@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Kelas;
+use App\Models\KelasSensei;
 use App\Models\Siswa;
 use App\Models\Shift;
 use App\Models\User;
@@ -57,6 +58,34 @@ class SiswaController extends Controller
         if ($request->filled('search')) $query->where('nama', 'like', '%' . $request->search . '%');
 
         $siswa = $query->with(['shift', 'kelasRelasi', 'batchRelasi'])->latest()->get();
+
+        $senseiByBatch = KelasSensei::select('batch_id', 'level')
+            ->distinct()
+            ->get()
+            ->groupBy('batch_id');
+
+        $siswa->each(function ($s) use ($senseiByBatch) {
+            $levels = [];
+            for ($i = 1; $i <= 4; $i++) {
+                $levels["level_{$i}"] = '-';
+            }
+            $batchSensei = $senseiByBatch->get($s->batch_id);
+            if ($batchSensei) {
+                $available = $batchSensei->pluck('level')->toArray();
+                for ($i = 1; $i <= 4; $i++) {
+                    if (in_array($i, $available)) {
+                        $levels["level_{$i}"] = 'Active';
+                    }
+                }
+            }
+            $stored = $s->level_status ?? [];
+            foreach ($stored as $key => $val) {
+                if (in_array($key, ['level_1','level_2','level_3','level_4'])) {
+                    $levels[$key] = $val;
+                }
+            }
+            $s->level_status = $levels;
+        });
 
         return response()->json([
             'success' => true,
@@ -322,6 +351,26 @@ class SiswaController extends Controller
                 'email' => $request->email,
                 'password' => $request->password,
             ],
+        ]);
+    }
+
+    public function updateLevelStatus(Request $request, $id)
+    {
+        $siswa = Siswa::findOrFail($id);
+
+        $request->validate([
+            'level' => 'required|integer|in:1,2,3,4',
+            'status' => 'required|string|in:Active,Lulus,Proses,Tidak Lulus,Keluar',
+        ]);
+
+        $level = "level_{$request->level}";
+        $stored = $siswa->level_status ?? [];
+        $stored[$level] = $request->status;
+        $siswa->update(['level_status' => $stored]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Status level berhasil diperbarui',
         ]);
     }
 

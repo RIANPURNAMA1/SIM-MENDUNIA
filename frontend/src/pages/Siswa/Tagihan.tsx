@@ -7,13 +7,14 @@ function parseInput(v: string): number {
   return raw === '' ? 0 : Number(raw)
 }
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import {
   FileText, Search, Receipt, CheckCircle, Clock, AlertCircle, RotateCcw,
   DollarSign, X, Save, Bell, Eye, Check, Loader, XCircle, Users,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, MoreHorizontal,
 } from 'lucide-react'
+import Swal from 'sweetalert2'
 import api, { pendaftarApi, batchApi, productApi, APP_URL } from '../../services/api'
 
 interface KategoriInfo {
@@ -30,6 +31,8 @@ interface DetailItem {
   nama: string
   biaya: number
   dibayar: number
+  kode_unik?: number
+  total_transfer?: number
 }
 
 interface TagihanItem {
@@ -106,6 +109,9 @@ export default function Tagihan() {
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const [collapsedPrograms, setCollapsedPrograms] = useState<Set<number>>(new Set())
   const [programPages, setProgramPages] = useState<Record<number, number>>({})
+  const [uniqueCodeOp, setUniqueCodeOp] = useState<string>('add')
+  const [openActionId, setOpenActionId] = useState<number | null>(null)
+  const actionRef = useRef<HTMLDivElement>(null)
   const programPerPage = 5
 
   const pendingCount = Object.keys(pendingChanges).length
@@ -122,14 +128,44 @@ export default function Tagihan() {
       api.get('/biaya-kategori-flat'),
       batchApi.list(),
       productApi.list(),
-    ]).then(([res, katRes, batchRes, prodRes]) => {
+      api.get('/payment-settings'),
+    ]).then(([res, katRes, batchRes, prodRes, settingsRes]) => {
       setData(res.data)
       setKategoris(katRes.data || [])
       setBatches(batchRes.data?.data || batchRes.data || [])
       setProducts(prodRes.data || [])
+      setUniqueCodeOp(settingsRes.data?.unique_code_operation?.value ?? 'add')
       setLoading(false)
     }).catch(() => setLoading(false))
     fetchPendingPembayaran()
+
+    const interval = setInterval(() => {
+      api.get('/pembayaran-pending').then(res => {
+        const newPending = res.data.data || []
+        setPendingPembayaran(prev => {
+          if (JSON.stringify(prev) !== JSON.stringify(newPending)) {
+            return newPending
+          }
+          return prev
+        })
+        if (newPending.length === 0) {
+          setShowPendingModal(false)
+          setSelectedPendingPendaftarId(null)
+        }
+      }).catch(() => {})
+    }, 15000)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (actionRef.current && !actionRef.current.contains(e.target as Node)) {
+        setOpenActionId(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   const filtered = useMemo(() => {
@@ -236,12 +272,14 @@ export default function Tagihan() {
 
   const stats = useMemo(() => {
     const total = data.reduce((sum, p) => {
-      const biayaTotal = p.detail?.reduce((s: number, d: DetailItem) => s + (d.biaya || 0), 0) || Number(p.product?.harga || 0)
+      const firstCategory = p.detail?.[0]
+      const biayaTotal = firstCategory ? Number(firstCategory.biaya) : Number(p.product?.harga || 0)
       return sum + biayaTotal - Number(p.diskon || 0)
     }, 0)
     const paid = data.reduce((sum, p) => {
-      const paidFromDetail = p.detail?.reduce((s: number, d: DetailItem) => s + (d.dibayar || 0), 0) || Number(p.nominal || 0)
-      return sum + paidFromDetail
+      const firstCategory = p.detail?.[0]
+      const paidAmount = firstCategory ? (firstCategory.dibayar > 0 ? Number(firstCategory.total_transfer || firstCategory.dibayar) : 0) : Number(p.nominal || 0)
+      return sum + paidAmount
     }, 0)
     return {
       total: total,
@@ -291,14 +329,22 @@ export default function Tagihan() {
   }
 
   const calcRow = (p: TagihanItem, kats: KategoriInfo[]) => {
-    const diskon = Number(p.diskon || 0)
-    const biayaFromDetail = kats.reduce((sum, k) => {
-      const d = p.detail?.find((dd: DetailItem) => dd.kategori_id === k.id)
-      return sum + (d?.biaya || 0)
-    }, 0)
-    const tagihan = biayaFromDetail || Number(p.product?.harga || 0) - diskon
-    const totalPaid = kats.reduce((sum, k) => sum + getDibayar(p, k.id), 0)
-    const dibayar = totalPaid || Number(p.nominal || 0)
+    const details = p.detail || []
+    let tagihan = 0
+    let dibayar = 0
+    for (const d of details) {
+      const biaya = Number(d.biaya || 0)
+      if (biaya <= 0) continue
+      const dDibayar = Number(d.dibayar || 0)
+      const effBiaya = uniqueCodeOp === 'subtract' && d.total_transfer ? Number(d.total_transfer) : biaya
+      tagihan += effBiaya
+      dibayar += dDibayar > 0 ? Number(d.total_transfer || d.dibayar) : 0
+    }
+    if (details.length === 0) {
+      const diskon = Number(p.diskon || 0)
+      tagihan = Number(p.product?.harga || 0) - diskon
+      dibayar = Number(p.nominal || 0)
+    }
     const sisa = Math.max(0, tagihan - dibayar)
     return { tagihan, dibayar, sisa }
   }
@@ -341,16 +387,28 @@ export default function Tagihan() {
     }
   }
 
+  const refreshAll = useCallback(async () => {
+    const [dataRes, pendingRes] = await Promise.all([
+      pendaftarApi.list({}),
+      api.get('/pembayaran-pending'),
+    ])
+    setData(dataRes.data)
+    const newPending = pendingRes.data.data || []
+    setPendingPembayaran(newPending)
+    if (newPending.length === 0) {
+      setShowPendingModal(false)
+      setSelectedPendingPendaftarId(null)
+    }
+  }, [])
+
   async function handleVerifyPembayaran(id: number) {
     setVerifyingId(id)
     try {
       await api.post(`/pendaftar/${id}/verify-payment`)
-      await Promise.all([
-        pendaftarApi.list({}).then(res => setData(res.data)),
-        api.get('/pembayaran-pending').then(res => setPendingPembayaran(res.data.data || [])),
-      ])
+      await refreshAll()
+      Swal.fire({ icon: 'success', title: 'Pembayaran diverifikasi', text: 'Status pembayaran telah diperbarui', timer: 1500, showConfirmButton: false, toast: true, position: 'top-end' })
     } catch (err) {
-      console.error(err)
+      Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal memverifikasi pembayaran', timer: 2000, showConfirmButton: false, toast: true, position: 'top-end' })
     } finally {
       setVerifyingId(null)
     }
@@ -361,12 +419,10 @@ export default function Tagihan() {
     setConfirmRejectId(null)
     try {
       await api.post(`/pendaftar/pembayaran/${pembayaranId}/reject-payment`)
-      await Promise.all([
-        pendaftarApi.list({}).then(res => setData(res.data)),
-        api.get('/pembayaran-pending').then(res => setPendingPembayaran(res.data.data || [])),
-      ])
+      await refreshAll()
+      Swal.fire({ icon: 'success', title: 'Pembayaran ditolak', text: 'Pembayaran berhasil ditolak', timer: 1500, showConfirmButton: false, toast: true, position: 'top-end' })
     } catch (err) {
-      console.error(err)
+      Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal menolak pembayaran', timer: 2000, showConfirmButton: false, toast: true, position: 'top-end' })
     } finally {
       setRejectingId(null)
     }
@@ -375,7 +431,7 @@ export default function Tagihan() {
   const renderProgramTable = (group: ProgramGroup) => {
     const { productId, productName, kategoris: kats, kategoriColumns, items } = group
     const isCollapsed = collapsedPrograms.has(productId)
-    const colSpan = 3 + kategoriColumns.length + 6
+    const colSpan = 3 + kategoriColumns.length + 5
     const groupTagihan = items.reduce((sum, p) => sum + calcRow(p, kats).tagihan, 0)
     const groupDibayar = items.reduce((sum, p) => sum + calcRow(p, kats).dibayar, 0)
     const groupSisa = Math.max(0, groupTagihan - groupDibayar)
@@ -438,10 +494,9 @@ export default function Tagihan() {
                   <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium w-[120px]">Dibayar</th>
                   <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium w-[120px]">Sisa</th>
                   <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium w-[110px]">Status</th>
-                  <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium w-[80px]">Invoice</th>
-                  <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium w-[80px]">Aksi</th>
-                </tr>
-              </thead>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium w-[80px]">Aksi</th>
+                  </tr>
+                </thead>
               <tbody>
                 {pagedItems.map(p => {
                   const { tagihan, dibayar, sisa } = calcRow(p, kats)
@@ -481,7 +536,9 @@ export default function Tagihan() {
                         const key = `${p.id}_${k.id}`
                         const val = getDibayar(p, k.id)
                         const isChanged = key in pendingChanges
-                        const biayaKat = p.detail?.find((d: DetailItem) => d.kategori_id === k.id)?.biaya || 0
+                        const katDetail = p.detail?.find((d: DetailItem) => d.kategori_id === k.id)
+                        const biayaKatRaw = katDetail?.biaya || 0
+                        const biayaKat = uniqueCodeOp === 'subtract' && katDetail?.total_transfer ? Number(katDetail.total_transfer) : biayaKatRaw
                         const isLunas = biayaKat > 0 && val >= biayaKat
                         const isPartial = val > 0 && !isLunas
                         return (
@@ -507,6 +564,9 @@ export default function Tagihan() {
                               className={`w-full bg-transparent text-right text-sm outline-none transition ${isChanged ? 'font-semibold text-blue-700' : isLunas ? 'font-semibold text-emerald-700' : isPartial ? 'font-semibold text-orange-600' : 'text-slate-500'} placeholder:text-slate-300 focus:bg-blue-50 focus:rounded focus:px-1`}
                               placeholder="-"
                             />
+                            {biayaKatRaw > 0 && (
+                              <div className="text-[10px] text-slate-400 mt-0.5">Rp {fmt(biayaKatRaw)}</div>
+                            )}
                           </td>
                         )
                       })}
@@ -523,29 +583,41 @@ export default function Tagihan() {
                         {statusBadge(p.status_pembayaran, dibayar, tagihan)}
                       </td>
                       <td className="border border-slate-200 px-4 py-3 text-center">
-                        <Link
-                          to={`/pendaftar/${p.id}/invoice`}
-                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600"
-                          title="Invoice"
-                        >
-                          <FileText size={15} />
-                        </Link>
-                      </td>
-                      <td className="border border-slate-200 px-4 py-3 text-center">
-                        <button
-                          onClick={async () => {
-                            try {
-                              const res = await api.get(`/pembayaran-item/${p.id}`)
-                              setModalBayar({ pendaftar: p, items: (res.data.items || []) })
-                            } catch (err) {
-                              console.error(err)
-                            }
-                          }}
-                          className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-600"
-                          title="Bayar"
-                        >
-                          <DollarSign size={15} />
-                        </button>
+                        <div className="relative flex justify-center" ref={openActionId === p.id ? actionRef : undefined}>
+                          <button
+                            onClick={() => setOpenActionId(openActionId === p.id ? null : p.id)}
+                            className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
+                            title="Aksi"
+                          >
+                            <MoreHorizontal size={16} />
+                          </button>
+                          {openActionId === p.id && (
+                            <div className="absolute right-0 top-full z-30 mt-1 w-52 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+                              <Link to={`/pendaftar/${p.id}/invoice`} onClick={() => setOpenActionId(null)}
+                                className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                                <FileText size={14} className="text-slate-400" />
+                                <span>Lihat Invoice</span>
+                              </Link>
+                              <div className="my-1 border-t border-slate-100" />
+                              <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Pembayaran</p>
+                              <button
+                                onClick={async () => {
+                                  setOpenActionId(null)
+                                  try {
+                                    const res = await api.get(`/pembayaran-item/${p.id}`)
+                                    setModalBayar({ pendaftar: p, items: (res.data.items || []) })
+                                  } catch (err) {
+                                    console.error(err)
+                                  }
+                                }}
+                                className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                              >
+                                <DollarSign size={14} className="text-emerald-400" />
+                                <span>Input Pembayaran</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )
@@ -560,8 +632,6 @@ export default function Tagihan() {
                   <td className="border border-slate-200 px-4 py-3 text-right text-emerald-700">Rp {fmt(groupDibayar)}</td>
                   <td className="border border-slate-200 px-4 py-3 text-right text-red-600">{groupSisa > 0 ? `Rp ${fmt(groupSisa)}` : '-'}</td>
                   <td className="border border-slate-200 px-4 py-3 text-center text-slate-500">{items.length} orang</td>
-                  <td className="border border-slate-200 px-4 py-3" />
-                  <td className="border border-slate-200 px-4 py-3" />
                 </tr>
               </tfoot>
             </table>

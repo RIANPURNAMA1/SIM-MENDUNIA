@@ -44,9 +44,12 @@ class Siswa extends Model
         'keterangan',
         'is_cuti',
         'cuti_sejak',
+        'level_status',
     ];
 
-    protected $casts = [];
+    protected $casts = [
+        'level_status' => 'json',
+    ];
 
     public function user()
     {

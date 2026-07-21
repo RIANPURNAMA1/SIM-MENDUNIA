@@ -245,6 +245,7 @@ Route::prefix('siswa')->group(function () {
     Route::delete('/{id}', [SiswaController::class, 'destroy']);
     Route::post('/{id}/toggle-status', [SiswaController::class, 'toggleStatus']);
     Route::post('/{id}/buatkan-akun', [SiswaController::class, 'buatkanAkun']);
+    Route::post('/{id}/level-status', [SiswaController::class, 'updateLevelStatus']);
 });
 
 // Batch
@@ -476,11 +477,20 @@ Route::prefix('admin-cabang')->middleware(['auth:sanctum'])->group(function () {
     Route::get('/pendaftar', [AdminCabangController::class, 'pendaftar']);
     Route::get('/tagihan', [AdminCabangController::class, 'tagihan']);
     Route::get('/kandidat', [AdminCabangController::class, 'kandidat']);
+    Route::get('/siswa', [AdminCabangController::class, 'siswa']);
     Route::get('/batches', [AdminCabangController::class, 'batches']);
     Route::get('/pending-count', [AdminCabangController::class, 'pendingCount']);
     Route::get('/pending-pembayaran', [AdminCabangController::class, 'pendingPembayaran']);
     Route::get('/rekap-per-batch', [AdminCabangController::class, 'rekapPerBatch']);
     Route::get('/my-branches', [AdminCabangController::class, 'myBranches']);
+
+    // Akademik
+    Route::get('/guru', [AdminCabangController::class, 'guru']);
+    Route::get('/kelas-sensei', [AdminCabangController::class, 'kelasSensei']);
+    Route::get('/jadwal-level', [AdminCabangController::class, 'jadwalLevel']);
+    Route::get('/rekap-siswa', [AdminCabangController::class, 'rekapSiswa']);
+    Route::get('/penilaian', [AdminCabangController::class, 'penilaian']);
+    Route::get('/lms', [AdminCabangController::class, 'lms']);
 
     // Reuse existing endpoints for payment operations
     Route::get('/pembayaran-item/{pendaftarId}', [BiayaController::class, 'pembayaranItemIndex']);

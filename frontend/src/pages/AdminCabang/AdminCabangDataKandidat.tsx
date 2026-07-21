@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Users, Search, RotateCcw, Eye, Edit3, Receipt, Check, X } from 'lucide-react'
+import { Users, Search, RotateCcw, Eye, Edit3, Receipt, Check, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { adminCabangApi } from '../../services/api'
 
@@ -64,6 +64,8 @@ export default function AdminCabangDataKandidat() {
   const [editForm, setEditForm] = useState<Partial<Kandidat>>({})
   const [saving, setSaving] = useState(false)
   const [detailKandidat, setDetailKandidat] = useState<Kandidat | null>(null)
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(25)
 
   useEffect(() => { fetchData() }, [])
 
@@ -87,15 +89,20 @@ export default function AdminCabangDataKandidat() {
   function handleSearch(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value
     setSearch(val)
-    if (val.length >= 2 || val.length === 0) {
-      clearTimeout((window as Record<string, ReturnType<typeof setTimeout>>)._kandidatTimer)
-      ;(window as Record<string, ReturnType<typeof setTimeout>>)._kandidatTimer = setTimeout(() => fetchData(val), 300)
-    }
+    setPage(1)
+    if (val.length >= 2 || val.length === 0) fetchData(val)
+  }
+
+  function handleFilterBatch(e: React.ChangeEvent<HTMLSelectElement>) {
+    setFilterBatch(e.target.value)
+    setPage(1)
+    fetchData(search)
   }
 
   function resetFilter() {
     setSearch('')
     setFilterBatch('')
+    setPage(1)
     fetchData()
   }
 
@@ -113,7 +120,12 @@ export default function AdminCabangDataKandidat() {
     if (!editingId) return
     setSaving(true)
     try {
-      await adminCabangApi.updateKandidat(editingId, editForm as Record<string, unknown>)
+      const payload: Record<string, unknown> = {}
+      for (const [k, v] of Object.entries(editForm as Record<string, unknown>)) {
+        if (v === '' || v === undefined) payload[k] = null
+        else payload[k] = v
+      }
+      await adminCabangApi.updateKandidat(editingId, payload)
       setKandidatList(prev => prev.map(k => k.id === editingId ? { ...k, ...editForm } as Kandidat : k))
       setEditingId(null)
       setEditForm({})
@@ -146,16 +158,20 @@ export default function AdminCabangDataKandidat() {
     ? kandidatList.filter(k => String(k.batch_id) === filterBatch)
     : kandidatList
 
+  const totalPages = Math.max(1, Math.ceil(filteredList.length / perPage))
+  const safePage = Math.min(page, totalPages)
+  const pagedList = filteredList.slice((safePage - 1) * perPage, safePage * perPage)
+
   const statusBadge = (status: string) => {
-    const map: Record<string, { dot: string; label: string }> = {
-      Disetujui: { dot: 'bg-emerald-500', label: 'Disetujui' },
-      Ditolak: { dot: 'bg-red-500', label: 'Ditolak' },
-      Pending: { dot: 'bg-amber-500', label: 'Pending' },
+    const map: Record<string, { bg: string; text: string; label: string }> = {
+      Disetujui: { bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700', label: 'Disetujui' },
+      Ditolak: { bg: 'bg-red-50 border-red-200', text: 'text-red-700', label: 'Ditolak' },
+      Pending: { bg: 'bg-amber-50 border-amber-200', text: 'text-amber-700', label: 'Pending' },
     }
-    const s = map[status] || { dot: 'bg-slate-300', label: status }
+    const s = map[status] || { bg: 'bg-slate-50 border-slate-200', text: 'text-slate-600', label: status }
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 shadow-sm">
-        <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
+      <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${s.bg} ${s.text}`}>
+        <span className={`h-1.5 w-1.5 rounded-full ${status === 'Disetujui' ? 'bg-emerald-500' : status === 'Ditolak' ? 'bg-red-500' : 'bg-amber-500'}`} />
         {s.label}
       </span>
     )
@@ -190,6 +206,7 @@ export default function AdminCabangDataKandidat() {
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
+      {/* Header */}
       <div className="mb-4 flex flex-col gap-4 rounded-lg bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between border border-slate-200">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
@@ -202,36 +219,38 @@ export default function AdminCabangDataKandidat() {
         </div>
       </div>
 
+      {/* Summary */}
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
-            <Users size={18} className="text-blue-600" />
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-4 transition hover:shadow-md">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-50 to-blue-100">
+            <Users size={20} className="text-blue-600" />
           </div>
           <div>
-            <p className="text-xs text-slate-500">Total Batch</p>
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Total Batch</p>
             <p className="text-2xl font-bold text-slate-800">{totalBatch}</p>
           </div>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50">
-            <Users size={18} className="text-emerald-600" />
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-4 transition hover:shadow-md">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100">
+            <Users size={20} className="text-emerald-600" />
           </div>
           <div>
-            <p className="text-xs text-slate-500">Total Kandidat</p>
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Total Kandidat</p>
             <p className="text-2xl font-bold text-slate-800">{totalKandidat}</p>
           </div>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50">
-            <Users size={18} className="text-amber-600" />
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-4 transition hover:shadow-md">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-amber-50 to-amber-100">
+            <Users size={20} className="text-amber-600" />
           </div>
           <div>
-            <p className="text-xs text-slate-500">Kandidat Aktif</p>
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Kandidat Aktif</p>
             <p className="text-2xl font-bold text-slate-800">{kandidatAktif}</p>
           </div>
         </div>
       </div>
 
+      {/* Filter */}
       <div className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative flex-1">
@@ -241,29 +260,32 @@ export default function AdminCabangDataKandidat() {
               placeholder="Cari nama, email, atau NIK..."
               value={search}
               onChange={handleSearch}
-              className="w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-slate-300 bg-slate-50 py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
             />
           </div>
-          <select
-            value={filterBatch}
-            onChange={e => setFilterBatch(e.target.value)}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          >
-            <option value="">Semua Batch</option>
-            {batchOptions.map(b => (
-              <option key={b.id} value={b.id}>{b.nama}</option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              value={filterBatch}
+              onChange={handleFilterBatch}
+              className="appearance-none rounded-lg border border-slate-300 bg-slate-50 px-8 py-2.5 pr-8 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
+            >
+              <option value="">Semua Batch</option>
+              {batchOptions.map(b => (
+                <option key={b.id} value={b.id}>{b.nama}</option>
+              ))}
+            </select>
+            <svg className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+          </div>
           <button
             onClick={() => fetchData(search)}
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-slate-800 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-700"
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0E6187] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#1a3a5c]"
           >
             <Search size={16} />
             Filter
           </button>
           <button
             onClick={resetFilter}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-800"
           >
             <RotateCcw size={16} />
             Reset
@@ -271,7 +293,8 @@ export default function AdminCabangDataKandidat() {
         </div>
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+      {/* Table */}
+      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="relative w-14 h-14 flex items-center justify-center">
@@ -280,181 +303,291 @@ export default function AdminCabangDataKandidat() {
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[3200px] border-collapse text-left text-sm text-slate-700">
-              <thead className="bg-slate-50 text-sm text-slate-600 uppercase tracking-wide sticky top-0">
-                <tr>
-                  <th className="border border-slate-200 px-4 py-3 text-center font-semibold w-[40px]">No</th>
-                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[170px]">NIK</th>
-                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[160px]">No. Registrasi</th>
-                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[200px]">Nama Kandidat</th>
-                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[100px]">Batch</th>
-                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[100px]">Real Batch</th>
-                  <th className="border border-slate-200 px-4 py-3 text-center font-semibold w-[40px]">JK</th>
-                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[220px]">Tempat, Tanggal Lahir</th>
-                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[250px]">Alamat</th>
-                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[140px]">Desa</th>
-                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[140px]">Kecamatan</th>
-                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[140px]">Kab./Kota</th>
-                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[140px]">Provinsi</th>
-                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[130px]">Pend. Terakhir</th>
-                  <th className="border border-slate-200 px-4 py-3 text-center font-semibold w-[80px]">Tahun Lulus</th>
-                  <th className="border border-slate-200 px-4 py-3 text-center font-semibold w-[50px]">TB</th>
-                  <th className="border border-slate-200 px-4 py-3 text-center font-semibold w-[50px]">BB</th>
-                  <th className="border border-slate-200 px-4 py-3 text-center font-semibold w-[60px]">Goldar</th>
-                  <th className="border border-slate-200 px-4 py-3 text-center font-semibold w-[70px]">Uk. Baju</th>
-                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[110px]">Status Nikah</th>
-                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[220px]">E-mail</th>
-                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[150px]">No. Tlp</th>
-                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[180px]">Nama Orang Tua/Wali</th>
-                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[150px]">No. Tlp Orang Tua</th>
-                  <th className="border border-slate-200 px-4 py-3 text-center font-semibold w-[80px]">Status</th>
-                  <th className="border border-slate-200 px-4 py-3 font-semibold w-[180px]">Ket.</th>
-                  <th className="sticky right-0 z-10 border border-slate-200 bg-slate-50 px-4 py-3 text-center font-semibold shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] w-[80px]">Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredList.length > 0 ? (
-                  filteredList.map((k, idx) => {
-                    const isEditing = editingId === k.id
-                    return (
-                      <tr key={k.id} className={`${isEditing ? 'bg-blue-50/50' : 'bg-white'} transition hover:bg-slate-50`}>
-                        <td className="border border-slate-200 px-4 py-3 text-center font-medium text-slate-500">{idx + 1}</td>
-                        <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
-                          {isEditing ? <CellEdit field="nik" /> : k.nik || '-'}
-                        </td>
-                        <td className="border border-slate-200 px-4 py-3 whitespace-nowrap font-mono">{k.no_registrasi || '-'}</td>
-                        <td className="border border-slate-200 px-4 py-3 font-semibold text-slate-800 whitespace-nowrap">
-                          {isEditing ? <CellEdit field="nama" /> : k.nama}
-                        </td>
-                        <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
-                          <select
-                            value={String(k.batch_id ?? '')}
-                            onChange={e => handlePindahBatch(k.id, e.target.value)}
-                            className="w-full bg-transparent text-xs text-slate-700 outline-none cursor-pointer"
-                          >
-                            <option value="">-</option>
-                            {batchOptions.map(b => (
-                              <option key={b.id} value={b.id}>{b.nama}</option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
-                          {isEditing ? <CellEdit field="real_batch" /> : k.real_batch || '-'}
-                        </td>
-                        <td className="border border-slate-200 px-4 py-3 text-center">
-                          {isEditing ? <CellEdit field="jenis_kelamin" type="select" /> : (k.jenis_kelamin === 'L' ? 'L' : k.jenis_kelamin === 'P' ? 'P' : '-')}
-                        </td>
-                        <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
-                          {isEditing ? (
-                            <div className="flex gap-1">
-                              <CellEdit field="tempat_lahir" />
-                              <CellEdit field="tanggal_lahir" type="date" />
-                            </div>
-                          ) : (k.tempat_lahir !== '-' && k.tanggal_lahir !== '-' ? `${k.tempat_lahir}, ${k.tanggal_lahir}` : '-')}
-                        </td>
-                        <td className="border border-slate-200 px-4 py-3 max-w-[250px]">
-                          {isEditing ? <CellEdit field="alamat" /> : <span className="truncate block" title={k.alamat}>{k.alamat || '-'}</span>}
-                        </td>
-                        <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
-                          {isEditing ? <CellEdit field="desa" /> : k.desa || '-'}
-                        </td>
-                        <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
-                          {isEditing ? <CellEdit field="kecamatan" /> : k.kecamatan || '-'}
-                        </td>
-                        <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
-                          {isEditing ? <CellEdit field="kabupaten" /> : k.kabupaten || '-'}
-                        </td>
-                        <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
-                          {isEditing ? <CellEdit field="provinsi" /> : k.provinsi || '-'}
-                        </td>
-                        <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
-                          {isEditing ? <CellEdit field="pendidikan_terakhir" type="select" /> : k.pendidikan_terakhir || '-'}
-                        </td>
-                        <td className="border border-slate-200 px-4 py-3 text-center whitespace-nowrap">
-                          {isEditing ? <CellEdit field="tahun_lulus" /> : k.tahun_lulus || '-'}
-                        </td>
-                        <td className="border border-slate-200 px-4 py-3 text-center">
-                          {isEditing ? <CellEdit field="tinggi_badan" type="number" /> : k.tinggi_badan || '-'}
-                        </td>
-                        <td className="border border-slate-200 px-4 py-3 text-center">
-                          {isEditing ? <CellEdit field="berat_badan" type="number" /> : k.berat_badan || '-'}
-                        </td>
-                        <td className="border border-slate-200 px-4 py-3 text-center">
-                          {isEditing ? <CellEdit field="goldar" type="select" /> : k.goldar || '-'}
-                        </td>
-                        <td className="border border-slate-200 px-4 py-3 text-center">
-                          {isEditing ? <CellEdit field="ukuran_baju" type="select" /> : k.ukuran_baju || '-'}
-                        </td>
-                        <td className="border border-slate-200 px-4 py-3">
-                          {isEditing ? <CellEdit field="status_pernikahan" type="select" /> : k.status_pernikahan || '-'}
-                        </td>
-                        <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
-                          {isEditing ? <CellEdit field="email" /> : k.email}
-                        </td>
-                        <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
-                          {isEditing ? <CellEdit field="no_hp" /> : k.no_hp || '-'}
-                        </td>
-                        <td className="border border-slate-200 px-4 py-3">
-                          {isEditing ? <CellEdit field="nama_ortu" /> : k.nama_ortu || '-'}
-                        </td>
-                        <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
-                          {isEditing ? <CellEdit field="no_hp_ortu" /> : k.no_hp_ortu || '-'}
-                        </td>
-                        <td className="border border-slate-200 px-4 py-3 text-center">{statusBadge(k.status)}</td>
-                        <td className="border border-slate-200 px-4 py-3 max-w-[180px]">
-                          {isEditing ? <CellEdit field="keterangan" /> : <span className="truncate block" title={k.keterangan}>{k.keterangan || '-'}</span>}
-                        </td>
-                        <td className={`sticky right-0 z-10 border border-slate-200 px-4 py-3 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] ${isEditing ? 'bg-blue-50/50' : 'bg-white'}`}>
-                          <div className="flex justify-center gap-1">
-                            {isEditing ? (
-                              <>
-                                <button onClick={saveEdit} disabled={saving}
-                                  className="rounded-md border border-emerald-300 bg-emerald-50 p-1.5 text-emerald-600 transition hover:bg-emerald-100 disabled:opacity-50" title="Simpan">
-                                  <Check size={13} />
-                                </button>
-                                <button onClick={cancelEdit}
-                                  className="rounded-md border border-red-300 bg-red-50 p-1.5 text-red-600 transition hover:bg-red-100" title="Batal">
-                                  <X size={13} />
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <button onClick={() => setDetailKandidat(k)}
-                                  className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600" title="Detail">
-                                  <Eye size={13} />
-                                </button>
-                                <button onClick={() => startEdit(k)}
-                                  className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:border-amber-200 hover:bg-amber-50 hover:text-amber-600" title="Edit">
-                                  <Edit3 size={13} />
-                                </button>
-                                <Link to={`/pendaftar/${k.id}/invoice`}
-                                  className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600" title="Invoice">
-                                  <Receipt size={13} />
-                                </Link>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan={27} className="border border-slate-200 px-6 py-10 text-center">
-                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-                        <Users size={24} />
-                      </div>
-                      <p className="mt-3 text-sm font-medium text-slate-600">Tidak ada kandidat ditemukan</p>
-                    </td>
+          <>
+            <div className="overflow-x-auto max-h-[calc(100vh-260px)] overflow-y-auto rounded-lg border border-slate-200">
+              <table className="w-full min-w-[3200px] border-collapse text-left text-sm text-slate-700">
+                <thead className="sticky top-0 z-20">
+                  <tr className="bg-gradient-to-r from-slate-50 to-slate-100">
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[40px]">No</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[170px]">NIK</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[160px]">No. Registrasi</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[200px]">Nama Kandidat</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[140px]">Batch</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[120px]">Real Batch</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[40px]">JK</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[220px]">Tempat, Tanggal Lahir</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[250px]">Alamat</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[140px]">Desa</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[140px]">Kecamatan</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[140px]">Kab./Kota</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[140px]">Provinsi</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[130px]">Pend. Terakhir</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[80px]">Tahun Lulus</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[50px]">TB</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[50px]">BB</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[60px]">Goldar</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[70px]">Uk. Baju</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[110px]">Status Nikah</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[220px]">E-mail</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[150px]">No. Tlp</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[180px]">Nama Orang Tua/Wali</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[150px]">No. Tlp Orang Tua</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[80px]">Status</th>
+                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-[180px]">Ket.</th>
+                    <th scope="col" className="sticky right-0 z-30 border border-slate-200 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-500 bg-gradient-to-l from-slate-50 to-slate-100 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] w-[80px]">Aksi</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {pagedList.length > 0 ? (
+                    pagedList.map((k, idx) => {
+                      const isEditing = editingId === k.id
+                      const rowNum = (safePage - 1) * perPage + idx + 1
+                      return (
+                        <tr key={k.id} className={`${isEditing ? 'bg-blue-50/50' : 'bg-white'} transition hover:bg-slate-50 group`}>
+                          <td className="border border-slate-200 px-4 py-3 text-center text-xs text-slate-500">{rowNum}</td>
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-mono text-slate-700 whitespace-nowrap">
+                            {isEditing ? <CellEdit field="nik" /> : k.nik || <span className="text-slate-300">-</span>}
+                          </td>
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-mono text-slate-700 whitespace-nowrap">
+                            {k.no_registrasi || <span className="text-slate-300">-</span>}
+                          </td>
+                          <td className="border border-slate-200 px-4 py-3 max-w-[200px] overflow-hidden">
+                            {isEditing ? <CellEdit field="nama" /> : (
+                              <div className="flex items-center gap-2 min-w-0">
+                                <img
+                                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(k.nama)}&background=e5e7eb&color=6b7280&size=24`}
+                                  className="h-6 w-6 rounded-full object-cover flex-none"
+                                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                                />
+                                <div className="min-w-0">
+                                  <div className="font-semibold text-slate-800 truncate">{k.nama}</div>
+                                </div>
+                              </div>
+                            )}
+                          </td>
+                          <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-slate-100 to-slate-200 px-2.5 py-1 text-xs font-bold text-slate-700 whitespace-nowrap leading-none">
+                              {k.batch_nama || '-'}
+                              <select
+                                value={String(k.batch_id ?? '')}
+                                onChange={e => handlePindahBatch(k.id, e.target.value)}
+                                className="cursor-pointer rounded border border-slate-300 bg-white p-0.5 text-[9px] text-slate-400 outline-none transition hover:border-slate-400 hover:text-slate-600"
+                                title="Pindah Batch"
+                              >
+                                <option value="">-</option>
+                                {batchOptions.map(b => (
+                                  <option key={b.id} value={b.id}>{b.nama}</option>
+                                ))}
+                              </select>
+                            </span>
+                          </td>
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
+                            {isEditing ? <CellEdit field="real_batch" /> : k.real_batch || <span className="text-slate-300">-</span>}
+                          </td>
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 text-center">
+                            {isEditing ? <CellEdit field="jenis_kelamin" type="select" /> : (k.jenis_kelamin === 'L' ? 'L' : k.jenis_kelamin === 'P' ? 'P' : '-')}
+                          </td>
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
+                            {isEditing ? (
+                              <div className="flex gap-1">
+                                <CellEdit field="tempat_lahir" />
+                                <CellEdit field="tanggal_lahir" type="date" />
+                              </div>
+                            ) : (k.tempat_lahir !== '-' && k.tanggal_lahir !== '-' ? `${k.tempat_lahir}, ${k.tanggal_lahir}` : '-')}
+                          </td>
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 max-w-[250px]">
+                            {isEditing ? <CellEdit field="alamat" /> : <span className="truncate block" title={k.alamat}>{k.alamat || '-'}</span>}
+                          </td>
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
+                            {isEditing ? <CellEdit field="desa" /> : k.desa || <span className="text-slate-300">-</span>}
+                          </td>
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
+                            {isEditing ? <CellEdit field="kecamatan" /> : k.kecamatan || <span className="text-slate-300">-</span>}
+                          </td>
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
+                            {isEditing ? <CellEdit field="kabupaten" /> : k.kabupaten || <span className="text-slate-300">-</span>}
+                          </td>
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
+                            {isEditing ? <CellEdit field="provinsi" /> : k.provinsi || <span className="text-slate-300">-</span>}
+                          </td>
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
+                            {isEditing ? <CellEdit field="pendidikan_terakhir" type="select" /> : k.pendidikan_terakhir || <span className="text-slate-300">-</span>}
+                          </td>
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 text-center">
+                            {isEditing ? <CellEdit field="tahun_lulus" /> : k.tahun_lulus || <span className="text-slate-300">-</span>}
+                          </td>
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 text-center">
+                            {isEditing ? <CellEdit field="tinggi_badan" type="number" /> : (k.tinggi_badan || <span className="text-slate-300">-</span>)}
+                          </td>
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 text-center">
+                            {isEditing ? <CellEdit field="berat_badan" type="number" /> : (k.berat_badan || <span className="text-slate-300">-</span>)}
+                          </td>
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 text-center">
+                            {isEditing ? <CellEdit field="goldar" type="select" /> : k.goldar || <span className="text-slate-300">-</span>}
+                          </td>
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 text-center">
+                            {isEditing ? <CellEdit field="ukuran_baju" type="select" /> : k.ukuran_baju || <span className="text-slate-300">-</span>}
+                          </td>
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600">
+                            {isEditing ? <CellEdit field="status_pernikahan" type="select" /> : k.status_pernikahan || <span className="text-slate-300">-</span>}
+                          </td>
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-mono text-slate-700 whitespace-nowrap">
+                            {isEditing ? <CellEdit field="email" /> : k.email}
+                          </td>
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-mono text-slate-700 whitespace-nowrap">
+                            {isEditing ? <CellEdit field="no_hp" /> : k.no_hp || <span className="text-slate-300">-</span>}
+                          </td>
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600">
+                            {isEditing ? <CellEdit field="nama_ortu" /> : k.nama_ortu || <span className="text-slate-300">-</span>}
+                          </td>
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-mono text-slate-700 whitespace-nowrap">
+                            {isEditing ? <CellEdit field="no_hp_ortu" /> : k.no_hp_ortu || <span className="text-slate-300">-</span>}
+                          </td>
+                          <td className="border border-slate-200 px-4 py-3">
+                            <div className="flex flex-col items-center gap-1">
+                              {statusBadge(k.status)}
+                            </div>
+                          </td>
+                          <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 max-w-[180px]">
+                            {isEditing ? <CellEdit field="keterangan" /> : <span className="truncate block" title={k.keterangan}>{k.keterangan || <span className="text-slate-300">-</span>}</span>}
+                          </td>
+                          <td className={`sticky right-0 z-10 border border-slate-200 px-3 py-3 text-center shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] ${isEditing ? 'bg-blue-50/50' : 'bg-white'}`}>
+                            <div className="flex justify-center gap-1">
+                              {isEditing ? (
+                                <>
+                                  <button onClick={saveEdit} disabled={saving}
+                                    className="rounded-lg border border-emerald-200 bg-emerald-50 p-1.5 text-emerald-600 transition hover:bg-emerald-100 disabled:opacity-50" title="Simpan">
+                                    <Check size={14} />
+                                  </button>
+                                  <button onClick={cancelEdit}
+                                    className="rounded-lg border border-red-200 bg-red-50 p-1.5 text-red-500 transition hover:bg-red-100" title="Batal">
+                                    <X size={14} />
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button onClick={() => setDetailKandidat(k)}
+                                    className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-600 group-hover:border-slate-300" title="Detail">
+                                    <Eye size={14} />
+                                  </button>
+                                  <button onClick={() => startEdit(k)}
+                                    className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 group-hover:border-slate-300" title="Edit">
+                                    <Edit3 size={14} />
+                                  </button>
+                                  <Link to={`/admin-cabang/pendaftar/${k.id}/invoice`}
+                                    className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-600 group-hover:border-slate-300" title="Invoice">
+                                    <Receipt size={14} />
+                                  </Link>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={27} className="border border-slate-200 px-6 py-10 text-center">
+                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                          <Users size={24} />
+                        </div>
+                        <p className="mt-3 text-sm font-medium text-slate-600">Tidak ada kandidat ditemukan</p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="border-t border-slate-200 px-4 py-3 text-sm text-slate-500">
+              Menampilkan {pagedList.length} dari {filteredList.length} kandidat
+            </div>
+          </>
         )}
       </div>
 
+      {/* Pagination */}
+      {!loading && filteredList.length > 0 && (
+        <div className="mt-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3 text-sm text-slate-500">
+            <span className="text-xs font-medium">Per halaman</span>
+            <div className="relative">
+              <select
+                value={perPage}
+                onChange={e => { setPerPage(Number(e.target.value)); setPage(1) }}
+                className="appearance-none rounded-lg border border-slate-200 bg-slate-50 px-7 py-1.5 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
+              >
+                {[10, 25, 50, 100].map(n => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+              <svg className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage(1)}
+              disabled={safePage <= 1}
+              className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:bg-slate-50 hover:text-slate-600 disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <ChevronsLeft size={15} />
+            </button>
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={safePage <= 1}
+              className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:bg-slate-50 hover:text-slate-600 disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <ChevronLeft size={15} />
+            </button>
+            {(() => {
+              const pages: (number | '...')[] = []
+              if (totalPages <= 7) {
+                for (let i = 1; i <= totalPages; i++) pages.push(i)
+              } else {
+                pages.push(1)
+                if (safePage > 3) pages.push('...')
+                const start = Math.max(2, safePage - 1)
+                const end = Math.min(totalPages - 1, safePage + 1)
+                for (let i = start; i <= end; i++) pages.push(i)
+                if (safePage < totalPages - 2) pages.push('...')
+                pages.push(totalPages)
+              }
+              return pages.map((p, i) =>
+                p === '...' ? (
+                  <span key={`dots-${i}`} className="px-1.5 text-sm text-slate-300">...</span>
+                ) : (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p)}
+                    className={`min-w-[34px] rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
+                      p === safePage
+                        ? 'border-[#0E6187] bg-[#0E6187] text-white shadow-sm'
+                        : 'border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50 hover:text-slate-800'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                )
+              )
+            })()}
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+              className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:bg-slate-50 hover:text-slate-600 disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <ChevronRight size={15} />
+            </button>
+            <button
+              onClick={() => setPage(totalPages)}
+              disabled={safePage >= totalPages}
+              className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:bg-slate-50 hover:text-slate-600 disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <ChevronsRight size={15} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Detail Modal */}
       {detailKandidat && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setDetailKandidat(null)}>
           <div className="w-full max-w-5xl rounded-xl bg-white shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -509,7 +642,7 @@ export default function AdminCabangDataKandidat() {
                 className="flex items-center gap-2 rounded-lg bg-[#0E6187] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1a3a5c]">
                 <Edit3 size={14} /> Edit Data
               </button>
-              <Link to={`/pendaftar/${detailKandidat.id}/invoice`}
+              <Link to={`/admin-cabang/pendaftar/${detailKandidat.id}/invoice`}
                 className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
                 <Receipt size={14} /> Lihat Invoice
               </Link>

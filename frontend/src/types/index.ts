@@ -429,6 +429,12 @@ export interface Siswa {
     email: string
     role: string
   } | null
+  level_status?: {
+    level_1: string
+    level_2: string
+    level_3: string
+    level_4: string
+  }
 }
 
 export interface JadwalLevelItem {

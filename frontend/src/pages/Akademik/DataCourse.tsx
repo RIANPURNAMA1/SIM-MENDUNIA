@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { BookOpen, Plus, Edit3, Trash2, Search, Layers, X, Image as ImageIcon, FileText, Download } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
-import { lmsAdminApi, APP_URL } from '../../services/api'
+import { lmsAdminApi, adminCabangApi, APP_URL } from '../../services/api'
 import Swal from 'sweetalert2'
 
 interface Course {
@@ -34,6 +34,8 @@ interface Batch {
 }
 
 export default function DataCourse() {
+  const location = useLocation();
+  const isAdminCabang = location.pathname.startsWith('/admin-cabang');
   const [courses, setCourses] = useState<Course[]>([])
   const [batches, setBatches] = useState<Batch[]>([])
   const [loading, setLoading] = useState(true)
@@ -132,7 +134,8 @@ export default function DataCourse() {
 
   const fetchCourses = () => {
     setLoading(true)
-    lmsAdminApi.courses().then(res => {
+    const promise = isAdminCabang ? adminCabangApi.lms() : lmsAdminApi.courses()
+    promise.then(res => {
       setCourses(res.data.courses || [])
       setBatches(res.data.batches || [])
     }).catch(() => {}).finally(() => setLoading(false))
@@ -292,6 +295,7 @@ export default function DataCourse() {
             <p className="text-xs text-slate-400">Kelola kursus dan materi pembelajaran</p>
           </div>
         </div>
+        {!isAdminCabang && (
         <button
           onClick={openCreate}
           className="flex items-center gap-2 bg-[#0E6187] hover:bg-[#0E6187]/90 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm"
@@ -299,6 +303,7 @@ export default function DataCourse() {
           <Plus size={18} />
           Tambah Kursus
         </button>
+        )}
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
@@ -403,6 +408,7 @@ export default function DataCourse() {
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex items-center justify-center gap-1">
+                        {!isAdminCabang && (
                         <Link
                           to={`/lms/${course.id}/lessons`}
                           className="p-2 rounded-lg text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-colors"
@@ -410,6 +416,9 @@ export default function DataCourse() {
                         >
                           <Layers size={16} />
                         </Link>
+                        )}
+                        {!isAdminCabang && (
+                        <>
                         <button
                           onClick={() => openEdit(course)}
                           className="p-2 rounded-lg text-slate-400 hover:bg-amber-50 hover:text-amber-600 transition-colors"
@@ -424,6 +433,8 @@ export default function DataCourse() {
                         >
                           <Trash2 size={16} />
                         </button>
+                        </>
+                        )}
                       </div>
                     </td>
                   </tr>

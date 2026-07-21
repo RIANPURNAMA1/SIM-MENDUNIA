@@ -1,13 +1,10 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Calendar, Plus, Pencil, Trash2, X } from "lucide-react";
-import { jadwalLevelApi } from "../../services/api";
+import { jadwalLevelApi, adminCabangApi } from "../../services/api";
 import type { BatchData, JadwalLevelItem } from "../../types";
 
 const stages = [
-  { level: -4, label: "Wawancara" },
-  { level: -3, label: "Rapat Orang Tua" },
-  { level: -2, label: "MCU" },
-  { level: -1, label: "Pembukaan Kelas" },
   { level: 1, label: "Level 1" },
   { level: 2, label: "Level 2" },
   { level: 3, label: "Level 3" },
@@ -15,6 +12,8 @@ const stages = [
 ];
 
 export default function JadwalLevelPage() {
+  const location = useLocation();
+  const isAdminCabang = location.pathname.startsWith('/admin-cabang');
   const [batches, setBatches] = useState<BatchData[]>([]);
   const [jadwalMap, setJadwalMap] = useState<Record<string, JadwalLevelItem>>({});
   const [loading, setLoading] = useState(true);
@@ -31,7 +30,7 @@ export default function JadwalLevelPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await jadwalLevelApi.list();
+      const res = isAdminCabang ? await adminCabangApi.jadwalLevel() : await jadwalLevelApi.list();
       setBatches(res.data.batches || []);
       const map: Record<string, JadwalLevelItem> = {};
       const jadwalData = res.data.jadwal || {};

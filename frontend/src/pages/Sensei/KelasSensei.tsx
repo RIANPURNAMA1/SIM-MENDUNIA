@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { BookOpen, Search, RotateCcw, Plus, Trash2, X } from "lucide-react";
-import { kelasSenseiApi, guruApi, jadwalLevelApi } from "../../services/api";
+import { kelasSenseiApi, guruApi, jadwalLevelApi, adminCabangApi } from "../../services/api";
 import type { KelasSenseiData, Guru } from "../../types";
 
 function formatDate(iso: string) {
@@ -18,6 +19,8 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 export default function KelasSenseiPage() {
+  const location = useLocation();
+  const isAdminCabang = location.pathname.startsWith('/admin-cabang');
   const [data, setData] = useState<KelasSenseiData[]>([]);
   const [listSensei, setListSensei] = useState<{ id: number; name: string }[]>([]);
   const [listBatch, setListBatch] = useState<{ id: number; nama_batch: string }[]>([]);
@@ -47,10 +50,10 @@ export default function KelasSenseiPage() {
       if (filterSensei) params.user_id = filterSensei;
       if (filterBatch) params.batch_id = filterBatch;
       if (filterStatus) params.status = filterStatus;
-      const res = await kelasSenseiApi.list(params);
+      const res = isAdminCabang ? await adminCabangApi.kelasSensei(params) : await kelasSenseiApi.list(params);
       setData(res.data.data || []);
       setListSensei(res.data.list_sensei || []);
-      setListBatch(res.data.list_batch || []);
+      setListBatch(res.data.list_batch || res.data.batches || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -60,13 +63,14 @@ export default function KelasSenseiPage() {
 
   useEffect(() => {
     fetchData();
-    jadwalLevelApi.list().then(res => setJadwalLevels(res.data.jadwal || {})).catch(() => {});
+    const jadwalPromise = isAdminCabang ? adminCabangApi.jadwalLevel() : jadwalLevelApi.list();
+    jadwalPromise.then(res => setJadwalLevels(res.data.jadwal || {})).catch(() => {});
   }, []);
 
   const openAddModal = async () => {
     setForm({ nama_kelas: "", level: "", user_id: "", batch_id: "", tanggal_mulai: "", tanggal_selesai: "", catatan: "" });
     try {
-      const res = await guruApi.list();
+      const res = isAdminCabang ? await adminCabangApi.guru() : await guruApi.list();
       setGurus(res.data.data || []);
     } catch (_) {}
     setShowModal(true);

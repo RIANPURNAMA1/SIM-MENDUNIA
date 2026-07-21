@@ -106,12 +106,13 @@ const navItems: NavItem[] = [
     href: "/",
   },
   {
-    label: "Manajemen Kandidat",
+    label: "Manage Kandidat",
     icon: "UserPlus",
     children: [
       { label: "Data Kandidat", icon: "UserPlus", href: "/data-kandidat" },
       { label: "Pendaftaran", icon: "ClipboardList", href: "/pendaftar" },
       { label: "Tagihan", icon: "FileText", href: "/tagihan" },
+      { label: "Kelas Kandidat", icon: "GraduationCap", href: "/siswa" },
       { label: "Rekap Per Batch", icon: "Layers", href: "/rekap-per-batch" },
       { label: "Riwayat Pembayaran", icon: "CreditCard", href: "/pembayaran" },
     ],
@@ -152,7 +153,6 @@ const navItems: NavItem[] = [
       { label: "Data Guru", icon: "Presentation", href: "/guru" },
       { label: "Kelas Sensei", icon: "BookOpen", href: "/kelas-sensei" },
       { label: "Jadwal Level", icon: "Calendar", href: "/jadwal-level" },
-      { label: "Data Siswa", icon: "Users", href: "/siswa" },
       { label: "Rekap Siswa", icon: "BarChart3", href: "/rekap-siswa" },
       { label: "Penilaian Siswa", icon: "Notebook", href: "/penilaian" },
       { label: "LMS", icon: "BookOpen", href: "/lms" },
@@ -269,12 +269,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         .filter(
           (item) =>
             item.label === "Keuangan" ||
-            item.label === "Manajemen Kandidat" ||
+            item.label === "Manage Kandidat" ||
             item.label === "Program & Affiliate" ||
             item.label === "Manajemen Absensi",
         )
         .map((item) => {
-          if (item.label === "Manajemen Kandidat" && "children" in item) {
+          if (item.label === "Manage Kandidat" && "children" in item) {
             const group = item as NavGroup;
             return {
               ...group,
@@ -331,6 +331,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const [pendingCount, setPendingCount] = useState(0);
   const [tagihanCount, setTagihanCount] = useState(0);
+  const [lastPending, setLastPending] = useState(() => Number(localStorage.getItem('lastPending') || '0'));
+  const [lastTagihan, setLastTagihan] = useState(() => Number(localStorage.getItem('lastTagihan') || '0'));
+
+  const badgePending = Math.max(0, pendingCount - lastPending);
+  const badgeTagihan = Math.max(0, tagihanCount - lastTagihan);
 
   useEffect(() => {
     if (isRestricted) return;
@@ -370,7 +375,15 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     setOpenGroups((prev) => ({ ...prev, [label]: !prev[label] }));
   };
 
-  const handleNavClick = () => {
+  const handleNavClick = (label?: string) => {
+    if (label === "Pendaftaran") {
+      setLastPending(pendingCount);
+      localStorage.setItem('lastPending', String(pendingCount));
+    }
+    if (label === "Tagihan") {
+      setLastTagihan(tagihanCount);
+      localStorage.setItem('lastTagihan', String(tagihanCount));
+    }
     if (onClose) onClose();
   };
 
@@ -444,6 +457,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   <div className="flex items-center gap-3">
                     <Icon size={18} />
                     <span>{group.label}</span>
+                    {group.label === "Manage Kandidat" && (badgePending + badgeTagihan) > 0 && (
+                      <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+                        {badgePending + badgeTagihan > 99 ? "99+" : badgePending + badgeTagihan}
+                      </span>
+                    )}
                   </div>
                   <ChevronDown
                     size={14}
@@ -459,20 +477,20 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                         <Link
                           key={child.label}
                           to={child.href}
-                          onClick={handleNavClick}
+                          onClick={() => handleNavClick(child.label)}
                           className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 ${active ? "bg-white/15 text-white font-medium" : "text-gray-400 hover:bg-white/10 hover:text-white"}`}
                         >
                           <ChildIcon size={14} />
                           <span>{child.label}</span>
                           {child.label === "Pendaftaran" &&
-                            pendingCount > 0 && (
+                            badgePending > 0 && (
                               <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
-                                {pendingCount > 99 ? "99+" : pendingCount}
+                                {badgePending > 99 ? "99+" : badgePending}
                               </span>
                             )}
-                          {child.label === "Tagihan" && tagihanCount > 0 && (
+                          {child.label === "Tagihan" && badgeTagihan > 0 && (
                             <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
-                              {tagihanCount > 99 ? "99+" : tagihanCount}
+                              {badgeTagihan > 99 ? "99+" : badgeTagihan}
                             </span>
                           )}
                         </Link>

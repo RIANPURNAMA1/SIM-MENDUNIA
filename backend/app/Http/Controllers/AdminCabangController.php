@@ -2,13 +2,24 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\KelasSensei;
 use App\Models\Pendaftar;
 use App\Models\Batch;
-use App\Models\BatchBiaya;
+
 use App\Models\BiayaKategori;
 use App\Models\PembayaranItem;
+use App\Models\Siswa;
+use App\Models\Guru;
+use App\Models\JadwalLevel;
+use App\Models\User;
+use App\Models\AssessmentCategory;
+use App\Models\StudentAssessment;
+use App\Models\PenilaianSetting;
+use App\Models\Course;
+use App\Models\CourseLesson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class AdminCabangController extends Controller
 {
@@ -226,22 +237,80 @@ class AdminCabangController extends Controller
             ->get()
             ->groupBy('pendaftar_id');
 
-        $result = $data->map(function ($p) use ($kategoris, $allPembayaran) {
+        $allBayar = \App\Models\Pembayaran::whereIn('pendaftar_id', $pendaftarIds)
+            ->where('status', 'verified')
+            ->get()
+            ->groupBy('pendaftar_id');
+
+        $result = $data->map(function ($p) use ($kategoris, $allPembayaran, $allBayar) {
             $pembayaranItems = $allPembayaran->get($p->id, collect())->keyBy('kategori_id');
+            $pembayaranList = $allBayar->get($p->id, collect());
             $product = $p->product;
-            $pivotPrices = collect();
+            $pivotById = collect();
             if ($product && $product->relationLoaded('biayaKategoris')) {
-                $pivotPrices = $product->biayaKategoris->keyBy('id')->map(fn($k) => (int) $k->pivot->harga);
+                $pivotById = $product->biayaKategoris->keyBy('id');
             }
-            $detail = $kategoris->map(function ($k) use ($pembayaranItems, $pivotPrices) {
-                $pi = $pembayaranItems->get($k->id);
-                $default = $pivotPrices->get($k->id, 0);
+
+            // Build aggregated kategori items from product's kategori_items JSON (same as bayarInfo)
+            $aggregated = collect();
+            if ($product && is_array($product->kategori_items)) {
+                $walkAgg = function ($items, $depth) use (&$walkAgg, $pivotById, &$aggregated) {
+                    foreach ($items as $item) {
+                        $name = strtolower(trim($item['name'] ?? ''));
+                        if ($name === '') continue;
+                        $kategori = $pivotById->first(fn($k) => strtolower($k->nama) === $name || strtolower($k->kode) === $name);
+                        if (!$kategori) continue;
+
+                        $children = $item['children'] ?? [];
+                        $childHarga = 0;
+                        foreach ($children as $c) {
+                            $cn = strtolower(trim($c['name'] ?? ''));
+                            $ck = $pivotById->first(fn($k) => strtolower($k->nama) === $cn || strtolower($k->kode) === $cn);
+                            if ($ck) $childHarga += (float) ($ck->pivot->harga ?? 0);
+                        }
+
+                        if ($depth === 0) {
+                            $aggregated->push([
+                                'id' => $kategori->id,
+                                'kode' => $kategori->kode,
+                                'nama' => $kategori->nama,
+                                'biaya' => (float) ($kategori->pivot->harga ?? 0) + $childHarga,
+                            ]);
+                        }
+
+                        if (!empty($children)) {
+                            $walkAgg($children, $depth + 1);
+                        }
+                    }
+                };
+                $walkAgg($product->kategori_items, 0);
+            }
+
+            // Add remaining kategoris not in JSON hierarchy
+            foreach ($kategoris as $k) {
+                if (!$aggregated->firstWhere('id', $k->id)) {
+                    $aggregated->push([
+                        'id' => $k->id,
+                        'kode' => $k->kode,
+                        'nama' => $k->nama,
+                        'biaya' => (float) ($pivotById->get($k->id)?->pivot->harga ?? 0),
+                    ]);
+                }
+            }
+
+            $detail = $aggregated->map(function ($item) use ($pembayaranItems, $pembayaranList) {
+                $pi = $pembayaranItems->get($item['id']);
+                $dibayar = $pi ? (int) $pi->jumlah : 0;
+                $pembayaran = $pembayaranList->firstWhere('kategori_id', $item['id']);
                 return [
-                    'kategori_id' => $k->id,
-                    'kode' => $k->kode,
-                    'nama' => $k->nama,
-                    'biaya' => $default,
-                    'dibayar' => $pi ? (int) $pi->jumlah : 0,
+                    'kategori_id' => $item['id'],
+                    'kode' => $item['kode'],
+                    'nama' => $item['nama'],
+                    'biaya' => $item['biaya'],
+                    'dibayar' => $dibayar,
+                    'kode_unik' => $pi ? ($pi->kode_unik ?? 0) : 0,
+                    'total_transfer' => $pi ? ($pi->total_transfer ?? $item['biaya']) : 0,
+                    'tanggal_bayar' => $pembayaran ? $pembayaran->created_at : null,
                 ];
             });
             return array_merge($p->toArray(), ['detail' => $detail]);
@@ -327,66 +396,81 @@ class AdminCabangController extends Controller
             ->get()
             ->groupBy('pendaftar_id');
 
-        $result = $data->map(function ($p) use ($kategoris, $allPembayaran) {
+        $allBayar = \App\Models\Pembayaran::whereIn('pendaftar_id', $pendaftarIds)
+            ->where('status', 'verified')
+            ->get()
+            ->groupBy('pendaftar_id');
+
+        $result = $data->map(function ($p) use ($kategoris, $allPembayaran, $allBayar) {
             $pembayaranItems = $allPembayaran->get($p->id, collect())->keyBy('kategori_id');
+            $pembayaranList = $allBayar->get($p->id, collect());
             $product = $p->product;
 
-            // Build price map from product_biaya_kategori pivot
-            $pivotPrices = collect();
+            // Build aggregated kategori items from product's kategori_items JSON (same as bayarInfo)
+            $pivotById = collect();
             if ($product && $product->relationLoaded('biayaKategoris')) {
-                $pivotPrices = $product->biayaKategoris->keyBy('id')->map(fn($k) => (int) $k->pivot->harga);
+                $pivotById = $product->biayaKategoris->keyBy('id');
             }
 
-            // Also build a name-based price map from kategori_items JSON as fallback
-            $namaPrices = collect();
+            $aggregated = collect();
             if ($product && is_array($product->kategori_items)) {
-                $flatten = function ($items) use (&$flatten, &$namaPrices) {
+                $walkAgg = function ($items, $depth) use (&$walkAgg, $pivotById, &$aggregated) {
                     foreach ($items as $item) {
-                        $name = trim($item['name'] ?? '');
-                        $harga = (int) ($item['harga'] ?? 0);
-                        if ($name !== '' && $harga > 0) {
-                            $namaPrices->put(strtolower($name), $harga);
+                        $name = strtolower(trim($item['name'] ?? ''));
+                        if ($name === '') continue;
+                        $kategori = $pivotById->first(fn($k) => strtolower($k->nama) === $name || strtolower($k->kode) === $name);
+                        if (!$kategori) continue;
+
+                        $children = $item['children'] ?? [];
+                        $childHarga = 0;
+                        foreach ($children as $c) {
+                            $cn = strtolower(trim($c['name'] ?? ''));
+                            $ck = $pivotById->first(fn($k) => strtolower($k->nama) === $cn || strtolower($k->kode) === $cn);
+                            if ($ck) $childHarga += (float) ($ck->pivot->harga ?? 0);
                         }
-                        if (!empty($item['children'])) {
-                            $flatten($item['children']);
+
+                        if ($depth === 0) {
+                            $aggregated->push([
+                                'id' => $kategori->id,
+                                'kode' => $kategori->kode,
+                                'nama' => $kategori->nama,
+                                'biaya' => (float) ($kategori->pivot->harga ?? 0) + $childHarga,
+                            ]);
+                        }
+
+                        if (!empty($children)) {
+                            $walkAgg($children, $depth + 1);
                         }
                     }
                 };
-                $flatten($product->kategori_items);
+                $walkAgg($product->kategori_items, 0);
             }
 
-            // Build a name-based dibayar map from pembayaran_items
-            $namaDibayar = collect();
-            $kategoriMap = $kategoris->keyBy('id');
-            foreach ($pembayaranItems as $katId => $pi) {
-                $katModel = $kategoriMap->get($katId);
-                if ($katModel) {
-                    $namaDibayar->put(strtolower($katModel->nama), (int) $pi->jumlah);
+            // Add remaining kategoris not in JSON hierarchy
+            foreach ($kategoris as $k) {
+                if (!$aggregated->firstWhere('id', $k->id)) {
+                    $aggregated->push([
+                        'id' => $k->id,
+                        'kode' => $k->kode,
+                        'nama' => $k->nama,
+                        'biaya' => (float) ($pivotById->get($k->id)?->pivot->harga ?? 0),
+                    ]);
                 }
             }
 
-            $detail = $kategoris->map(function ($k) use ($pembayaranItems, $pivotPrices, $namaPrices, $namaDibayar) {
-                $pi = $pembayaranItems->get($k->id);
-                $biaya = $pivotPrices->get($k->id, 0);
-                if ($biaya === 0) {
-                    $biaya = $namaPrices->get(strtolower($k->nama), 0);
-                }
-                if ($biaya === 0) {
-                    $biaya = $namaPrices->get(strtolower($k->kode), 0);
-                }
+            $detail = $aggregated->map(function ($item) use ($pembayaranItems, $pembayaranList) {
+                $pi = $pembayaranItems->get($item['id']);
                 $dibayar = $pi ? (int) $pi->jumlah : 0;
-                if ($dibayar === 0) {
-                    $dibayar = $namaDibayar->get(strtolower($k->nama), 0);
-                }
-                if ($dibayar === 0) {
-                    $dibayar = $namaDibayar->get(strtolower($k->kode), 0);
-                }
+                $pembayaran = $pembayaranList->firstWhere('kategori_id', $item['id']);
                 return [
-                    'kategori_id' => $k->id,
-                    'kode' => $k->kode,
-                    'nama' => $k->nama,
-                    'biaya' => $biaya,
+                    'kategori_id' => $item['id'],
+                    'kode' => $item['kode'],
+                    'nama' => $item['nama'],
+                    'biaya' => $item['biaya'],
                     'dibayar' => $dibayar,
+                    'kode_unik' => $pi ? ($pi->kode_unik ?? 0) : 0,
+                    'total_transfer' => $pi ? ($pi->total_transfer ?? $item['biaya']) : 0,
+                    'tanggal_bayar' => $pembayaran ? $pembayaran->created_at : null,
                 ];
             });
             return array_merge($p->toArray(), ['detail' => $detail]);
@@ -494,6 +578,60 @@ class AdminCabangController extends Controller
         ]);
     }
 
+    public function siswa(Request $request)
+    {
+        $batchIds = $this->getBranchBatchIds();
+
+        $query = Siswa::with(['shift', 'kelasRelasi', 'batchRelasi'])
+            ->whereIn('batch_id', $batchIds);
+
+        if ($request->filled('batch_id')) $query->where('batch_id', $request->batch_id);
+        if ($request->filled('status')) $query->where('status', $request->status);
+        if ($request->filled('search')) $query->where('nama', 'like', '%' . $request->search . '%');
+
+        $siswa = $query->latest()->get();
+
+        $senseiByBatch = KelasSensei::select('batch_id', 'level')
+            ->distinct()
+            ->get()
+            ->groupBy('batch_id');
+
+        $siswa->each(function ($s) use ($senseiByBatch) {
+            $levels = [];
+            for ($i = 1; $i <= 4; $i++) {
+                $levels["level_{$i}"] = '-';
+            }
+            $batchSensei = $senseiByBatch->get($s->batch_id);
+            if ($batchSensei) {
+                $available = $batchSensei->pluck('level')->toArray();
+                for ($i = 1; $i <= 4; $i++) {
+                    if (in_array($i, $available)) {
+                        $levels["level_{$i}"] = 'Active';
+                    }
+                }
+            }
+            $stored = $s->level_status ?? [];
+            foreach ($stored as $key => $val) {
+                if (in_array($key, ['level_1','level_2','level_3','level_4'])) {
+                    $levels[$key] = $val;
+                }
+            }
+            $s->level_status = $levels;
+        });
+
+        $kelasList = \App\Models\Kelas::aktif()->get();
+        $batchList = Batch::whereIn('id', $batchIds)->aktif()->get();
+        $shifts = \App\Models\Shift::aktif()->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $siswa,
+            'kelas_list' => $kelasList,
+            'batch_list' => $batchList,
+            'shifts' => $shifts,
+        ]);
+    }
+
     public function batches()
     {
         $batchIds = $this->getBranchBatchIds();
@@ -543,42 +681,100 @@ class AdminCabangController extends Controller
             ->orderBy('nama_batch')
             ->get();
 
-        $kategoris = BiayaKategori::orderBy('urutan')->get();
+        $allKategoris = BiayaKategori::orderBy('urutan')->get();
         $result = [];
 
         foreach ($batches as $batch) {
-            $pendaftar = Pendaftar::with(['product'])
+            $pendaftar = Pendaftar::with(['product.biayaKategoris'])
                 ->where('batch_id', $batch->id)
                 ->orderBy('nama')
                 ->get();
 
             if ($pendaftar->isEmpty()) continue;
 
-            $biayaBatch = BatchBiaya::where('batch_id', $batch->id)
-                ->get()
-                ->keyBy('kategori_id');
-
-            $pembayaranBatch = PembayaranItem::whereIn('pendaftar_id', $pendaftar->pluck('id'))
+            $allPendaftarIds = $pendaftar->pluck('id');
+            $allPembayaran = PembayaranItem::whereIn('pendaftar_id', $allPendaftarIds)
                 ->get()
                 ->groupBy('pendaftar_id');
 
-            $items = $pendaftar->map(function ($p) use ($kategoris, $biayaBatch, $pembayaranBatch) {
-                $pembayaranItems = $pembayaranBatch->get($p->id, collect())->keyBy('kategori_id');
+            $allBayar = \App\Models\Pembayaran::whereIn('pendaftar_id', $allPendaftarIds)
+                ->where('status', 'verified')
+                ->get()
+                ->groupBy('pendaftar_id');
 
-                $detail = $kategoris->map(function ($k) use ($biayaBatch, $pembayaranItems) {
-                    $bb = $biayaBatch->get($k->id);
-                    $pi = $pembayaranItems->get($k->id);
-                    $biaya = $bb ? (int) $bb->biaya : 0;
+            $batchKategoriUsedIds = new \Illuminate\Support\Collection();
+
+            $items = $pendaftar->map(function ($p) use ($allKategoris, $allPembayaran, $allBayar, &$batchKategoriUsedIds) {
+                $pembayaranItems = $allPembayaran->get($p->id, collect())->keyBy('kategori_id');
+                $pembayaranList = $allBayar->get($p->id, collect());
+                $product = $p->product;
+
+                $pivotById = collect();
+                if ($product && $product->relationLoaded('biayaKategoris')) {
+                    $pivotById = $product->biayaKategoris->keyBy('id');
+                }
+
+                $aggregated = collect();
+                if ($product && is_array($product->kategori_items)) {
+                    $walkAgg = function ($items, $depth) use (&$walkAgg, $pivotById, &$aggregated) {
+                        foreach ($items as $item) {
+                            $name = strtolower(trim($item['name'] ?? ''));
+                            if ($name === '') continue;
+                            $kategori = $pivotById->first(fn($k) => strtolower($k->nama) === $name || strtolower($k->kode) === $name);
+                            if (!$kategori) continue;
+
+                            $children = $item['children'] ?? [];
+                            $childHarga = 0;
+                            foreach ($children as $c) {
+                                $cn = strtolower(trim($c['name'] ?? ''));
+                                $ck = $pivotById->first(fn($k) => strtolower($k->nama) === $cn || strtolower($k->kode) === $cn);
+                                if ($ck) $childHarga += (float) ($ck->pivot->harga ?? 0);
+                            }
+
+                            if ($depth === 0) {
+                                $aggregated->push([
+                                    'id' => $kategori->id,
+                                    'kode' => $kategori->kode,
+                                    'nama' => $kategori->nama,
+                                    'biaya' => (float) ($kategori->pivot->harga ?? 0) + $childHarga,
+                                ]);
+                            }
+
+                            if (!empty($children)) {
+                                $walkAgg($children, $depth + 1);
+                            }
+                        }
+                    };
+                    $walkAgg($product->kategori_items, 0);
+                }
+
+                foreach ($allKategoris as $k) {
+                    if (!$aggregated->firstWhere('id', $k->id)) {
+                        $aggregated->push([
+                            'id' => $k->id,
+                            'kode' => $k->kode,
+                            'nama' => $k->nama,
+                            'biaya' => (float) ($pivotById->get($k->id)?->pivot->harga ?? 0),
+                        ]);
+                    }
+                }
+
+                $detail = $aggregated->map(function ($item) use ($pembayaranItems, $pembayaranList) {
+                    $pi = $pembayaranItems->get($item['id']);
                     $dibayar = $pi ? (int) $pi->jumlah : 0;
+                    $pembayaran = $pembayaranList->firstWhere('kategori_id', $item['id']);
                     return [
-                        'kategori_id' => $k->id,
-                        'kode' => $k->kode,
-                        'nama' => $k->nama,
-                        'biaya' => $biaya,
+                        'kategori_id' => $item['id'],
+                        'kode' => $item['kode'],
+                        'nama' => $item['nama'],
+                        'biaya' => $item['biaya'],
                         'dibayar' => $dibayar,
-                        'sisa' => max(0, $biaya - $dibayar),
+                        'kode_unik' => $pi ? ($pi->kode_unik ?? 0) : 0,
+                        'total_transfer' => $pi ? ($pi->total_transfer ?? $item['biaya']) : $item['biaya'],
                     ];
                 });
+
+                $detail->filter(fn($d) => $d['biaya'] > 0)->each(fn($d) => $batchKategoriUsedIds->push($d['kategori_id']));
 
                 $totalBiaya = $detail->sum('biaya');
                 $totalDibayar = $detail->sum('dibayar');
@@ -587,7 +783,12 @@ class AdminCabangController extends Controller
                     'id' => $p->id,
                     'nama' => $p->nama,
                     'email' => $p->email,
-                    'program' => $p->product?->nama ?? '-',
+                    'batch' => $p->batch?->nama_batch ?? '-',
+                    'product' => $p->product ? [
+                        'id' => $p->product->id,
+                        'nama' => $p->product->nama,
+                        'kategori_items' => $p->product->kategori_items ?? [],
+                    ] : null,
                     'total_biaya' => $totalBiaya,
                     'total_dibayar' => $totalDibayar,
                     'total_sisa' => max(0, $totalBiaya - $totalDibayar),
@@ -597,6 +798,7 @@ class AdminCabangController extends Controller
                 ];
             });
 
+            $usedKats = $allKategoris->filter(fn($k) => $batchKategoriUsedIds->contains($k->id));
             $grandBiaya = $items->sum('total_biaya');
             $grandDibayar = $items->sum('total_dibayar');
 
@@ -608,6 +810,7 @@ class AdminCabangController extends Controller
                 'total_biaya' => $grandBiaya,
                 'total_dibayar' => $grandDibayar,
                 'total_sisa' => $grandBiaya - $grandDibayar,
+                'kategoris' => $usedKats->map(fn($k) => ['id' => $k->id, 'kode' => $k->kode, 'nama' => $k->nama])->values(),
                 'items' => $items,
             ];
         }
@@ -620,7 +823,6 @@ class AdminCabangController extends Controller
             'grand_total_biaya' => $grandBiaya,
             'grand_total_dibayar' => $grandDibayar,
             'grand_total_sisa' => $grandBiaya - $grandDibayar,
-            'kategoris' => $kategoris->map(fn($k) => ['id' => $k->id, 'kode' => $k->kode, 'nama' => $k->nama]),
         ]);
     }
 
@@ -630,5 +832,397 @@ class AdminCabangController extends Controller
         $branchIds = $user->cabang_ids ?? [];
         $branches = \App\Models\Cabang::whereIn('id', $branchIds)->get();
         return response()->json($branches);
+    }
+
+    public function guru()
+    {
+        $batchIds = $this->getBranchBatchIds();
+
+        $guruUserIds = KelasSensei::whereIn('batch_id', $batchIds)
+            ->select('user_id')
+            ->distinct()
+            ->pluck('user_id');
+
+        $gurus = Guru::with('user')
+            ->whereIn('user_id', $guruUserIds)
+            ->latest()
+            ->get();
+
+        $users = User::where('status', 'AKTIF')
+            ->where('role', '!=', 'KANDIDAT')
+            ->orderBy('name')
+            ->get();
+
+        $guruUserIdsExisting = $gurus->pluck('user_id');
+
+        return response()->json([
+            'success' => true,
+            'data' => $gurus,
+            'available_users' => $users->map(function ($u) use ($guruUserIdsExisting) {
+                return [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'email' => $u->email,
+                    'role' => $u->role,
+                    'foto_profil' => $u->foto_profil,
+                    'already_guru' => $guruUserIdsExisting->contains($u->id),
+                ];
+            }),
+        ]);
+    }
+
+    public function kelasSensei(Request $request)
+    {
+        $batchIds = $this->getBranchBatchIds();
+
+        $query = KelasSensei::with('user', 'batchRelasi')
+            ->whereIn('batch_id', $batchIds);
+
+        if ($request->user_id) $query->where('user_id', $request->user_id);
+        if ($request->status) $query->where('status', $request->status);
+        if ($request->batch_id && in_array($request->batch_id, $batchIds)) {
+            $query->where('batch_id', $request->batch_id);
+        }
+        if ($request->start_date) $query->whereDate('tanggal_selesai', '>=', $request->start_date);
+        if ($request->end_date) $query->whereDate('tanggal_mulai', '<=', $request->end_date);
+
+        $kelas = $query->orderBy('tanggal_mulai', 'desc')->get();
+
+        $kelas = $kelas->map(function ($kelasItem) {
+            $tglMulai = \Carbon\Carbon::parse($kelasItem->tanggal_mulai);
+            $tglSelesai = \Carbon\Carbon::parse($kelasItem->tanggal_selesai);
+
+            $kelasItem->total_pertemuan = $tglMulai->copy()->diffInDaysFiltered(function ($date) {
+                if ($date->dayOfWeek === 0 || $date->dayOfWeek === 6) return false;
+                if (\App\Models\HariLibur::apakahLibur($date->toDateString())) return false;
+                return true;
+            }, $tglSelesai->copy()->addSecond());
+
+            $absenQuery = \App\Models\AbsensiSensei::where('kelas_sensei_id', $kelasItem->id)
+                ->whereDate('tanggal', '>=', $tglMulai)
+                ->whereDate('tanggal', '<=', $tglSelesai)
+                ->whereRaw('DAYOFWEEK(tanggal) NOT IN (1, 7)')
+                ->get()
+                ->reject(fn($a) => \App\Models\HariLibur::apakahLibur($a->tanggal));
+
+            $kelasItem->jumlah_absen = $absenQuery->count();
+            $kelasItem->jumlah_alpa = $absenQuery->where('status', 'ALPA')->count();
+
+            $izinSensei = \App\Models\Izin::where('user_id', $kelasItem->user_id)
+                ->where('status', 'DISETUJUI')
+                ->whereBetween('tanggal_mulai', [$tglMulai, $tglSelesai])
+                ->count();
+
+            $kelasItem->jumlah_izin = $izinSensei;
+            $kelasItem->persentase_kehadiran = $kelasItem->total_pertemuan > 0
+                ? round((($kelasItem->total_pertemuan - $kelasItem->jumlah_alpa - $izinSensei) / $kelasItem->total_pertemuan) * 100, 1)
+                : 0;
+
+            return $kelasItem;
+        });
+
+        $batches = Batch::whereIn('id', $batchIds)->orderBy('nama_batch')->get(['id', 'nama_batch']);
+
+        return response()->json([
+            'success' => true,
+            'data' => $kelas,
+            'batches' => $batches,
+        ]);
+    }
+
+    public function jadwalLevel()
+    {
+        $batchIds = $this->getBranchBatchIds();
+
+        $batches = Batch::whereIn('id', $batchIds)
+            ->aktif()
+            ->orderBy('nama_batch')
+            ->get();
+
+        $levels = [1, 2, 3, 4];
+        $jadwal = JadwalLevel::whereIn('batch_id', $batchIds)
+            ->with('batch')
+            ->get()
+            ->keyBy(fn($item) => $item->batch_id . '-' . $item->level);
+
+        $jadwalMap = $jadwal->map(function ($item) {
+            return [
+                'id' => $item->id,
+                'batch_id' => $item->batch_id,
+                'level' => $item->level,
+                'tanggal_mulai' => $item->tanggal_mulai->format('Y-m-d'),
+                'tanggal_selesai' => $item->tanggal_selesai->format('Y-m-d'),
+                'batch_nama' => $item->batch?->nama_batch ?? '-',
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'batches' => $batches,
+            'levels' => $levels,
+            'jadwal' => $jadwalMap,
+        ]);
+    }
+
+    public function rekapSiswa(Request $request)
+    {
+        $batchIds = $this->getBranchBatchIds();
+
+        $kelasList = KelasSensei::with('user', 'batchRelasi')
+            ->whereIn('batch_id', $batchIds)
+            ->where('status', 'aktif')
+            ->orderBy('nama_kelas')
+            ->get(['id', 'nama_kelas', 'batch_id', 'level']);
+
+        $batchList = Batch::whereIn('id', $batchIds)
+            ->orderBy('nama_batch')
+            ->get(['id', 'nama_batch']);
+
+        $levels = [1, 2, 3, 4];
+
+        $selectedKelasSensei = null;
+        if ($request->filled('kelas_sensei_id')) {
+            $selectedKelasSensei = KelasSensei::with('user', 'batchRelasi')
+                ->whereIn('batch_id', $batchIds)
+                ->find($request->kelas_sensei_id);
+            if ($selectedKelasSensei && !$request->filled('start_date') && !$request->filled('end_date')) {
+                $request->merge([
+                    'start_date' => $selectedKelasSensei->tanggal_mulai->toDateString(),
+                    'end_date' => $selectedKelasSensei->tanggal_selesai->toDateString(),
+                ]);
+            }
+        }
+
+        $start_date = $request->start_date ?? now()->startOfMonth()->toDateString();
+        $end_date = $request->end_date ?? now()->endOfMonth()->toDateString();
+
+        $query = Siswa::where('status', 'AKTIF')
+            ->whereIn('batch_id', $batchIds);
+
+        $selectedNamaKelas = null;
+        if ($request->filled('kelas_sensei_id')) {
+            $ks = KelasSensei::find($request->kelas_sensei_id);
+            if ($ks) {
+                $query->where('batch_id', $ks->batch_id);
+                $selectedNamaKelas = $ks->nama_kelas;
+            }
+        } else {
+            if ($request->filled('batch_id') && in_array($request->batch_id, $batchIds)) {
+                $query->where('batch_id', $request->batch_id);
+            }
+            if ($request->filled('level')) {
+                $query->where('level', $request->level);
+            }
+        }
+
+        $rekap = $query->with(['kelasRelasi', 'absensi' => function ($q) use ($start_date, $end_date) {
+            $q->whereBetween('tanggal', [$start_date, $end_date]);
+        }])->get()->map(function ($siswa) use ($selectedNamaKelas) {
+            $hadir = $siswa->absensi->where('status', 'HADIR')->count();
+            $terlambat = $siswa->absensi->where('status', 'TERLAMBAT')->count();
+            $izin = $siswa->absensi->where('status', 'IZIN')->count();
+            $sakit = $siswa->absensi->where('status', 'SAKIT')->count();
+            $alpa = $siswa->absensi->where('status', 'ALPA')->count();
+            $totalHadir = $hadir + $terlambat;
+            $total = $siswa->absensi->count();
+
+            return [
+                'id' => $siswa->id,
+                'nama' => $siswa->nama,
+                'kelas' => $selectedNamaKelas ?? $siswa->kelasRelasi->nama_kelas ?? $siswa->kelas,
+                'batch' => $siswa->batchRelasi->nama_batch ?? '-',
+                'hadir' => $hadir,
+                'terlambat' => $terlambat,
+                'izin' => $izin,
+                'sakit' => $sakit,
+                'alpa' => $alpa,
+                'total_hadir' => $totalHadir,
+                'total' => $total,
+                'persentase' => $total > 0 ? round(($totalHadir / $total) * 100, 1) : 0,
+            ];
+        })->toArray();
+
+        return response()->json([
+            'rekap' => $rekap,
+            'kelas_list' => $kelasList,
+            'batch_list' => $batchList,
+            'levels' => $levels,
+            'start_date' => $start_date,
+            'end_date' => $end_date,
+            'selected_kelas_sensei' => $selectedKelasSensei,
+        ]);
+    }
+
+    public function penilaian(Request $request)
+    {
+        $batchIds = $this->getBranchBatchIds();
+
+        $levels = KelasSensei::whereIn('batch_id', $batchIds)
+            ->select('level')
+            ->distinct()
+            ->orderBy('level')
+            ->pluck('level');
+
+        $guruUserIds = KelasSensei::whereIn('batch_id', $batchIds)
+            ->select('user_id')
+            ->distinct()
+            ->pluck('user_id');
+
+        $gurus = User::whereIn('id', $guruUserIds)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        $level = $request->level;
+        $guruId = $request->guru_id;
+        $batchId = $request->batch_id;
+        $kelasSenseiId = $request->kelas_sensei_id;
+
+        $batchList = collect();
+        if ($level && $guruId) {
+            $filteredBatchIds = KelasSensei::whereIn('batch_id', $batchIds)
+                ->where('level', $level)
+                ->where('user_id', $guruId)
+                ->whereNotNull('batch_id')
+                ->pluck('batch_id');
+            $batchList = Batch::whereIn('id', $filteredBatchIds)
+                ->orderBy('nama_batch')
+                ->get(['id', 'nama_batch']);
+        }
+
+        $kelas = null;
+        if ($kelasSenseiId) {
+            $kelas = KelasSensei::with('batchRelasi')
+                ->whereIn('batch_id', $batchIds)
+                ->find($kelasSenseiId);
+            if ($kelas) {
+                $batchId = $kelas->batch_id;
+                $level = $kelas->level;
+                $guruId = $kelas->user_id;
+            }
+        } elseif ($batchId && $level && $guruId) {
+            $kelas = KelasSensei::whereIn('batch_id', $batchIds)
+                ->where('batch_id', $batchId)
+                ->where('level', $level)
+                ->where('user_id', $guruId)
+                ->first();
+        }
+
+        $students = collect();
+        $categories = collect();
+        $days = [];
+        $assessmentCheck = collect();
+
+        $weekStart = $request->week
+            ? Carbon::parse($request->week)->startOfWeek(Carbon::MONDAY)
+            : Carbon::now()->startOfWeek(Carbon::MONDAY);
+
+        $prevWeek = $weekStart->copy()->subWeek()->toDateString();
+        $nextWeek = $weekStart->copy()->addWeek()->toDateString();
+
+        for ($i = 0; $i < 5; $i++) {
+            $days[] = $weekStart->copy()->addDays($i)->toDateString();
+        }
+
+        if ($kelas) {
+            $students = Siswa::with('kelasRelasi')
+                ->where('batch_id', $batchId)
+                ->where('status', 'AKTIF')
+                ->orderBy('nama')
+                ->get(['id', 'nama', 'kelas', 'kelas_id']);
+
+            $categories = AssessmentCategory::with('components')
+                ->where('level', $kelas->level)
+                ->orderBy('urutan')
+                ->get();
+
+            $studentIds = $students->pluck('id');
+            $componentIds = $categories->pluck('components')->flatten()->pluck('id');
+
+            $existing = StudentAssessment::whereIn('siswa_id', $studentIds)
+                ->whereIn('component_id', $componentIds)
+                ->where('batch_id', $batchId)
+                ->whereBetween('tanggal', [$days[0], $days[4]])
+                ->select('siswa_id', 'tanggal')
+                ->distinct()
+                ->get();
+
+            foreach ($students as $s) {
+                foreach ($days as $d) {
+                    $key = $s->id . '_' . $d;
+                    $assessmentCheck[$key] = $existing->contains(fn($a) =>
+                        $a->siswa_id === $s->id && $a->tanggal === $d
+                    );
+                }
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'levels' => $levels,
+            'gurus' => $gurus,
+            'level' => $level,
+            'guruId' => $guruId,
+            'batchId' => $batchId,
+            'batchList' => $batchList,
+            'kelas' => $kelas,
+            'students' => $students,
+            'categories' => $categories,
+            'days' => $days,
+            'assessmentCheck' => $assessmentCheck,
+            'weekStart' => $weekStart->toDateString(),
+            'prevWeek' => $prevWeek,
+            'nextWeek' => $nextWeek,
+        ]);
+    }
+
+    public function lms(Request $request)
+    {
+        $batchIds = $this->getBranchBatchIds();
+
+        $batches = Batch::whereIn('id', $batchIds)
+            ->orderBy('nama_batch')
+            ->get(['id', 'nama_batch']);
+
+        $levels = KelasSensei::whereIn('batch_id', $batchIds)
+            ->select('level')
+            ->distinct()
+            ->orderBy('level')
+            ->pluck('level');
+
+        $query = Course::withCount(['lessons' => function ($q) {
+            $q->where('status', 'aktif');
+        }]);
+
+        if ($request->batch_id && in_array($request->batch_id, $batchIds)) {
+            $query->where(function ($q) use ($request) {
+                $q->where('batch_id', $request->batch_id)
+                  ->orWhereNull('batch_id');
+            });
+        } else {
+            $query->where(function ($q) use ($batchIds) {
+                $q->whereIn('batch_id', $batchIds)
+                  ->orWhereNull('batch_id');
+            });
+        }
+
+        if ($request->level) {
+            $query->where(function ($q) use ($request) {
+                $q->where('level', $request->level)
+                  ->orWhereNull('level');
+            });
+        }
+
+        if ($request->search) {
+            $query->where('nama', 'like', '%' . $request->search . '%');
+        }
+
+        $courses = $query->orderBy('sort')->get();
+
+        return response()->json([
+            'success' => true,
+            'courses' => $courses,
+            'batches' => $batches,
+            'levels' => $levels,
+        ]);
     }
 }

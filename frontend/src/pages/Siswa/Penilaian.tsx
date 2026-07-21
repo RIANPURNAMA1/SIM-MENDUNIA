@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
+import { useLocation } from "react-router-dom"
 import { Notebook, ChevronLeft, ChevronRight, Check, Minus } from "lucide-react"
-import { penilaianApi } from "../../services/api"
+import { penilaianApi, adminCabangApi } from "../../services/api"
 
 interface Guru {
   id: number;
@@ -74,6 +75,8 @@ function formatDate(dateStr: string): string {
 }
 
 export default function PenilaianPage() {
+  const location = useLocation();
+  const isAdminCabang = location.pathname.startsWith('/admin-cabang');
   const [levels, setLevels] = useState<string[]>([]);
   const [gurus, setGurus] = useState<Guru[]>([]);
   const [batchList, setBatchList] = useState<BatchItem[]>([]);
@@ -114,7 +117,7 @@ export default function PenilaianPage() {
         if (filterBatch) params.batch_id = filterBatch;
         if (weekStart) params.week = weekStart;
       }
-      const res = await penilaianApi.matrix(params);
+      const res = isAdminCabang ? await adminCabangApi.penilaian(params) : await penilaianApi.matrix(params);
       const d = res.data;
       setLevels(d.levels || []);
       setGurus(d.gurus || []);
