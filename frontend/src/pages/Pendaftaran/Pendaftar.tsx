@@ -369,17 +369,17 @@ export default function Pendaftar() {
               pagedList.map(p => (
                 <tr key={p.id} className="bg-white transition hover:bg-slate-50">
                   <td className="border border-slate-200 px-3 py-3">
-                    <div className="flex items-center gap-2 overflow-hidden">
+                    <button onClick={() => setDetailModal(p)} className="flex items-center gap-2 overflow-hidden text-left hover:opacity-80 transition-opacity cursor-pointer w-full">
                       <img
                         src={`https://ui-avatars.com/api/?name=${encodeURIComponent(p.nama)}&background=e5e7eb&color=6b7280&size=28`}
                         className="h-8 w-8 shrink-0 rounded-full object-cover"
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                       />
                       <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold text-slate-800">{p.nama}</div>
+                        <div className="truncate text-sm font-semibold text-[#0E6187] hover:underline">{p.nama}</div>
                         <div className="truncate text-xs text-slate-500">{p.email}</div>
                       </div>
-                    </div>
+                    </button>
                   </td>
                   <td className="border border-slate-200 px-3 py-3 text-sm font-mono text-slate-700">
                     <span className="block truncate">{p.no_registrasi || <span className="text-slate-300">-</span>}</span>
@@ -868,8 +868,7 @@ export default function Pendaftar() {
                       {(() => {
                         const firstCategory = detailModal.detail?.[0]
                         if (firstCategory) {
-                          if (firstCategory.dibayar > 0) return `Rp ${Number(firstCategory.total_transfer || firstCategory.dibayar).toLocaleString('id-ID')}`
-                          return `Rp ${Number(firstCategory.biaya).toLocaleString('id-ID')}`
+                          return `Rp ${Number(firstCategory.total_transfer || firstCategory.dibayar || firstCategory.biaya).toLocaleString('id-ID')}`
                         }
                         return detailModal.nominal ? `Rp ${Number(detailModal.nominal).toLocaleString('id-ID')}` : '-'
                       })()}
@@ -903,7 +902,7 @@ export default function Pendaftar() {
                         {detailModal.detail.map((d, i) => (
                           <tr key={i} className="bg-white">
                             <td className="px-3 py-2 text-gray-700">{d.nama}</td>
-                            <td className="px-3 py-2 text-right text-gray-700">Rp {Number(d.biaya).toLocaleString('id-ID')}</td>
+                            <td className="px-3 py-2 text-right text-gray-700">Rp {Number(d.total_transfer || d.biaya).toLocaleString('id-ID')}</td>
                             <td className="px-3 py-2 text-right text-gray-800 font-semibold">Rp {Number(d.dibayar).toLocaleString('id-ID')}</td>
                           </tr>
                         ))}
@@ -911,6 +910,105 @@ export default function Pendaftar() {
                     </table>
                   </div>
                 )}
+              </div>
+
+              {/* Ubah Status */}
+              <div>
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Ubah Status</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {[
+                    { val: 'waiting_payment', label: 'Menunggu Pembayaran', icon: Clock, iconColor: 'text-slate-500', bg: 'bg-slate-50 hover:bg-slate-100 border-slate-200' },
+                    { val: 'confirmed', label: 'Pembayaran dikonfirmasi', icon: BadgeCheck, iconColor: 'text-amber-500', bg: 'bg-amber-50 hover:bg-amber-100 border-amber-200' },
+                    { val: 'proses', label: 'Proses', icon: RefreshCw, iconColor: 'text-blue-500', bg: 'bg-blue-50 hover:bg-blue-100 border-blue-200' },
+                    { val: 'selesai', label: 'Selesai', icon: CheckCircle2, iconColor: 'text-emerald-500', bg: 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200' },
+                    { val: 'batal', label: 'Batal', icon: Ban, iconColor: 'text-red-500', bg: 'bg-red-50 hover:bg-red-100 border-red-200' },
+                    { val: 'refund', label: 'Refund', icon: Banknote, iconColor: 'text-purple-500', bg: 'bg-purple-50 hover:bg-purple-100 border-purple-200' },
+                  ].map(opt => {
+                    const statusMap: Record<string, Record<string, string>> = {
+                      waiting_payment: { status_pembayaran: 'unpaid', status_pendaftaran: 'pending' },
+                      confirmed: { status_pembayaran: 'processing', status_pendaftaran: 'pending' },
+                      proses: { status_pembayaran: 'processing', status_pendaftaran: 'disetujui' },
+                      selesai: { status_pembayaran: 'verified', status_pendaftaran: 'disetujui' },
+                      batal: { status_pembayaran: 'ditolak', status_pendaftaran: 'ditolak' },
+                      refund: { status_pembayaran: 'refund', status_pendaftaran: 'ditolak' },
+                    }
+                    const current = combinedStatus(detailModal)
+                    const isActive = (
+                      (opt.val === 'waiting_payment' && current.label === 'Menunggu Pembayaran') ||
+                      (opt.val === 'confirmed' && current.label === 'Pembayaran di Konfirmasi') ||
+                      (opt.val === 'proses' && current.label === 'Proses') ||
+                      (opt.val === 'selesai' && current.label === 'Selesai') ||
+                      (opt.val === 'batal' && current.label === 'Batal') ||
+                      (opt.val === 'refund' && current.label === 'Refund')
+                    )
+                    const confirmMessages: Record<string, { title: string; text: string; confirmText: string; icon: 'warning' | 'info' | 'question' }> = {
+                      waiting_payment: { title: 'Ubah ke Menunggu Pembayaran?', text: `Status pembayaran ${detailModal.nama} akan diubah menjadi "Menunggu Pembayaran".`, confirmText: 'Ya, Ubah', icon: 'info' },
+                      confirmed: { title: 'Konfirmasi Pembayaran?', text: `Pembayaran ${detailModal.nama} akan ditandai sebagai "Dikonfirmasi". Pastikan bukti pembayaran sudah diperiksa.`, confirmText: 'Ya, Konfirmasi', icon: 'warning' },
+                      proses: { title: 'Mulai Proses?', text: `Pendaftaran ${detailModal.nama} akan diproses lebih lanjut.`, confirmText: 'Ya, Proses', icon: 'question' },
+                      selesai: { title: 'Tandai Selesai?', text: `Pendaftaran ${detailModal.nama} akan ditandai sebagai "Selesai".`, confirmText: 'Ya, Selesai', icon: 'question' },
+                      batal: { title: 'Batalkan Pendaftaran?', text: `Pendaftaran ${detailModal.nama} akan dibatalkan. Tindakan ini tidak dapat dibatalkan.`, confirmText: 'Ya, Batalkan', icon: 'warning' },
+                      refund: { title: 'Proses Refund?', text: `Pembayaran ${detailModal.nama} akan dikembalikan (refund). Pastikan sudah sesuai kebijakan.`, confirmText: 'Ya, Refund', icon: 'warning' },
+                    }
+                    const Icon = opt.icon
+                    return (
+                      <button key={opt.val}
+                        onClick={async () => {
+                          const target = statusMap[opt.val]
+                          const msg = confirmMessages[opt.val]
+                          if (!target || !msg) return
+                          const result = await Swal.fire({
+                            icon: msg.icon,
+                            title: msg.title,
+                            text: msg.text,
+                            showCancelButton: true,
+                            confirmButtonColor: '#0E6187',
+                            cancelButtonColor: '#6b7280',
+                            confirmButtonText: msg.confirmText,
+                            cancelButtonText: 'Batal',
+                          })
+                          if (!result.isConfirmed) return
+                          try {
+                            await pendaftarApi.updateStatus(detailModal.id, target)
+                            setDetailModal(prev => prev ? { ...prev, ...target } : prev)
+                            setData(prev => prev.map(item => item.id === detailModal.id ? { ...item, ...target } : item))
+                            Swal.fire({ icon: 'success', title: 'Status diperbarui', timer: 1200, showConfirmButton: false })
+                          } catch {
+                            Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal memperbarui status' })
+                          }
+                        }}
+                        disabled={isActive}
+                        className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition ${opt.bg} ${isActive ? 'ring-2 ring-offset-1 ring-[#0E6187] opacity-100 cursor-default' : 'cursor-pointer'}`}
+                      >
+                        <Icon size={15} className={opt.iconColor} />
+                        <span className="text-gray-700">{opt.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+                <div className="mt-3">
+                  <button
+                    onClick={async () => {
+                      const result = await Swal.fire({
+                        icon: 'warning',
+                        title: 'Hapus Pendaftar?',
+                        text: `Data ${detailModal.nama} akan dihapus secara permanen. Tindakan ini tidak dapat dibatalkan.`,
+                        showCancelButton: true,
+                        confirmButtonColor: '#dc2626',
+                        cancelButtonColor: '#6b7280',
+                        confirmButtonText: 'Ya, Hapus',
+                        cancelButtonText: 'Batal',
+                      })
+                      if (!result.isConfirmed) return
+                      const id = detailModal.id
+                      setDetailModal(null)
+                      handleDelete(id)
+                    }}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-100"
+                  >
+                    <Trash2 size={15} />
+                    <span>Hapus Pendaftar</span>
+                  </button>
+                </div>
               </div>
             </div>
 

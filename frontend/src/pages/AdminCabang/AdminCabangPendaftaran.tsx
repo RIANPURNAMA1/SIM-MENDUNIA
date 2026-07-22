@@ -579,8 +579,7 @@ export default function AdminCabangPendaftaran() {
                       {(() => {
                         const firstCategory = detailModal.detail?.[0]
                         if (firstCategory) {
-                          if (firstCategory.dibayar > 0) return `Rp ${Number(firstCategory.total_transfer || firstCategory.dibayar).toLocaleString('id-ID')}`
-                          return `Rp ${Number(firstCategory.biaya).toLocaleString('id-ID')}`
+                          return `Rp ${Number(firstCategory.total_transfer || firstCategory.dibayar || firstCategory.biaya).toLocaleString('id-ID')}`
                         }
                         return detailModal.nominal ? `Rp ${Number(detailModal.nominal).toLocaleString('id-ID')}` : '-'
                       })()}
@@ -614,7 +613,7 @@ export default function AdminCabangPendaftaran() {
                         {detailModal.detail.map((d, i) => (
                           <tr key={i} className="bg-white">
                             <td className="px-3 py-2 text-gray-700">{d.nama}</td>
-                            <td className="px-3 py-2 text-right text-gray-700">Rp {Number(d.biaya).toLocaleString('id-ID')}</td>
+                            <td className="px-3 py-2 text-right text-gray-700">Rp {Number(d.total_transfer || d.biaya).toLocaleString('id-ID')}</td>
                             <td className="px-3 py-2 text-right text-gray-800 font-semibold">Rp {Number(d.dibayar).toLocaleString('id-ID')}</td>
                           </tr>
                         ))}

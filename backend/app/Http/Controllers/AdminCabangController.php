@@ -286,30 +286,21 @@ class AdminCabangController extends Controller
                 $walkAgg($product->kategori_items, 0);
             }
 
-            // Add remaining kategoris not in JSON hierarchy
-            foreach ($kategoris as $k) {
-                if (!$aggregated->firstWhere('id', $k->id)) {
-                    $aggregated->push([
-                        'id' => $k->id,
-                        'kode' => $k->kode,
-                        'nama' => $k->nama,
-                        'biaya' => (float) ($pivotById->get($k->id)?->pivot->harga ?? 0),
-                    ]);
-                }
-            }
-
             $detail = $aggregated->map(function ($item) use ($pembayaranItems, $pembayaranList) {
                 $pi = $pembayaranItems->get($item['id']);
                 $dibayar = $pi ? (int) $pi->jumlah : 0;
                 $pembayaran = $pembayaranList->firstWhere('kategori_id', $item['id']);
+                $biaya = $item['biaya'];
+                $kodeUnik = $pi ? ($pi->kode_unik ?? 0) : 0;
+                $totalTransfer = $pi ? ($pi->total_transfer ?? $biaya) : (\App\Models\PaymentSetting::calculateTotalTransfer($biaya, $kodeUnik));
                 return [
                     'kategori_id' => $item['id'],
                     'kode' => $item['kode'],
                     'nama' => $item['nama'],
-                    'biaya' => $item['biaya'],
+                    'biaya' => $biaya,
                     'dibayar' => $dibayar,
-                    'kode_unik' => $pi ? ($pi->kode_unik ?? 0) : 0,
-                    'total_transfer' => $pi ? ($pi->total_transfer ?? $item['biaya']) : 0,
+                    'kode_unik' => $kodeUnik,
+                    'total_transfer' => $totalTransfer,
                     'tanggal_bayar' => $pembayaran ? $pembayaran->created_at : null,
                 ];
             });
@@ -446,30 +437,21 @@ class AdminCabangController extends Controller
                 $walkAgg($product->kategori_items, 0);
             }
 
-            // Add remaining kategoris not in JSON hierarchy
-            foreach ($kategoris as $k) {
-                if (!$aggregated->firstWhere('id', $k->id)) {
-                    $aggregated->push([
-                        'id' => $k->id,
-                        'kode' => $k->kode,
-                        'nama' => $k->nama,
-                        'biaya' => (float) ($pivotById->get($k->id)?->pivot->harga ?? 0),
-                    ]);
-                }
-            }
-
             $detail = $aggregated->map(function ($item) use ($pembayaranItems, $pembayaranList) {
                 $pi = $pembayaranItems->get($item['id']);
                 $dibayar = $pi ? (int) $pi->jumlah : 0;
                 $pembayaran = $pembayaranList->firstWhere('kategori_id', $item['id']);
+                $biaya = $item['biaya'];
+                $kodeUnik = $pi ? ($pi->kode_unik ?? 0) : 0;
+                $totalTransfer = $pi ? ($pi->total_transfer ?? $biaya) : (\App\Models\PaymentSetting::calculateTotalTransfer($biaya, $kodeUnik));
                 return [
                     'kategori_id' => $item['id'],
                     'kode' => $item['kode'],
                     'nama' => $item['nama'],
-                    'biaya' => $item['biaya'],
+                    'biaya' => $biaya,
                     'dibayar' => $dibayar,
-                    'kode_unik' => $pi ? ($pi->kode_unik ?? 0) : 0,
-                    'total_transfer' => $pi ? ($pi->total_transfer ?? $item['biaya']) : 0,
+                    'kode_unik' => $kodeUnik,
+                    'total_transfer' => $totalTransfer,
                     'tanggal_bayar' => $pembayaran ? $pembayaran->created_at : null,
                 ];
             });
@@ -748,29 +730,21 @@ class AdminCabangController extends Controller
                     $walkAgg($product->kategori_items, 0);
                 }
 
-                foreach ($allKategoris as $k) {
-                    if (!$aggregated->firstWhere('id', $k->id)) {
-                        $aggregated->push([
-                            'id' => $k->id,
-                            'kode' => $k->kode,
-                            'nama' => $k->nama,
-                            'biaya' => (float) ($pivotById->get($k->id)?->pivot->harga ?? 0),
-                        ]);
-                    }
-                }
-
                 $detail = $aggregated->map(function ($item) use ($pembayaranItems, $pembayaranList) {
                     $pi = $pembayaranItems->get($item['id']);
                     $dibayar = $pi ? (int) $pi->jumlah : 0;
                     $pembayaran = $pembayaranList->firstWhere('kategori_id', $item['id']);
+                    $biaya = $item['biaya'];
+                    $kodeUnik = $pi ? ($pi->kode_unik ?? 0) : 0;
+                    $totalTransfer = $pi ? ($pi->total_transfer ?? $biaya) : (\App\Models\PaymentSetting::calculateTotalTransfer($biaya, $kodeUnik));
                     return [
                         'kategori_id' => $item['id'],
                         'kode' => $item['kode'],
                         'nama' => $item['nama'],
-                        'biaya' => $item['biaya'],
+                        'biaya' => $biaya,
                         'dibayar' => $dibayar,
-                        'kode_unik' => $pi ? ($pi->kode_unik ?? 0) : 0,
-                        'total_transfer' => $pi ? ($pi->total_transfer ?? $item['biaya']) : $item['biaya'],
+                        'kode_unik' => $kodeUnik,
+                        'total_transfer' => $totalTransfer,
                     ];
                 });
 

@@ -426,11 +426,6 @@ export default function KonfirmasiPembayaran() {
               </span>
             </div>
 
-            <div className="flex justify-between items-center py-2 border-b border-gray-100">
-              <span className="text-gray-500">kode unik:</span>
-              <span className="font-bold text-[#0E6187]">{fkKodeUnik > 0 ? fkKodeUnik : '-'}</span>
-            </div>
-
             <div className="flex justify-between items-center py-2">
               <span className="text-gray-500">total transfer:</span>
               <span className="font-bold text-[#0E6187]">

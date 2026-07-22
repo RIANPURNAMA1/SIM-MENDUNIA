@@ -209,7 +209,7 @@ export default function GuruLMS() {
     },
   }
 
-  const quillFormats = ['header', 'bold', 'italic', 'underline', 'strike', 'list', 'bullet', 'link', 'image', 'video']
+  const quillFormats = ['header', 'bold', 'italic', 'underline', 'strike', 'list', 'link', 'image', 'video']
 
   useEffect(() => { fetchCourses() }, [])
 

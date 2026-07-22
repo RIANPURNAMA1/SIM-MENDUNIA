@@ -496,13 +496,22 @@ class SiswaDashboardController extends Controller
         $request->validate([
             'batch_id' => 'required|exists:batches,id',
             'level' => 'required|string',
-            'rating' => 'required|integer|min:1|max:5',
+            'rating' => 'nullable|integer|min:1|max:5',
             'komentar' => 'nullable|string|max:1000',
+            'scores' => 'nullable|array',
+            'scores.*' => 'nullable|integer|min:1|max:5',
+            'text_responses' => 'nullable|array',
+            'text_responses.*' => 'nullable|string|max:1000',
         ]);
 
         $eval = \App\Models\StudentEvaluation::updateOrCreate(
             ['siswa_id' => $siswa->id, 'batch_id' => $request->batch_id, 'level' => $request->level],
-            ['rating' => $request->rating, 'komentar' => $request->komentar]
+            [
+                'rating' => $request->rating,
+                'komentar' => $request->komentar,
+                'scores' => $request->scores,
+                'text_responses' => $request->text_responses,
+            ]
         );
 
         return response()->json(['success' => true, 'data' => $eval], 201);
