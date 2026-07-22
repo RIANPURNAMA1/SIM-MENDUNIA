@@ -377,23 +377,14 @@ class PendaftaranController extends Controller
                         $kategori = $pivotById->first(fn($k) => strtolower($k->nama) === $name || strtolower($k->kode) === $name);
                         if (!$kategori) continue;
 
+                        $aggregated->push([
+                            'id' => $kategori->id,
+                            'kode' => $kategori->kode,
+                            'nama' => $kategori->nama,
+                            'biaya' => (float) ($kategori->pivot->harga ?? 0),
+                        ]);
+
                         $children = $item['children'] ?? [];
-                        $childHarga = 0;
-                        foreach ($children as $c) {
-                            $cn = strtolower(trim($c['name'] ?? ''));
-                            $ck = $pivotById->first(fn($k) => strtolower($k->nama) === $cn || strtolower($k->kode) === $cn);
-                            if ($ck) $childHarga += (float) ($ck->pivot->harga ?? 0);
-                        }
-
-                        if ($depth === 0) {
-                            $aggregated->push([
-                                'id' => $kategori->id,
-                                'kode' => $kategori->kode,
-                                'nama' => $kategori->nama,
-                                'biaya' => (float) ($kategori->pivot->harga ?? 0) + $childHarga,
-                            ]);
-                        }
-
                         if (!empty($children)) {
                             $walkAgg($children, $depth + 1);
                         }
@@ -935,6 +926,27 @@ class PendaftaranController extends Controller
         $pembayaran = Pembayaran::with('kategori')->where('pendaftar_id', $pendaftar->id)
             ->orderBy('created_at', 'desc')
             ->get();
+
+        // Merge duplicate pending/processing records with same kategori_id
+        // (from old bayarAll that created per-child Pembayaran under multiple parents)
+        $pendingGroups = [];
+        $verifiedRecords = [];
+        foreach ($pembayaran as $r) {
+            if (in_array($r->status, ['pending', 'processing']) && $r->kategori_id) {
+                $key = $r->kategori_id . '-' . $r->status;
+                if (!isset($pendingGroups[$key])) {
+                    $pendingGroups[$key] = $r;
+                } else {
+                    $pendingGroups[$key]->jumlah += $r->jumlah;
+                }
+            } else {
+                $verifiedRecords[] = $r;
+            }
+        }
+        $pembayaran = collect(array_values($pendingGroups))
+            ->merge($verifiedRecords)
+            ->sortByDesc('created_at')
+            ->values();
 
         // Include PembayaranItem as synthetic records (for payments created during approve)
         $paidKatIds = $pembayaran->pluck('kategori_id')->filter()->unique()->values()->toArray();
