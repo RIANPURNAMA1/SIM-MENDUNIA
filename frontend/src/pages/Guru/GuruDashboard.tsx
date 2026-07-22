@@ -771,7 +771,7 @@ export default function GuruDashboard() {
       {showCamera && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={stopCamera}>
           <div className="relative w-full max-w-sm mx-3 bg-black rounded-xl overflow-hidden" onClick={e => e.stopPropagation()}>
-            <video ref={videoRef} autoPlay playsInline className="w-full aspect-[3/4] object-cover" />
+            <video ref={videoRef} autoPlay playsInline className="w-full aspect-[3/4] object-cover" style={{ transform: 'scaleX(-1)' }} />
             <canvas ref={canvasRef} className="hidden" />
             <div className="absolute top-0 inset-x-0 p-4 bg-gradient-to-b from-black/60 to-transparent">
               <span className="text-xs font-bold text-white/80 uppercase tracking-wider">

@@ -37,7 +37,7 @@ interface ConfirmModal {
   open: boolean
   title: string
   message: string
-  type: 'approve' | 'reject' | 'delete'
+  type: 'approve' | 'reject' | 'delete'     
   id: number | null
 }
 
@@ -45,7 +45,7 @@ export default function Pendaftar() {
   const [data, setData] = useState<PendaftarItem[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [filterStatus, setFilterStatus] = useState('')
+  const [filterStatus, setFilterStatus] = useState('') 
   const [filterBatch, setFilterBatch] = useState('')
   const [filterDateFrom, setFilterDateFrom] = useState('')
   const [filterDateTo, setFilterDateTo] = useState('')
