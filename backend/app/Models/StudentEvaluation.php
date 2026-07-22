@@ -14,6 +14,13 @@ class StudentEvaluation extends Model
         'level',
         'rating',
         'komentar',
+        'scores',
+        'text_responses',
+    ];
+
+    protected $casts = [
+        'scores' => 'array',
+        'text_responses' => 'array',
     ];
 
     public function siswa()

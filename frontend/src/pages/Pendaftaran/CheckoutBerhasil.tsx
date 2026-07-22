@@ -250,40 +250,6 @@ export default function CheckoutBerhasil() {
             </div>
           )}
 
-          {/* Per-Category Deadline List - hanya tampilkan kategori pertama */}
-          {firstKategori && firstKategori.sisa > 0 && (() => {
-            const k = firstKategori;
-            const cd = countdowns[k.id];
-            if (!cd) return null;
-            return (
-              <div className="mb-4">
-                <div className={`flex items-center justify-between rounded-md px-3 py-2 text-[12px] ${
-                  cd.expired ? 'bg-red-50 border border-red-200' : 'bg-[#FFF9E5] border border-yellow-100'
-                }`}>
-                  <div className="flex items-center gap-2">
-                    <span className={`font-semibold ${cd.expired ? 'text-red-600' : 'text-gray-800'}`}>{k.nama}</span>
-                    <span className="text-gray-400">•</span>
-                    <span className={`font-medium ${cd.expired ? 'text-red-500' : 'text-gray-600'}`}>
-                      {fmt(k.sisa > 0 ? k.sisa : k.harga)}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[11px] font-semibold">
-                    {cd.expired ? (
-                      <span className="text-red-600">Lewat {cd.days} hari</span>
-                    ) : (
-                      <span className="text-amber-700">
-                        {cd.days > 0 && <>{cd.days}h </>}
-                        {cd.hours}j {cd.minutes}m
-                      </span>
-                    )}
-                    <span className="text-gray-400">•</span>
-                    <span className="text-gray-500">{formatDate(cd.deadline.toISOString()).split(',').slice(0, 2).join(',')}</span>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-
           {/* Paid categories badge */}
           {paidItems.length > 0 && (
             <div className="mb-4 flex flex-wrap gap-1.5">
@@ -321,13 +287,6 @@ export default function CheckoutBerhasil() {
 
         {/* --- BAGIAN 2: INFORMASI TRANSFER --- */}
         <div className="bg-white py-6 px-6">
-          {firstKategori && (
-            <div className="mb-4 bg-[#E8FAFF] rounded-md p-3 text-center border border-blue-100">
-              <p className="text-[13px] text-gray-600 mb-1">Silakan bayar kategori:</p>
-              <p className="text-[15px] font-bold text-[#0E6187]">{firstKategori.nama}</p>
-            </div>
-          )}
-
           {paymentCode && (
             <div className="mb-4 bg-gray-50 rounded-md p-3 flex justify-between items-center border border-gray-100">
               <span className="text-[12px] text-gray-500">Kode Pembayaran</span>
@@ -385,14 +344,6 @@ export default function CheckoutBerhasil() {
           <div className="border-t border-gray-100 my-4"></div>
 
           <div className="space-y-4">
-            {/* Nominal Asli */}
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-[13px] font-bold text-gray-800 mb-0.5">Nominal Tagihan</p>
-              </div>
-              <span className="text-[15px] font-medium text-gray-700">{fmt(totalBayar)}</span>
-            </div>
-
             {/* Total Transfer */}
             {kodeUnik > 0 && paymentEnabled && (
               <>
@@ -480,9 +431,6 @@ export default function CheckoutBerhasil() {
             <div className="text-gray-800">
               <p>Invoice ID: {data.no_invoice}</p>
               <p className="mt-0.5">{data.product?.nama || "-"}</p>
-              {firstKategori && (
-                <p className="mt-0.5 text-[#0E6187] font-semibold">{firstKategori.nama} — {fmt(fkHarga)}</p>
-              )}
             </div>
           </div>
 

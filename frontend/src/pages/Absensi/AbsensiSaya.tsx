@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   Clock, CalendarDays, QrCode, X, CheckCircle,
-  AlertCircle, History, ChevronRight, Award
+  AlertCircle, History, ChevronRight
 } from 'lucide-react'
 import { Html5Qrcode } from 'html5-qrcode'
 import Swal from 'sweetalert2'
@@ -15,10 +15,6 @@ export default function AbsensiSaya() {
   const [showQr, setShowQr] = useState(false)
   const scannerRef = useRef<Html5Qrcode | null>(null)
   const [userCoords, setUserCoords] = useState<{ lat: number; long: number } | null>(null)
-  const [showNilaiModal, setShowNilaiModal] = useState(false)
-  const [nilaiBatchName, setNilaiBatchName] = useState('')
-  const [nilaiData, setNilaiData] = useState<any>({ daily: [], overall_avg: null, total_penilaian: 0, total_hari: 0 })
-  const [nilaiLoading, setNilaiLoading] = useState(false)
 
   useEffect(() => {
     api.get('/siswa/absensi-saya')
@@ -87,20 +83,6 @@ export default function AbsensiSaya() {
       }
     }
   }, [showQr])
-
-  const openNilaiModal = async (batchId: number, batchName: string, level: string) => {
-    setNilaiBatchName(batchName)
-    setShowNilaiModal(true)
-    setNilaiLoading(true)
-    try {
-      const res = await api.get(`/siswa/nilai-saya/${batchId}`, { params: { level } })
-      setNilaiData(res.data)
-    } catch {
-      setNilaiData([])
-    } finally {
-      setNilaiLoading(false)
-    }
-  }
 
   const getDisplayStatus = (a: any) => {
     if (!a.jam_masuk) return 'belum_hadir'
@@ -301,13 +283,6 @@ export default function AbsensiSaya() {
                       {k.alpa > 0 && <span className="text-red-600 font-semibold">Alpa {k.alpa}</span>}
                       {k.izin > 0 && <span className="text-amber-600 font-semibold">Izin {k.izin}</span>}
                     </div>
-                    <button
-                      onClick={() => openNilaiModal(k.batch_id, k.batch, k.level)}
-                      className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-[#0E6187] bg-[#0E6187]/[0.05] hover:bg-[#0E6187]/[0.1] px-3 py-1.5 rounded-lg transition-colors"
-                    >
-                      <Award size={13} />
-                      Lihat Nilai
-                    </button>
                   </div>
                 ))}
               </div>
@@ -328,7 +303,6 @@ export default function AbsensiSaya() {
                       <th className="text-center px-4 py-2.5 font-medium text-gray-500 text-xs">Alpa</th>
                       <th className="text-center px-4 py-2.5 font-medium text-gray-500 text-xs">Izin</th>
                       <th className="text-left px-4 py-2.5 font-medium text-gray-500 text-xs">Status</th>
-                      <th className="text-center px-4 py-2.5 font-medium text-gray-500 text-xs">Nilai</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -356,15 +330,6 @@ export default function AbsensiSaya() {
                           }`}>
                             {k.status === 'aktif' ? 'Aktif' : k.status === 'belum_mulai' ? 'Belum Mulai' : 'Selesai'}
                           </span>
-                        </td>
-                        <td className="px-4 py-2.5 text-center">
-                          <button
-                            onClick={() => openNilaiModal(k.batch_id, k.batch, k.level)}
-                            className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#0E6187] bg-[#0E6187]/[0.05] hover:bg-[#0E6187]/[0.1] px-2.5 py-1 rounded-md transition-colors"
-                          >
-                            <Award size={11} />
-                            Lihat
-                          </button>
                         </td>
                       </tr>
                     ))}
@@ -501,83 +466,7 @@ export default function AbsensiSaya() {
       )}
 
       {/* Nilai Modal */}
-      {showNilaiModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40" onClick={() => setShowNilaiModal(false)}>
-          <div className="w-full sm:max-w-lg sm:mx-4 bg-white sm:rounded-xl shadow-xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#0E6187] flex items-center justify-center">
-                  <Award size={15} className="text-white" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-gray-900">Nilai Saya</p>
-                  <p className="text-[11px] text-gray-500">{nilaiBatchName} · Level {nilaiData?.daily?.[0] ? '' : ''}</p>
-                </div>
-              </div>
-              <button onClick={() => setShowNilaiModal(false)} className="p-1.5 hover:bg-gray-100 rounded-lg">
-                <X size={18} className="text-gray-400" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-5">
-              {nilaiLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="w-8 h-8 border-3 border-gray-200 border-t-[#0E6187] rounded-full animate-spin" />
-                </div>
-              ) : !nilaiData?.daily?.length ? (
-                <div className="text-center py-12">
-                  <Award size={36} className="text-gray-200 mx-auto mb-2" />
-                  <p className="text-sm text-gray-400">Belum ada data penilaian</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {/* Summary card */}
-                  <div className="rounded-xl bg-[#0E6187]/[0.04] border border-[#0E6187]/[0.08] p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Rata-rata Keseluruhan</span>
-                      <span className={`text-xl font-bold tabular-nums ${nilaiData.overall_avg >= 85 ? 'text-emerald-600' : nilaiData.overall_avg >= 70 ? 'text-[#0E6187]' : nilaiData.overall_avg >= 55 ? 'text-amber-600' : 'text-red-600'}`}>
-                        {nilaiData.overall_avg}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-4 text-[11px] text-gray-500">
-                      <span>{nilaiData.total_hari} hari penilaian</span>
-                      <span>·</span>
-                      <span>{nilaiData.total_penilaian} komponen</span>
-                    </div>
-                  </div>
 
-                  {/* Per day */}
-                  {nilaiData.daily.map((day: any, di: number) => (
-                    <div key={di} className="rounded-xl border border-gray-200 overflow-hidden">
-                      <div className="px-4 py-3 bg-gray-50 flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-bold text-gray-800">
-                            {new Date(day.tanggal).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}
-                          </p>
-                        </div>
-                        {day.rata_rata !== null && (
-                          <span className={`text-sm font-bold tabular-nums ${day.rata_rata >= 85 ? 'text-emerald-600' : day.rata_rata >= 70 ? 'text-[#0E6187]' : day.rata_rata >= 55 ? 'text-amber-600' : 'text-red-600'}`}>
-                            {day.rata_rata}
-                          </span>
-                        )}
-                      </div>
-                      <div className="divide-y divide-gray-50">
-                        {day.komponen.map((comp: any, ci: number) => (
-                          <div key={ci} className="flex items-center justify-between px-4 py-2.5">
-                            <span className="text-xs text-gray-600 font-medium">{comp.nama}</span>
-                            <span className={`text-xs font-bold tabular-nums ${comp.nilai >= 85 ? 'text-emerald-600' : comp.nilai >= 70 ? 'text-gray-800' : comp.nilai >= 55 ? 'text-amber-600' : 'text-red-600'}`}>
-                              {comp.nilai}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

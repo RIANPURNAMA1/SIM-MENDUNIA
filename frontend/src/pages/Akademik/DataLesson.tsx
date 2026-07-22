@@ -100,7 +100,7 @@ export default function DataLesson() {
 
   const quillFormats = [
     'header', 'bold', 'italic', 'underline', 'strike',
-    'list', 'bullet', 'link', 'image', 'video',
+    'list', 'link', 'image', 'video',
   ]
 
   const [form, setForm] = useState({
