@@ -662,8 +662,8 @@ export default function KaryawanDashboard() {
       {/* Camera Modal — Full Screen */}
       {showCamera && (
         <div className="fixed inset-0 z-50 bg-black flex flex-col">
-          <video ref={videoRef} autoPlay playsInline muted className="flex-1 w-full h-full object-cover" />
-          <canvas ref={overlayCanvasRef} className="absolute inset-0 w-full h-full object-cover pointer-events-none z-[1]" />
+          <video ref={videoRef} autoPlay playsInline muted className="flex-1 w-full h-full object-cover" style={{ transform: 'scaleX(-1)' }} />
+          <canvas ref={overlayCanvasRef} className="absolute inset-0 w-full h-full object-cover pointer-events-none z-[1]" style={{ transform: 'scaleX(-1)' }} />
 
           {/* Dark overlay with transparent face guide hole */}
           <div className="absolute inset-0 z-[2] pointer-events-none">

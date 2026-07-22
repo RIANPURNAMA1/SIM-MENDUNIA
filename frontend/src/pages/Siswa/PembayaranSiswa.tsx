@@ -268,13 +268,36 @@ export default function PembayaranSiswa() {
   const totalBiaya = parentAggregatedItems.reduce((s, i) => s + i.biaya, 0)
   const totalDibayar = parentAggregatedItems.reduce((s, i) => s + i.dibayar, 0)
   const tunggakan = totalBiaya - totalDibayar
-  const paidKategoriIds = parentAggregatedItems.filter(i => i.dibayar >= i.biaya && i.biaya > 0).map(i => i.kategori_id)
-  const partialKategoriIds = parentAggregatedItems.filter(i => i.dibayar > 0 && i.dibayar < i.biaya).map(i => i.kategori_id)
+
+  // Hitung total verified per kategori dari riwayat
+  const verifiedPerKategori = new Map<number, number>()
+  const pendingPerKategori = new Map<number, number>()
+  if (riwayat?.length) {
+    for (const r of riwayat) {
+      if (!r.kategori_id) continue
+      if (r.status === 'verified') {
+        verifiedPerKategori.set(r.kategori_id, (verifiedPerKategori.get(r.kategori_id) || 0) + Number(r.jumlah))
+      } else if (r.status === 'pending' || r.status === 'processing') {
+        pendingPerKategori.set(r.kategori_id, (pendingPerKategori.get(r.kategori_id) || 0) + Number(r.jumlah))
+      }
+    }
+  }
+
+  const paidKategoriIds = parentAggregatedItems.filter(i => {
+    if (i.biaya <= 0) return false
+    const verified = verifiedPerKategori.get(i.kategori_id) || 0
+    return verified >= i.biaya
+  }).map(i => i.kategori_id)
+  const partialKategoriIds = parentAggregatedItems.filter(i => {
+    const verified = verifiedPerKategori.get(i.kategori_id) || 0
+    const pending = pendingPerKategori.get(i.kategori_id) || 0
+    return (verified > 0 && verified < i.biaya) || (verified === 0 && pending > 0 && pending < i.biaya)
+  }).map(i => i.kategori_id)
 
   const pendingKategoriIds = new Set<number>()
   if (riwayat?.length) {
     for (const r of riwayat) {
-      if (r.status === 'pending' && r.kategori_id && !paidKategoriIds.includes(r.kategori_id)) {
+      if ((r.status === 'pending' || r.status === 'processing') && r.kategori_id && !paidKategoriIds.includes(r.kategori_id)) {
         pendingKategoriIds.add(r.kategori_id)
       }
     }
@@ -463,9 +486,10 @@ export default function PembayaranSiswa() {
                           )}
                           <span className={`mt-1.5 inline-block w-fit text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
                             isLunas ? 'bg-[#E7F3EC] text-[#1C7A41]'
+                            : isPartial ? 'bg-blue-100 text-[#0866FF]'
                             : 'bg-gray-100 text-gray-400'
                           }`}>
-                            {isLunas ? 'Lunas' : 'Belum'}
+                            {isLunas ? 'Lunas' : isPartial ? 'Proses' : 'Belum'}
                           </span>
                           {deadlineInfo && (
                             <div className={`mt-2 text-[9px] font-semibold rounded-md px-1.5 py-1 ${

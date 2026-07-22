@@ -1010,10 +1010,10 @@ class PendaftaranController extends Controller
             'status' => 'pending',
         ]);
 
-        // Update PembayaranItem untuk kategori ini (jumlah submitted, bukan hanya verified)
+        // Update PembayaranItem untuk kategori ini (hanya verified, pending tidak dihitung)
         $totalPerKategori = Pembayaran::where('pendaftar_id', $pendaftar->id)
             ->where('kategori_id', $request->kategori_id)
-            ->where('status', '!=', 'ditolak')
+            ->where('status', 'verified')
             ->sum('jumlah');
 
         // Cap at the kategori biaya
@@ -1137,12 +1137,14 @@ class PendaftaranController extends Controller
 
         $sisa = (int) $request->jumlah;
         $detailPerKategori = [];
+        $usedChildIds = [];
 
         foreach ($kategoris as $k) {
             if ($sisa <= 0) break;
 
-            // Include child amounts in parent totals
-            $catIds = array_merge([$k->id], $k->child_ids ?? []);
+            // Include child amounts in parent totals, but skip already-used children
+            $filteredChildren = array_values(array_filter($k->child_ids ?? [], fn($cid) => !in_array($cid, $usedChildIds)));
+            $catIds = array_merge([$k->id], $filteredChildren);
 
             $totalBiaya = 0;
             $totalSudahBayar = 0;
@@ -1194,6 +1196,10 @@ class PendaftaranController extends Controller
                 'total_dibayar' => $totalSudahBayar + $bayar,
                 'lunas' => ($totalSudahBayar + $bayar) >= $totalBiaya,
             ];
+            // Mark children as used so they aren't processed again under another parent
+            foreach ($filteredChildren as $cid) {
+                if (!in_array($cid, $usedChildIds)) $usedChildIds[] = $cid;
+            }
         }
 
         // Update pendaftar
@@ -1203,9 +1209,9 @@ class PendaftaranController extends Controller
         if ($request->filled('nama_pengirim')) $pendaftar->nama_pengirim = $request->nama_pengirim;
         $pendaftar->save();
 
-        // Recalculate PembayaranItem per kategori, capped at biaya
+        // Recalculate PembayaranItem per kategori — hanya verified payments
         $allPembs = Pembayaran::where('pendaftar_id', $pendaftar->id)
-            ->where('status', '!=', 'ditolak')
+            ->where('status', 'verified')
             ->whereNotNull('kategori_id')
             ->selectRaw('kategori_id, SUM(jumlah) as total')
             ->groupBy('kategori_id')
@@ -1412,8 +1418,8 @@ class PendaftaranController extends Controller
                 'telepon' => $p->telepon,
                 'nik' => $siswa?->nik ?? $user?->nik ?? '-',
                 'no_registrasi' => $p->no_registrasi ?? $siswa?->no_registrasi ?? '-',
-                'batch_id' => $p->batch_id,
-                'batch_nama' => $p->batch?->nama_batch ?? '-',
+                'batch_id' => $p->batch_id ?? $siswa?->batch_id,
+                'batch_nama' => $p->batch?->nama_batch ?? $siswa?->batchRelasi?->nama_batch ?? '-',
                 'real_batch' => $siswa?->real_batch ?? '-',
                 'jenis_kelamin' => $siswa?->jenis_kelamin ?? '-',
                 'tempat_lahir' => $siswa?->tempat_lahir ?? '-',

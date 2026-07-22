@@ -274,7 +274,7 @@ export default function LemburKaryawan() {
       {/* Camera Modal */}
       {showCamera && (
         <div className="fixed inset-0 z-50 bg-black flex flex-col">
-          <video ref={videoRef} autoPlay playsInline muted className="flex-1 w-full h-full object-cover" />
+          <video ref={videoRef} autoPlay playsInline muted className="flex-1 w-full h-full object-cover" style={{ transform: 'scaleX(-1)' }} />
           <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
             <div className="pointer-events-auto">
               <button onClick={stopCamera} className="absolute top-5 left-5 w-9 h-9 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors">
