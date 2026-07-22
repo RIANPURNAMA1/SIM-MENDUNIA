@@ -158,45 +158,7 @@ const navItems: NavItem[] = [
       { label: "LMS", icon: "BookOpen", href: "/lms" },
     ],
   },
-  {
-    label: "Manajemen Absensi",
-    icon: "CalendarCheck",
-    children: [
-      { label: "Kehadiran", icon: "ClipboardList", href: "/data-kehadiran" },
-      {
-        label: "Kehadiran Khusus",
-        icon: "Timer",
-        href: "/data-kehadiran-khusus",
-      },
-      { label: "Izin & Cuti", icon: "FileText", href: "/izin-cuti" },
-      { label: "Approval Lembur", icon: "Clock", href: "/approval-lembur" },
-      { label: "Hari Libur", icon: "FileText", href: "/hari-libur" },
-      { label: "Rekap Absensi", icon: "BarChart3", href: "/rekap-absensi" },
-      {
-        label: "Rekap Jadwal Shift",
-        icon: "CalendarCheck",
-        href: "/rekap-jadwal-shift",
-      },
-      {
-        label: "Monitoring Lokasi",
-        icon: "MapPin",
-        href: "/monitoring-lokasi",
-      },
-      { label: "Data Agenda", icon: "Calendar", href: "/data-agenda" },
-      {
-        label: "Kehadiran Sensei",
-        icon: "ClipboardList",
-        href: "/data-kehadiran-sensei",
-      },
-      {
-        label: "Rekap Kehadiran Sensei",
-        icon: "BarChart3",
-        href: "/rekap-kehadiran-sensei",
-      },
-      { label: "Absensi Siswa", icon: "ClipboardList", href: "/absensi-siswa" },
-    ],
-    
-  },
+
   {
     label: "HR & Operasional",
     icon: "Briefcase",
@@ -290,18 +252,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               ...group,
               children: group.children.filter(
                 (child) => child.label !== "Affiliate Dashboard",
-              ),
-            };
-          }
-          if (item.label === "Manajemen Absensi" && "children" in item) {
-            const group = item as NavGroup;
-            return {
-              ...group,
-              children: group.children.filter(
-                (child) =>
-                  child.label === "Rekap Absensi" ||
-                  child.label === "Rekap Kehadiran Sensei" ||
-                  child.label === "Rekap Jadwal Shift",
               ),
             };
           }
