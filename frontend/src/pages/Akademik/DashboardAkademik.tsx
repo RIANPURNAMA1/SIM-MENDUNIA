@@ -115,23 +115,23 @@ export default function DashboardAkademik() {
       {
         label: 'Total Absensi',
         data: weeklyData.map(d => d.total),
-        borderColor: '#6366f1',
-        backgroundColor: 'rgba(99, 102, 241, 0.12)',
+        borderColor: '#0E6187',
+        backgroundColor: 'rgba(14, 97, 135, 0.12)',
         fill: true,
         tension: 0.4,
         pointRadius: 4,
-        pointBackgroundColor: '#6366f1',
+        pointBackgroundColor: '#0E6187',
         borderWidth: 2,
       },
       {
         label: 'Hadir',
         data: weeklyData.map(d => d.hadir),
-        borderColor: '#10b981',
-        backgroundColor: 'rgba(16, 185, 129, 0.12)',
+        borderColor: '#0E6187',
+        backgroundColor: 'rgba(14, 97, 135, 0.25)',
         fill: true,
         tension: 0.4,
         pointRadius: 3,
-        pointBackgroundColor: '#10b981',
+        pointBackgroundColor: '#0E6187',
         borderWidth: 2,
       },
     ],
@@ -174,7 +174,7 @@ export default function DashboardAkademik() {
     <div className="px-3 sm:px-6 py-3 sm:py-4 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+        <div className="w-11 h-11 bg-gradient-to-br from-[#0E6187] to-[#0a4a66] rounded-xl flex items-center justify-center text-white shadow-sm">
           <BookOpen size={22} />
         </div>
         <div>
@@ -188,7 +188,7 @@ export default function DashboardAkademik() {
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-semibold text-gray-600">Total Siswa</span>
-            <div className="bg-blue-500 p-2.5 rounded-lg">
+            <div className="bg-[#0E6187] p-2.5 rounded-lg">
               <Users size={16} className="text-white" />
             </div>
           </div>
@@ -198,7 +198,7 @@ export default function DashboardAkademik() {
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-semibold text-gray-600">Batch Aktif</span>
-            <div className="bg-purple-500 p-2.5 rounded-lg">
+            <div className="bg-[#0E6187]/80 p-2.5 rounded-lg">
               <BookOpen size={16} className="text-white" />
             </div>
           </div>
@@ -208,7 +208,7 @@ export default function DashboardAkademik() {
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-semibold text-gray-600">Guru</span>
-            <div className="bg-green-500 p-2.5 rounded-lg">
+            <div className="bg-[#0E6187]/60 p-2.5 rounded-lg">
               <Users size={16} className="text-white" />
             </div>
           </div>
@@ -220,8 +220,8 @@ export default function DashboardAkademik() {
       {/* Breakdown Row 1 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex items-center gap-4">
-          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-50 shrink-0">
-            <GraduationCap size={20} className="text-blue-600" />
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#0E6187]/10 shrink-0">
+            <GraduationCap size={20} className="text-[#0E6187]" />
           </div>
           <div>
             <p className="text-xs text-gray-500">Siswa Aktif</p>
@@ -229,17 +229,17 @@ export default function DashboardAkademik() {
           </div>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex items-center gap-4">
-          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-50 shrink-0">
-            <CheckCircle size={20} className="text-emerald-600" />
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#0E6187]/10 shrink-0">
+            <CheckCircle size={20} className="text-[#0E6187]" />
           </div>
           <div>
             <p className="text-xs text-gray-500">Absensi Hadir (Hari Ini)</p>
-            <p className="text-xl font-bold text-emerald-600">{absensiHadir.length}</p>
+            <p className="text-xl font-bold text-[#0E6187]">{absensiHadir.length}</p>
           </div>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex items-center gap-4">
-          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-purple-50 shrink-0">
-            <Layers size={20} className="text-purple-600" />
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#0E6187]/10 shrink-0">
+            <Layers size={20} className="text-[#0E6187]" />
           </div>
           <div>
             <p className="text-xs text-gray-500">Total Batch</p>
@@ -247,8 +247,8 @@ export default function DashboardAkademik() {
           </div>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex items-center gap-4">
-          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-indigo-50 shrink-0">
-            <Award size={20} className="text-indigo-600" />
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#0E6187]/10 shrink-0">
+            <Award size={20} className="text-[#0E6187]" />
           </div>
           <div>
             <p className="text-xs text-gray-500">Siswa Dinilai</p>
@@ -260,26 +260,26 @@ export default function DashboardAkademik() {
       {/* Breakdown Row 2 */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex items-center gap-4">
-          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-50 shrink-0">
-            <FileText size={20} className="text-blue-600" />
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#0E6187]/10 shrink-0">
+            <FileText size={20} className="text-[#0E6187]" />
           </div>
           <div>
             <p className="text-xs text-gray-500">Total Penilaian</p>
-            <p className="text-xl font-bold text-blue-700">{rekap?.statistik.total_assessments ?? 0}</p>
+            <p className="text-xl font-bold text-[#0E6187]">{rekap?.statistik.total_assessments ?? 0}</p>
           </div>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex items-center gap-4">
-          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-50 shrink-0">
-            <Target size={20} className="text-emerald-600" />
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#0E6187]/10 shrink-0">
+            <Target size={20} className="text-[#0E6187]" />
           </div>
           <div>
             <p className="text-xs text-gray-500">Rata-rata Keseluruhan</p>
-            <p className="text-xl font-bold text-emerald-700">{rekap?.statistik.rata_rata_keseluruhan ?? 0}</p>
+            <p className="text-xl font-bold text-[#0E6187]">{rekap?.statistik.rata_rata_keseluruhan ?? 0}</p>
           </div>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex items-center gap-4">
-          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-purple-50 shrink-0">
-            <BarChart size={20} className="text-purple-600" />
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#0E6187]/10 shrink-0">
+            <BarChart size={20} className="text-[#0E6187]" />
           </div>
           <div>
             <p className="text-xs text-gray-500">Batch Aktif Dinilai</p>
@@ -291,8 +291,8 @@ export default function DashboardAkademik() {
       {/* Chart */}
       <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
         <div className="flex items-center gap-3 mb-5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50">
-            <TrendingUp size={18} className="text-indigo-600" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0E6187]/10">
+            <TrendingUp size={18} className="text-[#0E6187]" />
           </div>
           <div>
             <h2 className="text-sm font-bold text-gray-800">Grafik Absensi (Minggu Ini)</h2>
@@ -308,8 +308,8 @@ export default function DashboardAkademik() {
       {rekap && rekap.per_batch.length > 0 && (
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
           <div className="flex items-center gap-3 mb-4">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-50">
-              <Layers size={18} className="text-orange-600" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0E6187]/10">
+              <Layers size={18} className="text-[#0E6187]" />
             </div>
             <div>
               <h2 className="text-sm font-bold text-gray-800">Penilaian Per Batch</h2>
@@ -321,14 +321,14 @@ export default function DashboardAkademik() {
               <div key={b.batch_id} className="border border-gray-200 rounded-xl p-4 bg-gradient-to-br from-gray-50 to-white">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold text-gray-900">{b.nama_batch}</h3>
-                  <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-medium">
+                  <span className="text-xs bg-[#0E6187]/10 text-[#0E6187] px-2.5 py-0.5 rounded-full font-medium">
                     {b.siswa_dinilai}/{b.total_siswa} siswa
                   </span>
                 </div>
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div>
                     <p className="text-xs text-gray-500">Rata-rata</p>
-                    <p className="text-lg font-bold text-indigo-600">{b.rata_rata}</p>
+                    <p className="text-lg font-bold text-[#0E6187]">{b.rata_rata}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Penilaian</p>
@@ -351,7 +351,7 @@ export default function DashboardAkademik() {
         <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Batch Terbaru</h2>
-            <Link to="/kelas-sensei" className="text-xs text-blue-600 font-semibold hover:text-blue-700">Lihat Semua →</Link>
+            <Link to="/kelas-sensei" className="text-xs text-[#0E6187] font-semibold hover:opacity-80">Lihat Semua →</Link>
           </div>
           <div className="space-y-3">
             {batchTerbaru.length === 0 ? (
@@ -365,7 +365,7 @@ export default function DashboardAkademik() {
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-gray-900">{k.siswa_count || '-'}</p>
-                    <span className={`text-xs font-medium ${k.status === 'aktif' || k.status === 'AKTIF' ? 'text-emerald-600' : 'text-slate-400'}`}>
+                    <span className={`text-xs font-medium ${k.status === 'aktif' || k.status === 'AKTIF' ? 'text-[#0E6187]' : 'text-slate-400'}`}>
                       {k.status}
                     </span>
                   </div>
@@ -378,7 +378,7 @@ export default function DashboardAkademik() {
         {/* Absensi Hari Ini */}
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Calendar size={20} />
+            <Calendar size={20} className="text-[#0E6187]" />
             Absensi Hari Ini
           </h2>
           <div className="space-y-3">
@@ -386,26 +386,26 @@ export default function DashboardAkademik() {
               <p className="text-sm text-gray-400 text-center py-6">Belum ada absensi hari ini</p>
             ) : (
               <>
-                <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-[#0E6187]/5 border border-[#0E6187]/20 rounded-lg">
                   <div className="flex items-center gap-2">
-                    <CheckCircle size={14} className="text-emerald-600" />
-                    <span className="text-sm font-medium text-emerald-800">Hadir</span>
+                    <CheckCircle size={14} className="text-[#0E6187]" />
+                    <span className="text-sm font-medium text-[#0E6187]">Hadir</span>
                   </div>
-                  <span className="text-lg font-bold text-emerald-700">{absensiHadir.length}</span>
+                  <span className="text-lg font-bold text-[#0E6187]">{absensiHadir.length}</span>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
                   <div className="flex items-center gap-2">
-                    <Clock size={14} className="text-amber-600" />
-                    <span className="text-sm font-medium text-amber-800">Lainnya</span>
+                    <Clock size={14} className="text-gray-500" />
+                    <span className="text-sm font-medium text-gray-600">Lainnya</span>
                   </div>
-                  <span className="text-lg font-bold text-amber-700">{absensiHariIni.length - absensiHadir.length}</span>
+                  <span className="text-lg font-bold text-gray-600">{absensiHariIni.length - absensiHadir.length}</span>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-[#0E6187]/10 border border-[#0E6187]/20 rounded-lg">
                   <div className="flex items-center gap-2">
-                    <Users size={14} className="text-blue-600" />
-                    <span className="text-sm font-medium text-blue-800">Total Absensi</span>
+                    <Users size={14} className="text-[#0E6187]" />
+                    <span className="text-sm font-medium text-[#0E6187]">Total Absensi</span>
                   </div>
-                  <span className="text-lg font-bold text-blue-700">{absensiHariIni.length}</span>
+                  <span className="text-lg font-bold text-[#0E6187]">{absensiHariIni.length}</span>
                 </div>
               </>
             )}
@@ -417,8 +417,8 @@ export default function DashboardAkademik() {
       {rekap && rekap.leaderboard.length > 0 && (
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
           <div className="flex items-center gap-3 mb-4">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-yellow-50">
-              <Medal size={18} className="text-yellow-600" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0E6187]/10">
+              <Medal size={18} className="text-[#0E6187]" />
             </div>
             <div>
               <h2 className="text-sm font-bold text-gray-800">Leaderboard Nilai Tertinggi Kandidat</h2>
@@ -441,7 +441,7 @@ export default function DashboardAkademik() {
                 {rekap.leaderboard.map((entry, idx) => (
                   <tr key={entry.siswa_id} className="border-b border-gray-100 hover:bg-gray-50 transition">
                     <td className="py-3 px-2">
-                      <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gray-100 text-xs font-bold text-gray-600">
+                      <div className="flex items-center justify-center w-7 h-7 rounded-full bg-[#0E6187]/10 text-xs font-bold text-[#0E6187]">
                         {idx + 1}
                       </div>
                     </td>
@@ -450,7 +450,7 @@ export default function DashboardAkademik() {
                     <td className="py-3 px-2 text-center text-gray-600">{entry.level}</td>
                     <td className="py-3 px-2 text-center text-gray-600">{entry.total_penilaian}</td>
                     <td className="py-3 px-2 text-center">
-                      <span className="inline-flex items-center gap-1 font-bold text-indigo-600">
+                      <span className="inline-flex items-center gap-1 font-bold text-[#0E6187]">
                         {entry.rata_rata}
                       </span>
                     </td>

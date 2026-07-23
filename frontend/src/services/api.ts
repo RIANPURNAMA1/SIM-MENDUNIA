@@ -483,6 +483,17 @@ export const waSettingApi = {
   updateReminderSettings: (settings: { kategori_id: number; jatuh_tempo_hari: number; reminder_days: number[]; is_enabled: boolean; template_pesan: string | null }[]) => api.put('/wa-settings/reminder', { settings }),
   getGlobalSettings: () => api.get('/wa-settings/global'),
   updateGlobalSettings: (settings: { key: string; is_enabled: boolean; value?: string }[]) => api.put('/wa-settings/global', { settings }),
+
+  // Batch deadlines (per batch + kategori)
+  getBatchDeadlines: (batchId?: number) => api.get('/wa-settings/batch-deadlines', { params: batchId ? { batch_id: batchId } : {} }),
+  saveBatchDeadlines: (deadlines: { batch_id: number; kategori_id: number; tanggal_awal: string | null; tanggal_akhir: string | null; reminder_days: number[]; is_enabled: boolean; template_pesan: string | null; channel?: string; template_email?: string | null; subject_email?: string | null }[]) =>
+    api.put('/wa-settings/batch-deadlines', { deadlines }),
+  deleteBatchDeadline: (id: number) => api.delete(`/wa-settings/batch-deadlines/${id}`),
+  getBatchDeadlinesPublic: (batchId: number) => api.get('/wa-settings/batch-deadlines-public', { params: { batch_id: batchId } }),
+
+  // Email notification log
+  getEmailLog: (params?: Record<string, any>) => api.get('/wa-settings/email-log', { params }),
+  getEmailStats: () => api.get('/wa-settings/email-stats'),
 }
 
 export const guruLmsApi = {

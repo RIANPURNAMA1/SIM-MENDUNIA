@@ -39,6 +39,7 @@ import {
   ListOrdered,
   Wallet,
   MessageSquare,
+  Bell,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -80,6 +81,7 @@ const iconMap: Record<string, LucideIcon> = {
   Layers,
   Notebook,
   Bot,
+  Bell,
   Settings,
   UserCog,
   MessageCircle,
@@ -139,7 +141,8 @@ const navItems: NavItem[] = [
       { label: "Data Coupon", icon: "CreditCard", href: "/data-coupon" },
       { label: "Kategori Bayar", icon: "ListOrdered", href: "/data-biaya-kategori" },
       { label: "monitoring Notifikasi", icon: "MessageSquare", href: "/notifikasi-wa" },
-      { label: "Setting Notifikasi", icon: "Settings", href: "/notifikasi-wa-setting" },
+      { label: "Setting Notifikasi", icon: "Bell", href: "/notifikasi-wa-setting" },
+      { label: "Batch", icon: "Layers", href: "/batches" },
     ],
   },
   {
@@ -150,7 +153,6 @@ const navItems: NavItem[] = [
       { label: "Kelas Sensei", icon: "BookOpen", href: "/kelas-sensei" },
       { label: "Jadwal Level", icon: "Calendar", href: "/jadwal-level" },
       { label: "Data Siswa", icon: "Users", href: "/siswa" },
-      { label: "Batch", icon: "Layers", href: "/batches" },
       { label: "Rekap Siswa", icon: "BarChart3", href: "/rekap-siswa" },
       { label: "Penilaian Siswa", icon: "Notebook", href: "/penilaian" },
       { label: "LMS", icon: "BookOpen", href: "/lms" },

@@ -9,6 +9,7 @@ use App\Models\AffiliateLink;
 use App\Models\KomisiAffiliate;
 use App\Models\Coupon;
 use App\Models\BatchBiaya;
+use App\Models\BatchKategoriDeadline;
 use App\Models\BiayaKategori;
 use App\Models\Pembayaran;
 use App\Models\PembayaranItem;
@@ -109,7 +110,7 @@ class PendaftaranController extends Controller
 
         $pendaftar = Pendaftar::create([
             'product_id' => $data['product_id'],
-            'batch_id' => $data['batch_id'] ?? null,
+            'batch_id' => $data['batch_id'] ?? $product->batch_id ?? null,
             'coupon_id' => $kupon['coupon_id'],
             'nama' => $data['nama'],
             'email' => $data['email'],
@@ -174,7 +175,7 @@ class PendaftaranController extends Controller
         $pendaftar = Pendaftar::create([
             'affiliate_link_id' => $link->id,
             'product_id' => $link->product_id,
-            'batch_id' => $data['batch_id'] ?? null,
+            'batch_id' => $data['batch_id'] ?? $link->product->batch_id ?? null,
             'coupon_id' => $kupon['coupon_id'],
             'nama' => $data['nama'],
             'email' => $data['email'],
@@ -1638,11 +1639,41 @@ class PendaftaranController extends Controller
         $noInvoice = 'INV/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . $pendaftar->created_at->format('Ym');
         $company = \App\Models\CompanyProfile::getProfile();
 
-        // Per-kategori paid amounts
+        // Per-kategori paid amounts + deadline
         $paidPerKategori = PembayaranItem::where('pendaftar_id', $pendaftar->id)
             ->pluck('jumlah', 'kategori_id');
-        $kategoriItemsEnriched = $kategoriItems->map(function ($item) use ($paidPerKategori) {
+
+        // Resolve deadlines: prefer batch deadlines, fallback to global reminder settings
+        $batchId = $pendaftar->batch_id;
+        $batchDeadlines = collect();
+        if ($batchId) {
+            $batchDeadlines = BatchKategoriDeadline::where('batch_id', $batchId)
+                ->where('is_enabled', true)
+                ->get()
+                ->keyBy('kategori_id');
+        }
+        $reminderSettings = \App\Models\WaReminderSetting::where('is_enabled', true)
+            ->pluck('jatuh_tempo_hari', 'kategori_id');
+
+        $kategoriItemsEnriched = $kategoriItems->map(function ($item) use ($paidPerKategori, $reminderSettings, $batchDeadlines, $pendaftar) {
             $dibayar = (float) ($paidPerKategori[$item['id']] ?? 0);
+
+            $batchDl = $batchDeadlines->get($item['id']);
+            $tanggal_akhir = null;
+
+            if ($batchDl && $batchDl->tanggal_akhir) {
+                $tanggal_akhir = $batchDl->tanggal_akhir->format('Y-m-d');
+                $jatuh_tempo_hari = $pendaftar->tanggal_persetujuan
+                    ? \Carbon\Carbon::parse($pendaftar->tanggal_persetujuan)->diffInDays($batchDl->tanggal_akhir)
+                    : (int) ($reminderSettings[$item['id']] ?? 30);
+            } else {
+                $jatuh_tempo_hari = (int) ($reminderSettings[$item['id']] ?? 30);
+                if ($pendaftar->tanggal_persetujuan) {
+                    $tanggal_akhir = \Carbon\Carbon::parse($pendaftar->tanggal_persetujuan)
+                        ->addDays($jatuh_tempo_hari)->format('Y-m-d');
+                }
+            }
+
             return [
                 'id'      => $item['id'],
                 'nama'    => $item['nama'],
@@ -1650,6 +1681,8 @@ class PendaftaranController extends Controller
                 'komisi'  => $item['komisi'],
                 'dibayar' => $dibayar,
                 'sisa'    => max(0, $item['harga'] - $dibayar),
+                'jatuh_tempo_hari' => $jatuh_tempo_hari ?? 30,
+                'tanggal_akhir' => $tanggal_akhir,
             ];
         });
 
@@ -1661,6 +1694,7 @@ class PendaftaranController extends Controller
                 'email' => $pendaftar->email,
                 'telepon' => $pendaftar->telepon,
                 'created_at' => $pendaftar->created_at,
+                'tanggal_persetujuan' => $pendaftar->tanggal_persetujuan,
                 'status_pendaftaran' => $pendaftar->status_pendaftaran,
                 'status_pembayaran' => $pendaftar->status_pembayaran,
             ],

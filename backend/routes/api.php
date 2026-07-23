@@ -526,4 +526,16 @@ Route::middleware(['auth:sanctum'])->prefix('wa-settings')->group(function () {
     Route::put('/reminder', [\App\Http\Controllers\WaSettingController::class, 'reminderUpdate']);
     Route::get('/global', [\App\Http\Controllers\WaSettingController::class, 'globalIndex']);
     Route::put('/global', [\App\Http\Controllers\WaSettingController::class, 'globalUpdate']);
+
+    // Batch + kategori deadline CRUD
+    Route::get('/batch-deadlines', [\App\Http\Controllers\WaSettingController::class, 'batchDeadlineIndex']);
+    Route::put('/batch-deadlines', [\App\Http\Controllers\WaSettingController::class, 'batchDeadlineBulkUpdate']);
+    Route::delete('/batch-deadlines/{id}', [\App\Http\Controllers\WaSettingController::class, 'batchDeadlineDestroy']);
+
+    // Email notification log
+    Route::get('/email-log', [\App\Http\Controllers\WaSettingController::class, 'emailLog']);
+    Route::get('/email-stats', [\App\Http\Controllers\WaSettingController::class, 'emailStats']);
 });
+
+// Public — batch deadlines untuk countdown frontend
+Route::get('/wa-settings/batch-deadlines-public', [\App\Http\Controllers\WaSettingController::class, 'batchDeadlinePublic']);

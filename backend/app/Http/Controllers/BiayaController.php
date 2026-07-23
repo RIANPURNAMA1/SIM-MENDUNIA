@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Batch;
 use App\Models\BatchBiaya;
+use App\Models\BatchKategoriDeadline;
 use App\Models\BiayaKategori;
 use App\Models\PembayaranItem;
 use App\Models\Pendaftar;
@@ -160,27 +161,65 @@ class BiayaController extends Controller
                 ->map(fn($k) => (int) $k->pivot->harga);
         }
 
+        // Resolve deadlines: prefer batch_kategori_deadlines (per-batch), fallback to wa_reminder_settings (global)
+        $batchDeadlines = collect();
+        if ($batchId) {
+            $batchDeadlines = BatchKategoriDeadline::where('batch_id', $batchId)
+                ->where('is_enabled', true)
+                ->get()
+                ->keyBy('kategori_id');
+        }
+
+        $reminderSettings = \App\Models\WaReminderSetting::where('is_enabled', true)
+            ->pluck('jatuh_tempo_hari', 'kategori_id');
+
         $kategoris = BiayaKategori::orderBy('urutan')->get();
         $result = $kategoris->filter(function ($k) use ($data, $biayaBatch, $pivotPrices) {
             $bb = $biayaBatch->get($k->id);
             $pi = $data->get($k->id);
             $biaya = $bb ? (int) $bb->biaya : $pivotPrices->get($k->id, 0);
             return $biaya > 0;
-        })->values()->map(function ($k) use ($data, $biayaBatch, $pivotPrices) {
+        })->values()->map(function ($k) use ($data, $biayaBatch, $pivotPrices, $batchDeadlines, $reminderSettings, $pendaftar) {
             $bb = $biayaBatch->get($k->id);
             $pi = $data->get($k->id);
             $biaya = $bb ? (int) $bb->biaya : $pivotPrices->get($k->id, 0);
+
+            // Prefer batch deadline (tanggal_akhir is absolute date)
+            $batchDl = $batchDeadlines->get($k->id);
+            $tanggal_akhir = null;
+            $jatuh_tempo_hari = null;
+
+            if ($batchDl && $batchDl->tanggal_akhir) {
+                $tanggal_akhir = $batchDl->tanggal_akhir->format('Y-m-d');
+                // Also compute days remaining from tanggal_persetujuan for fallback
+                if ($pendaftar->tanggal_persetujuan) {
+                    $jatuh_tempo_hari = \Carbon\Carbon::parse($pendaftar->tanggal_persetujuan)
+                        ->diffInDays($batchDl->tanggal_akhir);
+                }
+            } else {
+                // Fallback to global reminder settings
+                $jatuh_tempo_hari = (int) ($reminderSettings[$k->id] ?? 30);
+                if ($pendaftar->tanggal_persetujuan) {
+                    $tanggal_akhir = \Carbon\Carbon::parse($pendaftar->tanggal_persetujuan)
+                        ->addDays($jatuh_tempo_hari)
+                        ->format('Y-m-d');
+                }
+            }
+
             return [
                 'kategori_id' => $k->id,
                 'kode' => $k->kode,
                 'nama' => $k->nama,
                 'biaya' => $biaya,
                 'dibayar' => $pi ? (int) $pi->jumlah : 0,
+                'jatuh_tempo_hari' => $jatuh_tempo_hari ?? 30,
+                'tanggal_akhir' => $tanggal_akhir,
             ];
         });
 
         return response()->json([
             'pendaftar_id' => $pendaftarId,
+            'tanggal_persetujuan' => $pendaftar->tanggal_persetujuan,
             'items' => $result,
             'total_biaya' => $result->sum('biaya'),
             'total_dibayar' => $result->sum('dibayar'),

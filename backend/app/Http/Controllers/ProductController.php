@@ -11,7 +11,7 @@ class ProductController extends Controller
 {
     public function index()
     {
-        return response()->json(Product::with(['biayaKategoris', 'komisiTiers'])->orderBy('created_at', 'desc')->get());
+        return response()->json(Product::with(['biayaKategoris', 'komisiTiers', 'batch'])->orderBy('created_at', 'desc')->get());
     }
 
     public function store(Request $request)
@@ -22,6 +22,7 @@ class ProductController extends Controller
             'kategori_items' => 'nullable|array',
             'komisi' => 'nullable|numeric|min:0',
             'status' => 'nullable|in:aktif,nonaktif',
+            'batch_id' => 'nullable|exists:batches,id',
             'komisi_tiers' => 'nullable|array',
             'komisi_tiers.*.kategori_id' => 'nullable|exists:biaya_kategoris,id',
             'komisi_tiers.*.kategori_name' => 'nullable|string|max:255',
@@ -42,20 +43,21 @@ class ProductController extends Controller
             'harga' => $totalHarga,
             'komisi' => $request->input('komisi'),
             'status' => $request->input('status', 'aktif'),
+            'batch_id' => $request->input('batch_id'),
         ]);
 
         $product->syncKategoriItems($kategoriItems);
 
         $this->syncKomisiTiers($product, $request);
 
-        return response()->json($product->load(['biayaKategoris', 'komisiTiers']), 201);
+        return response()->json($product->load(['biayaKategoris', 'komisiTiers', 'batch']), 201);
     }
 
     public function show($slugOrId)
     {
         $product = is_numeric($slugOrId)
-            ? Product::with(['biayaKategoris', 'komisiTiers'])->find($slugOrId)
-            : Product::with(['biayaKategoris', 'komisiTiers'])->where('slug', $slugOrId)->first();
+            ? Product::with(['biayaKategoris', 'komisiTiers', 'batch'])->find($slugOrId)
+            : Product::with(['biayaKategoris', 'komisiTiers', 'batch'])->where('slug', $slugOrId)->first();
 
         if (!$product) return response()->json(['message' => 'Not found'], 404);
 
@@ -72,6 +74,7 @@ class ProductController extends Controller
             'kategori_items' => 'nullable|array',
             'komisi' => 'nullable|numeric|min:0',
             'status' => 'nullable|in:aktif,nonaktif',
+            'batch_id' => 'nullable|exists:batches,id',
             'komisi_tiers' => 'nullable|array',
             'komisi_tiers.*.kategori_id' => 'nullable|exists:biaya_kategoris,id',
             'komisi_tiers.*.kategori_name' => 'nullable|string|max:255',
@@ -87,6 +90,7 @@ class ProductController extends Controller
         if ($request->has('deskripsi')) $updateData['deskripsi'] = $request->input('deskripsi');
         if ($request->has('komisi')) $updateData['komisi'] = $request->input('komisi');
         if ($request->has('status')) $updateData['status'] = $request->input('status');
+        if ($request->has('batch_id')) $updateData['batch_id'] = $request->input('batch_id');
 
         if ($request->has('nama')) {
             $updateData['slug'] = $this->generateUniqueSlug($request->input('nama'), $product->id);
@@ -107,7 +111,7 @@ class ProductController extends Controller
 
         $this->syncKomisiTiers($product, $request);
 
-        return response()->json($product->load(['biayaKategoris', 'komisiTiers']));
+        return response()->json($product->load(['biayaKategoris', 'komisiTiers', 'batch']));
     }
 
     public function destroy($id)

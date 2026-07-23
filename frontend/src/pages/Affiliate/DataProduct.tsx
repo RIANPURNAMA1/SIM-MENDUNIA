@@ -49,6 +49,8 @@ interface Product {
   harga: number
   komisi: number | null
   status: string
+  batch_id: number | null
+  batch?: { id: number; nama_batch: string } | null
   biaya_kategoris: (BiayaKategori & { pivot: { harga: number; komisi: number } })[]
   komisi_tiers: KomisiTier[]
 }
@@ -73,6 +75,7 @@ export default function DataProduct() {
     deskripsi: '',
     komisi: '',
     status: 'aktif',
+    batch_id: '' as string,
     kategori_items: [emptyKategoriItem()] as KategoriItem[],
     komisi_tiers: [] as KomisiTier[],
   })
@@ -92,7 +95,7 @@ export default function DataProduct() {
   function openCreate() {
     setEditing(null)
     setForm({
-      nama: '', deskripsi: '', komisi: '', status: 'aktif',
+      nama: '', deskripsi: '', komisi: '', status: 'aktif', batch_id: '',
       kategori_items: [emptyKategoriItem()], komisi_tiers: [],
     })
     setExpanded({})
@@ -115,6 +118,7 @@ export default function DataProduct() {
     setForm({
       nama: p.nama, deskripsi: p.deskripsi || '',
       komisi: p.komisi ? String(p.komisi) : '', status: p.status,
+      batch_id: p.batch_id ? String(p.batch_id) : '',
       kategori_items: items,
       komisi_tiers: (p.komisi_tiers || []).map(t => {
         let resolvedName = t.kategori_name || ''
@@ -228,6 +232,7 @@ export default function DataProduct() {
       kategori_items: cleanItems(form.kategori_items),
       komisi: form.komisi ? parseFloat(form.komisi) : null,
       status: form.status,
+      batch_id: form.batch_id ? parseInt(form.batch_id) : null,
       komisi_tiers: form.komisi_tiers.map(t => {
         let kid = t.kategori_id
         if (!kid && t.kategori_name && editing) {
@@ -425,7 +430,10 @@ export default function DataProduct() {
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-semibold text-slate-700 truncate">{p.nama}</p>
-                    <p className="text-[10px] text-slate-400 font-medium">Rp {Number(p.harga).toLocaleString('id-ID')}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      {p.batch && <span className="text-[9px] font-bold text-indigo-600 bg-indigo-100 px-1.5 py-0.5 rounded-full">{p.batch.nama_batch}</span>}
+                      <p className="text-[10px] text-slate-400 font-medium">Rp {Number(p.harga).toLocaleString('id-ID')}</p>
+                    </div>
                   </div>
                 </div>
                 <button onClick={() => copyLink(p)}
@@ -464,6 +472,7 @@ export default function DataProduct() {
             <thead className="text-sm text-slate-600">
               <tr>
                 <th className="border border-slate-200 px-4 py-3 font-medium">Nama Produk</th>
+                <th className="border border-slate-200 px-4 py-3 font-medium">Batch</th>
                 <th className="border border-slate-200 px-4 py-3 font-medium">Kategori / Harga</th>
                 <th className="border border-slate-200 px-4 py-3 font-medium">Deskripsi</th>
                 <th className="border border-slate-200 px-4 py-3 font-medium">Komisi Tier</th>
@@ -475,7 +484,7 @@ export default function DataProduct() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="border border-slate-200 px-6 py-10 text-center">
+                  <td colSpan={8} className="border border-slate-200 px-6 py-10 text-center">
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400"><Package size={24} /></div>
                     <p className="mt-3 text-sm font-medium text-slate-600">Belum ada produk</p>
                   </td>
@@ -487,6 +496,15 @@ export default function DataProduct() {
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50"><Package size={16} className="text-blue-600" /></div>
                       <span className="text-sm font-semibold text-slate-800">{p.nama}</span>
                     </div>
+                  </td>
+                  <td className="border border-slate-200 px-4 py-3">
+                    {p.batch ? (
+                      <span className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-[11px] font-semibold text-indigo-700">
+                        <Layers size={11} /> {p.batch.nama_batch}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-400">-</span>
+                    )}
                   </td>
                   <td className="border border-slate-200 px-4 py-3">{renderKategoriDisplay(p)}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-slate-500 max-w-xs truncate">{p.deskripsi || '-'}</td>
@@ -583,6 +601,15 @@ export default function DataProduct() {
                       <label className="block text-sm font-semibold text-slate-700 mb-1.5">Deskripsi <span className="text-slate-400 font-normal">(opsional)</span></label>
                       <textarea placeholder="Jelaskan tentang produk ini..." value={form.deskripsi} onChange={e => setForm({ ...form, deskripsi: e.target.value })} rows={2}
                         className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Batch / Angkatan <span className="text-slate-400 font-normal">(opsional)</span></label>
+                      <select value={form.batch_id} onChange={e => setForm({ ...form, batch_id: e.target.value })}
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer">
+                        <option value="">Tanpa Batch</option>
+                        {batches.map(b => <option key={b.id} value={b.id}>{b.nama_batch}</option>)}
+                      </select>
+                      <p className="text-[10px] text-slate-400 mt-1.5">Pilih batch agar pendaftar otomatis masuk batch ini</p>
                     </div>
                   </div>
                 </div>

@@ -1,7 +1,18 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { CheckCircle, Clock, Copy, FileText, CreditCard, AlertTriangle } from "lucide-react";
+import { Check, Copy, AlertTriangle, ShieldCheck, ChevronDown, ChevronUp } from "lucide-react";
 import api from "../../services/api";
+
+interface KategoriItem {
+  id: number;
+  nama: string;
+  harga: number;
+  komisi: number;
+  dibayar: number;
+  sisa: number;
+  jatuh_tempo_hari: number;
+  tanggal_akhir: string | null;
+}
 
 interface CheckoutData {
   pendaftar: {
@@ -10,6 +21,7 @@ interface CheckoutData {
     email: string;
     telepon: string;
     created_at: string;
+    tanggal_persetujuan: string | null;
     status_pendaftaran: string;
     status_pembayaran: string;
   };
@@ -28,10 +40,11 @@ interface CheckoutData {
     company_name: string;
   };
   no_invoice: string;
+  kategori_items?: KategoriItem[];
 }
 
 function fmt(n: number) {
-  return "Rp " + n.toLocaleString("id-ID");
+  return "Rp " + n.toLocaleString("id-ID").replace(/,/g, ".");
 }
 
 export default function CheckoutBerhasil() {
@@ -42,8 +55,7 @@ export default function CheckoutBerhasil() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [showDetail, setShowDetail] = useState(false);
 
-  const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-  const [isExpired, setIsExpired] = useState(false);
+  const [countdowns, setCountdowns] = useState<Record<number, { days: number; hours: number; minutes: number; seconds: number; expired: boolean; deadline: Date }>>({});
 
   useEffect(() => {
     if (!id) return;
@@ -59,30 +71,39 @@ export default function CheckoutBerhasil() {
   }, [id]);
 
   useEffect(() => {
-    if (!data?.pendaftar?.created_at) return;
+    if (!data?.kategori_items?.length) return;
 
-    const created = new Date(data.pendaftar.created_at);
-    const deadline = new Date(created.getTime() + 24 * 60 * 60 * 1000);
-
-    function updateCountdown() {
+    function updateCountdowns() {
       const now = new Date();
-      const diff = deadline.getTime() - now.getTime();
+      const newCountdowns: typeof countdowns = {};
+      for (const k of data!.kategori_items!) {
+        if (k.sisa <= 0) continue;
 
-      if (diff <= 0) {
-        setIsExpired(true);
-        setCountdown({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-        return;
+        // Use tanggal_akhir from API (absolute date) if available
+        let deadline: Date;
+        if (k.tanggal_akhir) {
+          deadline = new Date(k.tanggal_akhir + 'T23:59:59');
+        } else {
+          // Fallback: compute from tanggal_persetujuan + jatuh_tempo_hari
+          const baseDate = data!.pendaftar.tanggal_persetujuan
+            ? new Date(data!.pendaftar.tanggal_persetujuan)
+            : new Date(data!.pendaftar.created_at);
+          deadline = new Date(baseDate.getTime() + k.jatuh_tempo_hari * 24 * 60 * 60 * 1000);
+        }
+
+        const diff = deadline.getTime() - now.getTime();
+        const expired = diff <= 0;
+        const days = Math.floor(Math.abs(diff) / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((Math.abs(diff) % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((Math.abs(diff) % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((Math.abs(diff) % (1000 * 60)) / 1000);
+        newCountdowns[k.id] = { days, hours, minutes, seconds, expired, deadline };
       }
-
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-      setCountdown({ days, hours, minutes, seconds });
+      setCountdowns(newCountdowns);
     }
 
-    updateCountdown();
-    const interval = setInterval(updateCountdown, 1000);
+    updateCountdowns();
+    const interval = setInterval(updateCountdowns, 1000);
     return () => clearInterval(interval);
   }, [data]);
 
@@ -105,15 +126,14 @@ export default function CheckoutBerhasil() {
       timeZone: "Asia/Jakarta",
       timeZoneName: "short",
     };
-    return d.toLocaleDateString("id-ID", options);
+    return d.toLocaleDateString("id-ID", options).replace(/\./g, ":");
   }
 
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0E6187] flex items-center justify-center">
         <div className="relative w-14 h-14 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
-          <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
+          <div className="absolute inset-0 rounded-full border-2 border-white/20 border-t-white animate-spin" />
         </div>
       </div>
     );
@@ -122,13 +142,13 @@ export default function CheckoutBerhasil() {
   if (error || !data) {
     return (
       <div className="min-h-screen bg-[#0E6187] flex items-center justify-center px-4">
-        <div className="text-center">
+        <div className="text-center bg-white p-8 rounded-xl max-w-sm w-full">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertTriangle size={28} className="text-red-500" />
           </div>
           <h1 className="text-lg font-bold text-gray-900 mb-1">Data tidak ditemukan</h1>
-          <p className="text-sm text-gray-500 mb-4">Invoice tidak ditemukan atau telah kadaluwarsa</p>
-          <a href="/" className="inline-flex items-center gap-2 px-4 py-2 bg-[#0E6187] text-white rounded-lg text-sm">
+          <p className="text-sm text-gray-500 mb-6">Invoice tidak ditemukan atau telah kadaluwarsa</p>
+          <a href="/" className="inline-block w-full py-2.5 bg-[#00D1FF] text-white font-bold rounded-lg text-sm">
             Kembali ke Beranda
           </a>
         </div>
@@ -139,193 +159,267 @@ export default function CheckoutBerhasil() {
   const bankName = data.company.bank_nama || "BCA";
   const bankAccount = data.company.bank_nomor_rekening || "1831813364";
   const bankOwner = data.company.bank_pemilik || "PT. INDONESIA SUKSES MENDUNIA";
-  const totalBayar = data.keuangan.sisa > 0 ? data.keuangan.sisa : data.keuangan.total_tagihan;
-  const deadlineDate = new Date(new Date(data.pendaftar.created_at).getTime() + 24 * 60 * 60 * 1000);
+  const unpaidItems = (data.kategori_items || []).filter(k => k.sisa > 0);
+  const firstKategori = unpaidItems[0] || data.kategori_items?.[0];
+  const totalBayar = firstKategori
+    ? (firstKategori.sisa > 0 ? firstKategori.sisa : firstKategori.harga)
+    : (data.keuangan.sisa > 0 ? data.keuangan.sisa : data.keuangan.total_tagihan);
+  const primaryCountdown = firstKategori ? countdowns[firstKategori.id] : null;
+  const paidItems = (data.kategori_items || []).filter(k => k.sisa <= 0);
 
   return (
-    <div className="min-h-screen bg-[#0E6187]">
-      <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 md:px-6 h-14 flex items-center gap-3">
-          <a href="/" className="flex items-center gap-2">
-            <img src="/logo-sm.png" alt="Mendunia" className="w-6 h-6" />
-            <span className="text-lg font-bold text-gray-900">Mendunia.id</span>
-          </a>
-        </div>
-      </nav>
-
-      <div className="max-w-3xl mx-auto px-4 md:px-6 py-8 md:py-12">
-        {/* Success Header */}
-        <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle size={40} className="text-emerald-600" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Checkout berhasil</h1>
-        </div>
-
-        {/* Countdown Card */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mb-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-              <Clock size={20} className="text-amber-600" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-900">Batas akhir pembayaran</p>
-              <p className="text-sm text-gray-500">Jatuh tempo {formatDate(deadlineDate.toISOString())}</p>
-            </div>
+    <div className="min-h-screen bg-[#0E6187] py-12 px-4 font-sans flex flex-col items-center">
+      <div className="w-full max-w-[460px] mx-auto">
+        
+        {/* --- BAGIAN 1: HEADER & COUNTDOWN --- */}
+        <div className="bg-white rounded-t-2xl pt-10 pb-6 px-6 relative mt-6">
+          {/* Floating Checkmark Icon */}
+          <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-12 h-12 bg-[#00C853] rounded-full border-[3px] border-[#0E6187] flex items-center justify-center shadow-sm">
+            <Check size={26} className="text-white" strokeWidth={3} />
           </div>
 
-          <p className="text-sm text-gray-600 mb-4">Yuk, buruan selesaikan pembayaranmu.</p>
-          <p className="text-xs text-gray-500 mb-5">
-            Kami verifikasi pesananmu kurang dari 15 menit setelah pembayaran berhasil dan paling lambat 1x24 jam.
-          </p>
+          <div className="text-center mb-6">
+            <h1 className="text-[22px] font-bold text-gray-800">{data.pendaftar.nama},</h1>
+            <p className="text-[15px] text-gray-600">Checkout berhasil</p>
+          </div>
 
-          <div className={`flex items-center justify-center gap-4 p-4 rounded-lg ${isExpired ? "bg-red-50 border border-red-200" : "bg-[#0E6187] text-white"}`}>
-            {isExpired ? (
-              <div className="text-center">
-                <p className="text-sm font-bold text-red-600">Pembayaran Telah Kadaluarsa</p>
-                <p className="text-xs text-red-500 mt-1">Silakan daftar ulang</p>
-              </div>
-            ) : (
-              <>
-                {countdown.days > 0 && (
-                  <div className="text-center">
-                    <div className="text-3xl font-bold tabular-nums">{String(countdown.days).padStart(2, "0")}</div>
-                    <div className="text-[10px] uppercase tracking-wider opacity-70">Hari</div>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[13px] text-gray-500 leading-tight max-w-[100px]">
+              {unpaidItems.length > 1 ? `Batas ${unpaidItems.length} tagihan` : 'Batas akhir pembayaran'}
+            </span>
+            {primaryCountdown && (
+              <div className="flex gap-4">
+                {primaryCountdown.days > 0 && (
+                  <div className="flex flex-col items-center">
+                    <span className="text-2xl font-bold text-red-500 tabular-nums tracking-widest">
+                      {String(primaryCountdown.days).padStart(2, "0").split("").join(" ")}
+                    </span>
+                    <span className="text-[10px] text-red-500 font-medium">Hari</span>
                   </div>
                 )}
-                <div className="text-center">
-                  <div className="text-3xl font-bold tabular-nums">{String(countdown.hours).padStart(2, "0")}</div>
-                  <div className="text-[10px] uppercase tracking-wider opacity-70">Jam</div>
+                <div className="flex flex-col items-center">
+                  <span className="text-2xl font-bold text-red-500 tabular-nums tracking-widest">
+                    {String(primaryCountdown.hours).padStart(2, "0").split("").join(" ")}
+                  </span>
+                  <span className="text-[10px] text-red-500 font-medium">Jam</span>
                 </div>
-                <span className="text-3xl font-bold">:</span>
-                <div className="text-center">
-                  <div className="text-3xl font-bold tabular-nums">{String(countdown.minutes).padStart(2, "0")}</div>
-                  <div className="text-[10px] uppercase tracking-wider opacity-70">Menit</div>
+                <div className="flex flex-col items-center">
+                  <span className="text-2xl font-bold text-red-500 tabular-nums tracking-widest">
+                    {String(primaryCountdown.minutes).padStart(2, "0").split("").join(" ")}
+                  </span>
+                  <span className="text-[10px] text-red-500 font-medium">Menit</span>
                 </div>
-                <span className="text-3xl font-bold">:</span>
-                <div className="text-center">
-                  <div className="text-3xl font-bold tabular-nums">{String(countdown.seconds).padStart(2, "0")}</div>
-                  <div className="text-[10px] uppercase tracking-wider opacity-70">Detik</div>
+                <div className="flex flex-col items-center">
+                  <span className="text-2xl font-bold text-red-500 tabular-nums tracking-widest">
+                    {String(primaryCountdown.seconds).padStart(2, "0").split("").join(" ")}
+                  </span>
+                  <span className="text-[10px] text-red-500 font-medium">Detik</span>
                 </div>
-              </>
+              </div>
             )}
+          </div>
+          
+          {primaryCountdown && (
+            <div className="text-right text-[11px] text-gray-500 mb-2">
+              Jatuh tempo {formatDate(primaryCountdown.deadline.toISOString())}
+            </div>
+          )}
+
+          {/* Per-Category Deadline List */}
+          {unpaidItems.length > 0 && (
+            <div className="space-y-2 mb-4">
+              {unpaidItems.map(k => {
+                const cd = countdowns[k.id];
+                if (!cd) return null;
+                return (
+                  <div key={k.id} className={`flex items-center justify-between rounded-md px-3 py-2 text-[12px] ${
+                    cd.expired ? 'bg-red-50 border border-red-200' : 'bg-[#FFF9E5] border border-yellow-100'
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      <span className={`font-semibold ${cd.expired ? 'text-red-600' : 'text-gray-800'}`}>{k.nama}</span>
+                      <span className="text-gray-400">•</span>
+                      <span className={`font-medium ${cd.expired ? 'text-red-500' : 'text-gray-600'}`}>
+                        {fmt(k.sisa > 0 ? k.sisa : k.harga)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold">
+                      {cd.expired ? (
+                        <span className="text-red-600">Lewat {cd.days} hari</span>
+                      ) : (
+                        <span className="text-amber-700">
+                          {cd.days > 0 && <>{cd.days}h </>}
+                          {cd.hours}j {cd.minutes}m
+                        </span>
+                      )}
+                      <span className="text-gray-400">•</span>
+                      <span className="text-gray-500">{formatDate(cd.deadline.toISOString()).split(',').slice(0, 2).join(',')}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Paid categories badge */}
+          {paidItems.length > 0 && (
+            <div className="mb-4 flex flex-wrap gap-1.5">
+              {paidItems.map(k => (
+                <span key={k.id} className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-[11px] font-semibold px-2 py-0.5 rounded-full border border-green-200">
+                  <Check size={10} /> {k.nama} Lunas
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className="bg-[#FFF9E5] rounded-md p-4 flex gap-3 items-start border border-yellow-100">
+            <AlertTriangle size={18} className="text-yellow-500 shrink-0 mt-0.5" />
+            <div className="text-[13px] text-gray-700 leading-snug">
+              <p className="font-bold mb-1">Yuk, buruan selesaikan pembayaranmu,</p>
+              <p>Kami verifikasi pesananmu kurang dari 15 menit setelah pembayaran berhasil dan paling lambat 1x24 jam.</p>
+            </div>
           </div>
         </div>
 
-        {/* Bank Transfer Info */}
-        {!isExpired && (
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mb-6">
-            <p className="text-sm font-bold text-gray-900 mb-4">Tolong transfer ke</p>
+        {/* --- PEMBATAS 1 (TICKET CUTOUT) --- */}
+        <div className="relative h-5 bg-white">
+          <div className="absolute top-1/2 left-4 right-4 border-t-[1.5px] border-dashed border-gray-300 -translate-y-1/2"></div>
+          <div className="absolute top-1/2 -left-3 w-6 h-6 bg-[#0E6187] rounded-full -translate-y-1/2"></div>
+          <div className="absolute top-1/2 -right-3 w-6 h-6 bg-[#0E6187] rounded-full -translate-y-1/2"></div>
+        </div>
 
-            <div className="space-y-4">
+        {/* --- BAGIAN 2: INFORMASI TRANSFER --- */}
+        <div className="bg-white py-6 px-6">
+          {firstKategori && (
+            <div className="mb-4 bg-[#E8FAFF] rounded-md p-3 text-center border border-blue-100">
+              <p className="text-[13px] text-gray-600 mb-1">Silakan bayar kategori:</p>
+              <p className="text-[15px] font-bold text-[#0E6187]">{firstKategori.nama}</p>
+            </div>
+          )}
+
+          <h2 className="text-[15px] font-bold text-gray-800 mb-4">Tolong transfer ke</h2>
+          
+          <div className="flex justify-end mb-4">
+            <span className="text-[13px] font-bold text-gray-800">
+              {bankName} a.n {bankOwner}
+            </span>
+          </div>
+          
+          <div className="border-t border-gray-100 my-4"></div>
+
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
               <div>
-                <p className="text-xs text-gray-500 mb-1">Bank</p>
-                <p className="text-sm font-bold text-gray-900">{bankName} a.n {bankOwner}</p>
+                <p className="text-[13px] font-bold text-gray-800 mb-0.5">No. rekening</p>
+                <p className="text-[15px] font-bold text-red-500">{bankAccount}</p>
               </div>
+              <button
+                onClick={() => copyToClipboard(bankAccount, "rek")}
+                className="flex items-center gap-1.5 text-[12px] font-semibold text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                {copiedField === "rek" ? "Tersalin" : "Salin"}
+                <Copy size={14} className={copiedField === "rek" ? "text-green-500" : ""} />
+              </button>
+            </div>
 
-              <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
-                <div>
-                  <p className="text-xs text-gray-500 mb-0.5">No. rekening</p>
-                  <p className="text-lg font-bold font-mono text-[#0E6187] tracking-wider">{bankAccount}</p>
-                </div>
-                <button
-                  onClick={() => copyToClipboard(bankAccount, "rek")}
-                  className="p-2 rounded-lg hover:bg-gray-200 transition-colors"
-                  title="Salin"
-                >
-                  <Copy size={16} className={copiedField === "rek" ? "text-green-600" : "text-gray-400"} />
-                </button>
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-[13px] font-bold text-gray-800 mb-0.5">Total Pembayaran</p>
+                <p className="text-[15px] font-bold text-red-500">{fmt(totalBayar)}</p>
               </div>
-
-              <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
-                <div>
-                  <p className="text-xs text-gray-500 mb-0.5">Total Pembayaran</p>
-                  <p className="text-lg font-bold font-mono text-[#0E6187]">{fmt(totalBayar)}</p>
-                </div>
-                <button
-                  onClick={() => copyToClipboard(String(totalBayar).replace(/[^0-9]/g, ""), "nominal")}
-                  className="p-2 rounded-lg hover:bg-gray-200 transition-colors"
-                  title="Salin"
-                >
-                  <Copy size={16} className={copiedField === "nominal" ? "text-green-600" : "text-gray-400"} />
-                </button>
-              </div>
-
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
-                <AlertTriangle size={16} className="text-amber-600 mt-0.5 shrink-0" />
-                <p className="text-xs text-amber-700">
-                  <strong>Penting!</strong> Mohon transfer sampai 3 digit terakhir yaitu {fmt(totalBayar)} karena sistem kami tidak bisa mengenali pembayaranmu bila jumlahnya tidak sesuai.
-                </p>
-              </div>
+              <button
+                onClick={() => copyToClipboard(String(totalBayar).replace(/[^0-9]/g, ""), "nominal")}
+                className="flex items-center gap-1.5 text-[12px] font-semibold text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                {copiedField === "nominal" ? "Tersalin" : "Salin"}
+                <Copy size={14} className={copiedField === "nominal" ? "text-green-500" : ""} />
+              </button>
             </div>
           </div>
-        )}
 
-        {/* Action Buttons */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mb-6">
+          <div className="mt-6 bg-[#E8FAFF] rounded-md p-3 text-center text-[12px] text-gray-700 leading-relaxed">
+            <span className="font-bold">Penting!</span> Mohon transfer sampai 3 digit terakhir yaitu{" "}
+            <span className="font-bold text-red-500">{fmt(totalBayar)}</span> Karena sistem kami tidak bisa mengenali pembayaranmu bila jumlahnya tidak sesuai
+          </div>
+        </div>
+
+        {/* --- PEMBATAS 2 (TICKET CUTOUT) --- */}
+        <div className="relative h-5 bg-white">
+          <div className="absolute top-1/2 left-4 right-4 border-t-[1.5px] border-dashed border-gray-300 -translate-y-1/2"></div>
+          <div className="absolute top-1/2 -left-3 w-6 h-6 bg-[#0E6187] rounded-full -translate-y-1/2"></div>
+          <div className="absolute top-1/2 -right-3 w-6 h-6 bg-[#0E6187] rounded-full -translate-y-1/2"></div>
+        </div>
+
+        {/* --- BAGIAN 3: DETAIL & KONFIRMASI --- */}
+        <div className="bg-white rounded-b-2xl py-6 px-6">
           <button
             onClick={() => setShowDetail(!showDetail)}
-            className="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
+            className="w-full flex items-center justify-center gap-2 text-[13px] font-bold text-gray-800 mb-5"
           >
-            <div className="flex items-center gap-3">
-              <FileText size={18} className="text-[#0E6187]" />
-              <span className="text-sm font-semibold text-gray-900">Lihat Detail Pesanan</span>
-            </div>
-            <span className={`text-gray-400 transition-transform ${showDetail ? "rotate-180" : ""}`}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6" /></svg>
-            </span>
+            Lihat Detail Pesanan 
+            {showDetail ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
 
           {showDetail && (
-            <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Invoice</span>
-                <span className="font-mono font-bold text-gray-900">{data.no_invoice}</span>
+            <div className="mb-4 text-[13px] space-y-2 text-gray-600 bg-gray-50 p-4 rounded-md">
+              <div className="flex justify-between">
+                <span>Nama:</span>
+                <span className="font-medium text-gray-800">{data.pendaftar.nama}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Program</span>
-                <span className="font-medium text-gray-900">{data.product?.nama || "-"}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Nama</span>
-                <span className="font-medium text-gray-900">{data.pendaftar.nama}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Email</span>
-                <span className="font-medium text-gray-900">{data.pendaftar.email}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Total Tagihan</span>
-                <span className="font-bold text-gray-900">{fmt(data.keuangan.total_tagihan)}</span>
+              <div className="flex justify-between">
+                <span>Email:</span>
+                <span className="font-medium text-gray-800">{data.pendaftar.email}</span>
               </div>
               {data.keuangan.diskon > 0 && (
-                <div className="flex justify-between text-sm text-green-600">
-                  <span>Diskon</span>
+                <div className="flex justify-between text-green-600">
+                  <span>Diskon:</span>
                   <span>-{fmt(data.keuangan.diskon)}</span>
                 </div>
               )}
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Status</span>
-                <span className="font-medium text-amber-600">Menunggu Pembayaran</span>
-              </div>
             </div>
           )}
+
+          <div className="flex justify-between items-start mb-6 text-[13px]">
+            <div className="text-gray-800">
+              <p>Invoice ID: {data.no_invoice}</p>
+              <p className="mt-0.5">{data.product?.nama || "-"}</p>
+              {firstKategori && (
+                <p className="mt-0.5 text-[#0E6187] font-semibold">{firstKategori.nama} — {fmt(firstKategori.harga)}</p>
+              )}
+              {data.kategori_items && data.kategori_items.length > 1 && (
+                <p className="text-[11px] text-gray-400 mt-0.5">{data.kategori_items.length} kategori pembayaran</p>
+              )}
+            </div>
+            <div className="text-gray-800 font-medium">
+              {fmt(firstKategori ? firstKategori.harga : data.keuangan.harga_produk)}
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center mb-6 text-[13px] font-bold text-gray-800">
+            <span>Total Pembayaran</span>
+            <span>{fmt(totalBayar)}</span>
+          </div>
+
+          <div className="border-t border-gray-100 my-6"></div>
+
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-[12px] text-gray-500 max-w-[150px] leading-snug">
+              Konfirmasi pembayaran melalui halaman ini:
+            </span>
+            <a
+              href={`/konfirmasi-pembayaran/${data.pendaftar.id}`}
+              className="bg-[#22C55E] hover:bg-[#16A34A] text-white font-bold py-2.5 px-6 rounded-md text-[13px] transition-colors whitespace-nowrap"
+            >
+              KONFIRMASI
+            </a>
+          </div>
         </div>
 
-        {/* Konfirmasi Pembayaran Link */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm text-center">
-          <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-3">
-            <CreditCard size={20} className="text-blue-600" />
-          </div>
-          <p className="text-sm font-semibold text-gray-900 mb-1">Konfirmasi pembayaran melalui halaman ini</p>
-          <p className="text-xs text-gray-500 mb-4">Setelah melakukan transfer, unggah bukti pembayaran Anda</p>
-          <a
-            href={`/konfirmasi-pembayaran/${data.pendaftar.id}`}
-            className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#0E6187] text-white rounded-lg text-sm font-semibold hover:bg-[#1a5e6f] transition-colors"
-          >
-            <CreditCard size={16} /> Konfirmasi Pembayaran
-          </a>
+        {/* --- FOOTER AMAN --- */}
+        <div className="mt-6 flex items-center justify-center gap-2 text-white text-[12px] opacity-90">
+          <ShieldCheck size={16} className="text-[#00D166]" />
+          <span>Informasi Pribadi Anda Aman</span>
         </div>
+
       </div>
     </div>
   );
