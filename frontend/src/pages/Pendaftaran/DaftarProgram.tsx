@@ -1,15 +1,10 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { useParams } from "react-router-dom";
-import api, { productApi, pendaftarApi, couponApi, batchApi } from "../../services/api";
+import { productApi, pendaftarApi, couponApi } from "../../services/api";
 import {
-  GraduationCap,
-  CheckCircle,
   User,
-  LogIn,
   Loader,
-  Tag,
   Shield,
-  ChevronDown,
 } from "lucide-react";
 
 interface KategoriItem {
@@ -26,23 +21,10 @@ interface Product {
   deskripsi: string | null;
   harga: number;
   status: string;
+  batch_id?: number | null;
+  batch?: { id: number; nama_batch: string } | null;
   kategori_items?: KategoriItem[];
   biaya_kategoris?: { id: number; kode: string; pivot: { harga: number } }[];
-}
-
-interface BiayaKategori {
-  id: number;
-  kode: string;
-  nama: string;
-  urutan: number;
-}
-
-interface Batch {
-  id: number;
-  nama_batch: string;
-  kuota: number | null;
-  siswas_count?: number;
-  is_penuh?: boolean;
 }
 
 export default function DaftarProgram() {
@@ -55,8 +37,6 @@ export default function DaftarProgram() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [telepon, setTelepon] = useState("");
-  const [batchId, setBatchId] = useState("");
-  const [batches, setBatches] = useState<Batch[]>([]);
   const [kodeKupon, setKodeKupon] = useState("");
   const [validasiKupon, setValidasiKupon] = useState<{
     valid: boolean;
@@ -66,6 +46,8 @@ export default function DaftarProgram() {
   } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   function getFlattenedItems(items: KategoriItem[], parentOnly = false): { item: KategoriItem; depth: number }[] {
     const result: { item: KategoriItem; depth: number }[] = [];
@@ -106,10 +88,6 @@ export default function DaftarProgram() {
     }).catch(() => {}).finally(() => setLoading(false));
   }, [slug]);
 
-  useEffect(() => {
-    batchApi.list().then(res => setBatches(res.data.data || [])).catch(() => {});
-  }, []);
-
   async function cekKupon() {
     if (!kodeKupon || !selectedProduct) return;
     try {
@@ -130,6 +108,19 @@ export default function DaftarProgram() {
     e.preventDefault();
     if (!selectedProduct) return;
     setError("");
+
+    const errors: Record<string, string> = {};
+    if (!nama.trim()) errors.nama = "Nama lengkap wajib diisi";
+    if (!email.trim()) errors.email = "Alamat email wajib diisi";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = "Format email tidak valid";
+    if (!password) errors.password = "Password wajib diisi";
+    else if (password.length < 6) errors.password = "Password minimal 6 karakter";
+    if (!telepon.trim()) errors.telepon = "Nomor WhatsApp wajib diisi";
+    else if (!/^[0-9]+$/.test(telepon.replace(/[\s\-+()]/g, ""))) errors.telepon = "Nomor WhatsApp hanya boleh berisi angka";
+    setFieldErrors(errors);
+    setTouched({ nama: true, email: true, password: true, telepon: true });
+    if (Object.keys(errors).length > 0) return;
+
     setIsSubmitting(true);
 
     try {
@@ -140,7 +131,7 @@ export default function DaftarProgram() {
       formData.append("email", email);
       formData.append("password", password);
       if (telepon) formData.append("telepon", telepon);
-      if (batchId) formData.append("batch_id", batchId);
+      if (selectedProduct.batch_id) formData.append("batch_id", String(selectedProduct.batch_id));
       if (selectedProduct.kategori_items?.length) {
         const flat = getFlattenedItems(selectedProduct.kategori_items, true);
         if (flat.length > 0) {
@@ -161,6 +152,27 @@ export default function DaftarProgram() {
   };
 
   const fmt = (n: number) => "Rp " + n.toLocaleString("id-ID");
+
+  function validateField(name: string, value: string) {
+    let msg = "";
+    if (name === "nama" && !value.trim()) msg = "Nama lengkap wajib diisi";
+    else if (name === "email") {
+      if (!value.trim()) msg = "Alamat email wajib diisi";
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) msg = "Format email tidak valid";
+    } else if (name === "password") {
+      if (!value) msg = "Password wajib diisi";
+      else if (value.length < 6) msg = "Password minimal 6 karakter";
+    } else if (name === "telepon") {
+      if (!value.trim()) msg = "Nomor WhatsApp wajib diisi";
+      else if (!/^[0-9]+$/.test(value.replace(/[\s\-+()]/g, ""))) msg = "Nomor WhatsApp hanya boleh berisi angka";
+    }
+    setFieldErrors(prev => {
+      const next = { ...prev };
+      if (msg) next[name] = msg;
+      else delete next[name];
+      return next;
+    });
+  }
 
   if (loading) {
     return (
@@ -210,6 +222,11 @@ export default function DaftarProgram() {
 
               <div className="pb-4 mb-4 border-b border-gray-100">
                 <p className="text-sm font-semibold text-gray-800 leading-snug">{selectedProduct.nama}</p>
+                {selectedProduct.batch && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0E6187] bg-[#E8FAFF] px-2 py-0.5 rounded-full mt-1 border border-[#0E6187]/20">
+                    {selectedProduct.batch.nama_batch}
+                  </span>
+                )}
                 <p className="text-lg font-bold text-[#0E6187] mt-1">{fmt(selectedTotal)}</p>
               </div>
 
@@ -295,15 +312,19 @@ export default function DaftarProgram() {
                   </label>
                   <input
                     type="text"
-                    required
                     value={nama}
-                    onChange={(e) => setNama(e.target.value)}
+                    onChange={(e) => { setNama(e.target.value); if (touched.nama) validateField("nama", e.target.value); }}
+                    onBlur={() => { setTouched(p => ({ ...p, nama: true })); validateField("nama", nama); }}
                     placeholder="Masukkan nama lengkap"
-                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] outline-none transition-colors"
+                    className={`w-full px-4 py-3 bg-white border rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]/20 outline-none transition-colors ${fieldErrors.nama ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : "border-gray-300 focus:border-[#0E6187]"}`}
                   />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Masukkan nama lengkap untuk kemudahan jika suatu saat diperlukan pencarian data.
-                  </p>
+                  {fieldErrors.nama ? (
+                    <p className="text-xs text-red-500 mt-1">{fieldErrors.nama}</p>
+                  ) : (
+                    <p className="text-xs text-gray-400 mt-1">
+                      Masukkan nama lengkap untuk kemudahan jika suatu saat diperlukan pencarian data.
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -312,15 +333,19 @@ export default function DaftarProgram() {
                   </label>
                   <input
                     type="email"
-                    required
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => { setEmail(e.target.value); if (touched.email) validateField("email", e.target.value); }}
+                    onBlur={() => { setTouched(p => ({ ...p, email: true })); validateField("email", email); }}
                     placeholder="Alamat Email"
-                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] outline-none transition-colors"
+                    className={`w-full px-4 py-3 bg-white border rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]/20 outline-none transition-colors ${fieldErrors.email ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : "border-gray-300 focus:border-[#0E6187]"}`}
                   />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Kami mengirimkan informasi akses dan transaksi pembelian ke alamat email ini.
-                  </p>
+                  {fieldErrors.email ? (
+                    <p className="text-xs text-red-500 mt-1">{fieldErrors.email}</p>
+                  ) : (
+                    <p className="text-xs text-gray-400 mt-1">
+                      Kami mengirimkan informasi akses dan transaksi pembelian ke alamat email ini.
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -329,16 +354,19 @@ export default function DaftarProgram() {
                   </label>
                   <input
                     type="password"
-                    required
-                    minLength={6}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => { setPassword(e.target.value); if (touched.password) validateField("password", e.target.value); }}
+                    onBlur={() => { setTouched(p => ({ ...p, password: true })); validateField("password", password); }}
                     placeholder="Buat Password"
-                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] outline-none transition-colors"
+                    className={`w-full px-4 py-3 bg-white border rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]/20 outline-none transition-colors ${fieldErrors.password ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : "border-gray-300 focus:border-[#0E6187]"}`}
                   />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Tuliskan password yang akan digunakan untuk website ini. Pastikan untuk menyimpan atau mengingat password yang ditulis.
-                  </p>
+                  {fieldErrors.password ? (
+                    <p className="text-xs text-red-500 mt-1">{fieldErrors.password}</p>
+                  ) : (
+                    <p className="text-xs text-gray-400 mt-1">
+                      Tuliskan password yang akan digunakan untuk website ini. Pastikan untuk menyimpan atau mengingat password yang ditulis.
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -347,36 +375,19 @@ export default function DaftarProgram() {
                   </label>
                   <input
                     type="text"
-                    required
                     value={telepon}
-                    onChange={(e) => setTelepon(e.target.value)}
+                    onChange={(e) => { setTelepon(e.target.value); if (touched.telepon) validateField("telepon", e.target.value); }}
+                    onBlur={() => { setTouched(p => ({ ...p, telepon: true })); validateField("telepon", telepon); }}
                     placeholder="08123456789"
-                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] outline-none transition-colors"
+                    className={`w-full px-4 py-3 bg-white border rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]/20 outline-none transition-colors ${fieldErrors.telepon ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : "border-gray-300 focus:border-[#0E6187]"}`}
                   />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Masukkan nomor WhatsApp aktif untuk notifikasi transaksi.
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Pilih Batch <span className="text-gray-400 font-normal">(opsional)</span>
-                  </label>
-                  <select
-                    value={batchId}
-                    onChange={(e) => setBatchId(e.target.value)}
-                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] outline-none transition-colors appearance-none cursor-pointer"
-                  >
-                    <option value="">Belum ditentukan</option>
-                    {batches.map((b) => {
-                      const penuh = b.is_penuh && b.kuota !== null && (b.siswas_count ?? 0) >= b.kuota;
-                      return (
-                        <option key={b.id} value={b.id} disabled={penuh}>
-                          {b.nama_batch}{penuh ? " (Penuh)" : b.kuota ? ` (${b.siswas_count ?? 0}/${b.kuota})` : ""}
-                        </option>
-                      );
-                    })}
-                  </select>
+                  {fieldErrors.telepon ? (
+                    <p className="text-xs text-red-500 mt-1">{fieldErrors.telepon}</p>
+                  ) : (
+                    <p className="text-xs text-gray-400 mt-1">
+                      Masukkan nomor WhatsApp aktif untuk notifikasi transaksi.
+                    </p>
+                  )}
                 </div>
 
                 {/* Ringkasan Pembayaran */}
@@ -411,7 +422,7 @@ export default function DaftarProgram() {
                   {isSubmitting ? (
                     <><Loader size={16} className="animate-spin" /> Memproses...</>
                   ) : (
-                    "Bayar Sekarang"
+                    "Daftar Program"
                   )}
                 </button>
               </form>

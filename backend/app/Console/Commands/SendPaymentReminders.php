@@ -5,18 +5,20 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\Pendaftar;
 use App\Models\WaNotification;
+use App\Models\EmailNotification;
 use App\Models\WaReminderSetting;
 use App\Models\NotificationSetting;
+use App\Models\BatchKategoriDeadline;
 use App\Services\WhatsAppService;
+use App\Services\EmailService;
 
 class SendPaymentReminders extends Command
 {
     protected $signature = 'app:reminder-pembayaran';
-    protected $description = 'Kirim pengingat pembayaran via WhatsApp berdasarkan pengaturan dinamis per kategori';
+    protected $description = 'Kirim pengingat pembayaran via WhatsApp & Email berdasarkan pengaturan dinamis per kategori';
 
     public function handle()
     {
-        // Cek apakah fitur reminder aktif secara global
         $globalSetting = NotificationSetting::where('key', 'wa_reminder_pembayaran')->first();
         if ($globalSetting && !$globalSetting->is_enabled) {
             $this->info('Fitur pengingat pembayaran dinonaktifkan.');
@@ -24,11 +26,12 @@ class SendPaymentReminders extends Command
         }
 
         $waService = new WhatsAppService();
+        $emailService = new EmailService();
         $today = now()->startOfDay();
-        $sent = 0;
+        $sentWa = 0;
+        $sentEmail = 0;
         $skipped = 0;
 
-        // Load semua pengaturan reminder per kategori (indexed by kategori_id)
         $reminderSettings = WaReminderSetting::where('is_enabled', true)
             ->get()
             ->keyBy('kategori_id');
@@ -38,15 +41,23 @@ class SendPaymentReminders extends Command
             return 0;
         }
 
-        // Ambil semua kategori_id yang aktif
         $activeKategoriIds = $reminderSettings->pluck('kategori_id')->toArray();
 
-        // Cari pendaftar yang belum lunas, punya telepon, dan programnya punya kategori aktif
+        // Get email notification toggle
+        $emailEnabled = NotificationSetting::isEnabled('email_reminder_pembayaran');
+
         $pendaftars = Pendaftar::with(['product.biayaKategoris', 'user', 'categoryPayments'])
             ->where('status_pendaftaran', 'disetujui')
             ->where('status_pembayaran', '!=', 'verified')
-            ->whereNotNull('telepon')
-            ->get();
+            ->get(); // removed whereNotNull('telepon') to allow email-only pendaftars
+
+        // Pre-load batch deadlines
+        $batchIdSet = $pendaftars->pluck('batch_id')->filter()->unique();
+        $allBatchDeadlines = BatchKategoriDeadline::where('is_enabled', true)
+            ->whereIn('batch_id', $batchIdSet)
+            ->get()
+            ->groupBy('batch_id')
+            ->map(fn($items) => $items->keyBy('kategori_id'));
 
         foreach ($pendaftars as $p) {
             if (!$p->product) {
@@ -54,11 +65,9 @@ class SendPaymentReminders extends Command
                 continue;
             }
 
-            // Cek per kategori yang belum dibayar
             $kategoris = $p->product->biayaKategoris;
             if (!$kategoris || $kategoris->isEmpty()) {
-                // Fallback ke produk tanpa kategori
-                $this->processWithoutCategory($p, $today, $waService, $sent, $skipped);
+                $this->processWithoutCategory($p, $today, $waService, $emailService, $sentWa, $sentEmail, $skipped, $emailEnabled);
                 continue;
             }
 
@@ -66,64 +75,80 @@ class SendPaymentReminders extends Command
                 $katId = $k->id;
                 if (!in_array($katId, $activeKategoriIds)) continue;
 
-                $setting = $reminderSettings[$katId];
-
-                // Cek apakah kategori ini sudah dibayar
                 $isPaid = $this->isKategoriPaid($p, $k);
                 if ($isPaid) continue;
 
-                // Hitung jatuh tempo berdasarkan tanggal persetujuan admin
-                $baseDate = $p->tanggal_persetujuan ?? $p->created_at;
-                $jatuhTempo = $baseDate->addDays($setting->jatuh_tempo_hari)->startOfDay();
-                $hariTersisa = (int) $today->diffInDays($jatuhTempo, false);
+                // Resolve deadline + channel
+                $jatuhTempo = null;
+                $reminderDays = null;
+                $channel = 'wa';
+                $templateEmail = null;
+                $subjectEmail = null;
 
-                // Gunakan shouldRemind dari setting
-                if (!$setting->shouldRemind($hariTersisa)) continue;
-
-                // Cek apakah sudah pernah dikirim hari ini untuk kategori ini
-                $tipe = $hariTersisa <= 0
-                    ? "reminder_overdue_k{$katId}"
-                    : "reminder_h{$hariTersisa}_k{$katId}";
-                $alreadySentToday = WaNotification::where('pendaftar_id', $p->id)
-                    ->where('type', $tipe)
-                    ->whereDate('created_at', $today)
-                    ->exists();
-
-                if ($alreadySentToday) {
-                    $skipped++;
-                    continue;
+                if ($p->batch_id && isset($allBatchDeadlines[$p->batch_id][$katId])) {
+                    $batchDl = $allBatchDeadlines[$p->batch_id][$katId];
+                    if ($batchDl->tanggal_akhir) {
+                        $jatuhTempo = $batchDl->tanggal_akhir->copy()->startOfDay();
+                        $reminderDays = $batchDl->reminder_days ?? [7, 3, 1];
+                        $channel = $batchDl->channel ?? 'wa';
+                        $templateEmail = $batchDl->template_email;
+                        $subjectEmail = $batchDl->subject_email;
+                    }
                 }
 
-                // Kirim reminder
-                $labelHari = $this->getLabelHari($hariTersisa);
+                if (!$jatuhTempo) {
+                    $setting = $reminderSettings[$katId] ?? null;
+                    if (!$setting) continue;
+                    $baseDate = ($p->tanggal_persetujuan ?? $p->created_at)->copy();
+                    $jatuhTempo = $baseDate->addDays($setting->jatuh_tempo_hari)->startOfDay();
+                    $reminderDays = $setting->reminder_days ?? [7, 3, 1];
+                }
+
+                $hariTersisa = (int) $today->diffInDays($jatuhTempo, false);
+
+                if (!in_array($hariTersisa, $reminderDays)) continue;
+
                 $kategoriNama = $k->nama;
+                $jumlah = 'Rp ' . number_format((int) $k->pivot->harga, 0, ',', '.');
                 $noInvoice = 'INV/' . str_pad($p->id, 5, '0', STR_PAD_LEFT) . '/' . $p->created_at->format('Ym');
 
-                // Gunakan template custom jika ada
-                $customMessage = $setting->generateMessage(
-                    $p->nama,
-                    $kategoriNama,
-                    'Rp ' . number_format((int) $k->pivot->harga, 0, ',', '.'),
-                    $hariTersisa,
-                    $noInvoice
-                );
+                // Send via selected channel
+                if (in_array($channel, ['wa', 'both']) && $p->telepon) {
+                    $tipe = $hariTersisa <= 0 ? "reminder_overdue_k{$katId}" : "reminder_h{$hariTersisa}_k{$katId}";
+                    $alreadySent = WaNotification::where('pendaftar_id', $p->id)
+                        ->where('type', $tipe)
+                        ->whereDate('created_at', $today)
+                        ->exists();
 
-                if ($customMessage) {
-                    $sent++;
-                } else {
-                    $this->info("Kirim reminder ke {$p->nama} kategori {$kategoriNama} ({$labelHari})");
-                    $sent++;
+                    if (!$alreadySent) {
+                        $setting = $reminderSettings[$katId] ?? null;
+                        $customMessage = $setting?->generateMessage($p->nama, $kategoriNama, $jumlah, $hariTersisa, $noInvoice);
+                        $waService->sendPaymentReminder($p, max(0, $hariTersisa));
+                        $sentWa++;
+                        $this->info("WA: {$p->nama} - {$kategoriNama} (H-{$hariTersisa})");
+                    }
+                }
+
+                if (in_array($channel, ['email', 'both']) && $emailEnabled && $p->email) {
+                    $tipeEmail = $hariTersisa <= 0 ? "reminder_overdue_k{$katId}_email" : "reminder_h{$hariTersisa}_k{$katId}_email";
+                    $alreadySentEmail = EmailNotification::where('pendaftar_id', $p->id)
+                        ->where('type', $tipeEmail)
+                        ->whereDate('created_at', $today)
+                        ->exists();
+
+                    if (!$alreadySentEmail) {
+                        $emailService->sendPaymentReminder($p, $kategoriNama, $jumlah, max(0, $hariTersisa), $noInvoice, $subjectEmail, $templateEmail);
+                        $sentEmail++;
+                        $this->info("Email: {$p->nama} - {$kategoriNama} (H-{$hariTersisa})");
+                    }
                 }
             }
         }
 
-        $this->info("Selesai. Terkirim: {$sent}, Dilewati: {$skipped}");
+        $this->info("Selesai. WA: {$sentWa}, Email: {$sentEmail}, Dilewati: {$skipped}");
         return 0;
     }
 
-    /**
-     * Cek apakah kategori sudah dibayar lunas
-     */
     private function isKategoriPaid($pendaftar, $kategori): bool
     {
         $payments = $pendaftar->categoryPayments ?? collect();
@@ -137,13 +162,9 @@ class SendPaymentReminders extends Command
         return $dibayar >= $harga;
     }
 
-    /**
-     * Proses pendaftar tanpa kategori (fallback)
-     */
-    private function processWithoutCategory($p, $today, $waService, &$sent, &$skipped)
+    private function processWithoutCategory($p, $today, $waService, $emailService, &$sentWa, &$sentEmail, &$skipped, $emailEnabled)
     {
-        // Gunakan default 30 hari
-        $baseDate = $p->tanggal_persetujuan ?? $p->created_at;
+        $baseDate = ($p->tanggal_persetujuan ?? $p->created_at)->copy();
         $jatuhTempo = $baseDate->addDays(30)->startOfDay();
         $hariTersisa = (int) $today->diffInDays($jatuhTempo, false);
 
@@ -153,31 +174,32 @@ class SendPaymentReminders extends Command
             return;
         }
 
-        $tipe = $hariTersisa <= 0 ? 'reminder_overdue' : "reminder_h{$hariTersisa}";
-        $alreadySentToday = WaNotification::where('pendaftar_id', $p->id)
-            ->where('type', $tipe)
-            ->whereDate('created_at', $today)
-            ->exists();
+        // WA
+        if ($p->telepon) {
+            $tipe = $hariTersisa <= 0 ? 'reminder_overdue' : "reminder_h{$hariTersisa}";
+            $alreadySentToday = WaNotification::where('pendaftar_id', $p->id)
+                ->where('type', $tipe)
+                ->whereDate('created_at', $today)
+                ->exists();
 
-        if ($alreadySentToday) {
-            $skipped++;
-            return;
+            if (!$alreadySentToday) {
+                $waService->sendPaymentReminder($p, max(0, $hariTersisa));
+                $sentWa++;
+            }
         }
 
-        $this->info("Kirim reminder ke {$p->nama} (H-{$hariTersisa}) [tanpa kategori]");
-        $waService->sendPaymentReminder($p, max(0, $hariTersisa));
-        $sent++;
-    }
+        // Email
+        if ($emailEnabled && $p->email) {
+            $tipeEmail = ($hariTersisa <= 0 ? 'reminder_overdue' : "reminder_h{$hariTersisa}") . '_email';
+            $alreadySentEmail = EmailNotification::where('pendaftar_id', $p->id)
+                ->where('type', $tipeEmail)
+                ->whereDate('created_at', $today)
+                ->exists();
 
-    /**
-     * Label hari yang mudah dibaca
-     */
-    private function getLabelHari($hariTersisa): string
-    {
-        return match(true) {
-            $hariTersisa <= 0 => 'sudah jatuh tempo',
-            $hariTersisa == 1 => 'besok',
-            default => "dalam {$hariTersisa} hari",
-        };
+            if (!$alreadySentEmail) {
+                $emailService->sendPaymentReminder($p, 'Tagihan', 'Rp 0', max(0, $hariTersisa), 'INV/' . str_pad($p->id, 5, '0', STR_PAD_LEFT) . '/' . $p->created_at->format('Ym'));
+                $sentEmail++;
+            }
+        }
     }
 }

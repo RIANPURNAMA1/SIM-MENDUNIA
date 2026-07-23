@@ -1,10 +1,30 @@
 import { useState, useEffect } from 'react'
-import { CreditCard, CheckCircle, Clock, Upload, X, Eye, FileText, ChevronRight } from 'lucide-react'
+import { CreditCard, CheckCircle, Clock, Upload, X, Eye, FileText, ChevronRight, Building2, Copy } from 'lucide-react'
 import Swal from 'sweetalert2'
 import api, { APP_URL } from '../../services/api'
 
 // Class bergaya kartu Facebook
 const fbCardClass = "bg-white rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.12)]"
+
+function getDeadlineInfo(tanggalPersetujuan: string | null, jatuhTempoHari: number, tanggalAkhir?: string | null): { deadline: Date; diff: number; days: number; hours: number; minutes: number; expired: boolean; formatted: string } | null {
+  let deadline: Date
+  if (tanggalAkhir) {
+    deadline = new Date(tanggalAkhir + 'T23:59:59')
+  } else if (tanggalPersetujuan && jatuhTempoHari) {
+    const base = new Date(tanggalPersetujuan)
+    deadline = new Date(base.getTime() + jatuhTempoHari * 24 * 60 * 60 * 1000)
+  } else {
+    return null
+  }
+  const now = new Date()
+  const diff = deadline.getTime() - now.getTime()
+  const expired = diff <= 0
+  const days = Math.floor(Math.abs(diff) / (1000 * 60 * 60 * 24))
+  const hours = Math.floor((Math.abs(diff) % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+  const minutes = Math.floor((Math.abs(diff) % (1000 * 60 * 60)) / (1000 * 60))
+  const formatted = deadline.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+  return { deadline, diff, days, hours, minutes, expired, formatted }
+}
 
 interface Kategori {
   id: number
@@ -20,6 +40,8 @@ interface KategoriItem {
   nama: string
   biaya: number
   dibayar: number
+  jatuh_tempo_hari?: number
+  tanggal_akhir?: string | null
 }
 
 export default function PembayaranSiswa() {
@@ -38,6 +60,9 @@ export default function PembayaranSiswa() {
   const [error, setError] = useState('')
   const [banks, setBanks] = useState<{ kode: string; nama: string }[]>([])
   const [ewallets, setEwallets] = useState<{ kode: string; nama: string }[]>([])
+  const [company, setCompany] = useState<{ bank_nama: string; bank_nomor_rekening: string; bank_pemilik: string } | null>(null)
+  const [copiedField, setCopiedField] = useState<string | null>(null)
+  const [tanggalPersetujuan, setTanggalPersetujuan] = useState<string | null>(null)
 
   function loadData() {
     setLoading(true)
@@ -52,6 +77,7 @@ export default function PembayaranSiswa() {
         api.get(`/pendaftar/${p.id}/riwayat-pembayaran`).then(r => setRiwayat(r.data)).catch(() => {})
         api.get(`/pembayaran-item/${p.id}`).then(r => {
           setKategoriItems(r.data.items || [])
+          setTanggalPersetujuan(r.data.tanggal_persetujuan || p.tanggal_persetujuan || null)
         }).catch(() => {})
       }
     }).catch(() => {}).finally(() => setLoading(false))
@@ -63,6 +89,10 @@ export default function PembayaranSiswa() {
     api.get('/banks').then(r => {
       setBanks(r.data?.banks || [])
       setEwallets(r.data?.ewallets || [])
+    }).catch(() => {})
+    api.get('/company-profile').then(r => {
+      const c = r.data?.data || r.data
+      if (c) setCompany({ bank_nama: c.bank_nama || 'BCA', bank_nomor_rekening: c.bank_nomor_rekening || '1831813364', bank_pemilik: c.bank_pemilik || 'PT. INDONESIA SUKSES MENDUNIA' })
     }).catch(() => {})
   }, [])
 
@@ -79,12 +109,13 @@ export default function PembayaranSiswa() {
 
   const diskon = Number(pendaftar?.diskon || 0)
   
-  const kategoriByName = new Map<string, { kategori: Kategori; biaya: number; dibayar: number }>()
+  const kategoriByName = new Map<string, { kategori: Kategori; biaya: number; dibayar: number; jatuh_tempo_hari: number; tanggal_akhir: string | null }>()
   for (const item of kategoriItems) {
     const kat = kategoris.find(k => k.id === item.kategori_id)
     if (kat) {
-      kategoriByName.set(kat.nama.toLowerCase(), { kategori: kat, biaya: item.biaya, dibayar: item.dibayar })
-      kategoriByName.set(kat.kode.toLowerCase(), { kategori: kat, biaya: item.biaya, dibayar: item.dibayar })
+      const val = { kategori: kat, biaya: item.biaya, dibayar: item.dibayar, jatuh_tempo_hari: item.jatuh_tempo_hari ?? 30, tanggal_akhir: item.tanggal_akhir ?? null }
+      kategoriByName.set(kat.nama.toLowerCase(), val)
+      kategoriByName.set(kat.kode.toLowerCase(), val)
     }
   }
 
@@ -123,6 +154,8 @@ export default function PembayaranSiswa() {
           nama: entry.kategori.nama,
           biaya: totalBiaya,
           dibayar: totalDibayar,
+          jatuh_tempo_hari: entry.jatuh_tempo_hari,
+          tanggal_akhir: entry.tanggal_akhir,
         })
       }
 
@@ -193,6 +226,13 @@ export default function PembayaranSiswa() {
 
   function parseFormatted(value: string): string {
     return value.replace(/[^0-9]/g, '')
+  }
+
+  function copyToClipboard(text: string, field: string) {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedField(field)
+      setTimeout(() => setCopiedField(null), 2000)
+    })
   }
 
   function handleJumlahInput(e: React.ChangeEvent<HTMLInputElement>) {
@@ -306,9 +346,14 @@ export default function PembayaranSiswa() {
                       const isPartial = partialKategoriIds.includes(k.id) || pendingKategoriIds.has(k.id)
                       const isNext = k.id === nextKat?.id
                       const katBiaya = item?.biaya || 0
-                      
+                      const katDibayar = item?.dibayar || 0
+                      const isUnpaid = !isLunas && katBiaya > 0
+                      const jatuhTempoHari = item?.jatuh_tempo_hari ?? 30
+                      const tanggalAkhir = item?.tanggal_akhir
+                      const deadlineInfo = isUnpaid ? getDeadlineInfo(tanggalPersetujuan, jatuhTempoHari, tanggalAkhir) : null
+
                       return (
-                        <div key={k.id} className={`snap-start flex-none w-[110px] flex flex-col p-3 rounded-xl border transition-all ${
+                        <div key={k.id} className={`snap-start flex-none w-[130px] flex flex-col p-3 rounded-xl border transition-all ${
                           isLunas ? 'border-[#E7F3EC] bg-[#F7FBF9]' 
                           : isPartial ? 'border-blue-100 bg-blue-50/50' 
                           : isNext ? 'border-gray-200 bg-white shadow-sm' 
@@ -338,6 +383,18 @@ export default function PembayaranSiswa() {
                           }`}>
                             {isLunas ? 'Lunas' : 'Belum'}
                           </span>
+                          {deadlineInfo && (
+                            <div className={`mt-2 text-[9px] font-semibold rounded-md px-1.5 py-1 ${
+                              deadlineInfo.expired ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-700'
+                            }`}>
+                              {deadlineInfo.expired ? (
+                                <span>Lewat {deadlineInfo.days}h</span>
+                              ) : (
+                                <span>{deadlineInfo.days}h {deadlineInfo.hours}j</span>
+                              )}
+                              <span className="block text-[8px] font-normal opacity-75">s/d {deadlineInfo.formatted}</span>
+                            </div>
+                          )}
                         </div>
                       )
                     })}
@@ -462,6 +519,33 @@ export default function PembayaranSiswa() {
                         <span className="font-bold text-gray-800">Rp {tunggakan.toLocaleString('id-ID')}</span>
                       </div>
                     </div>
+
+                    {company && (
+                      <div className="bg-[#E8FAFF] border border-blue-100 rounded-lg p-4 space-y-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Building2 size={16} className="text-[#0E6187]" />
+                          <p className="text-[13px] font-bold text-gray-800">Informasi Rekening Tujuan</p>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-gray-500">Nama Bank</span>
+                          <span className="font-semibold text-gray-900">{company.bank_nama}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-gray-500">Atas Nama</span>
+                          <span className="font-semibold text-gray-900">{company.bank_pemilik}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-gray-500">No. Rekening</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold font-mono text-[#0E6187]">{company.bank_nomor_rekening}</span>
+                            <button type="button" onClick={() => copyToClipboard(company.bank_nomor_rekening, 'rek')}
+                              className="p-1 rounded hover:bg-gray-200 transition-colors" title="Salin">
+                              <Copy size={13} className={copiedField === 'rek' ? 'text-green-600' : 'text-gray-400'} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Jumlah Pembayaran</label>

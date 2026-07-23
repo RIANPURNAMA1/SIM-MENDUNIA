@@ -15,6 +15,7 @@ class Product extends Model
         'harga',
         'komisi',
         'status',
+        'batch_id',
     ];
 
     protected $casts = [
@@ -66,6 +67,11 @@ class Product extends Model
     public function komisiTiers()
     {
         return $this->hasMany(KomisiTier::class)->orderBy('kategori_id')->orderBy('urutan');
+    }
+
+    public function batch()
+    {
+        return $this->belongsTo(Batch::class);
     }
 
     public function syncKategoriItems(array $items): void
