@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef } from 'react'
-import { Users, Search, RotateCcw, Eye, Edit3, Power, PowerOff, CalendarOff, Calendar, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, FileText, Download, Upload } from 'lucide-react'
+import { Users, Search, RotateCcw, Eye, Edit3, Power, PowerOff, CalendarOff, Calendar, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, FileText, Download, Upload, Trash2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { pendaftarApi, batchApi } from '../../services/api'
 import * as XLSX from 'xlsx'
+import Swal from 'sweetalert2'
 
 interface Kandidat {
   id: number
@@ -121,6 +122,8 @@ export default function DataKandidat() {
   const [togglingCutiId, setTogglingCutiId] = useState<number | null>(null)
   const [openActionId, setOpenActionId] = useState<number | null>(null)
   const actionRef = useRef<HTMLDivElement>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [bulkDeleting, setBulkDeleting] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [importFile, setImportFile] = useState<File | null>(null)
   const [importData, setImportData] = useState<Record<string, unknown>[]>([])
@@ -392,6 +395,74 @@ export default function DataKandidat() {
     } catch {
       alert('Gagal mengubah batch')
     }
+  }
+
+  function toggleSelect(id: number) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleSelectAll() {
+    const pageIds = pagedList.map(k => k.id)
+    const allSelected = pageIds.length > 0 && pageIds.every(id => selectedIds.has(id))
+    if (allSelected) {
+      setSelectedIds(prev => {
+        const next = new Set(prev)
+        pageIds.forEach(id => next.delete(id))
+        return next
+      })
+    } else {
+      setSelectedIds(prev => {
+        const next = new Set(prev)
+        pageIds.forEach(id => next.add(id))
+        return next
+      })
+    }
+  }
+
+  function handleBulkDelete() {
+    if (selectedIds.size === 0) return
+    Swal.fire({
+      title: 'Hapus Kandidat?',
+      text: `${selectedIds.size} kandidat akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal',
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        setBulkDeleting(true)
+        try {
+          await pendaftarApi.bulkDeleteKandidat(Array.from(selectedIds))
+          setSelectedIds(new Set())
+          fetchData(search)
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil!',
+            text: 'Kandidat yang dipilih telah dihapus.',
+            confirmButtonColor: '#0E6187',
+            timer: 2000,
+            timerProgressBar: true,
+            showConfirmButton: false,
+          })
+        } catch {
+          Swal.fire({
+            icon: 'error',
+            title: 'Gagal',
+            text: 'Terjadi kesalahan saat menghapus kandidat.',
+            confirmButtonColor: '#0E6187',
+          })
+        } finally {
+          setBulkDeleting(false)
+        }
+      }
+    })
   }
 
   const filteredList = filterBatch
@@ -829,6 +900,32 @@ export default function DataKandidat() {
         </div>
       </div>
 
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="mb-4 flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-4 py-3 shadow-sm">
+          <div className="flex items-center gap-2 text-sm text-red-700">
+            <Trash2 size={16} />
+            <span className="font-semibold">{selectedIds.size} kandidat dipilih</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+            >
+              <X size={14} /> Batal
+            </button>
+            <button
+              onClick={handleBulkDelete}
+              disabled={bulkDeleting}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
+            >
+              {bulkDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+              {bulkDeleting ? 'Menghapus...' : 'Hapus Terpilih'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
         {loading ? (
@@ -845,6 +942,14 @@ export default function DataKandidat() {
                 <thead className="sticky top-0 z-20">
                   <tr className="bg-[#0e6187]">
                     <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-white w-[36px] min-w-[36px]">No</th>
+                    <th scope="col" className="border border-slate-600 px-3 py-3 text-center w-[40px] min-w-[40px]">
+                      <input
+                        type="checkbox"
+                        checked={pagedList.length > 0 && pagedList.every(k => selectedIds.has(k.id))}
+                        onChange={toggleSelectAll}
+                        className="h-4 w-4 rounded border-slate-400 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      />
+                    </th>
                     <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[150px] min-w-[150px]">NIK</th>
                     <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[150px] min-w-[150px]">No. Registrasi</th>
                     <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[180px] min-w-[180px]">Nama Kandidat</th>
@@ -885,6 +990,14 @@ export default function DataKandidat() {
                       return (
                         <tr key={k.id} className={`${isEditing ? 'bg-blue-50/50' : k.level_status_keluar ? 'bg-red-200' : k.is_cuti ? 'bg-yellow-300' : k.status_akademik === 'NONAKTIF' ? 'bg-red-200' : ''} transition hover:brightness-[0.97] group`} style={(!isEditing && !k.level_status_keluar && !k.is_cuti && k.status_akademik !== 'NONAKTIF' && batchBg) ? { backgroundColor: batchBg } : undefined}>
                           <td className="border border-slate-200 px-4 py-3 text-center text-xs font-semibold text-black">{rowNum}</td>
+                          <td className="border border-slate-200 px-3 py-3 text-center">
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(k.id)}
+                              onChange={() => toggleSelect(k.id)}
+                              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                            />
+                          </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-mono font-semibold text-black whitespace-nowrap">
                             {isEditing ? <CellEdit field="nik" /> : k.nik || <span className="text-gray-400">-</span>}
                           </td>
@@ -1084,6 +1197,34 @@ export default function DataKandidat() {
                                         : <CalendarOff size={14} className="text-slate-400" />}
                                       <span>{k.is_cuti ? 'Aktifkan dari Cuti' : 'Cuti'}</span>
                                     </button>
+                                    <div className="my-1 border-t border-slate-100" />
+                                    <button onClick={() => {
+                                        setOpenActionId(null)
+                                        Swal.fire({
+                                          title: 'Hapus Kandidat?',
+                                          text: `${k.nama} akan dihapus permanen.`,
+                                          icon: 'warning',
+                                          showCancelButton: true,
+                                          confirmButtonColor: '#dc2626',
+                                          cancelButtonColor: '#64748b',
+                                          confirmButtonText: 'Ya, Hapus!',
+                                          cancelButtonText: 'Batal',
+                                        }).then(async (result) => {
+                                          if (result.isConfirmed) {
+                                            try {
+                                              await pendaftarApi.deleteKandidat(k.id)
+                                              fetchData(search)
+                                              Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Kandidat telah dihapus.', confirmButtonColor: '#0E6187', timer: 2000, timerProgressBar: true, showConfirmButton: false })
+                                            } catch {
+                                              Swal.fire({ icon: 'error', title: 'Gagal', text: 'Terjadi kesalahan saat menghapus.', confirmButtonColor: '#0E6187' })
+                                            }
+                                          }
+                                        })
+                                      }}
+                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 transition-colors">
+                                      <Trash2 size={14} className="text-red-400" />
+                                      <span>Hapus</span>
+                                    </button>
                                   </div>
                                 )}
                               </div>
@@ -1094,7 +1235,7 @@ export default function DataKandidat() {
                     })
                   ) : (
                     <tr>
-                      <td colSpan={28} className="border border-slate-200 px-6 py-10 text-center">
+                      <td colSpan={29} className="border border-slate-200 px-6 py-10 text-center">
                         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
                           <Users size={24} />
                         </div>
@@ -1107,6 +1248,7 @@ export default function DataKandidat() {
             </div>
             <div className="border-t border-slate-200 px-4 py-3 text-sm text-slate-500">
               Menampilkan {pagedList.length} dari {filteredList.length} kandidat
+              {selectedIds.size > 0 && <span className="ml-2 font-semibold text-red-600">({selectedIds.size} dipilih)</span>}
             </div>
           </>
         )}

@@ -335,6 +335,10 @@ export const pendaftarApi = {
     api.post(`/kandidat/${id}/toggle-cuti`),
   importKandidat: (data: { batch_id: number; data: Record<string, unknown>[] }) =>
     api.post('/kandidat/import', data),
+  deleteKandidat: (id: number) =>
+    api.delete(`/kandidat/${id}`),
+  bulkDeleteKandidat: (ids: number[]) =>
+    api.post('/kandidat/bulk-delete', { ids }),
   bayarInfo: (id: number) => api.get(`/pendaftaran/bayar/${id}`),
   bayar: (id: number, data: FormData) =>
     api.post(`/pendaftar/${id}/bayar`, data, {
