@@ -346,6 +346,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/kandidat', [PendaftaranController::class, 'kandidat']);
     Route::post('/kandidat', [PendaftaranController::class, 'storeKandidat']);
     Route::post('/kandidat/import', [PendaftaranController::class, 'importKandidat']);
+    Route::post('/kandidat/bulk-delete', [PendaftaranController::class, 'bulkDeleteKandidat']);
+    Route::delete('/kandidat/{id}', [PendaftaranController::class, 'deleteKandidat']);
     Route::put('/kandidat/{id}', [PendaftaranController::class, 'updateKandidat']);
     Route::post('/kandidat/{id}/toggle-status', [PendaftaranController::class, 'toggleKandidatStatus']);
     Route::post('/kandidat/{id}/toggle-cuti', [PendaftaranController::class, 'toggleCuti']);

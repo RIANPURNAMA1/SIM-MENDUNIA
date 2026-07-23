@@ -2135,6 +2135,45 @@ class PendaftaranController extends Controller
         ]);
     }
 
+    public function deleteKandidat($id)
+    {
+        $pendaftar = Pendaftar::with(['siswa'])->findOrFail($id);
+
+        if ($pendaftar->siswa) {
+            $pendaftar->siswa->delete();
+        }
+        $pendaftar->delete();
+
+        return response()->json(['message' => 'Kandidat berhasil dihapus']);
+    }
+
+    public function bulkDeleteKandidat(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'required|integer|exists:pendaftars,id',
+        ]);
+
+        $ids = $request->input('ids');
+        $deleted = 0;
+
+        foreach ($ids as $id) {
+            $pendaftar = Pendaftar::with(['siswa'])->find($id);
+            if ($pendaftar) {
+                if ($pendaftar->siswa) {
+                    $pendaftar->siswa->delete();
+                }
+                $pendaftar->delete();
+                $deleted++;
+            }
+        }
+
+        return response()->json([
+            'message' => "{$deleted} kandidat berhasil dihapus",
+            'deleted' => $deleted,
+        ]);
+    }
+
     /**
      * Public endpoint: get pendaftar info + company profile for payment page
      */
