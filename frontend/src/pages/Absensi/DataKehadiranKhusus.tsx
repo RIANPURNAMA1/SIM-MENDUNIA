@@ -92,7 +92,8 @@ export default function DataKehadiranKhususPage() {
   }
 
   const formatDate = (t: string) => {
-    const d = new Date(t + 'T00:00:00')
+    const raw = typeof t === 'string' ? t.split('T')[0] : String(t)
+    const d = new Date(raw + 'T00:00:00')
     return d.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
   }
 
