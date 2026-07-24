@@ -5,6 +5,8 @@ import {
   User,
   Loader,
   Shield,
+  Check,
+  X,
 } from "lucide-react";
 
 interface KategoriItem {
@@ -197,7 +199,10 @@ export default function DaftarProgram() {
     if (!email.trim()) errors.email = "Alamat email wajib diisi";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = "Format email tidak valid";
     if (!password) errors.password = "Password wajib diisi";
-    else if (password.length < 6) errors.password = "Password minimal 6 karakter";
+    else if (password.length < 8) errors.password = "Password minimal 8 karakter";
+    else if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[!@#$%^&*]/.test(password)) {
+      errors.password = "Password harus memenuhi semua persyaratan di bawah";
+    }
     if (!telepon.trim()) errors.telepon = "Nomor WhatsApp wajib diisi";
     else if (!/^[0-9]+$/.test(telepon.replace(/[\s\-+()]/g, ""))) errors.telepon = "Nomor WhatsApp hanya boleh berisi angka";
     setFieldErrors(errors);
@@ -262,7 +267,7 @@ export default function DaftarProgram() {
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) msg = "Format email tidak valid";
     } else if (name === "password") {
       if (!value) msg = "Password wajib diisi";
-      else if (value.length < 6) msg = "Password minimal 6 karakter";
+      else if (value.length < 8) msg = "Password minimal 8 karakter";
     } else if (name === "telepon") {
       if (!value.trim()) msg = "Nomor WhatsApp wajib diisi";
       else if (!/^[0-9]+$/.test(value.replace(/[\s\-+()]/g, ""))) msg = "Nomor WhatsApp hanya boleh berisi angka";
@@ -471,6 +476,27 @@ export default function DaftarProgram() {
                   />
                   {fieldErrors.password ? (
                     <p className="text-xs text-red-500 mt-1">{fieldErrors.password}</p>
+                  ) : password ? (
+                    <div className="mt-2 space-y-1">
+                      {[
+                        { label: "Minimal 8 karakter", met: password.length >= 8 },
+                        { label: "Terdapat minimal satu huruf kecil", met: /[a-z]/.test(password) },
+                        { label: "Terdapat minimal satu huruf besar", met: /[A-Z]/.test(password) },
+                        { label: "Terdapat minimal satu angka", met: /[0-9]/.test(password) },
+                        { label: "Terdapat salah satu simbol: ! @ # $ % ^ & *", met: /[!@#$%^&*]/.test(password) },
+                      ].map((rule, i) => (
+                        <div key={i} className="flex items-center gap-1.5">
+                          {rule.met ? (
+                            <Check size={13} className="text-emerald-500 shrink-0" />
+                          ) : (
+                            <X size={13} className="text-gray-300 shrink-0" />
+                          )}
+                          <span className={`text-[11px] ${rule.met ? 'text-emerald-600 font-medium' : 'text-gray-400'}`}>
+                            {rule.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   ) : (
                     <p className="text-xs text-gray-400 mt-1">
                       Tuliskan password yang akan digunakan untuk website ini. Pastikan untuk menyimpan atau mengingat password yang ditulis.
