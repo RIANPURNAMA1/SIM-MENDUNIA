@@ -696,24 +696,95 @@ class AbsensiController extends Controller
             return response()->json(['message' => 'Data siswa tidak ditemukan'], 404);
         }
 
+        // VALIDASI 0: Cek apakah hari ini libur (weekend/nasional)
         $today = now()->toDateString();
-        $now = now();
+        if (\App\Models\HariLibur::apakahLibur($today)) {
+            return response()->json(['message' => 'Hari ini hari libur (Weekend/Nasional). Absensi tidak dibuka.'], 422);
+        }
 
+        // VALIDASI 1: Cek apakah cabang yang di-scan sesuai dengan cabang dari batch siswa
+        $batch = $siswa->batchRelasi;
+        if ($batch && $batch->cabang_id && $batch->cabang_id !== $cabang->id) {
+            return response()->json([
+                'message' => 'QR Code ini bukan untuk cabang Anda. Anda terdaftar di cabang ' . ($batch->cabang->nama_cabang ?? '-') . ',
+                            bukan ' . $cabang->nama_cabang,
+            ], 422);
+        }
+
+        // VALIDASI 2: Geolocation - cek apakah siswa dalam radius cabang
+        if ($request->filled('lat') && $request->filled('long')) {
+            if ($cabang->latitude && $cabang->longitude && $cabang->radius) {
+                $jarak = $this->calculateDistance(
+                    $request->lat,
+                    $request->long,
+                    $cabang->latitude,
+                    $cabang->longitude
+                );
+                if ($jarak > $cabang->radius) {
+                    return response()->json([
+                        'message' => 'Anda berada di luar radius cabang ' . $cabang->nama_cabang .
+                                    ' (Jarak: ' . round($jarak) . 'm, Radius: ' . $cabang->radius . 'm)',
+                    ], 422);
+                }
+            }
+        }
+
+        // AUTO-MARK: Jika ada absensi kemarin tanpa jam_keluar (>7 jam), tandai TIDAK ABSEN PULANG
+        $now = now();
+        $yesterday = now()->subDay()->toDateString();
+        $absenKemarin = \App\Models\AbsensiSiswa::where('siswa_id', $siswa->id)
+            ->where('tanggal', $yesterday)
+            ->whereNotNull('jam_masuk')
+            ->whereNull('jam_keluar')
+            ->first();
+        if ($absenKemarin) {
+            $jamMasukKemarin = Carbon::parse($absenKemarin->jam_masuk);
+            $jamMasukKemarin->setDate($absenKemarin->tanggal);
+            if ($now->diffInHours($jamMasukKemarin) >= 7) {
+                $absenKemarin->update(['status' => 'TIDAK ABSEN PULANG']);
+            }
+        }
+
+        // Cek apakah sudah absen hari ini
         $existing = \App\Models\AbsensiSiswa::where('siswa_id', $siswa->id)
             ->where('tanggal', $today)
             ->first();
 
         if ($existing) {
             if ($existing->jam_masuk && !$existing->jam_keluar) {
+                // VALIDASI 3: Cek shift untuk jam pulang - pastikan dalam range shift
+                $shiftSiswa = $siswa->shift;
+                if ($shiftSiswa && $shiftSiswa->jam_pulang) {
+                    $jamPulangShift = Carbon::parse($shiftSiswa->jam_pulang);
+                    $batasAkhirPulang = $jamPulangShift->copy()->addMinutes(60);
+                    if ($now->gt($batasAkhirPulang)) {
+                        return response()->json([
+                            'message' => 'Waktu pulang shift Anda sudah lewat (jam pulang shift: ' .
+                                        $shiftSiswa->jam_pulang . '). Tidak bisa absen pulang.',
+                        ], 422);
+                    }
+                }
+
+                // Tentukan status: cek apakah pulang lebih cepat dari shift
+                $updateStatus = $existing->status; // pertahankan status lama (misal HADIR/TERLAMBAT)
+                $shiftSiswaForPulang = $siswa->shift;
+                if ($shiftSiswaForPulang && $shiftSiswaForPulang->jam_pulang) {
+                    $jamPulangShift = Carbon::parse($shiftSiswaForPulang->jam_pulang);
+                    if ($now->lt($jamPulangShift)) {
+                        $updateStatus = 'PULANG LEBIH AWAL';
+                    }
+                }
+
                 $existing->update([
                     'jam_keluar' => $now->format('H:i:s'),
+                    'status' => $updateStatus,
                 ]);
 
                 return response()->json([
                     'message' => 'Absensi pulang berhasil',
                     'cabang' => $cabang->nama_cabang,
                     'jam' => 'Pulang: ' . $now->format('H:i:s'),
-                    'status' => 'pulang',
+                    'status' => $updateStatus,
                 ]);
             }
 
@@ -724,12 +795,36 @@ class AbsensiController extends Controller
             ], 422);
         }
 
+        // VALIDASI 4: Cek shift - pastikan dalam range shift untuk absen masuk
         $shiftSiswa = $siswa->shift;
         $status = 'HADIR';
         if ($shiftSiswa) {
-            $batasTerlambat = Carbon::parse($shiftSiswa->jam_masuk)->addMinutes($shiftSiswa->toleransi ?? 15);
+            // Cek apakah sudah sebelum jam masuk shift (terlalu awal)
+            $jamMasukShift = Carbon::parse($shiftSiswa->jam_masuk);
+            $batasAwalAbsen = $jamMasukShift->copy()->subMinutes(60);
+            if ($now->lt($batasAwalAbsen)) {
+                return response()->json([
+                    'message' => 'Belum waktunya absen masuk. Shift Anda mulai jam ' .
+                                $shiftSiswa->jam_masuk . '. Anda bisa absen mulai 1 jam sebelum jam shift.',
+                ], 422);
+            }
+
+            // Cek apakah sudah melewati batas toleransi (terlambat)
+            $batasTerlambat = $jamMasukShift->copy()->addMinutes($shiftSiswa->toleransi ?? 15);
             if ($now->gt($batasTerlambat)) {
                 $status = 'TERLAMBAT';
+            }
+
+            // Cek apakah sudah melewati jam pulang shift + toleransi (sudah lewat)
+            if ($shiftSiswa->jam_pulang) {
+                $jamPulangShift = Carbon::parse($shiftSiswa->jam_pulang);
+                $batasAkhirAbsen = $jamPulangShift->copy()->addMinutes(60);
+                if ($now->gt($batasAkhirAbsen)) {
+                    return response()->json([
+                        'message' => 'Waktu absensi sudah ditutup. Shift Anda berakhir jam ' .
+                                    $shiftSiswa->jam_pulang . '.',
+                    ], 422);
+                }
             }
         }
 

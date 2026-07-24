@@ -40,6 +40,11 @@ import {
   Wallet,
   MessageSquare,
   Bell,
+  ClipboardCheck,
+  ScanFace,
+  CalendarRange,
+  CalendarOff,
+  MapPinOff,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -97,6 +102,11 @@ const iconMap: Record<string, LucideIcon> = {
   ListOrdered,
   Wallet,
   MessageSquare,
+  ClipboardCheck,
+  ScanFace,
+  CalendarRange,
+  CalendarOff,
+  MapPinOff,
 };
 
 const navItems: NavItem[] = [
@@ -180,6 +190,23 @@ const navItems: NavItem[] = [
         icon: "Building2",
         href: "/pengaturan-perusahaan",
       },
+    ],
+  },
+
+  {
+    label: "Manajemen Absensi",
+    icon: "ClipboardCheck",
+    children: [
+      { label: "Data Kehadiran", icon: "ClipboardList", href: "/data-kehadiran" },
+      { label: "Data Kehadiran Khusus", icon: "ClipboardCheck", href: "/data-kehadiran-khusus" },
+      { label: "Rekap Absensi", icon: "BarChart3", href: "/rekap-absensi" },
+      { label: "Rekap Jadwal Shift", icon: "CalendarRange", href: "/rekap-jadwal-shift" },
+      { label: "Rekap Kehadiran Sensei", icon: "BookOpen", href: "/rekap-kehadiran-sensei" },
+      { label: "Data Kehadiran Sensei", icon: "ClipboardList", href: "/data-kehadiran-sensei" },
+      { label: "Hari Libur", icon: "CalendarOff", href: "/hari-libur" },
+      { label: "Izin / Cuti", icon: "FileText", href: "/izin-cuti" },
+      { label: "Approval Lembur", icon: "Clock", href: "/approval-lembur" },
+      { label: "Monitoring Lokasi", icon: "MapPinOff", href: "/monitoring-lokasi" },
     ],
   },
 

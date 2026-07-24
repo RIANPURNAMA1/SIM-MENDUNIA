@@ -324,8 +324,19 @@ export default function KaryawanPage() {
 
       closeFormModal();
       fetchData();
-    } catch (err) {
-      alert(err);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message
+        || err?.response?.data?.errors
+        || err?.message
+        || 'Terjadi kesalahan';
+      if (typeof msg === 'object') {
+        const flat = Object.entries(msg)
+          .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
+          .join('\n');
+        alert(flat);
+      } else {
+        alert(msg);
+      }
     } finally {
       setFormModal((prev) => ({ ...prev, submitting: false }));
     }
