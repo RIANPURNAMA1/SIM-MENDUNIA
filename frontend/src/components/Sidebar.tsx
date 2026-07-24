@@ -375,13 +375,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       <aside
         className={`
-        w-64 bg-[#0E6187] h-screen flex flex-col fixed left-0 top-0 z-40
+        w-64 bg-[#0E6187] h-[100dvh] max-h-[100dvh] flex flex-col fixed left-0 top-0 z-40 overflow-hidden
         transition-transform duration-300 ease-in-out shadow-[8px_0_30px_rgba(0,0,0,0.15)]
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0
       `}
       >
-        <div className="relative flex items-center justify-center px-5 py-4 border-b border-white/10 bg-white/5">
+        <div className="relative flex items-center justify-center px-5 py-4 border-b border-white/10 bg-white/5 flex-shrink-0">
           <img src="/logo-sm1.png" alt="SIM Mendunia" className="h-14 w-auto" />
           <button
             onClick={onClose}
@@ -391,7 +391,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           </button>
         </div>
 
-        <nav className="sidebar-nav flex-1 overflow-y-auto px-2.5 py-3 space-y-1">
+        <nav className="sidebar-nav flex-1 min-h-0 overflow-y-auto px-2.5 py-3 space-y-1">
           {filteredNavItems.map((item) => {
             const hasChildren = "children" in item && item.children.length > 0;
             const isOpen = openGroups[item.label];
@@ -470,7 +470,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           })}
         </nav>
 
-        <div className="border-t border-white/10 px-3 py-3 bg-white/5">
+        <div className="border-t border-white/10 px-3 py-3 bg-white/5 flex-shrink-0">
           <button
             onClick={() => {
               logout();

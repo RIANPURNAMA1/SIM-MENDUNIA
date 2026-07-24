@@ -14,6 +14,20 @@ class ProductController extends Controller
         return response()->json(Product::with(['biayaKategoris', 'komisiTiers', 'batch'])->orderBy('created_at', 'desc')->get());
     }
 
+    public function showBySlug($slug)
+    {
+        $product = Product::with(['biayaKategoris', 'batch'])
+            ->where('slug', $slug)
+            ->where('status', '!=', 'nonaktif')
+            ->first();
+
+        if (!$product) {
+            return response()->json(['message' => 'Program tidak ditemukan'], 404);
+        }
+
+        return response()->json($product);
+    }
+
     public function store(Request $request)
     {
         $request->validate([

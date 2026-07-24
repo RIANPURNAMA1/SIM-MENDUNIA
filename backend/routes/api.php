@@ -314,6 +314,7 @@ Route::get('/shift-aktif', [ShiftController::class, 'apiAktif']);
 // ========== Affiliate & Program ==========
 Route::prefix('products')->group(function () {
     Route::get('/', [ProductController::class, 'index']);
+    Route::get('/public/{slug}', [ProductController::class, 'showBySlug']);
     Route::post('/', [ProductController::class, 'store']);
     Route::get('/{id}', [ProductController::class, 'show']);
     Route::put('/{id}', [ProductController::class, 'update']);

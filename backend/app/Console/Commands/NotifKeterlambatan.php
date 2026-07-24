@@ -18,10 +18,12 @@ class NotifKeterlambatan extends \Illuminate\Console\Command
         $count = 0;
 
         // Ambil absensi hari ini dengan status TERLAMBAT yang belum dinotifikasi
+        // Buffer 2 menit agar notifikasi real-time dari absensi controller sempat terkirim dulu
         $absensis = Absensi::with('user')
             ->where('tanggal', $today)
             ->where('status', 'TERLAMBAT')
             ->whereNotNull('jam_masuk')
+            ->where('jam_masuk', '<=', Carbon::now('Asia/Jakarta')->subMinutes(2)->toTimeString())
             ->get();
 
         foreach ($absensis as $absensi) {

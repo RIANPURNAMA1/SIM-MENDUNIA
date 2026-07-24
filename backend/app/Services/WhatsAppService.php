@@ -426,11 +426,12 @@ class WhatsAppService
     /**
      * Log notifikasi ke database
      */
-    private function logNotification($pendaftarId, $type, $toPhone, $message, $success)
+    private function logNotification($pendaftarId, $type, $toPhone, $message, $success, $userId = null)
     {
         try {
             \App\Models\WaNotification::create([
                 'pendaftar_id' => $pendaftarId,
+                'user_id' => $userId,
                 'type' => $type,
                 'to_phone' => $toPhone,
                 'message' => $message,
@@ -457,6 +458,7 @@ class WhatsAppService
 
     /**
      * Kirim notifikasi berdasarkan status absensi
+     * Cegah duplikat: setiap jenis notifikasi hanya dikirim 1x per hari per user
      */
     public function sendAbsensiNotification($user, $status, $absensi = null)
     {
@@ -472,9 +474,42 @@ class WhatsAppService
             return false;
         }
 
-        $message = $this->generateMessage($user, $status, $absensi);
+        // Cek duplikat via absensi record (untuk status selain REMINDER)
+        if ($absensi && $status !== 'REMINDER_BELUM_ABSEN') {
+            $notifTerkirim = $absensi->notif_terkirim ?? [];
+            if (!empty($notifTerkirim[$status])) {
+                Log::info("Notifikasi {$status} sudah terkirim untuk absensi user {$user->id} hari ini, skip.");
+                return false;
+            }
+        }
 
-        return $this->sendMessage($user->no_hp, $message);
+        // Cek duplikat via wa_notifications (untuk REMINDER atau fallback)
+        $today = now()->toDateString();
+        $notifType = 'absensi_' . strtolower(str_replace(' ', '_', $status));
+        $sudahDikirim = \App\Models\WaNotification::where('user_id', $user->id)
+            ->where('type', $notifType)
+            ->whereDate('created_at', $today)
+            ->exists();
+
+        if ($sudahDikirim) {
+            Log::info("Notifikasi {$status} sudah terkirim ke user {$user->id} hari ini (via log), skip.");
+            return false;
+        }
+
+        $message = $this->generateMessage($user, $status, $absensi);
+        $sent = $this->sendMessage($user->no_hp, $message);
+
+        // Log ke wa_notifications
+        $this->logNotification(null, $notifType, $user->no_hp, $message, $sent, $user->id);
+
+        // Tandai di absensi record
+        if ($absensi && $sent && $status !== 'REMINDER_BELUM_ABSEN') {
+            $notifTerkirim = $absensi->notif_terkirim ?? [];
+            $notifTerkirim[$status] = true;
+            $absensi->update(['notif_terkirim' => $notifTerkirim]);
+        }
+
+        return $sent;
     }
 
     /**

@@ -287,6 +287,7 @@ export const absensiKaryawanApi = {
 
 export const productApi = {
   list: () => api.get('/products'),
+  getBySlug: (slug: string) => api.get(`/products/public/${slug}`),
   store: (data: Record<string, unknown>) => api.post('/products', data),
   update: (id: number, data: Record<string, unknown>) => api.put(`/products/${id}`, data),
   destroy: (id: number) => api.delete(`/products/${id}`),
@@ -333,7 +334,7 @@ export const pendaftarApi = {
     api.post(`/kandidat/${id}/toggle-status`),
   toggleKandidatCuti: (id: number) =>
     api.post(`/kandidat/${id}/toggle-cuti`),
-  importKandidat: (data: { batch_id: number; data: Record<string, unknown>[] }) =>
+  importKandidat: (data: { batch_id: number; product_id?: number | null; data: Record<string, unknown>[] }) =>
     api.post('/kandidat/import', data),
   deleteKandidat: (id: number) =>
     api.delete(`/kandidat/${id}`),

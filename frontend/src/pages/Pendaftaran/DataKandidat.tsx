@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Users, Search, RotateCcw, Eye, Edit3, Power, PowerOff, CalendarOff, Calendar, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, FileText, Download, Upload, Trash2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { pendaftarApi, batchApi } from '../../services/api'
+import { pendaftarApi, batchApi, productApi } from '../../services/api'
 import * as XLSX from 'xlsx'
 import Swal from 'sweetalert2'
 
@@ -57,7 +58,8 @@ type EditableField = keyof Pick<Kandidat,
   'nik' | 'nama' | 'real_batch' | 'jenis_kelamin' | 'tempat_lahir' | 'tanggal_lahir' |
   'alamat' | 'desa' | 'kecamatan' | 'kabupaten' | 'provinsi' | 'pendidikan_terakhir' |
   'tahun_lulus' | 'tinggi_badan' | 'berat_badan' | 'goldar' | 'ukuran_baju' |
-  'status_pernikahan' | 'email' | 'no_hp' | 'nama_ortu' | 'no_hp_ortu' | 'keterangan'
+  'status_pernikahan' | 'email' | 'no_hp' | 'nama_ortu' | 'no_hp_ortu' | 'keterangan' |
+  'status_kandidat'
 >
 
 const inputCls = "w-full min-w-[70px] px-1.5 py-0.5 border border-blue-400 rounded bg-blue-50 text-xs text-slate-700 outline-none focus:ring-1 focus:ring-blue-500"
@@ -122,6 +124,8 @@ export default function DataKandidat() {
   const [togglingCutiId, setTogglingCutiId] = useState<number | null>(null)
   const [openActionId, setOpenActionId] = useState<number | null>(null)
   const actionRef = useRef<HTMLDivElement>(null)
+  const actionDropdownRef = useRef<HTMLDivElement>(null)
+  const [actionPos, setActionPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [showImport, setShowImport] = useState(false)
@@ -129,10 +133,12 @@ export default function DataKandidat() {
   const [importData, setImportData] = useState<Record<string, unknown>[]>([])
   const [importHeaders, setImportHeaders] = useState<string[]>([])
   const [importBatchId, setImportBatchId] = useState('')
+  const [importProductId, setImportProductId] = useState('')
   const [importLoading, setImportLoading] = useState(false)
   const [importResult, setImportResult] = useState<{ success: number; failed: number; created: { nama: string; email: string; no_registrasi: string; password: string }[]; errors: { row: number; message: string }[] } | null>(null)
   const [importMapping, setImportMapping] = useState<Record<string, string>>({})
   const importFileRef = useRef<HTMLInputElement>(null)
+  const [productOptions, setProductOptions] = useState<{ id: number; nama: string }[]>([])
 
   useEffect(() => {
     fetchData()
@@ -146,16 +152,28 @@ export default function DataKandidat() {
         return [...merged.values()]
       })
     }).catch(() => {})
+    productApi.list().then(res => {
+      const raw = res.data.data || res.data.products || res.data || []
+      setProductOptions(raw.map((p: { id: number; nama: string }) => ({ id: p.id, nama: p.nama })))
+    }).catch(() => {})
   }, [])
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (actionRef.current && !actionRef.current.contains(e.target as Node)) {
-        setOpenActionId(null)
-      }
+      const target = e.target as Node
+      if (actionRef.current?.contains(target)) return
+      if (actionDropdownRef.current?.contains(target)) return
+      setOpenActionId(null)
+    }
+    function handleScroll() {
+      setOpenActionId(null)
     }
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    window.addEventListener('scroll', handleScroll, true)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      window.removeEventListener('scroll', handleScroll, true)
+    }
   }, [])
 
   function fetchData(s?: string) {
@@ -497,6 +515,7 @@ export default function DataKandidat() {
         ukuran_baju: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
         status_pernikahan: ['Belum Nikah', 'Nikah', 'Cerai'],
         pendidikan_terakhir: ['SD/Sederajat', 'SMP/Sederajat', 'SMA/Sederajat', 'D1-D3', 'S1', 'S2'],
+        status_kandidat: ['Calon Kandidat', 'Kandidat Aktif', 'Mengundurkan Diri', 'Lulus Pendidikan'],
       }
       return (
         <select className={selectCls} value={val} onChange={e => updateField(field, e.target.value)}>
@@ -738,8 +757,14 @@ export default function DataKandidat() {
         if (r.no_hp) r.no_hp = String(r.no_hp).replace(/[^0-9+\-\s]/g, '').trim().slice(0, 20)
         if (r.no_hp_ortu) r.no_hp_ortu = String(r.no_hp_ortu).replace(/[^0-9+\-\s;]/g, '').replace(/;'/g, '').trim().slice(0, 20)
         if (r.tahun_lulus) r.tahun_lulus = String(r.tahun_lulus).replace(/\D/g, '').slice(0, 4)
-        if (r.tinggi_badan) r.tinggi_badan = String(r.tinggi_badan).replace(/[^\d.]/g, '')
-        if (r.berat_badan) r.berat_badan = String(r.berat_badan).replace(/[^\d.]/g, '')
+        if (r.tinggi_badan) {
+          const tb = String(r.tinggi_badan).replace(/[^\d]/g, '')
+          r.tinggi_badan = tb.length > 0 && Number(tb) > 0 && Number(tb) <= 250 ? tb.slice(0, 3) : ''
+        }
+        if (r.berat_badan) {
+          const bb = String(r.berat_badan).replace(/[^\d]/g, '')
+          r.berat_badan = bb.length > 0 && Number(bb) > 0 && Number(bb) <= 250 ? bb.slice(0, 3) : ''
+        }
         return true
       })
       const skippedCount = mappedData.length - cleanData.length
@@ -747,7 +772,7 @@ export default function DataKandidat() {
         setImportResult({ success: 0, failed: importData.length, created: [], errors: [{ row: 0, message: 'Tidak ada data valid (nama dan email wajib ada)' }] })
         return
       }
-      const res = await pendaftarApi.importKandidat({ batch_id: Number(importBatchId), data: cleanData })
+      const res = await pendaftarApi.importKandidat({ batch_id: Number(importBatchId), product_id: importProductId ? Number(importProductId) : null, data: cleanData })
       const result = res.data
       if (skippedCount > 0) {
         result.errors = [{ row: 0, message: `${skippedCount} baris dilewati (header/korup)` }, ...(result.errors || [])]
@@ -773,6 +798,7 @@ export default function DataKandidat() {
     setImportData([])
     setImportHeaders([])
     setImportBatchId('')
+    setImportProductId('')
     setImportLoading(false)
     setImportResult(null)
     setImportMapping({})
@@ -1100,36 +1126,24 @@ export default function DataKandidat() {
                             {isEditing ? <CellEdit field="no_hp_ortu" /> : k.no_hp_ortu || <span className="text-gray-400">-</span>}
                           </td>
                            <td className="border border-slate-200 px-4 py-3">
-                             <div className="flex flex-col items-center gap-1">
-                               {(() => {
-                                 const sk = k.status_kandidat || 'Calon Kandidat'
-                                 const skMap: Record<string, { bg: string; border: string; text: string; dot: string }> = {
-                                   'Calon Kandidat': { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', dot: 'bg-blue-500' },
-                                   'Kandidat Aktif': { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' },
-                                   'Mengundurkan Diri': { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-600', dot: 'bg-red-500' },
-                                   'Lulus Pendidikan': { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700', dot: 'bg-purple-500' },
-                                 }
-                                 const skStyle = skMap[sk] || skMap['Calon Kandidat']
-                                 return (
-                                   <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${skStyle.bg} ${skStyle.border} ${skStyle.text}`}>
-                                     <span className={`h-1.5 w-1.5 rounded-full ${skStyle.dot}`} />
-                                     {sk}
-                                   </span>
-                                 )
-                               })()}
-                               {k.status_akademik && k.status_akademik !== 'AKTIF' && (
-                                 <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-500">
-                                   <span className="h-1 w-1 rounded-full bg-red-500" />
-                                   {k.status_akademik}
+                             {isEditing ? (
+                               <CellEdit field="status_kandidat" type="select" />
+                             ) : (() => {
+                               const sk = k.status_kandidat || 'Calon Kandidat'
+                               const skMap: Record<string, { bg: string; border: string; text: string; dot: string }> = {
+                                 'Calon Kandidat': { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', dot: 'bg-blue-500' },
+                                 'Kandidat Aktif': { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+                                 'Mengundurkan Diri': { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-600', dot: 'bg-red-500' },
+                                 'Lulus Pendidikan': { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700', dot: 'bg-purple-500' },
+                               }
+                               const skStyle = skMap[sk] || skMap['Calon Kandidat']
+                               return (
+                                 <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${skStyle.bg} ${skStyle.border} ${skStyle.text}`}>
+                                   <span className={`h-1.5 w-1.5 rounded-full ${skStyle.dot}`} />
+                                   {sk}
                                  </span>
-                               )}
-                               {k.is_cuti ? (
-                                 <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-600">
-                                   <span className="h-1 w-1 rounded-full bg-amber-500" />
-                                   CUTI{k.cuti_sejak ? ` ${k.cuti_sejak}` : ''}
-                                 </span>
-                               ) : null}
-                             </div>
+                               )
+                             })()}
                            </td>
                            <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black max-w-[180px]">
                             {isEditing ? <CellEdit field="keterangan" /> : (
@@ -1154,16 +1168,28 @@ export default function DataKandidat() {
                                 </button>
                               </div>
                             ) : (
-                              <div className="relative flex justify-center" ref={openActionId === k.id ? actionRef : undefined}>
-                                <button
-                                  onClick={() => setOpenActionId(openActionId === k.id ? null : k.id)}
-                                  className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
-                                  title="Aksi"
-                                >
-                                  <MoreHorizontal size={16} />
-                                </button>
-                                {openActionId === k.id && (
-                                  <div className="absolute right-0 top-full z-30 mt-1 w-52 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+                                <>
+                                <div className="relative flex justify-center" ref={actionRef}>
+                                  <button
+                                     onMouseDown={e => e.stopPropagation()}
+                                     onClick={(e) => {
+                                       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                                       setActionPos({ top: rect.bottom + 4, left: rect.right - 208 })
+                                       setOpenActionId(openActionId === k.id ? null : k.id)
+                                     }}
+                                     className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
+                                     title="Aksi"
+                                   >
+                                     <MoreHorizontal size={16} />
+                                   </button>
+                                </div>
+                                {openActionId === k.id && createPortal(
+                                  <div
+                                    ref={actionDropdownRef}
+                                    onMouseDown={e => e.stopPropagation()}
+                                    className="fixed z-[9999] w-52 rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+                                    style={{ top: actionPos.top, left: actionPos.left }}
+                                  >
                                     <button onClick={() => { setDetailKandidat(k); setOpenActionId(null) }}
                                       className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
                                       <Eye size={14} className="text-slate-400" />
@@ -1225,11 +1251,12 @@ export default function DataKandidat() {
                                       <Trash2 size={14} className="text-red-400" />
                                       <span>Hapus</span>
                                     </button>
-                                  </div>
+                                  </div>,
+                                  document.body
                                 )}
-                              </div>
-                            )}
-                          </td>
+                                </>
+                              )}
+                              </td>
                         </tr>
                       )
                     })
@@ -1637,6 +1664,19 @@ export default function DataKandidat() {
                         <option value="">Pilih Batch...</option>
                         {batchOptions.map(b => (
                           <option key={b.id} value={b.id}>{b.nama}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="sm:w-60">
+                      <label className="mb-1 block text-xs font-medium text-slate-600">Program / Product</label>
+                      <select
+                        value={importProductId}
+                        onChange={e => setImportProductId(e.target.value)}
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                      >
+                        <option value="">Pilih Program...</option>
+                        {productOptions.map(p => (
+                          <option key={p.id} value={p.id}>{p.nama}</option>
                         ))}
                       </select>
                     </div>

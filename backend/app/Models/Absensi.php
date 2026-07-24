@@ -27,17 +27,18 @@ class Absensi extends Model
         'foto_masuk',
         'foto_pulang',
         'keterangan',
+        'notif_terkirim',
     ];
 
     protected $casts = [
         'tanggal'    => 'date',
-        // Gunakan string jika hanya menyimpan waktu (H:i:s) agar tidak konflik dengan objek Carbon penuh
         'jam_masuk'  => 'string',
         'jam_keluar' => 'string',
         'lat_masuk'  => 'float',
         'long_masuk' => 'float',
         'lat_pulang' => 'float',
         'long_pulang' => 'float',
+        'notif_terkirim' => 'array',
     ];
 
     /* =========================
