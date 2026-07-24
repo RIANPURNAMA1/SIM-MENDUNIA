@@ -174,7 +174,7 @@ class SiswaDashboardController extends Controller
     {
         $user = Auth::guard('sanctum')->user();
 
-        $siswa = Siswa::with(['shift', 'kelasRelasi', 'batchRelasi'])
+        $siswa = Siswa::with(['shift', 'kelasRelasi', 'batchRelasi.cabang'])
             ->where('user_id', $user->id)
             ->first();
 
@@ -189,6 +189,32 @@ class SiswaDashboardController extends Controller
             ->orderBy('tanggal', 'desc')
             ->orderBy('jam_masuk', 'desc')
             ->get();
+
+        // Generate LIBUR entries untuk weekend & hari libur nasional yang tidak ada di DB
+        $liburEntries = [];
+        $start = Carbon::now()->subMonth()->copy()->startOfDay();
+        $end = Carbon::now()->copy()->endOfDay();
+        $existingDates = $riwayat->pluck('tanggal')->map(fn($d) => is_string($d) ? $d : $d)->values();
+
+        $cursor = $start->copy();
+        while ($cursor->lte($end)) {
+            $dateStr = $cursor->toDateString();
+            if (($cursor->isWeekend() || \App\Models\HariLibur::where('tanggal', $dateStr)->exists())
+                && !$existingDates->contains($dateStr)) {
+                $liburEntries[] = [
+                    'id' => 'libur-' . $dateStr,
+                    'siswa_id' => $siswa->id,
+                    'tanggal' => $dateStr,
+                    'jam_masuk' => null,
+                    'jam_keluar' => null,
+                    'status' => 'LIBUR',
+                    'keterangan' => $cursor->isWeekend() ? 'Weekend' : 'Hari Libur Nasional',
+                ];
+            }
+            $cursor->addDay();
+        }
+
+        $riwayat = collect($liburEntries)->merge($riwayat)->sortByDesc('tanggal')->values();
 
         // Kelas aktif untuk siswa ini
         $batchId = $siswa->batch_id;

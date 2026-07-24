@@ -388,31 +388,29 @@ class KaryawanController extends Controller
 {
     $user = User::findOrFail($id);
 
-    // 1. Validasi request
+    // 1. Validasi request (disamakan dengan store - semua field non-identitas nullable)
     $request->validate([
         'nik'               => 'required|string|size:16|unique:users,nik,' . $user->id,
-        'nip'               => 'required|unique:users,nip,' . $user->id,
+        'nip'               => 'required|string|max:50|unique:users,nip,' . $user->id,
         'name'              => 'required|string|max:100',
         'email'             => 'required|email|unique:users,email,' . $user->id,
-        'jabatan'           => 'required|string|max:100',
-        'pendidikan_terakhir' => 'required|string',
-        'divisi_id'         => 'required|exists:divisis,id',
-        
-        // SESUAIKAN: Cabang sekarang harus array
+
+        'jabatan'           => 'nullable|string|max:100',
+        'pendidikan_terakhir' => 'nullable|string',
+        'divisi_id'         => 'nullable|exists:divisis,id',
+
         'cabang_ids'        => 'required|array|min:1',
         'cabang_ids.*'      => 'exists:cabangs,id',
-        
-        // Multiple Shifts
+
         'shift_ids'        => 'nullable|array',
         'shift_ids.*'      => 'exists:shifts,id',
 
         'shift_id'          => 'nullable|exists:shifts,id',
-        'no_hp'             => 'required|string|max:20',
+        'no_hp'             => 'nullable|string|max:20',
         'alamat'            => 'nullable|string',
-        'tanggal_masuk'     => 'required|date',
-        'status_kerja'      => 'required|in:TETAP,KONTRAK,MAGANG',
+        'tanggal_masuk'     => 'nullable|date',
+        'status_kerja'      => 'nullable|in:TETAP,KONTRAK,MAGANG',
 
-        // File Validation
         'foto_profil'       => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         'foto_ktp'          => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx|max:5120',
         'foto_ijazah'       => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx|max:5120',

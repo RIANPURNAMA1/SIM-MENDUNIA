@@ -280,8 +280,8 @@ export default function GuruDashboard() {
             Swal.fire({ icon: 'success', title: 'Absen Pulang Berhasil', timer: 2000, showConfirmButton: false })
           }
         }
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : 'Gagal melakukan absensi'
+      } catch (e: any) {
+        const msg = e?.response?.data?.message || e?.message || 'Gagal melakukan absensi'
         Swal.fire({ icon: 'error', title: 'Absensi Gagal', text: msg })
       } finally {
         setAbsenLoading(prev => ({ ...prev, [kelasId]: false }))

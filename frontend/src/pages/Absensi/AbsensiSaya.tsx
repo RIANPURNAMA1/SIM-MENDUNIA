@@ -13,8 +13,9 @@ export default function AbsensiSaya() {
   const [kelasAktif, setKelasAktif] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showQr, setShowQr] = useState(false)
+  const [scanning, setScanning] = useState(false)
   const scannerRef = useRef<Html5Qrcode | null>(null)
-  const [userCoords, setUserCoords] = useState<{ lat: number; long: number } | null>(null)
+  const userCoordsRef = useRef<{ lat: number; long: number } | null>(null)
 
   useEffect(() => {
     api.get('/siswa/absensi-saya')
@@ -41,6 +42,8 @@ export default function AbsensiSaya() {
         scannerRef.current = null
         setShowQr(false)
 
+        const coords = userCoordsRef.current
+
         Swal.fire({
           title: 'Memproses...',
           text: 'Silakan tunggu',
@@ -48,7 +51,7 @@ export default function AbsensiSaya() {
           allowOutsideClick: false,
         })
 
-        api.post('/siswa/scan-qr', { barcode: decodedText.trim(), lat: userCoords?.lat, long: userCoords?.long })
+        api.post('/siswa/scan-qr', { barcode: decodedText.trim(), lat: coords?.lat, long: coords?.long })
           .then((res) => {
             Swal.fire({
               icon: 'success',
@@ -84,13 +87,52 @@ export default function AbsensiSaya() {
     }
   }, [showQr])
 
+  const openQrScanner = () => {
+    setScanning(true)
+    userCoordsRef.current = null
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        userCoordsRef.current = { lat: pos.coords.latitude, long: pos.coords.longitude }
+        setScanning(false)
+        setShowQr(true)
+      },
+      () => {
+        setScanning(false)
+        Swal.fire({
+          icon: 'warning',
+          title: 'Lokasi Diperlukan',
+          text: 'Aktifkan layanan lokasi untuk melakukan absensi. Pastikan GPS aktif dan izinkan akses lokasi di browser.',
+          confirmButtonColor: '#0E6187',
+        })
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+    )
+  }
+
   const getDisplayStatus = (a: any) => {
     if (!a.jam_masuk) return 'belum_hadir'
     const s = (a.status || '').toLowerCase()
     if (s === 'terlambat') return 'terlambat'
+    if (s === 'pulang lebih awal') return 'pulang_awal'
+    if (s === 'tidak absen pulang') return 'tidak_absen_pulang'
     if (s === 'izin') return 'izin'
     if (s === 'sakit') return 'sakit'
+    if (s === 'alpa') return 'alpa'
     return 'hadir'
+  }
+
+  const statusIconBg = (status: string) => {
+    const map: Record<string, string> = {
+      hadir: 'bg-emerald-100 text-emerald-600',
+      izin: 'bg-amber-100 text-amber-600',
+      sakit: 'bg-red-100 text-red-600',
+      alpa: 'bg-gray-100 text-gray-400',
+      terlambat: 'bg-orange-100 text-orange-600',
+      pulang_awal: 'bg-sky-100 text-sky-600',
+      tidak_absen_pulang: 'bg-red-100 text-red-500',
+      belum_hadir: 'bg-gray-100 text-gray-400',
+    }
+    return map[status] || 'bg-gray-100 text-gray-400'
   }
 
   const statusBadge = (status: string) => {
@@ -98,8 +140,10 @@ export default function AbsensiSaya() {
       hadir: 'bg-emerald-100 text-emerald-700',
       izin: 'bg-amber-100 text-amber-700',
       sakit: 'bg-red-100 text-red-700',
-      alpha: 'bg-slate-100 text-slate-500',
+      alpa: 'bg-slate-100 text-slate-500',
       terlambat: 'bg-orange-100 text-orange-700',
+      pulang_awal: 'bg-sky-100 text-sky-700',
+      tidak_absen_pulang: 'bg-red-100 text-red-600',
       belum_hadir: 'bg-slate-100 text-slate-400',
     }
     return map[status] || 'bg-slate-100 text-slate-500'
@@ -110,8 +154,10 @@ export default function AbsensiSaya() {
       hadir: 'Hadir',
       izin: 'Izin',
       sakit: 'Sakit',
-      alpha: 'Alpha',
+      alpa: 'Alpha',
       terlambat: 'Terlambat',
+      pulang_awal: 'Pulang Awal',
+      tidak_absen_pulang: 'Tidak Absen Pulang',
       belum_hadir: 'Belum Hadir',
     }
     return map[status] || status
@@ -122,8 +168,10 @@ export default function AbsensiSaya() {
       hadir: CheckCircle,
       izin: AlertCircle,
       sakit: AlertCircle,
-      alpha: X,
+      alpa: X,
       terlambat: Clock,
+      pulang_awal: Clock,
+      tidak_absen_pulang: AlertCircle,
       belum_hadir: X,
     }
     const Icon = map[status] || X
@@ -170,44 +218,44 @@ export default function AbsensiSaya() {
 
           {/* Absensi Hari Ini + QR — Meta-style compact cards */}
           <div className="grid grid-cols-2 gap-3">
-            <div className={`rounded-xl border px-4 py-3.5 flex items-center gap-3 ${
-              today
-                ? today.status === 'hadir' ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'
-                : 'bg-white border-gray-200'
-            }`}>
-              <div className={`w-9 h-9 rounded-full flex items-center justify-center ${
-                today ? today.status === 'hadir' ? 'bg-emerald-100' : 'bg-amber-100' : 'bg-gray-100'
-              }`}>
-                {today
-                  ? <span className={today.status === 'hadir' ? 'text-emerald-600' : 'text-amber-600'}>{statusIcon(today.status)}</span>
-                  : <Clock size={16} className="text-gray-400" />
-                }
-              </div>
-              <div>
-                <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wide">Absen Hari Ini</p>
-                <p className={`text-sm font-bold ${today ? 'text-gray-900' : 'text-gray-400'}`}>
-                  {today ? statusLabel(getDisplayStatus(today)) : 'Belum'}
-                </p>
-              </div>
-            </div>
+            {(() => {
+              const ds = today ? getDisplayStatus(today) : null
+              const isGood = ds === 'hadir'
+              const isBad = ds === 'tidak_absen_pulang' || ds === 'alpa'
+              const cardBg = !today ? 'bg-white border-gray-200' : isGood ? 'bg-emerald-50 border-emerald-200' : isBad ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'
+              return (
+                <div className={`rounded-xl border px-4 py-3.5 flex items-center gap-3 ${cardBg}`}>
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center ${ds ? statusIconBg(ds).split(' ')[0] : 'bg-gray-100'}`}>
+                    {today
+                      ? <span className={ds ? statusIconBg(ds).split(' ')[1] : 'text-gray-400'}>{statusIcon(ds!)}</span>
+                      : <Clock size={16} className="text-gray-400" />
+                    }
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wide">Absen Hari Ini</p>
+                    <p className={`text-sm font-bold ${today ? 'text-gray-900' : 'text-gray-400'}`}>
+                      {today ? statusLabel(ds!) : 'Belum'}
+                    </p>
+                  </div>
+                </div>
+              )
+            })()}
 
             <button
-              onClick={() => {
-                navigator.geolocation.getCurrentPosition(
-                  (pos) => setUserCoords({ lat: pos.coords.latitude, long: pos.coords.longitude }),
-                  () => setUserCoords(null),
-                  { enableHighAccuracy: true, timeout: 5000 },
-                )
-                setShowQr(true)
-              }}
-              className="rounded-xl bg-[#0E6187] text-white px-4 py-3.5 flex items-center gap-3 active:scale-[0.97] transition-transform"
+              onClick={openQrScanner}
+              disabled={scanning}
+              className="rounded-xl bg-[#0E6187] text-white px-4 py-3.5 flex items-center gap-3 active:scale-[0.97] transition-transform disabled:opacity-60"
             >
               <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center">
-                <QrCode size={18} />
+                {scanning ? (
+                  <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <QrCode size={18} />
+                )}
               </div>
               <div className="text-left">
                 <p className="text-[10px] text-white/60 font-medium uppercase tracking-wide">Absensi</p>
-                <p className="text-sm font-bold">Scan QR</p>
+                <p className="text-sm font-bold">{scanning ? 'Mencari Lokasi...' : 'Scan QR'}</p>
               </div>
             </button>
           </div>
@@ -236,9 +284,15 @@ export default function AbsensiSaya() {
                   </p>
                 </div>
               </div>
-              <div className="mt-3 flex items-center gap-4 text-xs text-gray-500">
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
                 <span>Shift: <strong className="text-gray-800">{siswa.shift.nama_shift}</strong></span>
                 {siswa.batchRelasi && <span>Batch: <strong className="text-gray-800">{siswa.batchRelasi.nama_batch || siswa.batchRelasi.nama}</strong></span>}
+                {siswa.batchRelasi?.cabang && (
+                  <span className="flex items-center gap-1">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    Cabang: <strong className="text-gray-800">{siswa.batchRelasi.cabang.nama_cabang}</strong>
+                  </span>
+                )}
               </div>
             </div>
           )}
@@ -361,15 +415,8 @@ export default function AbsensiSaya() {
                     const ds = getDisplayStatus(a)
                     return (
                       <div key={i} className="px-4 py-3.5 flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-                          ds === 'hadir' ? 'bg-emerald-100' :
-                          ds === 'izin' ? 'bg-amber-100' :
-                          ds === 'sakit' ? 'bg-red-100' :
-                          ds === 'terlambat' ? 'bg-orange-100' : 'bg-gray-100'
-                        }`}>
-                          <span className={ds === 'hadir' ? 'text-emerald-600' : ds === 'izin' ? 'text-amber-600' : ds === 'sakit' ? 'text-red-600' : ds === 'terlambat' ? 'text-orange-600' : 'text-gray-400'}>
-                            {statusIcon(ds)}
-                          </span>
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${statusIconBg(ds)}`}>
+                          {statusIcon(ds)}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
