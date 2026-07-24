@@ -14,6 +14,7 @@ use App\Models\JadwalLevel;
 use App\Models\User;
 use App\Models\AssessmentCategory;
 use App\Models\StudentAssessment;
+use App\Models\StudentEvaluation;
 use App\Models\PenilaianSetting;
 use App\Models\Course;
 use App\Models\CourseLesson;
@@ -242,40 +243,46 @@ class AdminCabangController extends Controller
             ->get()
             ->groupBy('pendaftar_id');
 
-        $result = $data->map(function ($p) use ($kategoris, $allPembayaran, $allBayar) {
+        $uniqueCodeOperation = \App\Models\PaymentSetting::getValue('unique_code_operation', 'add');
+
+        $result = $data->map(function ($p) use ($kategoris, $allPembayaran, $allBayar, $uniqueCodeOperation) {
             $pembayaranItems = $allPembayaran->get($p->id, collect())->keyBy('kategori_id');
             $pembayaranList = $allBayar->get($p->id, collect());
             $product = $p->product;
-            $pivotById = collect();
+
+            $nameToKategori = [];
+            $kodeToKategori = [];
             if ($product && $product->relationLoaded('biayaKategoris')) {
-                $pivotById = $product->biayaKategoris->keyBy('id');
+                foreach ($product->biayaKategoris as $k) {
+                    $nameToKategori[strtolower($k->nama)] = $k;
+                    $kodeToKategori[strtolower($k->kode)] = $k;
+                }
             }
 
-            // Build aggregated kategori items from product's kategori_items JSON (same as bayarInfo)
-            $aggregated = collect();
+            $aggregated = [];
             if ($product && is_array($product->kategori_items)) {
-                $walkAgg = function ($items, $depth) use (&$walkAgg, $pivotById, &$aggregated) {
+                $walkAgg = function ($items, $depth) use (&$walkAgg, $nameToKategori, $kodeToKategori, &$aggregated) {
                     foreach ($items as $item) {
                         $name = strtolower(trim($item['name'] ?? ''));
                         if ($name === '') continue;
-                        $kategori = $pivotById->first(fn($k) => strtolower($k->nama) === $name || strtolower($k->kode) === $name);
+                        $kategori = $nameToKategori[$name] ?? $kodeToKategori[$name] ?? null;
                         if (!$kategori) continue;
 
                         $children = $item['children'] ?? [];
                         $childHarga = 0;
                         foreach ($children as $c) {
                             $cn = strtolower(trim($c['name'] ?? ''));
-                            $ck = $pivotById->first(fn($k) => strtolower($k->nama) === $cn || strtolower($k->kode) === $cn);
+                            $ck = $nameToKategori[$cn] ?? $kodeToKategori[$cn] ?? null;
                             if ($ck) $childHarga += (float) ($ck->pivot->harga ?? 0);
                         }
 
                         if ($depth === 0) {
-                            $aggregated->push([
+                            $aggregated[] = [
                                 'id' => $kategori->id,
                                 'kode' => $kategori->kode,
                                 'nama' => $kategori->nama,
                                 'biaya' => (float) ($kategori->pivot->harga ?? 0) + $childHarga,
-                            ]);
+                            ];
                         }
 
                         if (!empty($children)) {
@@ -286,14 +293,21 @@ class AdminCabangController extends Controller
                 $walkAgg($product->kategori_items, 0);
             }
 
-            $detail = $aggregated->map(function ($item) use ($pembayaranItems, $pembayaranList) {
+            $detail = [];
+            foreach ($aggregated as $item) {
                 $pi = $pembayaranItems->get($item['id']);
                 $dibayar = $pi ? (int) $pi->jumlah : 0;
                 $pembayaran = $pembayaranList->firstWhere('kategori_id', $item['id']);
                 $biaya = $item['biaya'];
                 $kodeUnik = $pi ? ($pi->kode_unik ?? 0) : 0;
-                $totalTransfer = $pi ? ($pi->total_transfer ?? $biaya) : (\App\Models\PaymentSetting::calculateTotalTransfer($biaya, $kodeUnik));
-                return [
+                if ($pi) {
+                    $totalTransfer = $pi->total_transfer ?? $biaya;
+                } else {
+                    $totalTransfer = $uniqueCodeOperation === 'subtract'
+                        ? max(0, $biaya - $kodeUnik)
+                        : $biaya + $kodeUnik;
+                }
+                $detail[] = [
                     'kategori_id' => $item['id'],
                     'kode' => $item['kode'],
                     'nama' => $item['nama'],
@@ -303,7 +317,7 @@ class AdminCabangController extends Controller
                     'total_transfer' => $totalTransfer,
                     'tanggal_bayar' => $pembayaran ? $pembayaran->created_at : null,
                 ];
-            });
+            }
             return array_merge($p->toArray(), ['detail' => $detail]);
         });
 
@@ -392,41 +406,49 @@ class AdminCabangController extends Controller
             ->get()
             ->groupBy('pendaftar_id');
 
-        $result = $data->map(function ($p) use ($kategoris, $allPembayaran, $allBayar) {
+        // Preload PaymentSetting once to avoid N+1 queries inside the loop
+        $uniqueCodeOperation = \App\Models\PaymentSetting::getValue('unique_code_operation', 'add');
+
+        $result = $data->map(function ($p) use ($kategoris, $allPembayaran, $allBayar, $uniqueCodeOperation) {
             $pembayaranItems = $allPembayaran->get($p->id, collect())->keyBy('kategori_id');
             $pembayaranList = $allBayar->get($p->id, collect());
             $product = $p->product;
 
-            // Build aggregated kategori items from product's kategori_items JSON (same as bayarInfo)
-            $pivotById = collect();
+            // Build indexed lookup maps for O(1) kategori matching
+            $nameToKategori = [];
+            $kodeToKategori = [];
             if ($product && $product->relationLoaded('biayaKategoris')) {
-                $pivotById = $product->biayaKategoris->keyBy('id');
+                foreach ($product->biayaKategoris as $k) {
+                    $nameToKategori[strtolower($k->nama)] = $k;
+                    $kodeToKategori[strtolower($k->kode)] = $k;
+                }
             }
 
-            $aggregated = collect();
+            // Build aggregated kategori items from product's kategori_items JSON (same as bayarInfo)
+            $aggregated = [];
             if ($product && is_array($product->kategori_items)) {
-                $walkAgg = function ($items, $depth) use (&$walkAgg, $pivotById, &$aggregated) {
+                $walkAgg = function ($items, $depth) use (&$walkAgg, $nameToKategori, $kodeToKategori, &$aggregated) {
                     foreach ($items as $item) {
                         $name = strtolower(trim($item['name'] ?? ''));
                         if ($name === '') continue;
-                        $kategori = $pivotById->first(fn($k) => strtolower($k->nama) === $name || strtolower($k->kode) === $name);
+                        $kategori = $nameToKategori[$name] ?? $kodeToKategori[$name] ?? null;
                         if (!$kategori) continue;
 
                         $children = $item['children'] ?? [];
                         $childHarga = 0;
                         foreach ($children as $c) {
                             $cn = strtolower(trim($c['name'] ?? ''));
-                            $ck = $pivotById->first(fn($k) => strtolower($k->nama) === $cn || strtolower($k->kode) === $cn);
+                            $ck = $nameToKategori[$cn] ?? $kodeToKategori[$cn] ?? null;
                             if ($ck) $childHarga += (float) ($ck->pivot->harga ?? 0);
                         }
 
                         if ($depth === 0) {
-                            $aggregated->push([
+                            $aggregated[] = [
                                 'id' => $kategori->id,
                                 'kode' => $kategori->kode,
                                 'nama' => $kategori->nama,
                                 'biaya' => (float) ($kategori->pivot->harga ?? 0) + $childHarga,
-                            ]);
+                            ];
                         }
 
                         if (!empty($children)) {
@@ -437,14 +459,21 @@ class AdminCabangController extends Controller
                 $walkAgg($product->kategori_items, 0);
             }
 
-            $detail = $aggregated->map(function ($item) use ($pembayaranItems, $pembayaranList) {
+            $detail = [];
+            foreach ($aggregated as $item) {
                 $pi = $pembayaranItems->get($item['id']);
                 $dibayar = $pi ? (int) $pi->jumlah : 0;
                 $pembayaran = $pembayaranList->firstWhere('kategori_id', $item['id']);
                 $biaya = $item['biaya'];
                 $kodeUnik = $pi ? ($pi->kode_unik ?? 0) : 0;
-                $totalTransfer = $pi ? ($pi->total_transfer ?? $biaya) : (\App\Models\PaymentSetting::calculateTotalTransfer($biaya, $kodeUnik));
-                return [
+                if ($pi) {
+                    $totalTransfer = $pi->total_transfer ?? $biaya;
+                } else {
+                    $totalTransfer = $uniqueCodeOperation === 'subtract'
+                        ? max(0, $biaya - $kodeUnik)
+                        : $biaya + $kodeUnik;
+                }
+                $detail[] = [
                     'kategori_id' => $item['id'],
                     'kode' => $item['kode'],
                     'nama' => $item['nama'],
@@ -454,7 +483,7 @@ class AdminCabangController extends Controller
                     'total_transfer' => $totalTransfer,
                     'tanggal_bayar' => $pembayaran ? $pembayaran->created_at : null,
                 ];
-            });
+            }
             return array_merge($p->toArray(), ['detail' => $detail]);
         });
 
@@ -686,40 +715,46 @@ class AdminCabangController extends Controller
 
             $batchKategoriUsedIds = new \Illuminate\Support\Collection();
 
-            $items = $pendaftar->map(function ($p) use ($allKategoris, $allPembayaran, $allBayar, &$batchKategoriUsedIds) {
+            $uniqueCodeOperation = \App\Models\PaymentSetting::getValue('unique_code_operation', 'add');
+
+            $items = $pendaftar->map(function ($p) use ($allKategoris, $allPembayaran, $allBayar, &$batchKategoriUsedIds, $uniqueCodeOperation) {
                 $pembayaranItems = $allPembayaran->get($p->id, collect())->keyBy('kategori_id');
                 $pembayaranList = $allBayar->get($p->id, collect());
                 $product = $p->product;
 
-                $pivotById = collect();
+                $nameToKategori = [];
+                $kodeToKategori = [];
                 if ($product && $product->relationLoaded('biayaKategoris')) {
-                    $pivotById = $product->biayaKategoris->keyBy('id');
+                    foreach ($product->biayaKategoris as $k) {
+                        $nameToKategori[strtolower($k->nama)] = $k;
+                        $kodeToKategori[strtolower($k->kode)] = $k;
+                    }
                 }
 
-                $aggregated = collect();
+                $aggregated = [];
                 if ($product && is_array($product->kategori_items)) {
-                    $walkAgg = function ($items, $depth) use (&$walkAgg, $pivotById, &$aggregated) {
+                    $walkAgg = function ($items, $depth) use (&$walkAgg, $nameToKategori, $kodeToKategori, &$aggregated) {
                         foreach ($items as $item) {
                             $name = strtolower(trim($item['name'] ?? ''));
                             if ($name === '') continue;
-                            $kategori = $pivotById->first(fn($k) => strtolower($k->nama) === $name || strtolower($k->kode) === $name);
+                            $kategori = $nameToKategori[$name] ?? $kodeToKategori[$name] ?? null;
                             if (!$kategori) continue;
 
                             $children = $item['children'] ?? [];
                             $childHarga = 0;
                             foreach ($children as $c) {
                                 $cn = strtolower(trim($c['name'] ?? ''));
-                                $ck = $pivotById->first(fn($k) => strtolower($k->nama) === $cn || strtolower($k->kode) === $cn);
+                                $ck = $nameToKategori[$cn] ?? $kodeToKategori[$cn] ?? null;
                                 if ($ck) $childHarga += (float) ($ck->pivot->harga ?? 0);
                             }
 
                             if ($depth === 0) {
-                                $aggregated->push([
+                                $aggregated[] = [
                                     'id' => $kategori->id,
                                     'kode' => $kategori->kode,
                                     'nama' => $kategori->nama,
                                     'biaya' => (float) ($kategori->pivot->harga ?? 0) + $childHarga,
-                                ]);
+                                ];
                             }
 
                             if (!empty($children)) {
@@ -730,14 +765,21 @@ class AdminCabangController extends Controller
                     $walkAgg($product->kategori_items, 0);
                 }
 
-                $detail = $aggregated->map(function ($item) use ($pembayaranItems, $pembayaranList) {
+                $detail = [];
+                foreach ($aggregated as $item) {
                     $pi = $pembayaranItems->get($item['id']);
                     $dibayar = $pi ? (int) $pi->jumlah : 0;
                     $pembayaran = $pembayaranList->firstWhere('kategori_id', $item['id']);
                     $biaya = $item['biaya'];
                     $kodeUnik = $pi ? ($pi->kode_unik ?? 0) : 0;
-                    $totalTransfer = $pi ? ($pi->total_transfer ?? $biaya) : (\App\Models\PaymentSetting::calculateTotalTransfer($biaya, $kodeUnik));
-                    return [
+                    if ($pi) {
+                        $totalTransfer = $pi->total_transfer ?? $biaya;
+                    } else {
+                        $totalTransfer = $uniqueCodeOperation === 'subtract'
+                            ? max(0, $biaya - $kodeUnik)
+                            : $biaya + $kodeUnik;
+                    }
+                    $detail[] = [
                         'kategori_id' => $item['id'],
                         'kode' => $item['kode'],
                         'nama' => $item['nama'],
@@ -746,7 +788,8 @@ class AdminCabangController extends Controller
                         'kode_unik' => $kodeUnik,
                         'total_transfer' => $totalTransfer,
                     ];
-                });
+                }
+                $detail = collect($detail);
 
                 $detail->filter(fn($d) => $d['biaya'] > 0)->each(fn($d) => $batchKategoriUsedIds->push($d['kategori_id']));
 
@@ -1197,6 +1240,155 @@ class AdminCabangController extends Controller
             'courses' => $courses,
             'batches' => $batches,
             'levels' => $levels,
+        ]);
+    }
+
+    public function evaluasiInstruktur(Request $request)
+    {
+        $user = Auth::user();
+        $branchIds = $this->getBranchIds();
+        $batchIds = $this->getBranchBatchIds();
+
+        return $this->evaluasiInstrukturData($request, $batchIds);
+    }
+
+    public function evaluasiInstrukturAll(Request $request)
+    {
+        return $this->evaluasiInstrukturData($request, null);
+    }
+
+    private function evaluasiInstrukturData(Request $request, ?array $batchIds)
+    {
+        // Filter options
+        $filterBatchId = $request->query('batch_id');
+        $filterLevel = $request->query('level');
+        $filterGuruId = $request->query('guru_id');
+
+        // Get all kelas sensei for this branch's batches
+        $query = KelasSensei::with(['batchRelasi', 'user']);
+        if ($batchIds !== null) {
+            $query->whereIn('batch_id', $batchIds);
+        }
+
+        if ($filterBatchId) {
+            $query->where('batch_id', $filterBatchId);
+        }
+        if ($filterLevel) {
+            $query->where('level', $filterLevel);
+        }
+        if ($filterGuruId) {
+            $query->where('user_id', $filterGuruId);
+        }
+
+        $kelasSenseiList = $query->get();
+
+        // Build instructor summary
+        $instructorMap = [];
+        foreach ($kelasSenseiList as $ks) {
+            $guruUserId = $ks->user_id;
+            $guruName = $ks->user->name ?? '-';
+            $batchName = $ks->batchRelasi->nama_batch ?? '-';
+            $level = $ks->level;
+
+            if (!isset($instructorMap[$guruUserId])) {
+                $instructorMap[$guruUserId] = [
+                    'user_id' => $guruUserId,
+                    'nama' => $guruName,
+                    'total_kelas' => 0,
+                    'batches' => [],
+                    'evaluations' => [],
+                ];
+            }
+
+            $instructorMap[$guruUserId]['total_kelas']++;
+            $instructorMap[$guruUserId]['batches'][] = [
+                'batch_id' => $ks->batch_id,
+                'nama_batch' => $batchName,
+                'level' => $level,
+                'kelas_sensei_id' => $ks->id,
+            ];
+
+            // Get evaluations for this kelas sensei's batch and level
+            $evals = StudentEvaluation::with(['siswa.user'])
+                ->where('batch_id', $ks->batch_id)
+                ->where('level', $level)
+                ->get();
+
+            foreach ($evals as $eval) {
+                $studentName = $eval->siswa->nama ?? '-';
+                $instructorMap[$guruUserId]['evaluations'][] = [
+                    'id' => $eval->id,
+                    'siswa_nama' => $studentName,
+                    'batch_nama' => $batchName,
+                    'level' => $eval->level,
+                    'rating' => $eval->rating,
+                    'komentar' => $eval->komentar,
+                    'scores' => $eval->scores,
+                    'text_responses' => $eval->text_responses,
+                    'created_at' => $eval->created_at,
+                ];
+            }
+        }
+
+        // Calculate averages per instructor
+        $result = [];
+        foreach ($instructorMap as $instruktur) {
+            $ratings = array_column($instruktur['evaluations'], 'rating');
+            $avgRating = count($ratings) > 0 ? round(array_sum($ratings) / count($ratings), 2) : null;
+
+            // Per-level breakdown
+            $levelBreakdown = [];
+            foreach ($instruktur['evaluations'] as $eval) {
+                $lv = $eval['level'];
+                if (!isset($levelBreakdown[$lv])) {
+                    $levelBreakdown[$lv] = ['level' => $lv, 'ratings' => [], 'count' => 0];
+                }
+                $levelBreakdown[$lv]['ratings'][] = $eval['rating'];
+                $levelBreakdown[$lv]['count']++;
+            }
+            foreach ($levelBreakdown as &$lb) {
+                $lb['avg_rating'] = count($lb['ratings']) > 0
+                    ? round(array_sum($lb['ratings']) / count($lb['ratings']), 2)
+                    : null;
+                unset($lb['ratings']);
+            }
+
+            $result[] = [
+                'user_id' => $instruktur['user_id'],
+                'nama' => $instruktur['nama'],
+                'total_kelas' => $instruktur['total_kelas'],
+                'total_evaluasi' => count($instruktur['evaluations']),
+                'avg_rating' => $avgRating,
+                'batches' => array_values($instruktur['batches']),
+                'evaluations' => $instruktur['evaluations'],
+                'level_breakdown' => array_values($levelBreakdown),
+            ];
+        }
+
+        // Sort by avg_rating desc
+        usort($result, fn($a, $b) => ($b['avg_rating'] ?? 0) <=> ($a['avg_rating'] ?? 0));
+
+        // Filter options for UI
+        $batchQuery = Batch::query();
+        if ($batchIds !== null) $batchQuery->whereIn('id', $batchIds);
+        $batches = $batchQuery->orderBy('nama_batch')->get(['id', 'nama_batch']);
+
+        $levelQuery = KelasSensei::query();
+        if ($batchIds !== null) $levelQuery->whereIn('batch_id', $batchIds);
+        $levels = $levelQuery->select('level')->distinct()->orderBy('level')->pluck('level');
+
+        $guruQuery = KelasSensei::query();
+        if ($batchIds !== null) $guruQuery->whereIn('batch_id', $batchIds);
+        $guruUsers = User::whereIn('id', $guruQuery->select('user_id')->distinct()->pluck('user_id'))
+            ->orderBy('name')->get(['id', 'name']);
+
+        return response()->json([
+            'data' => $result,
+            'filters' => [
+                'batches' => $batches,
+                'levels' => $levels,
+                'gurus' => $guruUsers,
+            ],
         ]);
     }
 }

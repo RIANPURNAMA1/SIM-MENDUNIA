@@ -36,6 +36,7 @@ import AbsensiGuruShift from './pages/Absensi/AbsensiGuruShift'
 import AbsensiGuruCabang from './pages/Absensi/AbsensiGuruCabang'
 import RekapSiswa from './pages/Siswa/RekapSiswa'
 import Penilaian from './pages/Siswa/Penilaian'
+import EvaluasiInstruktur from './pages/Siswa/EvaluasiInstruktur'
 import AiChat from './pages/AiChat'
 import Pengaturan from './pages/Pengaturan/Pengaturan'
 import PengaturanShift from './pages/Karyawan/PengaturanShift'
@@ -412,6 +413,16 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/admin-cabang/evaluasi-instruktur"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <EvaluasiInstruktur />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/admin-cabang/lms"
         element={
           <ProtectedRoute roleAllowed="ADMIN_CABANG">
@@ -687,6 +698,7 @@ function AppRoutes() {
                 <Route path="/absensi-guru-cabang" element={<AbsensiGuruCabang />} />
                 <Route path="/rekap-siswa" element={<RekapSiswa />} />
                 <Route path="/penilaian" element={<Penilaian />} />
+                <Route path="/evaluasi-instruktur" element={<EvaluasiInstruktur />} />
                 <Route path="/lms" element={<DataCourse />} />
                 <Route path="/lms/:courseId/lessons" element={<DataLesson />} />
                 <Route path="/ai-chat" element={<AiChat />} />

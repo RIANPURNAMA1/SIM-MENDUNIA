@@ -165,6 +165,7 @@ const navItems: NavItem[] = [
       { label: "Jadwal Level", icon: "Calendar", href: "/jadwal-level" },
       { label: "Rekap Siswa", icon: "BarChart3", href: "/rekap-siswa" },
       { label: "Penilaian Siswa", icon: "Notebook", href: "/penilaian" },
+      { label: "Evaluasi Instruktur", icon: "ClipboardCheck", href: "/evaluasi-instruktur" },
       { label: "LMS", icon: "BookOpen", href: "/lms" },
     ],
   },
@@ -260,7 +261,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             item.label === "Keuangan" ||
             item.label === "Manage Kandidat" ||
             item.label === "Program & Affiliate" ||
-            item.label === "Manajemen Absensi",
+            item.label === "Manajemen Absensi" ||
+            item.label === "Akademik",
         )
         .map((item) => {
           if (item.label === "Manage Kandidat" && "children" in item) {
@@ -270,6 +272,15 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               children: group.children.filter(
                 (child) =>
                   child.label === "Data Kandidat" || child.label === "Pendaftaran",
+              ),
+            };
+          }
+          if (item.label === "Akademik" && "children" in item) {
+            const group = item as NavGroup;
+            return {
+              ...group,
+              children: group.children.filter(
+                (child) => child.label === "Evaluasi Instruktur",
               ),
             };
           }

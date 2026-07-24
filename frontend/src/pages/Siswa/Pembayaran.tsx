@@ -46,6 +46,8 @@ export default function Pembayaran() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
 
   useEffect(() => {
     fetchData()
@@ -65,9 +67,12 @@ export default function Pembayaran() {
         || p.pendaftar?.nama?.toLowerCase().includes(search.toLowerCase())
         || p.pendaftar?.email?.toLowerCase().includes(search.toLowerCase())
       const matchStatus = !filterStatus || p.status === filterStatus
-      return matchSearch && matchStatus
+      const payDate = new Date(p.created_at)
+      const matchStart = !startDate || payDate >= new Date(startDate + 'T00:00:00')
+      const matchEnd = !endDate || payDate <= new Date(endDate + 'T23:59:59')
+      return matchSearch && matchStatus && matchStart && matchEnd
     })
-  }, [data, search, filterStatus])
+  }, [data, search, filterStatus, startDate, endDate])
 
   const stats = useMemo(() => ({
     total: data.reduce((s, p) => s + Number(p.jumlah), 0),
@@ -134,8 +139,23 @@ export default function Pembayaran() {
             <option value="verified">Verified</option>
             <option value="ditolak">Ditolak</option>
           </select>
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={startDate}
+              onChange={e => setStartDate(e.target.value)}
+              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            />
+            <span className="text-sm text-slate-400">-</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={e => setEndDate(e.target.value)}
+              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
           <button
-            onClick={() => { setSearch(''); setFilterStatus('') }}
+            onClick={() => { setSearch(''); setFilterStatus(''); setStartDate(''); setEndDate('') }}
             className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
           >
             <RotateCcw size={16} />
