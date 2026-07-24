@@ -358,31 +358,40 @@ class PendaftaranController extends Controller
             ->get()
             ->groupBy('pendaftar_id');
 
-        $result = $data->map(function ($p) use ($allPembayaran, $allBayar) {
+        // Preload PaymentSetting once to avoid N+1 queries inside the loop
+        $uniqueCodeOperation = \App\Models\PaymentSetting::getValue('unique_code_operation', 'add');
+
+        $result = $data->map(function ($p) use ($allPembayaran, $allBayar, $uniqueCodeOperation) {
             $pembayaranItems = $allPembayaran->get($p->id, collect())->keyBy('kategori_id');
             $pembayaranList = $allBayar->get($p->id, collect());
             $product = $p->product;
-            $pivotById = collect();
+
+            // Build indexed lookup maps for O(1) kategori matching
+            $nameToKategori = [];
+            $kodeToKategori = [];
             if ($product && $product->relationLoaded('biayaKategoris')) {
-                $pivotById = $product->biayaKategoris->keyBy('id');
+                foreach ($product->biayaKategoris as $k) {
+                    $nameToKategori[strtolower($k->nama)] = $k;
+                    $kodeToKategori[strtolower($k->kode)] = $k;
+                }
             }
 
             // Build aggregated kategori items from product's kategori_items JSON (same as bayarInfo)
-            $aggregated = collect();
+            $aggregated = [];
             if ($product && is_array($product->kategori_items)) {
-                $walkAgg = function ($items, $depth) use (&$walkAgg, $pivotById, &$aggregated) {
+                $walkAgg = function ($items, $depth) use (&$walkAgg, $nameToKategori, $kodeToKategori, &$aggregated) {
                     foreach ($items as $item) {
                         $name = strtolower(trim($item['name'] ?? ''));
                         if ($name === '') continue;
-                        $kategori = $pivotById->first(fn($k) => strtolower($k->nama) === $name || strtolower($k->kode) === $name);
+                        $kategori = $nameToKategori[$name] ?? $kodeToKategori[$name] ?? null;
                         if (!$kategori) continue;
 
-                        $aggregated->push([
+                        $aggregated[] = [
                             'id' => $kategori->id,
                             'kode' => $kategori->kode,
                             'nama' => $kategori->nama,
                             'biaya' => (float) ($kategori->pivot->harga ?? 0),
-                        ]);
+                        ];
 
                         $children = $item['children'] ?? [];
                         if (!empty($children)) {
@@ -393,14 +402,21 @@ class PendaftaranController extends Controller
                 $walkAgg($product->kategori_items, 0);
             }
 
-            $detail = $aggregated->map(function ($item) use ($pembayaranItems, $pembayaranList) {
+            $detail = [];
+            foreach ($aggregated as $item) {
                 $pi = $pembayaranItems->get($item['id']);
                 $dibayar = $pi ? (int) $pi->jumlah : 0;
                 $pembayaran = $pembayaranList->firstWhere('kategori_id', $item['id']);
                 $biaya = $item['biaya'];
                 $kodeUnik = $pi ? ($pi->kode_unik ?? 0) : 0;
-                $totalTransfer = $pi ? ($pi->total_transfer ?? $biaya) : (\App\Models\PaymentSetting::calculateTotalTransfer($biaya, $kodeUnik));
-                return [
+                if ($pi) {
+                    $totalTransfer = $pi->total_transfer ?? $biaya;
+                } else {
+                    $totalTransfer = $uniqueCodeOperation === 'subtract'
+                        ? max(0, $biaya - $kodeUnik)
+                        : $biaya + $kodeUnik;
+                }
+                $detail[] = [
                     'kategori_id' => $item['id'],
                     'kode' => $item['kode'],
                     'nama' => $item['nama'],
@@ -410,7 +426,7 @@ class PendaftaranController extends Controller
                     'total_transfer' => $totalTransfer,
                     'tanggal_bayar' => $pembayaran ? $pembayaran->created_at : null,
                 ];
-            });
+            }
             return array_merge($p->toArray(), ['detail' => $detail]);
         });
 
@@ -1422,7 +1438,18 @@ class PendaftaranController extends Controller
             $s = $request->search;
             $query->where(function ($q) use ($s) {
                 $q->where('nama', 'like', "%{$s}%")
-                  ->orWhere('email', 'like', "%{$s}%");
+                  ->orWhere('email', 'like', "%{$s}%")
+                  ->orWhere('nik', 'like', "%{$s}%");
+            });
+        }
+
+        if ($request->batch_id) {
+            $query->where('batch_id', $request->batch_id);
+        }
+
+        if ($request->cabang_id) {
+            $query->whereHas('batch', function ($q) use ($request) {
+                $q->where('cabang_id', $request->cabang_id);
             });
         }
 
@@ -1544,11 +1571,18 @@ class PendaftaranController extends Controller
         $totalKandidat = $pendaftar->count();
         $kandidatAktif = $pendaftar->where('status_pendaftaran', 'disetujui')->count();
 
+        $cabangIds = $pendaftar->pluck('batch.cabang_id')->filter()->unique()->values();
+        $cabangs = \App\Models\Cabang::whereIn('id', $cabangIds)
+            ->orderBy('nama_cabang')
+            ->get()
+            ->map(fn($c) => ['id' => $c->id, 'nama' => $c->nama_cabang]);
+
         return response()->json([
             'batches' => $batches,
             'totalBatch' => count($batches),
             'totalKandidat' => $totalKandidat,
             'kandidatAktif' => $kandidatAktif,
+            'cabangs' => $cabangs,
         ]);
     }
 
@@ -1579,40 +1613,46 @@ class PendaftaranController extends Controller
 
             $batchKategoriUsedIds = new \Illuminate\Support\Collection();
 
-            $items = $pendaftar->map(function ($p) use ($allKategoris, $allPembayaran, $allBayar, &$batchKategoriUsedIds) {
+            $uniqueCodeOperation = \App\Models\PaymentSetting::getValue('unique_code_operation', 'add');
+
+            $items = $pendaftar->map(function ($p) use ($allKategoris, $allPembayaran, $allBayar, &$batchKategoriUsedIds, $uniqueCodeOperation) {
                 $pembayaranItems = $allPembayaran->get($p->id, collect())->keyBy('kategori_id');
                 $pembayaranList = $allBayar->get($p->id, collect());
                 $product = $p->product;
 
-                $pivotById = collect();
+                $nameToKategori = [];
+                $kodeToKategori = [];
                 if ($product && $product->relationLoaded('biayaKategoris')) {
-                    $pivotById = $product->biayaKategoris->keyBy('id');
+                    foreach ($product->biayaKategoris as $k) {
+                        $nameToKategori[strtolower($k->nama)] = $k;
+                        $kodeToKategori[strtolower($k->kode)] = $k;
+                    }
                 }
 
-                $aggregated = collect();
+                $aggregated = [];
                 if ($product && is_array($product->kategori_items)) {
-                    $walkAgg = function ($items, $depth) use (&$walkAgg, $pivotById, &$aggregated) {
+                    $walkAgg = function ($items, $depth) use (&$walkAgg, $nameToKategori, $kodeToKategori, &$aggregated) {
                         foreach ($items as $item) {
                             $name = strtolower(trim($item['name'] ?? ''));
                             if ($name === '') continue;
-                            $kategori = $pivotById->first(fn($k) => strtolower($k->nama) === $name || strtolower($k->kode) === $name);
+                            $kategori = $nameToKategori[$name] ?? $kodeToKategori[$name] ?? null;
                             if (!$kategori) continue;
 
                             $children = $item['children'] ?? [];
                             $childHarga = 0;
                             foreach ($children as $c) {
                                 $cn = strtolower(trim($c['name'] ?? ''));
-                                $ck = $pivotById->first(fn($k) => strtolower($k->nama) === $cn || strtolower($k->kode) === $cn);
+                                $ck = $nameToKategori[$cn] ?? $kodeToKategori[$cn] ?? null;
                                 if ($ck) $childHarga += (float) ($ck->pivot->harga ?? 0);
                             }
 
                             if ($depth === 0) {
-                                $aggregated->push([
+                                $aggregated[] = [
                                     'id' => $kategori->id,
                                     'kode' => $kategori->kode,
                                     'nama' => $kategori->nama,
                                     'biaya' => (float) ($kategori->pivot->harga ?? 0) + $childHarga,
-                                ]);
+                                ];
                             }
 
                             if (!empty($children)) {
@@ -1623,14 +1663,21 @@ class PendaftaranController extends Controller
                     $walkAgg($product->kategori_items, 0);
                 }
 
-                $detail = $aggregated->map(function ($item) use ($pembayaranItems, $pembayaranList) {
+                $detail = [];
+                foreach ($aggregated as $item) {
                     $pi = $pembayaranItems->get($item['id']);
                     $dibayar = $pi ? (int) $pi->jumlah : 0;
                     $pembayaran = $pembayaranList->firstWhere('kategori_id', $item['id']);
                     $biaya = $item['biaya'];
                     $kodeUnik = $pi ? ($pi->kode_unik ?? 0) : 0;
-                    $totalTransfer = $pi ? ($pi->total_transfer ?? $biaya) : (\App\Models\PaymentSetting::calculateTotalTransfer($biaya, $kodeUnik));
-                    return [
+                    if ($pi) {
+                        $totalTransfer = $pi->total_transfer ?? $biaya;
+                    } else {
+                        $totalTransfer = $uniqueCodeOperation === 'subtract'
+                            ? max(0, $biaya - $kodeUnik)
+                            : $biaya + $kodeUnik;
+                    }
+                    $detail[] = [
                         'kategori_id' => $item['id'],
                         'kode' => $item['kode'],
                         'nama' => $item['nama'],
@@ -1639,7 +1686,8 @@ class PendaftaranController extends Controller
                         'kode_unik' => $kodeUnik,
                         'total_transfer' => $totalTransfer,
                     ];
-                });
+                }
+                $detail = collect($detail);
 
                 $detail->filter(fn($d) => $d['biaya'] > 0)->each(fn($d) => $batchKategoriUsedIds->push($d['kategori_id']));
 
@@ -2043,11 +2091,54 @@ class PendaftaranController extends Controller
         // Normalize: convert "-" and empty strings to null before validation
         $normalized = [];
         foreach ($request->all() as $k => $v) {
-            $normalized[$k] = ($v === '' || $v === '-' || $v === null) ? null : $v;
+            if ($v === '' || $v === '-' || $v === null) {
+                $normalized[$k] = null;
+            } elseif (is_string($v)) {
+                $normalized[$k] = trim($v);
+            } else {
+                $normalized[$k] = $v;
+            }
         }
         // batch_id 0 means no batch — convert to null
         if (isset($normalized['batch_id']) && (int) $normalized['batch_id'] === 0) {
             $normalized['batch_id'] = null;
+        }
+        // Normalize goldar: strip +/- suffixes
+        if (!empty($normalized['goldar']) && is_string($normalized['goldar'])) {
+            $normalized['goldar'] = strtoupper(str_replace(['+', '-'], '', $normalized['goldar']));
+        }
+        // Normalize jenis_kelamin
+        if (!empty($normalized['jenis_kelamin']) && is_string($normalized['jenis_kelamin'])) {
+            $jk = strtolower($normalized['jenis_kelamin']);
+            if (str_starts_with($jk, 'l')) $normalized['jenis_kelamin'] = 'L';
+            elseif (str_starts_with($jk, 'p')) $normalized['jenis_kelamin'] = 'P';
+        }
+        // Normalize ukuran_baju
+        if (!empty($normalized['ukuran_baju']) && is_string($normalized['ukuran_baju'])) {
+            $ub = strtoupper($normalized['ukuran_baju']);
+            $allowed = ['XS','S','M','L','XL','XXL'];
+            if (!in_array($ub, $allowed)) {
+                // Try to match e.g. "XXXL" → "XXL"
+                if (strlen($ub) > 2) {
+                    $base = preg_replace('/[^A-Z]/', '', $ub);
+                    if (in_array($base, $allowed)) {
+                        $normalized['ukuran_baju'] = $base;
+                    } else {
+                        $normalized['ukuran_baju'] = null;
+                    }
+                } else {
+                    $normalized['ukuran_baju'] = null;
+                }
+            } else {
+                $normalized['ukuran_baju'] = $ub;
+            }
+        }
+        // Normalize status_pernikahan
+        if (!empty($normalized['status_pernikahan']) && is_string($normalized['status_pernikahan'])) {
+            $sp = strtolower($normalized['status_pernikahan']);
+            if (str_contains($sp, 'belum')) $normalized['status_pernikahan'] = 'Belum Nikah';
+            elseif (str_contains($sp, 'nikah') || str_contains($sp, 'menikah')) $normalized['status_pernikahan'] = 'Nikah';
+            elseif (str_contains($sp, 'cerai')) $normalized['status_pernikahan'] = 'Cerai';
         }
         $request->merge($normalized);
 
@@ -2078,6 +2169,11 @@ class PendaftaranController extends Controller
             'keterangan' => 'nullable|string|max:500',
             'status_kandidat' => 'nullable|string|max:50',
         ], $messages);
+
+        // Convert tanggal_lahir from "d M Y" (e.g. "21 Mar 2008") to "Y-m-d" for MySQL
+        if (!empty($data['tanggal_lahir'])) {
+            $data['tanggal_lahir'] = \Carbon\Carbon::parse($data['tanggal_lahir'])->format('Y-m-d');
+        }
 
         // Update pendaftar fields
         $pendaftarFields = ['nama', 'email', 'batch_id'];
@@ -2198,6 +2294,32 @@ class PendaftaranController extends Controller
         return response()->json([
             'message' => "{$deleted} kandidat berhasil dihapus",
             'deleted' => $deleted,
+        ]);
+    }
+
+    public function bulkUpdateBatchKandidat(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'required|integer|exists:pendaftar,id',
+            'batch_id' => 'required|integer|exists:batches,id',
+        ]);
+
+        $ids = $request->input('ids');
+        $batchId = $request->input('batch_id');
+        $updated = 0;
+
+        Pendaftar::whereIn('id', $ids)->each(function ($pendaftar) use ($batchId, &$updated) {
+            $pendaftar->update(['batch_id' => $batchId]);
+            if ($pendaftar->siswa) {
+                $pendaftar->siswa->update(['batch_id' => $batchId]);
+            }
+            $updated++;
+        });
+
+        return response()->json([
+            'message' => "{$updated} kandidat berhasil dipindahkan ke batch baru",
+            'updated' => $updated,
         ]);
     }
 

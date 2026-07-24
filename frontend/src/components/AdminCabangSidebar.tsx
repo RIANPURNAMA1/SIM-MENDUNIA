@@ -58,6 +58,7 @@ const navItems: NavItem[] = [
       { label: 'Kelas Sensei', icon: 'BookOpen', href: '/admin-cabang/kelas-sensei' },
       { label: 'Rekap Siswa', icon: 'BarChart3', href: '/admin-cabang/rekap-siswa' },
       { label: 'Penilaian Siswa', icon: 'Notebook', href: '/admin-cabang/penilaian' },
+      { label: 'Evaluasi Instruktur', icon: 'ClipboardCheck', href: '/admin-cabang/evaluasi-instruktur' },
       { label: 'LMS', icon: 'BookOpen', href: '/admin-cabang/lms' },
     ],
   },

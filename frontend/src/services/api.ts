@@ -340,6 +340,8 @@ export const pendaftarApi = {
     api.delete(`/kandidat/${id}`),
   bulkDeleteKandidat: (ids: number[]) =>
     api.post('/kandidat/bulk-delete', { ids }),
+  bulkUpdateBatchKandidat: (ids: number[], batchId: number) =>
+    api.post('/kandidat/bulk-update-batch', { ids, batch_id: batchId }),
   bayarInfo: (id: number) => api.get(`/pendaftaran/bayar/${id}`),
   bayar: (id: number, data: FormData) =>
     api.post(`/pendaftar/${id}/bayar`, data, {
@@ -407,6 +409,8 @@ export const adminCabangApi = {
     api.get('/admin-cabang/rekap-siswa', { params }),
   penilaian: (params?: Record<string, string | number | undefined>) =>
     api.get('/admin-cabang/penilaian', { params }),
+  evaluasiInstruktur: (params?: Record<string, string | number | undefined>) =>
+    api.get('/admin-cabang/evaluasi-instruktur', { params }),
   lms: (params?: Record<string, string | number | undefined>) =>
     api.get('/admin-cabang/lms', { params }),
 }

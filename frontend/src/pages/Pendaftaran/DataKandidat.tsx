@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { Users, Search, RotateCcw, Eye, Edit3, Power, PowerOff, CalendarOff, Calendar, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, FileText, Download, Upload, Trash2 } from 'lucide-react'
+import { Users, Search, RotateCcw, Eye, Edit3, Power, PowerOff, CalendarOff, Calendar, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, FileText, Download, Upload, Trash2, ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { pendaftarApi, batchApi, productApi } from '../../services/api'
 import * as XLSX from 'xlsx'
@@ -100,6 +100,8 @@ export default function DataKandidat() {
   const [kandidatAktif, setKandidatAktif] = useState(0)
   const [search, setSearch] = useState('')
   const [filterBatch, setFilterBatch] = useState('')
+  const [filterCabang, setFilterCabang] = useState('')
+  const [cabangOptions, setCabangOptions] = useState<{ id: number; nama: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editForm, setEditForm] = useState<Partial<Kandidat>>({})
@@ -128,6 +130,8 @@ export default function DataKandidat() {
   const [actionPos, setActionPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [bulkBatchId, setBulkBatchId] = useState('')
+  const [bulkMoving, setBulkMoving] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [importFile, setImportFile] = useState<File | null>(null)
   const [importData, setImportData] = useState<Record<string, unknown>[]>([])
@@ -176,11 +180,15 @@ export default function DataKandidat() {
     }
   }, [])
 
-  function fetchData(s?: string) {
+  function handleSearch(e: React.ChangeEvent<HTMLInputElement>) {
+    const val = e.target.value
+    setSearch(val)
+    setPage(1)
+    if (val.length >= 2 || val.length === 0) fetchData(val)
+  }
+
+  function doFetch(params: Record<string, string>) {
     setLoading(true)
-    const params: Record<string, string> = {}
-    if (s) params.search = s
-    if (filterBatch) params.batch_id = filterBatch
     pendaftarApi.kandidat(params)
       .then(res => {
         const allKandidat: Kandidat[] = []
@@ -189,10 +197,7 @@ export default function DataKandidat() {
         for (const b of res.data.batches) {
           batches.push({ id: b.id, nama: b.nama, warna: b.warna ?? null })
           for (const k of b.kandidat) {
-            if (!seen.has(k.id)) {
-              seen.add(k.id)
-              allKandidat.push(k)
-            }
+            if (!seen.has(k.id)) { seen.add(k.id); allKandidat.push(k) }
           }
         }
         setKandidatList(allKandidat)
@@ -208,30 +213,48 @@ export default function DataKandidat() {
         setTotalBatch(res.data.totalBatch)
         setTotalKandidat(res.data.totalKandidat)
         setKandidatAktif(res.data.kandidatAktif)
+        if (res.data.cabangs) setCabangOptions(res.data.cabangs)
       })
       .catch(() => {})
       .finally(() => setLoading(false))
   }
 
-  function handleSearch(e: React.ChangeEvent<HTMLInputElement>) {
-    const val = e.target.value
-    setSearch(val)
-    setPage(1)
-    if (val.length >= 2 || val.length === 0) fetchData(val)
+  function buildParams(overrides?: { search?: string; batch_id?: string; cabang_id?: string }) {
+    const s = overrides?.search !== undefined ? overrides.search : search
+    const b = overrides?.batch_id !== undefined ? overrides.batch_id : filterBatch
+    const c = overrides?.cabang_id !== undefined ? overrides.cabang_id : filterCabang
+    const params: Record<string, string> = {}
+    if (s) params.search = s
+    if (b) params.batch_id = b
+    if (c) params.cabang_id = c
+    return params
+  }
+
+  function fetchData(s?: string) {
+    doFetch(buildParams(s !== undefined ? { search: s } : undefined))
   }
 
   function handleFilterBatch(e: React.ChangeEvent<HTMLSelectElement>) {
     const val = e.target.value
     setFilterBatch(val)
     setPage(1)
-    fetchData(search)
+    doFetch(buildParams({ batch_id: val }))
+  }
+
+  function handleFilterCabang(e: React.ChangeEvent<HTMLSelectElement>) {
+    const val = e.target.value
+    setFilterCabang(val)
+    setFilterBatch('')
+    setPage(1)
+    doFetch(buildParams({ cabang_id: val, batch_id: '' }))
   }
 
   function resetFilter() {
     setSearch('')
     setFilterBatch('')
+    setFilterCabang('')
     setPage(1)
-    fetchData()
+    doFetch({})
   }
 
   async function handleToggleStatus(id: number) {
@@ -281,8 +304,15 @@ export default function DataKandidat() {
       setKandidatList(prev => prev.map(k => k.id === editingId ? { ...k, ...editForm } as Kandidat : k))
       setEditingId(null)
       setEditForm({})
-    } catch (err) {
-      alert('Gagal menyimpan data')
+      Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Data kandidat berhasil diperbarui.', confirmButtonColor: '#0E6187', timer: 2000, timerProgressBar: true, showConfirmButton: false })
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } }; message?: string }
+      const validationErrors = axiosErr?.response?.data?.errors
+      const detail = validationErrors
+        ? Object.entries(validationErrors).map(([f, msgs]) => `${f}: ${msgs.join(', ')}`).join('\n')
+        : (axiosErr?.response?.data?.message || axiosErr?.message || String(err))
+      console.error('saveEdit error:', detail, err)
+      Swal.fire({ icon: 'error', title: 'Gagal', text: detail, confirmButtonColor: '#0E6187' })
     } finally {
       setSaving(false)
     }
@@ -483,9 +513,50 @@ export default function DataKandidat() {
     })
   }
 
-  const filteredList = filterBatch
-    ? kandidatList.filter(k => k.batch_nama === batchOptions.find(b => String(b.id) === filterBatch)?.nama)
-    : kandidatList
+  function handleBulkMoveBatch() {
+    if (selectedIds.size === 0 || !bulkBatchId) return
+    const batchName = batchOptions.find(b => String(b.id) === bulkBatchId)?.nama || ''
+    Swal.fire({
+      title: 'Pindah Batch?',
+      text: `${selectedIds.size} kandidat akan dipindahkan ke batch "${batchName}".`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#0E6187',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Ya, Pindahkan!',
+      cancelButtonText: 'Batal',
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        setBulkMoving(true)
+        try {
+          await pendaftarApi.bulkUpdateBatchKandidat(Array.from(selectedIds), Number(bulkBatchId))
+          setSelectedIds(new Set())
+          setBulkBatchId('')
+          fetchData(search)
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil!',
+            text: 'Kandidat telah dipindahkan ke batch baru.',
+            confirmButtonColor: '#0E6187',
+            timer: 2000,
+            timerProgressBar: true,
+            showConfirmButton: false,
+          })
+        } catch {
+          Swal.fire({
+            icon: 'error',
+            title: 'Gagal',
+            text: 'Terjadi kesalahan saat memindahkan kandidat.',
+            confirmButtonColor: '#0E6187',
+          })
+        } finally {
+          setBulkMoving(false)
+        }
+      }
+    })
+  }
+
+  const filteredList = kandidatList
 
   const totalPages = Math.max(1, Math.ceil(filteredList.length / perPage))
   const safePage = Math.min(page, totalPages)
@@ -873,6 +944,19 @@ export default function DataKandidat() {
           </div>
           <div className="relative">
             <select
+              value={filterCabang}
+              onChange={handleFilterCabang}
+              className="appearance-none rounded-lg border border-slate-300 bg-slate-50 px-8 py-2.5 pr-8 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
+            >
+              <option value="">Semua Cabang</option>
+              {cabangOptions.map(c => (
+                <option key={c.id} value={c.id}>{c.nama}</option>
+              ))}
+            </select>
+            <svg className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+          </div>
+          <div className="relative">
+            <select
               value={filterBatch}
               onChange={handleFilterBatch}
               className="appearance-none rounded-lg border border-slate-300 bg-slate-50 px-8 py-2.5 pr-8 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
@@ -928,26 +1012,50 @@ export default function DataKandidat() {
 
       {/* Bulk Action Bar */}
       {selectedIds.size > 0 && (
-        <div className="mb-4 flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-4 py-3 shadow-sm">
-          <div className="flex items-center gap-2 text-sm text-red-700">
-            <Trash2 size={16} />
-            <span className="font-semibold">{selectedIds.size} kandidat dipilih</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setSelectedIds(new Set())}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-            >
-              <X size={14} /> Batal
-            </button>
-            <button
-              onClick={handleBulkDelete}
-              disabled={bulkDeleting}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
-            >
-              {bulkDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-              {bulkDeleting ? 'Menghapus...' : 'Hapus Terpilih'}
-            </button>
+        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 shadow-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 text-sm text-blue-700">
+              <Users size={16} />
+              <span className="font-semibold">{selectedIds.size} kandidat dipilih</span>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="flex items-center gap-2">
+                <select
+                  value={bulkBatchId}
+                  onChange={e => setBulkBatchId(e.target.value)}
+                  className="appearance-none rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                >
+                  <option value="">Pilih Batch Tujuan...</option>
+                  {batchOptions.map(b => (
+                    <option key={b.id} value={b.id}>{b.nama}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleBulkMoveBatch}
+                  disabled={!bulkBatchId || bulkMoving}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#0E6187] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1a3a5c] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {bulkMoving ? <Loader2 size={14} className="animate-spin" /> : <ArrowRight size={14} />}
+                  {bulkMoving ? 'Memindahkan...' : 'Pindah Batch'}
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => { setSelectedIds(new Set()); setBulkBatchId('') }}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                >
+                  <X size={14} /> Batal
+                </button>
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={bulkDeleting}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
+                >
+                  {bulkDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                  {bulkDeleting ? 'Menghapus...' : 'Hapus'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

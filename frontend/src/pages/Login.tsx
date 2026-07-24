@@ -194,26 +194,26 @@ export default function Login() {
             <img src="/logo-sm.png" alt="" className="w-10 h-10 brightness-0 invert" />
           </div>
           <h2 className="text-3xl font-bold text-white mb-3">Peluang Kerja Mendunia</h2>
-          <p className="text-xl font-semibold text-[#f0c040] mb-2">di Jepang & Korea Selatan</p>
-          <p className="text-[#b0b8cc] leading-relaxed mb-10 max-w-sm mx-auto">
+          <p className="text-xl font-semibold text-white mb-2">di Jepang & Korea Selatan</p>
+          <p className="text-white leading-relaxed mb-10 max-w-sm mx-auto">
             Kami menemani sampai kamu bisa Sukses Kerja ke Jepang dan Korea Selatan
           </p>
           <div className="grid grid-cols-1 gap-4">
             <div className="flex items-start gap-4 p-5 bg-white/5 backdrop-blur rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
               <div className="text-left">
                 <p className="text-sm font-bold text-white">Program Jepang</p>
-                <p className="text-xs text-[#8a94a8] mt-1 leading-relaxed">Pelatihan bahasa & budaya Jepang, persiapan kerja di Jepang</p>
+                <p className="text-xs text-white mt-1 leading-relaxed">Pelatihan bahasa & budaya Jepang, persiapan kerja di Jepang</p>
               </div>
             </div>
             <div className="flex items-start gap-4 p-5 bg-white/5 backdrop-blur rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
               <div className="text-left">
                 <p className="text-sm font-bold text-white">Program Korea Selatan</p>
-                <p className="text-xs text-[#8a94a8] mt-1 leading-relaxed">Pelatihan bahasa & budaya Korea, persiapan kerja di Korea</p>
+                <p className="text-xs text-white mt-1 leading-relaxed">Pelatihan bahasa & budaya Korea, persiapan kerja di Korea</p>
               </div>
             </div>
           </div>
           <div className="mt-8 pt-6 border-t border-white/10">
-            <p className="text-xs text-[#6a7490]">#BersamaMendunia #SuksesKeLuarNegeri</p>
+            <p className="text-xs text-white">#BersamaMendunia #SuksesKeLuarNegeri</p>
           </div>
         </div>
       </div>

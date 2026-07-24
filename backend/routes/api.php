@@ -348,6 +348,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/kandidat', [PendaftaranController::class, 'storeKandidat']);
     Route::post('/kandidat/import', [PendaftaranController::class, 'importKandidat']);
     Route::post('/kandidat/bulk-delete', [PendaftaranController::class, 'bulkDeleteKandidat']);
+    Route::post('/kandidat/bulk-update-batch', [PendaftaranController::class, 'bulkUpdateBatchKandidat']);
     Route::delete('/kandidat/{id}', [PendaftaranController::class, 'deleteKandidat']);
     Route::put('/kandidat/{id}', [PendaftaranController::class, 'updateKandidat']);
     Route::post('/kandidat/{id}/toggle-status', [PendaftaranController::class, 'toggleKandidatStatus']);
@@ -494,6 +495,7 @@ Route::prefix('admin-cabang')->middleware(['auth:sanctum'])->group(function () {
     Route::get('/jadwal-level', [AdminCabangController::class, 'jadwalLevel']);
     Route::get('/rekap-siswa', [AdminCabangController::class, 'rekapSiswa']);
     Route::get('/penilaian', [AdminCabangController::class, 'penilaian']);
+    Route::get('/evaluasi-instruktur', [AdminCabangController::class, 'evaluasiInstruktur']);
     Route::get('/lms', [AdminCabangController::class, 'lms']);
 
     // Reuse existing endpoints for payment operations
@@ -511,6 +513,9 @@ Route::prefix('admin-cabang')->middleware(['auth:sanctum'])->group(function () {
     Route::get('/biaya-kategori', [BiayaController::class, 'kategoriIndexFlat']);
     Route::get('/batch-biaya/{batchId}', [BiayaController::class, 'batchBiayaIndex']);
 });
+
+// ========== Evaluasi Instruktur (MANAGER/HR/ADMIN/ACCOUNTING) ==========
+Route::middleware(['auth:sanctum'])->get('/evaluasi-instruktur', [AdminCabangController::class, 'evaluasiInstrukturAll']);
 
 // ========== Pengeluaran (HR, MANAGER, ACCOUNTING & ADMIN CABANG) ==========
 Route::middleware(['auth:sanctum', 'role:HR,MANAGER,ACCOUNTING,ADMIN_CABANG'])->prefix('pengeluaran')->group(function () {
