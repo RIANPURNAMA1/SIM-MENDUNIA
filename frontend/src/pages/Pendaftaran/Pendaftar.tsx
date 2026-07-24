@@ -329,16 +329,16 @@ export default function Pendaftar() {
           </colgroup>
           <thead className="bg-[#0e6187]">
             <tr>
-              <th scope="col" className="border border-slate-600 px-4 py-3 font-bold text-white">Nama</th>
-              <th scope="col" className="border border-slate-600 px-4 py-3 font-bold text-white">No. Reg</th>
-              <th scope="col" className="border border-slate-600 px-4 py-3 font-bold text-white">Tgl. Daftar</th>
-              <th scope="col" className="border border-slate-600 px-4 py-3 font-bold text-white">Program</th>
-              <th scope="col" className="border border-slate-600 px-4 py-3 font-bold text-white">Batch</th>
-              <th scope="col" className="border border-slate-600 px-4 py-3 font-bold text-white">Affiliate</th>
-              <th scope="col" className="border border-slate-600 px-4 py-3 text-right font-bold text-white">Nominal</th>
-              <th scope="col" className="border border-slate-600 px-4 py-3 text-right font-bold text-white">Diskon</th>
-              <th scope="col" className="border border-slate-600 px-4 py-3 text-center font-bold text-white">Status</th>
-              <th scope="col" className="border border-slate-600 px-4 py-3 text-center font-bold text-white">Aksi</th>
+              <th scope="col" className="border border-slate-600 px-4 py-3 font-semibold text-white">Nama</th>
+              <th scope="col" className="border border-slate-600 px-4 py-3 font-semibold text-white">No. Reg</th>
+              <th scope="col" className="border border-slate-600 px-4 py-3 font-semibold text-white">Tgl. Daftar</th>
+              <th scope="col" className="border border-slate-600 px-4 py-3 font-semibold text-white">Program</th>
+              <th scope="col" className="border border-slate-600 px-4 py-3 font-semibold text-white">Batch</th>
+              <th scope="col" className="border border-slate-600 px-4 py-3 font-semibold text-white">Affiliate</th>
+              <th scope="col" className="border border-slate-600 px-4 py-3 text-right font-semibold text-white">Nominal</th>
+              <th scope="col" className="border border-slate-600 px-4 py-3 text-right font-semibold text-white">Diskon</th>
+              <th scope="col" className="border border-slate-600 px-4 py-3 text-center font-semibold text-white">Status</th>
+              <th scope="col" className="border border-slate-600 px-4 py-3 text-center font-semibold text-white">Aksi</th>
             </tr>
           </thead>
           <tbody>
@@ -376,27 +376,27 @@ export default function Pendaftar() {
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                       />
                       <div className="min-w-0">
-                        <div className="truncate text-sm font-bold text-[#0E6187] hover:underline">{p.nama}</div>
-                        <div className="truncate text-xs font-semibold text-black">{p.email}</div>
+                        <div className="truncate text-sm font-semibold text-[#0E6187] hover:underline">{p.nama}</div>
+                        <div className="truncate text-xs font-normal text-black">{p.email}</div>
                       </div>
                     </button>
                   </td>
-                  <td className="border border-slate-200 px-3 py-3 text-sm font-mono font-semibold text-black">
+                  <td className="border border-slate-200 px-3 py-3 text-sm font-mono font-normal text-black">
                     <span className="block truncate">{p.no_registrasi || <span className="text-gray-400">-</span>}</span>
                   </td>
-                  <td className="border border-slate-200 px-3 py-3 text-sm font-semibold text-black whitespace-nowrap">
+                  <td className="border border-slate-200 px-3 py-3 text-sm font-normal text-black whitespace-nowrap">
                     {new Date(p.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </td>
-                  <td className="border border-slate-200 px-3 py-3 text-sm font-semibold text-black">
+                  <td className="border border-slate-200 px-3 py-3 text-sm font-normal text-black">
                     <span className="block truncate" title={p.product?.nama || '-'}>{p.product?.nama || '-'}</span>
                   </td>
-                  <td className="border border-slate-200 px-3 py-3 text-sm font-semibold text-black">
+                  <td className="border border-slate-200 px-3 py-3 text-sm font-normal text-black">
                     <span className="block truncate" title={p.batch?.nama_batch || '-'}>{p.batch?.nama_batch || '-'}</span>
                   </td>
-                  <td className="border border-slate-200 px-3 py-3 text-sm font-semibold text-black">
+                  <td className="border border-slate-200 px-3 py-3 text-sm font-normal text-black">
                     <span className="block truncate">{p.affiliate_link?.affiliate?.name || <span className="text-gray-400">-</span>}</span>
                   </td>
-                  <td className="border border-slate-200 px-3 py-3 text-right text-sm font-bold text-black whitespace-nowrap">
+                  <td className="border border-slate-200 px-3 py-3 text-right text-sm font-normal text-black whitespace-nowrap">
                     {(() => {
                       const firstCategory = p.detail?.[0]
                       if (firstCategory) {
@@ -407,7 +407,7 @@ export default function Pendaftar() {
                       return '-'
                     })()}
                   </td>
-                  <td className="border border-slate-200 px-3 py-3 text-right text-sm font-bold text-black whitespace-nowrap">
+                  <td className="border border-slate-200 px-3 py-3 text-right text-sm font-normal text-black whitespace-nowrap">
                     {p.diskon ? `Rp ${Number(p.diskon).toLocaleString('id-ID')}` : <span className="text-gray-400">-</span>}
                   </td>
                   <td className="border border-slate-200 px-3 py-3 text-center">

@@ -782,7 +782,7 @@ export default function DataKandidat() {
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-4 rounded-lg bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between border border-slate-200">
+      <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between border border-slate-200">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
             <Users size={20} />
@@ -803,7 +803,7 @@ export default function DataKandidat() {
 
       {/* Summary */}
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-4 transition hover:shadow-md">
+        <div className="rounded-sm border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-4 transition hover:shadow-md">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-50 to-blue-100">
             <Users size={20} className="text-blue-600" />
           </div>
@@ -812,7 +812,7 @@ export default function DataKandidat() {
             <p className="text-2xl font-bold text-slate-800">{totalBatch}</p>
           </div>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-4 transition hover:shadow-md">
+        <div className="rounded-sm border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-4 transition hover:shadow-md">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100">
             <Users size={20} className="text-emerald-600" />
           </div>
@@ -821,7 +821,7 @@ export default function DataKandidat() {
             <p className="text-2xl font-bold text-slate-800">{totalKandidat}</p>
           </div>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-4 transition hover:shadow-md">
+        <div className="rounded-sm border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-4 transition hover:shadow-md">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-amber-50 to-amber-100">
             <Users size={20} className="text-amber-600" />
           </div>
@@ -941,7 +941,7 @@ export default function DataKandidat() {
               <table className="w-full min-w-[3200px] border-collapse text-left text-sm text-black">
                 <thead className="sticky top-0 z-20">
                   <tr className="bg-[#0e6187]">
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-white w-[36px] min-w-[36px]">No</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-white w-[36px] min-w-[36px]">No</th>
                     <th scope="col" className="border border-slate-600 px-3 py-3 text-center w-[40px] min-w-[40px]">
                       <input
                         type="checkbox"
@@ -950,33 +950,33 @@ export default function DataKandidat() {
                         className="h-4 w-4 rounded border-slate-400 text-blue-600 focus:ring-blue-500 cursor-pointer"
                       />
                     </th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[150px] min-w-[150px]">NIK</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[150px] min-w-[150px]">No. Registrasi</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[180px] min-w-[180px]">Nama Kandidat</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[110px] min-w-[110px]">Batch</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[110px] min-w-[110px]">Cabang</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[90px] min-w-[90px]">Real Batch</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-white w-[36px] min-w-[36px]">JK</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[170px] min-w-[170px]">Tempat, Tanggal Lahir</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[200px] min-w-[200px]">Alamat</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[110px] min-w-[110px]">Desa</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[110px] min-w-[110px]">Kecamatan</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[120px] min-w-[120px]">Kab./Kota</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[110px] min-w-[110px]">Provinsi</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[110px] min-w-[110px]">Pend. Terakhir</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-white w-[60px] min-w-[60px]">Tahun Lulus</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-white w-[40px] min-w-[40px]">TB</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-white w-[40px] min-w-[40px]">BB</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-white w-[50px] min-w-[50px]">Goldar</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-white w-[55px] min-w-[55px]">Uk. Baju</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[90px] min-w-[90px]">Status Nikah</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[200px] min-w-[200px]">E-mail</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[110px] min-w-[110px]">No. Tlp</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[140px] min-w-[140px]">Nama Orang Tua/Wali</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[110px] min-w-[110px]">No. Tlp Orang Tua</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-white w-[130px] min-w-[130px]">Status Kandidat</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[140px] min-w-[140px]">Ket.</th>
-                    <th scope="col" className="sticky right-0 z-30 border border-slate-600 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-white bg-[#0e6187] shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] w-[60px] min-w-[60px]">Aksi</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[150px] min-w-[150px]">NIK</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[150px] min-w-[150px]">No. Registrasi</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[180px] min-w-[180px]">Nama Kandidat</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[110px] min-w-[110px]">Batch</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[110px] min-w-[110px]">Cabang</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[90px] min-w-[90px]">Real Batch</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-white w-[36px] min-w-[36px]">JK</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[170px] min-w-[170px]">Tempat, Tanggal Lahir</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[200px] min-w-[200px]">Alamat</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[110px] min-w-[110px]">Desa</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[110px] min-w-[110px]">Kecamatan</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[120px] min-w-[120px]">Kab./Kota</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[110px] min-w-[110px]">Provinsi</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[110px] min-w-[110px]">Pend. Terakhir</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-white w-[60px] min-w-[60px]">Tahun Lulus</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-white w-[40px] min-w-[40px]">TB</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-white w-[40px] min-w-[40px]">BB</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-white w-[50px] min-w-[50px]">Goldar</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-white w-[55px] min-w-[55px]">Uk. Baju</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[90px] min-w-[90px]">Status Nikah</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[200px] min-w-[200px]">E-mail</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[110px] min-w-[110px]">No. Tlp</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[140px] min-w-[140px]">Nama Orang Tua/Wali</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[110px] min-w-[110px]">No. Tlp Orang Tua</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-white w-[130px] min-w-[130px]">Status Kandidat</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[140px] min-w-[140px]">Ket.</th>
+                    <th scope="col" className="sticky right-0 z-30 border border-slate-600 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-white bg-[#0e6187] shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] w-[60px] min-w-[60px]">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -989,7 +989,7 @@ export default function DataKandidat() {
                       const batchBadgeBg = k.batch_warna || '#3b82f6'
                       return (
                         <tr key={k.id} className={`${isEditing ? 'bg-blue-50/50' : k.level_status_keluar ? 'bg-red-200' : k.is_cuti ? 'bg-yellow-300' : k.status_akademik === 'NONAKTIF' ? 'bg-red-200' : ''} transition hover:brightness-[0.97] group`} style={(!isEditing && !k.level_status_keluar && !k.is_cuti && k.status_akademik !== 'NONAKTIF' && batchBg) ? { backgroundColor: batchBg } : undefined}>
-                          <td className="border border-slate-200 px-4 py-3 text-center text-xs font-semibold text-black">{rowNum}</td>
+                          <td className="border border-slate-200 px-4 py-3 text-center text-xs font-normal text-black">{rowNum}</td>
                           <td className="border border-slate-200 px-3 py-3 text-center">
                             <input
                               type="checkbox"
@@ -1013,13 +1013,13 @@ export default function DataKandidat() {
                                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                                 />
                                 <div className="min-w-0">
-                                  <div className={`font-bold truncate ${k.level_status_keluar ? 'text-red-600' : k.status_akademik === 'NONAKTIF' ? 'text-red-600' : 'text-black'}`}>{k.nama}</div>
+                                  <div className={`font-semibold truncate ${k.level_status_keluar ? 'text-red-600' : k.status_akademik === 'NONAKTIF' ? 'text-red-600' : 'text-black'}`}>{k.nama}</div>
                                 </div>
                               </div>
                             )}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
-                            <span className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-bold whitespace-nowrap leading-none text-white" style={{ backgroundColor: batchBadgeBg, borderColor: batchBadgeBg }}>
+                            <span className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium whitespace-nowrap leading-none text-white" style={{ backgroundColor: batchBadgeBg, borderColor: batchBadgeBg }}>
                               {k.batch_nama || '-'}
                               <select
                                 value={String(k.batch_id ?? '')}
@@ -1034,16 +1034,16 @@ export default function DataKandidat() {
                               </select>
                             </span>
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-semibold text-black whitespace-nowrap">
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black whitespace-nowrap">
                             {k.cabang_nama || <span className="text-gray-400">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-semibold text-black whitespace-nowrap">
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black whitespace-nowrap">
                             {isEditing ? <CellEdit field="real_batch" /> : k.real_batch || <span className="text-gray-400">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-semibold text-black text-center">
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black text-center">
                             {isEditing ? <CellEdit field="jenis_kelamin" type="select" /> : (k.jenis_kelamin === 'L' ? 'L' : k.jenis_kelamin === 'P' ? 'P' : '-')}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-semibold text-black whitespace-nowrap">
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black whitespace-nowrap">
                             {isEditing ? (
                               <div className="flex gap-1">
                                 <CellEdit field="tempat_lahir" />
@@ -1051,40 +1051,40 @@ export default function DataKandidat() {
                               </div>
                             ) : (k.tempat_lahir !== '-' && k.tanggal_lahir !== '-' ? `${k.tempat_lahir}, ${k.tanggal_lahir}` : '-')}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-semibold text-black max-w-[250px]">
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black max-w-[250px]">
                             {isEditing ? <CellEdit field="alamat" /> : <span className="truncate block" title={k.alamat}>{k.alamat || '-'}</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-semibold text-black whitespace-nowrap">
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black whitespace-nowrap">
                             {isEditing ? <CellEdit field="desa" /> : k.desa || <span className="text-gray-400">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-semibold text-black whitespace-nowrap">
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black whitespace-nowrap">
                             {isEditing ? <CellEdit field="kecamatan" /> : k.kecamatan || <span className="text-gray-400">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-semibold text-black whitespace-nowrap">
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black whitespace-nowrap">
                             {isEditing ? <CellEdit field="kabupaten" /> : k.kabupaten || <span className="text-gray-400">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-semibold text-black whitespace-nowrap">
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black whitespace-nowrap">
                             {isEditing ? <CellEdit field="provinsi" /> : k.provinsi || <span className="text-gray-400">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-semibold text-black whitespace-nowrap">
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black whitespace-nowrap">
                             {isEditing ? <CellEdit field="pendidikan_terakhir" type="select" /> : k.pendidikan_terakhir || <span className="text-gray-400">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-semibold text-black text-center">
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black text-center">
                             {isEditing ? <CellEdit field="tahun_lulus" /> : k.tahun_lulus || <span className="text-gray-400">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-semibold text-black text-center">
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black text-center">
                             {isEditing ? <CellEdit field="tinggi_badan" type="number" /> : (k.tinggi_badan || <span className="text-gray-400">-</span>)}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-semibold text-black text-center">
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black text-center">
                             {isEditing ? <CellEdit field="berat_badan" type="number" /> : (k.berat_badan || <span className="text-gray-400">-</span>)}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-semibold text-black text-center">
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black text-center">
                             {isEditing ? <CellEdit field="goldar" type="select" /> : k.goldar || <span className="text-gray-400">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-semibold text-black text-center">
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black text-center">
                             {isEditing ? <CellEdit field="ukuran_baju" type="select" /> : k.ukuran_baju || <span className="text-gray-400">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-semibold text-black">
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black">
                             {isEditing ? <CellEdit field="status_pernikahan" type="select" /> : k.status_pernikahan || <span className="text-gray-400">-</span>}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-mono font-semibold text-black whitespace-nowrap">
@@ -1093,7 +1093,7 @@ export default function DataKandidat() {
                           <td className="border border-slate-200 px-4 py-3 text-xs font-mono font-semibold text-black whitespace-nowrap">
                             {isEditing ? <CellEdit field="no_hp" /> : k.no_hp || <span className="text-gray-400">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-semibold text-black">
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black">
                             {isEditing ? <CellEdit field="nama_ortu" /> : k.nama_ortu || <span className="text-gray-400">-</span>}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-mono font-semibold text-black whitespace-nowrap">
@@ -1131,7 +1131,7 @@ export default function DataKandidat() {
                                ) : null}
                              </div>
                            </td>
-                           <td className="border border-slate-200 px-4 py-3 text-xs font-semibold text-black max-w-[180px]">
+                           <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black max-w-[180px]">
                             {isEditing ? <CellEdit field="keterangan" /> : (
                               <div className="flex flex-col gap-1">
                                 {k.level_status_keluar ? <span className="inline-block w-fit rounded bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">KELUAR</span> : null}

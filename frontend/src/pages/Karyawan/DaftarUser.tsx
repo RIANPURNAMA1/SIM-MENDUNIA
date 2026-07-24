@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { List, Search, Trash2, AlertTriangle, RotateCcw, UserPlus, X } from 'lucide-react'
+import { List, Search, Trash2, AlertTriangle, RotateCcw, UserPlus, X, Pencil } from 'lucide-react'
 import { userApi, cabangApi } from '../../services/api'
 import type { Karyawan, Pagination } from '../../types'
 
@@ -36,6 +36,19 @@ export default function DaftarUserPage() {
   const [formError, setFormError] = useState('')
   const [cabangs, setCabangs] = useState<Cabang[]>([])
   const [form, setForm] = useState<FormData>({
+    name: '',
+    email: '',
+    password: '',
+    role: 'KARYAWAN',
+    status: 'AKTIF',
+    cabang_ids: [],
+  })
+
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editFormError, setEditFormError] = useState('')
+  const [editForm, setEditForm] = useState<FormData & { id: number }>({
+    id: 0,
     name: '',
     email: '',
     password: '',
@@ -115,6 +128,51 @@ export default function DaftarUserPage() {
       setFormError(err?.response?.data?.message || err.message || 'Gagal membuat user')
     } finally {
       setCreating(false)
+    }
+  }
+
+  const openEditModal = (item: Karyawan) => {
+    setEditForm({
+      id: item.id,
+      name: item.name,
+      email: item.email,
+      password: '',
+      role: item.role,
+      status: item.status,
+      cabang_ids: Array.isArray(item.cabang_ids) ? item.cabang_ids : [],
+    })
+    setEditFormError('')
+    fetchCabangs()
+    setShowEditModal(true)
+  }
+
+  const handleUpdate = async () => {
+    setEditFormError('')
+    if (!editForm.name || !editForm.email) {
+      setEditFormError('Nama dan email wajib diisi')
+      return
+    }
+    if (editForm.role === 'ADMIN_CABANG' && editForm.cabang_ids.length === 0) {
+      setEditFormError('Admin Cabang wajib memilih minimal 1 cabang')
+      return
+    }
+    setEditing(true)
+    try {
+      const payload: Record<string, unknown> = {
+        name: editForm.name,
+        email: editForm.email,
+        role: editForm.role,
+        status: editForm.status,
+      }
+      if (editForm.password) payload.password = editForm.password
+      if (editForm.role === 'ADMIN_CABANG') payload.cabang_ids = editForm.cabang_ids
+      await userApi.update(editForm.id, payload as any)
+      setShowEditModal(false)
+      fetchData()
+    } catch (err: any) {
+      setEditFormError(err?.response?.data?.message || err.message || 'Gagal memperbarui user')
+    } finally {
+      setEditing(false)
     }
   }
 
@@ -319,13 +377,22 @@ export default function DaftarUserPage() {
                       {item.last_login ? new Date(item.last_login).toLocaleString('id-ID') : 'Belum pernah'}
                     </td>
                     <td className="border border-slate-200 px-4 py-3 text-center">
-                      <button
-                        onClick={() => { setSelected(item); setShowDelete(true) }}
-                        className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
-                        title="Hapus"
-                      >
-                        <Trash2 size={15} />
-                      </button>
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          onClick={() => openEditModal(item)}
+                          className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+                          title="Edit"
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button
+                          onClick={() => { setSelected(item); setShowDelete(true) }}
+                          className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+                          title="Hapus"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -501,6 +568,169 @@ export default function DaftarUserPage() {
                 ) : (
                   <>
                     <UserPlus size={14} />
+                    Simpan
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-6" onClick={() => setShowEditModal(false)}>
+          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50">
+                  <Pencil size={18} className="text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800">Edit User</h3>
+                  <p className="text-xs text-slate-500">Perbarui data pengguna</p>
+                </div>
+              </div>
+              <button onClick={() => setShowEditModal(false)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="px-5 py-4 space-y-4">
+              {editFormError && (
+                <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-2.5 text-xs font-medium text-red-700">
+                  {editFormError}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1.5">Nama Lengkap *</label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  placeholder="Masukkan nama lengkap"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1.5">Email *</label>
+                <input
+                  type="email"
+                  value={editForm.email}
+                  onChange={e => setEditForm({ ...editForm, email: e.target.value })}
+                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  placeholder="Masukkan email"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1.5">Password <span className="text-slate-400 font-normal">(kosongkan jika tidak diubah)</span></label>
+                <input
+                  type="password"
+                  value={editForm.password}
+                  onChange={e => setEditForm({ ...editForm, password: e.target.value })}
+                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  placeholder="Kosongkan jika tidak diubah"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1.5">Role *</label>
+                  <select
+                    value={editForm.role}
+                    onChange={e => setEditForm({ ...editForm, role: e.target.value, cabang_ids: e.target.value !== 'ADMIN_CABANG' ? [] : editForm.cabang_ids })}
+                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="HR">HR</option>
+                    <option value="MANAGER">MANAGER</option>
+                    <option value="KARYAWAN">KARYAWAN</option>
+                    <option value="GURU">GURU</option>
+                    <option value="ACCOUNTING">ACCOUNTING</option>
+                    <option value="KANDIDAT">KANDIDAT</option>
+                    <option value="AFFILIATE">AFFILIATE</option>
+                    <option value="ADMIN_CABANG">ADMIN CABANG</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1.5">Status *</label>
+                  <select
+                    value={editForm.status}
+                    onChange={e => setEditForm({ ...editForm, status: e.target.value })}
+                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="AKTIF">AKTIF</option>
+                    <option value="NONAKTIF">NONAKTIF</option>
+                  </select>
+                </div>
+              </div>
+
+              {editForm.role === 'ADMIN_CABANG' && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1.5">
+                    Pilih Cabang * <span className="text-slate-400 font-normal">(wajib minimal 1)</span>
+                  </label>
+                  <div className="max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-2 space-y-1">
+                    {cabangs.length === 0 ? (
+                      <p className="text-xs text-slate-400 text-center py-3">Tidak ada data cabang</p>
+                    ) : (
+                      cabangs.map(c => (
+                        <label
+                          key={c.id}
+                          className={`flex items-center gap-3 rounded-lg px-3 py-2 cursor-pointer transition ${editForm.cabang_ids.includes(c.id) ? 'bg-indigo-50 border border-indigo-200' : 'hover:bg-white border border-transparent'}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={editForm.cabang_ids.includes(c.id)}
+                            onChange={() => {
+                              setEditForm(prev => ({
+                                ...prev,
+                                cabang_ids: prev.cabang_ids.includes(c.id)
+                                  ? prev.cabang_ids.filter(id => id !== c.id)
+                                  : [...prev.cabang_ids, c.id],
+                              }))
+                            }}
+                            className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <div className="flex-1">
+                            <p className="text-xs font-semibold text-slate-800">{c.nama_cabang}</p>
+                            {c.kode_cabang && <p className="text-[10px] text-slate-500">{c.kode_cabang}</p>}
+                          </div>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                  {editForm.cabang_ids.length > 0 && (
+                    <p className="mt-1.5 text-[10px] text-indigo-600 font-medium">
+                      {editForm.cabang_ids.length} cabang dipilih
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-5 py-3">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleUpdate}
+                disabled={editing}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-5 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-amber-600 disabled:opacity-50"
+              >
+                {editing ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  <>
+                    <Pencil size={14} />
                     Simpan
                   </>
                 )}
