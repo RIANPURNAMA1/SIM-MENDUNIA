@@ -42,6 +42,7 @@ class Siswa extends Model
         'foto',
         'status',
         'keterangan',
+        'status_kandidat',
         'is_cuti',
         'cuti_sejak',
         'level_status',

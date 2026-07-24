@@ -8,6 +8,7 @@ class WaNotification extends Model
 {
     protected $fillable = [
         'pendaftar_id',
+        'user_id',
         'type',
         'to_phone',
         'message',

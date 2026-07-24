@@ -38,7 +38,6 @@ interface Product {
 
 export default function DaftarProgram() {
   const { slug } = useParams<{ slug: string }>();
-  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -108,28 +107,27 @@ export default function DaftarProgram() {
   })();
 
   useEffect(() => {
-    productApi.list().then((prodRes) => {
-      const active = prodRes.data.filter((p: Product) => p.status !== "nonaktif");
-      setProducts(active);
-      if (slug) {
-        const found = active.find((p: Product) => p.slug === slug);
-        if (found) setSelectedProduct(found);
-      }
+    if (!slug) { setLoading(false); return; }
+    Promise.all([
+      productApi.getBySlug(slug),
+      paymentSettingApi.getPublicSettings().then(res => setPaymentSettings(res.data)).catch(() => {}),
+    ]).then(([prodRes]) => {
+      setSelectedProduct(prodRes.data);
     }).catch(() => {}).finally(() => setLoading(false));
-
-    paymentSettingApi.getPublicSettings().then((res) => {
-      setPaymentSettings(res.data);
-    }).catch(() => {});
   }, [slug]);
 
-  useEffect(() => {
+  const [provinsiLoaded, setProvinsiLoaded] = useState(false);
+
+  const loadProvinsi = useCallback(() => {
+    if (provinsiLoaded) return;
+    setProvinsiLoaded(true);
     setWilayahLoading(p => ({ ...p, provinsi: true }));
     fetch(`${API_BASE}/provinces.json`)
       .then(r => r.json())
       .then((data: Wilayah[]) => setProvinsiList(data))
       .catch(() => {})
       .finally(() => setWilayahLoading(p => ({ ...p, provinsi: false })));
-  }, []);
+  }, [provinsiLoaded]);
 
   const fetchKabupaten = useCallback((provId: string) => {
     setKabupatenList([]);
@@ -540,6 +538,7 @@ export default function DaftarProgram() {
                           setProvinsi(e.target.value);
                           fetchKabupaten(e.target.value);
                         }}
+                        onFocus={loadProvinsi}
                         disabled={wilayahLoading.provinsi}
                         className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]/20 outline-none transition-colors focus:border-[#0E6187] appearance-none cursor-pointer disabled:opacity-50"
                       >

@@ -18,9 +18,11 @@ class NotifTidakAbsenPulang extends \Illuminate\Console\Command
         $count = 0;
 
         // Ambil absensi hari ini dengan status TIDAK ABSEN PULANG
+        // Buffer 10 menit agar tidak race condition dengan cron lain yang mengubah status
         $absensis = Absensi::with('user')
             ->where('tanggal', $today)
             ->where('status', 'TIDAK ABSEN PULANG')
+            ->where('updated_at', '<=', Carbon::now('Asia/Jakarta')->subMinutes(10))
             ->get();
 
         foreach ($absensis as $absensi) {

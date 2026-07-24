@@ -1439,32 +1439,35 @@ class PendaftaranController extends Controller
             $siswa = $p->siswa;
             $user = $p->user;
 
-            // Compute status_kandidat based on payment & level data
-            $statusKandidat = 'Calon Kandidat';
-            if ($siswa && $siswa->level_status && in_array('Keluar', $siswa->level_status)) {
-                $statusKandidat = 'Mengundurkan Diri';
-            } else {
-                $kategoriItems = $p->product?->kategori_items ?? [];
-                $pembayaranItems = $p->pembayaranItems ?? collect();
-                $paidKategoris = [];
-                foreach ($kategoriItems as $ki) {
-                    $biaya = (int) ($ki['harga'] ?? 0);
-                    if ($biaya <= 0) continue;
-                    $name = strtolower(trim($ki['name'] ?? ''));
-                    $pi = $pembayaranItems->first(function ($item) use ($name) {
-                        $katNama = strtolower(trim($item->kategori?->nama ?? ''));
-                        $katKode = strtolower(trim($item->kategori?->kode ?? ''));
-                        return $katNama === $name || $katKode === $name;
-                    });
-                    $paid = $pi ? (int) $pi->jumlah : 0;
-                    $paidKategoris[] = ['name' => $ki['name'], 'biaya' => $biaya, 'paid' => $paid, 'lunas' => $paid >= $biaya];
-                }
-                $totalKategoris = count($paidKategoris);
-                $lunasCount = count(array_filter($paidKategoris, fn($k) => $k['lunas']));
-                if ($totalKategoris > 0 && $lunasCount === $totalKategoris) {
-                    $statusKandidat = 'Kandidat Aktif';
-                } elseif ($lunasCount > 0) {
-                    $statusKandidat = 'Calon Kandidat';
+            // Compute status_kandidat: use stored value if set, otherwise compute from payment data
+            $statusKandidat = $siswa->status_kandidat ?? null;
+            if (!$statusKandidat) {
+                $statusKandidat = 'Calon Kandidat';
+                if ($siswa && $siswa->level_status && in_array('Keluar', $siswa->level_status)) {
+                    $statusKandidat = 'Mengundurkan Diri';
+                } else {
+                    $kategoriItems = $p->product?->kategori_items ?? [];
+                    $pembayaranItems = $p->pembayaranItems ?? collect();
+                    $paidKategoris = [];
+                    foreach ($kategoriItems as $ki) {
+                        $biaya = (int) ($ki['harga'] ?? 0);
+                        if ($biaya <= 0) continue;
+                        $name = strtolower(trim($ki['name'] ?? ''));
+                        $pi = $pembayaranItems->first(function ($item) use ($name) {
+                            $katNama = strtolower(trim($item->kategori?->nama ?? ''));
+                            $katKode = strtolower(trim($item->kategori?->kode ?? ''));
+                            return $katNama === $name || $katKode === $name;
+                        });
+                        $paid = $pi ? (int) $pi->jumlah : 0;
+                        $paidKategoris[] = ['name' => $ki['name'], 'biaya' => $biaya, 'paid' => $paid, 'lunas' => $paid >= $biaya];
+                    }
+                    $totalKategoris = count($paidKategoris);
+                    $lunasCount = count(array_filter($paidKategoris, fn($k) => $k['lunas']));
+                    if ($totalKategoris > 0 && $lunasCount === $totalKategoris) {
+                        $statusKandidat = 'Kandidat Aktif';
+                    } elseif ($lunasCount > 0) {
+                        $statusKandidat = 'Calon Kandidat';
+                    }
                 }
             }
 
@@ -1851,6 +1854,7 @@ class PendaftaranController extends Controller
     public function importKandidat(Request $request)
     {
         $batchId = $request->input('batch_id');
+        $productId = $request->input('product_id');
         $rows = $request->input('data');
 
         if (!$batchId || !is_numeric($batchId)) {
@@ -1863,6 +1867,13 @@ class PendaftaranController extends Controller
         $batchExists = \App\Models\Batch::where('id', $batchId)->exists();
         if (!$batchExists) {
             return response()->json(['message' => 'Batch tidak ditemukan'], 422);
+        }
+
+        if ($productId && is_numeric($productId)) {
+            $productExists = \App\Models\Product::where('id', $productId)->exists();
+            if (!$productExists) {
+                return response()->json(['message' => 'Program/Product tidak ditemukan'], 422);
+            }
         }
 
         $success = 0;
@@ -1906,6 +1917,12 @@ class PendaftaranController extends Controller
                 $jk = strtoupper(trim($row['jenis_kelamin'] ?? ''));
                 if (!in_array($jk, ['L', 'P'])) $jk = null;
 
+                $tinggiBadan = preg_replace('/[^\d]/', '', $row['tinggi_badan'] ?? '');
+                $tinggiBadan = ($tinggiBadan !== '' && (int)$tinggiBadan > 0 && (int)$tinggiBadan <= 250) ? substr($tinggiBadan, 0, 3) : null;
+
+                $beratBadan = preg_replace('/[^\d]/', '', $row['berat_badan'] ?? '');
+                $beratBadan = ($beratBadan !== '' && (int)$beratBadan > 0 && (int)$beratBadan <= 250) ? substr($beratBadan, 0, 3) : null;
+
                 $noReg = "REG/{$today}/{$nextNum}";
                 $nextNum = str_pad(((int) $nextNum) + 1, 4, '0', STR_PAD_LEFT);
 
@@ -1934,6 +1951,7 @@ class PendaftaranController extends Controller
                     'telepon' => $telepon ?: null,
                     'alamat' => $row['alamat'] ?? null,
                     'batch_id' => $batchId,
+                    'product_id' => ($productId && is_numeric($productId)) ? $productId : null,
                     'no_registrasi' => $noReg,
                     'status_pendaftaran' => 'disetujui',
                     'status_pembayaran' => 'verified',
@@ -1957,8 +1975,8 @@ class PendaftaranController extends Controller
                     'provinsi' => $row['provinsi'] ?? null,
                     'pendidikan_terakhir' => $row['pendidikan_terakhir'] ?? null,
                     'tahun_lulus' => $row['tahun_lulus'] ?? null,
-                    'tinggi_badan' => $row['tinggi_badan'] ?? null,
-                    'berat_badan' => $row['berat_badan'] ?? null,
+                    'tinggi_badan' => $tinggiBadan,
+                    'berat_badan' => $beratBadan,
                     'goldar' => $row['goldar'] ?? null,
                     'ukuran_baju' => $row['ukuran_baju'] ?? null,
                     'status_pernikahan' => $row['status_pernikahan'] ?? null,
@@ -2058,6 +2076,7 @@ class PendaftaranController extends Controller
             'nama_ortu' => 'nullable|string|max:255',
             'no_hp_ortu' => 'nullable|string|max:20',
             'keterangan' => 'nullable|string|max:500',
+            'status_kandidat' => 'nullable|string|max:50',
         ], $messages);
 
         // Update pendaftar fields
@@ -2085,7 +2104,7 @@ class PendaftaranController extends Controller
                 'alamat', 'desa', 'kecamatan', 'kabupaten', 'provinsi',
                 'pendidikan_terakhir', 'tahun_lulus', 'tinggi_badan', 'berat_badan',
                 'goldar', 'ukuran_baju', 'status_pernikahan', 'no_hp',
-                'nama_ortu', 'no_hp_ortu', 'keterangan', 'batch_id',
+                'nama_ortu', 'no_hp_ortu', 'keterangan', 'batch_id', 'status_kandidat',
             ];
             foreach ($siswaFields as $f) {
                 if (array_key_exists($f, $data)) $siswa->$f = $data[$f];
@@ -2137,12 +2156,16 @@ class PendaftaranController extends Controller
 
     public function deleteKandidat($id)
     {
-        $pendaftar = Pendaftar::with(['siswa'])->findOrFail($id);
+        $pendaftar = Pendaftar::with(['siswa', 'user'])->findOrFail($id);
 
         if ($pendaftar->siswa) {
             $pendaftar->siswa->delete();
         }
         $pendaftar->delete();
+
+        if ($pendaftar->user) {
+            $pendaftar->user->delete();
+        }
 
         return response()->json(['message' => 'Kandidat berhasil dihapus']);
     }
@@ -2151,19 +2174,23 @@ class PendaftaranController extends Controller
     {
         $request->validate([
             'ids' => 'required|array',
-            'ids.*' => 'required|integer|exists:pendaftars,id',
+            'ids.*' => 'required|integer|exists:pendaftar,id',
         ]);
 
         $ids = $request->input('ids');
         $deleted = 0;
 
         foreach ($ids as $id) {
-            $pendaftar = Pendaftar::with(['siswa'])->find($id);
+            $pendaftar = Pendaftar::with(['siswa', 'user'])->find($id);
             if ($pendaftar) {
                 if ($pendaftar->siswa) {
                     $pendaftar->siswa->delete();
                 }
                 $pendaftar->delete();
+
+                if ($pendaftar->user) {
+                    $pendaftar->user->delete();
+                }
                 $deleted++;
             }
         }
