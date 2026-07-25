@@ -184,6 +184,7 @@ class PendaftaranController extends Controller
         return response()->json([
             'message' => 'Pendaftaran berhasil',
             'id' => $pendaftar->id,
+            'token' => $pendaftar->token,
             'no_registrasi' => $noReg,
             'invoice_url' => '/pendaftar/' . $pendaftar->id . '/invoice',
         ], 201);
@@ -309,6 +310,7 @@ class PendaftaranController extends Controller
         return response()->json([
             'message' => 'Pendaftaran berhasil',
             'id' => $pendaftar->id,
+            'token' => $pendaftar->token,
             'no_registrasi' => $noReg,
             'invoice_url' => '/pendaftar/' . $pendaftar->id . '/invoice',
             'redirect' => '/dashboard-kandidat',
@@ -2559,6 +2561,7 @@ class PendaftaranController extends Controller
             'no_invoice' => $noInvoice,
             'pendaftar' => [
                 'id' => $pendaftar->id,
+                'token' => $pendaftar->token,
                 'nama' => $pendaftar->nama,
                 'email' => $pendaftar->email,
                 'telepon' => $pendaftar->telepon,
@@ -2595,6 +2598,12 @@ class PendaftaranController extends Controller
             ],
             'kategori_items' => $kategoriItemsEnriched,
         ]);
+    }
+
+    public function bayarInfoByToken($token)
+    {
+        $pendaftar = Pendaftar::with('product')->where('token', $token)->firstOrFail();
+        return $this->bayarInfo($pendaftar->id);
     }
 
     private function cekDanCatatKomisiAffiliate($pendaftar)

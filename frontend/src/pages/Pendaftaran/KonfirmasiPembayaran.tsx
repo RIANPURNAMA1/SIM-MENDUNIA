@@ -112,19 +112,31 @@ export default function KonfirmasiPembayaran() {
     return null;
   }
 
+  function isToken(val: string): boolean {
+    return /^[a-zA-Z0-9]{32}$/.test(val.trim());
+  }
+
   async function fetchPendaftar(rawInput: string) {
-    const pendaftarId = extractId(rawInput);
-    if (!pendaftarId) {
-      setLookupError("Masukkan ID pendaftar atau nomor invoice yang valid");
-      return;
-    }
+    const trimmed = rawInput.trim();
 
     setLookupError("");
     setLooking(true);
     setLoading(true);
 
     try {
-      const res = await api.get(`/pendaftaran/bayar/${pendaftarId}`);
+      let res;
+      if (isToken(trimmed)) {
+        res = await api.get(`/pendaftaran/bayar/token/${trimmed}`);
+      } else {
+        const pendaftarId = extractId(trimmed);
+        if (!pendaftarId) {
+          setLookupError("Masukkan ID pendaftar atau nomor invoice yang valid");
+          setLooking(false);
+          setLoading(false);
+          return;
+        }
+        res = await api.get(`/pendaftaran/bayar/${pendaftarId}`);
+      }
       const d = res.data?.pendaftar
         ? res.data
         : res.data?.data?.pendaftar

@@ -57,7 +57,9 @@ class SiswaController extends Controller
         if ($request->filled('status')) $query->where('status', $request->status);
         if ($request->filled('search')) $query->where('nama', 'like', '%' . $request->search . '%');
 
-        $siswa = $query->with(['shift', 'kelasRelasi', 'batchRelasi'])->latest()->get();
+        $perPage = $request->per_page ?? 25;
+        $siswaPaginator = $query->with(['shift', 'kelasRelasi', 'batchRelasi'])->latest()->paginate($perPage);
+        $siswa = $siswaPaginator->getCollection();
 
         $senseiByBatch = KelasSensei::select('batch_id', 'level')
             ->distinct()
@@ -93,6 +95,12 @@ class SiswaController extends Controller
             'kelas_list' => Kelas::aktif()->get(),
             'batch_list' => \App\Models\Batch::aktif()->get(),
             'shifts' => Shift::aktif()->get(),
+            'pagination' => [
+                'current_page' => $siswaPaginator->currentPage(),
+                'last_page' => $siswaPaginator->lastPage(),
+                'per_page' => $siswaPaginator->perPage(),
+                'total' => $siswaPaginator->total(),
+            ],
         ]);
     }
 

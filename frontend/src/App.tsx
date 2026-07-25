@@ -184,7 +184,7 @@ function AppRoutes() {
       <Route path="/daftar-program" element={<DaftarProgram />} />
       <Route path="/daftar-program/:slug" element={<DaftarProgram />} />
       <Route path="/bayar/:id" element={<Bayar />} />
-      <Route path="/checkout-berhasil/:id" element={<CheckoutBerhasil />} />
+      <Route path="/checkout-berhasil/:token" element={<CheckoutBerhasil />} />
       <Route path="/konfirmasi-pembayaran" element={<KonfirmasiPembayaran />} />
       <Route path="/konfirmasi-pembayaran/:id" element={<KonfirmasiPembayaran />} />
       <Route path="/syarat-ketentuan" element={<SyaratKetentuan />} />

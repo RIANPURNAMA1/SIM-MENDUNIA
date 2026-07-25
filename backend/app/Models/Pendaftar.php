@@ -3,12 +3,23 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Pendaftar extends Model
 {
     protected $table = 'pendaftar';
 
+    protected static function booted(): void
+    {
+        static::creating(function (Pendaftar $pendaftar) {
+            if (empty($pendaftar->token)) {
+                $pendaftar->token = Str::random(32);
+            }
+        });
+    }
+
     protected $fillable = [
+        'token',
         'affiliate_link_id',
         'product_id',
         'batch_id',

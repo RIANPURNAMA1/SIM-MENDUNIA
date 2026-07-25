@@ -456,6 +456,7 @@ Route::middleware('auth:sanctum')->group(function () {
 // Public — daftar langsung tanpa affiliate
 Route::post('/pendaftaran/daftar-langsung', [PendaftaranController::class, 'daftarLangsung']);
 Route::get('/pendaftaran/bayar/{id}', [PendaftaranController::class, 'bayarInfo']);
+Route::get('/pendaftaran/bayar/token/{token}', [PendaftaranController::class, 'bayarInfoByToken']);
 Route::post('/pendaftar/{id}/bayar', [PendaftaranController::class, 'bayar']);
 Route::get('/banks', [PendaftaranController::class, 'banks']);
 

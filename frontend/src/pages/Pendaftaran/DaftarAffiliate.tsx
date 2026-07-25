@@ -198,8 +198,8 @@ export default function DaftarAffiliate() {
 
     pendaftarApi.daftar(fd)
       .then(res => {
-        const pendaftarId = res.data?.id
-        window.location.href = `/checkout-berhasil/${pendaftarId}`
+        const pendaftarToken = res.data?.token
+        window.location.href = `/checkout-berhasil/${pendaftarToken}`
       })
       .catch(err => {
         setError(err.response?.data?.message || err.message || 'Terjadi kesalahan')
