@@ -18,14 +18,15 @@ return new class extends Migration
         });
 
         // Step 2: Backfill token untuk data existing
-        DB::table('pendaftar')
+        $pendaftars = DB::table('pendaftar')
             ->whereNull('token')
             ->orWhere('token', '')
-            ->each(function ($p) {
-                DB::table('pendaftar')
-                    ->where('id', $p->id)
-                    ->update(['token' => Str::random(32)]);
-            });
+            ->get();
+        foreach ($pendaftars as $p) {
+            DB::table('pendaftar')
+                ->where('id', $p->id)
+                ->update(['token' => Str::random(32)]);
+        }
 
         // Step 3: Tambah unique constraint jika belum ada
         $indexes = DB::select("SHOW INDEX FROM pendaftar WHERE Key_name = 'pendaftar_token_unique'");
