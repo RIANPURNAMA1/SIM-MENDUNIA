@@ -244,8 +244,8 @@ export default function DaftarProgram() {
       formData.append("kode_unik", String(previewKodeUnik));
 
       const res = await pendaftarApi.daftarLangsung(formData);
-      const pendaftarId = res.data?.id;
-      window.location.href = `/checkout-berhasil/${pendaftarId}`;
+      const pendaftarToken = res.data?.token;
+      window.location.href = `/checkout-berhasil/${pendaftarToken}`;
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Terjadi kesalahan, silakan coba lagi";

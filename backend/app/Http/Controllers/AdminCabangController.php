@@ -600,7 +600,9 @@ class AdminCabangController extends Controller
         if ($request->filled('status')) $query->where('status', $request->status);
         if ($request->filled('search')) $query->where('nama', 'like', '%' . $request->search . '%');
 
-        $siswa = $query->latest()->get();
+        $perPage = $request->per_page ?? 25;
+        $siswaPaginator = $query->latest()->paginate($perPage);
+        $siswa = $siswaPaginator->getCollection();
 
         $senseiByBatch = KelasSensei::select('batch_id', 'level')
             ->distinct()
@@ -640,6 +642,12 @@ class AdminCabangController extends Controller
             'kelas_list' => $kelasList,
             'batch_list' => $batchList,
             'shifts' => $shifts,
+            'pagination' => [
+                'current_page' => $siswaPaginator->currentPage(),
+                'last_page' => $siswaPaginator->lastPage(),
+                'per_page' => $siswaPaginator->perPage(),
+                'total' => $siswaPaginator->total(),
+            ],
         ]);
     }
 

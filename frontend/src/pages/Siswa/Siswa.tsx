@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { siswaApi, adminCabangApi, APP_URL } from "../../services/api";
 import type { Siswa } from "../../types";
+import type { Pagination } from "../../types";
 
 const AGAMA_OPTIONS = ["ISLAM", "KRISTEN", "KATOLIK", "HINDU", "BUDDHA", "KONGHUCU"];
 const LEVEL_OPTIONS = ["Proses", "Active", "Lulus", "Tidak Lulus", "Keluar"];
@@ -22,6 +23,8 @@ export default function SiswaPage() {
   const [batchList, setBatchList] = useState<{ id: number; nama_batch: string }[]>([]);
   const [shifts, setShifts] = useState<{ id: number; nama_shift: string; jam_masuk: string; jam_pulang: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
+  const [page, setPage] = useState(1);
 
   const [editingLevel, setEditingLevel] = useState<{ siswaId: number; level: number } | null>(null);
   const [filterBatch, setFilterBatch] = useState("");
@@ -69,20 +72,25 @@ export default function SiswaPage() {
       if (filterBatch) params.batch_id = filterBatch;
       if (filterStatus) params.status = filterStatus;
       if (filterSearch) params.search = filterSearch;
+      params.page = page;
+      params.per_page = 25;
       const isCabang = window.location.pathname.startsWith('/admin-cabang');
       const res = isCabang ? await adminCabangApi.siswa(params) : await siswaApi.list(params);
       setData(res.data.data || []);
       setKelasList(res.data.kelas_list || []);
       setBatchList(res.data.batch_list || []);
       setShifts(res.data.shifts || []);
+      setPagination(res.data.pagination || null);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
-  }, [filterBatch, filterStatus, filterSearch]);
+  }, [filterBatch, filterStatus, filterSearch, page]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  useEffect(() => { setPage(1); }, [filterBatch, filterStatus, filterSearch]);
 
   const toggleSelect = (id: number) => {
     setSelectedIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev]);
@@ -98,7 +106,7 @@ export default function SiswaPage() {
   };
 
   const resetFilter = () => {
-    setFilterBatch(""); setFilterStatus(""); setFilterSearch("");
+    setFilterBatch(""); setFilterStatus(""); setFilterSearch(""); setPage(1);
   };
 
   const fotoUrl = (s: Siswa) => {
@@ -528,6 +536,31 @@ export default function SiswaPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {pagination && pagination.last_page > 1 && (
+        <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-slate-500">
+            Halaman {pagination.current_page} dari {pagination.last_page} &middot; {pagination.total} siswa
+          </p>
+          <div className="flex gap-2">
+            <button
+              disabled={page <= 1}
+              onClick={() => setPage(page - 1)}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Sebelumnya
+            </button>
+            <button
+              disabled={page >= pagination.last_page}
+              onClick={() => setPage(page + 1)}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Selanjutnya
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modal Tambah */}
       {showModalTambah && (

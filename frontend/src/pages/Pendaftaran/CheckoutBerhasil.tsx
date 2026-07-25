@@ -69,7 +69,7 @@ function fmt(n: number | string) {
 }
 
 export default function CheckoutBerhasil() {
-  const { id } = useParams<{ id: string }>();
+  const { token } = useParams<{ token: string }>();
   const [data, setData] = useState<CheckoutData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -79,9 +79,9 @@ export default function CheckoutBerhasil() {
   const [countdowns, setCountdowns] = useState<Record<number, { days: number; hours: number; minutes: number; seconds: number; expired: boolean; deadline: Date }>>({});
 
   useEffect(() => {
-    if (!id) return;
+    if (!token) return;
     api
-      .get(`/pendaftaran/bayar/${id}`)
+      .get(`/pendaftaran/bayar/token/${token}`)
       .then((res) => {
         if (res.data?.pendaftar) setData(res.data);
         else if (res.data?.data?.pendaftar) setData(res.data.data);
@@ -89,7 +89,7 @@ export default function CheckoutBerhasil() {
       })
       .catch(() => setError("Data tidak ditemukan"))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [token]);
 
   useEffect(() => {
     if (!data?.kategori_items?.length) return;
@@ -450,7 +450,7 @@ export default function CheckoutBerhasil() {
               Konfirmasi pembayaran melalui halaman ini:
             </span>
             <a
-              href={`/konfirmasi-pembayaran/${data.pendaftar.id}`}
+              href={`/konfirmasi-pembayaran/${data.pendaftar.token}`}
               className="bg-[#22C55E] hover:bg-[#16A34A] text-white font-bold py-2.5 px-6 rounded-md text-[13px] transition-colors whitespace-nowrap"
             >
               KONFIRMASI

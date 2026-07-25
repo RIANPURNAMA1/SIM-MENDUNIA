@@ -400,8 +400,10 @@ export default function Pendaftar() {
                     {(() => {
                       const firstCategory = p.detail?.[0]
                       if (firstCategory) {
-                        if (firstCategory.dibayar > 0) return `Rp ${Number(firstCategory.total_transfer || firstCategory.dibayar).toLocaleString('id-ID')}`
-                        return `Rp ${Number(firstCategory.biaya).toLocaleString('id-ID')}`
+                        const displayNominal = firstCategory.kode_unik > 0
+                          ? (firstCategory.total_transfer || firstCategory.biaya)
+                          : firstCategory.biaya
+                        return `Rp ${Number(displayNominal).toLocaleString('id-ID')}`
                       }
                       if (p.nominal) return `Rp ${Number(p.nominal).toLocaleString('id-ID')}`
                       return '-'
@@ -868,7 +870,10 @@ export default function Pendaftar() {
                       {(() => {
                         const firstCategory = detailModal.detail?.[0]
                         if (firstCategory) {
-                          return `Rp ${Number(firstCategory.total_transfer || firstCategory.dibayar || firstCategory.biaya).toLocaleString('id-ID')}`
+                          const displayNominal = firstCategory.kode_unik > 0
+                            ? (firstCategory.total_transfer || firstCategory.biaya)
+                            : firstCategory.biaya
+                          return `Rp ${Number(displayNominal).toLocaleString('id-ID')}`
                         }
                         return detailModal.nominal ? `Rp ${Number(detailModal.nominal).toLocaleString('id-ID')}` : '-'
                       })()}
