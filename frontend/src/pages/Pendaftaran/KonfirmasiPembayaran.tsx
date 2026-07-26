@@ -233,10 +233,10 @@ export default function KonfirmasiPembayaran() {
             </div>
 
             <a
-              href="/"
+              href="/siswa-dashboard"
               className="inline-block w-full py-3 bg-[#00D1FF] text-white font-bold rounded-lg text-[13px] hover:bg-[#00bce6] transition-colors"
             >
-              KEMBALI KE BERANDA
+              KEMBALI KE DASHBOARD
             </a>
           </div>
         </div>

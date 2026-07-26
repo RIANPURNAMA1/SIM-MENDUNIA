@@ -26,4 +26,9 @@ class BankAccount extends Model
     {
         return $query->where('is_active', true);
     }
+
+    public function getBankLogoUrlAttribute()
+    {
+        return $this->bank_logo ? asset('storage/' . $this->bank_logo) : null;
+    }
 }

@@ -210,7 +210,7 @@ class BiayaController extends Controller
                 if ($dueType && $dueType !== 'none' && $dueType !== 'manual') {
                     $baseDate = $pendaftar->tanggal_persetujuan
                         ? \Carbon\Carbon::parse($pendaftar->tanggal_persetujuan)
-                        : \Carbon\Carbon::now();
+                        : \Carbon\Carbon::parse($pendaftar->created_at);
 
                     if ($dueType === 'days_after_invoice' && $dueValue) {
                         $jatuh_tempo_hari = (int) $dueValue;
