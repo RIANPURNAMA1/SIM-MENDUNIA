@@ -129,83 +129,144 @@ export default function PembayaranSiswa() {
 
   const diskon = Number(pendaftar?.diskon || 0)
   
-  const kategoriByName = new Map<string, { kategori: Kategori; biaya: number; dibayar: number; jatuh_tempo_hari: number; due_at: string | null }>()
+  const itemByKategoriId = new Map<number, KategoriItem>()
   for (const item of kategoriItems) {
-    const kat = kategoris.find(k => k.id === item.kategori_id)
-    if (kat) {
-      const val = { kategori: kat, biaya: item.biaya, dibayar: item.dibayar, jatuh_tempo_hari: item.jatuh_tempo_hari ?? 30, due_at: item.due_at ?? null }
-      kategoriByName.set(kat.nama.toLowerCase(), val)
-      kategoriByName.set(kat.kode.toLowerCase(), val)
+    itemByKategoriId.set(item.kategori_id, item)
+  }
+
+  const katByNameLower = new Map<string, Kategori>()
+  for (const kat of kategoris) {
+    katByNameLower.set(kat.nama.toLowerCase(), kat)
+  }
+
+  const childrenMap = new Map<number, number[]>()
+  const ensureParent = (pid: number) => {
+    if (!childrenMap.has(pid)) childrenMap.set(pid, [])
+  }
+  for (const kat of kategoris) {
+    if (kat.parent_id) {
+      ensureParent(kat.parent_id)
+      childrenMap.get(kat.parent_id)!.push(kat.id)
     }
   }
 
-  const orderedColumns: Kategori[] = []
-  const matchedIds = new Set<number>()
-  const childKategoriIds = new Set<number>()
-  const aggregatedItems: KategoriItem[] = []
-
-  const walkJson = (items: any[], depth: number) => {
+  const walkProductTree = (items: any[]) => {
     for (const item of items) {
       const name = (item.name || '').toLowerCase()
-      const entry = kategoriByName.get(name)
-      if (!entry) continue
-      if (matchedIds.has(entry.kategori.id)) continue
-
+      const kat = katByNameLower.get(name)
+      if (!kat) continue
       const children = item.children || []
-      let totalBiaya = entry.biaya
-      let totalDibayar = entry.dibayar
-
-      for (const c of children) {
-        const cName = (c.name || '').toLowerCase()
-        const cEntry = kategoriByName.get(cName)
-        if (cEntry) {
-          childKategoriIds.add(cEntry.kategori.id)
-          totalBiaya += cEntry.biaya
-          totalDibayar += cEntry.dibayar
-        }
-      }
-
-      if (depth === 0) {
-        orderedColumns.push(entry.kategori)
-        matchedIds.add(entry.kategori.id)
-        aggregatedItems.push({
-          kategori_id: entry.kategori.id,
-          kode: entry.kategori.kode,
-          nama: entry.kategori.nama,
-          biaya: totalBiaya,
-          dibayar: totalDibayar,
-          jatuh_tempo_hari: entry.jatuh_tempo_hari,
-          due_at: entry.due_at,
-        })
-      }
-
       if (children.length > 0) {
-        walkJson(children, depth + 1)
+        ensureParent(kat.id)
+        for (const c of children) {
+          const cKat = katByNameLower.get((c.name || '').toLowerCase())
+          if (cKat && cKat.parent_id !== kat.id) {
+            ensureParent(kat.id)
+            const existing = childrenMap.get(kat.id) || []
+            if (!existing.includes(cKat.id)) {
+              existing.push(cKat.id)
+              childrenMap.set(kat.id, existing)
+            }
+          }
+        }
+        walkProductTree(children)
       }
     }
   }
 
   const productKategoriItems = pendaftar?.product?.kategori_items as { name: string; harga: number; komisi: number; children: any[] }[] | undefined
   if (productKategoriItems && productKategoriItems.length > 0) {
-    walkJson(productKategoriItems, 0)
+    walkProductTree(productKategoriItems)
+  }
+
+  const getAllChildIds = (parentId: number, visited = new Set<number>()): number[] => {
+    if (visited.has(parentId)) return []
+    visited.add(parentId)
+    const ids: number[] = []
+    const children = childrenMap.get(parentId) || []
+    for (const cid of children) {
+      ids.push(cid)
+      ids.push(...getAllChildIds(cid, visited))
+    }
+    return ids
+  }
+
+  const orderedColumns: Kategori[] = []
+  const aggregatedItems: KategoriItem[] = []
+  const processedIds = new Set<number>()
+
+  const walkProductDisplay = (items: any[], depth: number) => {
+    for (const item of items) {
+      const name = (item.name || '').toLowerCase()
+      const kat = katByNameLower.get(name)
+      if (!kat || processedIds.has(kat.id)) continue
+
+      if (depth === 0) {
+        const descendantIds = getAllChildIds(kat.id)
+        const allIds = [kat.id, ...descendantIds]
+        const hasAny = allIds.some(id => itemByKategoriId.has(id))
+        if (!hasAny) continue
+
+        let totalBiaya = 0
+        let totalDibayar = 0
+        let dueAt: string | null = null
+        let jatuhTempoHari = 30
+
+        for (const id of allIds) {
+          const kItem = itemByKategoriId.get(id)
+          if (kItem) {
+            totalBiaya += kItem.biaya
+            totalDibayar += kItem.dibayar
+            if (kItem.due_at && (!dueAt || kItem.due_at < dueAt)) {
+              dueAt = kItem.due_at
+            }
+            jatuhTempoHari = Math.min(jatuhTempoHari, kItem.jatuh_tempo_hari ?? 30)
+            processedIds.add(id)
+          }
+        }
+
+        orderedColumns.push(kat)
+        aggregatedItems.push({
+          kategori_id: kat.id,
+          kode: kat.kode,
+          nama: kat.nama,
+          biaya: totalBiaya,
+          dibayar: totalDibayar,
+          jatuh_tempo_hari: jatuhTempoHari,
+          due_at: dueAt,
+        })
+      }
+
+      const children = item.children || []
+      if (children.length > 0) {
+        walkProductDisplay(children, depth + 1)
+      }
+    }
+  }
+
+  if (productKategoriItems && productKategoriItems.length > 0) {
+    walkProductDisplay(productKategoriItems, 0)
   }
 
   for (const item of kategoriItems) {
-    if (!matchedIds.has(item.kategori_id) && !childKategoriIds.has(item.kategori_id)) {
+    if (!processedIds.has(item.kategori_id)) {
       const kat = kategoris.find(k => k.id === item.kategori_id)
-      if (kat) {
+      if (kat && !kat.parent_id) {
+        processedIds.add(item.kategori_id)
         orderedColumns.push(kat)
-        matchedIds.add(kat.id)
         aggregatedItems.push(item)
       }
     }
   }
 
-  const totalBiaya = aggregatedItems.reduce((s, i) => s + i.biaya, 0)
-  const totalDibayar = aggregatedItems.reduce((s, i) => s + i.dibayar, 0)
+  const parentColumns = orderedColumns
+  const parentAggregatedItems = aggregatedItems
+
+  const totalBiaya = parentAggregatedItems.reduce((s, i) => s + i.biaya, 0)
+  const totalDibayar = parentAggregatedItems.reduce((s, i) => s + i.dibayar, 0)
   const tunggakan = totalBiaya - totalDibayar
-  const paidKategoriIds = aggregatedItems.filter(i => i.dibayar >= i.biaya && i.biaya > 0).map(i => i.kategori_id)
-  const partialKategoriIds = aggregatedItems.filter(i => i.dibayar > 0 && i.dibayar < i.biaya).map(i => i.kategori_id)
+  const paidKategoriIds = parentAggregatedItems.filter(i => i.dibayar >= i.biaya && i.biaya > 0).map(i => i.kategori_id)
+  const partialKategoriIds = parentAggregatedItems.filter(i => i.dibayar > 0 && i.dibayar < i.biaya).map(i => i.kategori_id)
 
   const pendingKategoriIds = new Set<number>()
   if (riwayat?.length) {
@@ -216,9 +277,9 @@ export default function PembayaranSiswa() {
     }
   }
 
-  const sortedKat = orderedColumns
+  const sortedKat = parentColumns
   const nextKat = sortedKat.find(k => {
-    const item = aggregatedItems.find(i => i.kategori_id === k.id)
+    const item = parentAggregatedItems.find(i => i.kategori_id === k.id)
     return item ? item.dibayar < item.biaya : true
   }) || null
 
@@ -266,7 +327,7 @@ export default function PembayaranSiswa() {
     let sisa = jml
     for (const k of sortedKat) {
       if (sisa <= 0) break
-      const item = aggregatedItems.find(i => i.kategori_id === k.id)
+      const item = parentAggregatedItems.find(i => i.kategori_id === k.id)
       const biaya = item?.biaya || 0
       const dibayar = item?.dibayar || 0
       const kurang = biaya - dibayar

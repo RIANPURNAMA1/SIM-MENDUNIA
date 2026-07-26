@@ -11,6 +11,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { FileText, Search, Receipt, CheckCircle, Clock, AlertCircle, RotateCcw, DollarSign, X, Save, Bell, Eye, Check, Loader, XCircle } from 'lucide-react'
 import { adminCabangApi, APP_URL } from '../../services/api'
+import { useAuth } from '../../contexts/AuthContext'
 
 interface KategoriInfo {
   id: number
@@ -59,6 +60,8 @@ interface ProductOption {
 }
 
 export default function AdminCabangTagihan() {
+  const { user } = useAuth()
+  const isManager = user?.role === 'MANAGER'
   const [data, setData] = useState<TagihanItem[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -413,26 +416,32 @@ export default function AdminCabangTagihan() {
                       const isChanged = key in pendingChanges
                       return (
                         <td key={k.id} className="border border-slate-200 px-1 py-2 text-right">
-                          <input
-                            ref={el => { inputRefs.current[key] = el }}
-                            type="text"
-                            value={val > 0 ? val.toLocaleString('id-ID') : ''}
-                            onChange={e => {
-                              const num = parseInput(e.target.value)
-                              setPendingChanges(prev => {
-                                const next = { ...prev }
-                                if (num === (p.detail?.find(d => d.kategori_id === k.id)?.dibayar || 0)) {
-                                  delete next[key]
-                                } else {
-                                  next[key] = num
-                                }
-                                return next
-                              })
-                            }}
-                            onKeyDown={e => handleKeyDown(e, key)}
-                            className={`w-full bg-transparent text-right text-xs outline-none transition ${isChanged ? 'font-semibold text-blue-700' : val > 0 ? 'font-semibold text-emerald-700' : 'text-slate-400'} placeholder:text-slate-300 focus:bg-blue-50 focus:rounded focus:px-1`}
-                            placeholder="-"
-                          />
+                          {isManager ? (
+                            <input
+                              ref={el => { inputRefs.current[key] = el }}
+                              type="text"
+                              value={val > 0 ? val.toLocaleString('id-ID') : ''}
+                              onChange={e => {
+                                const num = parseInput(e.target.value)
+                                setPendingChanges(prev => {
+                                  const next = { ...prev }
+                                  if (num === (p.detail?.find(d => d.kategori_id === k.id)?.dibayar || 0)) {
+                                    delete next[key]
+                                  } else {
+                                    next[key] = num
+                                  }
+                                  return next
+                                })
+                              }}
+                              onKeyDown={e => handleKeyDown(e, key)}
+                              className={`w-full bg-transparent text-right text-xs outline-none transition ${isChanged ? 'font-semibold text-blue-700' : val > 0 ? 'font-semibold text-emerald-700' : 'text-slate-400'} placeholder:text-slate-300 focus:bg-blue-50 focus:rounded focus:px-1`}
+                              placeholder="-"
+                            />
+                          ) : (
+                            <span className={`text-xs font-semibold ${val > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
+                              {val > 0 ? val.toLocaleString('id-ID') : '-'}
+                            </span>
+                          )}
                         </td>
                       )
                     })}
@@ -458,20 +467,24 @@ export default function AdminCabangTagihan() {
                       </Link>
                     </td>
                     <td className="border border-slate-200 px-2 py-2 text-center">
-                      <button
-                        onClick={async () => {
-                          try {
-                            const res = await adminCabangApi.pembayaranItem(p.id)
-                            setModalBayar({ pendaftar: p, items: (res.data.items || []) })
-                          } catch (err) {
-                            console.error(err)
-                          }
-                        }}
-                        className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-medium text-emerald-700 transition hover:bg-emerald-100"
-                      >
-                        <DollarSign size={11} />
-                        Bayar
-                      </button>
+                      {isManager ? (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await adminCabangApi.pembayaranItem(p.id)
+                              setModalBayar({ pendaftar: p, items: (res.data.items || []) })
+                            } catch (err) {
+                              console.error(err)
+                            }
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-medium text-emerald-700 transition hover:bg-emerald-100"
+                        >
+                          <DollarSign size={11} />
+                          Bayar
+                        </button>
+                      ) : (
+                        <span className="text-[10px] text-slate-400">-</span>
+                      )}
                     </td>
                   </tr>
                 )
@@ -484,7 +497,7 @@ export default function AdminCabangTagihan() {
         </div>
       </div>
 
-      {pendingCount > 0 && (
+      {isManager && pendingCount > 0 && (
         <div className="sticky bottom-4 z-40 mt-4 flex items-center justify-between rounded-xl border border-blue-200 bg-blue-50 px-5 py-3 shadow-lg">
           <p className="text-xs text-blue-700">
             <span className="font-bold">{pendingCount}</span> perubahan belum disimpan

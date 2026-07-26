@@ -15,6 +15,7 @@ interface BankAccount {
   id: number
   bank_name: string
   bank_logo: string | null
+  bank_logo_url: string | null
   account_holder: string
   account_number: string
   branch: string | null
@@ -96,7 +97,7 @@ export default function PengaturanPembayaran() {
       is_active: account.is_active,
     })
     setBankLogo(null)
-    setBankLogoPreview(account.bank_logo ? `/storage/${account.bank_logo}` : null)
+    setBankLogoPreview(account.bank_logo_url || null)
     setShowBankModal(true)
   }
 
@@ -313,8 +314,8 @@ export default function PengaturanPembayaran() {
                   <div key={account.id} className="border border-gray-100 rounded-lg p-4 hover:bg-gray-50 transition-colors">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
-                        {account.bank_logo ? (
-                          <img src={`/storage/${account.bank_logo}`} alt={account.bank_name} className="w-10 h-10 rounded-lg object-contain" />
+                        {account.bank_logo_url ? (
+                          <img src={account.bank_logo_url} alt={account.bank_name} className="w-10 h-10 rounded-lg object-contain" />
                         ) : (
                           <div className="w-10 h-10 rounded-lg bg-[#0E6187]/10 flex items-center justify-center">
                             <Building2 size={18} className="text-[#0E6187]" />

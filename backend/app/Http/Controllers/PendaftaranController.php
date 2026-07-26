@@ -165,7 +165,7 @@ class PendaftaranController extends Controller
             \App\Models\PembayaranItem::create([
                 'pendaftar_id' => $pendaftar->id,
                 'kategori_id' => $kategori->id,
-                'jumlah' => $nominal,
+                'jumlah' => 0,
                 'kode_unik' => $kodeUnik,
                 'total_transfer' => $totalTransfer,
                 'payment_code' => $paymentCode,
@@ -288,7 +288,7 @@ class PendaftaranController extends Controller
             \App\Models\PembayaranItem::create([
                 'pendaftar_id' => $pendaftar->id,
                 'kategori_id' => $kategori->id,
-                'jumlah' => $nominal,
+                'jumlah' => 0,
                 'kode_unik' => $kodeUnik,
                 'total_transfer' => $totalTransfer,
                 'payment_code' => $paymentCode,
@@ -597,7 +597,7 @@ class PendaftaranController extends Controller
 
     public function verifyPayment($id)
     {
-        $pendaftar = Pendaftar::with('user')->findOrFail($id);
+        $pendaftar = Pendaftar::with('user', 'product.biayaKategoris')->findOrFail($id);
         $pendaftar->update(['status_pembayaran' => 'verified']);
 
         $pembayarans = Pembayaran::with('kategori')->where('pendaftar_id', $pendaftar->id)
@@ -617,12 +617,14 @@ class PendaftaranController extends Controller
             ->get();
 
         foreach ($verifiedByKategori as $vb) {
+            $katHarga = (int) ($pendaftar->product->biayaKategoris->firstWhere('id', $vb->kategori_id)?->pivot->harga ?? 0);
+            $jumlah = $katHarga > 0 ? min((int) $vb->total, $katHarga) : (int) $vb->total;
             PembayaranItem::updateOrCreate(
                 [
                     'pendaftar_id' => $pendaftar->id,
                     'kategori_id' => $vb->kategori_id,
                 ],
-                ['jumlah' => $vb->total]
+                ['jumlah' => $jumlah]
             );
         }
 
@@ -691,24 +693,24 @@ class PendaftaranController extends Controller
                 ->whereIn('status', ['pending', 'processing'])
                 ->update(['status' => 'verified']);
 
-            // Ensure all product kategoris have a PembayaranItem set to full payment
+            // Recalculate PembayaranItem for each kategori based on actual verified payments, capped at biaya
             $product = $pendaftar->product;
             if ($product) {
                 $product->load('biayaKategoris');
                 $biayaKategoris = $product->biayaKategoris;
                 foreach ($biayaKategoris as $kat) {
-                    $existing = \App\Models\PembayaranItem::where('pendaftar_id', $pendaftar->id)
+                    $totalVerified = \App\Models\Pembayaran::where('pendaftar_id', $pendaftar->id)
                         ->where('kategori_id', $kat->id)
-                        ->first();
+                        ->where('status', 'verified')
+                        ->sum('jumlah');
 
-                    if (!$existing || $existing->jumlah == 0) {
-                        $harga = (int) $kat->pivot->harga;
-                        if ($harga > 0) {
-                            \App\Models\PembayaranItem::updateOrCreate(
-                                ['pendaftar_id' => $pendaftar->id, 'kategori_id' => $kat->id],
-                                ['jumlah' => $harga]
-                            );
-                        }
+                    $harga = (int) $kat->pivot->harga;
+                    if ($totalVerified > 0) {
+                        $jumlah = $harga > 0 ? min((int) $totalVerified, $harga) : (int) $totalVerified;
+                        \App\Models\PembayaranItem::updateOrCreate(
+                            ['pendaftar_id' => $pendaftar->id, 'kategori_id' => $kat->id],
+                            ['jumlah' => $jumlah]
+                        );
                     }
                 }
             }
@@ -889,6 +891,7 @@ class PendaftaranController extends Controller
         $paidKatIds = $pembayaran->pluck('kategori_id')->filter()->unique()->values()->toArray();
         $items = PembayaranItem::with('kategori')->where('pendaftar_id', $pendaftar->id)
             ->whereNotIn('kategori_id', $paidKatIds)
+            ->where('jumlah', '>', 0)
             ->get();
 
         $synthetic = $items->map(function ($item) use ($pendaftar) {
@@ -931,15 +934,28 @@ class PendaftaranController extends Controller
             'bukti_pembayaran' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
         ]);
 
-        $pendaftar = Pendaftar::with('batch')->findOrFail($id);
+        $pendaftar = Pendaftar::with('batch', 'product.biayaKategoris')->findOrFail($id);
 
         $filePath = $request->file('bukti_pembayaran')->store('bukti_pembayaran', 'public');
 
         $kategori = BiayaKategori::find($request->kategori_id);
 
+        // Resolve actual biaya for this kategori from product pivot
+        $katModel = $pendaftar->product?->biayaKategoris?->firstWhere('id', $request->kategori_id);
+        $harga = $katModel ? (int) $katModel->pivot->harga : 0;
+
+        // Sum already paid for this kategori
+        $sudahDibayar = PembayaranItem::where('pendaftar_id', $pendaftar->id)
+            ->where('kategori_id', $request->kategori_id)
+            ->value('jumlah') ?? 0;
+
+        // Use sisa (remaining biaya) as jumlah — unique code is for bank matching only
+        $sisaBiaya = max(0, $harga - $sudahDibayar);
+        $jumlahBayar = min($request->jumlah, $sisaBiaya > 0 ? $sisaBiaya : $request->jumlah);
+
         Pembayaran::create([
             'pendaftar_id' => $pendaftar->id,
-            'jumlah' => $request->jumlah,
+            'jumlah' => $jumlahBayar,
             'kategori_id' => $request->kategori_id,
             'bukti_pembayaran' => $filePath,
             'status' => 'pending',
@@ -948,7 +964,13 @@ class PendaftaranController extends Controller
         // Update PembayaranItem untuk kategori ini (jumlah submitted, bukan hanya verified)
         $totalPerKategori = Pembayaran::where('pendaftar_id', $pendaftar->id)
             ->where('kategori_id', $request->kategori_id)
+            ->where('status', '!=', 'ditolak')
             ->sum('jumlah');
+
+        // Cap at the kategori biaya
+        if ($harga > 0 && $totalPerKategori > $harga) {
+            $totalPerKategori = $harga;
+        }
 
         PembayaranItem::updateOrCreate(
             [
@@ -1131,6 +1153,23 @@ class PendaftaranController extends Controller
         if ($request->filled('bank_pengirim')) $pendaftar->bank_pengirim = $request->bank_pengirim;
         if ($request->filled('nama_pengirim')) $pendaftar->nama_pengirim = $request->nama_pengirim;
         $pendaftar->save();
+
+        // Recalculate PembayaranItem per kategori, capped at biaya
+        $allPembs = Pembayaran::where('pendaftar_id', $pendaftar->id)
+            ->where('status', '!=', 'ditolak')
+            ->whereNotNull('kategori_id')
+            ->selectRaw('kategori_id, SUM(jumlah) as total')
+            ->groupBy('kategori_id')
+            ->get();
+
+        foreach ($allPembs as $pemb) {
+            $hargaKat = $pivotHarga->get($pemb->kategori_id, 0);
+            $jumlah = $hargaKat > 0 ? min((int) $pemb->total, $hargaKat) : (int) $pemb->total;
+            PembayaranItem::updateOrCreate(
+                ['pendaftar_id' => $pendaftar->id, 'kategori_id' => $pemb->kategori_id],
+                ['jumlah' => $jumlah]
+            );
+        }
 
         // Kirim notifikasi WA ke admin
         try {
@@ -1909,7 +1948,7 @@ class PendaftaranController extends Controller
                 if ($dueType && $dueType !== 'none' && $dueType !== 'manual') {
                     $baseDate = $pendaftar->tanggal_persetujuan
                         ? \Carbon\Carbon::parse($pendaftar->tanggal_persetujuan)
-                        : \Carbon\Carbon::now();
+                        : \Carbon\Carbon::parse($pendaftar->created_at);
 
                     if ($dueType === 'days_after_invoice' && $dueValue) {
                         $jatuh_tempo_hari = (int) $dueValue;
