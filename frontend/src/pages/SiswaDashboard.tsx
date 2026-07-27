@@ -540,16 +540,9 @@ export default function SiswaDashboard() {
                       if (!cd) return null
                       return (
                         <div className="mb-4">
-                          <div className={`flex items-center justify-between rounded-md px-3 py-2 text-[12px] ${
+                          <div className={`flex items-center justify-end rounded-md px-3 py-2 text-[12px] ${
                             cd.expired ? 'bg-red-50 border border-red-200' : 'bg-[#FFF9E5] border border-yellow-100'
                           }`}>
-                            <div className="flex items-center gap-2">
-                              <span className={`font-semibold ${cd.expired ? 'text-red-600' : 'text-gray-800'}`}>{k.nama}</span>
-                              <span className="text-gray-400">•</span>
-                              <span className={`font-medium ${cd.expired ? 'text-red-500' : 'text-gray-600'}`}>
-                                {fmt(k.sisa > 0 ? k.sisa : k.harga)}
-                              </span>
-                            </div>
                             <div className="flex items-center gap-1.5 text-[11px] font-semibold">
                               {cd.expired ? (
                                 <span className="text-red-600">Lewat {cd.days} hari</span>
@@ -663,13 +656,7 @@ export default function SiswaDashboard() {
 
                     <div className="border-t border-gray-100 my-4" />
 
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <p className="text-[13px] font-bold text-gray-800 mb-0.5">Nominal Tagihan</p>
-                        <span className="text-[15px] font-medium text-gray-700">{fmt(totalBayar)}</span>
-                      </div>
-
-                      {kodeUnik > 0 && paymentEnabled && (
+                    {kodeUnik > 0 && paymentEnabled && (
                         <>
                           <div className="border-t border-gray-100 my-2" />
                           <div className="flex justify-between items-center">
@@ -746,9 +733,6 @@ export default function SiswaDashboard() {
                       <div className="text-gray-800">
                         <p>Invoice ID: {checkoutData.no_invoice}</p>
                         <p className="mt-0.5">{checkoutData.product?.nama || '-'}</p>
-                        {firstKategori && (
-                          <p className="mt-0.5 text-[#0E6187] font-semibold">{firstKategori.nama} — {fmt(fkHarga)}</p>
-                        )}
                       </div>
                     </div>
 
