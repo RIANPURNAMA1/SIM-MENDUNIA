@@ -688,7 +688,6 @@ export default function SiswaDashboard() {
                           </div>
                         </div>
                       )}
-                    </div>
 
                     <div className="mt-6 bg-[#E8FAFF] rounded-md p-3 text-center text-[12px] text-gray-700 leading-relaxed">
                       <span className="font-bold">Penting!</span> Mohon transfer sesuai nominal hingga digit terakhir yaitu{' '}
