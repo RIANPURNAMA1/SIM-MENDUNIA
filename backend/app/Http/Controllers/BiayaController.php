@@ -280,4 +280,53 @@ class BiayaController extends Controller
             'message' => 'Pembayaran berhasil disimpan',
         ]);
     }
+
+    public function setLunas($pendaftarId)
+    {
+        $pendaftar = Pendaftar::with('product.biayaKategoris')->findOrFail($pendaftarId);
+        $batchId = $pendaftar->batch_id;
+
+        $biayaBatch = $batchId
+            ? BatchBiaya::where('batch_id', $batchId)->get()->keyBy('kategori_id')
+            : collect();
+
+        $pivotPrices = collect();
+        if ($pendaftar->product && $pendaftar->product->relationLoaded('biayaKategoris')) {
+            $pivotPrices = $pendaftar->product->biayaKategoris->keyBy('id')
+                ->map(fn($k) => (int) $k->pivot->harga);
+        }
+
+        $kategoris = BiayaKategori::orderBy('urutan')->get();
+        $saved = 0;
+
+        foreach ($kategoris as $k) {
+            $bb = $biayaBatch->get($k->id);
+            $biaya = $bb ? (int) $bb->biaya : $pivotPrices->get($k->id, 0);
+            if ($biaya > 0) {
+                PembayaranItem::updateOrCreate(
+                    [
+                        'pendaftar_id' => $pendaftarId,
+                        'kategori_id' => $k->id,
+                    ],
+                    ['jumlah' => $biaya]
+                );
+                $saved++;
+            }
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "{$saved} kategori berhasil di-set lunas",
+        ]);
+    }
+
+    public function setBatalLunas($pendaftarId)
+    {
+        PembayaranItem::where('pendaftar_id', $pendaftarId)->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Pembayaran berhasil dibatalkan',
+        ]);
+    }
 }

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import api from '../../services/api'
 import { adminCabangApi, APP_URL } from '../../services/api'
+import Swal from 'sweetalert2'
 import { useAuth } from '../../contexts/AuthContext'
 
 interface KategoriInfo {
@@ -456,6 +457,7 @@ export default function AdminCabangTagihan() {
                   <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium w-[120px]">Dibayar</th>
                   <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium w-[120px]">Sisa</th>
                   <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium w-[110px]">Status</th>
+                  <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium w-[70px]">Lunas</th>
                   <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium w-[80px]">Invoice</th>
                   <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium w-[80px]">Aksi</th>
                 </tr>
@@ -501,7 +503,7 @@ export default function AdminCabangTagihan() {
                         const katDetail = p.detail?.find((d: DetailItem) => d.kategori_id === k.id)
                         const biayaKatRaw = katDetail?.biaya || 0
                         const biayaKat = uniqueCodeOp === 'subtract' && katDetail?.total_transfer ? Number(katDetail.total_transfer) : biayaKatRaw
-                        const isLunas = biayaKat > 0 && val >= biayaKat
+                        const isLunas = biayaKatRaw > 0 && val >= biayaKatRaw
                         const isPartial = val > 0 && !isLunas
                         return (
                           <td key={k.id} className="border border-slate-200 px-4 py-3 text-right whitespace-nowrap min-w-[120px]">
@@ -556,6 +558,29 @@ export default function AdminCabangTagihan() {
                       </td>
                       <td className="border border-slate-200 px-4 py-3 text-center">
                         {statusBadge(p.status_pembayaran, dibayar, tagihan)}
+                      </td>
+                      <td className="border border-slate-200 px-4 py-3 text-center">
+                        {isManager && tagihan > 0 && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                if (dibayar >= tagihan) {
+                                  await adminCabangApi.batalLunas(p.id)
+                                } else {
+                                  await adminCabangApi.setLunas(p.id)
+                                }
+                                refreshAll()
+                              } catch (err) {
+                                console.error(err)
+                                Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal mengubah status pembayaran', confirmButtonColor: '#0E6187' })
+                              }
+                            }}
+                            className={`rounded-lg border p-2 transition ${dibayar >= tagihan && tagihan > 0 ? 'border-red-200 bg-red-50 text-red-500 hover:bg-red-100' : 'border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}
+                            title={dibayar >= tagihan && tagihan > 0 ? 'Batalkan Lunas' : 'Set Lunas'}
+                          >
+                            {dibayar >= tagihan && tagihan > 0 ? <XCircle size={15} /> : <CheckCircle size={15} />}
+                          </button>
+                        )}
                       </td>
                       <td className="border border-slate-200 px-4 py-3 text-center">
                         <Link

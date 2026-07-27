@@ -274,6 +274,8 @@ class WaSettingController extends Controller
             'email_payment_success' => 'Pembayaran berhasil (Email)',
             'email_payment_rejected' => 'Pembayaran ditolak (Email)',
             'email_full_payment' => 'Tagihan lunas (Email)',
+            'starsender_api_key' => 'API Key StarSender',
+            'starsender_api_url' => 'API URL StarSender',
         ];
 
         $settings = [];

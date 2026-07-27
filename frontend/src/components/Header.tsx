@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, ChevronDown, Bell, Mail, Timer, User, UserCog, LogOut,
+  UserPlus, DollarSign,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { izinApi, lemburApi, APP_URL } from '../services/api'
+import { izinApi, lemburApi, pendaftarApi, pembayaranApi, APP_URL } from '../services/api'
 
 interface HeaderProps {
   onToggleSidebar: () => void
@@ -20,14 +21,16 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
   const { user, logout } = useAuth()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showNotif, setShowNotif] = useState(false)
-  const [notifFilter, setNotifFilter] = useState<'all' | 'izin' | 'lembur'>('all')
+  const [notifFilter, setNotifFilter] = useState<'all' | 'izin' | 'lembur' | 'pendaftaran' | 'pembayaran'>('all')
   const [notifications, setNotifications] = useState<any[]>([])
 
   useEffect(() => {
     Promise.all([
       izinApi.list({ status: 'PENDING', per_page: 10 }).catch(() => ({ data: { data: [] } })),
       lemburApi.list({ status: 'PENDING', per_page: 10 }).catch(() => ({ data: { data: [] } })),
-    ]).then(([izinRes, lemburRes]) => {
+      pendaftarApi.list({ status_pendaftaran: 'pending', per_page: 10 }).catch(() => ({ data: [] })),
+      pembayaranApi.list({ status: 'pending', per_page: 10 }).catch(() => ({ data: [] })),
+    ]).then(([izinRes, lemburRes, pendaftarRes, pembayaranRes]) => {
       const izinList = (izinRes.data?.data || []).map((i: any) => ({
         id: `izin-${i.id}`,
         type: 'izin' as const,
@@ -48,7 +51,27 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
         icon: Timer,
         iconColor: 'text-green-400',
       }))
-      const combined = [...izinList, ...lemburList].sort((a, b) =>
+      const pendaftaranList = (pendaftarRes.data || []).map((p: any) => ({
+        id: `pendaftaran-${p.id}`,
+        type: 'pendaftaran' as const,
+        nama: p.nama || '-',
+        jenis: 'Pendaftaran Baru',
+        created_at: p.created_at,
+        link: `/pendaftar/${p.id}`,
+        icon: UserPlus,
+        iconColor: 'text-purple-400',
+      }))
+      const pembayaranList = (pembayaranRes.data?.data || pembayaranRes.data || []).map((py: any) => ({
+        id: `pembayaran-${py.id}`,
+        type: 'pembayaran' as const,
+        nama: py.pendaftar?.nama || '-',
+        jenis: `Pembayaran ${py.kategori?.nama || ''}`,
+        created_at: py.created_at,
+        link: `/pendaftar/${py.pendaftar_id}`,
+        icon: DollarSign,
+        iconColor: 'text-emerald-400',
+      }))
+      const combined = [...izinList, ...lemburList, ...pendaftaranList, ...pembayaranList].sort((a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       )
       setNotifications(combined)
@@ -59,6 +82,8 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
     if (notifFilter === 'all') return true
     if (notifFilter === 'izin') return n.type === 'izin'
     if (notifFilter === 'lembur') return n.type === 'lembur'
+    if (notifFilter === 'pendaftaran') return n.type === 'pendaftaran'
+    if (notifFilter === 'pembayaran') return n.type === 'pembayaran'
     return true
   })
 
@@ -135,8 +160,11 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
           </button>
           {showNotif && (
             <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-              <div className="p-3 border-b border-gray-100">
+              <div className="p-3 border-b border-gray-100 flex items-center justify-between">
                 <p className="text-xs font-semibold text-gray-500">Notifikasi Pengajuan</p>
+                <button onClick={() => setShowNotif(false)} className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
               </div>
               <div className="max-h-64 overflow-y-auto">
                 {filteredNotif.length === 0 ? (
@@ -145,7 +173,9 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
                   filteredNotif.map(n => {
                     const Icon = n.icon
                     return (
-                      <Link key={n.id} to={n.link} className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-50">
+                      <Link key={n.id} to={n.link} onClick={() => {
+                        setNotifications(prev => prev.filter(x => x.id !== n.id))
+                      }} className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-50">
                         <Icon size={20} className={`${n.iconColor} mt-0.5 shrink-0`} />
                         <div>
                           <p className="text-sm font-medium text-gray-700">{n.nama}: {n.jenis}</p>
@@ -156,12 +186,16 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
                   })
                 )}
               </div>
-              <div className="p-2 border-t border-gray-100 flex justify-center gap-3 text-xs text-[#0E6187]">
+              <div className="p-2 border-t border-gray-100 flex justify-center gap-2 text-[11px] text-[#0E6187] flex-wrap">
                 <button onClick={() => setNotifFilter('all')} className={`hover:underline ${notifFilter === 'all' ? 'font-bold' : ''}`}>Semua</button>
                 <span className="text-gray-300">|</span>
-                <button onClick={() => setNotifFilter('izin')} className={`hover:underline ${notifFilter === 'izin' ? 'font-bold' : ''}`}>Semua Izin</button>
+                <button onClick={() => setNotifFilter('izin')} className={`hover:underline ${notifFilter === 'izin' ? 'font-bold' : ''}`}>Izin</button>
                 <span className="text-gray-300">|</span>
-                <button onClick={() => setNotifFilter('lembur')} className={`hover:underline ${notifFilter === 'lembur' ? 'font-bold' : ''}`}>Semua Lembur</button>
+                <button onClick={() => setNotifFilter('lembur')} className={`hover:underline ${notifFilter === 'lembur' ? 'font-bold' : ''}`}>Lembur</button>
+                <span className="text-gray-300">|</span>
+                <button onClick={() => setNotifFilter('pendaftaran')} className={`hover:underline ${notifFilter === 'pendaftaran' ? 'font-bold' : ''}`}>Pendaftaran</button>
+                <span className="text-gray-300">|</span>
+                <button onClick={() => setNotifFilter('pembayaran')} className={`hover:underline ${notifFilter === 'pembayaran' ? 'font-bold' : ''}`}>Pembayaran</button>
               </div>
             </div>
           )}

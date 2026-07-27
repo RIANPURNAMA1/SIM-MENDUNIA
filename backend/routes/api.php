@@ -383,6 +383,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/batch-biaya/{batchId}', [BiayaController::class, 'batchBiayaStore']);
     Route::get('/pembayaran-item/{pendaftarId}', [BiayaController::class, 'pembayaranItemIndex']);
     Route::post('/pembayaran-item/{pendaftarId}', [BiayaController::class, 'pembayaranItemStore']);
+    Route::post('/pembayaran-item/{pendaftarId}/set-lunas', [BiayaController::class, 'setLunas']);
+    Route::post('/pembayaran-item/{pendaftarId}/batal-lunas', [BiayaController::class, 'setBatalLunas']);
     Route::get('/affiliate-dashboard', [AffiliateDashboardController::class, 'index']);
     Route::post('/affiliate/my-links', [AffiliateLinkController::class, 'myLinks']);
     Route::get('/affiliate/products-aktif', [AffiliateLinkController::class, 'availableProducts']);
@@ -503,6 +505,8 @@ Route::prefix('admin-cabang')->middleware(['auth:sanctum'])->group(function () {
     // Reuse existing endpoints for payment operations
     Route::get('/pembayaran-item/{pendaftarId}', [BiayaController::class, 'pembayaranItemIndex']);
     Route::post('/pembayaran-item/{pendaftarId}', [BiayaController::class, 'pembayaranItemStore']);
+    Route::post('/pembayaran-item/{pendaftarId}/set-lunas', [BiayaController::class, 'setLunas']);
+    Route::post('/pembayaran-item/{pendaftarId}/batal-lunas', [BiayaController::class, 'setBatalLunas']);
     Route::post('/pendaftar/{id}/verify-payment', [PendaftaranController::class, 'verifyPayment']);
     Route::post('/pendaftar/pembayaran/{pembayaranId}/reject-payment', [PendaftaranController::class, 'rejectPayment']);
     Route::get('/pendaftar/{id}/invoice', [PendaftaranController::class, 'invoice']);

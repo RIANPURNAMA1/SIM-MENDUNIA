@@ -46,6 +46,7 @@ import PengaturanPembayaran from './pages/Pengaturan/PengaturanPembayaran'
 import DataKandidat from './pages/Pendaftaran/DataKandidat'
 import Pendaftar from './pages/Pendaftaran/Pendaftar'
 import InvoicePendaftar from './pages/Pendaftaran/InvoicePendaftar'
+import PendaftarDetail from './pages/Pendaftaran/PendaftarDetail'
 import DataMatchingJob from './pages/Akademik/DataMatchingJob'
 import Tagihan from './pages/Siswa/Tagihan'
 import RekapBatch from './pages/Siswa/RekapBatch'
@@ -564,6 +565,16 @@ function AppRoutes() {
           <ProtectedRoute>
             <DashboardLayout>
               <InvoicePendaftar />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/pendaftar/:id"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <PendaftarDetail />
             </DashboardLayout>
           </ProtectedRoute>
         }
