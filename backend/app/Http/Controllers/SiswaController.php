@@ -55,6 +55,7 @@ class SiswaController extends Controller
         if ($request->filled('batch_id')) $query->where('batch_id', $request->batch_id);
         if ($request->filled('level')) $query->where('level', $request->level);
         if ($request->filled('status')) $query->where('status', $request->status);
+        if ($request->filled('status_kandidat')) $query->where('status_kandidat', $request->status_kandidat);
         if ($request->filled('search')) $query->where('nama', 'like', '%' . $request->search . '%');
 
         $perPage = $request->per_page ?? 25;
@@ -375,6 +376,10 @@ class SiswaController extends Controller
         $stored = $siswa->level_status ?? [];
         $stored[$level] = $request->status;
         $siswa->update(['level_status' => $stored]);
+
+        if ($request->status === 'Active' && $siswa->status_kandidat !== 'Kandidat Aktif') {
+            $siswa->update(['status_kandidat' => 'Kandidat Aktif']);
+        }
 
         return response()->json([
             'status' => 'success',

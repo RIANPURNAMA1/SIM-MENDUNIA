@@ -29,6 +29,7 @@ export default function SiswaPage() {
   const [editingLevel, setEditingLevel] = useState<{ siswaId: number; level: number } | null>(null);
   const [filterBatch, setFilterBatch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [filterStatusKandidat, setFilterStatusKandidat] = useState("Kandidat Aktif");
   const [filterSearch, setFilterSearch] = useState("");
 
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -71,6 +72,7 @@ export default function SiswaPage() {
       const params: Record<string, string | number | undefined> = {};
       if (filterBatch) params.batch_id = filterBatch;
       if (filterStatus) params.status = filterStatus;
+      if (filterStatusKandidat) params.status_kandidat = filterStatusKandidat;
       if (filterSearch) params.search = filterSearch;
       params.page = page;
       params.per_page = 25;
@@ -86,11 +88,11 @@ export default function SiswaPage() {
     } finally {
       setLoading(false);
     }
-  }, [filterBatch, filterStatus, filterSearch, page]);
+  }, [filterBatch, filterStatus, filterStatusKandidat, filterSearch, page]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  useEffect(() => { setPage(1); }, [filterBatch, filterStatus, filterSearch]);
+  useEffect(() => { setPage(1); }, [filterBatch, filterStatus, filterStatusKandidat, filterSearch]);
 
   const toggleSelect = (id: number) => {
     setSelectedIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev]);
@@ -106,7 +108,7 @@ export default function SiswaPage() {
   };
 
   const resetFilter = () => {
-    setFilterBatch(""); setFilterStatus(""); setFilterSearch(""); setPage(1);
+    setFilterBatch(""); setFilterStatus(""); setFilterStatusKandidat("Kandidat Aktif"); setFilterSearch(""); setPage(1);
   };
 
   const fotoUrl = (s: Siswa) => {
@@ -377,6 +379,13 @@ export default function SiswaPage() {
           <select value={filterBatch} onChange={(e) => setFilterBatch(e.target.value)} className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
             <option value="">Semua Batch</option>
             {batchList.map((b) => <option key={b.id} value={b.id}>{b.nama_batch}</option>)}
+          </select>
+          <select value={filterStatusKandidat} onChange={(e) => setFilterStatusKandidat(e.target.value)} className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            <option value="">Semua Status Kandidat</option>
+            <option value="Kandidat Aktif">Kandidat Aktif</option>
+            <option value="Calon Kandidat">Calon Kandidat</option>
+            <option value="Mengundurkan Diri">Mengundurkan Diri</option>
+            <option value="Lulus Pendidikan">Lulus Pendidikan</option>
           </select>
           <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
             <option value="">Semua Status</option>
