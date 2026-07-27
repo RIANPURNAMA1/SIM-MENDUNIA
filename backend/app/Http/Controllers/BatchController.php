@@ -93,6 +93,34 @@ class BatchController extends Controller
         ]);
     }
 
+    public function bulkStore(Request $request)
+    {
+        $request->validate([
+            'batches' => 'required|array|min:1|max:50',
+            'batches.*.nama_batch' => 'required|string|max:100|unique:batches,nama_batch',
+            'batches.*.cabang_id' => 'nullable|exists:cabangs,id',
+            'batches.*.kuota' => 'nullable|integer|min:1',
+            'batches.*.warna' => 'nullable|string|max:20',
+        ]);
+
+        $created = [];
+        foreach ($request->batches as $batchData) {
+            $batch = Batch::create([
+                'nama_batch' => $batchData['nama_batch'],
+                'cabang_id' => $batchData['cabang_id'] ?? null,
+                'kuota' => $batchData['kuota'] ?? null,
+                'warna' => $batchData['warna'] ?? null,
+            ]);
+            $created[] = $batch;
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => count($created) . ' batch berhasil ditambahkan',
+            'data' => $created,
+        ]);
+    }
+
     public function togglePenuh($id)
     {
         $batch = Batch::findOrFail($id);

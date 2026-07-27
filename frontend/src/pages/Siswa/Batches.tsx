@@ -40,6 +40,9 @@ export default function BatchesPage() {
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [namaBatch, setNamaBatch] = useState("");
+  const [batchPrefix, setBatchPrefix] = useState("");
+  const [batchDari, setBatchDari] = useState("1");
+  const [batchSampai, setBatchSampai] = useState("10");
   const [cabangId, setCabangId] = useState<number | "">("");
   const [kuota, setKuota] = useState<string>("");
   const [warna, setWarna] = useState("#3b82f6");
@@ -73,6 +76,9 @@ export default function BatchesPage() {
   const openAdd = () => {
     setEditId(null);
     setNamaBatch("");
+    setBatchPrefix("");
+    setBatchDari("1");
+    setBatchSampai("10");
     setCabangId("");
     setKuota("");
     setWarna("#3b82f6");
@@ -88,19 +94,31 @@ export default function BatchesPage() {
     setShowModal(true);
   };
 
+  const isBulk = !editId && batchPrefix.trim() && batchDari && batchSampai && Number(batchDari) < Number(batchSampai);
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!namaBatch.trim()) return;
     setSubmitting(true);
     try {
-      const payload = { nama_batch: namaBatch.trim(), cabang_id: cabangId || null, kuota: kuota ? Number(kuota) : null, warna };
       if (editId) {
-        await batchApi.update(editId, payload);
+        await batchApi.update(editId, { nama_batch: namaBatch.trim(), cabang_id: cabangId || null, kuota: kuota ? Number(kuota) : null, warna });
+      } else if (isBulk) {
+        const dari = Number(batchDari);
+        const sampai = Number(batchSampai);
+        const batches = [];
+        for (let i = dari; i <= sampai; i++) {
+          batches.push({ nama_batch: `${batchPrefix.trim()} ${i}`, cabang_id: cabangId || null, kuota: kuota ? Number(kuota) : null, warna });
+        }
+        await batchApi.bulkStore(batches);
       } else {
-        await batchApi.store(payload);
+        if (!namaBatch.trim()) { setSubmitting(false); return; }
+        await batchApi.store({ nama_batch: namaBatch.trim(), cabang_id: cabangId || null, kuota: kuota ? Number(kuota) : null, warna });
       }
       setShowModal(false);
       setNamaBatch("");
+      setBatchPrefix("");
+      setBatchDari("1");
+      setBatchSampai("10");
       setCabangId("");
       setKuota("");
       setWarna("#3b82f6");
@@ -329,10 +347,44 @@ export default function BatchesPage() {
             </div>
             <form onSubmit={handleSave}>
               <div className="px-4 py-4 space-y-4">
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-500">Nama Batch <span className="text-rose-500">*</span></label>
-                  <input type="text" value={namaBatch} onChange={(e) => setNamaBatch(e.target.value)} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="Contoh: Batch 14" required autoFocus />
-                </div>
+                {editId ? (
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-500">Nama Batch <span className="text-rose-500">*</span></label>
+                    <input type="text" value={namaBatch} onChange={(e) => setNamaBatch(e.target.value)} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="Contoh: Batch 14" required autoFocus />
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-slate-500">Nama Batch <span className="text-rose-500">*</span></label>
+                      <input type="text" value={namaBatch} onChange={(e) => setNamaBatch(e.target.value)} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="Batch" />
+                      <p className="mt-1 text-[10px] text-slate-400">Isi untuk 1 batch. Kosongi jika ingin buat banyak batch otomatis.</p>
+                    </div>
+                    <div className="border-t border-slate-200 pt-3">
+                      <p className="mb-2 text-xs font-semibold text-slate-500">Buat Banyak Batch Otomatis</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="mb-1 block text-[11px] font-medium text-slate-400">Prefiks Nama</label>
+                          <input type="text" value={batchPrefix} onChange={(e) => setBatchPrefix(e.target.value)} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="Batch" />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-[11px] font-medium text-slate-400">Dari</label>
+                          <input type="number" min="1" value={batchDari} onChange={(e) => setBatchDari(e.target.value)} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-[11px] font-medium text-slate-400">Sampai</label>
+                          <input type="number" min="1" value={batchSampai} onChange={(e) => setBatchSampai(e.target.value)} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                        </div>
+                        <div className="flex items-end pb-1">
+                          {batchPrefix.trim() && batchDari && batchSampai && Number(batchDari) <= Number(batchSampai) && (
+                            <span className="text-[11px] text-emerald-600 font-medium">
+                              Akan buat {Number(batchSampai) - Number(batchDari) + 1} batch
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
                 <div>
                   <label className="mb-1 block text-xs font-semibold text-slate-500">Cabang</label>
                   <select value={cabangId} onChange={(e) => setCabangId(e.target.value ? Number(e.target.value) : "")} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
@@ -363,8 +415,8 @@ export default function BatchesPage() {
               </div>
               <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3">
                 <button type="button" onClick={() => { setShowModal(false); setNamaBatch(""); setCabangId(""); setKuota(""); setEditId(null); }} className="rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">Batal</button>
-                <button type="submit" disabled={submitting || !namaBatch.trim()} className="rounded-md bg-slate-800 px-4 py-2 text-xs font-medium text-white transition hover:bg-slate-700 disabled:opacity-50">
-                  {submitting ? "Menyimpan..." : "Simpan"}
+                <button type="submit" disabled={submitting || (editId ? !namaBatch.trim() : (!namaBatch.trim() && !isBulk))} className="rounded-md bg-slate-800 px-4 py-2 text-xs font-medium text-white transition hover:bg-slate-700 disabled:opacity-50">
+                  {submitting ? "Menyimpan..." : editId ? "Simpan" : isBulk ? `Buat ${Number(batchSampai) - Number(batchDari) + 1} Batch` : "Simpan"}
                 </button>
               </div>
             </form>
