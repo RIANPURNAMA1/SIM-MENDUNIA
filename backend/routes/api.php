@@ -580,3 +580,36 @@ Route::get('/bank-accounts-public', [\App\Http\Controllers\PaymentController::cl
 
 // Public — payment settings for registration forms
 Route::get('/payment-settings-public', [\App\Http\Controllers\PaymentController::class, 'paymentSettingsPublic']);
+
+// Redis test endpoint
+Route::get('/redis-test', function () {
+    try {
+        $key = 'redis_test_' . uniqid();
+        $value = 'Redis is working at ' . now()->toDateTimeString();
+
+        Redis::set($key, $value, 'EX', 60);
+        $retrieved = Redis::get($key);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Redis connection successful',
+            'data' => [
+                'key' => $key,
+                'stored' => $value,
+                'retrieved' => $retrieved,
+                'match' => $value === $retrieved,
+            ],
+            'cache_test' => [
+                'cache_store' => config('cache.default'),
+                'queue_connection' => config('queue.default'),
+                'session_driver' => config('session.driver'),
+            ],
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Redis connection failed',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+});

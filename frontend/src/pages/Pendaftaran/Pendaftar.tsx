@@ -226,6 +226,7 @@ export default function Pendaftar() {
     selesai: data.filter(p => p.status_pembayaran === 'verified').length,
     batal: data.filter(p => p.status_pendaftaran === 'ditolak' && p.status_pembayaran !== 'refund').length,
     refund: data.filter(p => p.status_pembayaran === 'refund').length,
+    pendingVerifikasi: data.filter(p => p.status_pembayaran === 'processing').length,
   }), [data])
 
   if (loading) {
@@ -269,6 +270,23 @@ export default function Pendaftar() {
           </div>
         ))}
       </div>
+
+      {/* Notifikasi Pembayaran Masuk */}
+      {stats.pendingVerifikasi > 0 && (
+        <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 shadow-sm">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100">
+            <Clock size={16} className="text-amber-600" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-amber-800">
+              {stats.pendingVerifikasi} pembayaran menunggu verifikasi
+            </p>
+            <p className="text-xs text-amber-700 mt-0.5">
+              Bukti pembayaran dari siswa perlu segera diverifikasi.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Filter */}
       <div className="mb-4 rounded-lg p-4 shadow-sm">
