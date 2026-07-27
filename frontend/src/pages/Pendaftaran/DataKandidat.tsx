@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { Users, Search, RotateCcw, Eye, Edit3, Power, PowerOff, CalendarOff, Calendar, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, FileText, Download, Upload, Trash2, ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -180,14 +180,14 @@ export default function DataKandidat() {
     }
   }, [])
 
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   function handleSearch(e: React.ChangeEvent<HTMLInputElement>) {
-    const val = e.target.value
-    setSearch(val)
+    setSearch(e.target.value)
     setPage(1)
-    if (val.length >= 2 || val.length === 0) fetchData(val)
   }
 
-  function doFetch(params: Record<string, string>) {
+  const doFetch = useCallback(function (params: Record<string, string>) {
     setLoading(true)
     pendaftarApi.kandidat(params)
       .then(res => {
@@ -217,7 +217,15 @@ export default function DataKandidat() {
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }
+  }, [])
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      doFetch(buildParams({ search }))
+    }, 400)
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  }, [search])
 
   function buildParams(overrides?: { search?: string; batch_id?: string; cabang_id?: string }) {
     const s = overrides?.search !== undefined ? overrides.search : search
