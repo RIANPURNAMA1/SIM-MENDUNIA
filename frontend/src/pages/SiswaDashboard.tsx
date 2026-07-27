@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { User, CheckCircle, Clock, XCircle, CreditCard, Package, Check, Copy, AlertTriangle, ShieldCheck, ChevronDown, ChevronUp, Building2, X } from 'lucide-react'
+import { User, CheckCircle, Clock, XCircle, CreditCard, Package, Check, Copy, AlertTriangle, ShieldCheck, ChevronDown, ChevronUp, Building2, Upload, Loader } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
 
@@ -112,6 +112,26 @@ function fmt(n: number | string) {
   return 'Rp ' + Number(n).toLocaleString('id-ID').replace(/,/g, '.')
 }
 
+function maskName(name: string) {
+  if (!name) return '••••••••'
+  return name.split(' ').map(part => {
+    if (part.length <= 2) return '••'
+    return '•'.repeat(part.length - 2) + part.slice(-2)
+  }).join(' ')
+}
+
+function maskEmail(email: string) {
+  const [user, domain] = email.split('@')
+  if (!domain) return email
+  if (user.length <= 6) return '•'.repeat(user.length) + '@' + domain
+  return '•'.repeat(user.length - 6) + user.slice(-6) + '@' + domain
+}
+
+function maskPhone(phone: string) {
+  if (!phone || phone.length <= 6) return '•'.repeat(phone ? phone.length : 6)
+  return '•'.repeat(phone.length - 6) + phone.slice(-6)
+}
+
 export default function SiswaDashboard() {
   const { user } = useAuth()
   const [pendaftar, setPendaftar] = useState<PendaftarData | null>(null)
@@ -125,6 +145,12 @@ export default function SiswaDashboard() {
   const [copiedField, setCopiedField] = useState<string | null>(null)
   const [showDetail, setShowDetail] = useState(false)
   const [countdowns, setCountdowns] = useState<Record<number, { days: number; hours: number; minutes: number; seconds: number; expired: boolean; deadline: Date }>>({})
+
+  const [showConfirmForm, setShowConfirmForm] = useState(false)
+  const [fileBukti, setFileBukti] = useState<File | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+  const [success, setSuccess] = useState(false)
 
   useEffect(() => {
     api.get('/siswa-dashboard')
@@ -202,6 +228,38 @@ export default function SiswaDashboard() {
       weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
       hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta', timeZoneName: 'short',
     }).replace(/\./g, ':')
+  }
+
+  async function handleSubmitPayment(e: FormEvent) {
+    e.preventDefault()
+    if (!fileBukti || !checkoutData) return
+
+    setSubmitError('')
+    setSubmitting(true)
+
+    try {
+      const fd = new FormData()
+      const firstKat = checkoutData.kategori_items?.[0]
+      const katKodeUnik = firstKat ? Number(firstKat.kode_unik) : 0
+      const katTotalTransfer = firstKat ? Number(firstKat.total_transfer) : 0
+      const katHarga = firstKat ? (firstKat.sisa > 0 ? firstKat.sisa : firstKat.harga) : checkoutData.keuangan.sisa > 0 ? Number(checkoutData.keuangan.sisa) : Number(checkoutData.keuangan.total_tagihan)
+      const totalTransferAmt = katTotalTransfer > 0 ? katTotalTransfer : (katHarga + katKodeUnik)
+      fd.append('jumlah', String(totalTransferAmt))
+      fd.append('kategori_id', String(firstKat?.id || 1))
+      fd.append('bukti_pembayaran', fileBukti)
+
+      await api.post(`/pendaftar/${checkoutData.pendaftar.id}/bayar`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+
+      setSuccess(true)
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Gagal mengupload bukti pembayaran'
+      setSubmitError(msg)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   if (loading) {
@@ -429,11 +487,6 @@ export default function SiswaDashboard() {
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 py-4 px-4">
           <div className="w-full max-w-[460px] my-4">
             <div className="relative">
-              <button
-                onClick={() => { setShowPaymentModal(false); setShowDetail(false) }}
-                className="absolute -top-2 -right-2 z-10 w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-gray-100 transition-colors">
-                <X size={16} className="text-gray-500" />
-              </button>
 
               {checkoutLoading || !checkoutData ? (
                 <div className="bg-white rounded-2xl p-10 text-center">
@@ -701,16 +754,120 @@ export default function SiswaDashboard() {
 
                     <div className="border-t border-gray-100 my-6" />
 
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-[12px] text-gray-500 max-w-[150px] leading-snug">
-                        Konfirmasi pembayaran melalui halaman ini:
-                      </span>
-                      <a
-                        href={`/konfirmasi-pembayaran/${checkoutData.pendaftar.id}`}
-                        className="bg-[#22C55E] hover:bg-[#16A34A] text-white font-bold py-2.5 px-6 rounded-md text-[13px] transition-colors whitespace-nowrap">
+                    {success ? (
+                      <div className="text-center py-4">
+                        <div className="w-16 h-16 bg-[#00C853]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Check size={32} className="text-[#00C853]" strokeWidth={3} />
+                        </div>
+                        <h2 className="text-[16px] font-bold text-gray-800 mb-1">Bukti Terkirim!</h2>
+                        <p className="text-[13px] text-gray-500 mb-6 leading-relaxed">
+                          Bukti pembayaran Anda berhasil dikirim dan akan segera diverifikasi oleh admin.
+                        </p>
+                        <div className="bg-[#FFF9E5] border border-yellow-100 rounded-lg p-4 mb-6 text-left">
+                          <div className="flex justify-between text-[13px] mb-2">
+                            <span className="text-gray-500">Invoice</span>
+                            <span className="font-bold text-gray-800">{checkoutData.no_invoice}</span>
+                          </div>
+                          <div className="flex justify-between text-[13px] items-center">
+                            <span className="text-gray-500">Status</span>
+                            <span className="inline-flex items-center gap-1.5 text-yellow-600 font-bold">
+                              <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+                              Menunggu Verifikasi
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => { setShowPaymentModal(false); setShowDetail(false); setSuccess(false) }}
+                          className="w-full py-3 bg-[#0E6187] text-white font-bold rounded-lg text-[13px] hover:bg-[#0a4d6e] transition-colors">
+                          KEMBALI KE DASHBOARD
+                        </button>
+                      </div>
+                    ) : showConfirmForm ? (
+                      <>
+                        <div className="bg-[#FFF9E5] border border-yellow-100 rounded-lg p-3 mb-5">
+                          <p className="text-[13px] text-gray-700 text-center font-medium">
+                            Pastikan data pesanan ini adalah{' '}
+                            <span className="font-bold text-gray-900">BENAR</span> milik Anda
+                          </p>
+                        </div>
+
+                        <div className="space-y-3 text-[13px] mb-5">
+                          {[
+                            { label: 'invoice_id:', value: String(checkoutData.pendaftar.id) },
+                            { label: 'product:', value: checkoutData.product?.nama || '-' },
+                            { label: 'name:', value: maskName(checkoutData.pendaftar.nama) },
+                            { label: 'email:', value: maskEmail(checkoutData.pendaftar.email) },
+                            { label: 'phone:', value: maskPhone(checkoutData.pendaftar.telepon) },
+                            { label: 'total transfer:', value: fmt(firstKategori && firstKategori.total_transfer > 0 ? Number(firstKategori.total_transfer) : totalTransfer), color: 'text-[#0E6187]' },
+                          ].map(({ label, value, color }) => (
+                            <div key={label} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                              <span className="text-gray-500">{label}</span>
+                              <span className={`font-medium text-right max-w-[220px] leading-tight ${color || 'text-gray-800'}`}>
+                                {label === 'product:' ? value : <span className={label === 'total transfer:' ? 'font-bold' : 'font-mono'}>{value}</span>}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="border-t border-gray-100 my-4" />
+
+                        {submitError && (
+                          <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-md text-[12px] text-red-600 flex items-start gap-2">
+                            <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                            {submitError}
+                          </div>
+                        )}
+
+                        <form onSubmit={handleSubmitPayment} className="text-[13px]">
+                          <div className="mb-4">
+                            <div className="border-2 border-dashed border-gray-300 bg-gray-50 rounded-md p-5 text-center hover:border-gray-400 transition-colors">
+                              <Upload size={28} className="mx-auto mb-2 text-gray-400" />
+                              {fileBukti ? (
+                                <p className="text-[13px] text-[#0E6187] font-medium truncate px-4">{fileBukti.name}</p>
+                              ) : (
+                                <>
+                                  <p className="text-[13px] text-gray-500 mb-0.5">JPG, PNG, atau PDF</p>
+                                  <p className="text-[11px] text-gray-400">Maksimal 5 MB</p>
+                                </>
+                              )}
+                              <input
+                                type="file"
+                                accept=".jpg,.jpeg,.png,.pdf"
+                                onChange={(e) => setFileBukti(e.target.files?.[0] || null)}
+                                className="mt-3 w-full text-[12px] text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-[11px] file:font-bold file:bg-[#0E6187] file:text-white hover:file:bg-[#114b69] cursor-pointer"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="bg-[#FFF9E5] border border-yellow-100 rounded-md p-3 text-center text-[12px] text-gray-600 leading-relaxed mb-4">
+                            Pastikan konfirmasi pembayaran hanya dilakukan setelah pembayaran dilakukan.
+                          </div>
+
+                          <div className="flex gap-3">
+                            <button
+                              type="button"
+                              onClick={() => { setShowConfirmForm(false); setFileBukti(null); setSubmitError('') }}
+                              className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-lg text-[13px] hover:bg-gray-200 transition-colors">
+                              KEMBALI
+                            </button>
+                            <button
+                              type="submit"
+                              disabled={!fileBukti || submitting}
+                              className="flex-1 py-3 bg-[#22C55E] text-white font-bold rounded-lg text-[13px] hover:bg-[#16A34A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                              {submitting ? (
+                                <><Loader size={16} className="animate-spin" /> MENGIRIM...</>
+                              ) : 'KIRIM KONFIRMASI'}
+                            </button>
+                          </div>
+                        </form>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => setShowConfirmForm(true)}
+                        className="w-full py-3 bg-[#22C55E] text-white font-bold rounded-lg text-[13px] hover:bg-[#16A34A] transition-colors">
                         KONFIRMASI
-                      </a>
-                    </div>
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
