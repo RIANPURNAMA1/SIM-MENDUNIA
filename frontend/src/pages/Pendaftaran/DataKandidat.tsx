@@ -293,7 +293,11 @@ export default function DataKandidat() {
   async function handleUpdateStatusKandidat(id: number, status: string) {
     setUpdatingStatusKandidat(id)
     try {
-      await pendaftarApi.updateKandidat(id, { status_kandidat: status })
+      const payload: Record<string, unknown> = { status_kandidat: status }
+      if (status === 'Mengundurkan Diri') {
+        payload.status_akademik = 'NONAKTIF'
+      }
+      await pendaftarApi.updateKandidat(id, payload)
       fetchData(search)
     } catch {
       alert('Gagal mengubah status kandidat')
@@ -1139,11 +1143,9 @@ export default function DataKandidat() {
                     pagedList.map((k, idx) => {
                       const isEditing = editingId === k.id
                       const rowNum = (safePage - 1) * perPage + idx + 1
-                      const bc = getBatchColor(k.batch_nama)
-                      const batchBg = k.batch_warna ? hexToRgba(k.batch_warna, 0.08) : undefined
                       const batchBadgeBg = k.batch_warna || '#3b82f6'
                       return (
-                        <tr key={k.id} className={`${isEditing ? 'bg-blue-50/50' : k.level_status_keluar ? 'bg-red-200' : k.is_cuti ? 'bg-yellow-300' : k.status_akademik === 'NONAKTIF' ? 'bg-red-200' : ''} transition hover:brightness-[0.97] group`} style={(!isEditing && !k.level_status_keluar && !k.is_cuti && k.status_akademik !== 'NONAKTIF' && batchBg) ? { backgroundColor: batchBg } : undefined}>
+                        <tr key={k.id} className={`${isEditing ? 'bg-blue-50/50' : k.level_status_keluar ? 'bg-red-200' : k.is_cuti ? 'bg-yellow-300' : k.status_akademik === 'NONAKTIF' ? 'bg-red-200' : 'bg-white'} transition hover:brightness-[0.97] group`}>
                           <td className="border border-slate-200 px-4 py-3 text-center text-xs font-normal text-black">{rowNum}</td>
                           <td className="border border-slate-200 px-3 py-3 text-center">
                             <input
@@ -1366,30 +1368,31 @@ export default function DataKandidat() {
                                     <div className="my-1 border-t border-slate-100" />
                                     <button onClick={() => {
                                         setOpenActionId(null)
+                                        const isNonaktif = k.status_akademik === 'NONAKTIF' || k.status_kandidat === 'Mengundurkan Diri'
                                         Swal.fire({
-                                          title: 'Hapus Kandidat?',
-                                          text: `${k.nama} akan dihapus permanen.`,
+                                          title: isNonaktif ? 'Nonaktifkan Kandidat?' : 'Mengundurkan Diri?',
+                                          text: isNonaktif ? `${k.nama} akan dinonaktifkan.` : `${k.nama} akan diatur sebagai Mengundurkan Diri dan dinonaktifkan.`,
                                           icon: 'warning',
                                           showCancelButton: true,
                                           confirmButtonColor: '#dc2626',
                                           cancelButtonColor: '#64748b',
-                                          confirmButtonText: 'Ya, Hapus!',
+                                          confirmButtonText: 'Ya, Nonaktifkan!',
                                           cancelButtonText: 'Batal',
                                         }).then(async (result) => {
                                           if (result.isConfirmed) {
                                             try {
-                                              await pendaftarApi.deleteKandidat(k.id)
+                                              await pendaftarApi.updateKandidat(k.id, { status_kandidat: 'Mengundurkan Diri', status_akademik: 'NONAKTIF' })
                                               fetchData(search)
-                                              Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Kandidat telah dihapus.', confirmButtonColor: '#0E6187', timer: 2000, timerProgressBar: true, showConfirmButton: false })
+                                              Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Kandidat telah dinonaktifkan.', confirmButtonColor: '#0E6187', timer: 2000, timerProgressBar: true, showConfirmButton: false })
                                             } catch {
-                                              Swal.fire({ icon: 'error', title: 'Gagal', text: 'Terjadi kesalahan saat menghapus.', confirmButtonColor: '#0E6187' })
+                                              Swal.fire({ icon: 'error', title: 'Gagal', text: 'Terjadi kesalahan.', confirmButtonColor: '#0E6187' })
                                             }
                                           }
                                         })
                                       }}
                                       className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 transition-colors">
-                                      <Trash2 size={14} className="text-red-400" />
-                                      <span>Hapus</span>
+                                      <PowerOff size={14} className="text-red-400" />
+                                      <span>Nonaktifkan</span>
                                     </button>
                                   </div>,
                                   document.body

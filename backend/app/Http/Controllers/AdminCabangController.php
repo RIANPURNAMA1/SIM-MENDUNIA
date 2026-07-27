@@ -598,6 +598,7 @@ class AdminCabangController extends Controller
 
         if ($request->filled('batch_id')) $query->where('batch_id', $request->batch_id);
         if ($request->filled('status')) $query->where('status', $request->status);
+        if ($request->filled('status_kandidat')) $query->where('status_kandidat', $request->status_kandidat);
         if ($request->filled('search')) $query->where('nama', 'like', '%' . $request->search . '%');
 
         $perPage = $request->per_page ?? 25;
