@@ -198,8 +198,9 @@ export const siswaApi = {
 
 export const batchApi = {
   list: () => api.get('/batches'),
-  store: (data: { nama_batch: string; cabang_id?: number | null; kuota?: number | null }) => api.post('/batches', data),
-  update: (id: number, data: { nama_batch: string; cabang_id?: number | null; kuota?: number | null }) => api.put(`/batches/${id}`, data),
+  store: (data: { nama_batch: string; cabang_id?: number | null; kuota?: number | null; warna?: string | null }) => api.post('/batches', data),
+  bulkStore: (batches: { nama_batch: string; cabang_id?: number | null; kuota?: number | null; warna?: string | null }[]) => api.post('/batches/bulk', { batches }),
+  update: (id: number, data: { nama_batch: string; cabang_id?: number | null; kuota?: number | null; warna?: string | null }) => api.put(`/batches/${id}`, data),
   destroy: (id: number) => api.delete(`/batches/${id}`),
   toggleStatus: (id: number) => api.post(`/batches/${id}/toggle-status`),
   togglePenuh: (id: number) => api.post(`/batches/${id}/toggle-penuh`),

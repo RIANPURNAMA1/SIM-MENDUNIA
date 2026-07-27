@@ -252,6 +252,7 @@ Route::prefix('siswa')->group(function () {
 Route::prefix('batches')->group(function () {
     Route::get('/', [BatchController::class, 'apiIndex']);
     Route::post('/', [BatchController::class, 'store']);
+    Route::post('/bulk', [BatchController::class, 'bulkStore']);
     Route::put('/{id}', [BatchController::class, 'update']);
     Route::delete('/{id}', [BatchController::class, 'destroy']);
     Route::post('/{id}/toggle-status', [BatchController::class, 'toggleStatus']);
