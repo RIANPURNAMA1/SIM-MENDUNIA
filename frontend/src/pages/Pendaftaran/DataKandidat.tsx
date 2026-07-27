@@ -124,6 +124,7 @@ export default function DataKandidat() {
   const [perPage, setPerPage] = useState(25)
   const [togglingId, setTogglingId] = useState<number | null>(null)
   const [togglingCutiId, setTogglingCutiId] = useState<number | null>(null)
+  const [updatingStatusKandidat, setUpdatingStatusKandidat] = useState<number | null>(null)
   const [openActionId, setOpenActionId] = useState<number | null>(null)
   const actionRef = useRef<HTMLDivElement>(null)
   const actionDropdownRef = useRef<HTMLDivElement>(null)
@@ -286,6 +287,18 @@ export default function DataKandidat() {
       alert('Gagal mengubah status cuti')
     } finally {
       setTogglingCutiId(null)
+    }
+  }
+
+  async function handleUpdateStatusKandidat(id: number, status: string) {
+    setUpdatingStatusKandidat(id)
+    try {
+      await pendaftarApi.updateKandidat(id, { status_kandidat: status })
+      fetchData(search)
+    } catch {
+      alert('Gagal mengubah status kandidat')
+    } finally {
+      setUpdatingStatusKandidat(null)
     }
   }
 
@@ -1322,7 +1335,18 @@ export default function DataKandidat() {
                                       <span>Lihat Invoice</span>
                                     </Link>
                                     <div className="my-1 border-t border-slate-100" />
-                                    <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Aksi</p>
+                                    <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Status Kandidat</p>
+                                    {['Calon Kandidat', 'Kandidat Aktif', 'Mengundurkan Diri', 'Lulus Pendidikan'].map((st) => (
+                                      <button key={st} onClick={() => { handleUpdateStatusKandidat(k.id, st); setOpenActionId(null) }}
+                                        disabled={updatingStatusKandidat === k.id || k.status_kandidat === st}
+                                        className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-40">
+                                        <span className={`h-2 w-2 rounded-full ${st === 'Calon Kandidat' ? 'bg-blue-500' : st === 'Kandidat Aktif' ? 'bg-emerald-500' : st === 'Mengundurkan Diri' ? 'bg-red-500' : 'bg-purple-500'}`} />
+                                        <span>{st}</span>
+                                        {k.status_kandidat === st && <span className="ml-auto text-[10px] text-slate-400">sekarang</span>}
+                                      </button>
+                                    ))}
+                                    <div className="my-1 border-t border-slate-100" />
+                                    <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Lainnya</p>
                                     <button onClick={() => { handleToggleStatus(k.id); setOpenActionId(null) }}
                                       disabled={togglingId === k.id}
                                       className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50">

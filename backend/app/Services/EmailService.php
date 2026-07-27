@@ -8,6 +8,8 @@ use App\Models\CompanyProfile;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\PaymentReminderMail;
 use App\Mail\PaymentStatusMail;
+use App\Mail\RegistrationApprovedMail;
+use App\Mail\NewBillMail;
 
 class EmailService
 {
@@ -86,6 +88,82 @@ class EmailService
             return true;
         } catch (\Exception $e) {
             $this->log($pendaftar->id, "payment_{$status}_email", $email, $subject, false, $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Send registration approved notification email.
+     */
+    public function sendRegistrationApproved(Pendaftar $pendaftar): bool
+    {
+        $email = $pendaftar->email;
+        if (empty($email)) {
+            $this->log($pendaftar->id, 'approved_no_email', '', '', false, 'Pendaftar tidak memiliki email');
+            return false;
+        }
+
+        $company = CompanyProfile::getProfile();
+        $noInvoice = 'INV/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . $pendaftar->created_at->format('Ym');
+        $subject = 'Pendaftaran Disetujui - ' . ($pendaftar->product?->nama ?? 'Program');
+
+        try {
+            Mail::to($email)->send(new RegistrationApprovedMail(
+                nama: $pendaftar->nama,
+                program: $pendaftar->product?->nama ?? '-',
+                noRegistrasi: $pendaftar->no_registrasi ?? '-',
+                noInvoice: $noInvoice,
+                company: $company,
+                customSubject: $subject,
+            ));
+
+            $this->log($pendaftar->id, 'approved_email', $email, $subject, true);
+            return true;
+        } catch (\Exception $e) {
+            $this->log($pendaftar->id, 'approved_email', $email, $subject, false, $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Send new bill notification email.
+     */
+    public function sendNewBill(Pendaftar $pendaftar): bool
+    {
+        $email = $pendaftar->email;
+        if (empty($email)) {
+            $this->log($pendaftar->id, 'new_bill_no_email', '', '', false, 'Pendaftar tidak memiliki email');
+            return false;
+        }
+
+        $company = CompanyProfile::getProfile();
+        $noInvoice = 'INV/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . $pendaftar->created_at->format('Ym');
+
+        $totalTagihan = 0;
+        $pendaftar->loadMissing('product.biayaKategoris');
+        if ($pendaftar->product && $pendaftar->product->relationLoaded('biayaKategoris')) {
+            $totalTagihan = $pendaftar->product->biayaKategoris->sum(fn($k) => (int) $k->pivot->harga);
+        }
+        $totalTagihan = $totalTagihan ?: ($pendaftar->product?->harga ?? 0);
+        $totalTagihan = $totalTagihan - ($pendaftar->diskon ?? 0);
+        $totalFormat = 'Rp ' . number_format($totalTagihan, 0, ',', '.');
+        $linkInvoice = url("/pendaftar/{$pendaftar->id}/invoice");
+
+        try {
+            Mail::to($email)->send(new NewBillMail(
+                nama: $pendaftar->nama,
+                program: $pendaftar->product?->nama ?? '-',
+                noRegistrasi: $pendaftar->no_registrasi ?? '-',
+                noInvoice: $noInvoice,
+                totalTagihan: $totalFormat,
+                linkInvoice: $linkInvoice,
+                company: $company,
+            ));
+
+            $this->log($pendaftar->id, 'new_bill_email', $email, 'Tagihan Baru', true);
+            return true;
+        } catch (\Exception $e) {
+            $this->log($pendaftar->id, 'new_bill_email', $email, 'Tagihan Baru', false, $e->getMessage());
             return false;
         }
     }

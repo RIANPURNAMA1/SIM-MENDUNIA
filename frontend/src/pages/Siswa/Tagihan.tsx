@@ -113,6 +113,8 @@ export default function Tagihan() {
   const [batchPages, setBatchPages] = useState<Record<number, number>>({})
   const [uniqueCodeOp, setUniqueCodeOp] = useState<string>('add')
   const [openActionId, setOpenActionId] = useState<number | null>(null)
+  const [selectedLunasIds, setSelectedLunasIds] = useState<Set<number>>(new Set())
+  const [bulkLunasLoading, setBulkLunasLoading] = useState(false)
   const actionRef = useRef<HTMLDivElement>(null)
   const batchPerPage = 5
 
@@ -451,10 +453,42 @@ export default function Tagihan() {
 
         {!isCollapsed && (
           <div className="overflow-x-auto border-t border-slate-200">
+            {selectedLunasIds.size > 0 && (
+              <div className="flex items-center gap-3 border-b border-slate-200 bg-blue-50/50 px-4 py-2">
+                <span className="text-xs font-medium text-slate-600">{selectedLunasIds.size} pendaftar dipilih</span>
+                <button onClick={async () => {
+                  setBulkLunasLoading(true)
+                  try {
+                    await Promise.all([...selectedLunasIds].map(id => pendaftarApi.setLunas(id)))
+                    setSelectedLunasIds(new Set())
+                    await refreshAll()
+                    Swal.fire({ icon: 'success', title: 'Berhasil!', text: `${selectedLunasIds.size} pendaftar di-set lunas`, confirmButtonColor: '#0E6187', timer: 2000, timerProgressBar: true, showConfirmButton: false })
+                  } catch {
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal mengubah status pembayaran', confirmButtonColor: '#0E6187' })
+                  } finally {
+                    setBulkLunasLoading(false)
+                  }
+                }} disabled={bulkLunasLoading} className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50">
+                  {bulkLunasLoading ? 'Memproses...' : 'Set Lunas'}
+                </button>
+                <button onClick={() => setSelectedLunasIds(new Set())} className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50">
+                  Batal Pilih
+                </button>
+              </div>
+            )}
             <table className="w-full min-w-[900px] border-collapse text-left text-sm text-slate-700">
               <thead className="bg-[#0e6187]">
-                <tr>
-                  <th scope="col" className="border border-slate-600 px-4 py-3 font-medium text-white w-[220px]">Pendaftar</th>
+                  <tr>
+                    <th scope="col" className="border border-slate-600 px-3 py-3 text-center font-medium text-white w-[40px]">
+                      <input type="checkbox" checked={pagedItems.length > 0 && pagedItems.every(p => selectedLunasIds.has(p.id))} onChange={() => {
+                        if (pagedItems.every(p => selectedLunasIds.has(p.id))) {
+                          setSelectedLunasIds(prev => { const n = new Set(prev); pagedItems.forEach(p => n.delete(p.id)); return n })
+                        } else {
+                          setSelectedLunasIds(prev => { const n = new Set(prev); pagedItems.forEach(p => n.add(p.id)); return n })
+                        }
+                      }} className="h-4 w-4 rounded border-white/50 bg-white/20 text-white focus:ring-0 cursor-pointer" />
+                    </th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 font-medium text-white w-[220px]">Pendaftar</th>
                   {kategoriColumns.map(col => {
                     const k = col.kategori
                     return (
@@ -478,7 +512,12 @@ export default function Tagihan() {
                 {pagedItems.map(p => {
                   const { tagihan, dibayar, sisa } = calcRow(p, kats)
                   return (
-                    <tr key={p.id} className="bg-white transition hover:bg-slate-50">
+                    <tr key={p.id} className={`bg-white transition hover:bg-slate-50 ${selectedLunasIds.has(p.id) ? 'bg-blue-50/50' : ''}`}>
+                      <td className="border border-slate-200 px-3 py-3 text-center">
+                        <input type="checkbox" checked={selectedLunasIds.has(p.id)} onChange={() => {
+                          setSelectedLunasIds(prev => { const n = new Set(prev); if (n.has(p.id)) n.delete(p.id); else n.add(p.id); return n })
+                        }} className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                      </td>
                       <td className="border border-slate-200 px-4 py-3">
                         <div className="flex items-center gap-3">
                           <img
@@ -516,7 +555,7 @@ export default function Tagihan() {
                         const katDetail = p.detail?.find((d: DetailItem) => d.kategori_id === k.id)
                         const biayaKatRaw = katDetail?.biaya || 0
                         const biayaKat = uniqueCodeOp === 'subtract' && katDetail?.total_transfer ? Number(katDetail.total_transfer) : biayaKatRaw
-                        const isLunas = biayaKat > 0 && val >= biayaKat
+                        const isLunas = biayaKatRaw > 0 && val >= biayaKatRaw
                         const isPartial = val > 0 && !isLunas
                         if (isUnpaid) {
                           return (
@@ -580,6 +619,36 @@ export default function Tagihan() {
                                 <FileText size={14} className="text-slate-400" />
                                 <span>Lihat Invoice</span>
                               </Link>
+                              <div className="my-1 border-t border-slate-100" />
+                              <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Status</p>
+                              {(() => {
+                                const { tagihan, dibayar } = calcRow(p, kats)
+                                const isLunas = dibayar >= tagihan && tagihan > 0
+                                return (
+                                  <button
+                                    onClick={async () => {
+                                      setOpenActionId(null)
+                                      try {
+                                        if (isLunas) {
+                                          await pendaftarApi.batalLunas(p.id)
+                                        } else {
+                                          await pendaftarApi.setLunas(p.id)
+                                        }
+                                        refreshAll()
+                                      } catch (err) {
+                                        console.error(err)
+                                        Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal mengubah status pembayaran', confirmButtonColor: '#0E6187' })
+                                      }
+                                    }}
+                                    className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                                  >
+                                    {isLunas
+                                      ? <XCircle size={14} className="text-red-400" />
+                                      : <CheckCircle size={14} className="text-emerald-400" />}
+                                    <span>{isLunas ? 'Batalkan Lunas' : 'Set Lunas'}</span>
+                                  </button>
+                                )
+                              })()}
                               <div className="my-1 border-t border-slate-100" />
                               <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Pembayaran</p>
                               <button

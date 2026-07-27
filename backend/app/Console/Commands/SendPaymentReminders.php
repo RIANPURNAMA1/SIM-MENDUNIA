@@ -78,6 +78,20 @@ class SendPaymentReminders extends Command
                 $isPaid = $this->isKategoriPaid($p, $k);
                 if ($isPaid) continue;
 
+                // Check trigger_type — skip if not yet triggerable
+                $triggerType = $k->trigger_type ?? 'registration';
+                $triggerValue = $k->trigger_value ?? null;
+                if ($triggerType === 'manual') continue;
+                if ($triggerType === 'fixed_date' && $triggerValue) {
+                    if (now()->startOfDay()->lt(\Carbon\Carbon::parse($triggerValue)->startOfDay())) continue;
+                }
+                // For previous_paid: skip if no PembayaranItem exists yet (trigger hasn't fired)
+                if ($triggerType === 'previous_paid') {
+                    $hasItem = \App\Models\PembayaranItem::where('pendaftar_id', $p->id)
+                        ->where('kategori_id', $katId)->exists();
+                    if (!$hasItem) continue;
+                }
+
                 // Resolve deadline + channel
                 $jatuhTempo = null;
                 $reminderDays = null;
@@ -97,11 +111,21 @@ class SendPaymentReminders extends Command
                 }
 
                 if (!$jatuhTempo) {
+                    // Try product-level billing settings first
+                    if ($k->reminder_setting) {
+                        $reminderDays = $k->reminder_setting;
+                        $channel = $k->channel ?? 'wa';
+                        $templateEmail = $k->template_email;
+                        $subjectEmail = $k->subject_email;
+                    }
+
                     $setting = $reminderSettings[$katId] ?? null;
                     if (!$setting) continue;
                     $baseDate = ($p->tanggal_persetujuan ?? $p->created_at)->copy();
                     $jatuhTempo = $baseDate->addDays($setting->jatuh_tempo_hari)->startOfDay();
-                    $reminderDays = $setting->reminder_days ?? [7, 3, 1];
+                    if (!$reminderDays) {
+                        $reminderDays = $setting->reminder_days ?? [7, 3, 1];
+                    }
                 }
 
                 $hariTersisa = (int) $today->diffInDays($jatuhTempo, false);

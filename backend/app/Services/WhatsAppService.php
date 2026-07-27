@@ -8,11 +8,12 @@ use Illuminate\Support\Facades\Log;
 class WhatsAppService
 {
     protected $apiKey;
-    protected $apiUrl = 'https://api.starsender.online/api/send';
+    protected $apiUrl;
 
     public function __construct()
     {
-        $this->apiKey = config('services.starsender.api_key', env('STARSAPI_KEY'));
+        $this->apiKey = \App\Models\NotificationSetting::getValue('starsender_api_key', config('services.starsender.api_key', env('STARSAPI_KEY')));
+        $this->apiUrl = \App\Models\NotificationSetting::getValue('starsender_api_url', config('services.starsender.api_url', env('STARSAPI_URL', 'https://api.starsender.online/api/send')));
     }
 
     /**

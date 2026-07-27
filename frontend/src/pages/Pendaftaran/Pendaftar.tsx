@@ -462,46 +462,6 @@ export default function Pendaftar() {
                             </button>
                           )}
                           <div className="my-1 border-t border-slate-100" />
-                          <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Ubah Status</p>
-                          {[
-                            { val: 'waiting_payment', label: 'Menunggu Pembayaran', icon: Clock, iconColor: 'text-slate-400' },
-                            { val: 'confirmed', label: 'Pembayaran dikonfirmasi', icon: BadgeCheck, iconColor: 'text-amber-400' },
-                            { val: 'proses', label: 'Proses', icon: RefreshCw, iconColor: 'text-blue-400' },
-                            { val: 'selesai', label: 'Selesai', icon: CheckCircle2, iconColor: 'text-emerald-400' },
-                            { val: 'batal', label: 'Batal', icon: Ban, iconColor: 'text-red-400' },
-                            { val: 'refund', label: 'Refund', icon: Banknote, iconColor: 'text-purple-400' },
-                          ].map(opt => {
-                            const statusMap: Record<string, Record<string, string>> = {
-                              waiting_payment: { status_pembayaran: 'unpaid', status_pendaftaran: 'pending' },
-                              confirmed: { status_pembayaran: 'processing', status_pendaftaran: 'pending' },
-                              proses: { status_pembayaran: 'processing', status_pendaftaran: 'disetujui' },
-                              selesai: { status_pembayaran: 'verified', status_pendaftaran: 'disetujui' },
-                              batal: { status_pembayaran: 'ditolak', status_pendaftaran: 'ditolak' },
-                              refund: { status_pembayaran: 'refund', status_pendaftaran: 'ditolak' },
-                            }
-                            const Icon = opt.icon
-                            return (
-                              <button key={opt.val}
-                                onClick={async () => {
-                                  setOpenActionId(null)
-                                  const target = statusMap[opt.val]
-                                  if (!target) return
-                                  try {
-                                    await pendaftarApi.updateStatus(p.id, target)
-                                    setData(prev => prev.map(item => item.id === p.id ? { ...item, ...target } : item))
-                                    Swal.fire({ icon: 'success', title: 'Berhasil', timer: 1200, showConfirmButton: false })
-                                  } catch {
-                                    Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal memperbarui status' })
-                                  }
-                                }}
-                                className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-                              >
-                                <Icon size={14} className={opt.iconColor} />
-                                <span>{opt.label}</span>
-                              </button>
-                            )
-                          })}
-                          <div className="my-1 border-t border-slate-100" />
                           <button onClick={() => { handleDelete(p.id); setOpenActionId(null) }}
                             className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 transition-colors">
                             <Trash2 size={14} className="text-red-400" />

@@ -343,6 +343,8 @@ export const pendaftarApi = {
     api.post('/kandidat/bulk-delete', { ids }),
   bulkUpdateBatchKandidat: (ids: number[], batchId: number) =>
     api.post('/kandidat/bulk-update-batch', { ids, batch_id: batchId }),
+  setLunas: (pendaftarId: number) => api.post(`/pembayaran-item/${pendaftarId}/set-lunas`),
+  batalLunas: (pendaftarId: number) => api.post(`/pembayaran-item/${pendaftarId}/batal-lunas`),
   bayarInfo: (id: number) => api.get(`/pendaftaran/bayar/${id}`),
   bayar: (id: number, data: FormData) =>
     api.post(`/pendaftar/${id}/bayar`, data, {
@@ -390,6 +392,8 @@ export const adminCabangApi = {
   pembayaranItem: (pendaftarId: number) => api.get(`/admin-cabang/pembayaran-item/${pendaftarId}`),
   savePembayaranItem: (pendaftarId: number, items: { kategori_id: number; jumlah: number }[]) =>
     api.post(`/admin-cabang/pembayaran-item/${pendaftarId}`, { items }),
+  setLunas: (pendaftarId: number) => api.post(`/admin-cabang/pembayaran-item/${pendaftarId}/set-lunas`),
+  batalLunas: (pendaftarId: number) => api.post(`/admin-cabang/pembayaran-item/${pendaftarId}/batal-lunas`),
   verifyPayment: (id: number) => api.post(`/admin-cabang/pendaftar/${id}/verify-payment`),
   rejectPayment: (pembayaranId: number) => api.post(`/admin-cabang/pendaftar/pembayaran/${pembayaranId}/reject-payment`),
   invoice: (id: number) => api.get(`/admin-cabang/pendaftar/${id}/invoice`),
