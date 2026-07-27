@@ -23,7 +23,7 @@ class JadwalLevelController extends Controller
 
     public function apiIndex()
     {
-        $batches = Batch::aktif()->get();
+        $batches = Batch::aktif()->with('cabang')->get();
         $levels = [1, 2, 3, 4];
         $jadwal = JadwalLevel::with('batch')->get()->keyBy(function ($item) {
             return $item->batch_id . '-' . $item->level;
@@ -40,9 +40,12 @@ class JadwalLevelController extends Controller
             ];
         });
 
+        $cabangs = \App\Models\Cabang::whereIn('id', $batches->pluck('cabang_id')->unique()->filter())->get();
+
         return response()->json([
             'success' => true,
             'batches' => $batches,
+            'cabangs' => $cabangs,
             'levels' => $levels,
             'jadwal' => $jadwalMap,
         ]);
