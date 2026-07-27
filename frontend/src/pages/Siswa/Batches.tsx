@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Layers, Plus, Pencil, Trash2, RotateCcw, X, Building2, Ban } from "lucide-react";
+import { Layers, Plus, Pencil, Trash2, RotateCcw, X, Building2, Ban, Filter } from "lucide-react";
 import { batchApi, cabangApi } from "../../services/api";
 import ConfirmModal from "../../components/ConfirmModal";
 
@@ -45,7 +45,12 @@ export default function BatchesPage() {
   const [warna, setWarna] = useState("#3b82f6");
   const [submitting, setSubmitting] = useState(false);
 
+  const [filterCabang, setFilterCabang] = useState<number | "">("");
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
+
+  const filteredData = filterCabang
+    ? data.filter(item => item.cabang?.id === filterCabang)
+    : data;
 
   const fetchData = async () => {
     setLoading(true);
@@ -199,6 +204,29 @@ export default function BatchesPage() {
         </button>
       </div>
 
+      {/* Filter Cabang */}
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2">
+          <Filter size={15} className="text-slate-400" />
+          <span className="text-xs font-medium text-slate-500">Filter Cabang:</span>
+        </div>
+        <select
+          value={filterCabang}
+          onChange={(e) => setFilterCabang(e.target.value ? Number(e.target.value) : "")}
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+        >
+          <option value="">Semua Cabang</option>
+          {cabangList.map((c) => (
+            <option key={c.id} value={c.id}>{c.nama_cabang}</option>
+          ))}
+        </select>
+        {filterCabang && (
+          <span className="text-xs text-slate-400">
+            Menampilkan {filteredData.length} dari {data.length} batch
+          </span>
+        )}
+      </div>
+
       <div className="relative overflow-x-auto rounded-lg border border-slate-200">
         <table className="w-full min-w-[600px] border-collapse text-left text-xs text-slate-700">
           <thead className="bg-slate-50 text-[10px] text-slate-600 uppercase tracking-wide">
@@ -218,15 +246,17 @@ export default function BatchesPage() {
                   <td colSpan={6} className="border border-slate-200 px-3 py-3"><div className="h-3 w-full rounded bg-slate-200/70" /></td>
                 </tr>
               ))
-            ) : data.length === 0 ? (
+            ) : filteredData.length === 0 ? (
               <tr>
                 <td colSpan={6} className="border border-slate-200 px-4 py-10 text-center">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400"><Layers size={24} /></div>
-                  <p className="mt-3 text-sm font-medium text-slate-600">Belum ada data batch</p>
+                  <p className="mt-3 text-sm font-medium text-slate-600">
+                    {filterCabang ? "Tidak ada batch untuk cabang ini" : "Belum ada data batch"}
+                  </p>
                 </td>
               </tr>
             ) : (
-              data.map((item, idx) => (
+              filteredData.map((item, idx) => (
                 <tr key={item.id} className="bg-white transition hover:bg-slate-50">
                   <td className="border border-slate-200 px-3 py-2.5 text-center text-slate-400">{idx + 1}</td>
                   <td className="border border-slate-200 px-3 py-2.5 font-semibold text-slate-800">
