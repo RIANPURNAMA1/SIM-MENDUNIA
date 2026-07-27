@@ -1441,7 +1441,12 @@ class PendaftaranController extends Controller
             $query->where(function ($q) use ($s) {
                 $q->where('nama', 'like', "%{$s}%")
                   ->orWhere('email', 'like', "%{$s}%")
-                  ->orWhere('nik', 'like', "%{$s}%");
+                  ->orWhereHas('siswa', function ($qq) use ($s) {
+                      $qq->where('nik', 'like', "%{$s}%");
+                  })
+                  ->orWhereHas('user', function ($qq) use ($s) {
+                      $qq->where('nik', 'like', "%{$s}%");
+                  });
             });
         }
 
