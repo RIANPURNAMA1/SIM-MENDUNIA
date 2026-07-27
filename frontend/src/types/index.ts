@@ -385,6 +385,8 @@ export interface BatchData {
   id: number
   nama_batch: string
   status: string
+  cabang_id?: number | null
+  cabang?: { id: number; nama_cabang: string } | null
 }
 
 export interface Siswa {
