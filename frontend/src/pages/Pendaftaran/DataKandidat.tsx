@@ -955,7 +955,7 @@ export default function DataKandidat() {
       </div>
 
       {/* Filter */}
-      <div className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mb-4 rounded-sm  border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative flex-1">
             <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
