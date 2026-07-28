@@ -203,6 +203,19 @@ const [showPassword, setShowPassword] = useState(false)
         window.location.href = `/checkout-berhasil/${pendaftarToken}`
       })
       .catch(err => {
+        const serverErrors = err.response?.data?.errors;
+        if (serverErrors) {
+          const flat: Record<string, string> = {};
+          Object.entries(serverErrors).forEach(([field, msgs]) => {
+            flat[field] = (msgs as string[])[0];
+          });
+          setFieldErrors(prev => ({ ...prev, ...flat }));
+          setTouched(prev => {
+            const updated = { ...prev };
+            Object.keys(serverErrors).forEach(f => { updated[f] = true; });
+            return updated;
+          });
+        }
         setError(err.response?.data?.message || err.message || 'Terjadi kesalahan')
       })
       .finally(() => setIsSubmitting(false))

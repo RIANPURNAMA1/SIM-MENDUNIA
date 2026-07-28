@@ -10,7 +10,11 @@ use App\Models\Batch;
 use App\Models\BatchBiaya;
 use App\Models\BatchKategoriDeadline;
 use App\Models\EmailNotification;
+use App\Services\EmailService;
+use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 
 class WaSettingController extends Controller
 {
@@ -355,5 +359,119 @@ class WaSettingController extends Controller
             'failed' => $failed,
             'today' => $today,
         ]);
+    }
+
+    /**
+     * Kirim email uji coba untuk mengecek konfigurasi SMTP.
+     */
+    public function testEmail(Request $request)
+    {
+        $request->validate([
+            'to_email' => 'required|email',
+        ]);
+
+        $to = $request->to_email;
+        $mailer = config('mail.default');
+        $fromAddress = config('mail.from.address');
+        $fromName = config('mail.from.name');
+        $host = config('mail.mailers.smtp.host');
+        $port = config('mail.mailers.smtp.port');
+        $encryption = config('mail.mailers.smtp.encryption');
+        $username = config('mail.mailers.smtp.username');
+
+        try {
+            Mail::raw(
+                "✅ Email berhasil terkirim!\n\n"
+                . "Konfigurasi SMTP:\n"
+                . "- Mailer: {$mailer}\n"
+                . "- Host: {$host}\n"
+                . "- Port: {$port}\n"
+                . "- Encryption: {$encryption}\n"
+                . "- Username: {$username}\n"
+                . "- From: {$fromAddress} ({$fromName})\n\n"
+                . "Waktu: " . now()->format('d F Y H:i:s') . "\n"
+                . "- Sistem SIM Mendunia",
+                function ($message) use ($to, $fromAddress, $fromName) {
+                    $message->to($to)
+                        ->subject('[Test Email] SIM Mendunia - Notifikasi Berfungsi')
+                        ->from($fromAddress, $fromName);
+                }
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => "Email uji coba berhasil dikirim ke {$to}",
+                'config' => [
+                    'mailer' => $mailer,
+                    'host' => $host,
+                    'port' => $port,
+                    'encryption' => $encryption,
+                    'username' => $username ? substr($username, 0, 3) . '***' : null,
+                    'from_address' => $fromAddress,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Test email gagal: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengirim email: ' . $e->getMessage(),
+                'config' => [
+                    'mailer' => $mailer,
+                    'host' => $host,
+                    'port' => $port,
+                    'encryption' => $encryption,
+                    'username' => $username ? substr($username, 0, 3) . '***' : null,
+                    'from_address' => $fromAddress,
+                ],
+            ], 500);
+        }
+    }
+
+    public function testWa(Request $request)
+    {
+        $request->validate([
+            'to_phone' => 'required|string',
+        ]);
+
+        $to = $request->to_phone;
+        $apiKey = NotificationSetting::getValue('starsender_api_key', config('services.starsender.api_key', env('STARSAPI_KEY')));
+        $apiUrl = NotificationSetting::getValue('starsender_api_url', config('services.starsender.api_url', env('STARSAPI_URL', 'https://api.starsender.online/api/send')));
+
+        try {
+            $wa = new WhatsAppService();
+            $sent = $wa->sendMessage($to, "✅ Uji coba WhatsApp dari SIM Mendunia berhasil!\n\nWaktu: " . now()->format('d F Y H:i:s') . "\n\n- Sistem SIM Mendunia");
+
+            if ($sent) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "WhatsApp uji coba berhasil dikirim ke {$to}",
+                    'config' => [
+                        'api_url' => $apiUrl,
+                        'api_key' => $apiKey ? substr($apiKey, 0, 8) . '***' : null,
+                    ],
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengirim WhatsApp. Periksa konfigurasi API StarSender.',
+                'config' => [
+                    'api_url' => $apiUrl,
+                    'api_key' => $apiKey ? substr($apiKey, 0, 8) . '***' : null,
+                ],
+            ], 500);
+        } catch (\Exception $e) {
+            Log::error('Test WhatsApp gagal: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengirim WhatsApp: ' . $e->getMessage(),
+                'config' => [
+                    'api_url' => $apiUrl,
+                    'api_key' => $apiKey ? substr($apiKey, 0, 8) . '***' : null,
+                ],
+            ], 500);
+        }
     }
 }

@@ -154,6 +154,7 @@ const navItems: NavItem[] = [
       { label: "Data Coupon", icon: "CreditCard", href: "/data-coupon" },
       { label: "monitoring Notifikasi", icon: "MessageSquare", href: "/notifikasi-wa" },
       { label: "Setting Notifikasi", icon: "Bell", href: "/notifikasi-wa-setting" },
+      { label: "Template Notifikasi", icon: "FileText", href: "/template-notifikasi" },
       { label: "Pengaturan Pembayaran", icon: "CreditCard", href: "/pengaturan-pembayaran" },
       { label: "Batch", icon: "Layers", href: "/batches" },
       { label: "Jadwal Level", icon: "Calendar", href: "/jadwal-level" },

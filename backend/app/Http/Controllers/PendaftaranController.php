@@ -20,6 +20,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 
 class PendaftaranController extends Controller
 {
@@ -81,6 +83,14 @@ class PendaftaranController extends Controller
             'desa' => 'nullable|string|max:255',
             'selected_kategori_items' => 'nullable|string',
             'kode_unik' => 'nullable|integer|min:0|max:999',
+        ], [
+            'email.unique' => 'Alamat email sudah terdaftar, coba gunakan email lain.',
+            'email.required' => 'Alamat email wajib diisi.',
+            'email.email' => 'Format alamat email tidak valid.',
+            'nama.required' => 'Nama lengkap wajib diisi.',
+            'password.required' => 'Password wajib diisi.',
+            'password.min' => 'Password minimal :min karakter.',
+            'telepon.required' => 'Nomor WhatsApp wajib diisi.',
         ]);
 
         $product = Product::findOrFail($data['product_id']);
@@ -158,6 +168,9 @@ class PendaftaranController extends Controller
             $kategori = \App\Models\BiayaKategori::orderBy('urutan')->first();
         }
 
+        $kodeUnik = 0;
+        $totalTransfer = $nominal;
+        $paymentCode = 'PAY/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . now()->format('Ym');
         if ($kategori && $nominal > 0) {
             $kodeUnik = isset($data['kode_unik']) && $data['kode_unik'] !== '' ? (int) $data['kode_unik'] : \App\Models\PaymentSetting::generateUniqueCode();
             $totalTransfer = \App\Models\PaymentSetting::calculateTotalTransfer($nominal, $kodeUnik);
@@ -179,6 +192,93 @@ class PendaftaranController extends Controller
             $waService->sendRegistrationSuccessNotification($pendaftar->fresh()->load('product'));
         } catch (\Exception $e) {
             \Log::error('Gagal kirim WA notifikasi daftarLangsung: ' . $e->getMessage());
+        }
+
+        // Kirim email selamat datang ke kandidat
+        try {
+            $candidateEmail = $pendaftar->email;
+            if ($candidateEmail) {
+                $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+                $noInvoice = 'INV/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . $pendaftar->created_at->format('Ym');
+                $company = \App\Models\CompanyProfile::getProfile();
+                $jatuhTempo = now()->addDays(1);
+                $templateVars = [
+                    'nama' => $data['nama'],
+                    'program' => $product->nama ?? '-',
+                    'batch' => $pendaftar->batch?->nama_batch ?? '-',
+                    'no_registrasi' => $noReg,
+                    'no_invoice' => $noInvoice,
+                    'tanggal_daftar' => now()->format('d F Y'),
+                    'total' => number_format($nominal, 0, ',', '.'),
+                    'total_transfer' => number_format($totalTransfer, 0, ',', '.'),
+                    'kode_unik' => (string) $kodeUnik,
+                    'payment_code' => $paymentCode,
+                    'jatuh_tempo' => $jatuhTempo->format('l, d F Y') . ' pukul ' . $jatuhTempo->format('H:i') . ' WIB',
+                    'company_name' => $company->company_name ?? 'MENDUNIA.ID',
+                    'bank_nama' => $company->bank_nama ?? '-',
+                    'bank_rekening' => $company->bank_nomor_rekening ?? '-',
+                    'bank_pemilik' => $company->bank_pemilik ?? '-',
+                    'konfirmasi_url' => $frontendUrl . '/checkout-berhasil/' . $pendaftar->token,
+                    'invoice_url' => $frontendUrl . '/pendaftar/' . $pendaftar->id . '/invoice',
+                ];
+                $rendered = \App\Models\NotificationTemplate::render('welcome_email', $templateVars);
+                if ($rendered) {
+                    $templateVars['body_content'] = $rendered['body'];
+                    Mail::send('emails.registration-welcome', [
+                        'company' => $company,
+                        'nama' => $data['nama'],
+                        'totalTransfer' => $totalTransfer,
+                        'paymentCode' => $paymentCode,
+                        'jatuhTempo' => $jatuhTempo->format('l, d F Y'),
+                        'jatuhTempoWaktu' => $jatuhTempo->format('H:i') . ' WIB',
+                        'konfirmasiUrl' => $frontendUrl . '/checkout-berhasil/' . $pendaftar->token,
+                        'invoiceUrl' => $frontendUrl . '/pendaftar/' . $pendaftar->id . '/invoice',
+                        'bodyContent' => $rendered['body'],
+                    ], function ($message) use ($candidateEmail, $rendered, $data) {
+                        $message->to($candidateEmail)
+                            ->subject($rendered['subject'] ?? '[SIM Mendunia] Pendaftaran Berhasil - ' . $data['nama'])
+                            ->from(config('mail.from.address'), config('mail.from.name'));
+                    });
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Gagal kirim email selamat datang daftarLangsung: ' . $e->getMessage());
+        }
+
+        // Kirim email notifikasi ke admin
+        try {
+            $adminEmails = \App\Models\NotificationSetting::getValue('email_pembayaran_admin_addresses');
+            if ($adminEmails) {
+                $batchNama = $pendaftar->batch?->nama_batch ?? '-';
+                $programNama = $product->nama ?? '-';
+                $emails = array_map('trim', explode(',', $adminEmails));
+                $subjek = '[SIM Mendunia] Pendaftar Baru - ' . $data['nama'];
+                foreach ($emails as $adminEmail) {
+                    if (filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+                        Mail::raw(
+                            "📋 *NOTIFIKASI PENDAFTARAN BARU*\n\n"
+                            . "Halo Admin,\n\n"
+                            . "Ada pendaftar baru di sistem SIM Mendunia.\n\n"
+                            . "Nama: {$data['nama']}\n"
+                            . "Email: {$data['email']}\n"
+                            . "No. WhatsApp: {$data['telepon']}\n"
+                            . "Program: {$programNama}\n"
+                            . "Batch: {$batchNama}\n"
+                            . "No. Registrasi: {$noReg}\n"
+                            . "Waktu: " . now()->format('d F Y H:i') . "\n\n"
+                            . "Silakan login ke panel admin untuk memproses pendaftaran ini.\n\n"
+                            . "- Sistem SIM Mendunia",
+                            function ($message) use ($adminEmail, $subjek) {
+                                $message->to($adminEmail)
+                                    ->subject($subjek)
+                                    ->from(config('mail.from.address'), config('mail.from.name'));
+                            }
+                        );
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Gagal kirim email notifikasi admin daftarLangsung: ' . $e->getMessage());
         }
 
         return response()->json([
@@ -206,6 +306,14 @@ class PendaftaranController extends Controller
             'kecamatan' => 'nullable|string|max:255',
             'desa' => 'nullable|string|max:255',
             'kode_unik' => 'nullable|integer|min:0|max:999',
+        ], [
+            'email.unique' => 'Alamat email sudah terdaftar, coba gunakan email lain.',
+            'email.required' => 'Alamat email wajib diisi.',
+            'email.email' => 'Format alamat email tidak valid.',
+            'nama.required' => 'Nama lengkap wajib diisi.',
+            'password.required' => 'Password wajib diisi.',
+            'password.min' => 'Password minimal :min karakter.',
+            'telepon.required' => 'Nomor WhatsApp wajib diisi.',
         ]);
 
         $link = AffiliateLink::with('product')->where('kode', $data['kode_link'])->firstOrFail();
@@ -282,6 +390,9 @@ class PendaftaranController extends Controller
         if (!$kategori) {
             $kategori = \App\Models\BiayaKategori::orderBy('urutan')->first();
         }
+        $kodeUnik = 0;
+        $totalTransfer = $nominal;
+        $paymentCode = 'PAY/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . now()->format('Ym');
         if ($kategori && $nominal > 0) {
             $kodeUnik = isset($data['kode_unik']) && $data['kode_unik'] !== '' ? (int) $data['kode_unik'] : \App\Models\PaymentSetting::generateUniqueCode();
             $totalTransfer = \App\Models\PaymentSetting::calculateTotalTransfer($nominal, $kodeUnik);
@@ -303,6 +414,93 @@ class PendaftaranController extends Controller
             $waService->sendRegistrationSuccessNotification($pendaftar->fresh()->load('product'));
         } catch (\Exception $e) {
             \Log::error('Gagal kirim WA notifikasi daftar: ' . $e->getMessage());
+        }
+
+        // Kirim email selamat datang ke kandidat
+        try {
+            $candidateEmail = $pendaftar->email;
+            if ($candidateEmail) {
+                $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+                $noInvoice = 'INV/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . $pendaftar->created_at->format('Ym');
+                $company = \App\Models\CompanyProfile::getProfile();
+                $jatuhTempo = now()->addDays(1);
+                $templateVars = [
+                    'nama' => $data['nama'],
+                    'program' => $link->product->nama ?? '-',
+                    'batch' => $pendaftar->batch?->nama_batch ?? ($link->product->batch?->nama_batch ?? '-'),
+                    'no_registrasi' => $noReg,
+                    'no_invoice' => $noInvoice,
+                    'tanggal_daftar' => now()->format('d F Y'),
+                    'total' => number_format($nominal, 0, ',', '.'),
+                    'total_transfer' => number_format($totalTransfer, 0, ',', '.'),
+                    'kode_unik' => (string) $kodeUnik,
+                    'payment_code' => $paymentCode,
+                    'jatuh_tempo' => $jatuhTempo->format('l, d F Y') . ' pukul ' . $jatuhTempo->format('H:i') . ' WIB',
+                    'company_name' => $company->company_name ?? 'MENDUNIA.ID',
+                    'bank_nama' => $company->bank_nama ?? '-',
+                    'bank_rekening' => $company->bank_nomor_rekening ?? '-',
+                    'bank_pemilik' => $company->bank_pemilik ?? '-',
+                    'konfirmasi_url' => $frontendUrl . '/checkout-berhasil/' . $pendaftar->token,
+                    'invoice_url' => $frontendUrl . '/pendaftar/' . $pendaftar->id . '/invoice',
+                ];
+                $rendered = \App\Models\NotificationTemplate::render('welcome_email', $templateVars);
+                if ($rendered) {
+                    Mail::send('emails.registration-welcome', [
+                        'company' => $company,
+                        'nama' => $data['nama'],
+                        'totalTransfer' => $totalTransfer,
+                        'paymentCode' => $paymentCode,
+                        'jatuhTempo' => $jatuhTempo->format('l, d F Y'),
+                        'jatuhTempoWaktu' => $jatuhTempo->format('H:i') . ' WIB',
+                        'konfirmasiUrl' => $frontendUrl . '/checkout-berhasil/' . $pendaftar->token,
+                        'invoiceUrl' => $frontendUrl . '/pendaftar/' . $pendaftar->id . '/invoice',
+                        'bodyContent' => $rendered['body'],
+                    ], function ($message) use ($candidateEmail, $rendered, $data) {
+                        $message->to($candidateEmail)
+                            ->subject($rendered['subject'] ?? '[SIM Mendunia] Pendaftaran Berhasil - ' . $data['nama'])
+                            ->from(config('mail.from.address'), config('mail.from.name'));
+                    });
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Gagal kirim email selamat datang daftar: ' . $e->getMessage());
+        }
+
+        // Kirim email notifikasi ke admin
+        try {
+            $adminEmails = \App\Models\NotificationSetting::getValue('email_pembayaran_admin_addresses');
+            if ($adminEmails) {
+                $produk = $link->product;
+                $batchNama = $pendaftar->batch?->nama_batch ?? ($produk->batch?->nama_batch ?? '-');
+                $programNama = $produk->nama ?? '-';
+                $emails = array_map('trim', explode(',', $adminEmails));
+                $subjek = '[SIM Mendunia] Pendaftar Baru (Affiliate) - ' . $data['nama'];
+                foreach ($emails as $adminEmail) {
+                    if (filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+                        Mail::raw(
+                            "📋 *NOTIFIKASI PENDAFTARAN BARU (Affiliate)*\n\n"
+                            . "Halo Admin,\n\n"
+                            . "Ada pendaftar baru melalui link affiliate.\n\n"
+                            . "Nama: {$data['nama']}\n"
+                            . "Email: {$data['email']}\n"
+                            . "No. WhatsApp: {$data['telepon']}\n"
+                            . "Program: {$programNama}\n"
+                            . "Batch: {$batchNama}\n"
+                            . "No. Registrasi: {$noReg}\n"
+                            . "Waktu: " . now()->format('d F Y H:i') . "\n\n"
+                            . "Silakan login ke panel admin untuk memproses pendaftaran ini.\n\n"
+                            . "- Sistem SIM Mendunia",
+                            function ($message) use ($adminEmail, $subjek) {
+                                $message->to($adminEmail)
+                                    ->subject($subjek)
+                                    ->from(config('mail.from.address'), config('mail.from.name'));
+                            }
+                        );
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Gagal kirim email notifikasi admin daftar affiliate: ' . $e->getMessage());
         }
 
         Auth::login($user);
@@ -803,6 +1001,87 @@ class PendaftaranController extends Controller
             \App\Models\Pembayaran::where('pendaftar_id', $pendaftar->id)
                 ->whereIn('status', ['pending', 'processing'])
                 ->update(['status' => $data['status_pembayaran']]);
+        }
+
+        // Kirim email notifikasi ke kandidat saat status berubah
+        try {
+            $toEmail = $pendaftar->email;
+            if ($toEmail && (isset($data['status_pembayaran']) || isset($data['status_pendaftaran']))) {
+                $nama = $pendaftar->nama;
+                $noReg = $pendaftar->no_registrasi ?? '-';
+                $program = $pendaftar->product?->nama ?? '-';
+                $company = \App\Models\CompanyProfile::getProfile();
+                $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+                $waktu = now()->format('d F Y H:i');
+
+                $statusLabel = '';
+                $subject = '';
+                $badgeBg = '#f8fafc';
+                $badgeColor = '#64748b';
+                $badgeBorder = '#e2e8f0';
+                $pesanTambahan = '';
+                $templateKey = '';
+
+                if (isset($data['status_pendaftaran'])) {
+                    $map = [
+                        'disetujui' => ['label' => 'Disetujui', 'subject' => 'Pendaftaran Disetujui', 'bg' => '#F0FDF4', 'color' => '#16A34A', 'border' => '#BBF7D0', 'template' => 'status_approved'],
+                        'ditolak' => ['label' => 'Ditolak', 'subject' => 'Pendaftaran Ditolak', 'bg' => '#FEF2F2', 'color' => '#DC2626', 'border' => '#FECACA', 'template' => 'status_rejected'],
+                        'pending' => ['label' => 'Menunggu Verifikasi', 'subject' => 'Status Pendaftaran Diubah', 'bg' => '#FFFBEB', 'color' => '#D97706', 'border' => '#FDE68A', 'template' => 'status_pending'],
+                    ];
+                    $info = $map[$data['status_pendaftaran']] ?? ['label' => $data['status_pendaftaran'], 'subject' => 'Status Pendaftaran Diubah', 'bg' => '#F8FAFC', 'color' => '#64748B', 'border' => '#E2E8F0', 'template' => ''];
+                    $statusLabel = $info['label'];
+                    $subject = "[SIM Mendunia] {$info['subject']} - {$nama}";
+                    $badgeBg = $info['bg'];
+                    $badgeColor = $info['color'];
+                    $badgeBorder = $info['border'];
+                    $templateKey = $info['template'];
+                } elseif (isset($data['status_pembayaran'])) {
+                    $map = [
+                        'unpaid' => ['label' => 'Menunggu Pembayaran', 'subject' => 'Menunggu Pembayaran', 'bg' => '#FFFBEB', 'color' => '#D97706', 'border' => '#FDE68A', 'template' => 'payment_unpaid'],
+                        'pending' => ['label' => 'Pembayaran Diproses', 'subject' => 'Pembayaran Diproses', 'bg' => '#EFF6FF', 'color' => '#2563EB', 'border' => '#BFDBFE', 'template' => 'payment_pending'],
+                        'processing' => ['label' => 'Pembayaran Diverifikasi', 'subject' => 'Pembayaran Diverifikasi', 'bg' => '#EFF6FF', 'color' => '#2563EB', 'border' => '#BFDBFE', 'template' => 'payment_processing'],
+                        'verified' => ['label' => 'Pembayaran Dikonfirmasi', 'subject' => 'Pembayaran Berhasil', 'bg' => '#F0FDF4', 'color' => '#16A34A', 'border' => '#BBF7D0', 'template' => 'payment_verified'],
+                        'ditolak' => ['label' => 'Pembayaran Ditolak', 'subject' => 'Pembayaran Ditolak', 'bg' => '#FEF2F2', 'color' => '#DC2626', 'border' => '#FECACA', 'template' => 'payment_rejected'],
+                        'refund' => ['label' => 'Refund', 'subject' => 'Pembayaran Direfund', 'bg' => '#F8FAFC', 'color' => '#64748B', 'border' => '#E2E8F0', 'template' => 'payment_refund'],
+                    ];
+                    $info = $map[$data['status_pembayaran']] ?? ['label' => $data['status_pembayaran'], 'subject' => 'Status Pembayaran Diubah', 'bg' => '#F8FAFC', 'color' => '#64748B', 'border' => '#E2E8F0', 'template' => ''];
+                    $statusLabel = $info['label'];
+                    $subject = "[SIM Mendunia] {$info['subject']} - {$nama}";
+                    $badgeBg = $info['bg'];
+                    $badgeColor = $info['color'];
+                    $badgeBorder = $info['border'];
+                    $templateKey = $info['template'];
+                }
+
+                $templateVars = [
+                    'nama' => $nama,
+                    'program' => $program,
+                    'no_registrasi' => $noReg,
+                    'status' => $statusLabel,
+                    'waktu' => $waktu,
+                    'company_name' => $company->company_name ?? 'MENDUNIA.ID',
+                    'login_url' => $frontendUrl . '/login',
+                ];
+                $rendered = $templateKey ? \App\Models\NotificationTemplate::render($templateKey, $templateVars) : null;
+
+                Mail::send('emails.status-update', [
+                    'company' => $company,
+                    'nama' => $nama,
+                    'statusLabel' => $statusLabel,
+                    'badgeBg' => $badgeBg,
+                    'badgeColor' => $badgeColor,
+                    'badgeBorder' => $badgeBorder,
+                    'waktu' => $waktu,
+                    'loginUrl' => $frontendUrl . '/login',
+                    'bodyContent' => $rendered['body'] ?? "Status pendaftaran Anda telah diperbarui.\n\nStatus: {$statusLabel}\nProgram: {$program}\nNo. Registrasi: {$noReg}\nWaktu: {$waktu}",
+                ], function ($message) use ($toEmail, $rendered, $subject) {
+                    $message->to($toEmail)
+                        ->subject($rendered['subject'] ?? $subject)
+                        ->from(config('mail.from.address'), config('mail.from.name'));
+                });
+            }
+        } catch (\Exception $e) {
+            Log::error('Gagal kirim email notifikasi status ke kandidat: ' . $e->getMessage());
         }
 
         return response()->json(['message' => 'Status berhasil diperbarui']);

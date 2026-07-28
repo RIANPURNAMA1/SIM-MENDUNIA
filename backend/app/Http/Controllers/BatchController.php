@@ -15,25 +15,41 @@ class BatchController extends Controller
 
     public function apiIndex(Request $request)
     {
-        $perPage = $request->input('per_page', 10);
+        $perPage = $request->input('per_page');
+
+        if ($perPage) {
+            $batches = Batch::withCount('siswas')->with('cabang')
+                ->when($request->cabang_id, fn($q) => $q->where('cabang_id', $request->cabang_id))
+                ->latest()->paginate($perPage);
+
+            $batches->getCollection()->transform(function ($b) {
+                $b->is_penuh = ($b->kuota !== null && $b->siswas_count >= $b->kuota) || $b->is_penuh_manual;
+                return $b;
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $batches->items(),
+                'pagination' => [
+                    'current_page' => $batches->currentPage(),
+                    'last_page' => $batches->lastPage(),
+                    'per_page' => $batches->perPage(),
+                    'total' => $batches->total(),
+                ],
+            ]);
+        }
+
+        // Without per_page param, return all (backward compat for filter dropdowns)
         $batches = Batch::withCount('siswas')->with('cabang')
             ->when($request->cabang_id, fn($q) => $q->where('cabang_id', $request->cabang_id))
-            ->latest()->paginate($perPage);
-
-        $batches->getCollection()->transform(function ($b) {
-            $b->is_penuh = ($b->kuota !== null && $b->siswas_count >= $b->kuota) || $b->is_penuh_manual;
-            return $b;
-        });
+            ->latest()->get()->map(function ($b) {
+                $b->is_penuh = ($b->kuota !== null && $b->siswas_count >= $b->kuota) || $b->is_penuh_manual;
+                return $b;
+            });
 
         return response()->json([
             'success' => true,
-            'data' => $batches->items(),
-            'pagination' => [
-                'current_page' => $batches->currentPage(),
-                'last_page' => $batches->lastPage(),
-                'per_page' => $batches->perPage(),
-                'total' => $batches->total(),
-            ],
+            'data' => $batches,
         ]);
     }
 

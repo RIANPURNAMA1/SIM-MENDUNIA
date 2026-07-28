@@ -629,7 +629,7 @@ class WhatsAppService
         $program = $pendaftar->product?->nama ?? '-';
         $noReg = $pendaftar->no_registrasi ?? '-';
         $noInvoice = 'INV/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . $pendaftar->created_at->format('Ym');
-        $linkBayar = env('FRONTEND_URL', 'http://localhost:5173') . '/bayar/' . $pendaftar->id;
+        $linkBayar = env('FRONTEND_URL', 'http://localhost:5173') . '/checkout-berhasil/' . $pendaftar->token;
 
         $message = "Selamat, {$nama}!\n\n"
             . "Pendaftaran Anda di program *{$program}* berhasil.\n\n"

@@ -319,31 +319,39 @@ class PengeluaranController extends Controller
         ]);
     }
 
-    public function dashboard()
+    public function dashboard(Request $request)
     {
         $now = now();
+        $startDate = $request->start_date ? \Carbon\Carbon::parse($request->start_date)->startOfDay() : $now->copy()->startOfMonth();
+        $endDate = $request->end_date ? \Carbon\Carbon::parse($request->end_date)->endOfDay() : $now;
+
         $bulanIni = $now->copy()->startOfMonth();
         $bulanLalu = $now->copy()->subMonth()->startOfMonth();
+
+        $isCustomRange = $request->start_date || $request->end_date;
+        $rangeStart = $isCustomRange ? $startDate : $bulanIni;
+        $rangeEnd = $isCustomRange ? $endDate : $now;
 
         $baseQuery = function ($q) {
             $this->scopeQuery($q);
         };
 
-        $totalBulanIni = (float) Pengeluaran::whereBetween('tanggal', [$bulanIni, $now])->when(true, $baseQuery)->sum('nominal');
+        $totalBulanIni = (float) Pengeluaran::whereBetween('tanggal', [$rangeStart, $rangeEnd])->when(true, $baseQuery)->sum('nominal');
         $totalBulanLalu = (float) Pengeluaran::whereBetween('tanggal', [$bulanLalu, $bulanIni->copy()->subDay()])->when(true, $baseQuery)->sum('nominal');
         $totalSemua = (float) Pengeluaran::query()->when(true, $baseQuery)->sum('nominal');
-        $jumlahTransaksi = (int) Pengeluaran::whereBetween('tanggal', [$bulanIni, $now])->when(true, $baseQuery)->count();
+        $jumlahTransaksi = (int) Pengeluaran::whereBetween('tanggal', [$rangeStart, $rangeEnd])->when(true, $baseQuery)->count();
 
         $persentase = $totalBulanLalu > 0
             ? round(($totalBulanIni - $totalBulanLalu) / $totalBulanLalu * 100, 1)
             : 0;
 
+        $tahunFilter = $isCustomRange ? $rangeEnd->year : $now->year;
         $rekapBulanan = Pengeluaran::select(
             DB::raw('MONTH(tanggal) as bulan'),
             DB::raw('SUM(nominal) as total'),
             DB::raw('COUNT(*) as jumlah')
         )
-        ->whereYear('tanggal', $now->year)
+        ->whereYear('tanggal', $tahunFilter)
         ->when(true, $baseQuery)
         ->groupBy(DB::raw('MONTH(tanggal)'))
         ->orderBy('bulan')
@@ -369,7 +377,7 @@ class PengeluaranController extends Controller
             DB::raw('COUNT(*) as jumlah')
         )
         ->join('kategori_pengeluaran', 'pengeluaran.kategori_id', '=', 'kategori_pengeluaran.id')
-        ->whereBetween('pengeluaran.tanggal', [$bulanIni, $now])
+        ->whereBetween('pengeluaran.tanggal', [$rangeStart, $rangeEnd])
         ->when(true, $baseQuery)
         ->groupBy('kategori_pengeluaran.id', 'kategori_pengeluaran.nama', 'kategori_pengeluaran.kode')
         ->orderByDesc('total')
@@ -382,9 +390,12 @@ class PengeluaranController extends Controller
         $this->scopeQuery($recentQuery);
         $recentPengeluaran = $recentQuery->get();
 
-        $pendapatanQuery = Pendaftar::where('status_pembayaran', 'verified')
-            ->whereMonth('created_at', $now->month)
-            ->whereYear('created_at', $now->year);
+        $pendapatanQuery = Pendaftar::where('status_pembayaran', 'verified');
+        if ($isCustomRange) {
+            $pendapatanQuery->whereBetween('created_at', [$rangeStart, $rangeEnd]);
+        } else {
+            $pendapatanQuery->whereMonth('created_at', $now->month)->whereYear('created_at', $now->year);
+        }
 
         if ($this->isCabangScoped()) {
             $cabangIds = $this->getCabangIds();

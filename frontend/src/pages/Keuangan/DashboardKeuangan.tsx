@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  Wallet, TrendingDown, TrendingUp, Receipt, ArrowDown, ArrowUp,
+  Wallet, TrendingDown, TrendingUp, Receipt, ArrowDown, ArrowUp, Calendar,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { pengeluaranApi } from '../../services/api'
@@ -40,13 +40,21 @@ const COLORS = [
 export default function DashboardKeuangan() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
 
-  useEffect(() => {
-    pengeluaranApi.dashboard()
+  const fetchData = (start?: string, end?: string) => {
+    setLoading(true)
+    const params: Record<string, string> = {}
+    if (start) params.start_date = start
+    if (end) params.end_date = end
+    pengeluaranApi.dashboard(params)
       .then(res => setData(res.data))
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(() => { fetchData() }, [])
 
   if (loading) {
     return (
@@ -199,7 +207,25 @@ export default function DashboardKeuangan() {
             <p className="text-sm text-slate-500">{bulanNames[new Date().getMonth()]} {new Date().getFullYear()}</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <Calendar size={14} className="text-slate-400" />
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+              className="rounded-md border border-slate-300 px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+            <span className="text-xs text-slate-400">s/d</span>
+            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+              className="rounded-md border border-slate-300 px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+          </div>
+          <button onClick={() => fetchData(startDate, endDate)}
+            className="rounded-md bg-orange-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-orange-700">
+            Filter
+          </button>
+          {(startDate || endDate) && (
+            <button onClick={() => { setStartDate(''); setEndDate(''); fetchData() }}
+              className="rounded-md border border-slate-300 px-2 py-1.5 text-xs text-slate-500 transition hover:bg-slate-50">
+              Reset
+            </button>
+          )}
           <Link
             to="/pengeluaran"
             className="inline-flex items-center gap-2 rounded-md bg-orange-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-orange-700"
