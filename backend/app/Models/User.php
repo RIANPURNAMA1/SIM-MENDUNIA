@@ -14,6 +14,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'password_plain',
         'role',
         'divisi_id',
         'cabang_ids', // Ubah dari cabang_id ke cabang_ids
