@@ -397,50 +397,54 @@ export default function DataProduct() {
     return (
       <div key={key} className={depth > 0 ? 'ml-4 mt-2 border-l-2 border-indigo-200 pl-3' : ''}>
         <div className={`rounded-lg border ${depth === 0 ? 'border-slate-300 bg-white shadow-sm' : 'border-slate-200 bg-slate-50'}`}>
-          <div className="flex items-end gap-2 p-3">
-            {hasChildren ? (
-              <button type="button" onClick={() => toggleExpand(key)}
-                className="flex-none p-1 rounded-md hover:bg-slate-100 transition mb-0.5">
-                {isExpanded ? <ChevronDown size={16} className="text-slate-500" /> : <ChevronRight size={16} className="text-slate-500" />}
+          <div className="p-3">
+            <div className="flex items-center gap-2">
+              {hasChildren ? (
+                <button type="button" onClick={() => toggleExpand(key)}
+                  className="flex-none p-1 rounded-md hover:bg-slate-100 transition">
+                  {isExpanded ? <ChevronDown size={16} className="text-slate-500" /> : <ChevronRight size={16} className="text-slate-500" />}
+                </button>
+              ) : <span className="w-6 flex-none" />}
+              <div className="flex-1 min-w-0">
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">{depth === 0 ? 'Nama Kategori' : 'Nama Sub-Kategori'}</label>
+                <input type="text" placeholder={depth === 0 ? 'Contoh: Level 1, SPP, Ujian...' : 'Contoh: MCU, Pembelajaran, Asrama...'}
+                  value={item.name}
+                  onChange={e => updateItem(path, 'name', e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+              </div>
+              <button type="button" onClick={() => removeItem(path)}
+                className="flex-none rounded-lg border border-slate-200 bg-white p-2 text-slate-400 transition hover:border-red-300 hover:bg-red-50 hover:text-red-500">
+                <Trash2 size={15} />
               </button>
-            ) : <span className="w-6 flex-none" />}
-            <div className="flex-1 min-w-0">
-              <label className="block text-xs font-bold text-slate-600 mb-1.5">{depth === 0 ? 'Nama Kategori' : 'Nama Sub-Kategori'}</label>
-              <input type="text" placeholder={depth === 0 ? 'Contoh: Level 1, SPP, Ujian...' : 'Contoh: MCU, Pembelajaran, Asrama...'}
-                value={item.name}
-                onChange={e => updateItem(path, 'name', e.target.value)}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
             </div>
-            <div className="w-32 flex-none">
-              <label className="block text-xs font-bold text-slate-600 mb-1.5">Harga (Rp)</label>
-              <div className="relative">
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Rp</span>
-                <input type="number" min={0} placeholder="0"
-                  value={item.harga || ''}
-                  onChange={e => updateItem(path, 'harga', parseFloat(e.target.value) || 0)}
-                  className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-2 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:mt-2.5 sm:grid-cols-none sm:flex sm:items-end sm:gap-2">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">Harga (Rp)</label>
+                <div className="relative">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Rp</span>
+                  <input type="number" min={0} placeholder="0"
+                    value={item.harga || ''}
+                    onChange={e => updateItem(path, 'harga', parseFloat(e.target.value) || 0)}
+                    className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-2 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-emerald-600 mb-1.5">Komisi (Rp)</label>
+                <div className="relative">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-400">Rp</span>
+                  <input type="number" min={0} placeholder="0"
+                    value={item.komisi || ''}
+                    onChange={e => updateItem(path, 'komisi', parseFloat(e.target.value) || 0)}
+                    className="w-full rounded-lg border border-emerald-300 bg-emerald-50 pl-9 pr-2 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
+                </div>
               </div>
             </div>
-            <div className="w-32 flex-none">
-              <label className="block text-xs font-bold text-emerald-600 mb-1.5">Komisi (Rp)</label>
-              <div className="relative">
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-400">Rp</span>
-                <input type="number" min={0} placeholder="0"
-                  value={item.komisi || ''}
-                  onChange={e => updateItem(path, 'komisi', parseFloat(e.target.value) || 0)}
-                  className="w-full rounded-lg border border-emerald-300 bg-emerald-50 pl-9 pr-2 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
-              </div>
-            </div>
-            <button type="button" onClick={() => removeItem(path)}
-              className="flex-none rounded-lg border border-slate-200 bg-white p-2 text-slate-400 transition hover:border-red-300 hover:bg-red-50 hover:text-red-500 mb-0.5">
-              <Trash2 size={15} />
-            </button>
           </div>
 
           {/* ===== Pengaturan Tagihan ===== */}
           <div className="mx-3 mb-3">
             <button type="button" onClick={() => toggleExpand(billingKey)}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors">
+              className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors sm:px-3">
               <span className="text-[11px] font-bold text-amber-700">Pengaturan Tagihan</span>
               <div className="flex items-center gap-1.5">
                 {(item.trigger_type !== 'registration' || item.due_type !== 'days_after_invoice' || item.reminder_setting) && (
@@ -655,18 +659,18 @@ export default function DataProduct() {
 
           {/* Total badge for parent with children */}
           {hasChildren && depth === 0 && (
-            <div className="flex items-center justify-between px-3 pb-2.5 -mt-1">
+            <div className="flex items-center justify-between px-3 pb-2.5">
               <button type="button" onClick={() => addItem(path)}
                 className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition">
                 <Plus size={12} className="inline mr-0.5" /> Tambah Sub
               </button>
-              <span className="text-xs font-bold text-indigo-700 bg-indigo-100 px-3 py-1 rounded-full">
+              <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-bold text-indigo-700">
                 Total: Rp {ownTotal.toLocaleString('id-ID')}
               </span>
             </div>
           )}
           {!hasChildren && depth === 0 && (
-            <div className="flex justify-end px-3 pb-2.5 -mt-1">
+            <div className="flex justify-end px-3 pb-2.5">
               <button type="button" onClick={() => addItem(path)}
                 className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition">
                 <Plus size={12} className="inline mr-0.5" /> Tambah Sub
@@ -686,18 +690,18 @@ export default function DataProduct() {
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-3 rounded-lg bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white border border-blue-100">
-            <Package size={20} />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#0E6187] text-white border border-blue-100 sm:h-10 sm:w-10">
+            <Package size={18} />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-slate-800">Data Product / Program</h1>
-            <p className="text-sm text-slate-500">Kelola program dan produk affiliate</p>
+            <h1 className="text-base font-semibold text-slate-800 sm:text-lg">Data Product / Program</h1>
+            <p className="text-xs text-slate-500 sm:text-sm">Kelola program dan produk affiliate</p>
           </div>
         </div>
         <button onClick={openCreate}
-          className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1">
+          className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-3 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 sm:w-auto sm:py-2">
           <Plus size={16} /> Tambah Produk
         </button>
       </div>
@@ -741,8 +745,8 @@ export default function DataProduct() {
       )}
 
       {/* Filter */}
-      <div className="mb-4 rounded-lg p-4 shadow-sm">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+      <div className="mb-4 rounded-lg bg-white p-3 shadow-sm sm:p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input type="text" placeholder="Cari produk..." value={search} onChange={e => setSearch(e.target.value)}
@@ -757,8 +761,9 @@ export default function DataProduct() {
 
       {/* Table */}
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-full border-collapse text-left text-sm text-slate-700">
+        {/* Desktop Table */}
+        <div className="hidden overflow-x-auto sm:block">
+          <table className="w-full border-collapse text-left text-sm text-slate-700">
             <thead className="text-sm text-slate-600">
               <tr>
                 <th className="border border-slate-200 px-4 py-3 font-medium">Nama Produk</th>
@@ -852,56 +857,101 @@ export default function DataProduct() {
             </tbody>
           </table>
         </div>
+
+        {/* Mobile Cards */}
+        <div className="sm:hidden">
+          {filtered.length === 0 ? (
+            <div className="px-6 py-10 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400"><Package size={24} /></div>
+              <p className="mt-3 text-sm font-medium text-slate-600">Belum ada produk</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {filtered.map(p => (
+                <div key={p.id} className="p-4">
+                  <div className="mb-3 flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50"><Package size={16} className="text-blue-600" /></div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-800 truncate">{p.nama}</p>
+                        {p.batch && (
+                          <span className="mt-0.5 inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700">
+                            <Layers size={9} /> {p.batch.nama_batch}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 gap-1.5">
+                      <button onClick={() => openEdit(p)} className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-amber-200 hover:bg-amber-50 hover:text-amber-600" title="Edit"><Edit3 size={14} /></button>
+                      <button onClick={() => handleDelete(p.id)} className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600" title="Hapus"><Trash2 size={14} /></button>
+                    </div>
+                  </div>
+                  <div className="mb-2">{renderKategoriDisplay(p)}</div>
+                  {p.deskripsi && <p className="mb-2 text-xs text-slate-500 line-clamp-2">{p.deskripsi}</p>}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {statusBadge(p.status)}
+                      <span className="text-sm font-bold text-slate-800">Rp {Number(p.harga).toLocaleString('id-ID')}</span>
+                    </div>
+                    {p.komisi_tiers && p.komisi_tiers.length > 0 && (
+                      <span className="text-[10px] font-medium text-emerald-600">{p.komisi_tiers.length} tier komisi</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4 pt-[4vh] overflow-y-auto" onClick={() => setShowModal(false)}>
-          <div className="w-full max-w-5xl rounded-lg bg-white shadow-2xl mb-4" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex bg-black/50 sm:items-start sm:justify-center sm:overflow-y-auto" onClick={() => setShowModal(false)}>
+          <div className="flex h-full w-full flex-col bg-white sm:h-auto sm:max-w-5xl sm:rounded-lg sm:shadow-2xl sm:mb-4 sm:mt-[4vh]" onClick={e => e.stopPropagation()}>
 
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 sm:px-6 sm:py-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
-                  <Package size={20} />
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#0E6187] text-white sm:h-10 sm:w-10">
+                  <Package size={18} />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900">{editing ? 'Edit Produk' : 'Tambah Produk Baru'}</h2>
-                  <p className="text-xs text-slate-400 mt-0.5">{editing ? 'Perbarui data produk dan pengaturan komisi' : 'Lengkapi data produk untuk memulai'}</p>
+                  <h2 className="text-base font-bold text-slate-900 sm:text-lg">{editing ? 'Edit Produk' : 'Tambah Produk Baru'}</h2>
+                  <p className="text-[11px] text-slate-400 mt-0.5 sm:text-xs">{editing ? 'Perbarui data produk dan pengaturan komisi' : 'Lengkapi data produk untuk memulai'}</p>
                 </div>
               </div>
-              <button onClick={() => setShowModal(false)} className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-400 transition hover:bg-slate-200 hover:text-slate-600"><X size={18} /></button>
+              <button onClick={() => setShowModal(false)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-400 transition hover:bg-slate-200 hover:text-slate-600 sm:h-9 sm:w-9"><X size={18} /></button>
             </div>
 
             {/* Tabs */}
-            <div className="px-6 pt-3 border-b border-slate-100">
-              <div className="flex gap-1">
+            <div className="overflow-x-auto border-b border-slate-100 px-2 pt-2 sm:px-6">
+              <div className="flex gap-0.5 min-w-max sm:gap-1">
                 {[
                   { key: 'info' as const, label: 'Informasi Dasar', icon: Tag },
                   { key: 'kategori' as const, label: 'Kategori & Harga', icon: Layers },
                   { key: 'komisi' as const, label: 'Komisi', icon: Award },
                 ].map(tab => (
                   <button key={tab.key} type="button" onClick={() => setActiveTab(tab.key)}
-                    className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-t-lg transition-all border-b-2 -mb-px ${
+                    className={`flex items-center gap-1.5 whitespace-nowrap px-3 py-2.5 text-xs font-semibold rounded-t-lg transition-all border-b-2 -mb-px sm:px-4 sm:text-sm ${
                       activeTab === tab.key
                         ? 'text-[#0E6187] border-[#0E6187] bg-[#0E6187]/5'
                         : 'text-slate-400 border-transparent hover:text-slate-600 hover:bg-slate-50'
                     }`}>
-                    <tab.icon size={15} />
+                    <tab.icon size={14} />
                     {tab.label}
                   </button>
                 ))}
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="flex flex-col max-h-[78vh]">
+            <form onSubmit={handleSubmit} className="flex flex-col max-h-[85vh] sm:max-h-[78vh]">
 
               {/* Tab Content */}
-              <div className="flex-1 overflow-y-auto px-6 py-6">
+              <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
 
                 {/* ===== Tab 1: Informasi Dasar ===== */}
                 {activeTab === 'info' && (
-                  <div className="max-w-2xl mx-auto space-y-5">
+                  <div className="mx-auto max-w-2xl space-y-5">
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-1.5">Nama Produk <span className="text-red-500">*</span></label>
                       <input type="text" required placeholder="Contoh: Program Tahfidz 2026" value={form.nama} onChange={e => setForm({ ...form, nama: e.target.value })}
@@ -1026,7 +1076,7 @@ export default function DataProduct() {
                               <div className="p-3">
                                 {parentTiers.length > 0 ? (
                                   <div className="space-y-2">
-                                    <div className="grid grid-cols-[110px_50px_50px_1fr_32px] gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">
+                                    <div className="hidden sm:grid grid-cols-[110px_50px_50px_1fr_32px] gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">
                                       <span>Batch</span>
                                       <span className="text-center">Min</span>
                                       <span className="text-center">Max</span>
@@ -1036,28 +1086,44 @@ export default function DataProduct() {
                                     {parentTiers.map((t, ti) => {
                                       const globalIdx = form.komisi_tiers.indexOf(t)
                                       return (
-                                        <div key={globalIdx} className="grid grid-cols-[110px_50px_50px_1fr_32px] gap-2 items-center bg-slate-50 rounded-lg p-1.5">
-                                          <select value={t.batch_id ?? ''}
-                                            onChange={e => updateTier(globalIdx, 'batch_id', e.target.value ? parseInt(e.target.value) : null)}
-                                            className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs text-slate-700 outline-none focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187]/20 truncate">
-                                            <option value="">Semua Batch</option>
-                                            {batches.map(b => <option key={b.id} value={b.id}>{b.nama_batch}</option>)}
-                                          </select>
-                                          <input type="number" min={1} value={t.min_orang}
-                                            onChange={e => updateTier(globalIdx, 'min_orang', parseInt(e.target.value) || 1)}
-                                            className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs text-slate-700 outline-none focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187]/20 text-center font-semibold" />
-                                          <input type="number" min={t.min_orang} placeholder="∞" value={t.max_orang ?? ''}
-                                            onChange={e => updateTier(globalIdx, 'max_orang', e.target.value ? parseInt(e.target.value) : null)}
-                                            className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs text-slate-700 outline-none focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187]/20 text-center" />
-                                          <div className="relative">
-                                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-600">Rp</span>
-                                            <input type="number" min={0} value={t.komisi ?? 0}
-                                              onChange={e => updateTier(globalIdx, 'komisi', parseFloat(e.target.value) || 0)}
-                                              className="w-full rounded-lg border border-emerald-200 bg-emerald-50 pl-9 pr-2 py-2 text-xs text-slate-800 font-semibold outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20" />
+                                        <div key={globalIdx} className="rounded-lg bg-slate-50 p-2 sm:grid sm:grid-cols-[110px_50px_50px_1fr_32px] sm:gap-2 sm:items-center sm:p-1.5">
+                                          <div className="mb-2 sm:mb-0">
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase sm:hidden">Batch</span>
+                                            <select value={t.batch_id ?? ''}
+                                              onChange={e => updateTier(globalIdx, 'batch_id', e.target.value ? parseInt(e.target.value) : null)}
+                                              className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs text-slate-700 outline-none focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187]/20 truncate">
+                                              <option value="">Semua Batch</option>
+                                              {batches.map(b => <option key={b.id} value={b.id}>{b.nama_batch}</option>)}
+                                            </select>
                                           </div>
-                                          <button type="button" onClick={() => removeTier(globalIdx)} className="rounded-lg p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors">
-                                            <Trash size={13} />
-                                          </button>
+                                          <div className="grid grid-cols-2 gap-2 sm:contents">
+                                            <div>
+                                              <span className="text-[10px] font-bold text-slate-400 uppercase sm:hidden">Min</span>
+                                              <input type="number" min={1} value={t.min_orang}
+                                                onChange={e => updateTier(globalIdx, 'min_orang', parseInt(e.target.value) || 1)}
+                                                className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs text-slate-700 outline-none focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187]/20 text-center font-semibold" />
+                                            </div>
+                                            <div>
+                                              <span className="text-[10px] font-bold text-slate-400 uppercase sm:hidden">Max</span>
+                                              <input type="number" min={t.min_orang} placeholder="∞" value={t.max_orang ?? ''}
+                                                onChange={e => updateTier(globalIdx, 'max_orang', e.target.value ? parseInt(e.target.value) : null)}
+                                                className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs text-slate-700 outline-none focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187]/20 text-center" />
+                                            </div>
+                                          </div>
+                                          <div className="mb-2 sm:mb-0">
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase sm:hidden">Komisi/org</span>
+                                            <div className="relative">
+                                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-600">Rp</span>
+                                              <input type="number" min={0} value={t.komisi ?? 0}
+                                                onChange={e => updateTier(globalIdx, 'komisi', parseFloat(e.target.value) || 0)}
+                                                className="w-full rounded-lg border border-emerald-200 bg-emerald-50 pl-9 pr-2 py-2 text-xs text-slate-800 font-semibold outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20" />
+                                            </div>
+                                          </div>
+                                          <div className="flex justify-end sm:justify-center">
+                                            <button type="button" onClick={() => removeTier(globalIdx)} className="rounded-lg p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                                              <Trash size={13} />
+                                            </button>
+                                          </div>
                                         </div>
                                       )
                                     })}
@@ -1081,13 +1147,15 @@ export default function DataProduct() {
               </div>
 
               {/* Footer */}
-              <div className="px-6 py-4 border-t border-slate-100 flex gap-3">
-                <button type="submit" className="flex-1 rounded-lg bg-[#0E6187] py-3 text-sm font-bold text-white transition hover:bg-[#0a4f66] shadow-sm">
-                  {editing ? 'Simpan Perubahan' : 'Buat Produk'}
-                </button>
-                <button type="button" onClick={() => setShowModal(false)} className="flex-1 rounded-lg bg-slate-100 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-200 hover:text-slate-800">
-                  Batal
-                </button>
+              <div className="shrink-0 border-t border-slate-100 px-4 py-3 sm:px-6 sm:py-4">
+                <div className="flex gap-3">
+                  <button type="submit" className="flex-1 rounded-lg bg-[#0E6187] py-2.5 text-sm font-bold text-white transition hover:bg-[#0a4f66] shadow-sm sm:py-3">
+                    {editing ? 'Simpan Perubahan' : 'Buat Produk'}
+                  </button>
+                  <button type="button" onClick={() => setShowModal(false)} className="flex-1 rounded-lg bg-slate-100 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-200 hover:text-slate-800 sm:py-3">
+                    Batal
+                  </button>
+                </div>
               </div>
             </form>
           </div>
