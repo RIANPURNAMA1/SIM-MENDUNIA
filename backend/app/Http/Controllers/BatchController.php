@@ -13,16 +13,27 @@ class BatchController extends Controller
         return view('batches.index', compact('batches'));
     }
 
-    public function apiIndex()
+    public function apiIndex(Request $request)
     {
-        $batches = Batch::withCount('siswas')->with('cabang')->latest()->get()->map(function ($b) {
+        $perPage = $request->input('per_page', 10);
+        $batches = Batch::withCount('siswas')->with('cabang')
+            ->when($request->cabang_id, fn($q) => $q->where('cabang_id', $request->cabang_id))
+            ->latest()->paginate($perPage);
+
+        $batches->getCollection()->transform(function ($b) {
             $b->is_penuh = ($b->kuota !== null && $b->siswas_count >= $b->kuota) || $b->is_penuh_manual;
             return $b;
         });
 
         return response()->json([
             'success' => true,
-            'data' => $batches,
+            'data' => $batches->items(),
+            'pagination' => [
+                'current_page' => $batches->currentPage(),
+                'last_page' => $batches->lastPage(),
+                'per_page' => $batches->perPage(),
+                'total' => $batches->total(),
+            ],
         ]);
     }
 

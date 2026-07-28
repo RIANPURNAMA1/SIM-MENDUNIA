@@ -37,6 +37,11 @@ export default function BatchesPage() {
   const [cabangList, setCabangList] = useState<CabangOption[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const perPage = 10;
+
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [namaBatch, setNamaBatch] = useState("");
@@ -55,14 +60,23 @@ export default function BatchesPage() {
     ? data.filter(item => item.cabang?.id === filterCabang)
     : data;
 
-  const fetchData = async () => {
+  const fetchData = async (p?: number) => {
     setLoading(true);
+    const targetPage = p ?? page;
     try {
+      const params: Record<string, string | number> = { page: targetPage, per_page: perPage };
+      if (filterCabang) params.cabang_id = filterCabang;
       const [batchRes, cabangRes] = await Promise.all([
-        batchApi.list(),
+        batchApi.list(params),
         cabangApi.list(),
       ]);
       setData(batchRes.data.data || []);
+      const pg = batchRes.data.pagination;
+      if (pg) {
+        setPage(pg.current_page);
+        setLastPage(pg.last_page);
+        setTotal(pg.total);
+      }
       setCabangList(cabangRes.data?.data || []);
     } catch (err) {
       console.error(err);
@@ -71,7 +85,7 @@ export default function BatchesPage() {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(1); }, [filterCabang]);
 
   const openAdd = () => {
     setEditId(null);
@@ -123,7 +137,7 @@ export default function BatchesPage() {
       setKuota("");
       setWarna("#3b82f6");
       setEditId(null);
-      fetchData();
+      fetchData(1);
     } catch (err) {
       console.error(err);
     } finally {
@@ -155,7 +169,7 @@ export default function BatchesPage() {
         setConfirm(null)
         try {
           await batchApi.destroy(item.id);
-          fetchData();
+          fetchData(page);
         } catch (err) {
           console.error(err);
         }
@@ -176,7 +190,7 @@ export default function BatchesPage() {
         setConfirm(null)
         try {
           await batchApi.toggleStatus(item.id);
-          fetchData();
+          fetchData(page);
         } catch (err) {
           console.error(err);
         }
@@ -197,7 +211,7 @@ export default function BatchesPage() {
         setConfirm(null)
         try {
           await batchApi.togglePenuh(item.id);
-          fetchData();
+          fetchData(page);
         } catch (err) {
           console.error(err);
         }
@@ -230,7 +244,7 @@ export default function BatchesPage() {
         </div>
         <select
           value={filterCabang}
-          onChange={(e) => setFilterCabang(e.target.value ? Number(e.target.value) : "")}
+          onChange={(e) => { setFilterCabang(e.target.value ? Number(e.target.value) : ""); setPage(1); }}
           className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
         >
           <option value="">Semua Cabang</option>
@@ -240,7 +254,7 @@ export default function BatchesPage() {
         </select>
         {filterCabang && (
           <span className="text-xs text-slate-400">
-            Menampilkan {filteredData.length} dari {data.length} batch
+            Menampilkan {data.length} batch
           </span>
         )}
       </div>
@@ -322,6 +336,43 @@ export default function BatchesPage() {
             )}
           </tbody>
         </table>
+        {/* Pagination */}
+        {!loading && lastPage > 1 && (
+          <div className="flex items-center justify-between border-t border-slate-200 bg-white px-4 py-3">
+            <span className="text-xs text-slate-500">
+              {total} batch — halaman {page} dari {lastPage}
+            </span>
+            <div className="flex items-center gap-1">
+              <button onClick={() => fetchData(1)} disabled={page === 1}
+                className="rounded border border-slate-300 px-2.5 py-1 text-xs text-slate-600 transition hover:bg-slate-100 disabled:opacity-40">
+                Awal
+              </button>
+              <button onClick={() => fetchData(page - 1)} disabled={page === 1}
+                className="rounded border border-slate-300 px-2.5 py-1 text-xs text-slate-600 transition hover:bg-slate-100 disabled:opacity-40">
+                Prev
+              </button>
+              {Array.from({ length: Math.min(lastPage, 5) }, (_, i) => {
+                const start = Math.max(1, Math.min(page - 2, lastPage - 4));
+                const p = start + i;
+                if (p > lastPage) return null;
+                return (
+                  <button key={p} onClick={() => fetchData(p)}
+                    className={`rounded border px-2.5 py-1 text-xs transition ${p === page ? 'border-slate-800 bg-slate-800 text-white' : 'border-slate-300 text-slate-600 hover:bg-slate-100'}`}>
+                    {p}
+                  </button>
+                );
+              })}
+              <button onClick={() => fetchData(page + 1)} disabled={page === lastPage}
+                className="rounded border border-slate-300 px-2.5 py-1 text-xs text-slate-600 transition hover:bg-slate-100 disabled:opacity-40">
+                Next
+              </button>
+              <button onClick={() => fetchData(lastPage)} disabled={page === lastPage}
+                className="rounded border border-slate-300 px-2.5 py-1 text-xs text-slate-600 transition hover:bg-slate-100 disabled:opacity-40">
+                Akhir
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {confirm && (

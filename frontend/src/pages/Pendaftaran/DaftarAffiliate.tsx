@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, type FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import {
-  User, Loader, Shield,
+  User, Loader, Shield, Eye, EyeOff,
 } from 'lucide-react'
 import { affiliateLinkApi, pendaftarApi, couponApi, paymentSettingApi } from '../../services/api'
 
@@ -44,6 +44,7 @@ export default function DaftarAffiliate() {
   const [nama, setNama] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+const [showPassword, setShowPassword] = useState(false)
   const [telepon, setTelepon] = useState('')
   const [alamat, setAlamat] = useState('')
   const [kodeKupon, setKodeKupon] = useState('')
@@ -434,14 +435,20 @@ export default function DaftarAffiliate() {
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Buat Password <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => { setPassword(e.target.value); if (touched.password) validateField('password', e.target.value); }}
-                    onBlur={() => { setTouched(p => ({ ...p, password: true })); validateField('password', password); }}
-                    placeholder="Buat Password"
-                    className={`w-full px-4 py-3 bg-white border rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]/20 outline-none transition-colors ${fieldErrors.password ? 'border-red-400 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-300 focus:border-[#0E6187]'}`}
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => { setPassword(e.target.value); if (touched.password) validateField('password', e.target.value); }}
+                      onBlur={() => { setTouched(p => ({ ...p, password: true })); validateField('password', password); }}
+                      placeholder="Buat Password"
+                      className={`w-full px-4 py-3 pr-10 bg-white border rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]/20 outline-none transition-colors ${fieldErrors.password ? 'border-red-400 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-300 focus:border-[#0E6187]'}`}
+                    />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                   {fieldErrors.password ? (
                     <p className="text-xs text-red-500 mt-1">{fieldErrors.password}</p>
                   ) : (

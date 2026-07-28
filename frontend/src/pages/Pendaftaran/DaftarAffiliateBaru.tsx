@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Loader, CheckCircle, User, ChevronRight, FileText, Tag } from "lucide-react";
+import { Loader, CheckCircle, User, ChevronRight, FileText, Tag, Eye, EyeOff } from "lucide-react";
 import { authApi } from "../../services/api";
 
 const steps = [
@@ -17,6 +17,7 @@ export default function DaftarAffiliateBaru() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [telepon, setTelepon] = useState("");
   const [alamat, setAlamat] = useState("");
   const [provinsi, setProvinsi] = useState("");
@@ -319,15 +320,21 @@ export default function DaftarAffiliateBaru() {
                           </div>
                           <div>
                             <label className="sr-only">Password</label>
-                            <input
-                              type="password"
-                              required
-                              value={password}
-                              onChange={(e) => setPassword(e.target.value)}
-                              minLength={6}
-                              placeholder="Password (Min. 6 Karakter)"
-                              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm"
-                            />
+                            <div className="relative">
+                              <input
+                                type={showPassword ? "text" : "password"}
+                                required
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                minLength={6}
+                                placeholder="Password (Min. 6 Karakter)"
+                                className="w-full px-4 py-2.5 pr-10 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm"
+                              />
+                              <button type="button" onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                              </button>
+                            </div>
                           </div>
                         </div>
 

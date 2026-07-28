@@ -5,7 +5,7 @@ import { adminCabangApi } from '../services/api'
 import {
   LayoutDashboard, UserPlus, ClipboardList, FileText, Layers, GraduationCap,
   ChevronDown, LogOut, X, Receipt, MapPin, Wallet, BookOpen, Presentation,
-  Calendar, BarChart3, Notebook,
+  Calendar, BarChart3, Notebook, ClipboardCheck,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -31,7 +31,7 @@ interface SidebarProps {
 const iconMap: Record<string, LucideIcon> = {
   LayoutDashboard, UserPlus, ClipboardList, FileText, Layers, GraduationCap,
   ChevronDown, LogOut, X, Receipt, MapPin, Wallet, BookOpen, Presentation,
-  Calendar, BarChart3, Notebook,
+  Calendar, BarChart3, Notebook, ClipboardCheck,
 }
 
 const navItems: NavItem[] = [
