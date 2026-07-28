@@ -724,8 +724,8 @@ export default function AdminCabangTagihan() {
       </div>
 
       <div className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-          <div className="relative flex-1">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+          <div className="relative sm:col-span-2 md:col-span-3 lg:col-span-2">
             <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
@@ -735,26 +735,42 @@ export default function AdminCabangTagihan() {
               className="w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
           </div>
-          <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-          <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="mm/dd/yyyy"
+              value={filterDateFrom}
+              onFocus={e => { e.target.type = 'date'; e.target.showPicker?.() }}
+              onChange={e => { setFilterDateFrom(e.target.value); if (e.target.value) e.target.type = 'date'; else e.target.type = 'text' }}
+              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="mm/dd/yyyy"
+              value={filterDateTo}
+              onFocus={e => { e.target.type = 'date'; e.target.showPicker?.() }}
+              onChange={e => { setFilterDateTo(e.target.value); if (e.target.value) e.target.type = 'date'; else e.target.type = 'text' }}
+              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
           <select value={filterBatch} onChange={e => setFilterBatch(e.target.value)}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
             <option value="">Semua Batch</option>
             {batches.map(b => (
               <option key={b.id} value={b.id}>{b.nama_batch}</option>
             ))}
           </select>
           <select value={filterProduct} onChange={e => setFilterProduct(e.target.value)}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
             <option value="">Semua Program</option>
             {products.map(p => (
               <option key={p.id} value={p.nama}>{p.nama}</option>
             ))}
           </select>
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
             <option value="">Semua Status</option>
             <option value="unpaid">Belum Bayar</option>
             <option value="processing">Proses</option>
@@ -763,7 +779,7 @@ export default function AdminCabangTagihan() {
           </select>
           <button
             onClick={() => { setSearch(''); setFilterStatus(''); setFilterBatch(''); setFilterProduct(''); setFilterDateFrom(''); setFilterDateTo(''); setPendingChanges({}); setCollapsedBatches(new Set()) }}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 w-full sm:w-auto"
           >
             <RotateCcw size={16} />
             Reset

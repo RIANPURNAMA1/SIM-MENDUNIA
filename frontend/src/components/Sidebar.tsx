@@ -26,6 +26,7 @@ import {
   MessageCircle,
   ChevronDown,
   LogOut,
+  LogIn,
   X,
   Presentation,
   UserPlus,
@@ -107,6 +108,7 @@ const iconMap: Record<string, LucideIcon> = {
   CalendarRange,
   CalendarOff,
   MapPinOff,
+  LogIn,
 };
 
 const navItems: NavItem[] = [
@@ -167,6 +169,7 @@ const navItems: NavItem[] = [
       { label: "Penilaian Siswa", icon: "Notebook", href: "/penilaian" },
       { label: "Evaluasi Instruktur", icon: "ClipboardCheck", href: "/evaluasi-instruktur" },
       { label: "LMS", icon: "BookOpen", href: "/lms" },
+      { label: "Raport Siswa", icon: "Notebook", href: "/raport" },
     ],
   },
 
@@ -236,6 +239,7 @@ const navItems: NavItem[] = [
     children: [
       { label: "AI Chat", icon: "Bot", href: "/ai-chat" },
       { label: "Notifikasi WA", icon: "MessageCircle", href: "/pengaturan-wa" },
+      { label: "Log Login", icon: "LogIn", href: "/log-login" },
     ],
   },
 ];

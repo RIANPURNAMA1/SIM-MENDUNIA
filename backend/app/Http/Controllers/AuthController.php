@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\LoginLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -151,6 +152,21 @@ class AuthController extends Controller
 
         Auth::login($user, true);
         $user->update(['last_login' => now()]);
+
+        $ua = $request->userAgent() ?? '';
+        $browser = 'Unknown';
+        $platform = 'Unknown';
+        if (preg_match('/(Chrome|Firefox|Safari|Edge|Opera|Brave)\b/i', $ua, $m)) $browser = $m[1];
+        if (preg_match('/\b(Windows|Mac|Linux|Android|iOS|iPhone|iPad)\b/i', $ua, $m)) $platform = $m[1];
+
+        LoginLog::create([
+            'user_id'   => $user->id,
+            'ip_address'=> $request->ip(),
+            'user_agent'=> $ua,
+            'browser'   => $browser,
+            'platform'  => $platform,
+            'login_at'  => now(),
+        ]);
 
         return response()->json([
             'message' => 'Login berhasil',

@@ -38,6 +38,7 @@ import RekapSiswa from './pages/Siswa/RekapSiswa'
 import Penilaian from './pages/Siswa/Penilaian'
 import EvaluasiInstruktur from './pages/Siswa/EvaluasiInstruktur'
 import AiChat from './pages/AiChat'
+import LogLogin from './pages/LogLogin'
 import Pengaturan from './pages/Pengaturan/Pengaturan'
 import PengaturanShift from './pages/Karyawan/PengaturanShift'
 import PengaturanWa from './pages/Pengaturan/PengaturanWa'
@@ -80,6 +81,7 @@ import SiswaLayout from './layouts/SiswaLayout'
 import PembayaranSiswa from './pages/Siswa/PembayaranSiswa'
 import AbsensiSaya from './pages/Absensi/AbsensiSaya'
 import LMS from './pages/Akademik/LMS'
+import Raport from './pages/Akademik/Raport'
 import SiswaNilai from './pages/Siswa/SiswaNilai'
 import DataCourse from './pages/Akademik/DataCourse'
 import DataLesson from './pages/Akademik/DataLesson'
@@ -414,6 +416,16 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/admin-cabang/raport"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <Raport />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/admin-cabang/evaluasi-instruktur"
         element={
           <ProtectedRoute roleAllowed="ADMIN_CABANG">
@@ -710,9 +722,11 @@ function AppRoutes() {
                 <Route path="/rekap-siswa" element={<RekapSiswa />} />
                 <Route path="/penilaian" element={<Penilaian />} />
                 <Route path="/evaluasi-instruktur" element={<EvaluasiInstruktur />} />
+                <Route path="/raport" element={<Raport />} />
                 <Route path="/lms" element={<DataCourse />} />
                 <Route path="/lms/:courseId/lessons" element={<DataLesson />} />
                 <Route path="/ai-chat" element={<AiChat />} />
+                <Route path="/log-login" element={<LogLogin />} />
                 <Route path="/pengaturan" element={<Pengaturan />} />
                 <Route path="/pengaturan-shift" element={<PengaturanShift />} />
                 <Route path="/pengaturan-wa" element={<PengaturanWa />} />

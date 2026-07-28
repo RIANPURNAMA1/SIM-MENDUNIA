@@ -79,7 +79,14 @@ export default function DataKehadiranPage() {
     if (!selected || !newStatus) return
     setSubmitting(true)
     try {
-      await kehadiranApi.updateStatus({ id: selected.id, status: newStatus })
+      const payload: Record<string, unknown> = { id: selected.id, status: newStatus }
+      // Virtual records need extra fields to create the record
+      if (typeof selected.id === 'string' && selected.id.startsWith('virtual_')) {
+        payload.user_id = selected.user_id
+        payload.tanggal = selected.tanggal
+        payload.shift_id = selected.shift_id
+      }
+      await kehadiranApi.updateStatus(payload)
       setShowStatusModal(false)
       setSelected(null)
       fetchData()

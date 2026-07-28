@@ -1556,9 +1556,8 @@ class PendaftaranController extends Controller
                 'status_akademik' => $siswa?->status ?? 'AKTIF',
                 'is_cuti' => $siswa?->is_cuti ?? false,
                 'cuti_sejak' => $siswa?->cuti_sejak,
-                'level_status_keluar' => $siswa && $siswa->level_status
-                    ? collect($siswa->level_status)->contains('Keluar')
-                    : false,
+                'level_status_keluar' => ($siswa && $siswa->status_kandidat === 'Mengundurkan Diri')
+                    || ($siswa && $siswa->level_status && collect($siswa->level_status)->contains('Keluar')),
                 'password_plain' => $user?->password_plain ?? null,
             ];
         };
@@ -2222,6 +2221,35 @@ class PendaftaranController extends Controller
                 if (array_key_exists($f, $data)) $siswa->$f = $data[$f];
             }
             if (isset($data['nama'])) $siswa->nama = $data['nama'];
+
+            // When set to Mengundurkan Diri, auto-update level_status Active → Keluar
+            if (isset($data['status_kandidat']) && $data['status_kandidat'] === 'Mengundurkan Diri') {
+                $levelStatus = $siswa->level_status ?? [];
+                $changed = false;
+                foreach (['level_1', 'level_2', 'level_3', 'level_4'] as $lvl) {
+                    if (isset($levelStatus[$lvl]) && $levelStatus[$lvl] === 'Active') {
+                        $levelStatus[$lvl] = 'Keluar';
+                        $changed = true;
+                    }
+                }
+                if ($changed) {
+                    $siswa->level_status = $levelStatus;
+                }
+            } elseif (isset($data['status_kandidat']) && $data['status_kandidat'] !== 'Mengundurkan Diri') {
+                // When changing away from Mengundurkan Diri, restore Active status where it was Keluar
+                $levelStatus = $siswa->level_status ?? [];
+                $changed = false;
+                foreach (['level_1', 'level_2', 'level_3', 'level_4'] as $lvl) {
+                    if (isset($levelStatus[$lvl]) && $levelStatus[$lvl] === 'Keluar') {
+                        $levelStatus[$lvl] = 'Active';
+                        $changed = true;
+                    }
+                }
+                if ($changed) {
+                    $siswa->level_status = $levelStatus;
+                }
+            }
+
             $siswa->save();
         }
 

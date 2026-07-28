@@ -48,6 +48,8 @@ use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\AdminCabangController;
 use App\Http\Controllers\PengeluaranController;
 use App\Http\Controllers\LmsController;
+use App\Http\Controllers\Api\LoginLogController;
+use App\Http\Controllers\RaportController;
 
 // ========== API Auth (Sanctum) ==========
 Route::post('/auth/login',    [AuthController::class, 'loginApi']);
@@ -59,6 +61,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout',[AuthController::class, 'logoutApi']);
     Route::post('/profile/update', [ProfileController::class, 'apiUpdate']);
     Route::post('/profile/password', [ProfileController::class, 'apiChangePassword']);
+    Route::get('/login-logs', [LoginLogController::class, 'index']);
 });
 
 Route::post('/auth/register-affiliate', [AuthController::class, 'registerAffiliate']);
@@ -246,6 +249,7 @@ Route::prefix('siswa')->group(function () {
     Route::post('/{id}/toggle-status', [SiswaController::class, 'toggleStatus']);
     Route::post('/{id}/buatkan-akun', [SiswaController::class, 'buatkanAkun']);
     Route::post('/{id}/level-status', [SiswaController::class, 'updateLevelStatus']);
+    Route::post('/{id}/auto-level-status', [SiswaController::class, 'autoLevelStatus']);
 });
 
 // Batch
@@ -257,6 +261,12 @@ Route::prefix('batches')->group(function () {
     Route::delete('/{id}', [BatchController::class, 'destroy']);
     Route::post('/{id}/toggle-status', [BatchController::class, 'toggleStatus']);
     Route::post('/{id}/toggle-penuh', [BatchController::class, 'togglePenuh']);
+});
+
+// Raport Siswa
+Route::prefix('raport')->group(function () {
+    Route::get('/{batchId}/levels', [RaportController::class, 'levels']);
+    Route::get('/{batchId}/{level}', [RaportController::class, 'students']);
 });
 
 // Absensi Siswa
@@ -401,6 +411,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/guru/profile', [GuruDashboardController::class, 'profile']);
     Route::get('/guru/batch-dan-nilai', [GuruDashboardController::class, 'batchDanNilai']);
     Route::get('/guru/ranking/{batchId}', [GuruDashboardController::class, 'rankingBatch']);
+Route::get('/guru/penilaian-rekap/{kelasId}', [GuruDashboardController::class, 'penilaianRekap']);
     Route::post('/guru/level-evaluation', [GuruDashboardController::class, 'storeLevelEvaluation']);
     Route::get('/guru/level-evaluations/{batchId}/{level}', [GuruDashboardController::class, 'getLevelEvaluations']);
 
