@@ -134,7 +134,7 @@ export default function CheckoutBerhasil() {
   }
 
   function fmt(n: number | string) {
-    return console.log("fmt", n), "Rp " + Number(n).toLocaleString("id-ID").replace(/,/g, ".");
+    return "Rp " + Number(n).toLocaleString("id-ID").replace(/,/g, ".");
   }
 
   const testdata = () =>{

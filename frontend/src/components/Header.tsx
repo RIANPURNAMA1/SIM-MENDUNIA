@@ -123,6 +123,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
       <div className="flex items-center gap-4">
         <button
           onClick={onToggleSidebar}
+          aria-label="Buka menu"
           className="lg:hidden p-2 rounded-lg hover:bg-gray-100 text-gray-500"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -132,7 +133,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
           <img src="/logo-sm.png" alt="SIM Mendunia" className="h-7 w-auto" />
         </Link>
 
-        <nav className="hidden lg:flex items-center gap-1">
+        <nav aria-label="Navigasi header" className="hidden lg:flex items-center gap-1">
           {filteredNavItems.map((item) => (
             <Link
               key={item.label}
@@ -154,6 +155,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
         <div className="relative">
           <button
             onClick={() => setShowNotif(!showNotif)}
+            aria-label="Notifikasi"
             className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 relative"
           >
             <Bell size={20} />
@@ -165,7 +167,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
             <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
               <div className="p-3 border-b border-gray-100 flex items-center justify-between">
                 <p className="text-xs font-semibold text-gray-500">Notifikasi Pengajuan</p>
-                <button onClick={() => setShowNotif(false)} className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600">
+                <button onClick={() => setShowNotif(false)} aria-label="Tutup notifikasi" className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
               </div>

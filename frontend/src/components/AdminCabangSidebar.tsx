@@ -144,13 +144,14 @@ export default function AdminCabangSidebar({ isOpen, onClose }: SidebarProps) {
           </div>
           <button
             onClick={onClose}
+            aria-label="Tutup sidebar"
             className="lg:hidden p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
           >
             <X size={18} />
           </button>
         </div>
 
-        <nav className="sidebar-nav flex-1 overflow-y-auto px-2.5 py-3 space-y-1">
+        <nav aria-label="Navigasi utama" className="sidebar-nav flex-1 overflow-y-auto px-2.5 py-3 space-y-1">
           {navItems.map((item) => {
             const hasChildren = 'children' in item && item.children.length > 0
             const isOpen = openGroups[item.label]
