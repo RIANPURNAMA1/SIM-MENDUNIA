@@ -104,6 +104,7 @@ export default function DataKandidat() {
   const [cabangOptions, setCabangOptions] = useState<{ id: number; nama: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<number | null>(null)
+  const [batchModalKandidat, setBatchModalKandidat] = useState<Kandidat | null>(null)
   const [editForm, setEditForm] = useState<Partial<Kandidat>>({})
   const [saving, setSaving] = useState(false)
   const [detailKandidat, setDetailKandidat] = useState<Kandidat | null>(null)
@@ -468,6 +469,10 @@ export default function DataKandidat() {
     } catch {
       alert('Gagal mengubah batch')
     }
+  }
+
+  function openBatchModal(k: Kandidat) {
+    setBatchModalKandidat(k)
   }
 
   function toggleSelect(id: number) {
@@ -1133,7 +1138,7 @@ export default function DataKandidat() {
                     <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[110px] min-w-[110px]">No. Tlp</th>
                     <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[140px] min-w-[140px]">Nama Orang Tua/Wali</th>
                     <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[110px] min-w-[110px]">No. Tlp Orang Tua</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-white w-[130px] min-w-[130px]">Status Kandidat</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-white w-[150px] min-w-[150px]">Status Kandidat</th>
                     <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[140px] min-w-[140px]">Ket.</th>
                     <th scope="col" className="sticky right-0 z-30 border border-slate-600 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-white bg-[#0e6187] shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] w-[60px] min-w-[60px]">Aksi</th>
                   </tr>
@@ -1176,20 +1181,13 @@ export default function DataKandidat() {
                             )}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
-                            <span className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium whitespace-nowrap leading-none text-white" style={{ backgroundColor: batchBadgeBg, borderColor: batchBadgeBg }}>
+                            <button onClick={() => openBatchModal(k)}
+                              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium whitespace-nowrap leading-none text-white transition hover:opacity-80"
+                              style={{ backgroundColor: batchBadgeBg }}
+                              title="Klik untuk ganti batch"
+                            >
                               {k.batch_nama || '-'}
-                              <select
-                                value={String(k.batch_id ?? '')}
-                                onChange={e => handlePindahBatch(k.id, e.target.value)}
-                                className="cursor-pointer rounded border border-slate-300 bg-white p-0.5 text-[9px] text-slate-400 outline-none transition hover:border-slate-400 hover:text-slate-600"
-                                title="Pindah Batch"
-                              >
-                                <option value="">-</option>
-                                {batchOptions.map(b => (
-                                  <option key={b.id} value={b.id}>{b.nama}</option>
-                                ))}
-                              </select>
-                            </span>
+                            </button>
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black whitespace-nowrap">
                             {k.cabang_nama || <span className="text-gray-400">-</span>}
@@ -1256,7 +1254,7 @@ export default function DataKandidat() {
                           <td className="border border-slate-200 px-4 py-3 text-xs font-mono font-semibold text-black whitespace-nowrap">
                             {isEditing ? <CellEdit field="no_hp_ortu" /> : k.no_hp_ortu || <span className="text-gray-400">-</span>}
                           </td>
-                           <td className="border border-slate-200 px-4 py-3">
+                            <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
                              {isEditing ? (
                                <CellEdit field="status_kandidat" type="select" />
                              ) : (() => {
@@ -1414,6 +1412,33 @@ export default function DataKandidat() {
                                       <span>{k.is_cuti ? 'Aktifkan dari Cuti' : 'Cuti'}</span>
                                     </button>
                                     <div className="my-1 border-t border-slate-100" />
+                                    <button onClick={() => {
+                                        setOpenActionId(null)
+                                        Swal.fire({
+                                          title: 'Hapus Kandidat?',
+                                          text: `Semua data ${k.nama} akan dihapus permanen termasuk akun login. Tindakan ini tidak bisa dibatalkan!`,
+                                          icon: 'warning',
+                                          showCancelButton: true,
+                                          confirmButtonColor: '#dc2626',
+                                          cancelButtonColor: '#64748b',
+                                          confirmButtonText: 'Ya, Hapus!',
+                                          cancelButtonText: 'Batal',
+                                        }).then(async (result) => {
+                                          if (result.isConfirmed) {
+                                            try {
+                                              await pendaftarApi.deleteKandidat(k.id)
+                                              fetchData(search)
+                                              Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Kandidat berhasil dihapus.', confirmButtonColor: '#0E6187', timer: 2000, timerProgressBar: true, showConfirmButton: false })
+                                            } catch {
+                                              Swal.fire({ icon: 'error', title: 'Gagal', text: 'Terjadi kesalahan.', confirmButtonColor: '#0E6187' })
+                                            }
+                                          }
+                                        })
+                                      }}
+                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 transition-colors">
+                                      <Trash2 size={14} className="text-red-400" />
+                                      <span>Hapus Kandidat</span>
+                                    </button>
                                     <button onClick={() => {
                                         setOpenActionId(null)
                                         const isNonaktif = k.status_akademik === 'NONAKTIF' || k.status_kandidat === 'Mengundurkan Diri'
@@ -1680,6 +1705,38 @@ export default function DataKandidat() {
                 className="ml-auto rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
                 Tutup
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pindah Batch Modal */}
+      {batchModalKandidat && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setBatchModalKandidat(null)}>
+          <div className="w-full max-w-sm rounded-xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+              <h3 className="text-sm font-bold text-slate-900">Pindah Batch</h3>
+              <button onClick={() => setBatchModalKandidat(null)} className="rounded-lg p-1 hover:bg-slate-100 transition"><X size={16} className="text-slate-400" /></button>
+            </div>
+            <div className="px-5 py-4">
+              <p className="mb-4 text-xs text-slate-500">
+                Pilih batch baru untuk <span className="font-semibold text-slate-700">{batchModalKandidat.nama}</span>
+              </p>
+              <div className="space-y-1 max-h-60 overflow-y-auto">
+                <button onClick={() => { handlePindahBatch(batchModalKandidat.id, ''); setBatchModalKandidat(null) }}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-slate-500 hover:bg-slate-50 transition-colors">
+                  <span className="w-4 h-4 rounded-full border-2 border-slate-300" />
+                  -
+                </button>
+                {batchOptions.map(b => (
+                  <button key={b.id} onClick={() => { handlePindahBatch(batchModalKandidat.id, String(b.id)); setBatchModalKandidat(null) }}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                  >
+                    <span className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: b.warna || '#3b82f6' }} />
+                    {b.nama}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
