@@ -73,4 +73,9 @@ class Pendaftar extends Model
     {
         return $this->hasOne(Siswa::class, 'user_id', 'user_id');
     }
+
+    public function pembayaranItems()
+    {
+        return $this->hasMany(PembayaranItem::class);
+    }
 }
