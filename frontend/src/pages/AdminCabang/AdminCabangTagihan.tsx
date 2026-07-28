@@ -263,10 +263,8 @@ export default function AdminCabangTagihan() {
       for (const d of (p.detail || [])) {
         const biaya = Number(d.biaya || 0)
         if (biaya <= 0) continue
-        const dDibayar = Number(d.dibayar || 0)
-        const effBiaya = uniqueCodeOp === 'subtract' && d.total_transfer ? Number(d.total_transfer) : biaya
-        total += effBiaya
-        paid += dDibayar > 0 ? Number(d.total_transfer || d.dibayar) : 0
+        total += biaya
+        paid += Number(d.dibayar || 0)
       }
       if (!p.detail || p.detail.length === 0) {
         total += Number(p.product?.harga || 0) - Number(p.diskon || 0)
@@ -279,7 +277,7 @@ export default function AdminCabangTagihan() {
       outstanding: total - paid,
       count: data.length,
     }
-  }, [data, uniqueCodeOp])
+  }, [data])
 
   const calcRow = (p: TagihanItem) => {
     const details = p.detail || []
@@ -288,10 +286,8 @@ export default function AdminCabangTagihan() {
     for (const d of details) {
       const biaya = Number(d.biaya || 0)
       if (biaya <= 0) continue
-      const dDibayar = Number(d.dibayar || 0)
-      const effBiaya = uniqueCodeOp === 'subtract' && d.total_transfer ? Number(d.total_transfer) : biaya
-      tagihan += effBiaya
-      dibayar += dDibayar > 0 ? Number(d.total_transfer || d.dibayar) : 0
+      tagihan += biaya
+      dibayar += Number(d.dibayar || 0)
     }
     if (details.length === 0) {
       const diskon = Number(p.diskon || 0)

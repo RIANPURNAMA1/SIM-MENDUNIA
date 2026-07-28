@@ -271,19 +271,25 @@ export default function Tagihan() {
   }, [filtered, kategoris, products])
 
   const stats = useMemo(() => {
-    const total = data.reduce((sum, p) => {
-      const firstCategory = p.detail?.[0]
-      const biayaTotal = firstCategory ? Number(firstCategory.biaya) : Number(p.product?.harga || 0)
-      return sum + biayaTotal - Number(p.diskon || 0)
-    }, 0)
-    const paid = data.reduce((sum, p) => {
-      const firstCategory = p.detail?.[0]
-      const paidAmount = firstCategory ? (firstCategory.dibayar > 0 ? Number(firstCategory.total_transfer || firstCategory.dibayar) : 0) : Number(p.nominal || 0)
-      return sum + paidAmount
-    }, 0)
+    let total = 0
+    let paid = 0
+    for (const p of data) {
+      const details = p.detail || []
+      if (details.length > 0) {
+        for (const d of details) {
+          const biaya = Number(d.biaya || 0)
+          if (biaya <= 0) continue
+          total += biaya
+          paid += Number(d.dibayar || 0)
+        }
+      } else {
+        total += Number(p.product?.harga || 0) - Number(p.diskon || 0)
+        paid += Number(p.nominal || 0)
+      }
+    }
     return {
-      total: total,
-      paid: paid,
+      total,
+      paid,
       outstanding: total - paid,
       count: data.length,
     }
@@ -335,10 +341,8 @@ export default function Tagihan() {
     for (const d of details) {
       const biaya = Number(d.biaya || 0)
       if (biaya <= 0) continue
-      const dDibayar = Number(d.dibayar || 0)
-      const effBiaya = uniqueCodeOp === 'subtract' && d.total_transfer ? Number(d.total_transfer) : biaya
-      tagihan += effBiaya
-      dibayar += dDibayar > 0 ? Number(d.total_transfer || d.dibayar) : 0
+      tagihan += biaya
+      dibayar += Number(d.dibayar || 0)
     }
     if (details.length === 0) {
       const diskon = Number(p.diskon || 0)

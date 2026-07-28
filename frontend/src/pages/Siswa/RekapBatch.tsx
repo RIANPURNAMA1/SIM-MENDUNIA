@@ -175,10 +175,8 @@ export default function RekapBatch() {
     for (const d of details) {
       const biaya = Number(d.biaya || 0)
       if (biaya <= 0) continue
-      const dDibayar = Number(d.dibayar || 0)
-      const effBiaya = uniqueCodeOp === 'subtract' && d.total_transfer ? Number(d.total_transfer) : biaya
-      tagihan += effBiaya
-      dibayar += dDibayar > 0 ? Number(d.total_transfer || d.dibayar) : 0
+      tagihan += biaya
+      dibayar += Number(d.dibayar || 0)
     }
     if (details.length === 0) {
       tagihan = Number(p.total_biaya || 0)
