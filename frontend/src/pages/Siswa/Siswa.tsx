@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   GraduationCap, Search, RotateCcw, Plus, Upload, Bot, Timer,
-  Trash2, Pencil, Check, X,
+  Trash2, Pencil, Check, X, Sparkles,
 } from "lucide-react";
 import { siswaApi, adminCabangApi, APP_URL } from "../../services/api";
 import type { Siswa } from "../../types";
@@ -460,7 +460,7 @@ export default function SiswaPage() {
               data.map((s) => {
                 const isKeluar = Object.values(s.level_status || {}).some(v => v === "Keluar");
                 return (
-                <tr key={s.id} className={`${isKeluar ? "bg-red-50" : "bg-white"} transition hover:bg-slate-50`}>
+                <tr key={s.id} className={`group ${isKeluar ? "bg-red-50" : "bg-white"} transition hover:bg-slate-50`}>
                   <td className="border border-slate-200 px-3 py-2.5 text-center">
                     <input type="checkbox" checked={selectedIds.includes(s.id)} onChange={() => toggleSelect(s.id)} className="rounded border-slate-300 text-slate-800 focus:ring-slate-500" />
                   </td>
@@ -503,10 +503,23 @@ export default function SiswaPage() {
                           </div>
                           </>
                         ) : (
-                          <span
-                            onClick={() => setEditingLevel({ siswaId: s.id, level: lv })}
-                            className={`inline-flex cursor-pointer rounded-full px-2 py-0.5 text-[9px] font-semibold ${badgeClass} hover:ring-2 hover:ring-slate-300`}
-                          >{st}</span>
+                          <div className="inline-flex items-center gap-0.5">
+                            <span
+                              onClick={() => setEditingLevel({ siswaId: s.id, level: lv })}
+                              className={`inline-flex cursor-pointer rounded-full px-2 py-0.5 text-[9px] font-semibold ${badgeClass} hover:ring-2 hover:ring-slate-300`}
+                            >{st}</span>
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                try {
+                                  await siswaApi.autoLevelStatus(s.id, { level: lv });
+                                  await fetchData();
+                                } catch {}
+                              }}
+                              title="Hitung otomatis berdasarkan nilai"
+                              className="rounded p-0.5 text-[10px] text-slate-400 opacity-0 transition hover:text-emerald-600 group-hover:opacity-100"
+                            ><Sparkles size={12} /></button>
+                          </div>
                         )}
                       </td>
                     );

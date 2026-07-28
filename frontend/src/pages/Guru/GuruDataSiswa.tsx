@@ -183,6 +183,15 @@ export default function GuruDataSiswa() {
   const [kalenderYear, setKalenderYear] = useState(new Date().getFullYear())
   const [loadingKalender, setLoadingKalender] = useState(false)
 
+  const [showPenilaianKalender, setShowPenilaianKalender] = useState(false)
+  const [penilaianKalenderSiswa, setPenilaianKalenderSiswa] = useState<SiswaPenilaian | null>(null)
+
+  const [penilaianView, setPenilaianView] = useState<'harian' | 'rekap'>('harian')
+  const [rekapData, setRekapData] = useState<any>(null)
+  const [loadingRekap, setLoadingRekap] = useState(false)
+  const [rekapDateFrom, setRekapDateFrom] = useState('')
+  const [rekapDateTo, setRekapDateTo] = useState('')
+
   useEffect(() => {
     guruKelasApi.list().then(res => {
       setKelasList(res.data.kelas || [])
@@ -286,11 +295,16 @@ export default function GuruDataSiswa() {
     setShowKalenderModal(true)
     setLoadingKalender(true)
     setKalenderData(null)
-    const now = new Date()
-    setKalenderMonth(now.getMonth() + 1)
-    setKalenderYear(now.getFullYear())
+    const tglMulai = selectedKelas?.kelas?.tanggal_mulai
+    const tglSelesai = selectedKelas?.kelas?.tanggal_selesai
+    const startDate = tglMulai ? new Date(tglMulai.slice(0, 10) + 'T00:00:00') : new Date()
+    setKalenderMonth(startDate.getMonth() + 1)
+    setKalenderYear(startDate.getFullYear())
     try {
-      const res = await absensiSiswaApi.kalender(siswa.id, { month: now.getMonth() + 1, year: now.getFullYear() })
+      const params: any = { month: startDate.getMonth() + 1, year: startDate.getFullYear() }
+      if (tglMulai) params.date_from = tglMulai
+      if (tglSelesai) params.date_to = tglSelesai
+      const res = await absensiSiswaApi.kalender(siswa.id, params)
       setKalenderData(res.data)
     } catch {
       setKalenderData(null)
@@ -309,14 +323,24 @@ export default function GuruDataSiswa() {
     setKalenderMonth(m)
     setKalenderYear(y)
     setLoadingKalender(true)
+    const tglMulai = selectedKelas?.kelas?.tanggal_mulai
+    const tglSelesai = selectedKelas?.kelas?.tanggal_selesai
     try {
-      const res = await absensiSiswaApi.kalender(kalenderSiswa.id, { month: m, year: y })
+      const params: any = { month: m, year: y }
+      if (tglMulai) params.date_from = tglMulai
+      if (tglSelesai) params.date_to = tglSelesai
+      const res = await absensiSiswaApi.kalender(kalenderSiswa.id, params)
       setKalenderData(res.data)
     } catch {
       setKalenderData(null)
     } finally {
       setLoadingKalender(false)
     }
+  }
+
+  const openPenilaianKalender = async (siswa: SiswaPenilaian) => {
+    setPenilaianKalenderSiswa(siswa)
+    setShowPenilaianKalender(true)
   }
 
   const backToList = () => {
@@ -563,7 +587,9 @@ export default function GuruDataSiswa() {
                     <tbody>
                       {selectedKelas.siswa.map((s, idx) => (
                         <tr key={s.id} className={`border-t border-[#F0F1F5] ${idx % 2 === 0 ? 'bg-white' : 'bg-[#FAFBFC]'}`}>
-                          <td className="px-4 py-2 text-xs font-semibold text-[#14182B] sticky left-0 bg-inherit">{s.nama}</td>
+                          <td className="px-4 py-2 text-xs font-semibold text-[#0069b0] sticky left-0 bg-inherit">
+                            <button onClick={() => openKalender(s)} className="hover:underline text-left">{s.nama}</button>
+                          </td>
                           <td className="text-center px-2 py-2 text-[11px] font-semibold text-[#8B90A0]">{s.level || '-'}</td>
                           {selectedKelas.dates.map(date => {
                             const status = s.absensi[date]
@@ -602,81 +628,207 @@ export default function GuruDataSiswa() {
                 <div className="bg-white rounded-xl border border-[#E5E7EF] overflow-x-auto">
                   <div className="p-4 pb-2 flex items-center justify-between">
                     <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Penilaian Siswa</h3>
-                  </div>
-                  <div className="flex items-center gap-3 px-4 pb-3">
-                    <div className="flex items-center gap-1 text-[10px] text-[#8B90A0]">
-                      <Check className="w-3.5 h-3.5 text-emerald-500" />
-                      <span>Terisi</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-[10px] text-[#8B90A0]">
-                      <Minus className="w-3.5 h-3.5 text-slate-300" />
-                      <span>Kosong</span>
+                    <div className="flex items-center gap-1 rounded-lg border border-[#E5E7EF] p-0.5">
+                      <button onClick={() => setPenilaianView('harian')}
+                        className={`px-3 py-1.5 text-[10px] font-bold rounded-md transition-colors ${penilaianView === 'harian' ? 'bg-[#0069b0] text-white' : 'text-[#4B5063] hover:bg-[#F4F5F8]'}`}>
+                        Harian
+                      </button>
+                      <button onClick={() => setPenilaianView('rekap')}
+                        className={`px-3 py-1.5 text-[10px] font-bold rounded-md transition-colors ${penilaianView === 'rekap' ? 'bg-[#0069b0] text-white' : 'text-[#4B5063] hover:bg-[#F4F5F8]'}`}>
+                        Rekap
+                      </button>
                     </div>
                   </div>
 
-                  {loadingPenilaianHarian ? (
-                    <div className="py-8 text-center text-sm text-gray-400">Memuat data penilaian...</div>
-                  ) : !penilaianHarian ? (
-                    <div className="py-4 text-center">
-                      <button
-                        onClick={loadPenilaianHarian}
-                        className="text-xs font-semibold text-[#0069b0] hover:underline"
-                      >
-                        Muat data penilaian
-                      </button>
-                    </div>
-                  ) : (
+                  {penilaianView === 'harian' && (
                     <>
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="border-t border-[#F0F1F5]">
-                            <th className="text-left px-4 py-2.5 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wider sticky left-0 bg-white">Nama</th>
-                            <th className="text-center px-2 py-2.5 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wider w-10">Lv</th>
-                            {penilaianHarian.dates.map(date => (
-                              <th key={date} className="text-center px-1.5 py-2.5 text-[9px] font-bold text-[#8B90A0] uppercase tracking-wider min-w-[48px]">
-                                {formatDayDate(date)}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {penilaianHarian.siswa.map((s, idx) => (
-                            <tr key={s.id} className={`border-t border-[#F0F1F5] ${idx % 2 === 0 ? 'bg-white' : 'bg-[#FAFBFC]'}`}>
-                          <td className="px-4 py-2 text-xs font-semibold text-[#0069b0] sticky left-0 bg-inherit">
-                            <button onClick={() => openKalender(s)} className="hover:underline text-left">{s.nama}</button>
-                          </td>
-                              <td className="text-center px-2 py-2 text-[11px] font-semibold text-[#8B90A0]">{s.level || '-'}</td>
-                              {penilaianHarian.dates.map(date => {
-                                const status = s.daily_status[date]
-                                const isTerisi = status?.is_terisi ?? false
-                                return (
-                                  <td key={date} className="text-center px-1.5 py-2">
-                                    <button
-                                      onClick={() => openPenilaianModal(s, date)}
-                                      className="mx-auto cursor-pointer hover:scale-110 transition-transform"
-                                      title={isTerisi ? `Lihat/edit penilaian ${formatDateLongIndo(date)}` : `Isi penilaian ${formatDateLongIndo(date)}`}
-                                    >
-                                      {isTerisi ? (
-                                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-600">
-                                          <Check className="w-3.5 h-3.5" />
-                                        </span>
-                                      ) : (
-                                        <span className="inline-flex items-center justify-center w-6 h-6 rounded text-[10px] text-slate-300 hover:text-[#0069b0] hover:bg-[#0069b0]/[0.06] transition-colors">
-                                          -
-                                        </span>
-                                      )}
-                                    </button>
+                      <div className="flex items-center gap-3 px-4 pb-3">
+                        <div className="flex items-center gap-1 text-[10px] text-[#8B90A0]">
+                          <Check className="w-3.5 h-3.5 text-emerald-500" />
+                          <span>Terisi</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-[10px] text-[#8B90A0]">
+                          <Minus className="w-3.5 h-3.5 text-slate-300" />
+                          <span>Kosong</span>
+                        </div>
+                      </div>
+
+                      {loadingPenilaianHarian ? (
+                        <div className="py-8 text-center text-sm text-gray-400">Memuat data penilaian...</div>
+                      ) : !penilaianHarian ? (
+                        <div className="py-4 text-center">
+                          <button onClick={loadPenilaianHarian} className="text-xs font-semibold text-[#0069b0] hover:underline">Muat data penilaian</button>
+                        </div>
+                      ) : (
+                        <>
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="border-t border-[#F0F1F5]">
+                                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wider sticky left-0 bg-white">Nama</th>
+                                <th className="text-center px-2 py-2.5 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wider w-10">Lv</th>
+                                {penilaianHarian.dates.map(date => (
+                                  <th key={date} className="text-center px-1.5 py-2.5 text-[9px] font-bold text-[#8B90A0] uppercase tracking-wider min-w-[48px]">
+                                    {formatDayDate(date)}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {penilaianHarian.siswa.map((s, idx) => (
+                                <tr key={s.id} className={`border-t border-[#F0F1F5] ${idx % 2 === 0 ? 'bg-white' : 'bg-[#FAFBFC]'}`}>
+                              <td className="px-4 py-2 text-xs font-semibold text-[#0069b0] sticky left-0 bg-inherit">
+                                <button onClick={() => openPenilaianKalender(s)} className="hover:underline text-left">{s.nama}</button>
+                              </td>
+                                  <td className="text-center px-2 py-2 text-[11px] font-semibold text-[#8B90A0]">{s.level || '-'}</td>
+                                  {penilaianHarian.dates.map(date => {
+                                    const status = s.daily_status[date]
+                                    const isTerisi = status?.is_terisi ?? false
+                                    return (
+                                      <td key={date} className="text-center px-1.5 py-2">
+                                        <button
+                                          onClick={() => openPenilaianModal(s, date)}
+                                          className="mx-auto cursor-pointer hover:scale-110 transition-transform"
+                                          title={isTerisi ? `Lihat/edit penilaian ${formatDateLongIndo(date)}` : `Isi penilaian ${formatDateLongIndo(date)}`}
+                                        >
+                                          {isTerisi ? (
+                                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-600">
+                                              <Check className="w-3.5 h-3.5" />
+                                            </span>
+                                          ) : (
+                                            <span className="inline-flex items-center justify-center w-6 h-6 rounded text-[10px] text-slate-300 hover:text-[#0069b0] hover:bg-[#0069b0]/[0.06] transition-colors">
+                                              -
+                                            </span>
+                                          )}
+                                        </button>
+                                      </td>
+                                    )
+                                  })}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          {penilaianHarian.siswa.length === 0 && (
+                            <div className="text-center py-8">
+                              <Users size={22} className="mx-auto text-[#D5D8E3] mb-2" strokeWidth={1.5} />
+                              <p className="text-sm font-semibold text-[#4B5063]">Tidak ada siswa aktif</p>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </>
+                  )}
+
+                  {penilaianView === 'rekap' && (
+                    <>
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 px-4 pb-3">
+                        <div className="relative">
+                          <input type="text" placeholder="mm/dd/yyyy" value={rekapDateFrom}
+                            onFocus={e => { e.target.type = 'date'; e.target.showPicker?.() }}
+                            onChange={e => { setRekapDateFrom(e.target.value); if (e.target.value) e.target.type = 'date'; else e.target.type = 'text' }}
+                            className="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                        </div>
+                        <span className="text-[10px] text-[#8B90A0] hidden sm:inline">–</span>
+                        <div className="relative">
+                          <input type="text" placeholder="mm/dd/yyyy" value={rekapDateTo}
+                            onFocus={e => { e.target.type = 'date'; e.target.showPicker?.() }}
+                            onChange={e => { setRekapDateTo(e.target.value); if (e.target.value) e.target.type = 'date'; else e.target.type = 'text' }}
+                            className="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                        </div>
+                        <button onClick={async () => {
+                          if (!selectedKelas) return
+                          setLoadingRekap(true)
+                          setRekapData(null)
+                          try {
+                            const params: any = {}
+                            if (rekapDateFrom) params.date_from = rekapDateFrom
+                            if (rekapDateTo) params.date_to = rekapDateTo
+                            const res = await guruKelasApi.penilaianRekap(selectedKelas.kelas.id, params)
+                            setRekapData(res.data)
+                          } catch { setRekapData(null) }
+                          finally { setLoadingRekap(false) }
+                        }} className="px-3 py-1.5 text-[10px] font-bold text-white bg-[#0069b0] rounded-lg hover:bg-[#004d7a] transition">
+                          Tampilkan
+                        </button>
+                      </div>
+
+                      {loadingRekap ? (
+                        <div className="py-8 text-center text-sm text-gray-400">Memuat rekap...</div>
+                      ) : !rekapData ? (
+                        <div className="py-8 text-center">
+                          <Award size={24} className="mx-auto text-[#D5D8E3] mb-2" strokeWidth={1.5} />
+                          <p className="text-xs font-semibold text-[#4B5063]">Pilih rentang tanggal & tekan Tampilkan</p>
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-xs min-w-[600px]">
+                            <thead>
+                              <tr className="border-t border-[#F0F1F5]">
+                                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wider sticky left-0 bg-white w-[140px]">Nama</th>
+                                <th className="text-center px-2 py-2.5 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wider w-10">Lv</th>
+                                {rekapData.categories?.map((cat: any) => (
+                                  <th key={cat.id} colSpan={cat.components.length + 1}
+                                    className="text-center px-1 py-2.5 text-[9px] font-bold text-[#8B90A0] uppercase tracking-wider border-l border-[#F0F1F5]">
+                                    {cat.nama}
+                                  </th>
+                                ))}
+                                <th className="text-center px-3 py-2.5 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wider border-l border-[#F0F1F5] w-[60px]">Rata-rata</th>
+                              </tr>
+                              <tr className="border-t border-[#F0F1F5]">
+                                <th className="text-left px-4 py-1.5" />
+                                <th className="text-center px-2 py-1.5" />
+                                {rekapData.categories?.map((cat: any) => (
+                                  cat.components.map((comp: any) => (
+                                    <th key={comp.id} className="text-center px-1 py-1.5 text-[8px] font-bold text-[#8B90A0] uppercase tracking-wider min-w-[52px]">{comp.nama}</th>
+                                  )),
+                                  <th key={`${cat.id}-avg`} className="text-center px-1 py-1.5 text-[8px] font-bold text-[#8B90A0] uppercase tracking-wider border-l border-[#F0F1F5] min-w-[40px]">Avg</th>
+                                ))}
+                                <th className="text-center px-3 py-1.5 text-[8px] font-bold text-[#8B90A0] uppercase tracking-wider border-l border-[#F0F1F5]">Total</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {rekapData.siswa?.map((s: any, idx: number) => (
+                                <tr key={s.id} className={`border-t border-[#F0F1F5] ${idx % 2 === 0 ? 'bg-white' : 'bg-[#FAFBFC]'}`}>
+                                  <td className="px-4 py-2 text-xs font-semibold text-[#14182B] sticky left-0 bg-inherit">{s.nama}</td>
+                                  <td className="text-center px-2 py-2 text-[11px] font-semibold text-[#8B90A0]">{s.level || '-'}</td>
+                                  {rekapData.categories?.map((cat: any) => (
+                                    (() => {
+                                      const pc = s.per_kategori?.find((k: any) => k.id === cat.id)
+                                      return (
+                                        <>
+                                          {cat.components.map((comp: any) => {
+                                            const cc = pc?.components?.find((c: any) => c.id === comp.id)
+                                            const val = cc?.rata_rata
+                                            return (
+                                              <td key={comp.id} className="text-center px-1 py-2">
+                                                {val !== null && val !== undefined ? (
+                                                  <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-medium ${val >= 85 ? 'bg-emerald-100 text-emerald-700' : val >= 75 ? 'bg-blue-100 text-blue-700' : val >= 60 ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'}`}>
+                                                    {val}
+                                                  </span>
+                                                ) : <span className="text-slate-300">-</span>}
+                                              </td>
+                                            )
+                                          })}
+                                          <td key={`${cat.id}-avg`} className="text-center px-1 py-2 text-[10px] font-semibold text-slate-600 border-l border-[#F0F1F5]">
+                                            {pc?.rata_rata !== null && pc?.rata_rata !== undefined ? pc.rata_rata : '-'}
+                                          </td>
+                                        </>
+                                      )
+                                    })()
+                                  ))}
+                                  <td className="text-center px-3 py-2 text-[11px] font-bold text-slate-800 border-l border-[#F0F1F5]">
+                                    {s.rata_rata !== null && s.rata_rata !== undefined ? (
+                                      <span className={`px-1.5 py-0.5 rounded ${s.rata_rata >= 85 ? 'bg-emerald-100 text-emerald-700' : s.rata_rata >= 75 ? 'bg-blue-100 text-blue-700' : s.rata_rata >= 60 ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'}`}>
+                                        {s.rata_rata}
+                                      </span>
+                                    ) : '-'}
                                   </td>
-                                )
-                              })}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                      {penilaianHarian.siswa.length === 0 && (
-                        <div className="text-center py-8">
-                          <Users size={22} className="mx-auto text-[#D5D8E3] mb-2" strokeWidth={1.5} />
-                          <p className="text-sm font-semibold text-[#4B5063]">Tidak ada siswa aktif</p>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          {rekapData.siswa?.length === 0 && (
+                            <div className="text-center py-8 text-sm text-gray-400">Tidak ada data penilaian dalam rentang tanggal ini</div>
+                          )}
                         </div>
                       )}
                     </>
@@ -1002,14 +1154,160 @@ export default function GuruDataSiswa() {
             </div>
           </div>
         )}
+
+        {showKalenderModal && kalenderSiswa && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowKalenderModal(false)}>
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900">Kehadiran Siswa</h3>
+                  <p className="text-[11px] text-gray-500 mt-0.5">{kalenderSiswa.nama}</p>
+                  {selectedKelas?.kelas && (
+                    <p className="text-[10px] text-[#0069b0] font-semibold mt-0.5">
+                      Level {selectedKelas.kelas.level} · {formatDateShort(selectedKelas.kelas.tanggal_mulai)} – {formatDateShort(selectedKelas.kelas.tanggal_selesai)}
+                    </p>
+                  )}
+                </div>
+                <button onClick={() => setShowKalenderModal(false)} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <button onClick={() => navigateKalender(-1)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">
+                    <ChevronLeft size={18} />
+                  </button>
+                  <span className="text-sm font-bold text-gray-800">{kalenderData?.monthName || ''}</span>
+                  <button onClick={() => navigateKalender(1)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">
+                    <ChevronLeft size={18} className="rotate-180" />
+                  </button>
+                </div>
+                {loadingKalender ? (
+                  <div className="py-8 text-center text-sm text-gray-400">Memuat data...</div>
+                ) : kalenderData ? (
+                  <>
+                    <div className="grid grid-cols-7 gap-1 mb-2">
+                      {['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map(h => (
+                        <div key={h} className="text-center text-[10px] font-bold text-gray-400 py-1">{h}</div>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-7 gap-1">
+                      {Array.from({ length: kalenderData.startDayOfWeek }).map((_, i) => (
+                        <div key={`empty-${i}`} />
+                      ))}
+                      {Array.from({ length: kalenderData.daysInMonth }).map((_, i) => {
+                        const hari = i + 1
+                        const absen = kalenderData.absensi.find(a => a.hari === hari)
+                        return (
+                          <div key={hari} className="flex flex-col items-center py-1.5">
+                            <span className="text-[10px] text-gray-400 mb-1">{hari}</span>
+                            {absen ? (
+                              <span className={`inline-flex items-center justify-center w-7 h-7 rounded text-[10px] font-bold ${
+                                absen.status === 'HADIR' ? 'bg-emerald-100 text-emerald-700' :
+                                absen.status === 'TERLAMBAT' ? 'bg-amber-100 text-amber-700' :
+                                absen.status === 'IZIN' ? 'bg-blue-100 text-blue-700' :
+                                absen.status === 'SAKIT' ? 'bg-sky-100 text-sky-700' :
+                                absen.status === 'ALPA' ? 'bg-rose-100 text-rose-700' :
+                                'bg-gray-100 text-gray-500'
+                              }`}>
+                                {STATUS_ABBR[absen.status] || absen.status[0]}
+                              </span>
+                            ) : (
+                              <span className="w-7 h-7" />
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {Object.entries(STATUS_ABBR).map(([key, abbr]) => (
+                        <span key={key} className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${STATUS_BG[key]}`}>
+                          {abbr}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="py-8 text-center text-sm text-red-500">Gagal memuat data</div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showPenilaianKalender && penilaianKalenderSiswa && penilaianHarian && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowPenilaianKalender(false)}>
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900">Penilaian Siswa</h3>
+                  <p className="text-[11px] text-gray-500 mt-0.5">{penilaianKalenderSiswa.nama}</p>
+                {(selectedKelas as DataSiswaResponse | null)?.kelas && (
+                  <p className="text-[10px] text-[#0069b0] font-semibold mt-0.5">
+                    Level {(selectedKelas as DataSiswaResponse).kelas.level} · {formatDateShort((selectedKelas as DataSiswaResponse).kelas.tanggal_mulai)} – {formatDateShort((selectedKelas as DataSiswaResponse).kelas.tanggal_selesai)}
+                  </p>
+                )}
+              </div>
+              <button onClick={() => setShowPenilaianKalender(false)} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-5">
+                <div className="flex items-center gap-3 px-1 pb-3">
+                  <div className="flex items-center gap-1 text-[10px] text-[#8B90A0]">
+                    <Check className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>Terisi</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-[10px] text-[#8B90A0]">
+                    <Minus className="w-3.5 h-3.5 text-slate-300" />
+                    <span>Kosong</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-7 gap-1 mb-2">
+                  {['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map(h => (
+                    <div key={h} className="text-center text-[10px] font-bold text-gray-400 py-1">{h}</div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-7 gap-1">
+                  {(() => {
+                    if (!penilaianHarian.dates.length) return null
+                    const firstDate = toDate(penilaianHarian.dates[0])
+                    const startDay = firstDate.getDay()
+                    const cells: React.ReactNode[] = []
+                    for (let i = 0; i < startDay; i++) {
+                      cells.push(<div key={`e-${i}`} />)
+                    }
+                    penilaianHarian.dates.forEach((date, i) => {
+                      const d = toDate(date)
+                      const isTerisi = penilaianKalenderSiswa.daily_status[date]?.is_terisi ?? false
+                      cells.push(
+                        <div key={date} className="flex flex-col items-center py-1.5">
+                          <span className="text-[10px] text-gray-400 mb-1">{d.getDate()}</span>
+                          {isTerisi ? (
+                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-100 text-emerald-600">
+                              <Check className="w-4 h-4" />
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center justify-center w-7 h-7 rounded text-[10px] text-slate-300">-</span>
+                          )}
+                        </div>
+                      )
+                    })
+                    return cells
+                  })()}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
+
   }
 
   return (
     <div className="min-h-screen bg-[#F4F5F8] pb-24">
       <div className="h-[3px] bg-gradient-to-r from-[#0069b0] via-[#0069b0] to-[#0069b0]" />
-
       <div className="bg-white px-5 py-3.5 border-b border-[#E5E7EF] flex items-center gap-3">
         <a href="/guru-dashboard" className="p-1 -ml-1 rounded-lg hover:bg-[#F4F5F8] transition-colors">
           <ChevronLeft size={20} className="text-[#4B5063]" />

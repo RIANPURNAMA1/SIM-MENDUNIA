@@ -388,6 +388,13 @@ class AbsensiSiswaController extends Controller
         $startOfMonth = \Carbon\Carbon::create($year, $month, 1);
         $endOfMonth = $startOfMonth->copy()->endOfMonth();
 
+        if ($request->date_from) {
+            $startOfMonth = max($startOfMonth, \Carbon\Carbon::parse($request->date_from));
+        }
+        if ($request->date_to) {
+            $endOfMonth = min($endOfMonth, \Carbon\Carbon::parse($request->date_to));
+        }
+
         $absensi = \App\Models\AbsensiSiswa::where('siswa_id', $siswa->id)
             ->whereBetween('tanggal', [$startOfMonth, $endOfMonth])
             ->get()
@@ -408,6 +415,8 @@ class AbsensiSiswaController extends Controller
             'daysInMonth' => $startOfMonth->daysInMonth,
             'startDayOfWeek' => $startOfMonth->startOfMonth()->dayOfWeek,
             'monthName' => $startOfMonth->format('F Y'),
+            'date_from' => $request->date_from,
+            'date_to' => $request->date_to,
         ]);
     }
 

@@ -18,6 +18,9 @@ use App\Models\Guru;
 use App\Models\HariLibur;
 use App\Models\KelasSensei;
 use App\Models\Shift;
+use App\Models\StudentAssessment;
+use App\Models\AssessmentCategory;
+use App\Models\AssessmentComponent;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -960,6 +963,116 @@ class GuruDashboardController extends Controller
             'kelas' => $kelas,
             'siswa' => $siswaResult,
             'dates' => $dates,
+        ]);
+    }
+
+    public function penilaianRekap($kelasId, Request $request)
+    {
+        $user = Auth::guard('sanctum')->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $kelas = KelasSensei::with('batchRelasi')
+            ->where('user_id', $user->id)
+            ->findOrFail($kelasId);
+
+        $startDate = $request->date_from ? Carbon::parse($request->date_from) : Carbon::parse($kelas->tanggal_mulai);
+        $endDate = $request->date_to ? Carbon::parse($request->date_to) : Carbon::parse($kelas->tanggal_selesai);
+
+        $siswaList = Siswa::where('batch_id', $kelas->batch_id)
+            ->where('status', 'AKTIF')
+            ->orderBy('nama')
+            ->get(['id', 'nama', 'level']);
+
+        $siswaIds = $siswaList->pluck('id');
+
+        $categories = AssessmentCategory::where('level', $kelas->level)
+            ->with('components')
+            ->orderBy('urutan')
+            ->get();
+
+        $componentIds = $categories->flatMap->components->pluck('id');
+
+        $assessments = StudentAssessment::whereIn('siswa_id', $siswaIds)
+            ->whereIn('component_id', $componentIds)
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->whereNotNull('nilai')
+            ->get();
+
+        $dates = [];
+        $current = $startDate->copy();
+        while ($current->lte($endDate)) {
+            $dates[] = $current->format('Y-m-d');
+            $current->addDay();
+        }
+
+        $siswaResult = $siswaList->map(function ($s) use ($assessments, $categories, $dates) {
+            $siswaAssessments = $assessments->where('siswa_id', $s->id);
+
+            $perKategori = [];
+            $totalNilai = 0;
+            $totalCount = 0;
+
+            foreach ($categories as $cat) {
+                $catComponents = [];
+                $catTotal = 0;
+                $catCount = 0;
+
+                foreach ($cat->components as $comp) {
+                    $compAssessments = $siswaAssessments->where('component_id', $comp->id);
+                    $scores = $compAssessments->pluck('nilai')->map(fn($v) => (float) $v);
+
+                    if ($scores->isNotEmpty()) {
+                        $compAvg = round($scores->avg(), 1);
+                        $catTotal += $scores->sum();
+                        $catCount += $scores->count();
+                    } else {
+                        $compAvg = null;
+                    }
+
+                    $catComponents[] = [
+                        'id' => $comp->id,
+                        'nama' => $comp->sub_komponen,
+                        'rata_rata' => $compAvg,
+                        'total_nilai' => $scores->count(),
+                    ];
+                }
+
+                $catAvg = $catCount > 0 ? round($catTotal / $catCount, 1) : null;
+                $totalNilai += $catTotal;
+                $totalCount += $catCount;
+
+                $perKategori[] = [
+                    'id' => $cat->id,
+                    'nama' => $cat->nama_kategori,
+                    'rata_rata' => $catAvg,
+                    'total_nilai' => $catCount,
+                    'components' => $catComponents,
+                ];
+            }
+
+            $overallAvg = $totalCount > 0 ? round($totalNilai / $totalCount, 1) : null;
+
+            return [
+                'id' => $s->id,
+                'nama' => $s->nama,
+                'level' => $s->level,
+                'rata_rata' => $overallAvg,
+                'total_nilai' => $totalCount,
+                'per_kategori' => $perKategori,
+            ];
+        });
+
+        $sorted = $siswaResult->sortByDesc('rata_rata')->values();
+
+        return response()->json([
+            'kelas' => $kelas,
+            'categories' => $categories->map(fn($c) => ['id' => $c->id, 'nama' => $c->nama_kategori, 'components' => $c->components->map(fn($co) => ['id' => $co->id, 'nama' => $co->sub_komponen])]),
+            'siswa' => $sorted,
+            'dates' => $dates,
+            'date_from' => $startDate->format('Y-m-d'),
+            'date_to' => $endDate->format('Y-m-d'),
         ]);
     }
 

@@ -60,6 +60,7 @@ const navItems: NavItem[] = [
       { label: 'Penilaian Siswa', icon: 'Notebook', href: '/admin-cabang/penilaian' },
       { label: 'Evaluasi Instruktur', icon: 'ClipboardCheck', href: '/admin-cabang/evaluasi-instruktur' },
       { label: 'LMS', icon: 'BookOpen', href: '/admin-cabang/lms' },
+      { label: 'Raport Siswa', icon: 'Notebook', href: '/admin-cabang/raport' },
     ],
   },
   {

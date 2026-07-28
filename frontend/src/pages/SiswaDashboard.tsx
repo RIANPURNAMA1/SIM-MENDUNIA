@@ -1,6 +1,6 @@
 import { useState, useEffect, FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { User, CheckCircle, Clock, XCircle, CreditCard, Package, Check, Copy, AlertTriangle, ShieldCheck, ChevronDown, ChevronUp, Building2, Upload, Loader } from 'lucide-react'
+import { User, CheckCircle, Clock, XCircle, CreditCard, Package, Check, Copy, AlertTriangle, ShieldCheck, ChevronDown, ChevronUp, Building2, Upload, Loader, MessageSquare, ChevronRight } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
 
@@ -152,6 +152,9 @@ export default function SiswaDashboard() {
   const [submitError, setSubmitError] = useState('')
   const [success, setSuccess] = useState(false)
 
+  const [evaluations, setEvaluations] = useState<Record<string, { evaluasi: string | null; user?: { name: string } }>>({})
+  const [loadingEval, setLoadingEval] = useState(false)
+
   useEffect(() => {
     api.get('/siswa-dashboard')
       .then(res => {
@@ -165,6 +168,10 @@ export default function SiswaDashboard() {
       })
       .catch(() => {})
       .finally(() => setLoading(false))
+    api.get('/siswa/evaluations').then((res: any) => {
+      setEvaluations(res.data.evaluations || {})
+    }).catch(() => {})
+    setLoadingEval(false)
   }, [])
 
   useEffect(() => {
@@ -401,6 +408,35 @@ export default function SiswaDashboard() {
           </div>
           <div className="p-5">
             <TimelineStages jadwalLevels={jadwalLevels} />
+          </div>
+        </div>
+      )}
+
+      {Object.keys(evaluations).length > 0 && (
+        <div className={`${cardClass} mb-4`}>
+          <div className="border-b border-gray-200 px-5 py-3.5 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-800">Evaluasi Sensei</h2>
+            <Link to="/siswa-dashboard/nilai" className="text-[11px] font-semibold text-[#0E6187] hover:underline flex items-center gap-1">
+              Lihat Semua <ChevronRight size={12} />
+            </Link>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {Object.entries(evaluations).map(([level, ev]) => (
+              ev.evaluasi ? (
+                <div key={level} className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MessageSquare size={12} className="text-[#0E6187]" />
+                    <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Level {level}</p>
+                  </div>
+                  <div className="border border-gray-200 rounded-lg p-3 bg-white">
+                    <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">{ev.evaluasi}</p>
+                    {ev.user && (
+                      <p className="text-[10px] text-gray-400 mt-2">— {ev.user.name}</p>
+                    )}
+                  </div>
+                </div>
+              ) : null
+            ))}
           </div>
         </div>
       )}

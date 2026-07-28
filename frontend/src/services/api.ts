@@ -194,6 +194,8 @@ export const siswaApi = {
   }),
   updateLevelStatus: (id: number, data: { level: number; status: string }) =>
     api.post(`/siswa/${id}/level-status`, data),
+  autoLevelStatus: (id: number, data: { level: number; threshold?: number }) =>
+    api.post(`/siswa/${id}/auto-level-status`, data),
 }
 
 export const batchApi = {
@@ -222,7 +224,7 @@ export const absensiSiswaApi = {
   siswaByKelas: (kelasId: number) => api.get('/absensi-siswa/siswa-by-kelas', { params: { kelas_id: kelasId } }),
   cek: (siswaId: number, tanggal: string) =>
     api.get('/absensi-siswa/cek', { params: { siswa_id: siswaId, tanggal } }),
-  kalender: (siswaId: number, params?: { month?: number; year?: number }) =>
+  kalender: (siswaId: number, params?: { month?: number; year?: number; date_from?: string; date_to?: string }) =>
     api.get(`/absensi-siswa/${siswaId}/kalender`, { params }),
   rekap: (params?: Record<string, string | number | undefined>) =>
     api.get('/absensi-siswa/rekap', { params }),
@@ -446,6 +448,7 @@ export const guruKelasApi = {
   ranking: (batchId: number) => api.get(`/guru/ranking/${batchId}`),
   storeLevelEvaluation: (data: { siswa_id: number; batch_id: number; level: string; evaluasi: string }) => api.post('/guru/level-evaluation', data),
   getLevelEvaluations: (batchId: number, level: string) => api.get(`/guru/level-evaluations/${batchId}/${level}`),
+  penilaianRekap: (kelasId: number, params?: { date_from?: string; date_to?: string }) => api.get(`/guru/penilaian-rekap/${kelasId}`, { params }),
 }
 
 export const lmsApi = {

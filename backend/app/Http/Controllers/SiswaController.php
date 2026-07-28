@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AssessmentCategory;
 use App\Models\Kelas;
 use App\Models\KelasSensei;
 use App\Models\Siswa;
 use App\Models\Shift;
+use App\Models\StudentAssessment;
 use App\Models\User;
 use App\Services\GroqService;
 use Illuminate\Http\Request;
@@ -384,6 +386,54 @@ class SiswaController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Status level berhasil diperbarui',
+        ]);
+    }
+
+    public function autoLevelStatus(Request $request, $id)
+    {
+        $siswa = Siswa::findOrFail($id);
+
+        $request->validate([
+            'level' => 'required|integer|in:1,2,3,4',
+            'threshold' => 'nullable|numeric|min:0|max:100',
+        ]);
+
+        $level = (int) $request->level;
+        $threshold = $request->threshold ?? 75;
+
+        $categories = AssessmentCategory::where('level', $level)
+            ->with('components')
+            ->get();
+
+        $componentIds = $categories->flatMap->components->pluck('id');
+
+        $assessments = StudentAssessment::where('siswa_id', $id)
+            ->whereIn('component_id', $componentIds)
+            ->whereNotNull('nilai')
+            ->get();
+
+        $scores = $assessments->pluck('nilai')->map(fn($v) => (float) $v);
+
+        $rataRata = $scores->isNotEmpty() ? round($scores->avg(), 1) : null;
+        $totalPenilaian = $scores->count();
+
+        $field = "level_{$level}";
+        $stored = $siswa->level_status ?? [];
+        $stored[$field] = $rataRata !== null ? ($rataRata >= $threshold ? 'Lulus' : 'Tidak Lulus') : '-';
+        $siswa->update(['level_status' => $stored]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => $rataRata !== null
+                ? "Status level {$level} otomatis: {$stored[$field]} (rata-rata: {$rataRata})"
+                : "Belum ada nilai untuk level {$level}",
+            'data' => [
+                'level' => $level,
+                'status' => $stored[$field],
+                'rata_rata' => $rataRata,
+                'total_penilaian' => $totalPenilaian,
+                'threshold' => $threshold,
+            ],
         ]);
     }
 
