@@ -506,7 +506,7 @@ export const pengeluaranApi = {
   },
   destroy: (id: number) => api.delete(`/pengeluaran/${id}`),
   rekap: (tahun?: number) => api.get('/pengeluaran/rekap', { params: tahun ? { tahun } : undefined }),
-  dashboard: () => api.get('/pengeluaran/dashboard'),
+  dashboard: (params?: Record<string, any>) => api.get('/pengeluaran/dashboard', { params }),
 }
 
 export const waNotificationApi = {
@@ -532,6 +532,8 @@ export const waSettingApi = {
   // Email notification log
   getEmailLog: (params?: Record<string, any>) => api.get('/wa-settings/email-log', { params }),
   getEmailStats: () => api.get('/wa-settings/email-stats'),
+  testEmail: (toEmail: string) => api.post('/wa-settings/test-email', { to_email: toEmail }),
+  testWa: (toPhone: string) => api.post('/wa-settings/test-wa', { to_phone: toPhone }),
 }
 
 export const guruLmsApi = {

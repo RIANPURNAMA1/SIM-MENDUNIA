@@ -29,7 +29,7 @@ export default function SiswaPage() {
   const [editingLevel, setEditingLevel] = useState<{ siswaId: number; level: number } | null>(null);
   const [filterBatch, setFilterBatch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
-  const [filterStatusKandidat, setFilterStatusKandidat] = useState("Kandidat Aktif");
+  const [filterStatusKandidat, setFilterStatusKandidat] = useState("");
   const [filterSearch, setFilterSearch] = useState("");
 
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -108,7 +108,7 @@ export default function SiswaPage() {
   };
 
   const resetFilter = () => {
-    setFilterBatch(""); setFilterStatus(""); setFilterStatusKandidat("Kandidat Aktif"); setFilterSearch(""); setPage(1);
+    setFilterBatch(""); setFilterStatus(""); setFilterStatusKandidat(""); setFilterSearch(""); setPage(1);
   };
 
   const fotoUrl = (s: Siswa) => {
@@ -380,13 +380,7 @@ export default function SiswaPage() {
             <option value="">Semua Batch</option>
             {batchList.map((b) => <option key={b.id} value={b.id}>{b.nama_batch}</option>)}
           </select>
-          <select value={filterStatusKandidat} onChange={(e) => setFilterStatusKandidat(e.target.value)} className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-            <option value="">Semua Status Kandidat</option>
-            <option value="Kandidat Aktif">Kandidat Aktif</option>
-            <option value="Calon Kandidat">Calon Kandidat</option>
-            <option value="Mengundurkan Diri">Mengundurkan Diri</option>
-            <option value="Lulus Pendidikan">Lulus Pendidikan</option>
-          </select>
+
           <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
             <option value="">Semua Status</option>
             <option value="AKTIF">AKTIF</option>

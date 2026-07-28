@@ -23,6 +23,9 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
   const [showNotif, setShowNotif] = useState(false)
   const [notifFilter, setNotifFilter] = useState<'all' | 'izin' | 'lembur' | 'pendaftaran' | 'pembayaran'>('all')
   const [notifications, setNotifications] = useState<any[]>([])
+  const [readNotifs, setReadNotifs] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('readNotifs') || '[]') } catch { return [] }
+  })
 
   useEffect(() => {
     Promise.all([
@@ -73,10 +76,10 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
       }))
       const combined = [...izinList, ...lemburList, ...pendaftaranList, ...pembayaranList].sort((a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      )
+      ).filter(n => !readNotifs.includes(n.id))
       setNotifications(combined)
     })
-  }, [])
+  }, [readNotifs])
 
   const filteredNotif = notifications.filter(n => {
     if (notifFilter === 'all') return true
@@ -174,7 +177,9 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
                     const Icon = n.icon
                     return (
                       <Link key={n.id} to={n.link} onClick={() => {
-                        setNotifications(prev => prev.filter(x => x.id !== n.id))
+                        const updated = [...readNotifs, n.id]
+                        setReadNotifs(updated)
+                        localStorage.setItem('readNotifs', JSON.stringify(updated))
                       }} className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-50">
                         <Icon size={20} className={`${n.iconColor} mt-0.5 shrink-0`} />
                         <div>

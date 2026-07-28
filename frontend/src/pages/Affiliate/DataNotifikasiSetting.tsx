@@ -9,6 +9,8 @@ import {
   CheckCircle,
   Loader2,
   Mail,
+  MessageSquare,
+  Send,
 } from 'lucide-react'
 
 interface GlobalSetting {
@@ -24,6 +26,14 @@ export default function DataNotifikasiSetting() {
   const [saving, setSaving] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
+
+  const [testEmail, setTestEmail] = useState('')
+  const [testing, setTesting] = useState(false)
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string; config?: any } | null>(null)
+
+  const [testWaPhone, setTestWaPhone] = useState('')
+  const [testingWa, setTestingWa] = useState(false)
+  const [testWaResult, setTestWaResult] = useState<{ success: boolean; message: string; config?: any } | null>(null)
 
   useEffect(() => { loadInitialData() }, [])
 
@@ -54,6 +64,36 @@ export default function DataNotifikasiSetting() {
 
   const handleGlobalValueChange = (key: string, value: string) => {
     setGlobalSettings(prev => prev.map(s => s.key === key ? { ...s, value } : s))
+  }
+
+  const handleTestEmail = async () => {
+    if (!testEmail.trim()) return
+    setTesting(true)
+    setTestResult(null)
+    try {
+      const res = await waSettingApi.testEmail(testEmail.trim())
+      setTestResult({ success: true, message: res.data.message, config: res.data.config })
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Gagal mengirim email uji coba'
+      setTestResult({ success: false, message: msg, config: err?.response?.data?.config })
+    } finally {
+      setTesting(false)
+    }
+  }
+
+  const handleTestWa = async () => {
+    if (!testWaPhone.trim()) return
+    setTestingWa(true)
+    setTestWaResult(null)
+    try {
+      const res = await waSettingApi.testWa(testWaPhone.trim())
+      setTestWaResult({ success: true, message: res.data.message, config: res.data.config })
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Gagal mengirim WhatsApp uji coba'
+      setTestWaResult({ success: false, message: msg, config: err?.response?.data?.config })
+    } finally {
+      setTestingWa(false)
+    }
   }
 
   if (loading) {
@@ -151,11 +191,94 @@ export default function DataNotifikasiSetting() {
         </div>
       </div>
 
+      {/* Test Email */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+              <Send size={20} className="text-blue-600" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-slate-800">Uji Coba Email</h2>
+              <p className="text-xs text-slate-500">Kirim email tes untuk memastikan konfigurasi SMTP berfungsi</p>
+            </div>
+          </div>
+        </div>
+        <div className="px-6 py-4 space-y-3">
+          <div className="flex items-center gap-3">
+            <input type="email" value={testEmail} onChange={e => setTestEmail(e.target.value)}
+              placeholder="Masukkan alamat email tujuan"
+              className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20" />
+            <button onClick={handleTestEmail} disabled={testing || !testEmail.trim()}
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#0E6187] text-white rounded-xl text-sm font-medium hover:bg-[#1a2d4d] disabled:opacity-50 transition-colors">
+              {testing ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+              Kirim Tes
+            </button>
+          </div>
+          {testResult && (
+            <div className={`p-4 rounded-xl text-sm border ${testResult.success ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
+              <div className="flex items-center gap-2 mb-2">
+                {testResult.success ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+                <span className="font-medium">{testResult.success ? 'Berhasil' : 'Gagal'}</span>
+              </div>
+              <p>{testResult.message}</p>
+              {testResult.config && (
+                <pre className="mt-2 text-xs bg-white/60 rounded-lg p-3 overflow-x-auto">
+                  {JSON.stringify(testResult.config, null, 2)}
+                </pre>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Test WhatsApp */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+              <MessageSquare size={20} className="text-emerald-600" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-slate-800">Uji Coba WhatsApp</h2>
+              <p className="text-xs text-slate-500">Kirim WhatsApp tes untuk memastikan konfigurasi StarSender berfungsi</p>
+            </div>
+          </div>
+        </div>
+        <div className="px-6 py-4 space-y-3">
+          <div className="flex items-center gap-3">
+            <input type="text" value={testWaPhone} onChange={e => setTestWaPhone(e.target.value)}
+              placeholder="Masukkan nomor tujuan (628xxx)"
+              className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20" />
+            <button onClick={handleTestWa} disabled={testingWa || !testWaPhone.trim()}
+              className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors">
+              {testingWa ? <Loader2 size={14} className="animate-spin" /> : <MessageSquare size={14} />}
+              Kirim Tes
+            </button>
+          </div>
+          {testWaResult && (
+            <div className={`p-4 rounded-xl text-sm border ${testWaResult.success ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
+              <div className="flex items-center gap-2 mb-2">
+                {testWaResult.success ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+                <span className="font-medium">{testWaResult.success ? 'Berhasil' : 'Gagal'}</span>
+              </div>
+              <p>{testWaResult.message}</p>
+              {testWaResult.config && (
+                <pre className="mt-2 text-xs bg-white/60 rounded-lg p-3 overflow-x-auto">
+                  {JSON.stringify(testWaResult.config, null, 2)}
+                </pre>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Info */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 text-sm text-blue-700">
         <p className="font-medium mb-2">Cara kerja notifikasi otomatis:</p>
         <ul className="list-disc list-inside space-y-1.5 text-xs">
           <li>Pengingat dikirim setiap hari jam 09:00 via <code className="bg-blue-100 px-1 rounded">php artisan app:reminder-pembayaran</code></li>
+          <li>WhatsApp menggunakan API StarSender — atur API Key & URL di pengaturan global di atas</li>
           <li>Email memerlukan konfigurasi SMTP di <code className="bg-blue-100 px-1 rounded">.env</code> (MAIL_MAILER, MAIL_HOST, dll)</li>
           <li>Jika SMTP belum dikonfigurasi, email akan di-log saja (tidak terkirim)</li>
           <li>Pengingat tidak akan dikirim jika kategori sudah lunas</li>

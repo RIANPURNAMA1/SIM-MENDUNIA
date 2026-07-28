@@ -59,6 +59,7 @@ import DataCoupon from './pages/Affiliate/DataCoupon'
 import DataBiayaKategori from './pages/Affiliate/DataBiayaKategori'
 import DataNotifikasi from './pages/Affiliate/DataNotifikasi'
 import DataNotifikasiSetting from './pages/Affiliate/DataNotifikasiSetting'
+import DataTemplateNotifikasi from './pages/Affiliate/DataTemplateNotifikasi'
 import DataKategoriPengeluaran from './pages/Keuangan/DataKategoriPengeluaran'
 import DataPengeluaran from './pages/Keuangan/DataPengeluaran'
 import DashboardKeuangan from './pages/Keuangan/DashboardKeuangan'
@@ -741,6 +742,7 @@ function AppRoutes() {
                 <Route path="/data-biaya-kategori" element={<DataBiayaKategori />} />
                 <Route path="/notifikasi-wa" element={<DataNotifikasi />} />
                 <Route path="/notifikasi-wa-setting" element={<DataNotifikasiSetting />} />
+                <Route path="/template-notifikasi" element={<DataTemplateNotifikasi />} />
                 <Route path="/pengaturan-pembayaran" element={<PengaturanPembayaran />} />
               </Routes>
             </DashboardLayout>

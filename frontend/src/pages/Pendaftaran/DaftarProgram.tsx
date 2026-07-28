@@ -250,9 +250,23 @@ export default function DaftarProgram() {
       const pendaftarToken = res.data?.token;
       window.location.href = `/checkout-berhasil/${pendaftarToken}`;
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Terjadi kesalahan, silakan coba lagi";
-      setError(msg);
+      const axiosErr = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } };
+      const serverErrors = axiosErr?.response?.data?.errors;
+      if (serverErrors) {
+        const flat: Record<string, string> = {};
+        Object.entries(serverErrors).forEach(([field, msgs]) => {
+          flat[field] = msgs[0];
+        });
+        setFieldErrors(prev => ({ ...prev, ...flat }));
+        setTouched(prev => {
+          const updated = { ...prev };
+          Object.keys(serverErrors).forEach(f => { updated[f] = true; });
+          return updated;
+        });
+      } else {
+        const msg = axiosErr?.response?.data?.message || "Terjadi kesalahan, silakan coba lagi";
+        setError(msg);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -483,28 +497,28 @@ export default function DaftarProgram() {
                     </div>
                   {fieldErrors.password ? (
                     <p className="text-xs text-red-500 mt-1">{fieldErrors.password}</p>
-                  ) : password ? (
-                    <div className="mt-2 space-y-1">
-                      {[
-                        { label: "Minimal 8 karakter", met: password.length >= 8 },
-                        { label: "Terdapat minimal satu huruf kecil", met: /[a-z]/.test(password) },
-                        { label: "Terdapat minimal satu huruf besar", met: /[A-Z]/.test(password) },
-                        { label: "Terdapat minimal satu angka", met: /[0-9]/.test(password) },
-                        { label: "Terdapat salah satu simbol: ! @ # $ % ^ & *", met: /[!@#$%^&*]/.test(password) },
-                      ].map((rule, i) => (
-                        <div key={i} className="flex items-center gap-1.5">
-                          {rule.met ? (
-                            <Check size={13} className="text-emerald-500 shrink-0" />
-                          ) : (
-                            <X size={13} className="text-gray-300 shrink-0" />
-                          )}
-                          <span className={`text-[11px] ${rule.met ? 'text-emerald-600 font-medium' : 'text-gray-400'}`}>
-                            {rule.label}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
+                  ) : null}
+                  <div className="mt-2 space-y-1">
+                    {[
+                      { label: "Minimal 8 karakter", met: password.length >= 8 },
+                      { label: "Terdapat minimal satu huruf kecil", met: /[a-z]/.test(password) },
+                      { label: "Terdapat minimal satu huruf besar", met: /[A-Z]/.test(password) },
+                      { label: "Terdapat minimal satu angka", met: /[0-9]/.test(password) },
+                      { label: "Terdapat salah satu simbol: ! @ # $ % ^ & *", met: /[!@#$%^&*]/.test(password) },
+                    ].map((rule, i) => (
+                      <div key={i} className="flex items-center gap-1.5">
+                        {rule.met ? (
+                          <Check size={13} className="text-emerald-500 shrink-0" />
+                        ) : (
+                          <X size={13} className="text-gray-300 shrink-0" />
+                        )}
+                        <span className={`text-[11px] ${rule.met ? 'text-emerald-600 font-medium' : 'text-gray-400'}`}>
+                          {rule.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  {!password && !fieldErrors.password && (
                     <p className="text-xs text-gray-400 mt-1">
                       Tuliskan password yang akan digunakan untuk website ini. Pastikan untuk menyimpan atau mengingat password yang ditulis.
                     </p>

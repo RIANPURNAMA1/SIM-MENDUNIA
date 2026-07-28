@@ -573,6 +573,16 @@ Route::middleware(['auth:sanctum'])->prefix('wa-settings')->group(function () {
     // Email notification log
     Route::get('/email-log', [\App\Http\Controllers\WaSettingController::class, 'emailLog']);
     Route::get('/email-stats', [\App\Http\Controllers\WaSettingController::class, 'emailStats']);
+    Route::post('/test-email', [\App\Http\Controllers\WaSettingController::class, 'testEmail']);
+    Route::post('/test-wa', [\App\Http\Controllers\WaSettingController::class, 'testWa']);
+});
+
+// ========== Notification Templates ==========
+Route::middleware(['auth:sanctum'])->prefix('notification-templates')->group(function () {
+    Route::get('/', [\App\Http\Controllers\NotificationTemplateController::class, 'index']);
+    Route::get('/{key}', [\App\Http\Controllers\NotificationTemplateController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\NotificationTemplateController::class, 'update']);
+    Route::post('/{id}/reset', [\App\Http\Controllers\NotificationTemplateController::class, 'reset']);
 });
 
 // Public — batch deadlines untuk countdown frontend
