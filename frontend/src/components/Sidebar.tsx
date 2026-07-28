@@ -354,21 +354,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         lg:translate-x-0
       `}
       >
-        <div className="flex items-center justify-between gap-2 px-5 py-4 border-b border-white/10 bg-white/5">
-          <div className="flex items-center gap-2">
-            <img src="/logo-sm.png" alt="SIM Mendunia" className="h-8 w-auto" />
-            <div className="leading-tight">
-              <p className="text-[10px] text-gray-400 tracking-wide">
-                Sistem Informasi
-              </p>
-              <p className="font-semibold text-white text-sm tracking-wide">
-                SIM Mendunia
-              </p>
-            </div>
-          </div>
+        <div className="relative flex items-center justify-center px-5 py-4 border-b border-white/10 bg-white/5">
+          <img src="/logo-sm1.png" alt="SIM Mendunia" className="h-14 w-auto" />
           <button
             onClick={onClose}
-            className="lg:hidden p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+            className="lg:hidden absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
           >
             <X size={18} />
           </button>

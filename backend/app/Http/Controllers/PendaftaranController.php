@@ -530,15 +530,22 @@ class PendaftaranController extends Controller
             }
         }
 
-        // Ensure existing PembayaranItems have kode_unik and total_transfer set
+        // Ensure existing PembayaranItems have kode_unik and total_transfer set (only first item gets kode_unik)
         $itemsWithoutUnique = PembayaranItem::where('pendaftar_id', $pendaftar->id)
             ->where(function ($q) { $q->where('kode_unik', 0)->orWhereNull('kode_unik'); })
             ->get();
+        $firstItemSet = false;
         foreach ($itemsWithoutUnique as $pi) {
-            $ku = PaymentSetting::generateUniqueCode();
-            $tt = PaymentSetting::calculateTotalTransfer((float) $pi->jumlah, $ku);
-            $pc = $pi->payment_code ?? ('PAY/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . now()->format('Ym'));
-            $pi->update(['kode_unik' => $ku, 'total_transfer' => $tt, 'payment_code' => $pc]);
+            if (!$firstItemSet && $pi->jumlah > 0) {
+                $ku = PaymentSetting::generateUniqueCode();
+                $tt = PaymentSetting::calculateTotalTransfer((float) $pi->jumlah, $ku);
+                $pc = $pi->payment_code ?? ('PAY/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . now()->format('Ym'));
+                $pi->update(['kode_unik' => $ku, 'total_transfer' => $tt, 'payment_code' => $pc]);
+                $firstItemSet = true;
+            } else {
+                $pc = $pi->payment_code ?? ('PAY/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . now()->format('Ym'));
+                $pi->update(['kode_unik' => 0, 'total_transfer' => $pi->jumlah, 'payment_code' => $pc]);
+            }
         }
 
         // Update semua Pembayaran yang masih pending jadi verified
@@ -728,6 +735,7 @@ class PendaftaranController extends Controller
             if ($product) {
                 $product->load('biayaKategoris');
                 $biayaKategoris = $product->biayaKategoris;
+                $firstUniqueSet = false;
                 foreach ($biayaKategoris as $kat) {
                     $totalVerified = \App\Models\Pembayaran::where('pendaftar_id', $pendaftar->id)
                         ->where('kategori_id', $kat->id)
@@ -739,8 +747,15 @@ class PendaftaranController extends Controller
                         $jumlah = $harga > 0 ? min((int) $totalVerified, $harga) : (int) $totalVerified;
                         $existingPi = \App\Models\PembayaranItem::where('pendaftar_id', $pendaftar->id)
                             ->where('kategori_id', $kat->id)->first();
-                        $ku = $existingPi ? ($existingPi->kode_unik ?: \App\Models\PaymentSetting::generateUniqueCode()) : \App\Models\PaymentSetting::generateUniqueCode();
-                        $tt = \App\Models\PaymentSetting::calculateTotalTransfer($jumlah, $ku);
+                        if (!$firstUniqueSet && (!$existingPi || !$existingPi->kode_unik)) {
+                            $ku = \App\Models\PaymentSetting::generateUniqueCode();
+                            $firstUniqueSet = true;
+                        } elseif ($existingPi && $existingPi->kode_unik) {
+                            $ku = $existingPi->kode_unik;
+                        } else {
+                            $ku = 0;
+                        }
+                        $tt = $ku > 0 ? \App\Models\PaymentSetting::calculateTotalTransfer($jumlah, $ku) : $jumlah;
                         $pc = $existingPi?->payment_code ?? ('PAY/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . now()->format('Ym'));
                         \App\Models\PembayaranItem::updateOrCreate(
                             ['pendaftar_id' => $pendaftar->id, 'kategori_id' => $kat->id],
@@ -1400,7 +1415,7 @@ class PendaftaranController extends Controller
 
     public function kandidat(Request $request)
     {
-        $query = Pendaftar::with(['product', 'batch', 'user', 'siswa'])
+        $query = Pendaftar::with(['product', 'batch.cabang', 'user', 'siswa', 'pembayaranItems.kategori'])
             ->where('status_pendaftaran', 'disetujui');
 
         if ($request->search) {
@@ -1423,6 +1438,36 @@ class PendaftaranController extends Controller
         $mapKandidat = function ($p) {
             $siswa = $p->siswa;
             $user = $p->user;
+
+            // Compute status_kandidat based on payment & level data
+            $statusKandidat = 'Calon Kandidat';
+            if ($siswa && $siswa->level_status && in_array('Keluar', $siswa->level_status)) {
+                $statusKandidat = 'Mengundurkan Diri';
+            } else {
+                $kategoriItems = $p->product?->kategori_items ?? [];
+                $pembayaranItems = $p->pembayaranItems ?? collect();
+                $paidKategoris = [];
+                foreach ($kategoriItems as $ki) {
+                    $biaya = (int) ($ki['harga'] ?? 0);
+                    if ($biaya <= 0) continue;
+                    $name = strtolower(trim($ki['name'] ?? ''));
+                    $pi = $pembayaranItems->first(function ($item) use ($name) {
+                        $katNama = strtolower(trim($item->kategori?->nama ?? ''));
+                        $katKode = strtolower(trim($item->kategori?->kode ?? ''));
+                        return $katNama === $name || $katKode === $name;
+                    });
+                    $paid = $pi ? (int) $pi->jumlah : 0;
+                    $paidKategoris[] = ['name' => $ki['name'], 'biaya' => $biaya, 'paid' => $paid, 'lunas' => $paid >= $biaya];
+                }
+                $totalKategoris = count($paidKategoris);
+                $lunasCount = count(array_filter($paidKategoris, fn($k) => $k['lunas']));
+                if ($totalKategoris > 0 && $lunasCount === $totalKategoris) {
+                    $statusKandidat = 'Kandidat Aktif';
+                } elseif ($lunasCount > 0) {
+                    $statusKandidat = 'Calon Kandidat';
+                }
+            }
+
             return [
                 'id' => $p->id,
                 'nama' => $p->nama,
@@ -1433,6 +1478,7 @@ class PendaftaranController extends Controller
                 'batch_id' => $p->batch_id ?? $siswa?->batch_id,
                 'batch_nama' => $p->batch?->nama_batch ?? $siswa?->batchRelasi?->nama_batch ?? '-',
                 'batch_warna' => $p->batch?->warna ?? $siswa?->batchRelasi?->warna ?? null,
+                'cabang_nama' => $p->batch?->cabang?->nama_cabang ?? '-',
                 'real_batch' => $siswa?->real_batch ?? '-',
                 'jenis_kelamin' => $siswa?->jenis_kelamin ?? '-',
                 'tempat_lahir' => $siswa?->tempat_lahir ?? '-',
@@ -1456,6 +1502,7 @@ class PendaftaranController extends Controller
                 'status' => $p->status_pendaftaran === 'pending' ? 'Pending'
                     : ($p->status_pendaftaran === 'disetujui' ? 'Disetujui'
                     : ($p->status_pendaftaran === 'ditolak' ? 'Ditolak' : $p->status_pendaftaran)),
+                'status_kandidat' => $statusKandidat,
                 'tanggalDaftar' => $p->created_at->format('d F Y'),
                 'user_id' => $p->user_id,
                 'keterangan' => $siswa?->keterangan ?? '-',
@@ -2215,7 +2262,8 @@ class PendaftaranController extends Controller
             }
         }
 
-        $kategoriItemsEnriched = $kategoriItems->map(function ($item) use ($paidPerKategori, $reminderSettings, $batchDeadlines, $billingMap, $pendaftar) {
+        $firstKategoriUsed = false;
+        $kategoriItemsEnriched = $kategoriItems->map(function ($item) use ($paidPerKategori, $reminderSettings, $batchDeadlines, $billingMap, $pendaftar, &$firstKategoriUsed) {
             $dibayar = (float) ($paidPerKategori[$item['id']] ?? 0);
 
             $batchDl = $batchDeadlines->get($item['id']);
@@ -2255,36 +2303,53 @@ class PendaftaranController extends Controller
                 }
             }
 
-            // Get or create kode_unik from pembayaran_items
+            // Get or create kode_unik — only for the first kategori with harga > 0
             $pi = PembayaranItem::where('pendaftar_id', $pendaftar->id)
                 ->where('kategori_id', $item['id'])
                 ->first();
             if ($pi) {
-                if ((!$pi->kode_unik || $pi->kode_unik == 0) && $item['harga'] > 0) {
+                if ((!$pi->kode_unik || $pi->kode_unik == 0) && $item['harga'] > 0 && !$firstKategoriUsed) {
                     $ku = PaymentSetting::generateUniqueCode();
                     $tt = PaymentSetting::calculateTotalTransfer((float) $item['harga'], $ku);
                     $pc = $pi->payment_code ?? ('PAY/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . now()->format('Ym'));
                     $pi->update(['kode_unik' => $ku, 'total_transfer' => $tt, 'payment_code' => $pc]);
                     $pi->refresh();
+                    $firstKategoriUsed = true;
                 }
                 $kodeUnik = $pi->kode_unik ?? 0;
                 $totalTransfer = $pi->total_transfer ?? $item['harga'];
                 $paymentCode = $pi->payment_code ?? null;
             } else {
-                $ku = PaymentSetting::generateUniqueCode();
-                $tt = PaymentSetting::calculateTotalTransfer((float) $item['harga'], $ku);
-                $pc = 'PAY/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . now()->format('Ym');
-                PembayaranItem::create([
-                    'pendaftar_id' => $pendaftar->id,
-                    'kategori_id' => $item['id'],
-                    'jumlah' => 0,
-                    'kode_unik' => $ku,
-                    'total_transfer' => $tt,
-                    'payment_code' => $pc,
-                ]);
-                $kodeUnik = $ku;
-                $totalTransfer = $tt;
-                $paymentCode = $pc;
+                if (!$firstKategoriUsed && $item['harga'] > 0) {
+                    $ku = PaymentSetting::generateUniqueCode();
+                    $tt = PaymentSetting::calculateTotalTransfer((float) $item['harga'], $ku);
+                    $pc = 'PAY/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . now()->format('Ym');
+                    PembayaranItem::create([
+                        'pendaftar_id' => $pendaftar->id,
+                        'kategori_id' => $item['id'],
+                        'jumlah' => 0,
+                        'kode_unik' => $ku,
+                        'total_transfer' => $tt,
+                        'payment_code' => $pc,
+                    ]);
+                    $kodeUnik = $ku;
+                    $totalTransfer = $tt;
+                    $paymentCode = $pc;
+                    $firstKategoriUsed = true;
+                } else {
+                    $pc = 'PAY/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . now()->format('Ym');
+                    PembayaranItem::create([
+                        'pendaftar_id' => $pendaftar->id,
+                        'kategori_id' => $item['id'],
+                        'jumlah' => 0,
+                        'kode_unik' => 0,
+                        'total_transfer' => $item['harga'],
+                        'payment_code' => $pc,
+                    ]);
+                    $kodeUnik = 0;
+                    $totalTransfer = $item['harga'];
+                    $paymentCode = $pc;
+                }
             }
 
             return [
