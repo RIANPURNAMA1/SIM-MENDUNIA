@@ -11,6 +11,7 @@ interface BatchItem {
   kuota: number | null
   is_penuh: boolean
   is_penuh_manual: boolean
+  warna: string | null
   cabang: { id: number; nama_cabang: string } | null
   created_at: string | null
   updated_at: string | null
@@ -41,6 +42,7 @@ export default function BatchesPage() {
   const [namaBatch, setNamaBatch] = useState("");
   const [cabangId, setCabangId] = useState<number | "">("");
   const [kuota, setKuota] = useState<string>("");
+  const [warna, setWarna] = useState("#3b82f6");
   const [submitting, setSubmitting] = useState(false);
 
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
@@ -68,6 +70,7 @@ export default function BatchesPage() {
     setNamaBatch("");
     setCabangId("");
     setKuota("");
+    setWarna("#3b82f6");
     setShowModal(true);
   };
 
@@ -76,6 +79,7 @@ export default function BatchesPage() {
     setNamaBatch(item.nama_batch);
     setCabangId(item.cabang?.id ?? "");
     setKuota(item.kuota ? String(item.kuota) : "");
+    setWarna(item.warna || "#3b82f6");
     setShowModal(true);
   };
 
@@ -84,7 +88,7 @@ export default function BatchesPage() {
     if (!namaBatch.trim()) return;
     setSubmitting(true);
     try {
-      const payload = { nama_batch: namaBatch.trim(), cabang_id: cabangId || null, kuota: kuota ? Number(kuota) : null };
+      const payload = { nama_batch: namaBatch.trim(), cabang_id: cabangId || null, kuota: kuota ? Number(kuota) : null, warna };
       if (editId) {
         await batchApi.update(editId, payload);
       } else {
@@ -94,6 +98,7 @@ export default function BatchesPage() {
       setNamaBatch("");
       setCabangId("");
       setKuota("");
+      setWarna("#3b82f6");
       setEditId(null);
       fetchData();
     } catch (err) {
@@ -224,7 +229,11 @@ export default function BatchesPage() {
               data.map((item, idx) => (
                 <tr key={item.id} className="bg-white transition hover:bg-slate-50">
                   <td className="border border-slate-200 px-3 py-2.5 text-center text-slate-400">{idx + 1}</td>
-                  <td className="border border-slate-200 px-3 py-2.5 font-semibold text-slate-800">{item.nama_batch}</td>
+                  <td className="border border-slate-200 px-3 py-2.5 font-semibold text-slate-800">
+                    <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold text-white" style={{ backgroundColor: item.warna || '#3b82f6' }}>
+                      {item.nama_batch}
+                    </span>
+                  </td>
                   <td className="border border-slate-200 px-3 py-2.5 text-slate-600">
                     {item.cabang ? (
                       <span className="inline-flex items-center gap-1">
@@ -306,6 +315,20 @@ export default function BatchesPage() {
                 <div>
                   <label className="mb-1 block text-xs font-semibold text-slate-500">Kuota Siswa <span className="font-normal text-slate-400">(kosongi jika tidak terbatas)</span></label>
                   <input type="number" min="1" value={kuota} onChange={(e) => setKuota(e.target.value)} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="Contoh: 50" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-500">Warna Badge</label>
+                  <div className="flex items-center gap-2">
+                    <input type="color" value={warna} onChange={e => setWarna(e.target.value)} className="h-9 w-9 cursor-pointer rounded border border-slate-300 p-0.5" />
+                    <div className="flex flex-wrap gap-1.5">
+                      {['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4','#f97316','#14b8a6','#6366f1','#84cc16','#e11d48'].map(c => (
+                        <button key={c} type="button" onClick={() => setWarna(c)} className={`h-6 w-6 rounded-full border-2 transition ${warna === c ? 'border-slate-800 scale-110' : 'border-transparent hover:scale-110'}`} style={{ backgroundColor: c }} />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-white" style={{ backgroundColor: warna }}>{namaBatch || 'Preview'}</span>
+                  </div>
                 </div>
               </div>
               <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3">

@@ -14,6 +14,7 @@ class Batch extends Model
         'cabang_id',
         'kuota',
         'is_penuh_manual',
+        'warna',
     ];
 
     public function siswas()

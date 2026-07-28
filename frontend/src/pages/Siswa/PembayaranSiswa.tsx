@@ -44,6 +44,7 @@ interface BankAccount {
   id: number
   bank_name: string
   bank_logo: string | null
+  bank_logo_url: string | null
   account_holder: string
   account_number: string
   branch: string | null
@@ -267,7 +268,8 @@ export default function PembayaranSiswa() {
 
   const totalBiaya = parentAggregatedItems.reduce((s, i) => s + i.biaya, 0)
   const totalDibayar = parentAggregatedItems.reduce((s, i) => s + i.dibayar, 0)
-  const tunggakan = totalBiaya - totalDibayar
+  const effectiveTotalBiaya = totalBiaya - diskon
+  const tunggakan = effectiveTotalBiaya - totalDibayar
 
   // Hitung total verified per kategori dari riwayat
   const verifiedPerKategori = new Map<number, number>()
@@ -301,13 +303,15 @@ export default function PembayaranSiswa() {
 
   const paidKategoriIds = parentAggregatedItems.filter(i => {
     if (i.biaya <= 0) return false
+    const effectiveBiaya = totalBiaya > 0 ? Math.round(i.biaya - (diskon * i.biaya / totalBiaya)) : i.biaya
     const verified = groupVerified.get(i.kategori_id) || 0
-    return verified >= i.biaya
+    return verified >= effectiveBiaya
   }).map(i => i.kategori_id)
   const partialKategoriIds = parentAggregatedItems.filter(i => {
+    const effectiveBiaya = totalBiaya > 0 ? Math.round(i.biaya - (diskon * i.biaya / totalBiaya)) : i.biaya
     const verified = groupVerified.get(i.kategori_id) || 0
     const pending = groupPending.get(i.kategori_id) || 0
-    return (verified > 0 && verified < i.biaya) || (verified === 0 && pending > 0 && pending < i.biaya)
+    return (verified > 0 && verified < effectiveBiaya) || (verified === 0 && pending > 0 && pending < effectiveBiaya)
   }).map(i => i.kategori_id)
 
   const pendingKategoriIds = new Set<number>()
@@ -323,7 +327,9 @@ export default function PembayaranSiswa() {
   const sortedKat = parentColumns
   const nextKat = sortedKat.find(k => {
     const item = parentAggregatedItems.find(i => i.kategori_id === k.id)
-    return item ? item.dibayar < item.biaya : true
+    if (!item) return true
+    const effectiveBiaya = totalBiaya > 0 ? Math.round(item.biaya - (diskon * item.biaya / totalBiaya)) : item.biaya
+    return item.dibayar < effectiveBiaya
   }) || null
 
   const hasPendingPayment = riwayat.some(r => r.status === 'pending')
@@ -371,7 +377,8 @@ export default function PembayaranSiswa() {
     for (const k of sortedKat) {
       if (sisa <= 0) break
       const item = parentAggregatedItems.find(i => i.kategori_id === k.id)
-      const biaya = item?.biaya || 0
+      const rawBiaya = item?.biaya || 0
+      const biaya = totalBiaya > 0 ? Math.round(rawBiaya - (diskon * rawBiaya / totalBiaya)) : rawBiaya
       const dibayar = item?.dibayar || 0
       const kurang = biaya - dibayar
       if (kurang <= 0) continue
@@ -469,8 +476,9 @@ export default function PembayaranSiswa() {
                       const isLunas = paidKategoriIds.includes(k.id)
                       const isPartial = partialKategoriIds.includes(k.id) || pendingKategoriIds.has(k.id)
                       const isNext = k.id === nextKat?.id
-                      const katBiaya = item?.biaya || 0
+                      const rawBiaya = item?.biaya || 0
                       const katDibayar = item?.dibayar || 0
+                      const katBiaya = totalBiaya > 0 ? Math.round(rawBiaya - (diskon * rawBiaya / totalBiaya)) : rawBiaya
                       const isUnpaid = !isLunas && katBiaya > 0
                       const jatuhTempoHari = item?.jatuh_tempo_hari ?? 30
                       const dueAt = item?.due_at
@@ -638,8 +646,11 @@ export default function PembayaranSiswa() {
                       <div className="border-t border-gray-200 pt-3">
                         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Rincian Tunggakan Per Kategori</p>
                         <div className="space-y-2">
-                          {parentAggregatedItems.filter(i => i.biaya > 0 && i.dibayar < i.biaya).map((item, idx) => {
-                            const sisa = item.biaya - item.dibayar
+                          {parentAggregatedItems.filter(i => i.biaya > 0).map((item, idx) => {
+                            const rawBiaya = item.biaya
+                            const effBiaya = totalBiaya > 0 ? Math.round(rawBiaya - (diskon * rawBiaya / totalBiaya)) : rawBiaya
+                            const sisa = effBiaya - item.dibayar
+                            if (sisa <= 0) return null
                             return (
                               <div key={idx} className="bg-white rounded-lg border border-gray-200 p-3">
                                 <div className="flex items-center justify-between mb-1.5">
@@ -647,12 +658,12 @@ export default function PembayaranSiswa() {
                                   <span className="text-xs font-bold text-red-600">Sisa Rp {sisa.toLocaleString('id-ID')}</span>
                                 </div>
                                 <div className="flex items-center gap-3 text-xs">
-                                  <span className="text-gray-500">Biaya: Rp {item.biaya.toLocaleString('id-ID')}</span>
+                                  <span className="text-gray-500">Biaya: Rp {effBiaya.toLocaleString('id-ID')}</span>
                                   <span className="text-gray-300">|</span>
                                   <span className="text-emerald-600">Dibayar: Rp {item.dibayar.toLocaleString('id-ID')}</span>
                                 </div>
                                 <div className="mt-1.5 w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                                  <div className="bg-emerald-500 h-full rounded-full transition-all" style={{ width: `${Math.min(100, (item.dibayar / item.biaya) * 100)}%` }} />
+                                  <div className="bg-emerald-500 h-full rounded-full transition-all" style={{ width: `${effBiaya > 0 ? Math.min(100, (item.dibayar / effBiaya) * 100) : 0}%` }} />
                                 </div>
                               </div>
                             )
@@ -701,8 +712,8 @@ export default function PembayaranSiswa() {
                         {bankAccounts.filter(b => b.is_active).map(acc => (
                           <div key={acc.id} className="border-t border-blue-200 pt-3 first:border-0 first:pt-0">
                             <div className="flex items-center gap-2 mb-2">
-                              {acc.bank_logo ? (
-                                <img src={`/storage/${acc.bank_logo}`} alt={acc.bank_name} className="w-6 h-6 rounded object-contain" />
+                              {acc.bank_logo_url ? (
+                                <img src={acc.bank_logo_url} alt={acc.bank_name} className="w-6 h-6 rounded object-contain" />
                               ) : (
                                 <Building2 size={14} className="text-[#0E6187]" />
                               )}

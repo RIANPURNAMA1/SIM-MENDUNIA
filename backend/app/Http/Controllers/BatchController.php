@@ -32,9 +32,10 @@ class BatchController extends Controller
             'nama_batch' => 'required|string|max:100|unique:batches,nama_batch',
             'cabang_id' => 'nullable|exists:cabangs,id',
             'kuota' => 'nullable|integer|min:1',
+            'warna' => 'nullable|string|max:20',
         ]);
 
-        Batch::create($request->only('nama_batch', 'cabang_id', 'kuota'));
+        Batch::create($request->only('nama_batch', 'cabang_id', 'kuota', 'warna'));
 
         return response()->json([
             'status' => 'success',
@@ -50,9 +51,10 @@ class BatchController extends Controller
             'nama_batch' => 'required|string|max:100|unique:batches,nama_batch,' . $id,
             'cabang_id' => 'nullable|exists:cabangs,id',
             'kuota' => 'nullable|integer|min:1',
+            'warna' => 'nullable|string|max:20',
         ]);
 
-        $batch->update($request->only('nama_batch', 'cabang_id', 'kuota'));
+        $batch->update($request->only('nama_batch', 'cabang_id', 'kuota', 'warna'));
 
         return response()->json([
             'status' => 'success',

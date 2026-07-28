@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Users, Search, RotateCcw, Eye, Edit3, Receipt, Check, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { Users, Search, RotateCcw, Eye, Edit3, Receipt, Check, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Download } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { adminCabangApi } from '../../services/api'
 
@@ -177,6 +177,66 @@ export default function AdminCabangDataKandidat() {
     )
   }
 
+  function exportCSV() {
+    const headers = [
+      'No', 'NIK', 'No. Registrasi', 'Nama Kandidat', 'Batch', 'Real Batch',
+      'Jenis Kelamin', 'Tempat Lahir', 'Tanggal Lahir', 'Alamat', 'Desa',
+      'Kecamatan', 'Kab./Kota', 'Provinsi', 'Pendidikan Terakhir', 'Tahun Lulus',
+      'Tinggi Badan', 'Berat Badan', 'Golongan Darah', 'Ukuran Baju',
+      'Status Nikah', 'E-mail', 'No. Tlp', 'Nama Orang Tua', 'No. Tlp Orang Tua',
+      'Status', 'Keterangan', 'Program'
+    ]
+    const rows = filteredList.map((k, i) => [
+      i + 1, k.nik, k.no_registrasi, k.nama, k.batch_nama, k.real_batch,
+      k.jenis_kelamin, k.tempat_lahir, k.tanggal_lahir, k.alamat, k.desa,
+      k.kecamatan, k.kabupaten, k.provinsi, k.pendidikan_terakhir, k.tahun_lulus,
+      k.tinggi_badan, k.berat_badan, k.goldar, k.ukuran_baju,
+      k.status_pernikahan, k.email, k.no_hp, k.nama_ortu, k.no_hp_ortu,
+      k.status, k.keterangan, k.program
+    ])
+    const bom = '\uFEFF'
+    const csvContent = bom + [headers, ...rows].map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `data-kandidat-${new Date().toISOString().slice(0, 10)}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function exportExcel() {
+    const headers = [
+      'No', 'NIK', 'No. Registrasi', 'Nama Kandidat', 'Batch', 'Real Batch',
+      'Jenis Kelamin', 'Tempat Lahir', 'Tanggal Lahir', 'Alamat', 'Desa',
+      'Kecamatan', 'Kab./Kota', 'Provinsi', 'Pendidikan Terakhir', 'Tahun Lulus',
+      'Tinggi Badan', 'Berat Badan', 'Golongan Darah', 'Ukuran Baju',
+      'Status Nikah', 'E-mail', 'No. Tlp', 'Nama Orang Tua', 'No. Tlp Orang Tua',
+      'Status', 'Keterangan', 'Program'
+    ]
+    const rows = filteredList.map((k, i) => [
+      i + 1, k.nik, k.no_registrasi, k.nama, k.batch_nama, k.real_batch,
+      k.jenis_kelamin, k.tempat_lahir, k.tanggal_lahir, k.alamat, k.desa,
+      k.kecamatan, k.kabupaten, k.provinsi, k.pendidikan_terakhir, k.tahun_lulus,
+      k.tinggi_badan, k.berat_badan, k.goldar, k.ukuran_baju,
+      k.status_pernikahan, k.email, k.no_hp, k.nama_ortu, k.no_hp_ortu,
+      k.status, k.keterangan, k.program
+    ])
+    const cellStyle = ' style="mso-number-format:\'@\'"'
+    const tableRows = [
+      `<tr>${headers.map(h => `<th style="background:#0E6187;color:white;font-weight:bold;padding:6px 10px;border:1px solid #ccc">${h}</th>`).join('')}</tr>`,
+      ...rows.map((r, i) => `<tr>${r.map(v => `<td${cellStyle} style="padding:4px 10px;border:1px solid #ccc;background:${i % 2 === 0 ? '#fff' : '#f9fafb'}">${String(v ?? '')}</td>`).join('')}</tr>`)
+    ]
+    const htmlTable = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Data Kandidat</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body><table>${tableRows.join('')}</table></body></html>`
+    const blob = new Blob([htmlTable], { type: 'application/vnd.ms-excel;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `data-kandidat-${new Date().toISOString().slice(0, 10)}.xls`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
   function CellEdit({ field, type }: { field: EditableField; type?: 'text' | 'select' | 'number' | 'date' }) {
     const val = editForm[field] ?? ''
     if (type === 'select') {
@@ -290,6 +350,24 @@ export default function AdminCabangDataKandidat() {
             <RotateCcw size={16} />
             Reset
           </button>
+          <div className="relative group">
+            <button
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-800"
+            >
+              <Download size={16} />
+              Export
+            </button>
+            <div className="absolute right-0 top-full z-30 mt-1 hidden w-40 rounded-lg border border-slate-200 bg-white py-1 shadow-lg group-hover:block">
+              <button onClick={exportCSV} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                <Download size={14} className="text-slate-400" />
+                Export CSV
+              </button>
+              <button onClick={exportExcel} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                <Download size={14} className="text-slate-400" />
+                Export Excel
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 

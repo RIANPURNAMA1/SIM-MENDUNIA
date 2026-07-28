@@ -314,7 +314,7 @@ export default function Pendaftar() {
 
       {/* Table */}
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-        <table className="w-full border-collapse text-left text-sm text-slate-700" style={{ tableLayout: 'fixed', minWidth: '900px' }}>
+        <table className="w-full border-collapse text-left text-sm text-black" style={{ tableLayout: 'fixed', minWidth: '900px' }}>
           <colgroup>
             <col className="w-[220px]" />
             <col className="w-[130px]" />
@@ -327,18 +327,18 @@ export default function Pendaftar() {
             <col className="w-[90px]" />
             <col className="w-[50px]" />
           </colgroup>
-          <thead className="text-sm text-slate-600">
+          <thead className="text-sm text-black">
             <tr>
-              <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Nama</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">No. Reg</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Tgl. Daftar</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Program</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Batch</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Affiliate</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium">Nominal</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium">Diskon</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Status</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Aksi</th>
+              <th scope="col" className="border border-slate-200 px-4 py-3 font-bold text-black">Nama</th>
+              <th scope="col" className="border border-slate-200 px-4 py-3 font-bold text-black">No. Reg</th>
+              <th scope="col" className="border border-slate-200 px-4 py-3 font-bold text-black">Tgl. Daftar</th>
+              <th scope="col" className="border border-slate-200 px-4 py-3 font-bold text-black">Program</th>
+              <th scope="col" className="border border-slate-200 px-4 py-3 font-bold text-black">Batch</th>
+              <th scope="col" className="border border-slate-200 px-4 py-3 font-bold text-black">Affiliate</th>
+              <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-bold text-black">Nominal</th>
+              <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-bold text-black">Diskon</th>
+              <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-bold text-black">Status</th>
+              <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-bold text-black">Aksi</th>
             </tr>
           </thead>
           <tbody>
@@ -376,27 +376,27 @@ export default function Pendaftar() {
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                       />
                       <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold text-[#0E6187] hover:underline">{p.nama}</div>
-                        <div className="truncate text-xs text-slate-500">{p.email}</div>
+                        <div className="truncate text-sm font-bold text-[#0E6187] hover:underline">{p.nama}</div>
+                        <div className="truncate text-xs font-semibold text-black">{p.email}</div>
                       </div>
                     </button>
                   </td>
-                  <td className="border border-slate-200 px-3 py-3 text-sm font-mono text-slate-700">
-                    <span className="block truncate">{p.no_registrasi || <span className="text-slate-300">-</span>}</span>
+                  <td className="border border-slate-200 px-3 py-3 text-sm font-mono font-semibold text-black">
+                    <span className="block truncate">{p.no_registrasi || <span className="text-gray-400">-</span>}</span>
                   </td>
-                  <td className="border border-slate-200 px-3 py-3 text-sm text-slate-600 whitespace-nowrap">
+                  <td className="border border-slate-200 px-3 py-3 text-sm font-semibold text-black whitespace-nowrap">
                     {new Date(p.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </td>
-                  <td className="border border-slate-200 px-3 py-3 text-sm text-slate-600">
+                  <td className="border border-slate-200 px-3 py-3 text-sm font-semibold text-black">
                     <span className="block truncate" title={p.product?.nama || '-'}>{p.product?.nama || '-'}</span>
                   </td>
-                  <td className="border border-slate-200 px-3 py-3 text-sm text-slate-600">
+                  <td className="border border-slate-200 px-3 py-3 text-sm font-semibold text-black">
                     <span className="block truncate" title={p.batch?.nama_batch || '-'}>{p.batch?.nama_batch || '-'}</span>
                   </td>
-                  <td className="border border-slate-200 px-3 py-3 text-sm text-slate-600">
-                    <span className="block truncate">{p.affiliate_link?.affiliate?.name || <span className="text-slate-300">-</span>}</span>
+                  <td className="border border-slate-200 px-3 py-3 text-sm font-semibold text-black">
+                    <span className="block truncate">{p.affiliate_link?.affiliate?.name || <span className="text-gray-400">-</span>}</span>
                   </td>
-                  <td className="border border-slate-200 px-3 py-3 text-right text-sm font-medium text-slate-800 whitespace-nowrap">
+                  <td className="border border-slate-200 px-3 py-3 text-right text-sm font-bold text-black whitespace-nowrap">
                     {(() => {
                       const firstCategory = p.detail?.[0]
                       if (firstCategory) {
@@ -407,8 +407,8 @@ export default function Pendaftar() {
                       return '-'
                     })()}
                   </td>
-                  <td className="border border-slate-200 px-3 py-3 text-right text-sm font-medium text-emerald-600 whitespace-nowrap">
-                    {p.diskon ? `Rp ${Number(p.diskon).toLocaleString('id-ID')}` : '-'}
+                  <td className="border border-slate-200 px-3 py-3 text-right text-sm font-bold text-black whitespace-nowrap">
+                    {p.diskon ? `Rp ${Number(p.diskon).toLocaleString('id-ID')}` : <span className="text-gray-400">-</span>}
                   </td>
                   <td className="border border-slate-200 px-3 py-3 text-center">
                     {(() => { const s = combinedStatus(p); return (<span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium shadow-sm ${s.bg}`}>{s.label}</span>) })()}
