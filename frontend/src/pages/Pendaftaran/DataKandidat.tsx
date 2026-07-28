@@ -1145,7 +1145,7 @@ export default function DataKandidat() {
                       const rowNum = (safePage - 1) * perPage + idx + 1
                       const batchBadgeBg = k.batch_warna || '#3b82f6'
                       return (
-                        <tr key={k.id} className={`${isEditing ? 'bg-blue-50/50' : k.level_status_keluar ? 'bg-red-200' : k.is_cuti ? 'bg-yellow-300' : k.status_akademik === 'NONAKTIF' ? 'bg-red-200' : 'bg-white'} transition hover:brightness-[0.97] group`}>
+                        <tr key={k.id} className={`${isEditing ? 'bg-blue-50/50' : k.level_status_keluar ? 'bg-red-200' : k.is_cuti ? 'bg-yellow-300' : 'bg-white'} transition hover:brightness-[0.97] group`}>
                           <td className="border border-slate-200 px-4 py-3 text-center text-xs font-normal text-black">{rowNum}</td>
                           <td className="border border-slate-200 px-3 py-3 text-center">
                             <input
@@ -1170,7 +1170,7 @@ export default function DataKandidat() {
                                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                                 />
                                 <div className="min-w-0">
-                                  <div className={`font-semibold truncate ${k.level_status_keluar ? 'text-red-600' : k.status_akademik === 'NONAKTIF' ? 'text-red-600' : 'text-black'}`}>{k.nama}</div>
+                                  <div className={`font-semibold truncate ${k.level_status_keluar ? 'text-red-600' : 'text-black'}`}>{k.nama}</div>
                                 </div>
                               </div>
                             )}
@@ -1280,7 +1280,6 @@ export default function DataKandidat() {
                             {isEditing ? <CellEdit field="keterangan" /> : (
                               <div className="flex flex-col gap-1">
                                 {k.level_status_keluar ? <span className="inline-block w-fit rounded bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">KELUAR</span> : null}
-                                {k.status_akademik === 'NONAKTIF' ? <span className="inline-block w-fit rounded bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">NONAKTIF</span> : null}
                                 {k.is_cuti ? <span className="inline-block w-fit rounded bg-yellow-400 px-2 py-0.5 text-[10px] font-bold text-black">CUTI</span> : null}
                                 {k.keterangan && k.keterangan !== '-' && String(k.keterangan) !== '0' ? <span className="truncate block" title={k.keterangan}>{k.keterangan}</span> : <span className="text-gray-400">-</span>}
                               </div>
@@ -1339,7 +1338,23 @@ export default function DataKandidat() {
                                     <div className="my-1 border-t border-slate-100" />
                                     <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Status Kandidat</p>
                                     {['Calon Kandidat', 'Kandidat Aktif', 'Mengundurkan Diri', 'Lulus Pendidikan'].map((st) => (
-                                      <button key={st} onClick={() => { handleUpdateStatusKandidat(k.id, st); setOpenActionId(null) }}
+                                      <button key={st} onClick={() => {
+                                        setOpenActionId(null)
+                                        Swal.fire({
+                                          title: `Ubah Status ke "${st}"?`,
+                                          text: `${k.nama} akan diubah statusnya menjadi ${st}.`,
+                                          icon: 'question',
+                                          showCancelButton: true,
+                                          confirmButtonColor: '#0E6187',
+                                          cancelButtonColor: '#64748b',
+                                          confirmButtonText: 'Ya, Ubah!',
+                                          cancelButtonText: 'Batal',
+                                        }).then((result) => {
+                                          if (result.isConfirmed) {
+                                            handleUpdateStatusKandidat(k.id, st)
+                                          }
+                                        })
+                                      }}
                                         disabled={updatingStatusKandidat === k.id || k.status_kandidat === st}
                                         className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-40">
                                         <span className={`h-2 w-2 rounded-full ${st === 'Calon Kandidat' ? 'bg-blue-500' : st === 'Kandidat Aktif' ? 'bg-emerald-500' : st === 'Mengundurkan Diri' ? 'bg-red-500' : 'bg-purple-500'}`} />
@@ -1349,7 +1364,24 @@ export default function DataKandidat() {
                                     ))}
                                     <div className="my-1 border-t border-slate-100" />
                                     <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Lainnya</p>
-                                    <button onClick={() => { handleToggleStatus(k.id); setOpenActionId(null) }}
+                                    <button onClick={() => {
+                                        setOpenActionId(null)
+                                        const isNonaktif = k.status_akademik === 'NONAKTIF'
+                                        Swal.fire({
+                                          title: isNonaktif ? 'Aktifkan Kandidat?' : 'Nonaktifkan Kandidat?',
+                                          text: isNonaktif ? `${k.nama} akan diaktifkan kembali.` : `${k.nama} akan dinonaktifkan.`,
+                                          icon: 'warning',
+                                          showCancelButton: true,
+                                          confirmButtonColor: isNonaktif ? '#0E6187' : '#dc2626',
+                                          cancelButtonColor: '#64748b',
+                                          confirmButtonText: isNonaktif ? 'Ya, Aktifkan!' : 'Ya, Nonaktifkan!',
+                                          cancelButtonText: 'Batal',
+                                        }).then((result) => {
+                                          if (result.isConfirmed) {
+                                            handleToggleStatus(k.id)
+                                          }
+                                        })
+                                      }}
                                       disabled={togglingId === k.id}
                                       className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50">
                                       {k.status_akademik === 'NONAKTIF'
@@ -1357,7 +1389,23 @@ export default function DataKandidat() {
                                         : <PowerOff size={14} className="text-amber-400" />}
                                       <span>{k.status_akademik === 'NONAKTIF' ? 'Aktifkan' : 'Nonaktifkan'}</span>
                                     </button>
-                                    <button onClick={() => { handleToggleCuti(k.id); setOpenActionId(null) }}
+                                    <button onClick={() => {
+                                        setOpenActionId(null)
+                                        Swal.fire({
+                                          title: k.is_cuti ? 'Aktifkan dari Cuti?' : 'Cuti Kandidat?',
+                                          text: k.is_cuti ? `${k.nama} akan diaktifkan dari cuti.` : `${k.nama} akan diatur cuti.`,
+                                          icon: 'question',
+                                          showCancelButton: true,
+                                          confirmButtonColor: '#0E6187',
+                                          cancelButtonColor: '#64748b',
+                                          confirmButtonText: 'Ya!',
+                                          cancelButtonText: 'Batal',
+                                        }).then((result) => {
+                                          if (result.isConfirmed) {
+                                            handleToggleCuti(k.id)
+                                          }
+                                        })
+                                      }}
                                       disabled={togglingCutiId === k.id}
                                       className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50">
                                       {k.is_cuti
