@@ -283,22 +283,39 @@ export default function PembayaranSiswa() {
     }
   }
 
+  // Aggregate verified/pending amounts across parent + all children per group
+  const groupVerified = new Map<number, number>()
+  const groupPending = new Map<number, number>()
+  for (const i of parentAggregatedItems) {
+    const descendantIds = getAllChildIds(i.kategori_id)
+    const allIds = [i.kategori_id, ...descendantIds]
+    let tv = 0
+    let tp = 0
+    for (const id of allIds) {
+      tv += verifiedPerKategori.get(id) || 0
+      tp += pendingPerKategori.get(id) || 0
+    }
+    groupVerified.set(i.kategori_id, tv)
+    groupPending.set(i.kategori_id, tp)
+  }
+
   const paidKategoriIds = parentAggregatedItems.filter(i => {
     if (i.biaya <= 0) return false
-    const verified = verifiedPerKategori.get(i.kategori_id) || 0
+    const verified = groupVerified.get(i.kategori_id) || 0
     return verified >= i.biaya
   }).map(i => i.kategori_id)
   const partialKategoriIds = parentAggregatedItems.filter(i => {
-    const verified = verifiedPerKategori.get(i.kategori_id) || 0
-    const pending = pendingPerKategori.get(i.kategori_id) || 0
+    const verified = groupVerified.get(i.kategori_id) || 0
+    const pending = groupPending.get(i.kategori_id) || 0
     return (verified > 0 && verified < i.biaya) || (verified === 0 && pending > 0 && pending < i.biaya)
   }).map(i => i.kategori_id)
 
   const pendingKategoriIds = new Set<number>()
-  if (riwayat?.length) {
-    for (const r of riwayat) {
-      if ((r.status === 'pending' || r.status === 'processing') && r.kategori_id && !paidKategoriIds.includes(r.kategori_id)) {
-        pendingKategoriIds.add(r.kategori_id)
+  for (const i of parentAggregatedItems) {
+    if (!paidKategoriIds.includes(i.kategori_id)) {
+      const pending = groupPending.get(i.kategori_id) || 0
+      if (pending > 0) {
+        pendingKategoriIds.add(i.kategori_id)
       }
     }
   }
@@ -613,18 +630,38 @@ export default function PembayaranSiswa() {
                   )}
 
                   <form onSubmit={handleBayar} className="space-y-4">
-                    <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                    <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-500">Program</span>
                         <span className="font-semibold text-gray-900">{pendaftar.product?.nama}</span>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Total Dibayar</span>
-                        <span className="font-semibold text-gray-900">Rp {totalDibayar.toLocaleString('id-ID')}</span>
+                      <div className="border-t border-gray-200 pt-3">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Rincian Tunggakan Per Kategori</p>
+                        <div className="space-y-2">
+                          {parentAggregatedItems.filter(i => i.biaya > 0 && i.dibayar < i.biaya).map((item, idx) => {
+                            const sisa = item.biaya - item.dibayar
+                            return (
+                              <div key={idx} className="bg-white rounded-lg border border-gray-200 p-3">
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <span className="text-sm font-semibold text-gray-900">{item.nama}</span>
+                                  <span className="text-xs font-bold text-red-600">Sisa Rp {sisa.toLocaleString('id-ID')}</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-xs">
+                                  <span className="text-gray-500">Biaya: Rp {item.biaya.toLocaleString('id-ID')}</span>
+                                  <span className="text-gray-300">|</span>
+                                  <span className="text-emerald-600">Dibayar: Rp {item.dibayar.toLocaleString('id-ID')}</span>
+                                </div>
+                                <div className="mt-1.5 w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                                  <div className="bg-emerald-500 h-full rounded-full transition-all" style={{ width: `${Math.min(100, (item.dibayar / item.biaya) * 100)}%` }} />
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600 font-semibold">Tunggakan</span>
-                        <span className="font-bold text-gray-800">Rp {tunggakan.toLocaleString('id-ID')}</span>
+                      <div className="border-t border-gray-200 pt-3 flex justify-between items-center">
+                        <span className="text-sm font-semibold text-gray-600">Total Tunggakan</span>
+                        <span className="text-base font-bold text-gray-900">Rp {tunggakan.toLocaleString('id-ID')}</span>
                       </div>
                     </div>
 
