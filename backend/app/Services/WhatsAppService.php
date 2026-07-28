@@ -28,6 +28,11 @@ class WhatsAppService
             return false;
         }
 
+        if (!$this->apiKey || !$this->apiUrl) {
+            Log::warning('WhatsAppService: API key atau URL tidak dikonfigurasi.');
+            return false;
+        }
+
         $payload = [
             'messageType' => 'text',
             'to' => $to,
@@ -66,6 +71,11 @@ class WhatsAppService
 
         if (!$to) {
             Log::warning('Nomor HP tidak valid untuk WhatsApp media: ' . $to);
+            return false;
+        }
+
+        if (!$this->apiKey || !$this->apiUrl) {
+            Log::warning('WhatsAppService: API key atau URL tidak dikonfigurasi.');
             return false;
         }
 

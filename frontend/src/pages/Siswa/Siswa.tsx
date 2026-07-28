@@ -540,7 +540,7 @@ export default function SiswaPage() {
                     {s.user_id ? (
                       <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-medium text-emerald-700"><Check size={10} /> Ada</span>
                     ) : (
-                      <button onClick={() => setAkunForm({ siswa_id: s.id, nama: s.nama, email: "", password: "siswa123" }) || setShowModalAkun(true)} className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[9px] font-medium text-slate-600 transition hover:bg-sky-50 hover:text-sky-700">
+                      <button onClick={() => { setAkunForm({ siswa_id: s.id, nama: s.nama, email: "", password: "siswa123" }); setShowModalAkun(true); }} className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[9px] font-medium text-slate-600 transition hover:bg-sky-50 hover:text-sky-700">
                         <X size={10} className="inline mr-0.5" /> Buat Akun
                       </button>
                     )}

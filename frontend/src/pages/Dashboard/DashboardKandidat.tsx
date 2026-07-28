@@ -270,10 +270,10 @@ export default function DashboardKandidat() {
   }
 
   const stats = [
-    { label: 'Total Kandidat', value: kandidatStats?.totalKandidat ?? 0, icon: Users, color: 'bg-blue-500' },
-    { label: 'Pendaftar Baru (Bulan Ini)', value: pendaftarBaruBulanIni.length, icon: FileText, color: 'bg-orange-500' },
-    { label: 'Pembayaran Masuk', value: `Rp ${(totalPembayaranBulanIni).toLocaleString('id-ID')}`, icon: DollarSign, color: 'bg-green-500' },
-    { label: 'Affiliate Aktif', value: affiliateAktif.length, icon: Handshake, color: 'bg-purple-500' },
+    { label: 'Total Kandidat', value: kandidatStats?.totalKandidat ?? 0, icon: Users, color: 'bg-slate-800' },
+    { label: 'Pendaftar Baru (Bulan Ini)', value: pendaftarBaruBulanIni.length, icon: FileText, color: 'bg-amber-500' },
+    { label: 'Pembayaran Masuk', value: `Rp ${(totalPembayaranBulanIni).toLocaleString('id-ID')}`, icon: DollarSign, color: 'bg-emerald-500' },
+    { label: 'Affiliate Aktif', value: affiliateAktif.length, icon: Handshake, color: 'bg-violet-500' },
   ]
 
   const statusBadge = (status: string) => {
@@ -300,14 +300,14 @@ export default function DashboardKandidat() {
   return (
     <div className="px-3 sm:px-6 py-3 sm:py-4">
       {/* Header */}
-      <div className="mb-4">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white">
-            <FileText size={24} />
+      <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187]">
+            <FileText size={20} className="text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard Kandidat</h1>
-            <p className="text-sm text-gray-500">Kelola kandidat, pendaftaran, pembayaran, dan affiliate</p>
+            <h1 className="text-lg font-semibold text-slate-800">Dashboard Kandidat</h1>
+            <p className="text-sm text-slate-500">Kelola kandidat, pendaftaran, pembayaran, dan affiliate</p>
           </div>
         </div>
       </div>
@@ -317,18 +317,15 @@ export default function DashboardKandidat() {
         {stats.map((stat, idx) => {
           const Icon = stat.icon
           return (
-            <div
-              key={idx}
-              className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition"
-            >
+            <div key={idx} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-semibold text-gray-600">{stat.label}</span>
-                <div className={`${stat.color} p-2.5 rounded-lg`}>
-                  <Icon size={16} className="text-white" />
+                <span className="text-xs font-semibold text-slate-500">{stat.label}</span>
+                <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${stat.color}`}>
+                  <Icon size={15} className="text-white" />
                 </div>
               </div>
-              <div className="text-3xl font-bold text-gray-900 mb-1 truncate">{stat.value}</div>
-              <p className="text-xs text-gray-400">Tahun 2026</p>
+              <div className="text-2xl font-bold text-slate-800 truncate">{stat.value}</div>
+              <p className="mt-0.5 text-xs text-slate-400">Tahun 2026</p>
             </div>
           )
         })}
@@ -336,16 +333,14 @@ export default function DashboardKandidat() {
 
       {/* Chart Section */}
       <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0E6187]/5">
-                <BarChart3 size={18} className="text-[#0E6187]" />
-              </div>
-              <div>
-                <h2 className="text-sm font-bold text-gray-800">Grafik Pendaftaran</h2>
-                <p className="text-xs text-gray-400">Tren pendaftaran 6 bulan terakhir</p>
-              </div>
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0E6187]/5">
+              <BarChart3 size={18} className="text-[#0E6187]" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-slate-800">Grafik Pendaftaran</h2>
+              <p className="text-xs text-slate-400">Tren pendaftaran 6 bulan terakhir</p>
             </div>
           </div>
           <div className="h-72 sm:h-80">
@@ -353,24 +348,21 @@ export default function DashboardKandidat() {
           </div>
         </div>
 
-        {/* Program Terlaris */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10">
-                <TrendingUp size={18} className="text-emerald-600" />
-              </div>
-              <div>
-                <h2 className="text-sm font-bold text-gray-800">Program Terlaris</h2>
-                <p className="text-xs text-gray-400">Jumlah pendaftar per program</p>
-              </div>
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10">
+              <TrendingUp size={18} className="text-emerald-600" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-slate-800">Program Terlaris</h2>
+              <p className="text-xs text-slate-400">Jumlah pendaftar per program</p>
             </div>
           </div>
           <div className="h-72 sm:h-80">
             {programChartData.labels.length > 0 ? (
               <Bar data={programChartData} options={programChartOptions} />
             ) : (
-              <div className="flex h-full items-center justify-center text-sm text-gray-400">Belum ada data</div>
+              <div className="flex h-full items-center justify-center text-sm text-slate-400">Belum ada data</div>
             )}
           </div>
         </div>
@@ -381,13 +373,13 @@ export default function DashboardKandidat() {
         {breakdownStats.map((s, i) => {
           const Icon = s.icon
           return (
-            <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex items-center gap-4">
+            <div key={i} className="flex items-center gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
               <div className={`flex h-11 w-11 items-center justify-center rounded-lg ${s.bg} shrink-0`}>
                 <Icon size={20} className={s.color} />
               </div>
               <div>
-                <p className="text-xs text-gray-500">{s.label}</p>
-                <p className="text-xl font-bold text-gray-900">{s.value}</p>
+                <p className="text-xs text-slate-500">{s.label}</p>
+                <p className="text-xl font-bold text-slate-800">{s.value}</p>
               </div>
             </div>
           )
@@ -397,22 +389,22 @@ export default function DashboardKandidat() {
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Pendaftaran Terbaru */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Pendaftaran Terbaru</h2>
-            <Link to="/pendaftar" className="text-xs text-blue-600 font-semibold hover:text-blue-700">
+            <h2 className="text-sm font-semibold text-slate-800">Pendaftaran Terbaru</h2>
+            <Link to="/pendaftar" className="text-xs font-semibold text-[#0E6187] hover:underline">
               Lihat Semua →
             </Link>
           </div>
           <div className="space-y-3">
             {pendaftarTerbaru.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-6">Belum ada pendaftaran</p>
+              <p className="py-6 text-center text-sm text-slate-400">Belum ada pendaftaran</p>
             ) : (
               pendaftarTerbaru.map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={item.id} className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
                   <div>
-                    <p className="font-medium text-gray-900">{item.nama}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-sm font-medium text-slate-800">{item.nama}</p>
+                    <p className="text-xs text-slate-500">
                       {new Date(item.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </p>
                   </div>
@@ -424,16 +416,16 @@ export default function DashboardKandidat() {
         </div>
 
         {/* Tagihan */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Tagihan Terbaru</h2>
-            <Link to="/tagihan" className="text-xs text-blue-600 font-semibold hover:text-blue-700">
+            <h2 className="text-sm font-semibold text-slate-800">Tagihan Terbaru</h2>
+            <Link to="/tagihan" className="text-xs font-semibold text-[#0E6187] hover:underline">
               Lihat Semua →
             </Link>
           </div>
           <div className="space-y-3">
             {tagihanData.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-6">Belum ada tagihan</p>
+              <p className="py-6 text-center text-sm text-slate-400">Belum ada tagihan</p>
             ) : (
               tagihanData.map((item) => {
                 const harga = Number(item.product?.harga || 0)
@@ -442,10 +434,10 @@ export default function DashboardKandidat() {
                 const dibayar = Number(item.nominal || 0)
                 const sisa = Math.max(0, tagihan - dibayar)
                 return (
-                  <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div key={item.id} className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
                     <div>
-                      <p className="font-medium text-gray-900">{item.nama}</p>
-                      <p className="text-sm font-semibold text-gray-800">
+                      <p className="text-sm font-medium text-slate-800">{item.nama}</p>
+                      <p className="text-xs font-semibold text-slate-700">
                         {sisa > 0 ? `Rp ${sisa.toLocaleString('id-ID')}` : 'Lunas'}
                       </p>
                     </div>
@@ -458,59 +450,59 @@ export default function DashboardKandidat() {
         </div>
 
         {/* Pembayaran Masuk */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Pembayaran Masuk</h2>
-            <Link to="/pembayaran" className="text-xs text-blue-600 font-semibold hover:text-blue-700">
+            <h2 className="text-sm font-semibold text-slate-800">Pembayaran Masuk</h2>
+            <Link to="/pembayaran" className="text-xs font-semibold text-[#0E6187] hover:underline">
               Lihat Semua →
             </Link>
           </div>
           <div className="space-y-2">
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-semibold text-gray-700">Bulan Ini</span>
-                <span className="text-lg font-bold text-emerald-600">
+            <div className="rounded-lg bg-slate-50 p-3">
+              <div className="mb-1 flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-600">Bulan Ini</span>
+                <span className="text-base font-bold text-emerald-600">
                   Rp {totalPembayaranBulanIni.toLocaleString('id-ID')}
                 </span>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="mt-1 text-xs text-slate-500">
                 {totalPembayaranBulanLalu > 0
                   ? `${pctChange >= 0 ? '+' : ''}${pctChange}% dari bulan sebelumnya`
                   : 'Belum ada data bulan lalu'}
               </p>
             </div>
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-semibold text-gray-700">Total Semua</span>
-                <span className="text-lg font-bold text-blue-600">
+            <div className="rounded-lg bg-slate-50 p-3">
+              <div className="mb-1 flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-600">Total Semua</span>
+                <span className="text-base font-bold text-[#0E6187]">
                   Rp {pendaftar.filter(p => p.status_pembayaran === 'verified').reduce((s, p) => s + Number(p.nominal || 0), 0).toLocaleString('id-ID')}
                 </span>
               </div>
-              <p className="text-xs text-gray-500 mt-1">{pendaftar.filter(p => p.status_pembayaran === 'verified').length} transaksi</p>
+              <p className="mt-1 text-xs text-slate-500">{pendaftar.filter(p => p.status_pembayaran === 'verified').length} transaksi</p>
             </div>
           </div>
         </div>
 
         {/* Affiliate Aktif */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Affiliate Aktif</h2>
-            <Link to="/data-affiliate" className="text-xs text-blue-600 font-semibold hover:text-blue-700">
+            <h2 className="text-sm font-semibold text-slate-800">Affiliate Aktif</h2>
+            <Link to="/data-affiliate" className="text-xs font-semibold text-[#0E6187] hover:underline">
               Lihat Semua →
             </Link>
           </div>
           <div className="space-y-3">
             {affiliateAktif.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-6">Belum ada affiliate</p>
+              <p className="py-6 text-center text-sm text-slate-400">Belum ada affiliate</p>
             ) : (
               affiliateAktif.slice(0, 5).map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={item.id} className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
                   <div>
-                    <p className="font-medium text-gray-900">{item.affiliate?.name || '-'}</p>
-                    <p className="text-xs text-gray-500">{item.product?.nama || '-'}</p>
+                    <p className="text-sm font-medium text-slate-800">{item.affiliate?.name || '-'}</p>
+                    <p className="text-xs text-slate-500">{item.product?.nama || '-'}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-gray-900">{item.pendaftar_count} daftar</p>
+                    <p className="text-sm font-bold text-slate-800">{item.pendaftar_count} daftar</p>
                     <span className="text-xs font-semibold text-emerald-600">Aktif</span>
                   </div>
                 </div>
@@ -522,21 +514,21 @@ export default function DashboardKandidat() {
 
       {/* Summary */}
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-          <p className="text-sm text-gray-500">Total Batch</p>
-          <p className="text-2xl font-bold text-gray-900">{kandidatStats?.totalBatch ?? 0}</p>
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs text-slate-500">Total Batch</p>
+          <p className="text-2xl font-bold text-slate-800">{kandidatStats?.totalBatch ?? 0}</p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-          <p className="text-sm text-gray-500">Total Kandidat</p>
-          <p className="text-2xl font-bold text-gray-900">{kandidatStats?.totalKandidat ?? 0}</p>
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs text-slate-500">Total Kandidat</p>
+          <p className="text-2xl font-bold text-slate-800">{kandidatStats?.totalKandidat ?? 0}</p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-          <p className="text-sm text-gray-500">Kandidat Aktif</p>
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs text-slate-500">Kandidat Aktif</p>
           <p className="text-2xl font-bold text-emerald-600">{kandidatStats?.kandidatAktif ?? 0}</p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-          <p className="text-sm text-gray-500">Pembayaran Terverifikasi</p>
-          <p className="text-2xl font-bold text-blue-600">{pendaftar.filter(p => p.status_pembayaran === 'verified').length}</p>
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs text-slate-500">Pembayaran Terverifikasi</p>
+          <p className="text-2xl font-bold text-[#0E6187]">{pendaftar.filter(p => p.status_pembayaran === 'verified').length}</p>
         </div>
       </div>
     </div>

@@ -33,6 +33,7 @@ export default function DataKehadiranPage() {
   const [filterCabang, setFilterCabang] = useState('')
   const [filterDivisi, setFilterDivisi] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Absensi | null>(null)
   const [showStatusModal, setShowStatusModal] = useState(false)
   const [newStatus, setNewStatus] = useState('')
@@ -45,6 +46,7 @@ export default function DataKehadiranPage() {
       if (filterCabang) params.cabang_id = filterCabang
       if (filterDivisi) params.divisi_id = filterDivisi
       if (filterStatus) params.status = filterStatus
+      if (search) params.search = search
       const res = await kehadiranApi.list(params)
       setData(res.data.data)
       setListCabang(res.data.list_cabang || [])
@@ -54,7 +56,7 @@ export default function DataKehadiranPage() {
     } finally {
       setLoading(false)
     }
-  }, [startDate, endDate, filterCabang, filterDivisi, filterStatus])
+  }, [startDate, endDate, filterCabang, filterDivisi, filterStatus, search])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -67,6 +69,7 @@ export default function DataKehadiranPage() {
     setFilterCabang('')
     setFilterDivisi('')
     setFilterStatus('')
+    setSearch('')
   }
 
   const openStatusModal = (item: Absensi) => {
@@ -167,6 +170,12 @@ export default function DataKehadiranPage() {
             <option value="TIDAK ABSEN PULANG">Tidak Absen Pulang</option>
             <option value="LIBUR">Libur</option>
           </select>
+          <div className="relative flex-1 min-w-[200px]">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+              placeholder="Cari nama atau NIP..."
+              className="w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+          </div>
           <button onClick={() => fetchData()}
             className="inline-flex items-center justify-center gap-2 rounded-md bg-slate-800 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-700">
             <Search size={16} />

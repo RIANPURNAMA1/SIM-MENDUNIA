@@ -82,7 +82,7 @@ class KehadiranController extends Controller
         return back()->with('success', 'Status absensi berhasil diperbarui');
     }
 
-    private function generateVirtualAbsensis($start_date, $end_date, $cabang_id, $divisi_id, $status)
+    private function generateVirtualAbsensis($start_date, $end_date, $cabang_id, $divisi_id, $status, $search = null)
     {
         $today = Carbon::today('Asia/Jakarta');
         $start = Carbon::parse($start_date);
@@ -93,6 +93,9 @@ class KehadiranController extends Controller
             ->whereDoesntHave('kelasSensei')
             ->when($cabang_id, fn($q) => $q->where('cabang_id', $cabang_id))
             ->when($divisi_id, fn($q) => $q->where('divisi_id', $divisi_id))
+            ->when($search, fn($q) => $q->where(function ($qq) use ($search) {
+                $qq->where('name', 'like', "%{$search}%")->orWhere('nip', 'like', "%{$search}%");
+            }))
             ->get();
 
         // Ambil absensi yang sudah ada di DB untuk range tanggal ini
@@ -185,12 +188,14 @@ class KehadiranController extends Controller
         $cabang_id  = $request->cabang_id;
         $divisi_id  = $request->divisi_id;
         $status     = $request->status;
+        $search     = $request->search;
 
         // Ambil absensi yang sudah ada di DB
         $absensis = Absensi::with(['user.shift', 'user.divisi', 'cabang', 'shift'])
             ->whereBetween('tanggal', [$start_date, $end_date])
             ->whereHas('user', fn($q) => $q->where('status', 'AKTIF'))
             ->whereDoesntHave('user.kelasSensei')
+            ->when($search, fn($q) => $q->whereHas('user', fn($qq) => $qq->where('name', 'like', "%{$search}%")->orWhere('nip', 'like', "%{$search}%")))
             ->when($status, fn($q) => $q->where('status', $status))
             ->when($cabang_id, fn($q) => $q->whereHas('user', fn($qq) => $qq->where('cabang_id', $cabang_id)))
             ->when($divisi_id, fn($q) => $q->whereHas('user', fn($qq) => $qq->where('divisi_id', $divisi_id)))
@@ -202,7 +207,7 @@ class KehadiranController extends Controller
         // Generate virtual ALPA/LIBUR untuk hari yang tidak ada absensi
         // Hanya jika tidak ada filter status spesifik (jika filter status dipilih, hormati)
         if (!$status) {
-            $virtual = $this->generateVirtualAbsensis($start_date, $end_date, $cabang_id, $divisi_id, $status);
+            $virtual = $this->generateVirtualAbsensis($start_date, $end_date, $cabang_id, $divisi_id, $status, $search);
 
             // Filter virtual records berdasarkan status yang diminta (jika ada)
             $filteredVirtual = $virtual;
