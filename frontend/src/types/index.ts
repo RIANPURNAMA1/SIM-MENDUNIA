@@ -264,7 +264,7 @@ export interface AbsensiKhusus {
 }
 
 export interface Absensi {
-  id: number
+  id: number | string
   user_id: number
   shift_id: number | null
   cabang_id: number | null

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { CalendarCheck, Search, RotateCcw, ChevronDown, AlertTriangle } from 'lucide-react'
-import { kehadiranApi } from '../../services/api'
+import { kehadiranApi, APP_URL } from '../../services/api'
 import type { Absensi, Divisi, Cabang } from '../../types'
 
 const MONTHS_IND = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
@@ -79,7 +79,7 @@ export default function DataKehadiranPage() {
     if (!selected || !newStatus) return
     setSubmitting(true)
     try {
-      const payload: Record<string, unknown> = { id: selected.id, status: newStatus }
+      const payload: Parameters<typeof kehadiranApi.updateStatus>[0] = { id: selected.id, status: newStatus }
       // Virtual records need extra fields to create the record
       if (typeof selected.id === 'string' && selected.id.startsWith('virtual_')) {
         payload.user_id = selected.user_id
@@ -206,6 +206,9 @@ export default function DataKehadiranPage() {
               <th className="border border-slate-200 px-4 py-3 font-medium">Cabang</th>
               <th className="border border-slate-200 px-4 py-3 font-medium text-center">Masuk</th>
               <th className="border border-slate-200 px-4 py-3 font-medium text-center">Pulang</th>
+              <th className="border border-slate-200 px-4 py-3 font-medium text-center">Foto Masuk</th>
+              <th className="border border-slate-200 px-4 py-3 font-medium text-center">Foto Pulang</th>
+              <th className="border border-slate-200 px-4 py-3 font-medium text-center">Lokasi</th>
               <th className="border border-slate-200 px-4 py-3 font-medium text-center">Status</th>
               <th className="border border-slate-200 px-4 py-3 font-medium text-center">Aksi</th>
             </tr>
@@ -214,14 +217,14 @@ export default function DataKehadiranPage() {
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i}>
-                  <td colSpan={8} className="border border-slate-200 px-4 py-3">
+                  <td colSpan={11} className="border border-slate-200 px-4 py-3">
                     <div className="h-3 w-full rounded bg-slate-200/70" />
                   </td>
                 </tr>
               ))
             ) : data.length === 0 ? (
               <tr>
-                <td colSpan={8} className="border border-slate-200 px-6 py-10 text-center">
+                <td colSpan={11} className="border border-slate-200 px-6 py-10 text-center">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
                     <CalendarCheck size={24} />
                   </div>
@@ -250,6 +253,29 @@ export default function DataKehadiranPage() {
                   <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600">{item.cabang?.nama_cabang || '-'}</td>
                   <td className="border border-slate-200 px-4 py-3 text-center text-xs font-medium">{formatTime(item.jam_masuk)}</td>
                   <td className="border border-slate-200 px-4 py-3 text-center text-xs font-medium">{formatTime(item.jam_keluar)}</td>
+                  <td className="border border-slate-200 px-4 py-3 text-center">
+                    {item.foto_masuk ? (
+                      <a href={`${APP_URL}/storage/${item.foto_masuk}`} target="_blank" rel="noopener noreferrer">
+                        <img src={`${APP_URL}/storage/${item.foto_masuk}`} alt="foto masuk" className="mx-auto h-8 w-8 rounded-lg object-cover border border-slate-200 hover:ring-2 hover:ring-blue-300" />
+                      </a>
+                    ) : <span className="text-[10px] text-slate-300">—</span>}
+                  </td>
+                  <td className="border border-slate-200 px-4 py-3 text-center">
+                    {item.foto_pulang ? (
+                      <a href={`${APP_URL}/storage/${item.foto_pulang}`} target="_blank" rel="noopener noreferrer">
+                        <img src={`${APP_URL}/storage/${item.foto_pulang}`} alt="foto pulang" className="mx-auto h-8 w-8 rounded-lg object-cover border border-slate-200 hover:ring-2 hover:ring-blue-300" />
+                      </a>
+                    ) : <span className="text-[10px] text-slate-300">—</span>}
+                  </td>
+                  <td className="border border-slate-200 px-4 py-3 text-center">
+                    {item.lat_masuk && item.long_masuk ? (
+                      <a href={`https://www.google.com/maps?q=${item.lat_masuk},${item.long_masuk}`} target="_blank" rel="noopener noreferrer"
+                        className="text-[10px] text-blue-600 hover:underline whitespace-nowrap"
+                        title={`Klik untuk buka Google Maps\nMasuk: ${item.lat_masuk}, ${item.long_masuk}${item.lat_pulang ? `\nPulang: ${item.lat_pulang}, ${item.long_pulang}` : ''}`}>
+                        📍 {item.cabang?.nama_cabang || 'Lihat Peta'}
+                      </a>
+                    ) : <span className="text-[10px] text-slate-300">—</span>}
+                  </td>
                   <td className="border border-slate-200 px-4 py-3 text-center">
                     <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusColors[item.status] || 'bg-slate-100 text-slate-600'}`}>
                       {item.status?.replace(/_/g, ' ')}
