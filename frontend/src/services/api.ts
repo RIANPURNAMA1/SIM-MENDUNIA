@@ -104,7 +104,7 @@ export const kehadiranKhususApi = {
 
 export const kehadiranApi = {
   list: (params?: Record<string, unknown>) => api.get('/kehadiran', { params }),
-  updateStatus: (data: { id: number; status: string }) => api.post('/kehadiran/update-status', data),
+  updateStatus: (data: { id: number | string; status: string; user_id?: number; tanggal?: string; shift_id?: number | null }) => api.post('/kehadiran/update-status', data),
 }
 
 export const userApi = {
