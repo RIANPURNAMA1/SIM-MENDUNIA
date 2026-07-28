@@ -10,6 +10,7 @@ interface Kandidat {
   nama: string
   batch_nama: string
   batch_id: number
+  batch_warna: string | null
   real_batch: string
   jenis_kelamin: string
   ttl: string
@@ -39,6 +40,7 @@ interface Kandidat {
 interface BatchOption {
   id: number
   nama: string
+  warna: string | null
 }
 
 type EditableField = keyof Pick<Kandidat,
@@ -64,6 +66,7 @@ export default function AdminCabangDataKandidat() {
   const [editForm, setEditForm] = useState<Partial<Kandidat>>({})
   const [saving, setSaving] = useState(false)
   const [detailKandidat, setDetailKandidat] = useState<Kandidat | null>(null)
+  const [batchModalKandidat, setBatchModalKandidat] = useState<Kandidat | null>(null)
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(25)
 
@@ -146,12 +149,16 @@ export default function AdminCabangDataKandidat() {
       await adminCabangApi.updateKandidat(kandidatId, { batch_id: id })
       setKandidatList(prev => prev.map(k =>
         k.id === kandidatId
-          ? { ...k, batch_id: id, batch_nama: batchOptions.find(b => b.id === id)?.nama || '-' }
+          ? { ...k, batch_id: id, batch_nama: batchOptions.find(b => b.id === id)?.nama || '-', batch_warna: (batchOptions.find(b => b.id === id)?.warna ?? null) as string | null }
           : k
       ))
     } catch {
       alert('Gagal mengubah batch')
     }
+  }
+
+  function openBatchModal(k: Kandidat) {
+    setBatchModalKandidat(k)
   }
 
   const filteredList = filterBatch
@@ -444,20 +451,13 @@ export default function AdminCabangDataKandidat() {
                             )}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
-                            <span className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-slate-100 to-slate-200 px-2.5 py-1 text-xs font-bold text-slate-700 whitespace-nowrap leading-none">
+                            <button onClick={() => openBatchModal(k)}
+                              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium whitespace-nowrap leading-none text-white transition hover:opacity-80"
+                              style={{ backgroundColor: k.batch_warna || '#3b82f6' }}
+                              title="Klik untuk ganti batch"
+                            >
                               {k.batch_nama || '-'}
-                              <select
-                                value={String(k.batch_id ?? '')}
-                                onChange={e => handlePindahBatch(k.id, e.target.value)}
-                                className="cursor-pointer rounded border border-slate-300 bg-white p-0.5 text-[9px] text-slate-400 outline-none transition hover:border-slate-400 hover:text-slate-600"
-                                title="Pindah Batch"
-                              >
-                                <option value="">-</option>
-                                {batchOptions.map(b => (
-                                  <option key={b.id} value={b.id}>{b.nama}</option>
-                                ))}
-                              </select>
-                            </span>
+                            </button>
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
                             {isEditing ? <CellEdit field="real_batch" /> : k.real_batch || <span className="text-slate-300">-</span>}
@@ -728,6 +728,38 @@ export default function AdminCabangDataKandidat() {
                 className="ml-auto rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
                 Tutup
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pindah Batch Modal */}
+      {batchModalKandidat && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setBatchModalKandidat(null)}>
+          <div className="w-full max-w-sm rounded-xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+              <h3 className="text-sm font-bold text-slate-900">Pindah Batch</h3>
+              <button onClick={() => setBatchModalKandidat(null)} className="rounded-lg p-1 hover:bg-slate-100 transition"><X size={16} className="text-slate-400" /></button>
+            </div>
+            <div className="px-5 py-4">
+              <p className="mb-4 text-xs text-slate-500">
+                Pilih batch baru untuk <span className="font-semibold text-slate-700">{batchModalKandidat.nama}</span>
+              </p>
+              <div className="space-y-1 max-h-60 overflow-y-auto">
+                <button onClick={() => { handlePindahBatch(batchModalKandidat.id, ''); setBatchModalKandidat(null) }}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-slate-500 hover:bg-slate-50 transition-colors">
+                  <span className="w-4 h-4 rounded-full border-2 border-slate-300" />
+                  -
+                </button>
+                {batchOptions.map(b => (
+                  <button key={b.id} onClick={() => { handlePindahBatch(batchModalKandidat.id, String(b.id)); setBatchModalKandidat(null) }}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                  >
+                    <span className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: b.warna || '#3b82f6' }} />
+                    {b.nama}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
