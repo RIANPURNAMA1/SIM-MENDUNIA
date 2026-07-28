@@ -406,23 +406,23 @@ export default function SiswaPage() {
       {/* Table */}
       <div className="relative overflow-x-auto rounded-lg border border-slate-200">
         <table className="w-full min-w-[700px] border-collapse text-left text-xs text-slate-700">
-          <thead className="bg-slate-50 text-[10px] text-slate-600 uppercase tracking-wide">
+          <thead className="bg-[#0e6187] text-white text-[10px] uppercase tracking-wide">
             <tr>
-              <th className="border border-slate-200 px-3 py-2.5 text-center w-10">
+              <th className="border border-slate-600 px-3 py-2.5 text-center w-10">
                 <input type="checkbox" checked={selectAll && data.length > 0} onChange={toggleSelectAll} className="rounded border-slate-300 text-slate-800 focus:ring-slate-500" />
               </th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold">Siswa</th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold">Batch</th>
-              <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold">Lv1</th>
-              <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold">Lv2</th>
-              <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold">Lv3</th>
-              <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold">Lv4</th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold">Shift</th>
-              <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold">L/P</th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold">No. HP</th>
-              <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold">Status</th>
-              <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold">Akun</th>
-              <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold w-24">Aksi</th>
+              <th className="border border-slate-600 px-3 py-2.5 font-semibold">Siswa</th>
+              <th className="border border-slate-600 px-3 py-2.5 font-semibold">Batch</th>
+              <th className="border border-slate-600 px-3 py-2.5 text-center font-semibold">Lv1</th>
+              <th className="border border-slate-600 px-3 py-2.5 text-center font-semibold">Lv2</th>
+              <th className="border border-slate-600 px-3 py-2.5 text-center font-semibold">Lv3</th>
+              <th className="border border-slate-600 px-3 py-2.5 text-center font-semibold">Lv4</th>
+              <th className="border border-slate-600 px-3 py-2.5 font-semibold">Shift</th>
+              <th className="border border-slate-600 px-3 py-2.5 text-center font-semibold">L/P</th>
+              <th className="border border-slate-600 px-3 py-2.5 font-semibold">No. HP</th>
+              <th className="border border-slate-600 px-3 py-2.5 text-center font-semibold">Status</th>
+              <th className="border border-slate-600 px-3 py-2.5 text-center font-semibold">Akun</th>
+              <th className="border border-slate-600 px-3 py-2.5 text-center font-semibold w-24">Aksi</th>
             </tr>
           </thead>
           <tbody>

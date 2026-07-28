@@ -41,6 +41,7 @@ interface Kandidat {
   tanggalDaftar: string
   user_id: number | null
   keterangan: string
+  password_plain: string | null
 }
 
 interface BatchOption {
@@ -840,34 +841,34 @@ export default function DataKandidat() {
             <div className="overflow-x-auto max-h-[calc(100vh-260px)] overflow-y-auto rounded-lg border border-slate-200">
               <table className="w-full min-w-[3200px] border-collapse text-left text-sm text-black">
                 <thead className="sticky top-0 z-20">
-                  <tr className="bg-gradient-to-r from-slate-50 to-slate-100">
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-black w-[40px]">No</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-black w-[170px]">NIK</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-black w-[160px]">No. Registrasi</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-black w-[200px]">Nama Kandidat</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-black w-[140px]">Batch</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-black w-[120px]">Real Batch</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-black w-[40px]">JK</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-black w-[220px]">Tempat, Tanggal Lahir</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-black w-[250px]">Alamat</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-black w-[140px]">Desa</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-black w-[140px]">Kecamatan</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-black w-[140px]">Kab./Kota</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-black w-[140px]">Provinsi</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-black w-[130px]">Pend. Terakhir</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-black w-[80px]">Tahun Lulus</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-black w-[50px]">TB</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-black w-[50px]">BB</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-black w-[60px]">Goldar</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-black w-[70px]">Uk. Baju</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-black w-[110px]">Status Nikah</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-black w-[220px]">E-mail</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-black w-[150px]">No. Tlp</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-black w-[180px]">Nama Orang Tua/Wali</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-black w-[150px]">No. Tlp Orang Tua</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-black w-[80px]">Status</th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-black w-[180px]">Ket.</th>
-                    <th scope="col" className="sticky right-0 z-30 border border-slate-200 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-black bg-gradient-to-l from-slate-50 to-slate-100 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] w-[80px]">Aksi</th>
+                  <tr className="bg-[#0e6187]">
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-white w-[40px]">No</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[170px]">NIK</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[160px]">No. Registrasi</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[200px]">Nama Kandidat</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[140px]">Batch</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[120px]">Real Batch</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-white w-[40px]">JK</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[220px]">Tempat, Tanggal Lahir</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[250px]">Alamat</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[140px]">Desa</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[140px]">Kecamatan</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[140px]">Kab./Kota</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[140px]">Provinsi</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[130px]">Pend. Terakhir</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-white w-[80px]">Tahun Lulus</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-white w-[50px]">TB</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-white w-[50px]">BB</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-white w-[60px]">Goldar</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-white w-[70px]">Uk. Baju</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[110px]">Status Nikah</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[220px]">E-mail</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[150px]">No. Tlp</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[180px]">Nama Orang Tua/Wali</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[150px]">No. Tlp Orang Tua</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-white w-[80px]">Status</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white w-[180px]">Ket.</th>
+                    <th scope="col" className="sticky right-0 z-30 border border-slate-600 px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-white bg-[#0e6187] shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] w-[80px]">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -879,7 +880,7 @@ export default function DataKandidat() {
                       const batchBg = k.batch_warna ? hexToRgba(k.batch_warna, 0.08) : undefined
                       const batchBadgeBg = k.batch_warna || '#3b82f6'
                       return (
-                        <tr key={k.id} className={`${isEditing ? 'bg-blue-50/50' : k.level_status_keluar ? 'bg-red-50/70' : k.is_cuti ? 'bg-amber-50/50' : k.status_akademik === 'NONAKTIF' ? 'bg-red-50/50' : ''} transition hover:brightness-[0.97] group`} style={(!isEditing && !k.level_status_keluar && !k.is_cuti && k.status_akademik !== 'NONAKTIF' && batchBg) ? { backgroundColor: batchBg } : undefined}>
+                        <tr key={k.id} className={`${isEditing ? 'bg-blue-50/50' : k.level_status_keluar ? 'bg-red-200' : k.is_cuti ? 'bg-yellow-300' : k.status_akademik === 'NONAKTIF' ? 'bg-red-200' : ''} transition hover:brightness-[0.97] group`} style={(!isEditing && !k.level_status_keluar && !k.is_cuti && k.status_akademik !== 'NONAKTIF' && batchBg) ? { backgroundColor: batchBg } : undefined}>
                           <td className="border border-slate-200 px-4 py-3 text-center text-xs font-semibold text-black">{rowNum}</td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-mono font-semibold text-black whitespace-nowrap">
                             {isEditing ? <CellEdit field="nik" /> : k.nik || <span className="text-gray-400">-</span>}
@@ -996,9 +997,16 @@ export default function DataKandidat() {
                                ) : null}
                              </div>
                            </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-semibold text-black max-w-[180px]">
-                            {isEditing ? <CellEdit field="keterangan" /> : <span className="truncate block" title={k.keterangan}>{k.keterangan || <span className="text-gray-400">-</span>}</span>}
-                          </td>
+                           <td className="border border-slate-200 px-4 py-3 text-xs font-semibold text-black max-w-[180px]">
+                            {isEditing ? <CellEdit field="keterangan" /> : (
+                              <div className="flex flex-col gap-1">
+                                {k.level_status_keluar ? <span className="inline-block w-fit rounded bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">KELUAR</span> : null}
+                                {k.status_akademik === 'NONAKTIF' ? <span className="inline-block w-fit rounded bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">NONAKTIF</span> : null}
+                                {k.is_cuti ? <span className="inline-block w-fit rounded bg-yellow-400 px-2 py-0.5 text-[10px] font-bold text-black">CUTI</span> : null}
+                                {k.keterangan && k.keterangan !== '-' && String(k.keterangan) !== '0' ? <span className="truncate block" title={k.keterangan}>{k.keterangan}</span> : <span className="text-gray-400">-</span>}
+                              </div>
+                            )}
+                           </td>
                           <td className={`sticky right-0 z-10 border border-slate-200 px-3 py-3 text-center shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] ${isEditing ? 'bg-blue-50/50' : 'bg-white'}`}>
                             {isEditing ? (
                               <div className="flex justify-center gap-1">
@@ -1196,6 +1204,39 @@ export default function DataKandidat() {
 
             {/* Body — 3 Column Grid */}
             <div className="px-6 py-5 max-h-[70vh] overflow-y-auto">
+              {/* Data Akun Kandidat */}
+              {detailKandidat.password_plain ? (
+                <div className="mb-5 rounded-lg border border-amber-300 bg-amber-50 p-4">
+                  <h3 className="text-xs font-bold uppercase tracking-wide text-amber-700 mb-2">Data Akun Kandidat (Email + Password untuk login)</h3>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+                    <div className="flex gap-2">
+                      <span className="font-semibold text-slate-700">No. Reg</span>
+                      <span className="text-slate-500">:</span>
+                      <span className="font-mono text-slate-900">{detailKandidat.no_registrasi}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="font-semibold text-slate-700">Password</span>
+                      <span className="text-slate-500">:</span>
+                      <span className="font-mono font-bold text-red-600">{detailKandidat.password_plain}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="font-semibold text-slate-700">Nama</span>
+                      <span className="text-slate-500">:</span>
+                      <span className="text-slate-900">{detailKandidat.nama}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="font-semibold text-slate-700">Email</span>
+                      <span className="text-slate-500">:</span>
+                      <span className="text-slate-900">{detailKandidat.email}</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="mb-5 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">Data Akun Kandidat</h3>
+                  <p className="text-xs text-slate-400">Password tidak tersedia (akun dibuat sebelum fitur ini diaktifkan)</p>
+                </div>
+              )}
               <div className="grid grid-cols-3 gap-x-8 gap-y-3">
                 <InfoItem label="NIK" value={detailKandidat.nik} />
                 <InfoItem label="No. Registrasi" value={detailKandidat.no_registrasi} mono />

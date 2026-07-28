@@ -1466,6 +1466,7 @@ class PendaftaranController extends Controller
                 'level_status_keluar' => $siswa && $siswa->level_status
                     ? collect($siswa->level_status)->contains('Keluar')
                     : false,
+                'password_plain' => $user?->password_plain ?? null,
             ];
         };
 
@@ -1713,6 +1714,7 @@ class PendaftaranController extends Controller
                 'name' => $data['nama'],
                 'email' => $data['email'],
                 'password' => Hash::make($password),
+                'password_plain' => $password,
                 'nik' => $data['nik'] ?? $data['email'],
                 'role' => 'KANDIDAT',
                 'status' => 'AKTIF',
@@ -1801,15 +1803,21 @@ class PendaftaranController extends Controller
 
     public function importKandidat(Request $request)
     {
-        $request->validate([
-            'batch_id' => 'required|integer|exists:batches,id',
-            'data' => 'required|array|min:1',
-            'data.*.nama' => 'required|string|max:255',
-            'data.*.email' => 'required|email',
-        ]);
+        $batchId = $request->input('batch_id');
+        $rows = $request->input('data');
 
-        $batchId = $request->batch_id;
-        $rows = $request->data;
+        if (!$batchId || !is_numeric($batchId)) {
+            return response()->json(['message' => 'Batch ID wajib diisi'], 422);
+        }
+        if (!is_array($rows) || count($rows) === 0) {
+            return response()->json(['message' => 'Data tidak boleh kosong'], 422);
+        }
+
+        $batchExists = \App\Models\Batch::where('id', $batchId)->exists();
+        if (!$batchExists) {
+            return response()->json(['message' => 'Batch tidak ditemukan'], 422);
+        }
+
         $success = 0;
         $failed = 0;
         $errors = [];
@@ -1830,7 +1838,12 @@ class PendaftaranController extends Controller
                     continue;
                 }
 
-                // Check duplicate email
+                if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+                    $failed++;
+                    $errors[] = ['row' => $idx + 1, 'message' => "Email '{$email}' format tidak valid"];
+                    continue;
+                }
+
                 if (User::where('email', $email)->exists() || Pendaftar::where('email', $email)->exists()) {
                     $failed++;
                     $errors[] = ['row' => $idx + 1, 'message' => "Email {$email} sudah terdaftar"];
@@ -1839,15 +1852,23 @@ class PendaftaranController extends Controller
 
                 $password = strtoupper(bin2hex(random_bytes(4)));
                 $nik = trim($row['nik'] ?? '');
+                $nik = preg_replace('/[^\d]/', '', $nik);
+                if (strlen($nik) > 16) $nik = substr($nik, 0, 16);
                 $telepon = trim($row['telepon'] ?? $row['no_hp'] ?? '');
+
+                $jk = strtoupper(trim($row['jenis_kelamin'] ?? ''));
+                if (!in_array($jk, ['L', 'P'])) $jk = null;
 
                 $noReg = "REG/{$today}/{$nextNum}";
                 $nextNum = str_pad(((int) $nextNum) + 1, 4, '0', STR_PAD_LEFT);
 
+                $hashedPassword = password_hash($password, PASSWORD_BCRYPT, ['cost' => 5]);
+
                 $user = User::create([
                     'name' => $nama,
                     'email' => $email,
-                    'password' => Hash::make($password),
+                    'password' => $hashedPassword,
+                    'password_plain' => $password,
                     'nik' => $nik ?: $email,
                     'role' => 'KANDIDAT',
                     'status' => 'AKTIF',
@@ -1855,14 +1876,14 @@ class PendaftaranController extends Controller
                     'pendidikan_terakhir' => $row['pendidikan_terakhir'] ?? null,
                     'tempat_lahir' => $row['tempat_lahir'] ?? null,
                     'tanggal_lahir' => $row['tanggal_lahir'] ?? null,
-                    'jenis_kelamin' => $row['jenis_kelamin'] ?? null,
+                    'jenis_kelamin' => $jk,
                     'alamat' => $row['alamat'] ?? null,
                 ]);
 
                 Pendaftar::create([
                     'nama' => $nama,
                     'email' => $email,
-                    'password' => Hash::make($password),
+                    'password' => $hashedPassword,
                     'telepon' => $telepon ?: null,
                     'alamat' => $row['alamat'] ?? null,
                     'batch_id' => $batchId,
@@ -1879,7 +1900,7 @@ class PendaftaranController extends Controller
                     'nama' => $nama,
                     'nik' => $nik ?: null,
                     'no_registrasi' => $noReg,
-                    'jenis_kelamin' => $row['jenis_kelamin'] ?? null,
+                    'jenis_kelamin' => $jk,
                     'tempat_lahir' => $row['tempat_lahir'] ?? null,
                     'tanggal_lahir' => $row['tanggal_lahir'] ?? null,
                     'alamat' => $row['alamat'] ?? null,

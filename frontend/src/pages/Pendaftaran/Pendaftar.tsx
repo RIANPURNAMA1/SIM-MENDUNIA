@@ -327,18 +327,18 @@ export default function Pendaftar() {
             <col className="w-[90px]" />
             <col className="w-[50px]" />
           </colgroup>
-          <thead className="text-sm text-black">
+          <thead className="bg-[#0e6187]">
             <tr>
-              <th scope="col" className="border border-slate-200 px-4 py-3 font-bold text-black">Nama</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 font-bold text-black">No. Reg</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 font-bold text-black">Tgl. Daftar</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 font-bold text-black">Program</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 font-bold text-black">Batch</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 font-bold text-black">Affiliate</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-bold text-black">Nominal</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-bold text-black">Diskon</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-bold text-black">Status</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-bold text-black">Aksi</th>
+              <th scope="col" className="border border-slate-600 px-4 py-3 font-bold text-white">Nama</th>
+              <th scope="col" className="border border-slate-600 px-4 py-3 font-bold text-white">No. Reg</th>
+              <th scope="col" className="border border-slate-600 px-4 py-3 font-bold text-white">Tgl. Daftar</th>
+              <th scope="col" className="border border-slate-600 px-4 py-3 font-bold text-white">Program</th>
+              <th scope="col" className="border border-slate-600 px-4 py-3 font-bold text-white">Batch</th>
+              <th scope="col" className="border border-slate-600 px-4 py-3 font-bold text-white">Affiliate</th>
+              <th scope="col" className="border border-slate-600 px-4 py-3 text-right font-bold text-white">Nominal</th>
+              <th scope="col" className="border border-slate-600 px-4 py-3 text-right font-bold text-white">Diskon</th>
+              <th scope="col" className="border border-slate-600 px-4 py-3 text-center font-bold text-white">Status</th>
+              <th scope="col" className="border border-slate-600 px-4 py-3 text-center font-bold text-white">Aksi</th>
             </tr>
           </thead>
           <tbody>

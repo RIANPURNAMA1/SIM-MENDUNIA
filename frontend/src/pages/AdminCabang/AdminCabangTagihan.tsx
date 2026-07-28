@@ -46,7 +46,7 @@ interface TagihanItem {
   status_pembayaran: string
   created_at: string
   product: { id: number; nama: string; harga: number; kategori_items?: { name: string; harga: number; komisi: number; children: any[] }[] } | null
-  batch: { id: number; nama_batch: string } | null
+  batch: { id: number; nama_batch: string; warna: string | null } | null
   detail?: DetailItem[]
 }
 
@@ -61,6 +61,7 @@ interface KategoriItem {
 interface BatchOption {
   id: number
   nama_batch: string
+  warna: string | null
 }
 
 interface ProductOption {
@@ -74,9 +75,10 @@ interface KategoriColumn {
   depth: number
 }
 
-interface ProgramGroup {
-  productId: number
-  productName: string
+interface BatchGroup {
+  batchId: number
+  batchName: string
+  batchWarna: string | null
   kategoris: KategoriInfo[]
   kategoriColumns: KategoriColumn[]
   items: TagihanItem[]
@@ -109,10 +111,10 @@ export default function AdminCabangTagihan() {
   const [rejectingId, setRejectingId] = useState<number | null>(null)
   const [confirmRejectId, setConfirmRejectId] = useState<number | null>(null)
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
-  const [collapsedPrograms, setCollapsedPrograms] = useState<Set<number>>(new Set())
-  const [programPages, setProgramPages] = useState<Record<number, number>>({})
+  const [collapsedBatches, setCollapsedBatches] = useState<Set<number>>(new Set())
+  const [batchPages, setBatchPages] = useState<Record<number, number>>({})
   const [uniqueCodeOp, setUniqueCodeOp] = useState<string>('add')
-  const programPerPage = 5
+  const batchPerPage = 5
 
   const pendingCount = Object.keys(pendingChanges).length
 
@@ -178,23 +180,24 @@ export default function AdminCabangTagihan() {
     })
   }, [data, search, filterStatus, filterBatch, filterProduct, filterDateFrom, filterDateTo, pendingPembayaran])
 
-  const programGroups = useMemo<ProgramGroup[]>(() => {
-    const groupMap = new Map<number, ProgramGroup>()
+  const batchGroups = useMemo<BatchGroup[]>(() => {
+    const groupMap = new Map<number, BatchGroup>()
     const order: number[] = []
 
     filtered.forEach(p => {
-      const pid = p.product?.id || 0
-      if (!groupMap.has(pid)) {
-        order.push(pid)
-        groupMap.set(pid, {
-          productId: pid,
-          productName: p.product?.nama || 'Tanpa Program',
+      const bid = p.batch?.id || 0
+      if (!groupMap.has(bid)) {
+        order.push(bid)
+        groupMap.set(bid, {
+          batchId: bid,
+          batchName: p.batch?.nama_batch || 'Tanpa Batch',
+          batchWarna: p.batch?.warna ?? null,
           kategoris: [],
           kategoriColumns: [],
           items: [],
         })
       }
-      groupMap.get(pid)!.items.push(p)
+      groupMap.get(bid)!.items.push(p)
     })
 
     groupMap.forEach((group) => {
@@ -205,30 +208,8 @@ export default function AdminCabangTagihan() {
         })
       })
 
-      const productData = products.find(pr => pr.id === group.productId)
-      const kategoriItems = productData?.kategori_items
-
       const columns: KategoriColumn[] = []
       const matchedIds = new Set<number>()
-
-      if (kategoriItems && kategoriItems.length > 0) {
-        const walk = (items: any[], depth: number) => {
-          for (const item of items) {
-            const name = (item.name || '').toLowerCase()
-            const kategori = kategoris.find(k =>
-              k.nama.toLowerCase() === name || k.kode.toLowerCase() === name
-            )
-            if (kategori && usedIds.has(kategori.id) && !matchedIds.has(kategori.id)) {
-              columns.push({ kategori, depth })
-              matchedIds.add(kategori.id)
-            }
-            if (item.children?.length) {
-              walk(item.children, depth + 1)
-            }
-          }
-        }
-        walk(kategoriItems, 0)
-      }
 
       for (const k of kategoris) {
         if (usedIds.has(k.id) && !matchedIds.has(k.id)) {
@@ -241,20 +222,20 @@ export default function AdminCabangTagihan() {
       group.kategoriColumns = columns
     })
 
-    const hasPending = (pid: number) => {
-      const group = groupMap.get(pid)
+    const hasPending = (bid: number) => {
+      const group = groupMap.get(bid)
       if (!group) return false
       return group.items.some(item =>
         pendingPembayaran.some((pp: any) => pp.pendaftar_id === item.id)
       )
     }
     return order.map(id => groupMap.get(id)!).sort((a, b) => {
-      const aPending = hasPending(a.productId) ? 0 : 1
-      const bPending = hasPending(b.productId) ? 0 : 1
+      const aPending = hasPending(a.batchId) ? 0 : 1
+      const bPending = hasPending(b.batchId) ? 0 : 1
       if (aPending !== bPending) return aPending - bPending
-      return a.productName.localeCompare(b.productName)
+      return a.batchName.localeCompare(b.batchName)
     })
-  }, [filtered, kategoris, products, pendingPembayaran])
+  }, [filtered, kategoris, pendingPembayaran])
 
   const stats = useMemo(() => {
     let total = 0
@@ -326,15 +307,6 @@ export default function AdminCabangTagihan() {
         {s.label}
       </span>
     )
-  }
-
-  const toggleProgram = (pid: number) => {
-    setCollapsedPrograms(prev => {
-      const next = new Set(prev)
-      if (next.has(pid)) next.delete(pid)
-      else next.add(pid)
-      return next
-    })
   }
 
   const handleSaveInline = async () => {
@@ -413,35 +385,42 @@ export default function AdminCabangTagihan() {
     }
   }
 
-  const renderProgramTable = (group: ProgramGroup) => {
-    const { productId, productName, kategoris: kats, kategoriColumns, items } = group
-    const isCollapsed = collapsedPrograms.has(productId)
+  const renderBatchTable = (group: BatchGroup) => {
+    const { batchId, batchName, kategoris: kats, kategoriColumns, items } = group
+    const isCollapsed = collapsedBatches.has(batchId)
     const groupTagihan = items.reduce((sum, p) => sum + calcRow(p).tagihan, 0)
     const groupDibayar = items.reduce((sum, p) => sum + calcRow(p).dibayar, 0)
     const groupSisa = Math.max(0, groupTagihan - groupDibayar)
     const hasHierarchy = kategoriColumns.some(c => c.depth > 0)
 
-    const currentPage = programPages[productId] || 1
-    const totalPages = Math.max(1, Math.ceil(items.length / programPerPage))
+    const currentPage = batchPages[batchId] || 1
+    const totalPages = Math.max(1, Math.ceil(items.length / batchPerPage))
     const safePage = Math.min(currentPage, totalPages)
-    const pagedItems = items.slice((safePage - 1) * programPerPage, safePage * programPerPage)
+    const pagedItems = items.slice((safePage - 1) * batchPerPage, safePage * batchPerPage)
 
     const setPage = (page: number) => {
-      setProgramPages(prev => ({ ...prev, [productId]: page }))
+      setBatchPages(prev => ({ ...prev, [batchId]: page }))
     }
 
     return (
-      <div key={productId} className="mb-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+      <div key={batchId} className="mb-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <button
-          onClick={() => toggleProgram(productId)}
+          onClick={() => setCollapsedBatches(prev => {
+            const next = new Set(prev)
+            if (next.has(batchId)) next.delete(batchId)
+            else next.add(batchId)
+            return next
+          })}
           className="w-full flex items-center justify-between px-4 py-3 bg-white hover:bg-slate-50 transition-colors"
         >
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0E6187]">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: group.batchWarna || '#0E6187' }}>
               <Receipt size={14} className="text-white" />
             </div>
             <div className="text-left">
-              <h3 className="text-sm font-bold text-slate-800">{productName}</h3>
+              <h3 className="text-sm font-bold text-slate-800">
+                <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold text-white" style={{ backgroundColor: group.batchWarna || '#0E6187' }}>{batchName}</span>
+              </h3>
               <p className="text-xs text-slate-500">{items.length} pendaftar</p>
             </div>
           </div>
@@ -461,7 +440,6 @@ export default function AdminCabangTagihan() {
               <thead className="text-sm text-slate-600 bg-slate-50">
                 <tr>
                   <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[220px]">Pendaftar</th>
-                  <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[100px]">Batch</th>
                   {kategoriColumns.map(col => {
                     const k = col.kategori
                     return (
@@ -509,7 +487,6 @@ export default function AdminCabangTagihan() {
                           </div>
                         </div>
                       </td>
-                      <td className="border border-slate-200 px-4 py-3 whitespace-nowrap text-sm text-slate-600">{p.batch?.nama_batch || '-'}</td>
                       {kategoriColumns.map(col => {
                         const k = col.kategori
                         const relevant = hasKategori(p, k.id)
@@ -615,8 +592,8 @@ export default function AdminCabangTagihan() {
               </tbody>
               <tfoot>
                 <tr className="bg-slate-50 font-semibold text-sm">
-                  <td className="border border-slate-200 px-4 py-3" colSpan={kategoriColumns.length + 2}>
-                    <span className="text-slate-500">Total {productName}</span>
+                  <td className="border border-slate-200 px-4 py-3" colSpan={kategoriColumns.length + 1}>
+                    <span className="text-slate-500">Total {batchName}</span>
                   </td>
                   <td className="border border-slate-200 px-4 py-3 text-right text-slate-800">Rp {fmt(groupTagihan)}</td>
                   <td className="border border-slate-200 px-4 py-3 text-right text-emerald-700">Rp {fmt(groupDibayar)}</td>
@@ -627,7 +604,7 @@ export default function AdminCabangTagihan() {
                 </tr>
               </tfoot>
             </table>
-            {items.length > programPerPage && (
+            {items.length > batchPerPage && (
               <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3">
                 <span className="text-sm text-slate-500">
                   Menampilkan {pagedItems.length} dari {items.length} pendaftar
@@ -760,7 +737,7 @@ export default function AdminCabangTagihan() {
             <option value="verified">Lunas</option>
           </select>
           <button
-            onClick={() => { setSearch(''); setFilterStatus(''); setFilterBatch(''); setFilterProduct(''); setFilterDateFrom(''); setFilterDateTo(''); setPendingChanges({}); setCollapsedPrograms(new Set()) }}
+            onClick={() => { setSearch(''); setFilterStatus(''); setFilterBatch(''); setFilterProduct(''); setFilterDateFrom(''); setFilterDateTo(''); setPendingChanges({}); setCollapsedBatches(new Set()) }}
             className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
           >
             <RotateCcw size={16} />
@@ -776,7 +753,7 @@ export default function AdminCabangTagihan() {
             <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
           </div>
         </div>
-      ) : programGroups.length === 0 ? (
+      ) : batchGroups.length === 0 ? (
         <div className="rounded-lg border border-slate-200 bg-white px-6 py-10 text-center shadow-sm">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
             <Receipt size={24} />
@@ -784,13 +761,13 @@ export default function AdminCabangTagihan() {
           <p className="mt-3 text-sm font-medium text-slate-600">Tidak ada tagihan ditemukan</p>
         </div>
       ) : (
-        programGroups.map(group => renderProgramTable(group))
+        batchGroups.map(group => renderBatchTable(group))
       )}
 
-      {!loading && programGroups.length > 0 && (
+      {!loading && batchGroups.length > 0 && (
         <div className="mt-2 flex items-center justify-between">
           <p className="text-sm text-slate-500">
-            {programGroups.length} program &middot; {filtered.length} pendaftar
+            {batchGroups.length} batch &middot; {filtered.length} pendaftar
           </p>
           <div className="flex items-center gap-3 text-[10px] text-slate-500">
             <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-600" /> Lunas</span>
