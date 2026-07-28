@@ -7,11 +7,11 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui: ['lucide-react', '@phosphor-icons/react'],
-          charts: ['chart.js', 'react-chartjs-2'],
-          utils: ['axios', 'xlsx', 'jspdf', 'html2canvas', 'leaflet'],
+        manualChunks(id) {
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom') || id.includes('node_modules/react-router')) return 'vendor'
+          if (id.includes('node_modules/lucide-react') || id.includes('node_modules/@phosphor-icons')) return 'ui'
+          if (id.includes('node_modules/chart.js') || id.includes('node_modules/react-chartjs')) return 'charts'
+          if (id.includes('node_modules/axios') || id.includes('node_modules/xlsx') || id.includes('node_modules/jspdf') || id.includes('node_modules/html2canvas') || id.includes('node_modules/leaflet')) return 'utils'
         },
       },
     },
