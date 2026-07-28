@@ -445,8 +445,8 @@ export default function DataKandidat() {
           detail = Object.values(fieldErrors).join('\n')
         } else if (axErr.response?.data?.message) {
           detail = axErr.response.data.message
-          if (axErr.response.data.debug) {
-            detail += '\n[' + axErr.response.data.debug + ']'
+          if ((axErr.response.data as Record<string, unknown>).debug) {
+            detail += '\n[' + (axErr.response.data as Record<string, unknown>).debug + ']'
           }
         }
       }

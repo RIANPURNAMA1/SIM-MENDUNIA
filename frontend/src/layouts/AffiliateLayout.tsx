@@ -17,6 +17,7 @@ export default function AffiliateLayout({ children }: AffiliateLayoutProps) {
       <div className="sticky top-0 z-20 flex items-center justify-between bg-white border-b border-slate-200 px-4 h-14 lg:hidden shadow-sm">
         <button
           onClick={() => setSidebarOpen(true)}
+          aria-label="Buka menu"
           className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-slate-100 transition-colors"
         >
           <Menu size={22} className="text-slate-700" />

@@ -1,0 +1,7 @@
+# SIM Mendunia
+> Sistem Informasi Manajemen terpadu untuk program pendidikan Mendunia.
+
+## Docs
+- SIM Mendunia adalah aplikasi web manajemen pendidikan yang mencakup manajemen kandidat, keuangan, absensi, akademik, dan HR.
+- URL utama: https://sim.mendunia.id/
+- Teknologi: React + TypeScript (frontend), Laravel (backend)

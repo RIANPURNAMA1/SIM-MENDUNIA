@@ -401,13 +401,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           <img src="/logo-sm1.png" alt="SIM Mendunia" className="h-14 w-auto" />
           <button
             onClick={onClose}
+            aria-label="Tutup sidebar"
             className="lg:hidden absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
           >
             <X size={18} />
           </button>
         </div>
 
-        <nav className="sidebar-nav flex-1 min-h-0 overflow-y-auto px-2.5 py-3 space-y-1">
+        <nav aria-label="Navigasi utama" className="sidebar-nav flex-1 min-h-0 overflow-y-auto px-2.5 py-3 space-y-1">
           {filteredNavItems.map((item) => {
             const hasChildren = "children" in item && item.children.length > 0;
             const isOpen = openGroups[item.label];

@@ -14,6 +14,7 @@ export default function SiswaLayout() {
       <div className="sticky top-0 z-20 flex items-center justify-between bg-white border-b border-[#dadde1] px-4 h-14 lg:hidden shadow-sm">
         <button
           onClick={() => setSidebarOpen(true)}
+          aria-label="Buka menu"
           className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-[#f5f6f7] transition-colors"
         >
           <Menu size={22} className="text-[#1c1e21]" />

@@ -1,3 +1,3 @@
 export default function GuruLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>
+  return <main id="main-content">{children}</main>
 }

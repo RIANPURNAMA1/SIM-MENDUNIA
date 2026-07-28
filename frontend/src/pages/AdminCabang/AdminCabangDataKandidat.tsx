@@ -149,7 +149,7 @@ export default function AdminCabangDataKandidat() {
       await adminCabangApi.updateKandidat(kandidatId, { batch_id: id })
       setKandidatList(prev => prev.map(k =>
         k.id === kandidatId
-          ? { ...k, batch_id: id, batch_nama: batchOptions.find(b => b.id === id)?.nama || '-', batch_warna: (batchOptions.find(b => b.id === id)?.warna ?? null) as string | null }
+          ? { ...k, batch_id: id, batch_nama: batchOptions.find(b => b.id === id)?.nama || '-', batch_warna: (batchOptions.find(b => b.id === id)?.warna ?? null) as string | null } as Kandidat
           : k
       ))
     } catch {
