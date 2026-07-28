@@ -776,7 +776,7 @@ export default function Tagihan() {
             <Users size={18} className="text-amber-600" />
           </div>
           <div>
-            <p className="text-xs text-slate-500">Total Pendaftar</p>
+            <p className="text-xs text-slate-500">Total Kandidat</p>
             <p className="text-2xl font-bold text-slate-800">{stats.count}</p>
           </div>
         </div>
