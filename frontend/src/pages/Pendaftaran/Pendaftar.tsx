@@ -186,9 +186,9 @@ export default function Pendaftar() {
 
   function combinedStatus(p: PendaftarItem) {
     if (p.status_pembayaran === 'refund') return { bg: 'bg-purple-100 text-purple-700 border-purple-200', label: 'Refund' }
-    if (p.status_pembayaran === 'verified') return { bg: 'bg-emerald-100 text-emerald-700 border-emerald-200', label: 'Selesai' }
+    if (p.status_pembayaran === 'verified') return { bg: 'bg-emerald-100 text-emerald-700 border-emerald-200', label: 'Pembayaran dikonfirmasi' }
     if (p.status_pendaftaran === 'ditolak' || p.status_pembayaran === 'ditolak') return { bg: 'bg-red-100 text-red-700 border-red-200', label: 'Batal' }
-    if (p.status_pembayaran === 'processing' && p.status_pendaftaran === 'pending') return { bg: 'bg-amber-100 text-amber-700 border-amber-200', label: 'Pembayaran di Konfirmasi' }
+    if (p.status_pembayaran === 'processing' && p.status_pendaftaran === 'pending') return { bg: 'bg-amber-100 text-amber-700 border-amber-200', label: 'Menunggu Verifikasi' }
     if (p.status_pembayaran === 'unpaid') return { bg: 'bg-slate-100 text-slate-600 border-slate-200', label: 'Menunggu Pembayaran' }
     return { bg: 'bg-blue-100 text-blue-700 border-blue-200', label: 'Proses' }
   }
@@ -222,7 +222,9 @@ export default function Pendaftar() {
 
   const stats = useMemo(() => ({
     total: data.length,
-    proses: data.filter(p => p.status_pembayaran === 'unpaid' || p.status_pembayaran === 'processing').length,
+    menungguPembayaran: data.filter(p => p.status_pembayaran === 'unpaid').length,
+    pembayaranDiKonfirmasi: data.filter(p => p.status_pembayaran === 'processing' && p.status_pendaftaran === 'pending').length,
+    proses: data.filter(p => p.status_pembayaran === 'processing' && p.status_pendaftaran === 'disetujui').length,
     selesai: data.filter(p => p.status_pembayaran === 'verified').length,
     batal: data.filter(p => p.status_pendaftaran === 'ditolak' && p.status_pembayaran !== 'refund').length,
     refund: data.filter(p => p.status_pembayaran === 'refund').length,
@@ -256,17 +258,19 @@ export default function Pendaftar() {
       </div>
 
       {/* Stats */}
-      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
         {[
-          { label: 'Total', value: stats.total },
-          { label: 'Proses', value: stats.proses },
-          { label: 'Selesai', value: stats.selesai },
-          { label: 'Batal', value: stats.batal },
-          { label: 'Refund', value: stats.refund },
+          { label: 'Total', value: stats.total, color: 'border-slate-200 bg-white text-slate-500' },
+          { label: 'Menunggu Pembayaran', value: stats.menungguPembayaran, color: 'border-slate-200 bg-slate-50 text-slate-600' },
+          { label: 'Menunggu Verifikasi', value: stats.pembayaranDiKonfirmasi, color: 'border-amber-200 bg-amber-50 text-amber-600' },
+          { label: 'Proses', value: stats.proses, color: 'border-blue-200 bg-blue-50 text-blue-600' },
+          { label: 'Pembayaran dikonfirmasi', value: stats.selesai, color: 'border-emerald-200 bg-emerald-50 text-emerald-600' },
+          { label: 'Batal', value: stats.batal, color: 'border-red-200 bg-red-50 text-red-600' },
+          { label: 'Refund', value: stats.refund, color: 'border-purple-200 bg-purple-50 text-purple-600' },
         ].map(s => (
-          <div key={s.label} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-            <p className="text-xs text-slate-500 font-medium">{s.label}</p>
-            <p className="text-lg font-bold text-slate-800">{s.value}</p>
+          <div key={s.label} className={`rounded-lg border ${s.color} p-3 shadow-sm`}>
+            <p className="text-[10px] font-semibold uppercase tracking-wide">{s.label}</p>
+            <p className="mt-0.5 text-xl font-bold text-slate-800">{s.value}</p>
           </div>
         ))}
       </div>
@@ -301,14 +305,16 @@ export default function Pendaftar() {
               className="w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
           </div>
-          <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1) }}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-            <option value="">Semua Status</option>
-            <option value="proses">Proses</option>
-            <option value="selesai">Selesai</option>
-            <option value="batal">Batal</option>
-            <option value="refund">Refund</option>
-          </select>
+           <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1) }}
+             className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+             <option value="">Semua Status</option>
+             <option value="menunggu pembayaran">Menunggu Pembayaran</option>
+              <option value="menunggu verifikasi">Menunggu Verifikasi</option>
+              <option value="proses">Proses</option>
+              <option value="pembayaran dikonfirmasi">Pembayaran dikonfirmasi</option>
+             <option value="batal">Batal</option>
+             <option value="refund">Refund</option>
+           </select>
           <input type="date" value={filterDateFrom} onChange={e => { setFilterDateFrom(e.target.value); setPage(1) }}
             className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
           <input type="date" value={filterDateTo} onChange={e => { setFilterDateTo(e.target.value); setPage(1) }}
@@ -901,9 +907,9 @@ export default function Pendaftar() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {[
                     { val: 'waiting_payment', label: 'Menunggu Pembayaran', icon: Clock, iconColor: 'text-slate-500', bg: 'bg-slate-50 hover:bg-slate-100 border-slate-200' },
-                    { val: 'confirmed', label: 'Pembayaran dikonfirmasi', icon: BadgeCheck, iconColor: 'text-amber-500', bg: 'bg-amber-50 hover:bg-amber-100 border-amber-200' },
+                    { val: 'confirmed', label: 'Menunggu Verifikasi', icon: BadgeCheck, iconColor: 'text-amber-500', bg: 'bg-amber-50 hover:bg-amber-100 border-amber-200' },
                     { val: 'proses', label: 'Proses', icon: RefreshCw, iconColor: 'text-blue-500', bg: 'bg-blue-50 hover:bg-blue-100 border-blue-200' },
-                    { val: 'selesai', label: 'Selesai', icon: CheckCircle2, iconColor: 'text-emerald-500', bg: 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200' },
+                    { val: 'selesai', label: 'Pembayaran dikonfirmasi', icon: CheckCircle2, iconColor: 'text-emerald-500', bg: 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200' },
                     { val: 'batal', label: 'Batal', icon: Ban, iconColor: 'text-red-500', bg: 'bg-red-50 hover:bg-red-100 border-red-200' },
                     { val: 'refund', label: 'Refund', icon: Banknote, iconColor: 'text-purple-500', bg: 'bg-purple-50 hover:bg-purple-100 border-purple-200' },
                   ].map(opt => {
@@ -918,17 +924,17 @@ export default function Pendaftar() {
                     const current = combinedStatus(detailModal)
                     const isActive = (
                       (opt.val === 'waiting_payment' && current.label === 'Menunggu Pembayaran') ||
-                      (opt.val === 'confirmed' && current.label === 'Pembayaran di Konfirmasi') ||
+                      (opt.val === 'confirmed' && current.label === 'Menunggu Verifikasi') ||
                       (opt.val === 'proses' && current.label === 'Proses') ||
-                      (opt.val === 'selesai' && current.label === 'Selesai') ||
+                      (opt.val === 'selesai' && current.label === 'Pembayaran dikonfirmasi') ||
                       (opt.val === 'batal' && current.label === 'Batal') ||
                       (opt.val === 'refund' && current.label === 'Refund')
                     )
                     const confirmMessages: Record<string, { title: string; text: string; confirmText: string; icon: 'warning' | 'info' | 'question' }> = {
                       waiting_payment: { title: 'Ubah ke Menunggu Pembayaran?', text: `Status pembayaran ${detailModal.nama} akan diubah menjadi "Menunggu Pembayaran".`, confirmText: 'Ya, Ubah', icon: 'info' },
-                      confirmed: { title: 'Konfirmasi Pembayaran?', text: `Pembayaran ${detailModal.nama} akan ditandai sebagai "Dikonfirmasi". Pastikan bukti pembayaran sudah diperiksa.`, confirmText: 'Ya, Konfirmasi', icon: 'warning' },
+                      confirmed: { title: 'Konfirmasi Pembayaran?', text: `Bukti bayar ${detailModal.nama} akan ditandai sebagai "Menunggu Verifikasi".`, confirmText: 'Ya, Verifikasi', icon: 'warning' },
                       proses: { title: 'Mulai Proses?', text: `Pendaftaran ${detailModal.nama} akan diproses lebih lanjut.`, confirmText: 'Ya, Proses', icon: 'question' },
-                      selesai: { title: 'Tandai Selesai?', text: `Pendaftaran ${detailModal.nama} akan ditandai sebagai "Selesai".`, confirmText: 'Ya, Selesai', icon: 'question' },
+                      selesai: { title: 'Konfirmasi Pembayaran?', text: `Pembayaran ${detailModal.nama} akan ditandai sebagai "Pembayaran dikonfirmasi".`, confirmText: 'Ya, Konfirmasi', icon: 'question' },
                       batal: { title: 'Batalkan Pendaftaran?', text: `Pendaftaran ${detailModal.nama} akan dibatalkan. Tindakan ini tidak dapat dibatalkan.`, confirmText: 'Ya, Batalkan', icon: 'warning' },
                       refund: { title: 'Proses Refund?', text: `Pembayaran ${detailModal.nama} akan dikembalikan (refund). Pastikan sudah sesuai kebijakan.`, confirmText: 'Ya, Refund', icon: 'warning' },
                     }

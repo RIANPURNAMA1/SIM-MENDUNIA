@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { Users, Search, RotateCcw, Eye, Edit3, Power, PowerOff, CalendarOff, Calendar, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, FileText, Download, Upload, Trash2, ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -588,6 +588,24 @@ export default function DataKandidat() {
 
   const filteredList = kandidatList
 
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      'Calon Kandidat': 0,
+      'Kandidat Aktif': 0,
+      'Mengundurkan Diri': 0,
+      'Lulus Pendidikan': 0,
+    }
+    let nonaktif = 0
+    let cuti = 0
+    for (const k of kandidatList) {
+      const sk = k.status_kandidat || 'Calon Kandidat'
+      if (counts[sk] !== undefined) counts[sk]++
+      if (k.status_akademik === 'NONAKTIF') nonaktif++
+      if (k.is_cuti) cuti++
+    }
+    return { ...counts, Nonaktif: nonaktif, Cuti: cuti } as Record<string, number>
+  }, [kandidatList])
+
   const totalPages = Math.max(1, Math.ceil(filteredList.length / perPage))
   const safePage = Math.min(page, totalPages)
   const pagedList = filteredList.slice((safePage - 1) * perPage, safePage * perPage)
@@ -929,33 +947,34 @@ export default function DataKandidat() {
       </div>
 
       {/* Summary */}
-      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="rounded-sm border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-4 transition hover:shadow-md">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-50 to-blue-100">
-            <Users size={20} className="text-blue-600" />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Total Batch</p>
-            <p className="text-2xl font-bold text-slate-800">{totalBatch}</p>
-          </div>
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+        <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Total Batch</p>
+          <p className="mt-0.5 text-xl font-bold text-slate-800">{totalBatch}</p>
         </div>
-        <div className="rounded-sm border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-4 transition hover:shadow-md">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100">
-            <Users size={20} className="text-emerald-600" />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Total Kandidat</p>
-            <p className="text-2xl font-bold text-slate-800">{totalKandidat}</p>
-          </div>
+        <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Total Kandidat</p>
+          <p className="mt-0.5 text-xl font-bold text-slate-800">{totalKandidat}</p>
         </div>
-        <div className="rounded-sm border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-4 transition hover:shadow-md">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-amber-50 to-amber-100">
-            <Users size={20} className="text-amber-600" />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Kandidat Aktif</p>
-            <p className="text-2xl font-bold text-slate-800">{kandidatAktif}</p>
-          </div>
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 shadow-sm">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-blue-600">Calon Kandidat</p>
+          <p className="mt-0.5 text-xl font-bold text-blue-800">{statusCounts['Calon Kandidat']}</p>
+        </div>
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 shadow-sm">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600">Kandidat Aktif</p>
+          <p className="mt-0.5 text-xl font-bold text-emerald-800">{statusCounts['Kandidat Aktif']}</p>
+        </div>
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3 shadow-sm">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-red-600">Mengundurkan Diri</p>
+          <p className="mt-0.5 text-xl font-bold text-red-800">{statusCounts['Mengundurkan Diri']}</p>
+        </div>
+        <div className="rounded-lg border border-purple-200 bg-purple-50 p-3 shadow-sm">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-purple-600">Lulus Pendidikan</p>
+          <p className="mt-0.5 text-xl font-bold text-purple-800">{statusCounts['Lulus Pendidikan']}</p>
+        </div>
+        <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 shadow-sm">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-yellow-700">Cuti</p>
+          <p className="mt-0.5 text-xl font-bold text-yellow-800">{statusCounts.Cuti}</p>
         </div>
       </div>
 
