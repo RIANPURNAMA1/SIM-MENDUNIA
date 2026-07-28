@@ -1432,6 +1432,7 @@ class PendaftaranController extends Controller
                 'no_registrasi' => $p->no_registrasi ?? $siswa?->no_registrasi ?? '-',
                 'batch_id' => $p->batch_id ?? $siswa?->batch_id,
                 'batch_nama' => $p->batch?->nama_batch ?? $siswa?->batchRelasi?->nama_batch ?? '-',
+                'batch_warna' => $p->batch?->warna ?? $siswa?->batchRelasi?->warna ?? null,
                 'real_batch' => $siswa?->real_batch ?? '-',
                 'jenis_kelamin' => $siswa?->jenis_kelamin ?? '-',
                 'tempat_lahir' => $siswa?->tempat_lahir ?? '-',
@@ -1473,6 +1474,7 @@ class PendaftaranController extends Controller
             $batches[] = [
                 'id' => $batchId,
                 'nama' => $batch?->nama_batch ?? 'Batch #' . $batchId,
+                'warna' => $batch?->warna ?? null,
                 'jumlahKandidat' => $items->count(),
                 'kandidat' => $items->map($mapKandidat),
             ];
@@ -1482,6 +1484,7 @@ class PendaftaranController extends Controller
             $batches[] = [
                 'id' => 0,
                 'nama' => 'Tanpa Batch',
+                'warna' => null,
                 'jumlahKandidat' => $ungrouped->count(),
                 'kandidat' => $ungrouped->map($mapKandidat),
             ];
@@ -1794,6 +1797,133 @@ class PendaftaranController extends Controller
             \Log::error('storeKandidat Exception: ' . $e->getMessage());
             return response()->json(['message' => 'Terjadi kesalahan saat menyimpan data: ' . $e->getMessage()], 500);
         }
+    }
+
+    public function importKandidat(Request $request)
+    {
+        $request->validate([
+            'batch_id' => 'required|integer|exists:batches,id',
+            'data' => 'required|array|min:1',
+            'data.*.nama' => 'required|string|max:255',
+            'data.*.email' => 'required|email',
+        ]);
+
+        $batchId = $request->batch_id;
+        $rows = $request->data;
+        $success = 0;
+        $failed = 0;
+        $errors = [];
+        $created = [];
+        $today = now()->format('Ymd');
+        $lastReg = Pendaftar::where('no_registrasi', 'like', "REG/{$today}/%")
+            ->orderByDesc('no_registrasi')
+            ->value('no_registrasi');
+        $nextNum = $lastReg ? str_pad(((int) substr($lastReg, -4)) + 1, 4, '0', STR_PAD_LEFT) : '0001';
+
+        foreach ($rows as $idx => $row) {
+            try {
+                $nama = trim($row['nama'] ?? '');
+                $email = trim($row['email'] ?? '');
+                if (!$nama || !$email) {
+                    $failed++;
+                    $errors[] = ['row' => $idx + 1, 'message' => 'Nama dan email wajib diisi'];
+                    continue;
+                }
+
+                // Check duplicate email
+                if (User::where('email', $email)->exists() || Pendaftar::where('email', $email)->exists()) {
+                    $failed++;
+                    $errors[] = ['row' => $idx + 1, 'message' => "Email {$email} sudah terdaftar"];
+                    continue;
+                }
+
+                $password = strtoupper(bin2hex(random_bytes(4)));
+                $nik = trim($row['nik'] ?? '');
+                $telepon = trim($row['telepon'] ?? $row['no_hp'] ?? '');
+
+                $noReg = "REG/{$today}/{$nextNum}";
+                $nextNum = str_pad(((int) $nextNum) + 1, 4, '0', STR_PAD_LEFT);
+
+                $user = User::create([
+                    'name' => $nama,
+                    'email' => $email,
+                    'password' => Hash::make($password),
+                    'nik' => $nik ?: $email,
+                    'role' => 'KANDIDAT',
+                    'status' => 'AKTIF',
+                    'no_hp' => $telepon ?: null,
+                    'pendidikan_terakhir' => $row['pendidikan_terakhir'] ?? null,
+                    'tempat_lahir' => $row['tempat_lahir'] ?? null,
+                    'tanggal_lahir' => $row['tanggal_lahir'] ?? null,
+                    'jenis_kelamin' => $row['jenis_kelamin'] ?? null,
+                    'alamat' => $row['alamat'] ?? null,
+                ]);
+
+                Pendaftar::create([
+                    'nama' => $nama,
+                    'email' => $email,
+                    'password' => Hash::make($password),
+                    'telepon' => $telepon ?: null,
+                    'alamat' => $row['alamat'] ?? null,
+                    'batch_id' => $batchId,
+                    'no_registrasi' => $noReg,
+                    'status_pendaftaran' => 'disetujui',
+                    'status_pembayaran' => 'verified',
+                    'nominal' => 0,
+                    'user_id' => $user->id,
+                ]);
+
+                Siswa::create([
+                    'user_id' => $user->id,
+                    'batch_id' => $batchId,
+                    'nama' => $nama,
+                    'nik' => $nik ?: null,
+                    'no_registrasi' => $noReg,
+                    'jenis_kelamin' => $row['jenis_kelamin'] ?? null,
+                    'tempat_lahir' => $row['tempat_lahir'] ?? null,
+                    'tanggal_lahir' => $row['tanggal_lahir'] ?? null,
+                    'alamat' => $row['alamat'] ?? null,
+                    'desa' => $row['desa'] ?? null,
+                    'kecamatan' => $row['kecamatan'] ?? null,
+                    'kabupaten' => $row['kabupaten'] ?? null,
+                    'provinsi' => $row['provinsi'] ?? null,
+                    'pendidikan_terakhir' => $row['pendidikan_terakhir'] ?? null,
+                    'tahun_lulus' => $row['tahun_lulus'] ?? null,
+                    'tinggi_badan' => $row['tinggi_badan'] ?? null,
+                    'berat_badan' => $row['berat_badan'] ?? null,
+                    'goldar' => $row['goldar'] ?? null,
+                    'ukuran_baju' => $row['ukuran_baju'] ?? null,
+                    'status_pernikahan' => $row['status_pernikahan'] ?? null,
+                    'no_hp' => $telepon ?: null,
+                    'nama_ortu' => $row['nama_ortu'] ?? null,
+                    'no_hp_ortu' => $row['no_hp_ortu'] ?? null,
+                    'real_batch' => $row['real_batch'] ?? null,
+                    'keterangan' => $row['keterangan'] ?? null,
+                    'status' => 'AKTIF',
+                ]);
+
+                $created[] = [
+                    'nama' => $nama,
+                    'email' => $email,
+                    'no_registrasi' => $noReg,
+                    'password' => $password,
+                ];
+
+                $success++;
+            } catch (\Exception $e) {
+                \Log::error('importKandidat row ' . ($idx + 1) . ': ' . $e->getMessage());
+                $failed++;
+                $errors[] = ['row' => $idx + 1, 'message' => $e->getMessage()];
+            }
+        }
+
+        return response()->json([
+            'message' => "Import selesai: {$success} berhasil, {$failed} gagal",
+            'success' => $success,
+            'failed' => $failed,
+            'created' => $created,
+            'errors' => $errors,
+        ], $failed > 0 ? 207 : 201);
     }
 
     public function updateKandidat(Request $request, $id)

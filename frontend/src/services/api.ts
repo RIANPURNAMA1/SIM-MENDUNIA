@@ -333,6 +333,8 @@ export const pendaftarApi = {
     api.post(`/kandidat/${id}/toggle-status`),
   toggleKandidatCuti: (id: number) =>
     api.post(`/kandidat/${id}/toggle-cuti`),
+  importKandidat: (data: { batch_id: number; data: Record<string, unknown>[] }) =>
+    api.post('/kandidat/import', data),
   bayarInfo: (id: number) => api.get(`/pendaftaran/bayar/${id}`),
   bayar: (id: number, data: FormData) =>
     api.post(`/pendaftar/${id}/bayar`, data, {

@@ -21,6 +21,7 @@ interface BankAccount {
   id: number;
   bank_name: string;
   bank_logo: string | null;
+  bank_logo_url: string | null;
   account_holder: string;
   account_number: string;
   branch: string | null;
@@ -130,6 +131,14 @@ export default function CheckoutBerhasil() {
       setCopiedField(field);
       setTimeout(() => setCopiedField(null), 2000);
     });
+  }
+
+  function fmt(n: number | string) {
+    return console.log("fmt", n), "Rp " + Number(n).toLocaleString("id-ID").replace(/,/g, ".");
+  }
+
+  const testdata = () =>{
+   testdata();
   }
 
   function formatDate(dateStr: string) {
@@ -307,8 +316,8 @@ export default function CheckoutBerhasil() {
               {activeBankAccounts.map(acc => (
                 <div key={acc.id} className="border border-gray-100 rounded-lg p-3">
                   <div className="flex items-center gap-3 mb-2">
-                    {acc.bank_logo ? (
-                      <img src={`/storage/${acc.bank_logo}`} alt={acc.bank_name} className="w-8 h-8 rounded object-contain" />
+                    {acc.bank_logo_url ? (
+                      <img src={acc.bank_logo_url} alt={acc.bank_name} className="w-8 h-8 rounded object-contain" />
                     ) : (
                       <div className="w-8 h-8 rounded bg-[#0E6187]/10 flex items-center justify-center">
                         <Building2 size={14} className="text-[#0E6187]" />
