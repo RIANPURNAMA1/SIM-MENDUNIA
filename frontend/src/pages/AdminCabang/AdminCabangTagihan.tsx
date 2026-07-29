@@ -45,6 +45,8 @@ interface TagihanItem {
   diskon: number | null
   status_pendaftaran: string
   status_pembayaran: string
+  status_kandidat: string | null
+  is_cuti: boolean
   created_at: string
   product: { id: number; nama: string; harga: number; kategori_items?: { name: string; harga: number; komisi: number; children: any[] }[] } | null
   batch: { id: number; nama_batch: string; warna: string | null } | null
@@ -486,7 +488,7 @@ export default function AdminCabangTagihan() {
                 {pagedItems.map(p => {
                   const { tagihan, dibayar, sisa } = calcRow(p)
                   return (
-                    <tr key={p.id} className="bg-white transition hover:bg-slate-50">
+                    <tr key={p.id} className={`transition ${p.is_cuti ? 'bg-yellow-100 hover:bg-yellow-200/70' : p.status_kandidat === 'Mengundurkan Diri' ? 'bg-red-100 hover:bg-red-200/70' : 'bg-white hover:bg-slate-50'}`}>
                       <td className="border border-slate-200 px-4 py-3">
                         <div className="flex items-center gap-3">
                           <img

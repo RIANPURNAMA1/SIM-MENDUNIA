@@ -517,7 +517,7 @@ class PendaftaranController extends Controller
 
     public function index(Request $request)
     {
-        $pendaftars = Pendaftar::with(['affiliateLink.affiliate', 'product.biayaKategoris', 'user', 'coupon', 'batch'])
+        $pendaftars = Pendaftar::with(['affiliateLink.affiliate', 'product.biayaKategoris', 'user', 'coupon', 'batch', 'siswa'])
             ->orderBy('created_at', 'desc');
 
         if ($request->status_pendaftaran) {
@@ -627,7 +627,11 @@ class PendaftaranController extends Controller
                     'tanggal_bayar' => $pembayaran ? $pembayaran->created_at : null,
                 ];
             }
-            return array_merge($p->toArray(), ['detail' => $detail]);
+            return array_merge($p->toArray(), [
+                'detail' => $detail,
+                'status_kandidat' => $p->siswa?->status_kandidat,
+                'is_cuti' => $p->siswa?->is_cuti ?? false,
+            ]);
         });
 
         return response()->json($result);
@@ -3205,6 +3209,24 @@ class PendaftaranController extends Controller
         })->values();
 
         return response()->json($grouped);
+    }
+
+    public function recalculateAllKomisi()
+    {
+        $pendaftars = \App\Models\Pendaftar::whereNotNull('affiliate_link_id')
+            ->where('status_pembayaran', 'verified')
+            ->with('product')
+            ->get();
+
+        $count = 0;
+        foreach ($pendaftars as $p) {
+            $existing = \App\Models\KomisiAffiliate::where('pendaftar_id', $p->id)->count();
+            if ($existing > 0) continue;
+            $this->cekDanCatatKomisiAffiliate($p);
+            $count++;
+        }
+
+        return response()->json(['message' => "Komisi dihitung ulang untuk {$count} pendaftar"]);
     }
 
     public function banks()

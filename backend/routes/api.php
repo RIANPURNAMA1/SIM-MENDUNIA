@@ -384,6 +384,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/closing-pasukan', [PendaftaranController::class, 'closingPasukan']);
     Route::get('/komisi-affiliate', [PendaftaranController::class, 'komisiAffiliate']);
+    Route::post('/recalculate-all-komisi', [PendaftaranController::class, 'recalculateAllKomisi']);
 
     Route::get('/pembayaran', [PendaftaranController::class, 'allPembayaran']);
     Route::get('/pembayaran-pending', [PendaftaranController::class, 'pendingPembayaran']);
