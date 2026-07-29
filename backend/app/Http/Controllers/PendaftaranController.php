@@ -643,18 +643,7 @@ class PendaftaranController extends Controller
     {
         $pendaftar = Pendaftar::with(['affiliateLink.product', 'product.biayaKategoris'])->findOrFail($id);
 
-        // Generate No. Registrasi: REG/YYYYMMDD/XXXX
-        $today = now()->format('Ymd');
-        $lastReg = Pendaftar::where('no_registrasi', 'like', "REG/{$today}/%")
-            ->orderByDesc('no_registrasi')
-            ->value('no_registrasi');
-        if ($lastReg) {
-            $lastNum = (int) substr($lastReg, -4);
-            $nextNum = str_pad($lastNum + 1, 4, '0', STR_PAD_LEFT);
-        } else {
-            $nextNum = '0001';
-        }
-        $noReg = "REG/{$today}/{$nextNum}";
+        $noReg = $this->generateNoRegistrasi($pendaftar->batch_id);
 
         $pendaftar->update([
             'status_pendaftaran' => 'disetujui',
@@ -906,17 +895,7 @@ class PendaftaranController extends Controller
 
         if (isset($data['status_pendaftaran']) && $data['status_pendaftaran'] === 'disetujui') {
             if (!$pendaftar->no_registrasi) {
-                $today = now()->format('Ymd');
-                $lastReg = \App\Models\Pendaftar::where('no_registrasi', 'like', "REG/{$today}/%")
-                    ->orderByDesc('no_registrasi')
-                    ->value('no_registrasi');
-                if ($lastReg) {
-                    $lastNum = (int) substr($lastReg, -4);
-                    $nextNum = str_pad($lastNum + 1, 4, '0', STR_PAD_LEFT);
-                } else {
-                    $nextNum = '0001';
-                }
-                $pendaftar->no_registrasi = "REG/{$today}/{$nextNum}";
+                $pendaftar->no_registrasi = $this->generateNoRegistrasi($pendaftar->batch_id);
             }
             if (!$pendaftar->tanggal_persetujuan) {
                 $pendaftar->tanggal_persetujuan = now();
@@ -2084,18 +2063,7 @@ class PendaftaranController extends Controller
             'keterangan' => 'nullable|string|max:500',
         ], $messages);
 
-        // Generate No. Registrasi
-        $today = now()->format('Ymd');
-        $lastReg = Pendaftar::where('no_registrasi', 'like', "REG/{$today}/%")
-            ->orderByDesc('no_registrasi')
-            ->value('no_registrasi');
-        if ($lastReg) {
-            $lastNum = (int) substr($lastReg, -4);
-            $nextNum = str_pad($lastNum + 1, 4, '0', STR_PAD_LEFT);
-        } else {
-            $nextNum = '0001';
-        }
-        $noReg = "REG/{$today}/{$nextNum}";
+        $noReg = $this->generateNoRegistrasi($data['batch_id'] ?? null);
 
         // Generate random password
         $password = strtoupper(bin2hex(random_bytes(4)));
@@ -3096,6 +3064,29 @@ class PendaftaranController extends Controller
                 'status' => 'pending',
             ]);
         }
+    }
+
+    private function generateNoRegistrasi(?int $batchId = null): string
+    {
+        $today = now()->format('Ymd');
+        $kodeCabang = '';
+        if ($batchId) {
+            $batch = \App\Models\Batch::with('cabang')->find($batchId);
+            if ($batch && $batch->cabang) {
+                $kodeCabang = $batch->cabang->kode_cabang;
+            }
+        }
+        $prefix = $kodeCabang ? "REG/{$kodeCabang}/{$today}" : "REG/{$today}";
+        $lastReg = Pendaftar::where('no_registrasi', 'like', "{$prefix}/%")
+            ->orderByDesc('no_registrasi')
+            ->value('no_registrasi');
+        if ($lastReg) {
+            $lastNum = (int) substr($lastReg, -4);
+            $nextNum = str_pad($lastNum + 1, 4, '0', STR_PAD_LEFT);
+        } else {
+            $nextNum = '0001';
+        }
+        return "{$prefix}/{$nextNum}";
     }
 
     public function banks()

@@ -48,12 +48,6 @@ interface Category {
   summary: CatSummary;
 }
 
-const RESIKO_STYLE: Record<string, string> = {
-  success: "bg-emerald-100 text-emerald-700",
-  warning: "bg-amber-100 text-amber-700",
-  danger: "bg-rose-100 text-rose-700",
-};
-
 const SCORE_BADGE = (s: number | null): string => {
   if (s === null) return "bg-gray-100 text-gray-400";
   if (s >= 90) return "bg-emerald-100 text-emerald-700";
@@ -216,21 +210,6 @@ export default function PenilaianPage() {
   const closeModal = () => {
     setShowModal(false);
     setModalData(null);
-  };
-
-  const getResikoBadge = (avg: number | null): string => {
-    if (avg === null) return "";
-    if (avg >= 85) return "Sangat Siap";
-    if (avg >= 75) return "Siap";
-    if (avg >= 65) return "Perlu Pendampingan";
-    return "Berisiko";
-  };
-
-  const getResikoClass = (avg: number | null): string => {
-    if (avg === null) return "bg-gray-100 text-gray-500";
-    if (avg >= 75) return "bg-emerald-100 text-emerald-700";
-    if (avg >= 65) return "bg-amber-100 text-amber-700";
-    return "bg-rose-100 text-rose-700";
   };
 
   return (
@@ -431,224 +410,85 @@ export default function PenilaianPage() {
                   {modalData.categories.map((cat, ci) => {
                     if (!cat.summary || cat.summary.nilai_akhir === null) return null;
                     const isRekapAkhir = modalData.level === "2" || modalData.level === "3" || modalData.level === "4";
-                    const nComp = cat.components.length;
-                    const teoriIndices: number[] = [];
-                    const praktekIndices: number[] = [];
-                    for (let idx = 0; idx < nComp; idx++) {
-                      if (idx < nComp - 2) teoriIndices.push(idx);
-                      else praktekIndices.push(idx);
-                    }
 
                     return (
                       <div key={ci}>
                         <h6 className="mb-2 text-sm font-semibold text-slate-800">{cat.nama_kategori}</h6>
 
                         {isRekapAkhir ? (
-                          <>
-                            <div className="overflow-x-auto mb-2">
-                              <table className="w-full text-xs border-collapse border border-slate-200 [&_th]:border [&_th]:border-slate-200 [&_td]:border [&_td]:border-slate-200">
-                                <thead>
-                                  <tr className="bg-amber-700 text-white">
-                                    <th colSpan={nComp + 4} className="px-2 py-1.5 text-center font-semibold">TOTAL NILAI</th>
-                                  </tr>
-                                  <tr className="bg-amber-700 text-white">
-                                    {cat.components.map((comp, j) => (
-                                      <th key={comp.id} className="px-2 py-1.5 text-center font-medium">
-                                        {comp.nama === "Simulasi" && cat.pertemuan.length > 0
-                                          ? `Simulasi ${Math.ceil(cat.pertemuan[cat.pertemuan.length - 1].pertemuan_ke / 5)}`
-                                          : comp.nama}
-                                      </th>
-                                    ))}
-                                    <th className="px-2 py-1.5 text-center font-medium min-w-[70px]">NILAI TEORI</th>
-                                    <th className="px-2 py-1.5 text-center font-medium min-w-[80px]">NILAI PRAKTEK</th>
-                                    <th className="px-2 py-1.5 text-center font-medium min-w-[90px]">NILAI RATA-RATA</th>
-                                    <th className="px-2 py-1.5 text-center font-medium min-w-[70px]">RESIKO</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  <tr className="bg-white">
-                                    {(() => {
-                                      const lastPt = cat.pertemuan.length > 0 ? cat.pertemuan[cat.pertemuan.length - 1] : null;
-                                      const scores = lastPt?.scores || [];
-                                      let totalTeori = 0, countTeori = 0, totalPraktek = 0, countPraktek = 0;
-                                      scores.forEach((s, j) => {
-                                        if (s !== null) {
-                                          if (teoriIndices.includes(j)) { totalTeori += s; countTeori++; }
-                                          if (praktekIndices.includes(j)) { totalPraktek += s; countPraktek++; }
-                                        }
-                                      });
-                                      const rataRata = scores.filter(s => s !== null).reduce((a, b) => (a ?? 0) + (b ?? 0), 0) / (scores.filter(s => s !== null).length || 1);
-                                      return (
-                                        <>
-                                          {cat.components.map((comp, j) => {
-                                            const s = j < scores.length ? scores[j] : null;
-                                            return (
-                                              <td key={comp.id} className="px-2 py-1.5 text-center">
-                                                {s !== null ? (
-                                                  <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${SCORE_BADGE(s)}`}>
-                                                    {Math.round(s)}
-                                                  </span>
-                                                ) : <span className="text-slate-300">-</span>}
-                                              </td>
-                                            );
-                                          })}
-                                          <td className="px-2 py-1.5 text-center font-bold text-slate-800">
-                                            {countTeori > 0 ? totalTeori.toFixed(1) : "-"}
-                                          </td>
-                                          <td className="px-2 py-1.5 text-center font-bold text-slate-800">
-                                            {countPraktek > 0 ? totalPraktek.toFixed(1) : "-"}
-                                          </td>
-                                          <td className="px-2 py-1.5 text-center font-bold text-slate-800">
-                                            {rataRata > 0 ? rataRata.toFixed(1) : "-"}
-                                          </td>
-                                          <td className="px-2 py-1.5 text-center">
-                                            <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ${getResikoClass(rataRata)}`}>
-                                              {getResikoBadge(rataRata)}
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-[11px] border-collapse border border-slate-200 [&_th]:border [&_th]:border-slate-200 [&_td]:border [&_td]:border-slate-200">
+                              <thead>
+                                <tr className="bg-amber-700 text-white">
+                                  <th className="px-2 py-1 text-left">Tanggal</th>
+                                  {cat.components.map((comp) => (
+                                    <th key={comp.id} className="px-2 py-1 text-center">{comp.nama}</th>
+                                  ))}
+                                  <th className="px-2 py-1 text-center">Rata-Rata</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {cat.pertemuan.map((pt, pi) => {
+                                  const scores = pt.scores.filter(s => s !== null);
+                                  const avg = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
+                                  return (
+                                    <tr key={pi} className="border-b border-slate-100">
+                                      <td className="px-2 py-1 text-slate-600">{pt.hari}, {pt.tanggal}</td>
+                                      {pt.scores.map((s, j) => (
+                                        <td key={j} className="px-2 py-1 text-center">
+                                          {s !== null ? (
+                                            <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${SCORE_BADGE(s)}`}>
+                                              {Math.round(s)}
                                             </span>
-                                          </td>
-                                        </>
-                                      );
-                                    })()}
-                                  </tr>
-                                </tbody>
-                              </table>
-                            </div>
-
-                            <details className="mt-2 text-xs text-slate-500">
-                              <summary className="cursor-pointer hover:text-slate-700">Detail per pertemuan</summary>
-                              <div className="overflow-x-auto mt-1">
-                                <table className="w-full text-[11px] border-collapse border border-slate-200 [&_th]:border [&_th]:border-slate-200 [&_td]:border [&_td]:border-slate-200">
-                                  <thead>
-                                    <tr className="bg-amber-700 text-white">
-                                      <th className="px-2 py-1 text-left">Tanggal</th>
-                                      {cat.components.map((comp) => (
-                                        <th key={comp.id} className="px-2 py-1 text-center">{comp.nama}</th>
+                                          ) : <span className="text-slate-300">-</span>}
+                                        </td>
                                       ))}
-                                      <th className="px-2 py-1 text-center">Rata-Rata</th>
+                                      <td className="px-2 py-1 text-center font-semibold text-slate-700">
+                                        {avg !== null ? avg.toFixed(1) : "-"}
+                                      </td>
                                     </tr>
-                                  </thead>
-                                  <tbody>
-                                    {cat.pertemuan.map((pt, pi) => {
-                                      const scores = pt.scores.filter(s => s !== null);
-                                      const avg = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
-                                      return (
-                                        <tr key={pi} className="border-b border-slate-100">
-                                          <td className="px-2 py-1 text-slate-600">{pt.hari}, {pt.tanggal}</td>
-                                          {pt.scores.map((s, j) => (
-                                            <td key={j} className="px-2 py-1 text-center">
-                                              {s !== null ? (
-                                                <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${SCORE_BADGE(s)}`}>
-                                                  {Math.round(s)}
-                                                </span>
-                                              ) : <span className="text-slate-300">-</span>}
-                                            </td>
-                                          ))}
-                                          <td className="px-2 py-1 text-center font-semibold text-slate-700">
-                                            {avg !== null ? avg.toFixed(1) : "-"}
-                                          </td>
-                                        </tr>
-                                      );
-                                    })}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </details>
-                          </>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
                         ) : (
-                          <>
-                            <div className="overflow-x-auto mb-2">
-                              <table className="w-full text-xs border-collapse border border-slate-200 [&_th]:border [&_th]:border-slate-200 [&_td]:border [&_td]:border-slate-200">
-                                <thead>
-                                  <tr className="bg-amber-700 text-white">
-                                    <th rowSpan={2} className="px-2 py-1.5 text-left font-semibold">No</th>
-                                    <th rowSpan={2} className="px-2 py-1.5 text-left font-semibold">Nama Siswa</th>
-                                    <th colSpan={cat.components.length} className="px-2 py-1.5 text-center font-semibold">Nilai Rata-Rata</th>
-                                    <th colSpan={cat.components.length} className="px-2 py-1.5 text-center font-semibold">Peningkatan</th>
-                                    <th rowSpan={2} className="px-2 py-1.5 text-center font-semibold">Nilai Akhir</th>
-                                    <th rowSpan={2} className="px-2 py-1.5 text-center font-semibold">Resiko</th>
-                                  </tr>
-                                  <tr className="bg-amber-700 text-white">
-                                    {cat.components.map((comp) => (
-                                      <th key={comp.id} className="px-2 py-1 text-center font-medium text-[11px]">{comp.nama}</th>
-                                    ))}
-                                    {cat.components.map((comp) => (
-                                      <th key={comp.id} className="px-2 py-1 text-center font-medium text-[11px]">{comp.nama}</th>
-                                    ))}
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  <tr className="bg-white">
-                                    <td className="px-2 py-1.5 text-slate-600">1</td>
-                                    <td className="px-2 py-1.5 font-medium text-slate-800">{modalData.siswa}</td>
-                                    {cat.components.map((comp) => {
-                                      const avg = cat.summary.averages[comp.id];
-                                      return (
-                                        <td key={comp.id} className="px-2 py-1.5 text-center text-slate-700">
-                                          {avg !== null ? avg.toFixed(1) : "-"}
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-[11px] border-collapse border border-slate-200 [&_th]:border [&_th]:border-slate-200 [&_td]:border [&_td]:border-slate-200">
+                              <thead>
+                                <tr className="bg-amber-700 text-white">
+                                  <th className="px-2 py-1 text-left">Tanggal</th>
+                                  {cat.components.map((comp) => (
+                                    <th key={comp.id} className="px-2 py-1 text-center">{comp.nama}</th>
+                                  ))}
+                                  <th className="px-2 py-1 text-center">Rata-Rata</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {cat.pertemuan.map((pt, pi) => {
+                                  const scores = pt.scores.filter(s => s !== null);
+                                  const avg = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
+                                  return (
+                                    <tr key={pi} className="border-b border-slate-100">
+                                      <td className="px-2 py-1 text-slate-600 whitespace-nowrap">{pt.hari}, {pt.tanggal}</td>
+                                      {pt.scores.map((s, j) => (
+                                        <td key={j} className="px-2 py-1 text-center">
+                                          {s !== null ? (
+                                            <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${SCORE_BADGE(s)}`}>
+                                              {Math.round(s)}
+                                            </span>
+                                          ) : <span className="text-slate-300">-</span>}
                                         </td>
-                                      );
-                                    })}
-                                    {cat.components.map((comp) => {
-                                      const imp = cat.summary.improvements[comp.id];
-                                      return (
-                                        <td key={comp.id} className={`px-2 py-1.5 text-center ${imp !== null ? (imp < 0 ? "text-rose-600" : imp > 0 ? "text-emerald-600" : "") : ""}`}>
-                                          {imp !== null ? `${imp > 0 ? "+" : ""}${imp.toFixed(1)}` : "-"}
-                                        </td>
-                                      );
-                                    })}
-                                    <td className="px-2 py-1.5 text-center font-bold text-slate-800">
-                                      {cat.summary.nilai_akhir?.toFixed(1) || "-"}
-                                    </td>
-                                    <td className="px-2 py-1.5 text-center">
-                                      <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ${RESIKO_STYLE[cat.summary.resiko_class || ""] || "bg-gray-100 text-gray-500"}`}>
-                                        {cat.summary.resiko || "-"}
-                                      </span>
-                                    </td>
-                                  </tr>
-                                </tbody>
-                              </table>
-                            </div>
-
-                            <details className="mt-2 text-xs text-slate-500">
-                              <summary className="cursor-pointer hover:text-slate-700">Detail per pertemuan</summary>
-                              <div className="overflow-x-auto mt-1">
-                                <table className="w-full text-[11px] border-collapse border border-slate-200 [&_th]:border [&_th]:border-slate-200 [&_td]:border [&_td]:border-slate-200">
-                                  <thead>
-                                    <tr className="bg-amber-700 text-white">
-                                      <th className="px-2 py-1 text-left">Tanggal</th>
-                                      {cat.components.map((comp) => (
-                                        <th key={comp.id} className="px-2 py-1 text-center">{comp.nama}</th>
                                       ))}
-                                      <th className="px-2 py-1 text-center">Rata-Rata</th>
+                                      <td className="px-2 py-1 text-center font-semibold text-slate-700">
+                                        {avg !== null ? avg.toFixed(1) : "-"}
+                                      </td>
                                     </tr>
-                                  </thead>
-                                  <tbody>
-                                    {cat.pertemuan.map((pt, pi) => {
-                                      const scores = pt.scores.filter(s => s !== null);
-                                      const avg = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
-                                      return (
-                                        <tr key={pi} className="border-b border-slate-100">
-                                          <td className="px-2 py-1 text-slate-600">{pt.hari}, {pt.tanggal}</td>
-                                          {pt.scores.map((s, j) => (
-                                            <td key={j} className="px-2 py-1 text-center">
-                                              {s !== null ? (
-                                                <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${SCORE_BADGE(s)}`}>
-                                                  {Math.round(s)}
-                                                </span>
-                                              ) : <span className="text-slate-300">-</span>}
-                                            </td>
-                                          ))}
-                                          <td className="px-2 py-1 text-center font-semibold text-slate-700">
-                                            {avg !== null ? avg.toFixed(1) : "-"}
-                                          </td>
-                                        </tr>
-                                      );
-                                    })}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </details>
-                          </>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
                         )}
                       </div>
                     );

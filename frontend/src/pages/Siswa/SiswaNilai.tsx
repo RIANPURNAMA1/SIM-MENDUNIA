@@ -581,13 +581,13 @@ function EvalInstrukturModal({
       await api.post('/siswa/evaluasi-guru', {
         batch_id: batchId,
         level,
-        rating: Math.round(avgScore * 10) / 10,
+        rating: Math.round(avgScore),
         komentar: comment || null,
         scores,
         text_responses: texts,
       })
       Swal.fire({ icon: 'success', title: 'Evaluasi Terkirim', text: 'Terima kasih atas evaluasi Anda!', timer: 2000, showConfirmButton: false })
-      onSuccess(scores, Math.round(avgScore * 10) / 10, comment)
+      onSuccess(scores, Math.round(avgScore), comment)
     } catch {
       Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal mengirim evaluasi' })
     }

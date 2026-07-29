@@ -425,7 +425,11 @@ export default function GuruDashboard() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      {!absen ? (
+                      {new Date(k.tanggal_selesai) < new Date(new Date().toDateString()) ? (
+                        <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg">
+                          <CheckCircle size={12} /> Selesai
+                        </span>
+                      ) : !absen ? (
                         <button onClick={() => startCamera(k.id, 'masuk')} disabled={absenLoading[k.id]}
                           className="text-[11px] font-bold text-white bg-[#0069b0] px-3 py-1.5 rounded-lg hover:bg-[#004d7a] transition-colors disabled:opacity-50">
                           {absenLoading[k.id] ? '...' : 'Masuk'}
@@ -601,7 +605,11 @@ export default function GuruDashboard() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      {!absen ? (
+                      {new Date(k.tanggal_selesai) < new Date(new Date().toDateString()) ? (
+                        <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1.5 rounded-lg">
+                          <CheckCircle size={11} /> Selesai
+                        </span>
+                      ) : !absen ? (
                         <button onClick={() => startCamera(k.id, 'masuk')} disabled={absenLoading[k.id]}
                           className="text-[10px] font-bold text-white bg-[#0069b0] px-2.5 py-1.5 rounded-lg hover:bg-[#004d7a] transition-colors disabled:opacity-50">
                           {absenLoading[k.id] ? '...' : 'Masuk'}

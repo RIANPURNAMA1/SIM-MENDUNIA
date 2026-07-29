@@ -164,7 +164,7 @@ const navItems: NavItem[] = [
     label: "Akademik",
     icon: "BookOpen",
     children: [
-      { label: "Data Guru", icon: "Presentation", href: "/guru" },
+      { label: "Data Sensei", icon: "Presentation", href: "/guru" },
       { label: "Kelas Sensei", icon: "BookOpen", href: "/kelas-sensei" },
       { label: "Rekap Siswa", icon: "BarChart3", href: "/rekap-siswa" },
       { label: "Penilaian Siswa", icon: "Notebook", href: "/penilaian" },
