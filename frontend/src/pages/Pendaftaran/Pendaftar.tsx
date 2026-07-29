@@ -260,16 +260,16 @@ export default function Pendaftar() {
       {/* Stats */}
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
         {[
-          { label: 'Total', value: stats.total, color: 'border-slate-200 bg-white text-slate-500' },
-          { label: 'Menunggu Pembayaran', value: stats.menungguPembayaran, color: 'border-slate-200 bg-slate-50 text-slate-600' },
-          { label: 'Menunggu Verifikasi', value: stats.pembayaranDiKonfirmasi, color: 'border-amber-200 bg-amber-50 text-amber-600' },
-          { label: 'Proses', value: stats.proses, color: 'border-blue-200 bg-blue-50 text-blue-600' },
-          { label: 'Pembayaran dikonfirmasi', value: stats.selesai, color: 'border-emerald-200 bg-emerald-50 text-emerald-600' },
-          { label: 'Batal', value: stats.batal, color: 'border-red-200 bg-red-50 text-red-600' },
-          { label: 'Refund', value: stats.refund, color: 'border-purple-200 bg-purple-50 text-purple-600' },
+          { label: 'Total', value: stats.total },
+          { label: 'Menunggu Pembayaran', value: stats.menungguPembayaran },
+          { label: 'Menunggu Verifikasi', value: stats.pembayaranDiKonfirmasi },
+          { label: 'Proses', value: stats.proses },
+          { label: 'Pembayaran dikonfirmasi', value: stats.selesai },
+          { label: 'Batal', value: stats.batal },
+          { label: 'Refund', value: stats.refund },
         ].map(s => (
-          <div key={s.label} className={`rounded-lg border ${s.color} p-3 shadow-sm`}>
-            <p className="text-[10px] font-semibold uppercase tracking-wide">{s.label}</p>
+          <div key={s.label} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{s.label}</p>
             <p className="mt-0.5 text-xl font-bold text-slate-800">{s.value}</p>
           </div>
         ))}
