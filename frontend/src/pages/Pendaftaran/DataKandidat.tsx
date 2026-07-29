@@ -948,34 +948,20 @@ export default function DataKandidat() {
 
       {/* Summary */}
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
-        <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Total Batch</p>
-          <p className="mt-0.5 text-xl font-bold text-slate-800">{totalBatch}</p>
-        </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Total Kandidat</p>
-          <p className="mt-0.5 text-xl font-bold text-slate-800">{totalKandidat}</p>
-        </div>
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 shadow-sm">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-blue-600">Calon Kandidat</p>
-          <p className="mt-0.5 text-xl font-bold text-blue-800">{statusCounts['Calon Kandidat']}</p>
-        </div>
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 shadow-sm">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600">Kandidat Aktif</p>
-          <p className="mt-0.5 text-xl font-bold text-emerald-800">{statusCounts['Kandidat Aktif']}</p>
-        </div>
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3 shadow-sm">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-red-600">Mengundurkan Diri</p>
-          <p className="mt-0.5 text-xl font-bold text-red-800">{statusCounts['Mengundurkan Diri']}</p>
-        </div>
-        <div className="rounded-lg border border-purple-200 bg-purple-50 p-3 shadow-sm">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-purple-600">Lulus Pendidikan</p>
-          <p className="mt-0.5 text-xl font-bold text-purple-800">{statusCounts['Lulus Pendidikan']}</p>
-        </div>
-        <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 shadow-sm">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-yellow-700">Cuti</p>
-          <p className="mt-0.5 text-xl font-bold text-yellow-800">{statusCounts.Cuti}</p>
-        </div>
+        {[
+          { label: 'Total Batch', value: totalBatch },
+          { label: 'Total Kandidat', value: totalKandidat },
+          { label: 'Calon Kandidat', value: statusCounts['Calon Kandidat'] },
+          { label: 'Kandidat Aktif', value: statusCounts['Kandidat Aktif'] },
+          { label: 'Mengundurkan Diri', value: statusCounts['Mengundurkan Diri'] },
+          { label: 'Lulus Pendidikan', value: statusCounts['Lulus Pendidikan'] },
+          { label: 'Cuti', value: statusCounts.Cuti },
+        ].map(s => (
+          <div key={s.label} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{s.label}</p>
+            <p className="mt-0.5 text-xl font-bold text-slate-800">{s.value}</p>
+          </div>
+        ))}
       </div>
 
       {/* Filter */}
