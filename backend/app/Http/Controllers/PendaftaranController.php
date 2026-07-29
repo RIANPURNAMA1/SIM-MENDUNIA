@@ -1158,6 +1158,23 @@ class PendaftaranController extends Controller
 
         $pembayaran = $query->orderBy('created_at', 'desc')->get();
 
+        // Enrich each Pembayaran with kode_unik from PembayaranItem
+        $allPembayaranItemIds = $pembayaran->map(fn($p) => ['pid' => $p->pendaftar_id, 'kid' => $p->kategori_id]);
+        $pembayaranItems = \App\Models\PembayaranItem::whereIn('pendaftar_id', $allPembayaranItemIds->pluck('pid')->unique())
+            ->whereIn('kategori_id', $allPembayaranItemIds->pluck('kid')->unique()->filter())
+            ->get()
+            ->keyBy(fn($pi) => $pi->pendaftar_id . '-' . ($pi->kategori_id ?? 0));
+
+        $enriched = $pembayaran->map(function ($p) use ($pembayaranItems) {
+            $key = $p->pendaftar_id . '-' . ($p->kategori_id ?? 0);
+            $pi = $pembayaranItems->get($key);
+            $kodeUnik = $pi ? (int) ($pi->kode_unik ?? 0) : 0;
+            return array_merge($p->toArray(), [
+                'kode_unik' => $kodeUnik,
+                'total_transfer' => $kodeUnik > 0 ? (float) $p->jumlah + $kodeUnik : (float) $p->jumlah,
+            ]);
+        });
+
         // Also include payments from pendaftar that don't have pembayaran records yet
         $existingPendaftarIds = Pembayaran::pluck('pendaftar_id')->unique()->toArray();
         $pendaftarWithoutPembayaran = \App\Models\Pendaftar::with('product')
@@ -1181,6 +1198,8 @@ class PendaftaranController extends Controller
                 'id' => -$p->id,
                 'pendaftar_id' => $p->id,
                 'jumlah' => $p->nominal,
+                'kode_unik' => 0,
+                'total_transfer' => (float) ($p->nominal ?? 0),
                 'status' => $p->status_pembayaran === 'verified' ? 'verified' : ($p->status_pembayaran ?: 'pending'),
                 'created_at' => $p->updated_at ?? $p->created_at,
                 'updated_at' => $p->updated_at ?? $p->created_at,
@@ -1189,7 +1208,7 @@ class PendaftaranController extends Controller
             ];
         });
 
-        $merged = collect($pembayaran->toArray())
+        $merged = collect($enriched)
             ->merge($synthetic)
             ->sortByDesc('created_at')
             ->values();
