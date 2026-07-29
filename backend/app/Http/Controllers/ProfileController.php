@@ -94,6 +94,13 @@ class ProfileController extends Controller
             'status_pernikahan' => 'nullable|in:BELUM MENIKAH,MENIKAH,CERAI',
             'pendidikan_terakhir' => 'nullable|string',
             'foto_profil' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'provinsi' => 'nullable|string|max:100',
+            'kabupaten' => 'nullable|string|max:100',
+            'kecamatan' => 'nullable|string|max:100',
+            'desa' => 'nullable|string|max:100',
+            'bank' => 'nullable|string|max:50',
+            'no_rekening' => 'nullable|string|max:50',
+            'nama_rekening' => 'nullable|string|max:100',
         ]);
 
         $user->name = $request->name;
@@ -105,6 +112,13 @@ class ProfileController extends Controller
         $user->agama = $request->agama;
         $user->status_pernikahan = $request->status_pernikahan;
         $user->pendidikan_terakhir = $request->pendidikan_terakhir;
+        $user->provinsi = $request->provinsi;
+        $user->kabupaten = $request->kabupaten;
+        $user->kecamatan = $request->kecamatan;
+        $user->desa = $request->desa;
+        $user->bank = $request->bank;
+        $user->no_rekening = $request->no_rekening;
+        $user->nama_rekening = $request->nama_rekening;
 
         if ($request->hasFile('foto_profil')) {
             $folderPath = public_path('uploads/foto_profil');

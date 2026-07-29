@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link2, Plus, Trash2, Copy, CheckCircle, X, ExternalLink, Users, User, UserCheck, UserPlus, RotateCcw, Search, Eye, ChevronDown, ChevronRight, MapPin, Landmark } from 'lucide-react'
+import { Link2, Plus, Trash2, Copy, CheckCircle, X, ExternalLink, Users, User, UserCheck, UserPlus, Eye, ChevronDown, ChevronRight, MapPin, Landmark } from 'lucide-react'
 import { affiliateLinkApi, productApi } from '../../services/api'
 import api from '../../services/api'
 
@@ -46,6 +46,7 @@ interface AffiliateDetailLink {
     telepon: string | null
     status_pendaftaran: string
     status_pembayaran: string
+    status_kandidat?: string
     created_at: string
     product?: { nama: string; harga: number; komisi: number | null }
     komisi_diperoleh: number
@@ -98,7 +99,6 @@ export default function DataAffiliate() {
   const [form, setForm] = useState({ affiliate_id: '', product_id: '', nama_link: '' })
   const [copied, setCopied] = useState<number | null>(null)
   const [copiedDaftar, setCopiedDaftar] = useState(false)
-  const [search, setSearch] = useState('')
   const [detailAffiliate, setDetailAffiliate] = useState<AffiliateDetail | null>(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [expandedLinks, setExpandedLinks] = useState<Record<number, boolean>>({})
@@ -166,10 +166,6 @@ export default function DataAffiliate() {
   }
 
   const linkBase = `${window.location.origin}/daftar/`
-
-  const filteredLinks = links.filter(l =>
-    !search || l.affiliate?.name?.toLowerCase().includes(search.toLowerCase()) || l.product?.nama?.toLowerCase().includes(search.toLowerCase()) || l.nama_link?.toLowerCase().includes(search.toLowerCase())
-  )
 
   const statusBadge = (status: boolean) => {
     return (
@@ -377,161 +373,6 @@ export default function DataAffiliate() {
         </div>
       </div>
 
-      {/* Filter */}
-      <div className="mb-4 rounded-lg bg-white p-3 shadow-sm sm:p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Cari affiliate, produk, atau nama link..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-          <button
-            onClick={() => setSearch('')}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-200"
-          >
-            <RotateCcw size={16} />
-            Reset
-          </button>
-        </div>
-      </div>
-
-      {/* Links Section */}
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-3 sm:px-5 sm:py-4">
-          <Link2 size={18} className="text-blue-600" />
-          <h2 className="font-semibold text-slate-800">Link Affiliate</h2>
-          <span className="ml-auto rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">{filteredLinks.length} link</span>
-        </div>
-
-        {/* Desktop Table */}
-        <div className="hidden overflow-x-auto sm:block">
-          <table className="w-full border-collapse text-left text-sm text-slate-700">
-            <thead className="text-sm text-slate-600">
-              <tr>
-                <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Link</th>
-                <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Affiliate</th>
-                <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Produk</th>
-                <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Views</th>
-                <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Pendaftar</th>
-                <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Status</th>
-                <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredLinks.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="border border-slate-200 px-6 py-10 text-center">
-                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-                      <Users size={24} />
-                    </div>
-                    <p className="mt-3 text-sm font-medium text-slate-600">Belum ada link affiliate</p>
-                  </td>
-                </tr>
-              ) : (
-                filteredLinks.map(link => (
-                  <tr key={link.id} className="bg-white transition hover:bg-slate-50">
-                    <td className="border border-slate-200 px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <Link2 size={16} className="shrink-0 text-blue-500" />
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-slate-800 max-w-[180px]">{link.nama_link || link.kode}</p>
-                          <p className="truncate text-xs text-slate-400 max-w-[180px]">{linkBase}{link.kode}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">{link.affiliate?.name || '-'}</td>
-                    <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">{link.product?.nama || '-'}</td>
-                    <td className="border border-slate-200 px-4 py-3 text-center text-sm font-medium text-slate-800">{link.views}</td>
-                    <td className="border border-slate-200 px-4 py-3 text-center text-sm font-medium text-slate-800">{link.pendaftar_count}</td>
-                    <td className="border border-slate-200 px-4 py-3 text-center">{statusBadge(link.status)}</td>
-                    <td className="border border-slate-200 px-4 py-3 text-center">
-                      <div className="flex justify-center gap-1.5">
-                        <button onClick={() => copyLink(link.kode, link.id)}
-                          className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600" title="Salin link">
-                          {copied === link.id ? <CheckCircle size={15} className="text-emerald-500" /> : <Copy size={15} />}
-                        </button>
-                        <a href={`${linkBase}${link.kode}`} target="_blank" rel="noopener noreferrer"
-                          className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600" title="Buka link">
-                          <ExternalLink size={15} />
-                        </a>
-                        <button onClick={() => handleDelete(link.id)}
-                          className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600" title="Hapus">
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile Cards */}
-        <div className="sm:hidden">
-          {filteredLinks.length === 0 ? (
-            <div className="px-6 py-10 text-center">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-                <Users size={24} />
-              </div>
-              <p className="mt-3 text-sm font-medium text-slate-600">Belum ada link affiliate</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {filteredLinks.map(link => (
-                <div key={link.id} className="p-4">
-                  <div className="mb-2 flex items-start gap-2">
-                    <Link2 size={16} className="mt-0.5 shrink-0 text-blue-500" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-slate-800 truncate">{link.nama_link || link.kode}</p>
-                      <p className="text-[11px] text-slate-400 truncate">{linkBase}{link.kode}</p>
-                    </div>
-                    {statusBadge(link.status)}
-                  </div>
-                  <div className="mb-3 grid grid-cols-2 gap-2 text-xs">
-                    <div>
-                      <p className="text-slate-400">Affiliate</p>
-                      <p className="font-medium text-slate-700 truncate">{link.affiliate?.name || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="text-slate-400">Produk</p>
-                      <p className="font-medium text-slate-700 truncate">{link.product?.nama || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="text-slate-400">Views</p>
-                      <p className="font-bold text-slate-800">{link.views}</p>
-                    </div>
-                    <div>
-                      <p className="text-slate-400">Pendaftar</p>
-                      <p className="font-bold text-slate-800">{link.pendaftar_count}</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => copyLink(link.kode, link.id)}
-                      className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50">
-                      {copied === link.id ? <><CheckCircle size={13} className="text-emerald-500" /> Tersalin</> : <><Copy size={13} /> Salin</>}
-                    </button>
-                    <a href={`${linkBase}${link.kode}`} target="_blank" rel="noopener noreferrer"
-                      className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50">
-                      <ExternalLink size={13} /> Buka
-                    </a>
-                    <button onClick={() => handleDelete(link.id)}
-                      className="flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600">
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* Generate Link Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-4" onClick={() => setShowModal(false)}>
@@ -579,7 +420,7 @@ export default function DataAffiliate() {
       {/* Detail Modal */}
       {detailAffiliate && (
         <div className="fixed inset-0 z-50 flex bg-black/40 sm:items-center sm:justify-center sm:p-4" onClick={() => setDetailAffiliate(null)}>
-          <div className="h-full w-full overflow-y-auto bg-white sm:h-auto sm:max-w-3xl sm:rounded-xl sm:shadow-xl" onClick={e => e.stopPropagation()}>
+          <div className="h-full w-full overflow-y-auto bg-white sm:h-auto sm:max-w-6xl sm:rounded-xl sm:shadow-xl" onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 sm:px-5 sm:py-4">
               <div className="flex items-center gap-3">
@@ -630,82 +471,82 @@ export default function DataAffiliate() {
                 </div>
               </div>
 
-              {/* Data Diri */}
-              <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-                <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
-                  <User size={16} className="text-blue-600" />
-                  <h3 className="text-sm font-semibold text-slate-800">Data Diri</h3>
+              {/* Data Diri + Wilayah + Rekening Bank — side by side */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                  <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
+                    <User size={16} className="text-blue-600" />
+                    <h3 className="text-sm font-semibold text-slate-800">Data Diri</h3>
+                  </div>
+                  <div className="space-y-3 px-4 py-3">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Nama Lengkap</p>
+                      <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Email</p>
+                      <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-slate-400">No. WhatsApp</p>
+                      <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.no_hp || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Bergabung</p>
+                      <p className="text-sm font-medium text-slate-800">
+                        {new Date(detailAffiliate.affiliate.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Alamat</p>
+                      <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.alamat || '-'}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="grid grid-cols-1 gap-y-3 px-4 py-3 sm:grid-cols-2 sm:gap-x-6">
-                  <div>
-                    <p className="text-[11px] uppercase tracking-wide text-slate-400">Nama Lengkap</p>
-                    <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.name}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] uppercase tracking-wide text-slate-400">Email</p>
-                    <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.email}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] uppercase tracking-wide text-slate-400">No. WhatsApp</p>
-                    <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.no_hp || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] uppercase tracking-wide text-slate-400">Bergabung</p>
-                    <p className="text-sm font-medium text-slate-800">
-                      {new Date(detailAffiliate.affiliate.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                    </p>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <p className="text-[11px] uppercase tracking-wide text-slate-400">Alamat</p>
-                    <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.alamat || '-'}</p>
-                  </div>
-                </div>
-              </div>
 
-              {/* Wilayah */}
-              <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-                <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
-                  <MapPin size={16} className="text-emerald-600" />
-                  <h3 className="text-sm font-semibold text-slate-800">Wilayah</h3>
+                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                  <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
+                    <MapPin size={16} className="text-emerald-600" />
+                    <h3 className="text-sm font-semibold text-slate-800">Wilayah</h3>
+                  </div>
+                  <div className="space-y-3 px-4 py-3">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Provinsi</p>
+                      <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.provinsi || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Kabupaten / Kota</p>
+                      <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.kabupaten || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Kecamatan</p>
+                      <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.kecamatan || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Desa / Kelurahan</p>
+                      <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.desa || '-'}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="grid grid-cols-1 gap-y-3 px-4 py-3 sm:grid-cols-2 sm:gap-x-6">
-                  <div>
-                    <p className="text-[11px] uppercase tracking-wide text-slate-400">Provinsi</p>
-                    <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.provinsi || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] uppercase tracking-wide text-slate-400">Kabupaten / Kota</p>
-                    <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.kabupaten || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] uppercase tracking-wide text-slate-400">Kecamatan</p>
-                    <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.kecamatan || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] uppercase tracking-wide text-slate-400">Desa / Kelurahan</p>
-                    <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.desa || '-'}</p>
-                  </div>
-                </div>
-              </div>
 
-              {/* Rekening Bank */}
-              <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-                <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
-                  <Landmark size={16} className="text-violet-600" />
-                  <h3 className="text-sm font-semibold text-slate-800">Rekening Bank</h3>
-                </div>
-                <div className="grid grid-cols-1 gap-y-3 px-4 py-3 sm:grid-cols-2 sm:gap-x-6">
-                  <div>
-                    <p className="text-[11px] uppercase tracking-wide text-slate-400">Nama Bank</p>
-                    <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.bank || '-'}</p>
+                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                  <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
+                    <Landmark size={16} className="text-violet-600" />
+                    <h3 className="text-sm font-semibold text-slate-800">Rekening Bank</h3>
                   </div>
-                  <div>
-                    <p className="text-[11px] uppercase tracking-wide text-slate-400">No. Rekening</p>
-                    <p className="font-mono text-sm font-medium text-slate-800">{detailAffiliate.affiliate.no_rekening || '-'}</p>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <p className="text-[11px] uppercase tracking-wide text-slate-400">Nama Pemilik Rekening</p>
-                    <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.nama_rekening || '-'}</p>
+                  <div className="space-y-3 px-4 py-3">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Nama Bank</p>
+                      <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.bank || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-slate-400">No. Rekening</p>
+                      <p className="font-mono text-sm font-medium text-slate-800">{detailAffiliate.affiliate.no_rekening || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Nama Pemilik Rekening</p>
+                      <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.nama_rekening || '-'}</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -786,7 +627,9 @@ export default function DataAffiliate() {
                                           p.status_pendaftaran === 'pending' ? 'bg-amber-50 text-amber-700' :
                                           'bg-red-50 text-red-600'
                                         }`}>{p.status_pendaftaran}</span>
-                                        {(p.komisi_diperoleh > 0 || p.komisi_pending > 0) && (
+                                        {p.status_kandidat === 'Mengundurkan Diri' ? (
+                                          <span className="rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-medium text-red-600">Mengundurkan Diri</span>
+                                        ) : (p.komisi_diperoleh > 0 || p.komisi_pending > 0) && (
                                           <span className="text-[10px] font-medium text-amber-600">
                                             {p.komisi_diperoleh > 0 ? `Rp ${Number(p.komisi_diperoleh).toLocaleString('id-ID')}` : `Rp ${Number(p.komisi_pending).toLocaleString('id-ID')} (pending)`}
                                           </span>

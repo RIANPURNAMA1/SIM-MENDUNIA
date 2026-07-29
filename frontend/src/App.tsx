@@ -67,6 +67,7 @@ import DataPengeluaran from './pages/Keuangan/DataPengeluaran'
 import DashboardKeuangan from './pages/Keuangan/DashboardKeuangan'
 import DaftarAffiliate from './pages/Pendaftaran/DaftarAffiliate'
 import AffiliateDashboard from './pages/Affiliate/AffiliateDashboard'
+import Profile from './pages/Affiliate/Profile'
 import DaftarAffiliateBaru from './pages/Pendaftaran/DaftarAffiliateBaru'
 import DaftarProgram from './pages/Pendaftaran/DaftarProgram'
 import Bayar from './pages/Bayar/Bayar'
@@ -203,6 +204,16 @@ function AppRoutes() {
           <ProtectedRoute roleAllowed="AFFILIATE">
             <AffiliateLayout>
               <AffiliateDashboard />
+            </AffiliateLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/affiliate-profile"
+        element={
+          <ProtectedRoute roleAllowed="AFFILIATE">
+            <AffiliateLayout>
+              <Profile />
             </AffiliateLayout>
           </ProtectedRoute>
         }

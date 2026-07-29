@@ -14,7 +14,7 @@ interface DashboardData {
   affiliate: { name: string; email: string; telepon: string | null; alamat: string | null }
   stats: { total_links: number; total_views: number; total_pendaftar: number; pending: number; disetujui: number; komisi_pending: number; komisi_paid: number }
   links: { id: number; kode: string; nama_link: string | null; views: number; pendaftar_count: number; product: { id: number; nama: string; harga: number; komisi: number | null } | null; komisi_dibayar: number; komisi_pending: number; total_komisi: number }[]
-  pendaftar: { id: number; nama: string; email: string; nominal: number; status_pendaftaran: string; status_pembayaran: string; created_at: string; product: { nama: string; harga: number; komisi: number | null } | null; komisi_diperoleh: number; komisi_pending: number }[]
+  pendaftar: { id: number; nama: string; email: string; nominal: number; status_pendaftaran: string; status_pembayaran: string; status_kandidat?: string; created_at: string; product: { nama: string; harga: number; komisi: number | null } | null; komisi_diperoleh: number; komisi_pending: number }[]
 }
 
 function toast(msg: string) {
@@ -106,7 +106,7 @@ export default function AffiliateDashboard() {
     <>
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between shadow-sm">
+      <div className="mb-4 flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between shadow-sm">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
             <Link2 size={20} />
@@ -123,7 +123,7 @@ export default function AffiliateDashboard() {
       </div>
 
       {/* Tabs */}
-      <div className="mb-4 flex gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+      <div className="mb-4 flex gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
         <button onClick={() => setTab('dashboard')}
           className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${tab === 'dashboard' ? 'bg-[#0E6187] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
           <LayoutDashboard size={16} />
@@ -144,7 +144,7 @@ export default function AffiliateDashboard() {
       {tab === 'dashboard' ? (
         <>
           {/* Affiliate Profile */}
-          <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-center gap-4">
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#0E6187] text-white shrink-0">
                 <User size={26} />
@@ -170,7 +170,7 @@ export default function AffiliateDashboard() {
               { label: 'Total Pendaftar', value: stats.total_pendaftar, icon: Users, color: 'text-emerald-600 bg-emerald-50', hint: 'Jumlah pendaftar melalui link Anda' },
               { label: 'Pending', value: stats.pending, icon: Clock, color: 'text-amber-600 bg-amber-50', hint: 'Menunggu persetujuan admin' },
             ].map(s => (
-              <div key={s.label} className="group relative rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md">
+              <div key={s.label} className="group relative rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md">
                 <div className="flex items-center gap-3">
                   <div className={`rounded-lg p-2.5 ${s.color}`}>
                     <s.icon size={20} />
@@ -190,31 +190,21 @@ export default function AffiliateDashboard() {
           </div>
 
           {/* Komisi */}
-          <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {[
-              { label: 'Komisi Pending', value: stats.komisi_pending, icon: Wallet, color: 'text-amber-600 bg-amber-50', hint: 'Komisi yang belum dicairkan' },
-              { label: 'Komisi Dibayar', value: stats.komisi_paid, icon: Banknote, color: 'text-emerald-600 bg-emerald-50', hint: 'Total komisi yang sudah dibayarkan' },
-            ].map(s => (
-              <div key={s.label} className="group relative rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md">
-                <div className="flex items-center gap-3">
-                  <div className={`rounded-lg p-2.5 ${s.color}`}>
-                    <s.icon size={20} />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-xs font-medium text-slate-500">{s.label}</p>
-                      <Info size={11} className="text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity cursor-help" title={s.hint} />
-                    </div>
-                    <p className="text-xl font-bold text-slate-800">Rp {Number(s.value).toLocaleString('id-ID')}</p>
-                  </div>
-                </div>
+          <div className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg p-2.5 text-emerald-600 bg-emerald-50">
+                <Banknote size={20} />
               </div>
-            ))}
+              <div>
+                <p className="text-xs font-medium text-slate-500">Komisi Didapat</p>
+                <p className="text-xl font-bold text-slate-800">Rp {Number(stats.komisi_paid).toLocaleString('id-ID')}</p>
+              </div>
+            </div>
           </div>
 
           {/* Links + Pendaftar */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5">
                 <h2 className="text-sm font-bold text-slate-800">Link Saya</h2>
                 {links.length > 0 && (
@@ -267,7 +257,7 @@ export default function AffiliateDashboard() {
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5">
                 <h2 className="text-sm font-bold text-slate-800">Pendaftar Terbaru</h2>
                 {pendaftar.length > 0 && (
@@ -318,7 +308,7 @@ export default function AffiliateDashboard() {
       ) : (
         <>
           {/* Data Pendaftar Table */}
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
             <div className="border-b border-slate-100 px-5 py-3.5">
               <h2 className="text-sm font-bold text-slate-800">Data Pendaftar</h2>
             </div>
@@ -332,33 +322,39 @@ export default function AffiliateDashboard() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-left text-sm">
+                <table className="w-full border-collapse text-left text-sm text-slate-700">
                   <thead>
-                    <tr className="bg-slate-50">
-                      <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Nama</th>
-                      <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Email</th>
-                      <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Program</th>
-                      <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Komisi</th>
-                      <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Tanggal</th>
+                    <tr className="text-xs text-slate-500">
+                      <th className="border border-slate-200 px-4 py-3 font-medium">Nama</th>
+                      <th className="border border-slate-200 px-4 py-3 font-medium">Email</th>
+                      <th className="border border-slate-200 px-4 py-3 font-medium">Program</th>
+                      <th className="border border-slate-200 px-4 py-3 text-center font-medium">Status</th>
+                      <th className="border border-slate-200 px-4 py-3 font-medium">Tanggal</th>
                     </tr>
                   </thead>
                   <tbody>
                     {pendaftar.map(p => (
-                      <tr key={p.id} className="border-t border-slate-100 bg-white transition hover:bg-slate-50">
-                        <td className="px-4 py-3 text-sm font-semibold text-slate-800">{p.nama}</td>
-                        <td className="px-4 py-3 text-sm text-slate-500">{p.email}</td>
-                        <td className="px-4 py-3 text-sm text-slate-600">
+                      <tr key={p.id} className="bg-white transition hover:bg-slate-50">
+                        <td className="border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-800">{p.nama}</td>
+                        <td className="border border-slate-200 px-4 py-3 text-sm text-slate-500">{p.email}</td>
+                        <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">
                           {p.product?.nama || '-'}
                           {p.product?.komisi && <span className="ml-1 text-[10px] text-blue-500">(Rp {Number(p.product.komisi).toLocaleString('id-ID')}/org)</span>}
                         </td>
-                        <td className="px-4 py-3 text-xs">
-                          {p.komisi_diperoleh > 0 ? (
-                            <span className="text-emerald-600 font-semibold">Rp {Number(p.komisi_diperoleh).toLocaleString('id-ID')}</span>
-                          ) : p.komisi_pending > 0 ? (
-                            <span className="text-amber-600 font-medium">Rp {Number(p.komisi_pending).toLocaleString('id-ID')} (pending)</span>
-                          ) : <span className="text-slate-400">-</span>}
+                        <td className="border border-slate-200 px-4 py-3 text-center">
+                          {p.status_kandidat === 'Mengundurkan Diri' ? (
+                            <span className="inline-flex rounded bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-700">Mengundurkan Diri</span>
+                          ) : p.status_kandidat ? (
+                            <span className="inline-flex rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">{p.status_kandidat}</span>
+                          ) : (
+                            <span className={`inline-flex rounded px-2 py-0.5 text-[10px] font-medium ${
+                              p.status_pendaftaran === 'disetujui' ? 'bg-emerald-50 text-emerald-700' :
+                              p.status_pendaftaran === 'ditolak' ? 'bg-red-50 text-red-700' :
+                              'bg-amber-50 text-amber-700'
+                            }`}>{p.status_pendaftaran}</span>
+                          )}
                         </td>
-                        <td className="px-4 py-3 text-sm text-slate-500">
+                        <td className="border border-slate-200 px-4 py-3 text-sm text-slate-500">
                           {new Date(p.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </td>
                       </tr>
@@ -375,7 +371,7 @@ export default function AffiliateDashboard() {
       {/* Modal Buat Link Baru */}
       {showBuatLink && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowBuatLink(false)}>
-          <div className="w-full max-w-sm rounded-xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-sm rounded-lg bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
               <h2 className="text-lg font-bold text-slate-800">Buat Link Baru</h2>
               <button onClick={() => setShowBuatLink(false)} className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200"><X size={18} /></button>
