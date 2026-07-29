@@ -639,3 +639,6 @@ Route::get('/redis-test', function () {
         ], 500);
     }
 });
+
+// ========== Public: Verifikasi Invoice (no auth) ==========
+Route::get('/verifikasi/{noInvoice}', [PendaftaranController::class, 'verifikasi']);

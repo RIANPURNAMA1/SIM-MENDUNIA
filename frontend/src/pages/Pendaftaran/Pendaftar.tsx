@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { Search, FileText, Eye, Trash2, RotateCcw, CreditCard, X, Loader, AlertTriangle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Users, MoreHorizontal, BadgeCheck, Ban, RefreshCw, Clock, CheckCircle2, Banknote, Upload } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Search, FileText, Eye, Trash2, RotateCcw, CreditCard, X, Loader, AlertTriangle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Users, MoreHorizontal, BadgeCheck, Ban, RefreshCw, Clock, CheckCircle2, Banknote, Upload, Receipt } from 'lucide-react'
 import { pendaftarApi, pendaftarApi as apiModule } from '../../services/api'
 import api, { APP_URL } from '../../services/api'
 import Swal from 'sweetalert2'
@@ -61,6 +62,7 @@ export default function Pendaftar() {
   const [bayarSubmitting, setBayarSubmitting] = useState(false)
   const [bayarError, setBayarError] = useState('')
   const [kategoris, setKategoris] = useState<{ id: number; kode: string; nama: string; urutan: number }[]>([])
+  const navigate = useNavigate()
   const [kategoriItems, setKategoriItems] = useState<Record<number, { kategori_id: number; biaya: number; dibayar: number }[]>>({})
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(25)
@@ -459,6 +461,11 @@ export default function Pendaftar() {
                             className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
                             <CreditCard size={14} className="text-slate-400" />
                             <span>Riwayat Pembayaran</span>
+                          </button>
+                          <button onClick={() => { navigate(`/pendaftar/${p.id}/invoice`); setOpenActionId(null) }}
+                            className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                            <Receipt size={14} className="text-slate-400" />
+                            <span>Invoice</span>
                           </button>
                           {p.bukti_pembayaran && (
                             <button onClick={() => { setPreviewImg(`${APP_URL}/storage/${p.bukti_pembayaran}`); setOpenActionId(null) }}

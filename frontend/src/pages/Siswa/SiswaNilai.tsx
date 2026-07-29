@@ -556,7 +556,7 @@ function EvalInstrukturModal({
     try {
       await api.post('/siswa/evaluasi-guru', {
         batch_id: batchId,
-        level,
+        level: String(level),
         rating: Math.round(avgScore),
         komentar: comment || null,
         scores,

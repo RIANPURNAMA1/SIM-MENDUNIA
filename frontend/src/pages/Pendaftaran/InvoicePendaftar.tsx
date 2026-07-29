@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Download, Printer, FileText, CheckCircle, Clock, XCircle, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, Download, Printer, FileText, CheckCircle, Clock, XCircle, ShieldCheck, Loader } from 'lucide-react'
 import { toDataURL } from 'qrcode'
 import { pendaftarApi, companyProfileApi } from '../../services/api'
 import type { CompanyProfile } from '../../types'
@@ -39,6 +39,16 @@ interface InvoiceData {
     status: string
     created_at: string
     bukti_pembayaran: string | null
+  }>
+  pembayaran_items: Array<{
+    id: number
+    kategori_id: number
+    kategori_kode: string
+    kategori_nama: string
+    jumlah: number
+    kode_unik: number | null
+    total_transfer: number | null
+    created_at: string
   }>
 }
 
@@ -161,7 +171,7 @@ export default function InvoicePendaftar() {
     )
   }
 
-  const { pendaftar, product, keuangan, riwayat_pembayaran, no_invoice } = data
+  const { pendaftar, product, keuangan, riwayat_pembayaran, no_invoice, pembayaran_items } = data
   const tgl = new Date(pendaftar.created_at)
   const formattedDate = tgl.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
 
@@ -263,12 +273,22 @@ export default function InvoicePendaftar() {
                 <tr className="border-b border-slate-100 bg-white">
                   <td className="px-4 py-3.5">
                     <p className="font-semibold text-slate-800">{product?.nama || 'Program Pendaftaran'}</p>
-                    <p className="mt-0.5 text-[11px] text-slate-400">Biaya pendaftaran program</p>
+                    <p className="mt-0.5 text-[11px] text-slate-400">Biaya program</p>
                   </td>
                   <td className="px-4 py-3.5 text-right font-semibold text-slate-800">
                     Rp {keuangan.harga_produk.toLocaleString('id-ID')}
                   </td>
                 </tr>
+                {pembayaran_items && pembayaran_items.map((item) => (
+                  <tr key={item.id} className="border-b border-slate-100 bg-white">
+                    <td className="px-4 py-3.5">
+                      <p className="font-semibold text-slate-800">{item.kategori_nama}</p>
+                    </td>
+                    <td className="px-4 py-3.5 text-right font-semibold text-slate-800">
+                      Rp {item.jumlah.toLocaleString('id-ID')}
+                    </td>
+                  </tr>
+                ))}
                 {keuangan.diskon > 0 && (
                   <tr className="border-b border-slate-100 bg-white">
                     <td className="px-4 py-3.5">
