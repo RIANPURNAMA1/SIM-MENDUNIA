@@ -311,7 +311,7 @@ export default function PembayaranSiswa() {
     const effectiveBiaya = totalBiaya > 0 ? Math.round(i.biaya - (diskon * i.biaya / totalBiaya)) : i.biaya
     const verified = groupVerified.get(i.kategori_id) || 0
     const pending = groupPending.get(i.kategori_id) || 0
-    return (verified > 0 && verified < effectiveBiaya) || (verified === 0 && pending > 0 && pending < effectiveBiaya)
+    return pending > 0 && verified < effectiveBiaya
   }).map(i => i.kategori_id)
 
   const pendingKategoriIds = new Set<number>()
