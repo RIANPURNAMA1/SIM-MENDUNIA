@@ -85,65 +85,78 @@ class KehadiranController extends Controller
     // API
     public function apiIndex(Request $request)
     {
-        $start_date = $request->start_date ?? now('Asia/Jakarta')->startOfMonth()->toDateString();
-        $end_date   = $request->end_date ?? now('Asia/Jakarta')->endOfMonth()->toDateString();
-        $cabang_id  = $request->cabang_id;
-        $divisi_id  = $request->divisi_id;
-        $status     = $request->status;
-        $search     = $request->search;
+        try {
+            $start_date = $request->start_date ?? now('Asia/Jakarta')->startOfMonth()->toDateString();
+            $end_date   = $request->end_date ?? now('Asia/Jakarta')->endOfMonth()->toDateString();
+            $cabang_id  = $request->cabang_id;
+            $divisi_id  = $request->divisi_id;
+            $status     = $request->status;
+            $search     = $request->search;
 
-        // Ambil absensi yang sudah ada di DB
-        $absensis = Absensi::with(['user.shift', 'user.divisi', 'cabang', 'shift'])
-            ->whereBetween('tanggal', [$start_date, $end_date])
-            ->whereHas('user', fn($q) => $q->where('status', 'AKTIF'))
-            ->whereDoesntHave('user.kelasSensei')
-            ->when($search, fn($q) => $q->whereHas('user', fn($qq) => $qq->where(function ($qqq) use ($search) {
-                $qqq->where('name', 'like', "%{$search}%")->orWhere('nip', 'like', "%{$search}%");
-            })))
-            ->when($status, fn($q) => $q->where('status', $status))
-            ->when($cabang_id, fn($q) => $q->whereHas('user', fn($qq) => $qq->where('cabang_id', $cabang_id)))
-            ->when($divisi_id, fn($q) => $q->whereHas('user', fn($qq) => $qq->where('divisi_id', $divisi_id)))
-            ->orderBy('tanggal', 'desc')
-            ->orderBy('jam_masuk', 'asc')
-            ->get()
-            ->toArray();
+            // Ambil absensi yang sudah ada di DB
+            $absensis = Absensi::with([
+                'user' => fn($q) => $q->select(['id', 'name', 'nip', 'divisi_id', 'shift_id']),
+                'user.shift',
+                'user.divisi',
+                'cabang',
+                'shift',
+            ])
+                ->whereBetween('tanggal', [$start_date, $end_date])
+                ->whereHas('user', fn($q) => $q->where('status', 'AKTIF'))
+                ->whereDoesntHave('user.kelasSensei')
+                ->when($search, fn($q) => $q->whereHas('user', fn($qq) => $qq->where(function ($qqq) use ($search) {
+                    $qqq->where('name', 'like', "%{$search}%")->orWhere('nip', 'like', "%{$search}%");
+                })))
+                ->when($status, fn($q) => $q->where('status', $status))
+                ->when($cabang_id, fn($q) => $q->whereHas('user', fn($qq) => $qq->whereJsonContains('cabang_ids', (int)$cabang_id)))
+                ->when($divisi_id, fn($q) => $q->whereHas('user', fn($qq) => $qq->where('divisi_id', $divisi_id)))
+                ->orderBy('tanggal', 'desc')
+                ->orderBy('jam_masuk', 'asc')
+                ->get();
 
-        // Kirim juga daftar user aktif — frontend akan generate virtual records sendiri
-        $users = User::with('divisi')
-            ->where('status', 'AKTIF')
-            ->whereDoesntHave('kelasSensei')
-            ->when($cabang_id, fn($q) => $q->where('cabang_id', $cabang_id))
-            ->when($divisi_id, fn($q) => $q->where('divisi_id', $divisi_id))
-            ->when($search, fn($q) => $q->where(function ($qq) use ($search) {
-                $qq->where('name', 'like', "%{$search}%")->orWhere('nip', 'like', "%{$search}%");
-            }))
-            ->get(['id', 'name', 'nip', 'shift_id', 'shift_ids', 'divisi_id', 'cabang_id', 'cabang_ids'])
-            ->map(fn($u) => [
-                'id' => $u->id,
-                'name' => $u->name,
-                'nip' => $u->nip,
-                'divisi' => $u->divisi ? ['nama_divisi' => $u->divisi->nama_divisi] : null,
+            // Kirim juga daftar user aktif — frontend akan generate virtual records sendiri
+            $users = User::with('divisi')
+                ->where('status', 'AKTIF')
+                ->whereDoesntHave('kelasSensei')
+                ->when($cabang_id, fn($q) => $q->whereJsonContains('cabang_ids', (int)$cabang_id))
+                ->when($divisi_id, fn($q) => $q->where('divisi_id', $divisi_id))
+                ->when($search, fn($q) => $q->where(function ($qq) use ($search) {
+                    $qq->where('name', 'like', "%{$search}%")->orWhere('nip', 'like', "%{$search}%");
+                }))
+                ->get(['id', 'name', 'nip', 'divisi_id'])
+                ->map(fn($u) => [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'nip' => $u->nip,
+                    'divisi' => $u->divisi ? ['nama_divisi' => $u->divisi->nama_divisi] : null,
+                ]);
+
+            $list_cabang = Cabang::all();
+            $list_divisi = Divisi::all();
+
+            $hariLibur = \App\Models\HariLibur::whereBetween('tanggal', [$start_date, $end_date])
+                ->pluck('tanggal')
+                ->map(fn($d) => (string) $d)
+                ->values();
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $absensis,
+                'users' => $users,
+                'hari_libur' => $hariLibur,
+                'start_date' => $start_date,
+                'end_date' => $end_date,
+                'list_cabang' => $list_cabang,
+                'list_divisi' => $list_divisi,
             ]);
-
-        $list_cabang = Cabang::all();
-        $list_divisi = Divisi::all();
-
-        // Pre-compute hari libur untuk range (supaya frontend tau)
-        $hariLibur = \App\Models\HariLibur::whereBetween('tanggal', [$start_date, $end_date])
-            ->pluck('tanggal')
-            ->map(fn($d) => $d->toDateString())
-            ->values();
-
-        return response()->json([
-            'status' => 'success',
-            'data' => $absensis,
-            'users' => $users,
-            'hari_libur' => $hariLibur,
-            'start_date' => $start_date,
-            'end_date' => $end_date,
-            'list_cabang' => $list_cabang,
-            'list_divisi' => $list_divisi,
-        ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+            ], 500);
+        }
     }
 
     public function updateStatusApi(Request $request)
@@ -167,7 +180,10 @@ class KehadiranController extends Controller
                 'shift_id' => $request->shift_id,
             ]);
             if (!$absen->exists) {
-                $absen->cabang_id = User::find($request->user_id)?->cabang_id;
+                $user = User::find($request->user_id);
+                if ($user && !empty($user->cabang_ids)) {
+                    $absen->cabang_id = is_array($user->cabang_ids) ? $user->cabang_ids[0] : $user->cabang_ids;
+                }
             }
         } else {
             return response()->json(['message' => 'ID absensi tidak valid'], 400);

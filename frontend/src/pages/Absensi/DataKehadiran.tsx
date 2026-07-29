@@ -54,6 +54,7 @@ export default function DataKehadiranPage() {
   const [listCabang, setListCabang] = useState<Cabang[]>([])
   const [listDivisi, setListDivisi] = useState<Divisi[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   const now = new Date()
   const [startDate, setStartDate] = useState(() => {
@@ -83,16 +84,22 @@ export default function DataKehadiranPage() {
       if (search) params.search = search
       const res = await kehadiranApi.list(params)
       const apiData = res.data
-      if (apiData.hari_libur) {
-        HARI_LIBUR.clear()
-        apiData.hari_libur.forEach((d: string) => HARI_LIBUR.add(d))
+      if (apiData.status === 'error') {
+        setError(apiData.message || 'Terjadi kesalahan server')
+      } else {
+        setError('')
+        if (apiData.hari_libur) {
+          HARI_LIBUR.clear()
+          apiData.hari_libur.forEach((d: string) => HARI_LIBUR.add(d))
+        }
+        setRealData(apiData.data || [])
+        setUsers(apiData.users || [])
+        setListCabang(apiData.list_cabang || [])
+        setListDivisi(apiData.list_divisi || [])
       }
-      setRealData(apiData.data || [])
-      setUsers(apiData.users || [])
-      setListCabang(apiData.list_cabang || [])
-      setListDivisi(apiData.list_divisi || [])
     } catch (err) {
       console.error(err)
+      setError('Gagal mengambil data kehadiran')
     } finally {
       setLoading(false)
     }
@@ -103,16 +110,15 @@ export default function DataKehadiranPage() {
   const dates = useMemo(() => dateRangeArr(startDate, endDate), [startDate, endDate])
 
   const data = useMemo(() => {
-    const real = realData as any[]
-    const userList = users
+    const result: any[] = [...realData]
     if (!filterStatus) {
-      const realKeys = new Set(real.map((r: any) => `${r.user_id}_${(r.tanggal || '').split('T')[0]}`))
+      const realKeys = new Set(result.map((r: any) => `${r.user_id}_${(r.tanggal || '').split('T')[0]}`))
       let vId = 0
-      for (const u of userList) {
+      for (const u of users) {
         for (const d of dates) {
           if (realKeys.has(`${u.id}_${d}`)) continue
           const libur = isLibur(d)
-          real.push({
+          result.push({
             id: `virtual_${vId++}`,
             user_id: u.id,
             shift_id: null,
@@ -141,7 +147,7 @@ export default function DataKehadiranPage() {
           })
         }
       }
-      real.sort((a: any, b: any) => {
+      result.sort((a: any, b: any) => {
         const da = (a.tanggal || '').split('T')[0]
         const db = (b.tanggal || '').split('T')[0]
         if (da > db) return -1
@@ -151,7 +157,7 @@ export default function DataKehadiranPage() {
         return ja < jb ? -1 : ja > jb ? 1 : 0
       })
     }
-    return real
+    return result
   }, [realData, users, dates, filterStatus])
 
   const resetFilter = () => {
@@ -281,6 +287,13 @@ export default function DataKehadiranPage() {
           </button>
         </div>
       </div>
+
+      {/* Error */}
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
       {/* Summary */}
       {!loading && data.length > 0 && (
