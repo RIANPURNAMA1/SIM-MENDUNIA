@@ -1,3 +1,10 @@
+@if($customTemplate)
+{!! str_replace(
+    ['{nama}', '{kategori}', '{jumlah}', '{deadline}', '{link}'],
+    [e($nama), e($kategori), e($jumlah), e($hariTersisa), e($link)],
+    $customTemplate
+) !!}
+@else
 <!DOCTYPE html>
 <html>
 <head>
@@ -78,3 +85,4 @@
     </table>
 </body>
 </html>
+@endif

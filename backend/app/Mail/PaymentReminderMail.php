@@ -34,6 +34,9 @@ class PaymentReminderMail extends Mailable
     {
         return new Content(
             htmlView: 'emails.payment-reminder',
+            with: [
+                'customTemplate' => $this->customTemplate,
+            ],
         );
     }
 }
