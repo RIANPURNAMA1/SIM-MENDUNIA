@@ -82,150 +82,6 @@ class KehadiranController extends Controller
         return back()->with('success', 'Status absensi berhasil diperbarui');
     }
 
-    private function generateVirtualAbsensis($start_date, $end_date, $cabang_id, $divisi_id, $status, $search = null)
-    {
-        try {
-            $today = Carbon::today('Asia/Jakarta');
-            $start = Carbon::parse($start_date);
-            $end = Carbon::parse($end_date);
-
-            // Pre-compute libur dates untuk seluruh range (1 query)
-            $liburDates = [];
-            $dateCursor = $start->copy();
-            while ($dateCursor->lte($end)) {
-                if (HariLibur::apakahLibur($dateCursor->toDateString())) {
-                    $liburDates[] = $dateCursor->toDateString();
-                }
-                $dateCursor->addDay();
-            }
-            $liburDates = array_flip($liburDates); // flip for O(1) lookup
-
-            // Ambil user aktif — load divisi + shift sekaligus
-            $users = User::with('divisi')
-                ->where('status', 'AKTIF')
-                ->whereDoesntHave('kelasSensei')
-                ->when($cabang_id, fn($q) => $q->where('cabang_id', $cabang_id))
-                ->when($divisi_id, fn($q) => $q->where('divisi_id', $divisi_id))
-                ->when($search, fn($q) => $q->where(function ($qq) use ($search) {
-                    $qq->where('name', 'like', "%{$search}%")->orWhere('nip', 'like', "%{$search}%");
-                }))
-                ->get();
-
-            // Ambil absensi yang sudah ada di DB untuk range tanggal ini
-            $existingAbsensis = Absensi::whereBetween('tanggal', [$start_date, $end_date])
-                ->whereHas('user', fn($q) => $q->where('status', 'AKTIF'))
-                ->whereDoesntHave('user.kelasSensei')
-                ->when($cabang_id, fn($q) => $q->whereHas('user', fn($qq) => $qq->where('cabang_id', $cabang_id)))
-                ->when($divisi_id, fn($q) => $q->whereHas('user', fn($qq) => $qq->where('divisi_id', $divisi_id)))
-                ->get()
-                ->keyBy(fn($a) => $a->user_id . '_' . $a->tanggal->format('Y-m-d') . '_' . ($a->shift_id ?? 0));
-
-            // Pre-compute shifts per user (aksesor bisa query DB, jadi panggil sekali)
-            $userShiftsMap = [];
-            foreach ($users as $user) {
-                $s = $user->shifts;
-                if ($s->isEmpty() && $user->shift) {
-                    $s = collect([$user->shift]);
-                }
-                $userShiftsMap[$user->id] = $s;
-            }
-
-            $virtual = [];
-            $idCounter = 0;
-            $daysInRange = $start->diffInDays($end) + 1;
-
-            foreach ($users as $user) {
-                $divisi = $user->divisi;
-                $userShifts = $userShiftsMap[$user->id] ?? collect();
-                $date = $start->copy();
-
-                for ($d = 0; $d < $daysInRange; $d++) {
-                    $dateStr = $date->format('Y-m-d');
-
-                    if ($date->gt($today)) break;
-
-                    if ($userShifts->isNotEmpty()) {
-                        foreach ($userShifts as $shift) {
-                            $key = $user->id . '_' . $dateStr . '_' . ($shift->id ?? 0);
-                            if (isset($existingAbsensis[$key])) continue;
-
-                            $isLibur = isset($liburDates[$dateStr]);
-                            $statusLabel = $isLibur ? 'LIBUR' : 'ALPA';
-
-                            $virtual[] = $this->makeVirtualRecord(
-                                $user, $divisi, $shift, $dateStr, $statusLabel,
-                                $isLibur ? 'Libur otomatis (Weekend/Nasional)' : 'Tidak melakukan absensi seharian',
-                                $idCounter++
-                            );
-                        }
-                    } else {
-                        $key = $user->id . '_' . $dateStr . '_0';
-                        if (isset($existingAbsensis[$key])) continue;
-
-                        $hasAnyAbsensi = false;
-                        foreach ($existingAbsensis as $ek => $_) {
-                            if (strncmp($ek, $user->id . '_' . $dateStr, strlen($user->id) + 11) === 0) {
-                                $hasAnyAbsensi = true;
-                                break;
-                            }
-                        }
-                        if ($hasAnyAbsensi) continue;
-
-                        $isLibur = isset($liburDates[$dateStr]);
-                        $statusLabel = $isLibur ? 'LIBUR' : 'ALPA';
-
-                        $virtual[] = $this->makeVirtualRecord(
-                            $user, $divisi, null, $dateStr, $statusLabel,
-                            $isLibur ? 'Libur otomatis (Weekend/Nasional)' : 'Tidak melakukan absensi seharian',
-                            $idCounter++
-                        );
-                    }
-
-                    $date->addDay();
-                }
-            }
-
-            return $virtual;
-        } catch (\Exception $e) {
-            report($e);
-            return [];
-        }
-    }
-
-    private function makeVirtualRecord($user, $divisi, $shift, $dateStr, $statusLabel, $keterangan, $idCounter)
-    {
-        return [
-            'id' => 'virtual_' . $idCounter,
-            'user_id' => $user->id,
-            'shift_id' => $shift?->id,
-            'cabang_id' => $user->cabang_id ?? ($user->cabang_ids[0] ?? null),
-            'izin_id' => null,
-            'tanggal' => $dateStr,
-            'jam_masuk' => null,
-            'jam_keluar' => null,
-            'lat_masuk' => null,
-            'long_masuk' => null,
-            'lat_pulang' => null,
-            'long_pulang' => null,
-            'status' => $statusLabel,
-            'foto_masuk' => null,
-            'foto_pulang' => null,
-            'keterangan' => $keterangan,
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'nip' => $user->nip,
-                'shift' => $user->shift ? ['nama_shift' => $user->shift->nama_shift] : null,
-                'divisi' => $divisi ? ['nama_divisi' => $divisi->nama_divisi] : null,
-            ],
-            'shift' => $shift ? [
-                'id' => $shift->id,
-                'nama_shift' => $shift->nama_shift,
-            ] : null,
-            'cabang' => null,
-        ];
-    }
-
     // API
     public function apiIndex(Request $request)
     {
@@ -252,38 +108,39 @@ class KehadiranController extends Controller
             ->get()
             ->toArray();
 
-        // Generate virtual ALPA/LIBUR untuk hari yang tidak ada absensi
-        // Hanya jika tidak ada filter status spesifik (jika filter status dipilih, hormati)
-        if (!$status) {
-            $virtual = $this->generateVirtualAbsensis($start_date, $end_date, $cabang_id, $divisi_id, $status, $search);
-
-            // Filter virtual records berdasarkan status yang diminta (jika ada)
-            $filteredVirtual = $virtual;
-            if ($status) {
-                $filteredVirtual = array_filter($virtual, fn($v) => $v->status === $status);
-            }
-
-            // Gabung real + virtual, urutkan
-            $allData = array_merge($absensis, $filteredVirtual);
-            usort($allData, function ($a, $b) {
-                $dateA = $a['tanggal'];
-                $dateB = $b['tanggal'];
-                $cmp = strcmp($dateB, $dateA);
-                if ($cmp !== 0) return $cmp;
-                $jamA = $a['jam_masuk'] ?? '';
-                $jamB = $b['jam_masuk'] ?? '';
-                return strcmp($jamA, $jamB);
-            });
-
-            $absensis = $allData;
-        }
+        // Kirim juga daftar user aktif — frontend akan generate virtual records sendiri
+        $users = User::with('divisi')
+            ->where('status', 'AKTIF')
+            ->whereDoesntHave('kelasSensei')
+            ->when($cabang_id, fn($q) => $q->where('cabang_id', $cabang_id))
+            ->when($divisi_id, fn($q) => $q->where('divisi_id', $divisi_id))
+            ->when($search, fn($q) => $q->where(function ($qq) use ($search) {
+                $qq->where('name', 'like', "%{$search}%")->orWhere('nip', 'like', "%{$search}%");
+            }))
+            ->get(['id', 'name', 'nip', 'shift_id', 'shift_ids', 'divisi_id', 'cabang_id', 'cabang_ids'])
+            ->map(fn($u) => [
+                'id' => $u->id,
+                'name' => $u->name,
+                'nip' => $u->nip,
+                'divisi' => $u->divisi ? ['nama_divisi' => $u->divisi->nama_divisi] : null,
+            ]);
 
         $list_cabang = Cabang::all();
         $list_divisi = Divisi::all();
 
+        // Pre-compute hari libur untuk range (supaya frontend tau)
+        $hariLibur = \App\Models\HariLibur::whereBetween('tanggal', [$start_date, $end_date])
+            ->pluck('tanggal')
+            ->map(fn($d) => $d->toDateString())
+            ->values();
+
         return response()->json([
             'status' => 'success',
             'data' => $absensis,
+            'users' => $users,
+            'hari_libur' => $hariLibur,
+            'start_date' => $start_date,
+            'end_date' => $end_date,
             'list_cabang' => $list_cabang,
             'list_divisi' => $list_divisi,
         ]);
