@@ -2526,6 +2526,9 @@ class PendaftaranController extends Controller
                 if ($changed) {
                     $siswa->level_status = $levelStatus;
                 }
+
+                // Hapus komisi affiliate untuk kandidat yang mengundurkan diri
+                \App\Models\KomisiAffiliate::where('pendaftar_id', $pendaftar->id)->delete();
             } elseif (isset($data['status_kandidat']) && $data['status_kandidat'] !== 'Mengundurkan Diri') {
                 // When changing away from Mengundurkan Diri, restore Active status where it was Keluar
                 $levelStatus = $siswa->level_status ?? [];
@@ -3052,7 +3055,11 @@ class PendaftaranController extends Controller
             // Count how many other pendaftar from same affiliate in same batch are also lunas at this parent
             $affiliatePendaftars = \App\Models\Pendaftar::where('affiliate_link_id', $pendaftar->affiliate_link_id)
                 ->where('batch_id', $pendaftar->batch_id)
-                ->where('status', '!=', 'rejected')
+                ->where('status_pendaftaran', '!=', 'rejected')
+                ->where(function ($q) {
+                    $q->whereDoesntHave('siswa')
+                      ->orWhereHas('siswa', fn($q) => $q->where('status_kandidat', '!=', 'Mengundurkan Diri'));
+                })
                 ->get();
 
             $lunasCount = 0;
@@ -3131,46 +3138,78 @@ class PendaftaranController extends Controller
 
     public function closingPasukan()
     {
-        $cabangs = \App\Models\Cabang::with(['batches.pendaftar' => function ($q) {
-            $q->whereNotNull('affiliate_link_id')
-              ->with(['affiliateLink.affiliate', 'batch.cabang']);
-        }])->get();
+        $pendaftars = \App\Models\Pendaftar::with([
+            'batch.cabang',
+            'affiliateLink.affiliate',
+        ])
+            ->whereNotNull('affiliate_link_id')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-        $result = $cabangs->map(function ($cabang) {
-            $groups = [];
-            foreach ($cabang->batches as $batch) {
-                $pendaftars = $batch->pendaftar->filter(fn($p) => $p->affiliate_link_id);
-                if ($pendaftars->isEmpty()) continue;
+        $grouped = $pendaftars->groupBy(fn($p) => $p->batch?->cabang?->id ?? 0)
+            ->map(function ($items, $cabangId) {
+                $cabang = $items->first()->batch?->cabang;
+                $batches = $items->groupBy(fn($p) => $p->batch_id ?? 0)
+                    ->map(function ($items2, $batchId) {
+                        $batch = $items2->first()->batch;
+                        return [
+                            'batch_id' => $batch?->id,
+                            'batch_nama' => $batch?->nama_batch ?? 'Tanpa Batch',
+                            'total' => $items2->count(),
+                            'items' => $items2->map(function ($p) {
+                                $komisi = \App\Models\KomisiAffiliate::where('pendaftar_id', $p->id)
+                                    ->where('affiliate_link_id', $p->affiliate_link_id)
+                                    ->first();
+                                return [
+                                    'id' => $p->id,
+                                    'affiliate_link_id' => $p->affiliate_link_id,
+                                    'nama' => $p->nama,
+                                    'pasukan' => $p->affiliateLink?->affiliate?->name ?? '-',
+                                    'email' => $p->email,
+                                    'no_registrasi' => $p->no_registrasi,
+                                    'status' => $p->status_pendaftaran,
+                                    'komisi_status' => $komisi?->status ?? '-',
+                                    'komisi_jumlah' => $komisi?->jumlah ?? 0,
+                                    'cair' => $komisi ? $komisi->status === 'cair' : false,
+                                ];
+                            })->values(),
+                        ];
+                    })->values();
 
-                $items = $pendaftars->map(function ($p) {
-                    $komisi = \App\Models\KomisiAffiliate::where('pendaftar_id', $p->id)
-                        ->where('affiliate_link_id', $p->affiliate_link_id)
-                        ->first();
-                    return [
-                        'id' => $p->id,
-                        'nama' => $p->nama,
-                        'pasukan' => $p->affiliateLink?->affiliate?->name ?? '-',
-                        'cair' => $komisi ? $komisi->status === 'cair' : false,
-                    ];
-                });
-
-                $groups[] = [
-                    'batch_id' => $batch->id,
-                    'batch_nama' => $batch->nama_batch,
+                return [
+                    'cabang_id' => $cabang?->id,
+                    'cabang_nama' => $cabang?->nama_cabang ?? 'Tanpa Cabang',
                     'total' => $items->count(),
-                    'items' => $items,
+                    'batches' => $batches,
                 ];
-            }
+            })->filter(fn($c) => $c['total'] > 0)->values();
 
-            return [
-                'cabang_id' => $cabang->id,
-                'cabang_nama' => $cabang->nama_cabang,
-                'total' => collect($groups)->sum('total'),
-                'batches' => $groups,
-            ];
-        })->filter(fn($c) => $c['total'] > 0)->values();
+        return response()->json($grouped);
+    }
 
-        return response()->json($result);
+    public function toggleCair($id)
+    {
+        $pendaftar = \App\Models\Pendaftar::findOrFail($id);
+        if (!$pendaftar->affiliate_link_id) {
+            return response()->json(['message' => 'Kandidat ini tidak memiliki affiliate link'], 400);
+        }
+
+        $komisi = \App\Models\KomisiAffiliate::where('pendaftar_id', $id)
+            ->where('affiliate_link_id', $pendaftar->affiliate_link_id)
+            ->first();
+
+        if (!$komisi) {
+            return response()->json(['message' => 'Belum ada komisi untuk kandidat ini'], 404);
+        }
+
+        $komisi->update([
+            'status' => $komisi->status === 'cair' ? 'pending' : 'cair',
+        ]);
+
+        return response()->json([
+            'message' => 'Status komisi berhasil diperbarui',
+            'status' => $komisi->status,
+        ]);
     }
 
     public function komisiAffiliate()
@@ -3178,35 +3217,53 @@ class PendaftaranController extends Controller
         $komisi = \App\Models\KomisiAffiliate::with([
             'affiliateLink.affiliate',
             'pendaftar.product',
+            'pendaftar.batch',
             'kategori',
         ])->orderBy('created_at', 'desc')->get();
 
-        $grouped = $komisi->groupBy(fn($k) => $k->affiliateLink?->affiliate_id ?: 0)->map(function ($items, $affiliateId) {
-            $first = $items->first();
-            $affiliate = $first?->affiliateLink?->affiliate;
-            return [
-                'affiliate_id' => (int) $affiliateId,
-                'affiliate_nama' => $affiliate?->name ?? 'Unknown',
-                'affiliate_email' => $affiliate?->email ?? '',
-                'bank' => $affiliate?->bank ?? '-',
-                'nama_rekening' => $affiliate?->nama_rekening ?? '-',
-                'no_rekening' => $affiliate?->no_rekening ?? '-',
-                'total_komisi' => (float) $items->sum('jumlah'),
-                'total_pending' => (float) $items->where('status', 'pending')->sum('jumlah'),
-                'total_paid' => (float) $items->where('status', 'paid')->sum('jumlah'),
-                'items' => $items->map(fn($k) => [
-                    'id' => $k->id,
-                    'jumlah' => (float) $k->jumlah,
-                    'status' => $k->status,
-                    'created_at' => $k->created_at,
-                    'pendaftar' => $k->pendaftar ? [
-                        'nama' => $k->pendaftar->nama,
-                        'product' => $k->pendaftar->product?->nama,
-                    ] : null,
-                    'kategori' => $k->kategori?->nama,
-                ])->values(),
-            ];
-        })->values();
+        // Group by batch first, then affiliate
+        $grouped = $komisi->groupBy(fn($k) => $k->pendaftar?->batch_id ?: 0)
+            ->map(function ($batchItems, $batchId) {
+                $batch = $batchItems->first()->pendaftar?->batch;
+                $affiliates = $batchItems->groupBy(fn($k) => $k->affiliateLink?->affiliate_id ?: 0)
+                    ->map(function ($affItems, $affiliateId) {
+                        $first = $affItems->first();
+                        $affiliate = $first?->affiliateLink?->affiliate;
+                        return [
+                            'affiliate_id' => (int) $affiliateId,
+                            'affiliate_nama' => $affiliate?->name ?? 'Unknown',
+                            'affiliate_email' => $affiliate?->email ?? '',
+                            'bank' => $affiliate?->bank ?? '-',
+                            'nama_rekening' => $affiliate?->nama_rekening ?? '-',
+                            'no_rekening' => $affiliate?->no_rekening ?? '-',
+                            'total_komisi' => (float) $affItems->sum('jumlah'),
+                            'total_pending' => (float) $affItems->where('status', 'pending')->sum('jumlah'),
+                            'total_paid' => (float) $affItems->where('status', 'paid')->sum('jumlah'),
+                            'total_cair' => (float) $affItems->where('status', 'cair')->sum('jumlah'),
+                            'items' => $affItems->map(fn($k) => [
+                                'id' => $k->id,
+                                'jumlah' => (float) $k->jumlah,
+                                'status' => $k->status,
+                                'created_at' => $k->created_at,
+                                'pendaftar' => $k->pendaftar ? [
+                                    'nama' => $k->pendaftar->nama,
+                                    'product' => $k->pendaftar->product?->nama,
+                                ] : null,
+                                'kategori' => $k->kategori?->nama,
+                            ])->values(),
+                        ];
+                    })->values();
+
+                return [
+                    'batch_id' => $batch?->id ?? 0,
+                    'batch_nama' => $batch?->nama_batch ?? 'Tanpa Batch',
+                    'total_komisi' => (float) $batchItems->sum('jumlah'),
+                    'total_pending' => (float) $batchItems->where('status', 'pending')->sum('jumlah'),
+                    'total_paid' => (float) $batchItems->where('status', 'paid')->sum('jumlah'),
+                    'total_cair' => (float) $batchItems->where('status', 'cair')->sum('jumlah'),
+                    'affiliates' => $affiliates,
+                ];
+            })->values();
 
         return response()->json($grouped);
     }

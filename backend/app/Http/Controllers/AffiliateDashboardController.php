@@ -33,16 +33,26 @@ class AffiliateDashboardController extends Controller
         $disetujui = $pendaftar->where('status_pendaftaran', 'disetujui')->count();
 
         $linkIds = $links->pluck('id');
+
+        // Exclude withdrawn candidates from commission sums
+        $excludedPendaftarIds = Pendaftar::whereIn('affiliate_link_id', $linkIds)
+            ->whereHas('siswa', fn($q) => $q->where('status_kandidat', 'Mengundurkan Diri'))
+            ->pluck('id');
+
         $totalKomisiPending = KomisiAffiliate::whereIn('affiliate_link_id', $linkIds)
+            ->whereNotIn('pendaftar_id', $excludedPendaftarIds)
             ->where('status', 'pending')->sum('jumlah');
         $totalKomisiPaid = KomisiAffiliate::whereIn('affiliate_link_id', $linkIds)
-            ->where('status', 'paid')->sum('jumlah');
+            ->whereNotIn('pendaftar_id', $excludedPendaftarIds)
+            ->whereIn('status', ['paid', 'cair'])->sum('jumlah');
 
         // Komisi per link
-        $linksData = $links->map(function ($link) {
+        $linksData = $links->map(function ($link) use ($excludedPendaftarIds) {
             $linkKomisi = KomisiAffiliate::where('affiliate_link_id', $link->id)
-                ->where('status', 'paid')->sum('jumlah');
+                ->whereNotIn('pendaftar_id', $excludedPendaftarIds)
+                ->whereIn('status', ['paid', 'cair'])->sum('jumlah');
             $linkKomisiPending = KomisiAffiliate::where('affiliate_link_id', $link->id)
+                ->whereNotIn('pendaftar_id', $excludedPendaftarIds)
                 ->where('status', 'pending')->sum('jumlah');
 
             return [
@@ -64,8 +74,10 @@ class AffiliateDashboardController extends Controller
         });
 
         // Komisi per pendaftar
+        $pendaftar->loadMissing(['siswa']);
         $pendaftarData = $pendaftar->map(function ($p) {
-            $komisi = KomisiAffiliate::where('pendaftar_id', $p->id)->get();
+            $isWithdrawn = $p->siswa && $p->siswa->status_kandidat === 'Mengundurkan Diri';
+            $komisi = $isWithdrawn ? collect([]) : KomisiAffiliate::where('pendaftar_id', $p->id)->get();
             return [
                 'id' => $p->id,
                 'nama' => $p->nama,
@@ -73,13 +85,14 @@ class AffiliateDashboardController extends Controller
                 'nominal' => $p->nominal,
                 'status_pendaftaran' => $p->status_pendaftaran,
                 'status_pembayaran' => $p->status_pembayaran,
+                'status_kandidat' => $p->siswa?->status_kandidat,
                 'created_at' => $p->created_at,
                 'product' => $p->product ? [
                     'nama' => $p->product->nama,
                     'harga' => $p->product->harga,
                     'komisi' => $p->product->komisi,
                 ] : null,
-                'komisi_diperoleh' => (float) $komisi->where('status', 'paid')->sum('jumlah'),
+                'komisi_diperoleh' => (float) $komisi->whereIn('status', ['paid', 'cair'])->sum('jumlah'),
                 'komisi_pending' => (float) $komisi->where('status', 'pending')->sum('jumlah'),
             ];
         });

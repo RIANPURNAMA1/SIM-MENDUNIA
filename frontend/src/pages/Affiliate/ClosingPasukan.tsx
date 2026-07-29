@@ -1,11 +1,17 @@
 import { useEffect, useState } from 'react'
-import { Handshake, ChevronDown, ChevronRight, CheckCircle, XCircle } from 'lucide-react'
+import { Handshake, ChevronDown, ChevronRight } from 'lucide-react'
 import api from '../../services/api'
 
 interface Item {
   id: number
+  affiliate_link_id: number
   nama: string
   pasukan: string
+  email: string
+  no_registrasi: string
+  status: string
+  komisi_status: string
+  komisi_jumlah: number
   cair: boolean
 }
 
@@ -33,6 +39,35 @@ export default function ClosingPasukan() {
       .catch(() => setData([]))
       .finally(() => setLoading(false))
   }, [])
+
+  function toggleCair(item: Item) {
+    const prev = item.cair
+    setData(prevData =>
+      prevData.map(cabang => ({
+        ...cabang,
+        batches: cabang.batches.map(batch => ({
+          ...batch,
+          items: batch.items.map(i =>
+            i.id === item.id ? { ...i, cair: !i.cair } : i
+          ),
+        })),
+      }))
+    )
+    api.post(`/closing-pasukan/${item.id}/toggle-cair`)
+      .catch(() => {
+        setData(prevData =>
+          prevData.map(cabang => ({
+            ...cabang,
+            batches: cabang.batches.map(batch => ({
+              ...batch,
+              items: batch.items.map(i =>
+                i.id === item.id ? { ...i, cair: prev } : i
+              ),
+            })),
+          }))
+        )
+      })
+  }
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
@@ -65,7 +100,7 @@ export default function ClosingPasukan() {
       ) : (
         <div className="space-y-6">
           {data.map(cabang => (
-            <CabangCard key={cabang.cabang_id} cabang={cabang} />
+            <CabangCard key={cabang.cabang_id} cabang={cabang} onToggleCair={toggleCair} />
           ))}
         </div>
       )}
@@ -73,7 +108,7 @@ export default function ClosingPasukan() {
   )
 }
 
-function CabangCard({ cabang }: { cabang: Cabang }) {
+function CabangCard({ cabang, onToggleCair }: { cabang: Cabang; onToggleCair: (item: Item) => void }) {
   const [open, setOpen] = useState(true)
 
   return (
@@ -102,27 +137,37 @@ function CabangCard({ cabang }: { cabang: Cabang }) {
                 Batch {batch.batch_nama} &middot; {batch.total} kandidat
               </h4>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[500px] border-collapse text-left text-sm text-slate-700">
+                <table className="w-full min-w-[800px] border-collapse text-left text-sm text-slate-700">
                   <thead>
                     <tr className="text-xs text-slate-500">
-                      <th className="border border-slate-200 px-3 py-2 font-medium w-12">No</th>
+                      <th className="border border-slate-200 px-3 py-2 font-medium w-10">No</th>
                       <th className="border border-slate-200 px-3 py-2 font-medium">Nama Kandidat</th>
+                      <th className="border border-slate-200 px-3 py-2 font-medium hidden sm:table-cell">Email</th>
                       <th className="border border-slate-200 px-3 py-2 font-medium">Pasukan</th>
-                      <th className="border border-slate-200 px-3 py-2 text-center font-medium w-20">Cair</th>
+                      <th className="border border-slate-200 px-3 py-2 text-center font-medium w-16">Cair</th>
                     </tr>
                   </thead>
                   <tbody>
                     {batch.items.map((item, idx) => (
                       <tr key={item.id} className="bg-white transition hover:bg-slate-50">
                         <td className="border border-slate-200 px-3 py-2 text-center text-xs text-slate-400">{idx + 1}</td>
-                        <td className="border border-slate-200 px-3 py-2 text-sm font-medium text-slate-800">{item.nama}</td>
+                        <td className="border border-slate-200 px-3 py-2 text-sm font-medium text-slate-800">
+                          {item.nama}
+                          <span className="block text-[10px] text-slate-400">{item.no_registrasi}</span>
+                        </td>
+                        <td className="border border-slate-200 px-3 py-2 text-sm text-slate-600 hidden sm:table-cell">{item.email}</td>
                         <td className="border border-slate-200 px-3 py-2 text-sm text-slate-600">{item.pasukan}</td>
                         <td className="border border-slate-200 px-3 py-2 text-center">
-                          {item.cair ? (
-                            <CheckCircle size={16} className="inline text-emerald-500" />
-                          ) : (
-                            <XCircle size={16} className="inline text-slate-300" />
-                          )}
+                          <input
+                            type="checkbox"
+                            checked={item.cair}
+                            onChange={() => onToggleCair(item)}
+                            className={`h-5 w-5 cursor-pointer rounded border-2 transition ${
+                              item.cair
+                                ? 'border-emerald-500 bg-emerald-500 text-emerald-500 accent-emerald-600'
+                                : 'border-slate-300 accent-emerald-600'
+                            }`}
+                          />
                         </td>
                       </tr>
                     ))}

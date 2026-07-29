@@ -160,7 +160,7 @@ const navItems: NavItem[] = [
     children: [
       { label: "Data Pasukan", icon: "Handshake", href: "/data-affiliate" },
       { label: "Closing Pasukan", icon: "FileText", href: "/closing-pasukan" },
-      { label: "Pencairan Komisi", icon: "Wallet", href: "/pencairan-komisi" },
+      // { label: "Pencairan Komisi", icon: "Wallet", href: "/pencairan-komisi" },
     ],
   },
   {

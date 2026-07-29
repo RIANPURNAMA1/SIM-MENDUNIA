@@ -131,19 +131,38 @@ class AffiliateLinkController extends Controller
 
     public function affiliateStats()
     {
+        $pendingSub = \App\Models\KomisiAffiliate::from(\Illuminate\Support\Facades\DB::raw('komisi_affiliates as ka'))
+            ->join('affiliate_links as al', 'al.id', '=', 'ka.affiliate_link_id')
+            ->join('pendaftar as p', 'p.id', '=', 'ka.pendaftar_id')
+            ->leftJoin('siswas as s', 's.user_id', '=', 'p.user_id')
+            ->whereColumn('al.affiliate_id', 'users.id')
+            ->where(function ($q) {
+                $q->whereNull('s.status_kandidat')
+                  ->orWhere('s.status_kandidat', '!=', 'Mengundurkan Diri');
+            })
+            ->where('ka.status', 'pending')
+            ->selectRaw('COALESCE(SUM(ka.jumlah), 0)');
+
+        $paidSub = \App\Models\KomisiAffiliate::from(\Illuminate\Support\Facades\DB::raw('komisi_affiliates as ka'))
+            ->join('affiliate_links as al', 'al.id', '=', 'ka.affiliate_link_id')
+            ->join('pendaftar as p', 'p.id', '=', 'ka.pendaftar_id')
+            ->leftJoin('siswas as s', 's.user_id', '=', 'p.user_id')
+            ->whereColumn('al.affiliate_id', 'users.id')
+            ->where(function ($q) {
+                $q->whereNull('s.status_kandidat')
+                  ->orWhere('s.status_kandidat', '!=', 'Mengundurkan Diri');
+            })
+            ->whereIn('ka.status', ['paid', 'cair'])
+            ->selectRaw('COALESCE(SUM(ka.jumlah), 0)');
+
         $affiliates = User::where('role', 'AFFILIATE')
-            ->withSum('affiliateLinks', 'pendaftar_count')
+            ->select(['id', 'name', 'email', 'status', 'created_at'])
+            ->selectSub($pendingSub, 'total_komisi_pending')
+            ->selectSub($paidSub, 'total_komisi_paid')
             ->withCount('affiliateLinks')
-            ->addSelect([
-                'total_komisi_pending' => \Illuminate\Support\Facades\DB::raw(
-                    "(SELECT COALESCE(SUM(ka.jumlah), 0) FROM komisi_affiliates ka JOIN affiliate_links al ON al.id = ka.affiliate_link_id WHERE al.affiliate_id = users.id AND ka.status = 'pending')"
-                ),
-                'total_komisi_paid' => \Illuminate\Support\Facades\DB::raw(
-                    "(SELECT COALESCE(SUM(ka.jumlah), 0) FROM komisi_affiliates ka JOIN affiliate_links al ON al.id = ka.affiliate_link_id WHERE al.affiliate_id = users.id AND ka.status = 'paid')"
-                ),
-            ])
+            ->withSum('affiliateLinks', 'pendaftar_count')
             ->orderBy('name')
-            ->get(['id', 'name', 'email', 'status', 'created_at']);
+            ->get();
 
         return response()->json($affiliates);
     }
@@ -153,8 +172,8 @@ class AffiliateLinkController extends Controller
         $affiliate = User::where('role', 'AFFILIATE')->findOrFail($id);
 
         $links = AffiliateLink::with(['product', 'pendaftar' => function ($q) {
-            $q->select('id', 'nama', 'email', 'telepon', 'status_pendaftaran', 'status_pembayaran', 'affiliate_link_id', 'created_at')
-              ->with('product:id,nama,harga,komisi');
+            $q->select('id', 'nama', 'email', 'telepon', 'status_pendaftaran', 'status_pembayaran', 'affiliate_link_id', 'user_id', 'created_at')
+              ->with(['product:id,nama,harga,komisi', 'siswa:user_id,status_kandidat']);
         }])
             ->where('affiliate_id', $id)
             ->orderBy('created_at', 'desc')
@@ -165,13 +184,20 @@ class AffiliateLinkController extends Controller
 
         // Add komisi data per link
         $linksData = $links->map(function ($link) {
+            $excludedPendaftarIds = $link->pendaftar
+                ->filter(fn($p) => $p->siswa && $p->siswa->status_kandidat === 'Mengundurkan Diri')
+                ->pluck('id');
+
             $linkKomisiPaid = KomisiAffiliate::where('affiliate_link_id', $link->id)
-                ->where('status', 'paid')->sum('jumlah');
+                ->whereNotIn('pendaftar_id', $excludedPendaftarIds)
+                ->whereIn('status', ['paid', 'cair'])->sum('jumlah');
             $linkKomisiPending = KomisiAffiliate::where('affiliate_link_id', $link->id)
+                ->whereNotIn('pendaftar_id', $excludedPendaftarIds)
                 ->where('status', 'pending')->sum('jumlah');
 
             $pendaftarData = $link->pendaftar->map(function ($p) {
-                $komisi = KomisiAffiliate::where('pendaftar_id', $p->id)->get();
+                $isWithdrawn = $p->siswa && $p->siswa->status_kandidat === 'Mengundurkan Diri';
+                $komisi = $isWithdrawn ? collect([]) : KomisiAffiliate::where('pendaftar_id', $p->id)->get();
                 return [
                     'id' => $p->id,
                     'nama' => $p->nama,
@@ -179,9 +205,10 @@ class AffiliateLinkController extends Controller
                     'telepon' => $p->telepon,
                     'status_pendaftaran' => $p->status_pendaftaran,
                     'status_pembayaran' => $p->status_pembayaran,
+                    'status_kandidat' => $p->siswa?->status_kandidat,
                     'created_at' => $p->created_at,
                     'product' => $p->product,
-                    'komisi_diperoleh' => (float) $komisi->where('status', 'paid')->sum('jumlah'),
+                    'komisi_diperoleh' => (float) $komisi->whereIn('status', ['paid', 'cair'])->sum('jumlah'),
                     'komisi_pending' => (float) $komisi->where('status', 'pending')->sum('jumlah'),
                 ];
             });
