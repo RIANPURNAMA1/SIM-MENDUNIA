@@ -1650,6 +1650,11 @@ class PendaftaranController extends Controller
             ->orderBy('created_at', 'asc')
             ->get();
 
+        $pembayaranItems = PembayaranItem::with('kategori')
+            ->where('pendaftar_id', $pendaftar->id)
+            ->orderBy('created_at', 'asc')
+            ->get();
+
         $hargaProduk = (float) ($pendaftar->product?->harga ?? 0);
         $totalDibayar = (float) PembayaranItem::where('pendaftar_id', $pendaftar->id)->sum('jumlah');
         $diskon = (float) ($pendaftar->diskon ?? 0);
@@ -1693,6 +1698,18 @@ class PendaftaranController extends Controller
                     'status' => $r->status,
                     'created_at' => $r->created_at,
                     'bukti_pembayaran' => $r->bukti_pembayaran,
+                ];
+            }),
+            'pembayaran_items' => $pembayaranItems->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'kategori_id' => $item->kategori_id,
+                    'kategori_kode' => $item->kategori?->kode,
+                    'kategori_nama' => $item->kategori?->nama,
+                    'jumlah' => (float) $item->jumlah,
+                    'kode_unik' => $item->kode_unik,
+                    'total_transfer' => $item->total_transfer,
+                    'created_at' => $item->created_at,
                 ];
             }),
         ]);
@@ -3125,6 +3142,49 @@ class PendaftaranController extends Controller
                 ['kode' => 'Sakuku', 'nama' => 'Sakuku (BCA)'],
                 ['kode' => 'E-Wallet Lain', 'nama' => 'E-Wallet Lain'],
             ],
+        ]);
+    }
+
+    public function verifikasi($noInvoice)
+    {
+        $pendaftar = Pendaftar::with(['product', 'batch'])
+            ->where('no_registrasi', $noInvoice)
+            ->orWhereHas('pembayaranItems', function ($q) use ($noInvoice) {
+                $q->where('payment_code', $noInvoice);
+            })
+            ->first();
+
+        if (!$pendaftar) {
+            return response()->json([
+                'valid' => false,
+                'message' => 'Invoice tidak ditemukan atau tidak valid.',
+            ], 404);
+        }
+
+        $totalDibayar = (float) PembayaranItem::where('pendaftar_id', $pendaftar->id)->sum('jumlah');
+        $hargaProduk = (float) ($pendaftar->product?->harga ?? 0);
+        $diskon = (float) ($pendaftar->diskon ?? 0);
+        $totalTagihan = $hargaProduk - $diskon;
+        $sisa = max(0, $totalTagihan - $totalDibayar);
+
+        return response()->json([
+            'valid' => true,
+            'no_invoice' => $noInvoice,
+            'pendaftar' => [
+                'nama' => $pendaftar->nama,
+                'email' => $pendaftar->email,
+                'no_registrasi' => $pendaftar->no_registrasi,
+                'created_at' => $pendaftar->created_at,
+            ],
+            'product' => $pendaftar->product ? $pendaftar->product->nama : null,
+            'batch' => $pendaftar->batch ? $pendaftar->batch->nama_batch : null,
+            'keuangan' => [
+                'total_tagihan' => $totalTagihan,
+                'total_dibayar' => $totalDibayar,
+                'sisa' => $sisa,
+            ],
+            'status_pendaftaran' => $pendaftar->status_pendaftaran,
+            'status_pembayaran' => $pendaftar->status_pembayaran,
         ]);
     }
 }

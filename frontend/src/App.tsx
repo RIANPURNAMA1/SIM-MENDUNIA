@@ -70,6 +70,7 @@ import DaftarProgram from './pages/Pendaftaran/DaftarProgram'
 import Bayar from './pages/Bayar/Bayar'
 import CheckoutBerhasil from './pages/Pendaftaran/CheckoutBerhasil'
 import KonfirmasiPembayaran from './pages/Pendaftaran/KonfirmasiPembayaran'
+import Verifikasi from './pages/Verifikasi'
 import SyaratKetentuan from './pages/SyaratKetentuan'
 import KaryawanDashboard from './pages/Karyawan/KaryawanDashboard'
 import RiwayatAbsensiKaryawan from './pages/Karyawan/RiwayatAbsensiKaryawan'
@@ -192,6 +193,7 @@ function AppRoutes() {
       <Route path="/konfirmasi-pembayaran" element={<KonfirmasiPembayaran />} />
       <Route path="/konfirmasi-pembayaran/:id" element={<KonfirmasiPembayaran />} />
       <Route path="/syarat-ketentuan" element={<SyaratKetentuan />} />
+      <Route path="/verifikasi/:noInvoice" element={<Verifikasi />} />
 
       <Route
         path="/affiliate-dashboard"
