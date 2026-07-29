@@ -89,8 +89,20 @@ class KehadiranController extends Controller
             $start = Carbon::parse($start_date);
             $end = Carbon::parse($end_date);
 
-            // Ambil user aktif yang memenuhi kriteria (sama seperti query asli apiIndex)
-            $users = User::where('status', 'AKTIF')
+            // Pre-compute libur dates untuk seluruh range (1 query)
+            $liburDates = [];
+            $dateCursor = $start->copy();
+            while ($dateCursor->lte($end)) {
+                if (HariLibur::apakahLibur($dateCursor->toDateString())) {
+                    $liburDates[] = $dateCursor->toDateString();
+                }
+                $dateCursor->addDay();
+            }
+            $liburDates = array_flip($liburDates); // flip for O(1) lookup
+
+            // Ambil user aktif — load divisi + shift sekaligus
+            $users = User::with('divisi')
+                ->where('status', 'AKTIF')
                 ->whereDoesntHave('kelasSensei')
                 ->when($cabang_id, fn($q) => $q->where('cabang_id', $cabang_id))
                 ->when($divisi_id, fn($q) => $q->where('divisi_id', $divisi_id))
@@ -108,56 +120,65 @@ class KehadiranController extends Controller
                 ->get()
                 ->keyBy(fn($a) => $a->user_id . '_' . $a->tanggal->format('Y-m-d') . '_' . ($a->shift_id ?? 0));
 
+            // Pre-compute shifts per user (aksesor bisa query DB, jadi panggil sekali)
+            $userShiftsMap = [];
+            foreach ($users as $user) {
+                $s = $user->shifts;
+                if ($s->isEmpty() && $user->shift) {
+                    $s = collect([$user->shift]);
+                }
+                $userShiftsMap[$user->id] = $s;
+            }
+
             $virtual = [];
             $idCounter = 0;
+            $daysInRange = $start->diffInDays($end) + 1;
 
             foreach ($users as $user) {
                 $divisi = $user->divisi;
+                $userShifts = $userShiftsMap[$user->id] ?? collect();
                 $date = $start->copy();
 
-                while ($date->lte($end)) {
+                for ($d = 0; $d < $daysInRange; $d++) {
                     $dateStr = $date->format('Y-m-d');
 
-                    if ($date->gt($today)) {
-                        $date->addDay();
-                        continue;
-                    }
-
-                    // Cari shift user
-                    $userShifts = $user->shifts;
-                    if ($userShifts->isEmpty() && $user->shift) {
-                        $userShifts = collect([$user->shift]);
-                    }
+                    if ($date->gt($today)) break;
 
                     if ($userShifts->isNotEmpty()) {
                         foreach ($userShifts as $shift) {
                             $key = $user->id . '_' . $dateStr . '_' . ($shift->id ?? 0);
                             if (isset($existingAbsensis[$key])) continue;
 
-                            $isLibur = HariLibur::apakahLibur($dateStr);
+                            $isLibur = isset($liburDates[$dateStr]);
                             $statusLabel = $isLibur ? 'LIBUR' : 'ALPA';
-                            $keterangan = $isLibur
-                                ? 'Libur otomatis (Weekend/Nasional)'
-                                : 'Tidak melakukan absensi seharian';
 
-                            $virtual[] = $this->makeVirtualRecord($user, $divisi, $shift, $dateStr, $statusLabel, $keterangan, $idCounter++);
+                            $virtual[] = $this->makeVirtualRecord(
+                                $user, $divisi, $shift, $dateStr, $statusLabel,
+                                $isLibur ? 'Libur otomatis (Weekend/Nasional)' : 'Tidak melakukan absensi seharian',
+                                $idCounter++
+                            );
                         }
                     } else {
-                        // User tanpa shift — tetap buat 1 virtual record per hari
                         $key = $user->id . '_' . $dateStr . '_0';
                         if (isset($existingAbsensis[$key])) continue;
 
-                        // Cek apa ada absensi tanpa shift_id di hari ini
-                        $hasAnyAbsensi = collect($existingAbsensis)->keys()->filter(fn($k) => str_starts_with($k, $user->id . '_' . $dateStr))->isNotEmpty();
+                        $hasAnyAbsensi = false;
+                        foreach ($existingAbsensis as $ek => $_) {
+                            if (strncmp($ek, $user->id . '_' . $dateStr, strlen($user->id) + 11) === 0) {
+                                $hasAnyAbsensi = true;
+                                break;
+                            }
+                        }
                         if ($hasAnyAbsensi) continue;
 
-                        $isLibur = HariLibur::apakahLibur($dateStr);
+                        $isLibur = isset($liburDates[$dateStr]);
                         $statusLabel = $isLibur ? 'LIBUR' : 'ALPA';
-                        $keterangan = $isLibur
-                            ? 'Libur otomatis (Weekend/Nasional)'
-                            : 'Tidak melakukan absensi seharian';
 
-                        $virtual[] = $this->makeVirtualRecord($user, $divisi, null, $dateStr, $statusLabel, $keterangan, $idCounter++);
+                        $virtual[] = $this->makeVirtualRecord(
+                            $user, $divisi, null, $dateStr, $statusLabel,
+                            $isLibur ? 'Libur otomatis (Weekend/Nasional)' : 'Tidak melakukan absensi seharian',
+                            $idCounter++
+                        );
                     }
 
                     $date->addDay();
