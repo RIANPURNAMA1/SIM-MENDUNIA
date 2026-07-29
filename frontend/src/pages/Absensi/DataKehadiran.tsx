@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { CalendarCheck, Search, RotateCcw, ChevronDown, AlertTriangle } from 'lucide-react'
 import { kehadiranApi, APP_URL } from '../../services/api'
 import type { Absensi, Divisi, Cabang } from '../../types'
@@ -15,8 +15,42 @@ const statusColors: Record<string, string> = {
   LIBUR: 'bg-slate-100 text-slate-500',
 }
 
+interface VirtualUser {
+  id: number
+  name: string
+  nip: string | null
+  divisi: { nama_divisi: string } | null
+}
+
+function isWeekend(dateStr: string) {
+  const d = new Date(dateStr + 'T00:00:00')
+  const day = d.getDay()
+  return day === 0 || day === 6
+}
+
+function isLibur(dateStr: string): boolean {
+  if (isWeekend(dateStr)) return true
+  return HARI_LIBUR.has(dateStr)
+}
+
+const HARI_LIBUR = new Set<string>()
+
+function dateRangeArr(start: string, end: string) {
+  const dates: string[] = []
+  const cur = new Date(start + 'T00:00:00')
+  const endD = new Date(end + 'T00:00:00')
+  const today = new Date()
+  today.setHours(23, 59, 59, 999)
+  while (cur <= endD && cur <= today) {
+    dates.push(cur.toISOString().split('T')[0])
+    cur.setDate(cur.getDate() + 1)
+  }
+  return dates
+}
+
 export default function DataKehadiranPage() {
-  const [data, setData] = useState<Absensi[]>([])
+  const [realData, setRealData] = useState<Absensi[]>([])
+  const [users, setUsers] = useState<VirtualUser[]>([])
   const [listCabang, setListCabang] = useState<Cabang[]>([])
   const [listDivisi, setListDivisi] = useState<Divisi[]>([])
   const [loading, setLoading] = useState(true)
@@ -48,9 +82,15 @@ export default function DataKehadiranPage() {
       if (filterStatus) params.status = filterStatus
       if (search) params.search = search
       const res = await kehadiranApi.list(params)
-      setData(res.data.data)
-      setListCabang(res.data.list_cabang || [])
-      setListDivisi(res.data.list_divisi || [])
+      const apiData = res.data
+      if (apiData.hari_libur) {
+        HARI_LIBUR.clear()
+        apiData.hari_libur.forEach((d: string) => HARI_LIBUR.add(d))
+      }
+      setRealData(apiData.data || [])
+      setUsers(apiData.users || [])
+      setListCabang(apiData.list_cabang || [])
+      setListDivisi(apiData.list_divisi || [])
     } catch (err) {
       console.error(err)
     } finally {
@@ -59,6 +99,60 @@ export default function DataKehadiranPage() {
   }, [startDate, endDate, filterCabang, filterDivisi, filterStatus, search])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  const dates = useMemo(() => dateRangeArr(startDate, endDate), [startDate, endDate])
+
+  const data = useMemo(() => {
+    const real = realData as any[]
+    const userList = users
+    if (!filterStatus) {
+      const realKeys = new Set(real.map((r: any) => `${r.user_id}_${(r.tanggal || '').split('T')[0]}`))
+      let vId = 0
+      for (const u of userList) {
+        for (const d of dates) {
+          if (realKeys.has(`${u.id}_${d}`)) continue
+          const libur = isLibur(d)
+          real.push({
+            id: `virtual_${vId++}`,
+            user_id: u.id,
+            shift_id: null,
+            cabang_id: null,
+            izin_id: null,
+            tanggal: d,
+            jam_masuk: null,
+            jam_keluar: null,
+            lat_masuk: null,
+            long_masuk: null,
+            lat_pulang: null,
+            long_pulang: null,
+            status: libur ? 'LIBUR' : 'ALPA',
+            foto_masuk: null,
+            foto_pulang: null,
+            keterangan: libur ? 'Libur otomatis (Weekend/Nasional)' : 'Tidak melakukan absensi seharian',
+            user: {
+              id: u.id,
+              name: u.name,
+              nip: u.nip,
+              shift: null,
+              divisi: u.divisi,
+            },
+            shift: null,
+            cabang: null,
+          })
+        }
+      }
+      real.sort((a: any, b: any) => {
+        const da = (a.tanggal || '').split('T')[0]
+        const db = (b.tanggal || '').split('T')[0]
+        if (da > db) return -1
+        if (da < db) return 1
+        const ja = a.jam_masuk || ''
+        const jb = b.jam_masuk || ''
+        return ja < jb ? -1 : ja > jb ? 1 : 0
+      })
+    }
+    return real
+  }, [realData, users, dates, filterStatus])
 
   const resetFilter = () => {
     const d = new Date()
@@ -83,7 +177,6 @@ export default function DataKehadiranPage() {
     setSubmitting(true)
     try {
       const payload: Parameters<typeof kehadiranApi.updateStatus>[0] = { id: selected.id, status: newStatus }
-      // Virtual records need extra fields to create the record
       if (typeof selected.id === 'string' && selected.id.startsWith('virtual_')) {
         payload.user_id = selected.user_id
         payload.tanggal = selected.tanggal
