@@ -98,6 +98,7 @@ export default function Tagihan() {
   const [modalBayar, setModalBayar] = useState<{
     pendaftar: TagihanItem
     items: KategoriItem[]
+    originalItems: KategoriItem[]
   } | null>(null)
   const [saving, setSaving] = useState(false)
   const [pendingChanges, setPendingChanges] = useState<Record<string, number>>({})
@@ -135,7 +136,27 @@ export default function Tagihan() {
       api.get('/payment-settings'),
     ]).then(([res, katRes, batchRes, prodRes, settingsRes]) => {
       setData(res.data)
-      setKategoris(katRes.data || [])
+      setKategoris((() => {
+        const all = katRes.data || []
+        const childrenOf = new Map<number | null, KategoriInfo[]>()
+        for (const k of all) {
+          const pid = k.parent_id ?? null
+          if (!childrenOf.has(pid)) childrenOf.set(pid, [])
+          childrenOf.get(pid)!.push(k)
+        }
+        const sorted: KategoriInfo[] = []
+        const walk = (parentId: number | null) => {
+          const kids = childrenOf.get(parentId)
+          if (!kids) return
+          kids.sort((a, b) => a.id - b.id)
+          for (const k of kids) {
+            sorted.push(k)
+            walk(k.id)
+          }
+        }
+        walk(null)
+        return sorted
+      })())
       setBatches(batchRes.data?.data || batchRes.data || [])
       setProducts(prodRes.data || [])
       setUniqueCodeOp(settingsRes.data?.unique_code_operation?.value ?? 'add')
@@ -656,7 +677,8 @@ export default function Tagihan() {
                                   setOpenActionId(null)
                                   try {
                                     const res = await api.get(`/pembayaran-item/${p.id}`)
-                                    setModalBayar({ pendaftar: p, items: (res.data.items || []) })
+                                    const items = res.data.items || []
+                                    setModalBayar({ pendaftar: p, items, originalItems: items.map(i => ({...i})) })
                                   } catch (err) {
                                     console.error(err)
                                   }
@@ -955,16 +977,27 @@ export default function Tagihan() {
                     if (!modalBayar) return
                     setSaving(true)
                     try {
-                      const items = modalBayar.items.map(i => ({
-                        kategori_id: i.kategori_id,
-                        jumlah: i.dibayar || 0,
-                      }))
-                      await api.post(`/pembayaran-item/${modalBayar.pendaftar.id}`, { items })
+                      const changed = modalBayar.items.filter((item, i) => {
+                        const orig = modalBayar.originalItems[i]
+                        return item.dibayar > 0 && item.dibayar !== orig?.dibayar
+                      })
+                      if (changed.length === 0) {
+                        setModalBayar(null)
+                        setSaving(false)
+                        return
+                      }
+                      for (const item of changed) {
+                        await pendaftarApi.bayarManual(modalBayar.pendaftar.id, {
+                          jumlah: item.dibayar,
+                          kategori_id: item.kategori_id,
+                        })
+                      }
                       const res = await pendaftarApi.list({})
                       setData(res.data)
                       setModalBayar(null)
-                    } catch (err) {
-                      console.error(err)
+                    } catch (err: any) {
+                      const msg = err?.response?.data?.message || err?.message || 'Terjadi kesalahan'
+                      Swal.fire({ icon: 'error', title: 'Gagal', text: msg })
                     } finally {
                       setSaving(false)
                     }

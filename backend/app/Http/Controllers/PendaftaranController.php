@@ -141,7 +141,7 @@ class PendaftaranController extends Controller
             'user_id' => $user->id,
         ]);
 
-        $noReg = $pendaftar->no_registrasi ?? ('REG/' . now()->format('Ymd') . '/' . str_pad($pendaftar->id, 4, '0', STR_PAD_LEFT));
+        $noReg = $pendaftar->no_registrasi ?? $this->generateNoRegistrasi($pendaftar->batch_id);
 
         // Generate kode_unik and create PembayaranItem
         $firstParentName = null;
@@ -367,7 +367,7 @@ class PendaftaranController extends Controller
 
         $link->increment('pendaftar_count');
 
-        $noReg = $pendaftar->no_registrasi ?? ('REG/' . now()->format('Ymd') . '/' . str_pad($pendaftar->id, 4, '0', STR_PAD_LEFT));
+        $noReg = $pendaftar->no_registrasi ?? $this->generateNoRegistrasi($pendaftar->batch_id);
 
         // Generate kode_unik and create PembayaranItem — match kategori by product's kategori_items
         $firstParentName = null;
