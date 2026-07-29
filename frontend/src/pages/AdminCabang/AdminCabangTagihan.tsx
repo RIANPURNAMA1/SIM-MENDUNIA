@@ -134,7 +134,27 @@ export default function AdminCabangTagihan() {
       api.get('/payment-settings'),
     ]).then(([tagihanRes, katRes, batchRes, prodRes, settingsRes]) => {
       setData(tagihanRes.data.data || [])
-      setKategoris(katRes.data || [])
+      setKategoris((() => {
+        const all = katRes.data || []
+        const childrenOf = new Map<number | null, KategoriInfo[]>()
+        for (const k of all) {
+          const pid = k.parent_id ?? null
+          if (!childrenOf.has(pid)) childrenOf.set(pid, [])
+          childrenOf.get(pid)!.push(k)
+        }
+        const sorted: KategoriInfo[] = []
+        const walk = (parentId: number | null) => {
+          const kids = childrenOf.get(parentId)
+          if (!kids) return
+          kids.sort((a, b) => a.id - b.id)
+          for (const k of kids) {
+            sorted.push(k)
+            walk(k.id)
+          }
+        }
+        walk(null)
+        return sorted
+      })())
       setBatches(batchRes.data?.data || batchRes.data || [])
       setProducts(prodRes.data || [])
       setUniqueCodeOp(settingsRes.data?.unique_code_operation?.value ?? 'add')
