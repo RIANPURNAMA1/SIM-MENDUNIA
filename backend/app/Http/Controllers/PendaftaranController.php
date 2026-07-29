@@ -792,6 +792,8 @@ class PendaftaranController extends Controller
             \Log::error('Gagal kirim email approve: ' . $e->getMessage());
         }
 
+        $this->cekDanCatatKomisiAffiliate($pendaftar->fresh());
+
         return response()->json(['message' => 'Pendaftar disetujui']);
     }
 
@@ -973,6 +975,8 @@ class PendaftaranController extends Controller
                     }
                 }
             }
+
+            $this->cekDanCatatKomisiAffiliate($pendaftar->fresh());
         }
 
         // When setting to ditolak/refund, also update Pembayaran records
@@ -3024,21 +3028,20 @@ class PendaftaranController extends Controller
                 ->first();
             if ($existing) continue;
 
-            // Check all children are fully paid
-            $allLunas = true;
-            foreach ($info['children_ids'] as $childId) {
-                $childBiaya = $product->biayaKategoris->first(fn($k) => $k->id === $childId);
-                $hargaChild = $childBiaya ? (float) $childBiaya->pivot->harga : 0;
-                if ($hargaChild <= 0) continue;
-
+            // Check all children are fully paid (aggregate across parent + children)
+            $allIds = array_merge([$parentId], $info['children_ids']);
+            $totalBiayaGroup = 0;
+            $totalDibayarGroup = 0;
+            foreach ($allIds as $id) {
+                $kat = $product->biayaKategoris->first(fn($k) => $k->id === $id);
+                $harga = $kat ? (float) $kat->pivot->harga : 0;
+                $totalBiayaGroup += $harga;
                 $dibayar = PembayaranItem::where('pendaftar_id', $pendaftar->id)
-                    ->where('kategori_id', $childId)
+                    ->where('kategori_id', $id)
                     ->sum('jumlah');
-                if ($dibayar < $hargaChild) {
-                    $allLunas = false;
-                    break;
-                }
+                $totalDibayarGroup += $dibayar;
             }
+            $allLunas = $totalBiayaGroup > 0 && $totalDibayarGroup >= $totalBiayaGroup;
 
             if (!$allLunas) continue;
 
@@ -3050,21 +3053,18 @@ class PendaftaranController extends Controller
 
             $lunasCount = 0;
             foreach ($affiliatePendaftars as $ap) {
-                $isLunas = true;
-                foreach ($info['children_ids'] as $childId) {
-                    $childBiaya = $product->biayaKategoris->first(fn($k) => $k->id === $childId);
-                    $hargaChild = $childBiaya ? (float) $childBiaya->pivot->harga : 0;
-                    if ($hargaChild <= 0) continue;
-
+                $totalBiayaAp = 0;
+                $totalDibayarAp = 0;
+                foreach ($allIds as $id) {
+                    $kat = $product->biayaKategoris->first(fn($k) => $k->id === $id);
+                    $harga = $kat ? (float) $kat->pivot->harga : 0;
+                    $totalBiayaAp += $harga;
                     $dibayar = PembayaranItem::where('pendaftar_id', $ap->id)
-                        ->where('kategori_id', $childId)
+                        ->where('kategori_id', $id)
                         ->sum('jumlah');
-                    if ($dibayar < $hargaChild) {
-                        $isLunas = false;
-                        break;
-                    }
+                    $totalDibayarAp += $dibayar;
                 }
-                if ($isLunas) $lunasCount++;
+                if ($totalBiayaAp > 0 && $totalDibayarAp >= $totalBiayaAp) $lunasCount++;
             }
 
             // Find matching tier: prefer batch-specific, fallback to global (batch_id=null)
