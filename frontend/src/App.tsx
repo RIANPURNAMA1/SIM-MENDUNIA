@@ -54,6 +54,8 @@ import RekapBatch from './pages/Siswa/RekapBatch'
 import Pembayaran from './pages/Siswa/Pembayaran'
 import DataDiri from './pages/Siswa/DataDiri'
 import DataAffiliate from './pages/Affiliate/DataAffiliate'
+import ClosingPasukan from './pages/Affiliate/ClosingPasukan'
+import DataPencairanKomisi from './pages/Affiliate/DataPencairanKomisi'
 import DataProduct from './pages/Affiliate/DataProduct'
 import DataCoupon from './pages/Affiliate/DataCoupon'
 import DataBiayaKategori from './pages/Affiliate/DataBiayaKategori'
@@ -739,6 +741,8 @@ function AppRoutes() {
                 <Route path="/pendaftar/:id/invoice" element={<InvoicePendaftar />} />
                 <Route path="/data-matching-job" element={<DataMatchingJob />} />
                 <Route path="/data-affiliate" element={<DataAffiliate />} />
+                <Route path="/closing-pasukan" element={<ClosingPasukan />} />
+                <Route path="/pencairan-komisi" element={<DataPencairanKomisi />} />
                 <Route path="/data-product" element={<DataProduct />} />
                 <Route path="/data-coupon" element={<DataCoupon />} />
                 <Route path="/data-biaya-kategori" element={<DataBiayaKategori />} />
