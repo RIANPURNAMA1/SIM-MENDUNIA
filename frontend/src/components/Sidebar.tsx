@@ -141,23 +141,26 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    label: "Program & Affiliate",
-    icon: "Handshake",
+    label: "Program",
+    icon: "Package",
     children: [
-      {
-        label: "Affiliate Dashboard",
-        icon: "LayoutDashboard",
-        href: "/affiliate-dashboard",
-      },
-      { label: "Data Affiliate", icon: "Handshake", href: "/data-affiliate" },
       { label: "Program", icon: "Package", href: "/data-product" },
       { label: "Data Coupon", icon: "CreditCard", href: "/data-coupon" },
-      { label: "monitoring Notifikasi", icon: "MessageSquare", href: "/notifikasi-wa" },
-      { label: "Setting Notifikasi", icon: "Bell", href: "/notifikasi-wa-setting" },
-      { label: "Template Notifikasi", icon: "FileText", href: "/template-notifikasi" },
-      { label: "Pengaturan Pembayaran", icon: "CreditCard", href: "/pengaturan-pembayaran" },
       { label: "Batch", icon: "Layers", href: "/batches" },
       { label: "Jadwal Level", icon: "Calendar", href: "/jadwal-level" },
+      { label: "Pengaturan Pembayaran", icon: "CreditCard", href: "/pengaturan-pembayaran" },
+      { label: "Monitoring Notifikasi", icon: "MessageSquare", href: "/notifikasi-wa" },
+      { label: "Setting Notifikasi", icon: "Bell", href: "/notifikasi-wa-setting" },
+      { label: "Template Notifikasi", icon: "FileText", href: "/template-notifikasi" },
+    ],
+  },
+  {
+    label: "Affiliate & Pasukan",
+    icon: "Handshake",
+    children: [
+      { label: "Data Pasukan", icon: "Handshake", href: "/data-affiliate" },
+      { label: "Closing Pasukan", icon: "FileText", href: "/closing-pasukan" },
+      { label: "Pencairan Komisi", icon: "Wallet", href: "/pencairan-komisi" },
     ],
   },
   {
@@ -265,7 +268,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           (item) =>
             item.label === "Keuangan" ||
             item.label === "Manage Kandidat" ||
-            item.label === "Program & Affiliate" ||
+            item.label === "Program" ||
+            item.label === "Affiliate & Pasukan" ||
             item.label === "Manajemen Absensi" ||
             item.label === "Akademik",
         )
@@ -289,7 +293,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               ),
             };
           }
-          if (item.label === "Program & Affiliate" && "children" in item) {
+          if (item.label === "Program" && "children" in item) {
             const group = item as NavGroup;
             return {
               ...group,
@@ -298,11 +302,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               ),
             };
           }
+          if (item.label === "Affiliate & Pasukan" && "children" in item) {
+            return null;
+          }
           return item;
         }) as NavItem[])
     : (navItems
         .map((item) => {
-          if (item.label === "Program & Affiliate" && "children" in item) {
+          if (item.label === "Affiliate & Pasukan" && "children" in item) {
             const group = item as NavGroup;
             return {
               ...group,

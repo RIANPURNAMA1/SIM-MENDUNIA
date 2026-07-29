@@ -3,7 +3,7 @@ function fmt(n: number) {
 }
 
 import { useState, useEffect, useMemo } from 'react'
-import { CreditCard, Search, RotateCcw, Eye, CheckCircle, Clock, XCircle, Loader, UserCheck } from 'lucide-react'
+import { CreditCard, Search, RotateCcw, Eye, CheckCircle, Clock, XCircle, Wallet, FileText, Images, Plus, Filter, Camera } from 'lucide-react'
 import { pembayaranApi, APP_URL } from '../../services/api'
 
 interface PaymentItem {
@@ -48,6 +48,7 @@ export default function Pembayaran() {
   const [filterStatus, setFilterStatus] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [showCatatan, setShowCatatan] = useState(false)
 
   useEffect(() => {
     fetchData()
@@ -83,20 +84,27 @@ export default function Pembayaran() {
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
-      {/* Header */}
-      <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-3 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
-            <CreditCard size={20} className="text-white" />
+            <Wallet size={20} className="text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-slate-800">Pembayaran</h1>
-            <p className="text-sm text-slate-500">Riwayat pembayaran dari kandidat</p>
+            <h1 className="text-lg font-semibold text-slate-800">Data Pembayaran</h1>
+            <p className="text-sm text-slate-500">{data.length} total pembayaran</p>
           </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setShowCatatan(!showCatatan)}
+            className="inline-flex items-center gap-2 rounded-md bg-[#0E6187] px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#1a5e6f]"
+          >
+            {showCatatan ? <FileText size={16} /> : <Images size={16} />}
+            {showCatatan ? 'Tabel' : 'Catatan'}
+          </button>
         </div>
       </div>
 
-      {/* Stats */}
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
           <p className="text-xs font-medium text-slate-500">Total Transaksi</p>
@@ -116,154 +124,211 @@ export default function Pembayaran() {
         </div>
       </div>
 
-      {/* Filter */}
       <div className="mb-4 rounded-lg p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative flex-1">
             <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Cari nama/email kandidat..."
+              placeholder="Cari kandidat..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
           </div>
-          <select
-            value={filterStatus}
-            onChange={e => setFilterStatus(e.target.value)}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          >
-            <option value="">Semua Status</option>
-            <option value="pending">Pending</option>
-            <option value="verified">Verified</option>
-            <option value="ditolak">Ditolak</option>
-          </select>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Filter size={14} className="text-slate-400" />
+            <select
+              value={filterStatus}
+              onChange={e => setFilterStatus(e.target.value)}
+              className="rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="">Semua Status</option>
+              <option value="pending">Pending</option>
+              <option value="verified">Verified</option>
+              <option value="ditolak">Ditolak</option>
+            </select>
             <input
               type="date"
               value={startDate}
               onChange={e => setStartDate(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
-            <span className="text-sm text-slate-400">-</span>
+            <span className="text-slate-400 text-sm">-</span>
             <input
               type="date"
               value={endDate}
               onChange={e => setEndDate(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
+            <button
+              onClick={() => { setSearch(''); setFilterStatus(''); setStartDate(''); setEndDate('') }}
+              className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            >
+              <RotateCcw size={14} />
+              Reset
+            </button>
           </div>
-          <button
-            onClick={() => { setSearch(''); setFilterStatus(''); setStartDate(''); setEndDate('') }}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
-          >
-            <RotateCcw size={16} />
-            Reset
-          </button>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-        <table className="w-full min-w-full border-collapse text-left text-sm text-slate-700">
-          <thead className="text-sm text-slate-600">
-            <tr>
-              <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Kandidat</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Program</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Batch</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Kategori Bayar</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium">Jumlah</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Status</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Tanggal</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Sumber</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Bukti</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
+      {!showCatatan ? (
+        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+          <table className="w-full min-w-full border-collapse text-left text-sm text-slate-700">
+            <thead className="text-sm text-slate-600">
               <tr>
-                <td colSpan={9} className="border border-slate-200 px-4 py-20">
-                  <div className="flex items-center justify-center">
-                    <div className="relative w-14 h-14 flex items-center justify-center">
-                      <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
-                      <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
-                    </div>
-                  </div>
-                </td>
+                <th className="border border-slate-200 px-4 py-3 font-medium">Tanggal</th>
+                <th className="border border-slate-200 px-4 py-3 font-medium">Kategori</th>
+                <th className="border border-slate-200 px-4 py-3 font-medium">Keterangan</th>
+                <th className="border border-slate-200 px-4 py-3 text-right font-medium">Nominal</th>
+                <th className="border border-slate-200 px-4 py-3 font-medium">Status</th>
+                <th className="border border-slate-200 px-4 py-3 font-medium">Cabang</th>
+                <th className="border border-slate-200 px-4 py-3 font-medium">Oleh</th>
+                <th className="border border-slate-200 px-4 py-3 text-center font-medium">Aksi</th>
               </tr>
-            ) : filtered.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="border border-slate-200 px-6 py-10 text-center">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-                    <CreditCard size={24} />
-                  </div>
-                  <p className="mt-3 text-sm font-medium text-slate-600">Belum ada riwayat pembayaran</p>
-                </td>
-              </tr>
-            ) : (
-              filtered.map(p => (
-                <tr key={p.id} className="bg-white transition hover:bg-slate-50">
-                  <td className="border border-slate-200 px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(p.pendaftar?.nama || '?')}&background=e5e7eb&color=6b7280&size=28`}
-                        className="h-8 w-8 rounded-full object-cover"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                      />
-                      <div>
-                        <div className="text-sm font-semibold text-slate-800">{p.pendaftar?.nama || '-'}</div>
-                        <div className="text-xs text-slate-500">{p.pendaftar?.email || ''}</div>
-                      </div>
+            </thead>
+            <tbody>
+              {loading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i}>
+                    <td colSpan={8} className="border border-slate-200 px-4 py-3">
+                      <div className="h-3 bg-slate-200/70 rounded w-full animate-pulse" />
+                    </td>
+                  </tr>
+                ))
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="border border-slate-200 px-6 py-10 text-center">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                      <CreditCard size={24} />
                     </div>
-                  </td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">
-                    {p.pendaftar?.product?.nama || '-'}
-                  </td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">
-                    {p.pendaftar?.batch?.nama_batch || <span className="text-slate-300">-</span>}
-                  </td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">
-                    {p.kategori?.nama || <span className="text-slate-300">-</span>}
-                  </td>
-                  <td className="border border-slate-200 px-4 py-3 text-right text-sm font-bold text-slate-800">
-                    Rp {fmt(Number(p.jumlah))}
-                  </td>
-                  <td className="border border-slate-200 px-4 py-3 text-center">
-                    {statusBadge(p.status)}
-                  </td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">
-                    {new Date(p.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                  </td>
-                  <td className="border border-slate-200 px-4 py-3 text-center">
-                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${p.bukti_pembayaran ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
-                      {p.bukti_pembayaran ? 'Online' : 'Manual'}
-                    </span>
-                  </td>
-                  <td className="border border-slate-200 px-4 py-3 text-center">
-                    {p.bukti_pembayaran ? (
-                      <a
-                        href={`${APP_URL}/storage/${p.bukti_pembayaran}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
-                      >
-                        <Eye size={13} />
-                        Lihat
-                      </a>
-                    ) : (
-                      <span className="text-xs text-slate-300">-</span>
-                    )}
+                    <p className="mt-3 text-sm font-medium text-slate-600">Belum ada pembayaran</p>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-        <div className="border-t border-slate-200 px-4 py-3 text-sm text-slate-500">
-          Menampilkan {filtered.length} dari {data.length} pembayaran
+              ) : (
+                filtered.map(p => (
+                  <tr key={p.id} className="bg-white transition hover:bg-slate-50">
+                    <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
+                      {new Date(p.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </td>
+                    <td className="border border-slate-200 px-4 py-3">
+                      <span className="rounded bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
+                        {p.kategori?.nama || '-'}
+                      </span>
+                    </td>
+                    <td className="border border-slate-200 px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={`https://ui-avatars.com/api/?name=${encodeURIComponent(p.pendaftar?.nama || '?')}&background=e5e7eb&color=6b7280&size=28`}
+                          className="h-8 w-8 rounded-full object-cover shrink-0"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                        />
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-800 truncate">{p.pendaftar?.nama || '-'}</p>
+                          <p className="text-xs text-slate-500 truncate">{p.pendaftar?.product?.nama || ''}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="border border-slate-200 px-4 py-3 text-right text-sm font-bold text-slate-800 whitespace-nowrap">
+                      Rp {fmt(Number(p.jumlah))}
+                    </td>
+                    <td className="border border-slate-200 px-4 py-3">
+                      {statusBadge(p.status)}
+                    </td>
+                    <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">
+                      {p.pendaftar?.batch?.nama_batch || <span className="text-slate-300">-</span>}
+                    </td>
+                    <td className="border border-slate-200 px-4 py-3">
+                      <div className="text-sm text-slate-700">
+                        <p className="font-medium">{p.pendaftar?.nama || '-'}</p>
+                        <p className="text-xs text-slate-500">{p.pendaftar?.email || ''}</p>
+                      </div>
+                    </td>
+                    <td className="border border-slate-200 px-4 py-3 text-center">
+                      {p.bukti_pembayaran ? (
+                        <a
+                          href={`${APP_URL}/storage/${p.bukti_pembayaran}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+                        >
+                          <Eye size={13} />
+                          Lihat
+                        </a>
+                      ) : (
+                        <span className="text-xs text-slate-400">Manual</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+          <div className="border-t border-slate-200 px-4 py-3 text-sm text-slate-500">
+            Menampilkan {filtered.length} dari {data.length} pembayaran
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {loading ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="border border-slate-200 rounded-xl overflow-hidden animate-pulse">
+                <div className="h-40 bg-slate-200/70" />
+                <div className="p-3 space-y-2">
+                  <div className="h-3 bg-slate-200/70 rounded w-1/3" />
+                  <div className="h-4 bg-slate-200/70 rounded w-1/2" />
+                  <div className="h-3 bg-slate-200/70 rounded w-2/3" />
+                </div>
+              </div>
+            ))
+          ) : filtered.length === 0 ? (
+            <div className="col-span-full text-center py-10 text-sm text-slate-400">Belum ada catatan</div>
+          ) : (
+            filtered.map(p => (
+              <div key={p.id} className="border border-slate-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow bg-white">
+                {p.bukti_pembayaran ? (
+                  <img
+                    src={`${APP_URL}/storage/${p.bukti_pembayaran}`}
+                    alt="Bukti pembayaran"
+                    className="w-full h-40 object-cover cursor-pointer"
+                    onClick={() => window.open(`${APP_URL}/storage/${p.bukti_pembayaran}`, '_blank')}
+                  />
+                ) : (
+                  <div className="h-40 bg-slate-100 flex items-center justify-center">
+                    <Camera size={32} className="text-slate-300" />
+                  </div>
+                )}
+                <div className="p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="inline-flex px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-semibold rounded">
+                      {p.kategori?.nama || '-'}
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      {new Date(p.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </span>
+                  </div>
+                  <p className="text-sm font-bold text-slate-800 mt-1">Rp {fmt(Number(p.jumlah))}</p>
+                  <p className="text-xs text-slate-500 mt-1 truncate">{p.pendaftar?.product?.nama || 'Tanpa keterangan'}</p>
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div className="w-6 h-6 rounded-full bg-[#0E6187] flex items-center justify-center text-[10px] font-bold text-white shrink-0">
+                        {p.pendaftar?.nama?.charAt(0) || '?'}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs text-slate-600 truncate">{p.pendaftar?.nama}</p>
+                        <p className="text-[10px] text-slate-400 truncate">{p.pendaftar?.email}</p>
+                      </div>
+                    </div>
+                    <div className="shrink-0 ml-2">
+                      {statusBadge(p.status)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   )
 }

@@ -29,7 +29,7 @@ const dashboards = [
     title: 'Dashboard Matching Job',
     description: 'Manajemen lowongan pekerjaan, penempatan kandidat, dan rekrutmen',
     icon: Briefcase,
-    path: '/dashboard-pusat',
+    path: '/data-matching-job',
   },
   {
     id: 'keuangan',

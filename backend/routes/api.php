@@ -382,6 +382,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{id}', [PendaftaranController::class, 'destroy']);
     });
 
+    Route::get('/closing-pasukan', [PendaftaranController::class, 'closingPasukan']);
+    Route::get('/komisi-affiliate', [PendaftaranController::class, 'komisiAffiliate']);
+
     Route::get('/pembayaran', [PendaftaranController::class, 'allPembayaran']);
     Route::get('/pembayaran-pending', [PendaftaranController::class, 'pendingPembayaran']);
     Route::get('/rekap-per-batch', [PendaftaranController::class, 'rekapPerBatch']);
