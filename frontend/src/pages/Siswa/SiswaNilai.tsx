@@ -564,8 +564,10 @@ function EvalInstrukturModal({
       })
       Swal.fire({ icon: 'success', title: 'Evaluasi Terkirim', text: 'Terima kasih atas evaluasi Anda!', timer: 2000, showConfirmButton: false })
       onSuccess(scores, Math.round(avgScore), comment)
-    } catch {
-      Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal mengirim evaluasi' })
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Gagal mengirim evaluasi'
+      const details = err?.response?.data?.errors ? Object.values(err.response.data.errors).flat().join(', ') : ''
+      Swal.fire({ icon: 'error', title: 'Gagal', text: details || msg })
     }
     setSaving(false)
   }
