@@ -256,7 +256,7 @@ export default function RekapBatch() {
             </div>
             <div className="text-left">
               <h3 className="text-sm font-bold text-slate-800">{batchName}</h3>
-              <p className="text-xs text-slate-500">{items.length} pendaftar</p>
+              <p className="text-xs text-slate-500">{items.length} Kandidat</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -274,8 +274,7 @@ export default function RekapBatch() {
             <table className="w-full min-w-[900px] border-collapse text-left text-sm text-slate-700">
               <thead className="text-sm text-slate-600 bg-slate-50">
                 <tr>
-                  <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[220px]">Pendaftar</th>
-                  <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[150px]">Program</th>
+                  <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[220px]">Kandidat</th>
                   {kategoriColumns.map(col => {
                     const k = col.kategori
                     return (
@@ -308,7 +307,6 @@ export default function RekapBatch() {
                           </div>
                         </div>
                       </td>
-                      <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">{p.product?.nama || '-'}</td>
                       {kategoriColumns.map(col => {
                         const k = col.kategori
                         const relevant = hasKategori(p, k.id)
@@ -352,7 +350,7 @@ export default function RekapBatch() {
               </tbody>
               <tfoot>
                 <tr className="bg-slate-50 font-semibold text-sm">
-                  <td className="border border-slate-200 px-4 py-3" colSpan={kategoriColumns.length + 2}>
+                  <td className="border border-slate-200 px-4 py-3" colSpan={kategoriColumns.length + 1}>
                     <span className="text-slate-500">Total {batchName}</span>
                   </td>
                   <td className="border border-slate-200 px-4 py-3 text-right text-slate-800">Rp {fmt(groupTagihan)}</td>
