@@ -367,6 +367,52 @@ export default function SiswaNilai() {
                               </button>
                             )}
                           </div>
+
+                          {level.daily.length > 0 && (
+                            <div className="border-t border-gray-100">
+                           
+                              {/* Summary Table */}
+                              {componentNames.length > 0 && (
+                                <div className="border-t border-gray-100 overflow-x-auto">
+                                  <table className="w-full text-[11px]">
+                                    <thead>
+                                      <tr>
+                                        <th className="text-left px-4 py-3 font-medium text-gray-400 border-b border-r border-gray-200 bg-gray-50">Tanggal</th>
+                                        {componentNames.map(name => (
+                                          <th key={name} className="text-center px-3 py-3 font-medium text-gray-400 border-b border-r border-gray-200 bg-gray-50">{name}</th>
+                                        ))}
+                                        <th className="text-center px-3 py-3 font-medium text-gray-400 border-b border-gray-200 bg-gray-50">Rata-rata</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {level.daily.map(day => (
+                                        <tr key={day.tanggal}>
+                                          <td className="px-4 py-3 text-gray-600 whitespace-nowrap border-b border-r border-gray-200 bg-white">{formatDateShort(day.tanggal)}</td>
+                                          {componentNames.map(name => {
+                                            const comp = day.komponen.find(k => k.nama === name)
+                                            return (
+                                              <td key={name} className="text-center px-3 py-3 border-b border-r border-gray-200 bg-white">
+                                                {comp ? (
+                                                  <span className="font-semibold text-gray-900">{comp.nilai}</span>
+                                                ) : (
+                                                  <span className="text-gray-200">-</span>
+                                                )}
+                                              </td>
+                                            )
+                                          })}
+                                          <td className="text-center px-3 py-3 border-b border-gray-200 bg-white">
+                                            <span className="font-semibold text-gray-900">
+                                              {day.rata_rata !== null ? day.rata_rata : '-'}
+                                            </span>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                     </div>
                   )
