@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { CalendarCheck, Search, RotateCcw, ChevronDown, AlertTriangle } from 'lucide-react'
+import { CalendarCheck, Search, RotateCcw, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, AlertTriangle } from 'lucide-react'
 import { kehadiranApi, APP_URL } from '../../services/api'
 import type { Absensi, Divisi, Cabang } from '../../types'
 
@@ -73,6 +73,8 @@ export default function DataKehadiranPage() {
   const [showStatusModal, setShowStatusModal] = useState(false)
   const [newStatus, setNewStatus] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(50)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -160,6 +162,10 @@ export default function DataKehadiranPage() {
     return result
   }, [realData, users, dates, filterStatus])
 
+  const totalPages = Math.max(1, Math.ceil(data.length / perPage))
+  const safePage = Math.min(page, totalPages)
+  const pagedList = data.slice((safePage - 1) * perPage, safePage * perPage)
+
   const resetFilter = () => {
     const d = new Date()
     const sd = new Date(d.getFullYear(), d.getMonth(), 1)
@@ -170,6 +176,7 @@ export default function DataKehadiranPage() {
     setFilterDivisi('')
     setFilterStatus('')
     setSearch('')
+    setPage(1)
   }
 
   const openStatusModal = (item: Absensi) => {
@@ -236,29 +243,29 @@ export default function DataKehadiranPage() {
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-slate-500 shrink-0">Dari</span>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
+            <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setPage(1) }}
               className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-slate-500 shrink-0">Sampai</span>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
+            <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setPage(1) }}
               className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
           </div>
-          <select value={filterCabang} onChange={(e) => setFilterCabang(e.target.value)}
+          <select value={filterCabang} onChange={(e) => { setFilterCabang(e.target.value); setPage(1) }}
             className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
             <option value="">Semua Cabang</option>
             {listCabang.map((c) => (
               <option key={c.id} value={c.id}>{c.nama_cabang}</option>
             ))}
           </select>
-          <select value={filterDivisi} onChange={(e) => setFilterDivisi(e.target.value)}
+          <select value={filterDivisi} onChange={(e) => { setFilterDivisi(e.target.value); setPage(1) }}
             className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
             <option value="">Semua Divisi</option>
             {listDivisi.map((d) => (
               <option key={d.id} value={d.id}>{d.nama_divisi}</option>
             ))}
           </select>
-          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
+          <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(1) }}
             className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
             <option value="">Semua Status</option>
             <option value="HADIR">Hadir</option>
@@ -271,7 +278,7 @@ export default function DataKehadiranPage() {
           </select>
           <div className="relative flex-1 min-w-[200px]">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+            <input type="text" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }}
               placeholder="Cari nama atau NIP..."
               className="w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
           </div>
@@ -348,7 +355,7 @@ export default function DataKehadiranPage() {
                 </td>
               </tr>
             ) : (
-              data.map((item) => (
+              pagedList.map((item) => (
                 <tr key={item.id} className="bg-white transition hover:bg-slate-50">
                   <td className="border border-slate-200 px-4 py-3 text-xs font-medium text-slate-700">{formatDate(item.tanggal)}</td>
                   <td className="border border-slate-200 px-4 py-3">
@@ -408,6 +415,68 @@ export default function DataKehadiranPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {!loading && data.length > 0 && (
+        <div className="mt-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3 text-sm text-slate-500">
+            <span>Per halaman</span>
+            <select value={perPage} onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1) }}
+              className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+              {[25, 50, 100, 200].map(n => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+            <span>Menampilkan {pagedList.length} dari {data.length} data</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setPage(1)} disabled={safePage <= 1}
+              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none">
+              <ChevronsLeft size={16} />
+            </button>
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage <= 1}
+              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none">
+              <ChevronLeft size={16} />
+            </button>
+            {(() => {
+              const pages: (number | '...')[] = []
+              if (totalPages <= 7) {
+                for (let i = 1; i <= totalPages; i++) pages.push(i)
+              } else {
+                pages.push(1)
+                if (safePage > 3) pages.push('...')
+                const start = Math.max(2, safePage - 1)
+                const end = Math.min(totalPages - 1, safePage + 1)
+                for (let i = start; i <= end; i++) pages.push(i)
+                if (safePage < totalPages - 2) pages.push('...')
+                pages.push(totalPages)
+              }
+              return pages.map((p, i) =>
+                p === '...' ? (
+                  <span key={`dots-${i}`} className="px-1 text-sm text-slate-300">...</span>
+                ) : (
+                  <button key={p} onClick={() => setPage(p)}
+                    className={`min-w-[32px] rounded-md border px-2 py-1.5 text-sm font-medium transition ${
+                      p === safePage
+                        ? 'border-slate-200 bg-slate-800 text-white'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}>
+                    {p}
+                  </button>
+                )
+              )
+            })()}
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}
+              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none">
+              <ChevronRight size={16} />
+            </button>
+            <button onClick={() => setPage(totalPages)} disabled={safePage >= totalPages}
+              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none">
+              <ChevronsRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Update Status Modal */}
       {showStatusModal && selected && (
