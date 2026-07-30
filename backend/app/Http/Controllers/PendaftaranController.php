@@ -1888,9 +1888,7 @@ class PendaftaranController extends Controller
         $totalKandidat = $pendaftar->count();
         $kandidatAktif = $pendaftar->where('status_pendaftaran', 'disetujui')->count();
 
-        $cabangIds = $pendaftar->pluck('batch.cabang_id')->filter()->unique()->values();
-        $cabangs = \App\Models\Cabang::whereIn('id', $cabangIds)
-            ->orderBy('nama_cabang')
+        $cabangs = \App\Models\Cabang::orderBy('nama_cabang')
             ->get()
             ->map(fn($c) => ['id' => $c->id, 'nama' => $c->nama_cabang]);
 
