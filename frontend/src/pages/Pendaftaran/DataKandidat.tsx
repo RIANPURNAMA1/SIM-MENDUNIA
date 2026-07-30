@@ -215,15 +215,22 @@ export default function DataKandidat() {
           }
         }
         setKandidatList(allKandidat)
-        setBatchOptions(prev => {
-          const merged = new Map<string, { id: number; nama: string; warna: string | null }>()
-          for (const b of batches) merged.set(b.nama, b)
-          for (const b of prev) if (!merged.has(b.nama)) merged.set(b.nama, b)
-          return [...merged.values()]
-        })
-        const colorMap: Record<string, number> = {}
-        batches.forEach((b, i) => { colorMap[b.nama] = i })
-        setBatchColorMap(colorMap)
+        if (res.data.allBatches) {
+          setBatchOptions(res.data.allBatches)
+          const colorMap: Record<string, number> = {}
+          res.data.allBatches.forEach((b: any, i: number) => { colorMap[b.nama] = i })
+          setBatchColorMap(colorMap)
+        } else {
+          setBatchOptions(prev => {
+            const merged = new Map<string, { id: number; nama: string; warna: string | null }>()
+            for (const b of batches) merged.set(b.nama, b)
+            for (const b of prev) if (!merged.has(b.nama)) merged.set(b.nama, b)
+            return [...merged.values()]
+          })
+          const colorMap: Record<string, number> = {}
+          batches.forEach((b, i) => { colorMap[b.nama] = i })
+          setBatchColorMap(colorMap)
+        }
         setTotalBatch(res.data.totalBatch)
         setTotalKandidat(res.data.totalKandidat)
         setKandidatAktif(res.data.kandidatAktif)
