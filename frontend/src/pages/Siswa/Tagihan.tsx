@@ -106,6 +106,7 @@ export default function Tagihan() {
   const [pendingChanges, setPendingChanges] = useState<Record<string, number>>({})
   const [savingInline, setSavingInline] = useState(false)
   const [pendingPembayaran, setPendingPembayaran] = useState<any[]>([])
+  const [showBatchDropdown, setShowBatchDropdown] = useState(false)
   const [showPendingModal, setShowPendingModal] = useState(false)
   const [selectedPendingPendaftarId, setSelectedPendingPendaftarId] = useState<number | null>(null)
   const [verifyingId, setVerifyingId] = useState<number | null>(null)
@@ -839,13 +840,36 @@ export default function Tagihan() {
               className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
           </div>
-          <select value={filterBatch} onChange={e => setFilterBatch(e.target.value)}
-            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-            <option value="">Semua Batch</option>
-            {batches.map(b => (
-              <option key={b.id} value={b.id}>{b.nama_batch}</option>
-            ))}
-          </select>
+          <div className="relative">
+            <button onClick={() => setShowBatchDropdown(!showBatchDropdown)}
+              className="flex items-center gap-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+              {filterBatch ? (() => {
+                const b = batches.find(x => String(x.id) === filterBatch)
+                return <>
+                  {b?.warna ? <span className="inline-block w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: b.warna }} /> : null}
+                  <span className="truncate">{b?.nama_batch || filterBatch}</span>
+                </>
+              })() : <span className="text-slate-500">Semua Batch</span>}
+            </button>
+            {showBatchDropdown && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowBatchDropdown(false)} />
+                <div className="absolute top-full left-0 mt-1 w-full z-50 rounded-md border border-slate-200 bg-white shadow-lg max-h-48 overflow-y-auto">
+                  <button onClick={() => { setFilterBatch(''); setShowBatchDropdown(false) }}
+                    className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition hover:bg-slate-50 ${!filterBatch ? 'bg-blue-50 font-semibold' : ''}`}>
+                    Semua Batch
+                  </button>
+                  {batches.map(b => (
+                    <button key={b.id} onClick={() => { setFilterBatch(String(b.id)); setShowBatchDropdown(false) }}
+                      className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition hover:bg-slate-50 ${String(b.id) === filterBatch ? 'bg-blue-50 font-semibold' : ''}`}>
+                      {b.warna ? <span className="inline-block w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: b.warna }} /> : null}
+                      {b.nama_batch}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
           <select value={filterProduct} onChange={e => setFilterProduct(e.target.value)}
             className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
             <option value="">Semua Program</option>
