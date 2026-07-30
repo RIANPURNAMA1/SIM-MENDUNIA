@@ -101,6 +101,7 @@ export default function DataKandidat() {
   const [search, setSearch] = useState('')
   const [filterBatch, setFilterBatch] = useState('')
   const [filterCabang, setFilterCabang] = useState('')
+  const [showBatchDropdown, setShowBatchDropdown] = useState(false)
   const [cabangOptions, setCabangOptions] = useState<{ id: number; nama: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -144,6 +145,11 @@ export default function DataKandidat() {
   const [importResult, setImportResult] = useState<{ success: number; failed: number; created: { nama: string; email: string; no_registrasi: string; password: string }[]; errors: { row: number; message: string }[] } | null>(null)
   const [importMapping, setImportMapping] = useState<Record<string, string>>({})
   const importFileRef = useRef<HTMLInputElement>(null)
+  const batchDropdownRef = useRef<HTMLDivElement>(null)
+  const bulkBatchDropdownRef = useRef<HTMLDivElement>(null)
+  const importBatchDropdownRef = useRef<HTMLDivElement>(null)
+  const [showBulkBatchDropdown, setShowBulkBatchDropdown] = useState(false)
+  const [showImportBatchDropdown, setShowImportBatchDropdown] = useState(false)
   const [productOptions, setProductOptions] = useState<{ id: number; nama: string }[]>([])
 
   useEffect(() => {
@@ -169,7 +175,13 @@ export default function DataKandidat() {
       const target = e.target as Node
       if (actionRef.current?.contains(target)) return
       if (actionDropdownRef.current?.contains(target)) return
+      if (batchDropdownRef.current?.contains(target)) return
+      if (bulkBatchDropdownRef.current?.contains(target)) return
+      if (importBatchDropdownRef.current?.contains(target)) return
       setOpenActionId(null)
+      setShowBatchDropdown(false)
+      setShowBulkBatchDropdown(false)
+      setShowImportBatchDropdown(false)
     }
     function handleScroll() {
       setOpenActionId(null)
@@ -990,18 +1002,34 @@ export default function DataKandidat() {
             </select>
             <svg className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
           </div>
-          <div className="relative">
-            <select
-              value={filterBatch}
-              onChange={handleFilterBatch}
-              className="appearance-none rounded-lg border border-slate-300 bg-slate-50 px-8 py-2.5 pr-8 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
-            >
-              <option value="">Semua Batch</option>
-              {batchOptions.map(b => (
-                <option key={b.id} value={b.id}>{b.nama}</option>
-              ))}
-            </select>
-            <svg className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+          <div className="relative shrink-0" ref={batchDropdownRef}>
+            <button type="button" onClick={() => setShowBatchDropdown(!showBatchDropdown)}
+              className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 w-full min-w-[180px] shadow-sm hover:shadow">
+              {filterBatch ? (
+                <span className="flex items-center gap-2 truncate">
+                  <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: batchOptions.find(b => String(b.id) === filterBatch)?.warna || '#3b82f6' }} />
+                  <span className="truncate">{batchOptions.find(b => String(b.id) === filterBatch)?.nama || 'Semua Batch'}</span>
+                </span>
+              ) : (
+                <span className="text-slate-400">Semua Batch</span>
+              )}
+              <svg className={`ml-auto h-4 w-4 text-slate-400 transition-transform ${showBatchDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            </button>
+            {showBatchDropdown && (
+              <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[220px] rounded-xl border border-slate-200 bg-white shadow-xl py-1 max-h-60 overflow-y-auto">
+                <button type="button" onClick={() => { setFilterBatch(''); setShowBatchDropdown(false); setPage(1); doFetch(buildParams({ batch_id: '' })) }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:bg-blue-50 hover:text-blue-700 transition">
+                  Semua Batch
+                </button>
+                {batchOptions.map(b => (
+                  <button key={b.id} type="button" onClick={() => { setFilterBatch(String(b.id)); setShowBatchDropdown(false); setPage(1); doFetch(buildParams({ batch_id: String(b.id) })) }}
+                    className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${String(b.id) === filterBatch ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}>
+                    <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: b.warna || '#3b82f6' }} />
+                    <span className="truncate">{b.nama}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <button
             onClick={() => fetchData(search)}
@@ -1055,16 +1083,35 @@ export default function DataKandidat() {
             </div>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <div className="flex items-center gap-2">
-                <select
-                  value={bulkBatchId}
-                  onChange={e => setBulkBatchId(e.target.value)}
-                  className="appearance-none rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                >
-                  <option value="">Pilih Batch Tujuan...</option>
-                  {batchOptions.map(b => (
-                    <option key={b.id} value={b.id}>{b.nama}</option>
-                  ))}
-                </select>
+                <div className="relative shrink-0" ref={bulkBatchDropdownRef}>
+                  <button type="button" onClick={() => setShowBulkBatchDropdown(!showBulkBatchDropdown)}
+                    className="flex items-center gap-2 rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 w-full min-w-[180px] shadow-sm hover:shadow">
+                    {bulkBatchId ? (
+                      <span className="flex items-center gap-2 truncate">
+                        <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: batchOptions.find(b => String(b.id) === bulkBatchId)?.warna || '#3b82f6' }} />
+                        <span className="truncate">{batchOptions.find(b => String(b.id) === bulkBatchId)?.nama || 'Pilih Batch Tujuan...'}</span>
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">Pilih Batch Tujuan...</span>
+                    )}
+                    <svg className={`ml-auto h-4 w-4 text-slate-400 transition-transform ${showBulkBatchDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+                  {showBulkBatchDropdown && (
+                    <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[220px] rounded-xl border border-slate-200 bg-white shadow-xl py-1 max-h-60 overflow-y-auto">
+                      <button type="button" onClick={() => { setBulkBatchId(''); setShowBulkBatchDropdown(false) }}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:bg-blue-50 hover:text-blue-700 transition">
+                        Pilih Batch Tujuan...
+                      </button>
+                      {batchOptions.map(b => (
+                        <button key={b.id} type="button" onClick={() => { setBulkBatchId(String(b.id)); setShowBulkBatchDropdown(false) }}
+                          className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${String(b.id) === bulkBatchId ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}>
+                          <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: b.warna || '#3b82f6' }} />
+                          <span className="truncate">{b.nama}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <button
                   onClick={handleBulkMoveBatch}
                   disabled={!bulkBatchId || bulkMoving}
@@ -1909,16 +1956,35 @@ export default function DataKandidat() {
                     </div>
                     <div className="sm:w-60">
                       <label className="mb-1 block text-xs font-medium text-slate-600">Batch Tujuan</label>
-                      <select
-                        value={importBatchId}
-                        onChange={e => setImportBatchId(e.target.value)}
-                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                      >
-                        <option value="">Pilih Batch...</option>
-                        {batchOptions.map(b => (
-                          <option key={b.id} value={b.id}>{b.nama}</option>
-                        ))}
-                      </select>
+                      <div className="relative shrink-0" ref={importBatchDropdownRef}>
+                        <button type="button" onClick={() => setShowImportBatchDropdown(!showImportBatchDropdown)}
+                          className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 w-full min-w-[180px] shadow-sm hover:shadow">
+                          {importBatchId ? (
+                            <span className="flex items-center gap-2 truncate">
+                              <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: batchOptions.find(b => String(b.id) === importBatchId)?.warna || '#3b82f6' }} />
+                              <span className="truncate">{batchOptions.find(b => String(b.id) === importBatchId)?.nama || 'Pilih Batch...'}</span>
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">Pilih Batch...</span>
+                          )}
+                          <svg className={`ml-auto h-4 w-4 text-slate-400 transition-transform ${showImportBatchDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+                        {showImportBatchDropdown && (
+                          <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[220px] rounded-xl border border-slate-200 bg-white shadow-xl py-1 max-h-60 overflow-y-auto">
+                            <button type="button" onClick={() => { setImportBatchId(''); setShowImportBatchDropdown(false) }}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:bg-blue-50 hover:text-blue-700 transition">
+                              Pilih Batch...
+                            </button>
+                            {batchOptions.map(b => (
+                              <button key={b.id} type="button" onClick={() => { setImportBatchId(String(b.id)); setShowImportBatchDropdown(false) }}
+                                className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${String(b.id) === importBatchId ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}>
+                                <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: b.warna || '#3b82f6' }} />
+                                <span className="truncate">{b.nama}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div className="sm:w-60">
                       <label className="mb-1 block text-xs font-medium text-slate-600">Program / Product</label>
