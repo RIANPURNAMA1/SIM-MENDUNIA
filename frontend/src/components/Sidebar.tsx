@@ -280,7 +280,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               ...group,
               children: group.children.filter(
                 (child) =>
-                  child.label === "Data Kandidat" || child.label === "Pendaftaran",
+                  child.label === "Data Kandidat" || child.label === "Pendaftaran" || child.label === "Pembayaran Tagihan",
               ),
             };
           }

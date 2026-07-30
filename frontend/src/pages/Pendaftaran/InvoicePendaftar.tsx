@@ -206,7 +206,7 @@ export default function InvoicePendaftar() {
       </div>
 
       {/* Invoice */}
-      <div ref={invoiceRef} className="invoice-print mx-auto max-w-[210mm] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg print:shadow-none print:border-0 print:rounded-none">
+      <div ref={invoiceRef} className="invoice-print relative mx-auto max-w-[210mm] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg print:shadow-none print:border-0 print:rounded-none">
         {/* Header */}
         <div className="relative border-b border-slate-200 px-8 pb-6 pt-8 sm:px-12" style={{ borderBottom: '2px solid #00C0FF' }}>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -341,6 +341,12 @@ export default function InvoicePendaftar() {
 
         </div>
 
+        {keuangan.sisa === 0 && (
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <div className="lunas-stamp">LUNAS</div>
+          </div>
+        )}
+
         {/* Footer */}
         <div className="border-t border-slate-200 bg-slate-50 px-8 py-5 sm:px-12">
           <div className="flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
@@ -365,6 +371,24 @@ export default function InvoicePendaftar() {
 
       {/* Print-specific styles */}
       <style>{`
+        .lunas-stamp {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%) rotate(-20deg);
+          font-size: 5rem;
+          font-weight: 900;
+          color: rgba(220, 38, 38, 0.25);
+          border: 6px solid rgba(220, 38, 38, 0.35);
+          border-radius: 12px;
+          padding: 0.2em 0.8em;
+          letter-spacing: 0.15em;
+          text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+          pointer-events: none;
+          z-index: 50;
+          user-select: none;
+        }
+
         @media print {
           html, body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0 !important; padding: 0 !important; width: 100%; height: 100%; }
           @page { margin: 0; size: A4; }
