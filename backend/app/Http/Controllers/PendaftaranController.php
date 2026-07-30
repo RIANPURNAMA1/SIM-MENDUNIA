@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class PendaftaranController extends Controller
 {
@@ -2238,7 +2239,16 @@ class PendaftaranController extends Controller
         $errors = [];
         $created = [];
         $today = now()->format('Ymd');
-        $lastReg = Pendaftar::where('no_registrasi', 'like', "REG/{$today}/%")
+
+        $kodeCabang = '';
+        if ($batchId) {
+            $batch = \App\Models\Batch::with('cabang')->find($batchId);
+            if ($batch && $batch->cabang) {
+                $kodeCabang = $batch->cabang->kode_cabang;
+            }
+        }
+        $prefix = $kodeCabang ? "REG/{$kodeCabang}/{$today}" : "REG/{$today}";
+        $lastReg = Pendaftar::where('no_registrasi', 'like', "{$prefix}/%")
             ->orderByDesc('no_registrasi')
             ->value('no_registrasi');
         $nextNum = $lastReg ? str_pad(((int) substr($lastReg, -4)) + 1, 4, '0', STR_PAD_LEFT) : '0001';
@@ -2280,7 +2290,7 @@ class PendaftaranController extends Controller
                 $beratBadan = preg_replace('/[^\d]/', '', $row['berat_badan'] ?? '');
                 $beratBadan = ($beratBadan !== '' && (int)$beratBadan > 0 && (int)$beratBadan <= 250) ? substr($beratBadan, 0, 3) : null;
 
-                $noReg = "REG/{$today}/{$nextNum}";
+                $noReg = "{$prefix}/{$nextNum}";
                 $nextNum = str_pad(((int) $nextNum) + 1, 4, '0', STR_PAD_LEFT);
 
                 $hashedPassword = password_hash($password, PASSWORD_BCRYPT, ['cost' => 5]);
@@ -3391,6 +3401,45 @@ class PendaftaranController extends Controller
             ],
             'status_pendaftaran' => $pendaftar->status_pendaftaran,
             'status_pembayaran' => $pendaftar->status_pembayaran,
+        ]);
+    }
+
+    public function syncNoRegistrasi()
+    {
+        $updatedPendaftar = 0;
+        $updatedSiswa = 0;
+
+        $records = DB::table('pendaftar')
+            ->whereNotNull('no_registrasi')
+            ->where('no_registrasi', 'like', 'REG/%')
+            ->whereRaw("no_registrasi NOT LIKE 'REG/%/%/%'")
+            ->get();
+
+        foreach ($records as $p) {
+            $batch = DB::table('batches')->where('id', $p->batch_id)->first();
+            if (!$batch || !$batch->cabang_id) continue;
+
+            $cabang = DB::table('cabangs')->where('id', $batch->cabang_id)->first();
+            if (!$cabang || !$cabang->kode_cabang) continue;
+
+            $parts = explode('/', $p->no_registrasi);
+            if (count($parts) !== 3) continue;
+
+            $newReg = 'REG/' . $cabang->kode_cabang . '/' . $parts[1] . '/' . $parts[2];
+
+            DB::table('pendaftar')->where('id', $p->id)->update(['no_registrasi' => $newReg]);
+            $updatedPendaftar++;
+
+            DB::table('siswas')->where('no_registrasi', $p->no_registrasi)->update(['no_registrasi' => $newReg]);
+            if (DB::table('siswas')->where('no_registrasi', $p->no_registrasi)->exists()) {
+                $updatedSiswa++;
+            }
+        }
+
+        return response()->json([
+            'message' => "Sinkronisasi selesai. {$updatedPendaftar} pendaftar dan {$updatedSiswa} siswa diperbarui.",
+            'updated_pendaftar' => $updatedPendaftar,
+            'updated_siswa' => $updatedSiswa,
         ]);
     }
 }
