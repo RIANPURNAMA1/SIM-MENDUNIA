@@ -353,6 +353,8 @@ export const pendaftarApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
   syncNoRegistrasi: () => api.post('/sync-no-registrasi'),
+  bayarManual: (id: number, data: { jumlah: number; kategori_id: number }) =>
+    api.post(`/pendaftar/${id}/bayar-manual`, data),
 }
 
 export const affiliateDashboardApi = {

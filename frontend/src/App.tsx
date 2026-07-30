@@ -52,6 +52,7 @@ import DataMatchingJob from './pages/Akademik/DataMatchingJob'
 import Tagihan from './pages/Siswa/Tagihan'
 import RekapBatch from './pages/Siswa/RekapBatch'
 import Pembayaran from './pages/Siswa/Pembayaran'
+import PembayaranTagihan from './pages/PembayaranTagihan'
 import DataDiri from './pages/Siswa/DataDiri'
 import DataAffiliate from './pages/Affiliate/DataAffiliate'
 import ClosingPasukan from './pages/Affiliate/ClosingPasukan'
@@ -579,6 +580,16 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/pembayaran-tagihan"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <PembayaranTagihan />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/data-kandidat"
         element={
           <ProtectedRoute>
@@ -768,6 +779,7 @@ function AppRoutes() {
                 <Route path="/data-product" element={<DataProduct />} />
                 <Route path="/data-coupon" element={<DataCoupon />} />
                 <Route path="/data-biaya-kategori" element={<DataBiayaKategori />} />
+                <Route path="/pembayaran-tagihan" element={<PembayaranTagihan />} />
                 <Route path="/notifikasi-wa" element={<DataNotifikasi />} />
                 <Route path="/notifikasi-wa-setting" element={<DataNotifikasiSetting />} />
                 <Route path="/template-notifikasi" element={<DataTemplateNotifikasi />} />

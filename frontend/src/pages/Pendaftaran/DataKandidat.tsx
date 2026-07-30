@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { Users, Search, RotateCcw, Eye, Edit3, Power, PowerOff, CalendarOff, Calendar, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, FileText, Download, Upload, Trash2, ArrowRight, RefreshCw } from 'lucide-react'
+import { DollarSign, Users, Search, RotateCcw, Eye, Edit3, Power, PowerOff, CalendarOff, Calendar, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, FileText, Download, Upload, Trash2, ArrowRight, RefreshCw } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { pendaftarApi, batchApi, productApi } from '../../services/api'
+import api, { pendaftarApi, batchApi, productApi } from '../../services/api'
 import * as XLSX from 'xlsx'
 import Swal from 'sweetalert2'
 
@@ -52,6 +52,18 @@ interface BatchOption {
   id: number
   nama: string
   warna: string | null
+}
+
+interface PembayaranItemData {
+  kategori_id: number
+  nama: string
+  biaya: number
+  dibayar: number
+}
+
+interface KategoriBayar {
+  id: number
+  nama: string
 }
 
 type EditableField = keyof Pick<Kandidat,
@@ -138,6 +150,9 @@ export default function DataKandidat() {
   const [showImport, setShowImport] = useState(false)
   const [importFile, setImportFile] = useState<File | null>(null)
   const [importData, setImportData] = useState<Record<string, unknown>[]>([])
+  const [paymentModal, setPaymentModal] = useState<{ kandidat: Kandidat; items: PembayaranItemData[]; kategoris: KategoriBayar[] } | null>(null)
+  const [paymentJumlah, setPaymentJumlah] = useState('')
+  const [paymentSaving, setPaymentSaving] = useState(false)
   const [importHeaders, setImportHeaders] = useState<string[]>([])
   const [importBatchId, setImportBatchId] = useState('')
   const [importProductId, setImportProductId] = useState('')
@@ -1433,6 +1448,27 @@ export default function DataKandidat() {
                                       <Receipt size={14} className="text-slate-400" />
                                       <span>Lihat Invoice</span>
                                     </Link>
+                                    <button onClick={async () => {
+                                      setOpenActionId(null)
+                                      try {
+                                        const [itemRes, katRes] = await Promise.all([
+                                          api.get(`/pembayaran-item/${k.id}`),
+                                          api.get('/biaya-kategori-flat'),
+                                        ])
+                                        setPaymentModal({
+                                          kandidat: k,
+                                          items: itemRes.data.items || [],
+                                          kategoris: katRes.data || [],
+                                        })
+                                        setPaymentJumlah('')
+                                      } catch {
+                                        Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal memuat data pembayaran.', confirmButtonColor: '#0E6187' })
+                                      }
+                                    }}
+                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                                      <DollarSign size={14} className="text-emerald-400" />
+                                      <span>Pembayaran Tagihan</span>
+                                    </button>
                                     <div className="my-1 border-t border-slate-100" />
                                     <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Status Kandidat</p>
                                     {['Calon Kandidat', 'Kandidat Aktif', 'Mengundurkan Diri', 'Lulus Pendidikan'].map((st) => (
@@ -2178,6 +2214,138 @@ export default function DataKandidat() {
           </div>
         </div>
       )}
+
+      {/* Payment Modal */}
+      {paymentModal && (() => {
+        const { kandidat: k, items, kategoris } = paymentModal
+
+        const distribusi = (() => {
+          const jml = Number(paymentJumlah.replace(/\./g, ''))
+          if (!jml || jml <= 0) return []
+          const result: { nama: string; kategori_id: number; biaya: number; dibayar: number; bayar: number }[] = []
+          let sisa = jml
+          for (const kat of kategoris) {
+            if (sisa <= 0) break
+            const item = items.find(i => i.kategori_id === kat.id)
+            if (!item || item.biaya <= 0) continue
+            const kurang = item.biaya - item.dibayar
+            if (kurang <= 0) continue
+            const bayar = Math.min(sisa, kurang)
+            sisa -= bayar
+            result.push({ nama: kat.nama, kategori_id: kat.id, biaya: item.biaya, dibayar: item.dibayar, bayar })
+          }
+          return result
+        })()
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setPaymentModal(null)}>
+            <div className="w-full max-w-lg rounded-xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50">
+                    <DollarSign size={18} className="text-emerald-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-800">Pembayaran Tagihan</h3>
+                    <p className="text-xs text-slate-500">{k.nama}</p>
+                  </div>
+                </div>
+                <button onClick={() => setPaymentModal(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+                  <X size={17} />
+                </button>
+              </div>
+
+              <div className="space-y-4 px-5 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Tanggal</label>
+                    <input type="date" value={new Date().toISOString().split('T')[0]} readOnly
+                      className="w-full rounded-md border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Batch</label>
+                    <input type="text" value={k.batch_nama || '-'} readOnly
+                      className="w-full rounded-md border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-500" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Nama Kandidat</label>
+                  <input type="text" value={k.nama} readOnly
+                    className="w-full rounded-md border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-500" />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Nominal Pembayaran <span className="text-red-500">*</span></label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-400">Rp</span>
+                    <input type="text" inputMode="numeric" required value={paymentJumlah}
+                      onChange={e => {
+                        const raw = e.target.value.replace(/[^\d]/g, '')
+                        setPaymentJumlah(raw ? Number(raw).toLocaleString('id-ID') : '')
+                      }}
+                      placeholder="0"
+                      className="w-full rounded-md border border-slate-300 bg-white py-2 pl-10 pr-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                  </div>
+                </div>
+
+                {distribusi.length > 0 && (
+                  <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 space-y-2">
+                    <p className="text-[11px] font-semibold text-blue-700 uppercase tracking-wide">Preview Distribusi Pembayaran</p>
+                    {distribusi.map((d, i) => (
+                      <div key={i} className="flex items-center justify-between text-sm">
+                        <span className="text-slate-700 font-medium">{d.nama}</span>
+                        <span className="font-semibold text-slate-700">Rp {d.bayar.toLocaleString('id-ID')}</span>
+                      </div>
+                    ))}
+                    {Number(paymentJumlah.replace(/\./g, '')) > distribusi.reduce((s, d) => s + d.bayar, 0) && (
+                      <div className="border-t border-blue-200 pt-2 mt-2 flex justify-between text-sm">
+                        <span className="text-blue-600">Sisa kembali</span>
+                        <span className="font-bold text-blue-700">Rp {(Number(paymentJumlah.replace(/\./g, '')) - distribusi.reduce((s, d) => s + d.bayar, 0)).toLocaleString('id-ID')}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between border-t border-slate-200 px-5 py-3">
+                <p className="text-[11px] text-slate-400">Pembayaran akan langsung tercatat</p>
+                <div className="flex gap-2">
+                  <button onClick={() => setPaymentModal(null)}
+                    className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">
+                    Batal
+                  </button>
+                  <button
+                    disabled={paymentSaving || !paymentJumlah || Number(paymentJumlah.replace(/\./g, '')) <= 0 || distribusi.length === 0}
+                    onClick={async () => {
+                      const jml = Number(paymentJumlah.replace(/\./g, ''))
+                      if (!jml || jml <= 0) return
+                      setPaymentSaving(true)
+                      try {
+                        for (const d of distribusi) {
+                          if (d.bayar <= 0) continue
+                          await pendaftarApi.bayarManual(k.id, { jumlah: d.bayar, kategori_id: d.kategori_id })
+                        }
+                        setPaymentModal(null)
+                        fetchData(search)
+                        Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Pembayaran berhasil dicatat.', confirmButtonColor: '#0E6187', timer: 2000, timerProgressBar: true, showConfirmButton: false })
+                      } catch (err: any) {
+                        const msg = err?.response?.data?.message || err?.message || 'Terjadi kesalahan'
+                        Swal.fire({ icon: 'error', title: 'Gagal', text: msg, confirmButtonColor: '#0E6187' })
+                      } finally {
+                        setPaymentSaving(false)
+                      }
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-5 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
+                  >
+                    {paymentSaving ? 'Menyimpan...' : 'Simpan Pembayaran'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

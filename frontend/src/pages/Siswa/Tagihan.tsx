@@ -269,7 +269,7 @@ export default function Tagihan() {
       const aPending = hasPending(a.batchId) ? 0 : 1
       const bPending = hasPending(b.batchId) ? 0 : 1
       if (aPending !== bPending) return aPending - bPending
-      return a.batchName.localeCompare(b.batchName)
+      return b.batchId - a.batchId
     })
   }, [filtered, kategoris, pendingPembayaran])
 
