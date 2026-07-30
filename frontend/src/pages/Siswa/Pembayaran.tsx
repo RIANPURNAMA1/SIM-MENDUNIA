@@ -10,6 +10,8 @@ interface PaymentItem {
   id: number
   pendaftar_id: number
   jumlah: number
+  kode_unik: number
+  total_transfer?: number
   status: string
   created_at: string
   bukti_pembayaran: string | null
@@ -76,10 +78,12 @@ export default function Pembayaran() {
     })
   }, [data, search, filterStatus, startDate, endDate])
 
+  const nominalTampil = (p: PaymentItem) => p.kode_unik > 0 ? (p.total_transfer ?? p.jumlah) : p.jumlah
+
   const stats = useMemo(() => ({
-    total: data.reduce((s, p) => s + Number(p.total_transfer ?? p.jumlah), 0),
+    total: data.reduce((s, p) => s + Number(nominalTampil(p)), 0),
     count: data.length,
-    verified: data.filter(p => p.status === 'verified').reduce((s, p) => s + Number(p.total_transfer ?? p.jumlah), 0),
+    verified: data.filter(p => p.status === 'verified').reduce((s, p) => s + Number(nominalTampil(p)), 0),
     pending: data.filter(p => p.status === 'pending').length,
   }), [data])
 
@@ -231,7 +235,7 @@ export default function Pembayaran() {
                       </div>
                     </td>
                     <td className="border border-slate-200 px-4 py-3 text-right text-sm font-bold text-slate-800 whitespace-nowrap">
-                      Rp {fmt(p.total_transfer ?? p.jumlah)}
+                      Rp {fmt(nominalTampil(p))}
                     </td>
                     <td className="border border-slate-200 px-4 py-3">
                       {statusBadge(p.status)}
@@ -306,7 +310,7 @@ export default function Pembayaran() {
                       {new Date(p.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </span>
                   </div>
-                  <p className="text-sm font-bold text-slate-800 mt-1">Rp {fmt(p.total_transfer ?? p.jumlah)}</p>
+                  <p className="text-sm font-bold text-slate-800 mt-1">Rp {fmt(nominalTampil(p))}</p>
                   <p className="text-xs text-slate-500 mt-1 truncate">{p.pendaftar?.product?.nama || 'Tanpa keterangan'}</p>
                   <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
