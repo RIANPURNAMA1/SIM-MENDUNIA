@@ -14,7 +14,7 @@ interface DashboardData {
   affiliate: { name: string; email: string; telepon: string | null; alamat: string | null }
   stats: { total_links: number; total_views: number; total_pendaftar: number; pending: number; disetujui: number; komisi_pending: number; komisi_paid: number }
   links: { id: number; kode: string; nama_link: string | null; views: number; pendaftar_count: number; product: { id: number; nama: string; harga: number; komisi: number | null } | null; komisi_dibayar: number; komisi_pending: number; total_komisi: number }[]
-  pendaftar: { id: number; nama: string; email: string; nominal: number; status_pendaftaran: string; status_pembayaran: string; status_kandidat?: string; created_at: string; product: { nama: string; harga: number; komisi: number | null } | null; komisi_diperoleh: number; komisi_pending: number }[]
+  pendaftar: { id: number; nama: string; email: string; nominal: number; status_pendaftaran: string; status_pembayaran: string; status_kandidat?: string; batch: { id: number; nama_batch: string } | null; created_at: string; product: { nama: string; harga: number; komisi: number | null } | null; komisi_diperoleh: number; komisi_pending: number }[]
 }
 
 function toast(msg: string) {
@@ -35,6 +35,7 @@ export default function AffiliateDashboard() {
   const [selectedProduct, setSelectedProduct] = useState('')
   const [linkName, setLinkName] = useState('')
   const [creating, setCreating] = useState(false)
+  const [batchFilter, setBatchFilter] = useState<string>('all')
 
   const tab = searchParams.get('tab') || 'dashboard'
 
@@ -102,6 +103,12 @@ export default function AffiliateDashboard() {
 
   const { affiliate, stats, links, pendaftar } = data
 
+  const batchList = [...new Map(pendaftar.filter(p => p.batch).map(p => [p.batch!.id, p.batch!.nama_batch])).entries()]
+    .map(([id, nama_batch]) => ({ id, nama_batch }))
+  const filteredPendaftar = batchFilter === 'all'
+    ? pendaftar
+    : pendaftar.filter(p => p.batch?.nama_batch === batchFilter)
+
   return (
     <>
     <div className="px-3 py-3 sm:px-6 sm:py-4">
@@ -135,7 +142,7 @@ export default function AffiliateDashboard() {
           Data Pendaftar
           {pendaftar.length > 0 && (
             <span className={`ml-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${tab === 'pendaftar' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'}`}>
-              {pendaftar.length}
+              {filteredPendaftar.length}
             </span>
           )}
         </button>
@@ -270,7 +277,7 @@ export default function AffiliateDashboard() {
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-slate-800 truncate">{p.nama}</p>
-                        <p className="text-xs text-slate-400">{p.product?.nama}</p>
+                        <p className="text-xs text-slate-400">{p.product?.nama}{p.batch?.nama_batch ? <span className="ml-1 text-[10px] text-indigo-500">· {p.batch.nama_batch}</span> : null}</p>
                         {(p.komisi_diperoleh > 0 || p.komisi_pending > 0) && (
                           <div className="mt-0.5 flex items-center gap-2 text-[11px]">
                             {p.komisi_diperoleh > 0 && <span className="text-emerald-600 font-medium">Dibayar: Rp {Number(p.komisi_diperoleh).toLocaleString('id-ID')}</span>}
@@ -309,10 +316,24 @@ export default function AffiliateDashboard() {
         <>
           {/* Data Pendaftar Table */}
           <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-100 px-5 py-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-5 py-3.5">
               <h2 className="text-sm font-bold text-slate-800">Data Pendaftar</h2>
+              {batchList.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  <button onClick={() => setBatchFilter('all')}
+                    className={`rounded-md px-3 py-1 text-[11px] font-semibold transition ${batchFilter === 'all' ? 'bg-[#0E6187] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                    Semua Batch
+                  </button>
+                  {batchList.map(b => (
+                    <button key={b.id} onClick={() => setBatchFilter(b.nama_batch)}
+                      className={`rounded-md px-3 py-1 text-[11px] font-semibold transition ${batchFilter === b.nama_batch ? 'bg-[#0E6187] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                      {b.nama_batch}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-            {pendaftar.length === 0 ? (
+            {filteredPendaftar.length === 0 ? (
               <div className="flex flex-col items-center px-5 py-14 text-center">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100">
                   <Users size={26} className="text-slate-400" />
@@ -328,12 +349,13 @@ export default function AffiliateDashboard() {
                       <th className="border border-slate-200 px-4 py-3 font-medium">Nama</th>
                       <th className="border border-slate-200 px-4 py-3 font-medium">Email</th>
                       <th className="border border-slate-200 px-4 py-3 font-medium">Program</th>
+                      <th className="border border-slate-200 px-4 py-3 font-medium">Batch</th>
                       <th className="border border-slate-200 px-4 py-3 text-center font-medium">Status</th>
                       <th className="border border-slate-200 px-4 py-3 font-medium">Tanggal</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {pendaftar.map(p => (
+                    {filteredPendaftar.map(p => (
                       <tr key={p.id} className="bg-white transition hover:bg-slate-50">
                         <td className="border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-800">{p.nama}</td>
                         <td className="border border-slate-200 px-4 py-3 text-sm text-slate-500">{p.email}</td>
@@ -341,6 +363,7 @@ export default function AffiliateDashboard() {
                           {p.product?.nama || '-'}
                           {p.product?.komisi && <span className="ml-1 text-[10px] text-blue-500">(Rp {Number(p.product.komisi).toLocaleString('id-ID')}/org)</span>}
                         </td>
+                        <td className="border border-slate-200 px-4 py-3 text-sm text-slate-500">{p.batch?.nama_batch || '-'}</td>
                         <td className="border border-slate-200 px-4 py-3 text-center">
                           {p.status_kandidat === 'Mengundurkan Diri' ? (
                             <span className="inline-flex rounded bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-700">Mengundurkan Diri</span>

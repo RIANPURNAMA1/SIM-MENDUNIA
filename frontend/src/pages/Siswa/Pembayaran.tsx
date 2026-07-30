@@ -49,6 +49,7 @@ export default function Pembayaran() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [showCatatan, setShowCatatan] = useState(false)
+  const [previewImg, setPreviewImg] = useState<string | null>(null)
 
   useEffect(() => {
     fetchData()
@@ -246,15 +247,13 @@ export default function Pembayaran() {
                     </td>
                     <td className="border border-slate-200 px-4 py-3 text-center">
                       {p.bukti_pembayaran ? (
-                        <a
-                          href={`${APP_URL}/storage/${p.bukti_pembayaran}`}
-                          target="_blank"
-                          rel="noreferrer"
+                        <button
+                          onClick={() => setPreviewImg(`${APP_URL}/storage/${p.bukti_pembayaran}`)}
                           className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
                         >
                           <Eye size={13} />
                           Lihat
-                        </a>
+                        </button>
                       ) : (
                         <span className="text-xs text-slate-400">Manual</span>
                       )}
@@ -291,7 +290,7 @@ export default function Pembayaran() {
                     src={`${APP_URL}/storage/${p.bukti_pembayaran}`}
                     alt="Bukti pembayaran"
                     className="w-full h-40 object-cover cursor-pointer"
-                    onClick={() => window.open(`${APP_URL}/storage/${p.bukti_pembayaran}`, '_blank')}
+                    onClick={() => setPreviewImg(`${APP_URL}/storage/${p.bukti_pembayaran}`)}
                   />
                 ) : (
                   <div className="h-40 bg-slate-100 flex items-center justify-center">
@@ -327,6 +326,23 @@ export default function Pembayaran() {
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {previewImg && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" onClick={() => setPreviewImg(null)}>
+          <div className="absolute inset-0 bg-black/70" />
+          <div className="relative max-w-2xl w-full bg-white rounded-2xl shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+              <h3 className="text-sm font-semibold text-slate-800">Bukti Pembayaran</h3>
+              <button onClick={() => setPreviewImg(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
+                <XCircle size={18} />
+              </button>
+            </div>
+            <div className="p-2">
+              <img src={previewImg} alt="Preview" className="w-full h-auto rounded-lg object-contain max-h-[70vh]" />
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -813,7 +813,7 @@ class PendaftaranController extends Controller
 
     public function verifyPayment($id)
     {
-        $pendaftar = Pendaftar::with('user', 'product.biayaKategoris')->findOrFail($id);
+        $pendaftar = Pendaftar::with('user', 'product.biayaKategoris', 'batch')->findOrFail($id);
         $pendaftar->update(['status_pembayaran' => 'verified']);
 
         $pembayarans = Pembayaran::with('kategori')->where('pendaftar_id', $pendaftar->id)
@@ -3030,10 +3030,16 @@ class PendaftaranController extends Controller
         foreach ($parentMap as $parentId => $info) {
             if ($info['children_count'] === 0) continue;
 
-            $existing = KomisiAffiliate::where('pendaftar_id', $pendaftar->id)
+            // Check if komisi already exists for this affiliate+batch+parent category
+            $existingForAffiliate = KomisiAffiliate::whereHas('affiliateLink', function ($q) use ($pendaftar) {
+                    $q->where('affiliate_id', $pendaftar->affiliateLink->affiliate_id);
+                })
                 ->where('kategori_id', $parentId)
+                ->whereHas('pendaftar', function ($q) use ($pendaftar) {
+                    $q->where('batch_id', $pendaftar->batch_id);
+                })
                 ->first();
-            if ($existing) continue;
+            if ($existingForAffiliate) continue;
 
             // Check all children are fully paid (aggregate across parent + children)
             $allIds = array_merge([$parentId], $info['children_ids']);
@@ -3212,6 +3218,20 @@ class PendaftaranController extends Controller
         ]);
     }
 
+    public function bayarKomisiAffiliate($affiliateId)
+    {
+        $updated = \App\Models\KomisiAffiliate::whereHas('affiliateLink', function ($q) use ($affiliateId) {
+            $q->where('affiliate_id', $affiliateId);
+        })
+        ->where('status', '!=', 'paid')
+        ->update(['status' => 'paid']);
+
+        return response()->json([
+            'message' => "{$updated} komisi berhasil dibayarkan",
+            'updated' => $updated,
+        ]);
+    }
+
     public function komisiAffiliate()
     {
         $komisi = \App\Models\KomisiAffiliate::with([
@@ -3233,6 +3253,7 @@ class PendaftaranController extends Controller
                             'affiliate_id' => (int) $affiliateId,
                             'affiliate_nama' => $affiliate?->name ?? 'Unknown',
                             'affiliate_email' => $affiliate?->email ?? '',
+                            'no_hp' => $affiliate?->no_hp ?? '-',
                             'bank' => $affiliate?->bank ?? '-',
                             'nama_rekening' => $affiliate?->nama_rekening ?? '-',
                             'no_rekening' => $affiliate?->no_rekening ?? '-',
@@ -3245,10 +3266,12 @@ class PendaftaranController extends Controller
                                 'jumlah' => (float) $k->jumlah,
                                 'status' => $k->status,
                                 'created_at' => $k->created_at,
-                                'pendaftar' => $k->pendaftar ? [
-                                    'nama' => $k->pendaftar->nama,
-                                    'product' => $k->pendaftar->product?->nama,
-                                ] : null,
+'pendaftar' => $k->pendaftar ? [
+                                        'nama' => $k->pendaftar->nama,
+                                        'email' => $k->pendaftar->email,
+                                        'telepon' => $k->pendaftar->telepon,
+                                        'product' => $k->pendaftar->product?->nama,
+                                    ] : null,
                                 'kategori' => $k->kategori?->nama,
                             ])->values(),
                         ];

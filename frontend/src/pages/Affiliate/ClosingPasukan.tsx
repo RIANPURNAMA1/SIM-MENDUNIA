@@ -12,7 +12,6 @@ interface Item {
   status: string
   komisi_status: string
   komisi_jumlah: number
-  cair: boolean
 }
 
 interface Batch {
@@ -39,35 +38,6 @@ export default function ClosingPasukan() {
       .catch(() => setData([]))
       .finally(() => setLoading(false))
   }, [])
-
-  function toggleCair(item: Item) {
-    const prev = item.cair
-    setData(prevData =>
-      prevData.map(cabang => ({
-        ...cabang,
-        batches: cabang.batches.map(batch => ({
-          ...batch,
-          items: batch.items.map(i =>
-            i.id === item.id ? { ...i, cair: !i.cair } : i
-          ),
-        })),
-      }))
-    )
-    api.post(`/closing-pasukan/${item.id}/toggle-cair`)
-      .catch(() => {
-        setData(prevData =>
-          prevData.map(cabang => ({
-            ...cabang,
-            batches: cabang.batches.map(batch => ({
-              ...batch,
-              items: batch.items.map(i =>
-                i.id === item.id ? { ...i, cair: prev } : i
-              ),
-            })),
-          }))
-        )
-      })
-  }
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
@@ -100,7 +70,7 @@ export default function ClosingPasukan() {
       ) : (
         <div className="space-y-6">
           {data.map(cabang => (
-            <CabangCard key={cabang.cabang_id} cabang={cabang} onToggleCair={toggleCair} />
+            <CabangCard key={cabang.cabang_id} cabang={cabang} />
           ))}
         </div>
       )}
@@ -108,7 +78,7 @@ export default function ClosingPasukan() {
   )
 }
 
-function CabangCard({ cabang, onToggleCair }: { cabang: Cabang; onToggleCair: (item: Item) => void }) {
+function CabangCard({ cabang }: { cabang: Cabang }) {
   const [open, setOpen] = useState(true)
 
   return (
@@ -144,7 +114,6 @@ function CabangCard({ cabang, onToggleCair }: { cabang: Cabang; onToggleCair: (i
                       <th className="border border-slate-200 px-3 py-2 font-medium">Nama Kandidat</th>
                       <th className="border border-slate-200 px-3 py-2 font-medium hidden sm:table-cell">Email</th>
                       <th className="border border-slate-200 px-3 py-2 font-medium">Pasukan</th>
-                      <th className="border border-slate-200 px-3 py-2 text-center font-medium w-16">Cair</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -157,18 +126,6 @@ function CabangCard({ cabang, onToggleCair }: { cabang: Cabang; onToggleCair: (i
                         </td>
                         <td className="border border-slate-200 px-3 py-2 text-sm text-slate-600 hidden sm:table-cell">{item.email}</td>
                         <td className="border border-slate-200 px-3 py-2 text-sm text-slate-600">{item.pasukan}</td>
-                        <td className="border border-slate-200 px-3 py-2 text-center">
-                          <input
-                            type="checkbox"
-                            checked={item.cair}
-                            onChange={() => onToggleCair(item)}
-                            className={`h-5 w-5 cursor-pointer rounded border-2 transition ${
-                              item.cair
-                                ? 'border-emerald-500 bg-emerald-500 text-emerald-500 accent-emerald-600'
-                                : 'border-slate-300 accent-emerald-600'
-                            }`}
-                          />
-                        </td>
                       </tr>
                     ))}
                   </tbody>

@@ -12,6 +12,7 @@ interface BatchItem {
   is_penuh: boolean
   is_penuh_manual: boolean
   warna: string | null
+  link_grup: string | null
   cabang: { id: number; nama_cabang: string } | null
   created_at: string | null
   updated_at: string | null
@@ -51,6 +52,7 @@ export default function BatchesPage() {
   const [cabangId, setCabangId] = useState<number | "">("");
   const [kuota, setKuota] = useState<string>("");
   const [warna, setWarna] = useState("#3b82f6");
+  const [linkGrup, setLinkGrup] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const [filterCabang, setFilterCabang] = useState<number | "">("");
@@ -96,6 +98,7 @@ export default function BatchesPage() {
     setCabangId("");
     setKuota("");
     setWarna("#3b82f6");
+    setLinkGrup("");
     setShowModal(true);
   };
 
@@ -105,6 +108,7 @@ export default function BatchesPage() {
     setCabangId(item.cabang?.id ?? "");
     setKuota(item.kuota ? String(item.kuota) : "");
     setWarna(item.warna || "#3b82f6");
+    setLinkGrup(item.link_grup || "");
     setShowModal(true);
   };
 
@@ -115,18 +119,18 @@ export default function BatchesPage() {
     setSubmitting(true);
     try {
       if (editId) {
-        await batchApi.update(editId, { nama_batch: namaBatch.trim(), cabang_id: cabangId || null, kuota: kuota ? Number(kuota) : null, warna });
+        await batchApi.update(editId, { nama_batch: namaBatch.trim(), cabang_id: cabangId || null, kuota: kuota ? Number(kuota) : null, warna, link_grup: linkGrup.trim() || null });
       } else if (isBulk) {
         const dari = Number(batchDari);
         const sampai = Number(batchSampai);
         const batches = [];
         for (let i = dari; i <= sampai; i++) {
-          batches.push({ nama_batch: `${batchPrefix.trim()} ${i}`, cabang_id: cabangId || null, kuota: kuota ? Number(kuota) : null, warna });
+          batches.push({ nama_batch: `${batchPrefix.trim()} ${i}`, cabang_id: cabangId || null, kuota: kuota ? Number(kuota) : null, warna, link_grup: linkGrup.trim() || null });
         }
         await batchApi.bulkStore(batches);
       } else {
         if (!namaBatch.trim()) { setSubmitting(false); return; }
-        await batchApi.store({ nama_batch: namaBatch.trim(), cabang_id: cabangId || null, kuota: kuota ? Number(kuota) : null, warna });
+        await batchApi.store({ nama_batch: namaBatch.trim(), cabang_id: cabangId || null, kuota: kuota ? Number(kuota) : null, warna, link_grup: linkGrup.trim() || null });
       }
       setShowModal(false);
       setNamaBatch("");
@@ -136,6 +140,7 @@ export default function BatchesPage() {
       setCabangId("");
       setKuota("");
       setWarna("#3b82f6");
+      setLinkGrup("");
       setEditId(null);
       fetchData(1);
     } catch (err) {
@@ -394,7 +399,7 @@ export default function BatchesPage() {
           <div className="w-full max-w-sm rounded-lg bg-white shadow-xl">
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
               <h3 className="text-sm font-semibold text-slate-800">{editId ? "Edit Batch" : "Tambah Batch"}</h3>
-              <button onClick={() => { setShowModal(false); setNamaBatch(""); setCabangId(""); setKuota(""); setEditId(null); }} className="rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"><X size={16} /></button>
+              <button onClick={() => { setShowModal(false); setNamaBatch(""); setCabangId(""); setKuota(""); setWarna("#3b82f6"); setLinkGrup(""); setEditId(null); }} className="rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"><X size={16} /></button>
             </div>
             <form onSubmit={handleSave}>
               <div className="px-4 py-4 space-y-4">
@@ -463,9 +468,13 @@ export default function BatchesPage() {
                     <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-white" style={{ backgroundColor: warna }}>{namaBatch || 'Preview'}</span>
                   </div>
                 </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-500">Link Grup</label>
+                  <input type="url" value={linkGrup} onChange={(e) => setLinkGrup(e.target.value)} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="https://chat.whatsapp.com/..." />
+                </div>
               </div>
               <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3">
-                <button type="button" onClick={() => { setShowModal(false); setNamaBatch(""); setCabangId(""); setKuota(""); setEditId(null); }} className="rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">Batal</button>
+                <button type="button" onClick={() => { setShowModal(false); setNamaBatch(""); setCabangId(""); setKuota(""); setWarna("#3b82f6"); setLinkGrup(""); setEditId(null); }} className="rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">Batal</button>
                 <button type="submit" disabled={submitting || (editId ? !namaBatch.trim() : (!namaBatch.trim() && !isBulk))} className="rounded-md bg-slate-800 px-4 py-2 text-xs font-medium text-white transition hover:bg-slate-700 disabled:opacity-50">
                   {submitting ? "Menyimpan..." : editId ? "Simpan" : isBulk ? `Buat ${Number(batchSampai) - Number(batchDari) + 1} Batch` : "Simpan"}
                 </button>

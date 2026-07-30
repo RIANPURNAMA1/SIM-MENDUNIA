@@ -24,7 +24,7 @@ class AffiliateDashboardController extends Controller
         $totalPendaftar = $links->sum('pendaftar_count');
         $totalLinks = $links->count();
 
-        $pendaftar = Pendaftar::with(['product'])
+        $pendaftar = Pendaftar::with(['product', 'batch'])
             ->whereIn('affiliate_link_id', $links->pluck('id'))
             ->orderBy('created_at', 'desc')
             ->get();
@@ -86,6 +86,10 @@ class AffiliateDashboardController extends Controller
                 'status_pendaftaran' => $p->status_pendaftaran,
                 'status_pembayaran' => $p->status_pembayaran,
                 'status_kandidat' => $p->siswa?->status_kandidat,
+                'batch' => $p->batch ? [
+                    'id' => $p->batch->id,
+                    'nama_batch' => $p->batch->nama_batch,
+                ] : null,
                 'created_at' => $p->created_at,
                 'product' => $p->product ? [
                     'nama' => $p->product->nama,

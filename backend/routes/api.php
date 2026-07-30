@@ -385,6 +385,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/closing-pasukan', [PendaftaranController::class, 'closingPasukan']);
     Route::post('/closing-pasukan/{id}/toggle-cair', [PendaftaranController::class, 'toggleCair']);
     Route::get('/komisi-affiliate', [PendaftaranController::class, 'komisiAffiliate']);
+    Route::post('/komisi-affiliate/{affiliateId}/bayar', [PendaftaranController::class, 'bayarKomisiAffiliate']);
     Route::post('/recalculate-all-komisi', [PendaftaranController::class, 'recalculateAllKomisi']);
 
     Route::get('/pembayaran', [PendaftaranController::class, 'allPembayaran']);
@@ -402,6 +403,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/pembayaran-item/{pendaftarId}/batal-lunas', [BiayaController::class, 'setBatalLunas']);
     Route::get('/affiliate-dashboard', [AffiliateDashboardController::class, 'index']);
     Route::post('/affiliate/my-links', [AffiliateLinkController::class, 'myLinks']);
+    Route::get('/affiliate/my-links', [AffiliateLinkController::class, 'myLinksIndex']);
     Route::get('/affiliate/products-aktif', [AffiliateLinkController::class, 'availableProducts']);
     Route::get('/siswa-dashboard', [SiswaDashboardController::class, 'index']);
     Route::get('/guru-dashboard', [GuruDashboardController::class, 'index']);

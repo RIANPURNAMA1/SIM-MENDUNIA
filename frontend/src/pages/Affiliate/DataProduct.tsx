@@ -2,10 +2,10 @@ import { useState, useEffect, useMemo } from 'react'
 import {
   Package, Plus, Edit3, Trash2, X, Search, RotateCcw, Link as LinkIcon,
   Check, GraduationCap, ExternalLink, Trash, ChevronDown, ChevronRight,
-  Info, Tag, DollarSign, Award, Users, Layers,
+  Info, Tag, DollarSign, Award, Users, Layers, Upload,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
-import api, { productApi } from '../../services/api'
+import api, { productApi, APP_URL } from '../../services/api'
 
 interface KategoriItem {
   name: string
@@ -58,7 +58,9 @@ interface Product {
   harga: number
   komisi: number | null
   status: string
+  is_affiliable: boolean
   batch_id: number | null
+  gambar: string | null
   batch?: { id: number; nama_batch: string } | null
   biaya_kategoris: (BiayaKategori & { pivot: { harga: number; komisi: number } })[]
   komisi_tiers: KomisiTier[]
@@ -105,10 +107,14 @@ export default function DataProduct() {
     deskripsi: '',
     komisi: '',
     status: 'aktif',
+    is_affiliable: true,
     batch_id: '' as string,
     kategori_items: [emptyKategoriItem()] as KategoriItem[],
     komisi_tiers: [] as KomisiTier[],
   })
+  const [gambarFile, setGambarFile] = useState<File | null>(null)
+  const [gambarPreview, setGambarPreview] = useState<string | null>(null)
+  const [hapusGambar, setHapusGambar] = useState(false)
   const [copiedId, setCopiedId] = useState<number | null>(null)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [batches, setBatches] = useState<Batch[]>([])
@@ -125,9 +131,12 @@ export default function DataProduct() {
   function openCreate() {
     setEditing(null)
     setForm({
-      nama: '', deskripsi: '', komisi: '', status: 'aktif', batch_id: '',
+      nama: '', deskripsi: '', komisi: '', status: 'aktif', is_affiliable: true, batch_id: '',
       kategori_items: [emptyKategoriItem()], komisi_tiers: [],
     })
+    setGambarFile(null)
+    setGambarPreview(null)
+    setHapusGambar(false)
     setExpanded({})
     setActiveTab('info')
     setShowModal(true)
@@ -161,6 +170,7 @@ export default function DataProduct() {
     setForm({
       nama: p.nama, deskripsi: p.deskripsi || '',
       komisi: p.komisi ? String(p.komisi) : '', status: p.status,
+      is_affiliable: p.is_affiliable !== false,
       batch_id: p.batch_id ? String(p.batch_id) : '',
       kategori_items: items,
       komisi_tiers: (p.komisi_tiers || []).map(t => {
@@ -176,6 +186,9 @@ export default function DataProduct() {
         return { ...t, batch_id: t.batch_id ?? null, kategori_name: resolvedName }
       }),
     })
+    setGambarFile(null)
+    setGambarPreview(p.gambar ? `${APP_URL}/storage/${p.gambar}` : null)
+    setHapusGambar(false)
     setExpanded({})
     setActiveTab('info')
     setShowModal(true)
@@ -280,11 +293,12 @@ export default function DataProduct() {
         }))
     }
 
-    const payload = {
+    const payload: Record<string, unknown> = {
       nama: form.nama, deskripsi: form.deskripsi,
       kategori_items: cleanItems(form.kategori_items),
       komisi: form.komisi ? parseFloat(form.komisi) : null,
       status: form.status,
+      is_affiliable: form.is_affiliable,
       batch_id: form.batch_id ? parseInt(form.batch_id) : null,
       komisi_tiers: form.komisi_tiers.map(t => {
         let kid = t.kategori_id
@@ -303,7 +317,26 @@ export default function DataProduct() {
       }),
     }
 
-    const req = editing ? productApi.update(editing.id, payload) : productApi.store(payload)
+    const send = () => {
+      if (gambarFile || hapusGambar) {
+        const fd = new FormData()
+        if (gambarFile) fd.append('gambar', gambarFile)
+        if (hapusGambar) fd.append('hapus_gambar', '1')
+        Object.entries(payload).forEach(([k, v]) => {
+          if (v !== null && v !== undefined) {
+            fd.append(k, typeof v === 'object' ? JSON.stringify(v) : String(v))
+          }
+        })
+        if (editing) {
+          fd.append('_method', 'PUT')
+          return api.post(`/products/${editing.id}`, fd)
+        }
+        return api.post('/products', fd)
+      }
+      return editing ? productApi.update(editing.id, payload) : productApi.store(payload)
+    }
+
+    const req = send()
     req.then(() => {
       setShowModal(false); fetchProducts()
       Swal.fire({ icon: 'success', title: 'Berhasil!', text: editing ? 'Produk berhasil diperbarui.' : 'Produk berhasil ditambahkan.', confirmButtonColor: '#0E6187', timer: 2000, timerProgressBar: true, showConfirmButton: false })
@@ -715,8 +748,12 @@ export default function DataProduct() {
             {activeProducts.map(p => (
               <div key={p.id} className="flex items-center justify-between gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5 hover:border-[#0E6187]/20 hover:bg-[#f5f6fa] transition-all group">
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-white shadow-sm flex-none">
-                    <GraduationCap size={14} className="text-[#0E6187]" />
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-white shadow-sm flex-none overflow-hidden">
+                    {p.gambar ? (
+                      <img src={`${APP_URL}/storage/${p.gambar}`} alt={p.nama} className="h-full w-full object-cover" />
+                    ) : (
+                      <GraduationCap size={14} className="text-[#0E6187]" />
+                    )}
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-semibold text-slate-700 truncate">{p.nama}</p>
@@ -768,13 +805,14 @@ export default function DataProduct() {
                 <th className="border border-slate-200 px-4 py-3 font-medium">Komisi Tier</th>
                 <th className="border border-slate-200 px-4 py-3 text-right font-medium">Total</th>
                 <th className="border border-slate-200 px-4 py-3 text-center font-medium">Status</th>
+                <th className="border border-slate-200 px-4 py-3 text-center font-medium">Affiliate</th>
                 <th className="border border-slate-200 px-4 py-3 text-center font-medium">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="border border-slate-200 px-6 py-10 text-center">
+                  <td colSpan={9} className="border border-slate-200 px-6 py-10 text-center">
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400"><Package size={24} /></div>
                     <p className="mt-3 text-sm font-medium text-slate-600">Belum ada produk</p>
                   </td>
@@ -783,7 +821,11 @@ export default function DataProduct() {
                 <tr key={p.id} className="bg-white transition hover:bg-slate-50">
                   <td className="border border-slate-200 px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50"><Package size={16} className="text-blue-600" /></div>
+                      {p.gambar ? (
+                        <img src={`${APP_URL}/storage/${p.gambar}`} alt={p.nama} className="h-10 w-10 rounded-lg border border-slate-200 object-cover" />
+                      ) : (
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50"><Package size={16} className="text-blue-600" /></div>
+                      )}
                       <span className="text-sm font-semibold text-slate-800">{p.nama}</span>
                     </div>
                   </td>
@@ -841,6 +883,13 @@ export default function DataProduct() {
                   </td>
                   <td className="border border-slate-200 px-4 py-3 text-right text-sm font-semibold text-slate-800">Rp {Number(p.harga).toLocaleString('id-ID')}</td>
                   <td className="border border-slate-200 px-4 py-3 text-center">{statusBadge(p.status)}</td>
+                  <td className="border border-slate-200 px-4 py-3 text-center">
+                    {p.is_affiliable !== false ? (
+                      <span className="inline-flex items-center gap-1 rounded bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700"><Check size={10} /> Bisa</span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500"><X size={10} /> Tidak</span>
+                    )}
+                  </td>
                   <td className="border border-slate-200 px-4 py-3 text-center">
                     <div className="flex justify-center gap-1.5">
                       <button onClick={() => openEdit(p)} className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-amber-200 hover:bg-amber-50 hover:text-amber-600" title="Edit"><Edit3 size={15} /></button>
@@ -908,6 +957,30 @@ export default function DataProduct() {
                         className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:bg-white focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187]" />
                     </div>
                     <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Gambar Produk <span className="text-slate-400 font-normal">(opsional)</span></label>
+                      <div className="flex items-center gap-4">
+                        {(gambarPreview || editing?.gambar) && (
+                          <img src={gambarPreview || `${APP_URL}/storage/${editing?.gambar}`} alt="Preview"
+                            className="h-20 w-20 rounded-lg border border-slate-200 object-cover" />
+                        )}
+                        <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 transition hover:bg-slate-100">
+                          <input type="file" accept="image/*" className="hidden" onChange={e => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              setGambarFile(file)
+                              setGambarPreview(URL.createObjectURL(file))
+                              setHapusGambar(false)
+                            }
+                          }} />
+                          <Upload size={16} /> {gambarFile ? gambarFile.name : 'Pilih Gambar'}
+                        </label>
+                        {(gambarFile || editing?.gambar) && (
+                          <button type="button" onClick={() => { setGambarFile(null); setGambarPreview(null); setHapusGambar(true) }}
+                            className="text-sm text-red-500 hover:text-red-700">Hapus</button>
+                        )}
+                      </div>
+                    </div>
+                    <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-1.5">Deskripsi <span className="text-slate-400 font-normal">(opsional)</span></label>
                       <textarea placeholder="Jelaskan tentang produk ini..." value={form.deskripsi} onChange={e => setForm({ ...form, deskripsi: e.target.value })} rows={3}
                         className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:bg-white focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] resize-none" />
@@ -929,6 +1002,15 @@ export default function DataProduct() {
                         <input type="number" min={0} placeholder="0" value={form.komisi} onChange={e => setForm({ ...form, komisi: e.target.value })}
                           className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:bg-white focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187]" />
                         <p className="text-[11px] text-slate-400 mt-1">Dibayarkan saat kandidat di-approve</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">Affiliate</label>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" className="sr-only peer" checked={form.is_affiliable} onChange={e => setForm({ ...form, is_affiliable: e.target.checked })} />
+                          <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#0E6187]/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500" />
+                          <span className="ml-3 text-sm text-slate-600">{form.is_affiliable ? 'Dapat di-affiliate-kan' : 'Tidak untuk affiliate'}</span>
+                        </label>
+                        <p className="text-[11px] text-slate-400 mt-1">Nonaktifkan jika produk ini tidak boleh dipromosikan oleh affiliate</p>
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-1.5">Status Produk</label>

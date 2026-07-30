@@ -60,9 +60,10 @@ class BatchController extends Controller
             'cabang_id' => 'nullable|exists:cabangs,id',
             'kuota' => 'nullable|integer|min:1',
             'warna' => 'nullable|string|max:20',
+            'link_grup' => 'nullable|string|max:255',
         ]);
 
-        Batch::create($request->only('nama_batch', 'cabang_id', 'kuota', 'warna'));
+        Batch::create($request->only('nama_batch', 'cabang_id', 'kuota', 'warna', 'link_grup'));
 
         return response()->json([
             'status' => 'success',
@@ -79,9 +80,10 @@ class BatchController extends Controller
             'cabang_id' => 'nullable|exists:cabangs,id',
             'kuota' => 'nullable|integer|min:1',
             'warna' => 'nullable|string|max:20',
+            'link_grup' => 'nullable|string|max:255',
         ]);
 
-        $batch->update($request->only('nama_batch', 'cabang_id', 'kuota', 'warna'));
+        $batch->update($request->only('nama_batch', 'cabang_id', 'kuota', 'warna', 'link_grup'));
 
         return response()->json([
             'status' => 'success',
@@ -128,6 +130,7 @@ class BatchController extends Controller
             'batches.*.cabang_id' => 'nullable|exists:cabangs,id',
             'batches.*.kuota' => 'nullable|integer|min:1',
             'batches.*.warna' => 'nullable|string|max:20',
+            'batches.*.link_grup' => 'nullable|string|max:255',
         ]);
 
         $created = [];
@@ -137,6 +140,7 @@ class BatchController extends Controller
                 'cabang_id' => $batchData['cabang_id'] ?? null,
                 'kuota' => $batchData['kuota'] ?? null,
                 'warna' => $batchData['warna'] ?? null,
+                'link_grup' => $batchData['link_grup'] ?? null,
             ]);
             $created[] = $batch;
         }

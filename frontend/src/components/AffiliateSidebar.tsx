@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Table, User, LogOut } from 'lucide-react'
+import { LayoutDashboard, Table, User, Package, LogOut } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
 interface AffiliateSidebarProps {
@@ -26,12 +26,8 @@ export default function AffiliateSidebar({ isOpen, onClose }: AffiliateSidebarPr
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0
       `}>
-        <div className="flex items-center gap-2 px-5 py-4 border-b border-white/10 bg-white/5">
-          <img src="/logo-sm.png" alt="SIM Mendunia" className="h-8 w-auto" />
-          <div className="leading-tight">
-            <p className="text-[10px] text-gray-400 tracking-wide">Sistem Informasi</p>
-            <p className="font-semibold text-white text-sm tracking-wide">SIM Mendunia</p>
-          </div>
+        <div className="relative flex items-center justify-center px-5 py-4 border-b border-white/10 bg-white/5 flex-shrink-0">
+          <img src="/logo-sm1.png" alt="SIM Mendunia" className="h-14 w-auto" />
         </div>
 
         <nav className="flex-1 px-2.5 py-3 space-y-0.5">
@@ -42,6 +38,14 @@ export default function AffiliateSidebar({ isOpen, onClose }: AffiliateSidebarPr
           >
             <LayoutDashboard size={18} />
             <span>Dashboard</span>
+          </Link>
+          <Link
+            to="/affiliate-programs"
+            onClick={() => { if (onClose) onClose() }}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${location.pathname === '/affiliate-programs' ? 'bg-white/15 text-white font-medium shadow-sm' : 'text-gray-300 hover:bg-white/10 hover:text-white'}`}
+          >
+            <Package size={18} />
+            <span>Program Saya</span>
           </Link>
           <Link
             to="/affiliate-dashboard?tab=pendaftar"
