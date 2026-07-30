@@ -58,14 +58,6 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
 
-        // Cek role
-        if (in_array(strtoupper($user->role), ['MANAGER', 'HR'])) {
-            return response()->json([
-                'success' => false,
-                'message' => 'User dengan role MANAGER atau HR tidak bisa dihapus!'
-            ], 403); // 403 Forbidden
-        }
-
         $user->delete();
 
         return response()->json([
@@ -141,7 +133,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|min:6',
-            'role' => 'required|in:HR,MANAGER,KARYAWAN,GURU,ACCOUNTING,ADMIN_CABANG',
+            'role' => 'required|in:HR,MANAGER,KARYAWAN,GURU,ACCOUNTING,ADMIN_CABANG,AFFILIATE,KANDIDAT',
             'status' => 'required|in:AKTIF,NONAKTIF',
             'cabang_ids' => 'nullable|array',
             'cabang_ids.*' => 'integer|exists:cabangs,id',
@@ -170,7 +162,7 @@ class UserController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,'.$id,
-            'role' => 'required|in:HR,MANAGER,KARYAWAN,GURU,ACCOUNTING,ADMIN_CABANG',
+            'role' => 'required|in:HR,MANAGER,KARYAWAN,GURU,ACCOUNTING,ADMIN_CABANG,AFFILIATE,KANDIDAT',
             'status' => 'required|in:AKTIF,NONAKTIF',
             'password' => 'nullable|min:6',
             'cabang_ids' => 'nullable|array',

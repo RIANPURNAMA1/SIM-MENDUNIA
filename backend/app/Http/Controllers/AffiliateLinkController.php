@@ -120,9 +120,22 @@ class AffiliateLinkController extends Controller
         return response()->json($link, 201);
     }
 
+    public function myLinksIndex()
+    {
+        $userId = Auth::guard('sanctum')->id();
+
+        $links = AffiliateLink::with('product')
+            ->where('affiliate_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($links);
+    }
+
     public function availableProducts()
     {
         $products = Product::where('status', 'aktif')
+            ->where('is_affiliable', true)
             ->orderBy('nama')
             ->get(['id', 'nama', 'harga', 'komisi']);
 

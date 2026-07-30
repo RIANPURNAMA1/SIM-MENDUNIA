@@ -329,6 +329,8 @@ class WhatsAppService
         if (!$noHp) return false;
 
         $nama = $pendaftar->nama;
+        $program = $pendaftar->product?->nama ?? '-';
+        $noReg = $pendaftar->no_registrasi ?? '-';
         $noInvoice = 'INV/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . $pendaftar->created_at->format('Ym');
         $totalTagihan = $this->getTotalTagihan($pendaftar);
         $totalDibayar = (float) ($pendaftar->nominal ?? 0);
@@ -339,22 +341,42 @@ class WhatsAppService
         $sisaFormat = 'Rp ' . number_format($sisa, 0, ',', '.');
         $bayarFormat = 'Rp ' . number_format($jumlahBayar, 0, ',', '.');
 
-        $message = "Pembayaran cicilan berhasil diterima.\n\n"
-            . "*Invoice:* {$noInvoice}\n"
-            . "*Kategori:* {$kategoriNama}\n"
-            . "*Dibayar:* {$bayarFormat}\n\n"
-            . "*Total Tagihan:* {$totalFormat}\n"
-            . "*Sudah Dibayar:* {$dibayarFormat}\n"
-            . "*Sisa:* {$sisaFormat}\n\n";
+        $company = \App\Models\CompanyProfile::getProfile();
+        $companyName = $company->company_name ?? 'MENDUNIA.ID';
 
-        if ($sisa <= 0) {
-            $message .= "Seluruh pembayaran Anda telah lunas.\n\n"
-                . "Terima kasih telah menyelesaikan pembayaran.\n\n";
-        } else {
-            $message .= "Silakan lakukan pembayaran sisa sebelum jatuh tempo.\n\n";
+        if (!$pendaftar->relationLoaded('batch')) {
+            $pendaftar->load('batch');
         }
+        $linkGrup = $pendaftar->batch?->link_grup;
 
-        $message .= "- Sistem SIM Mendunia";
+        $rendered = \App\Models\NotificationTemplate::render('payment_verified_wa', [
+            'nama' => $nama,
+            'program' => $program,
+            'no_registrasi' => $noReg,
+            'link_grup' => $linkGrup,
+            'company_name' => $companyName,
+        ]);
+
+        if ($rendered && $sisa <= 0) {
+            $message = $rendered['body'];
+        } else {
+            $message = "Pembayaran cicilan berhasil diterima.\n\n"
+                . "*Invoice:* {$noInvoice}\n"
+                . "*Kategori:* {$kategoriNama}\n"
+                . "*Dibayar:* {$bayarFormat}\n\n"
+                . "*Total Tagihan:* {$totalFormat}\n"
+                . "*Sudah Dibayar:* {$dibayarFormat}\n"
+                . "*Sisa:* {$sisaFormat}\n\n";
+
+            if ($sisa <= 0) {
+                $message .= "Seluruh pembayaran Anda telah lunas.\n\n"
+                    . "Terima kasih telah menyelesaikan pembayaran.\n\n";
+            } else {
+                $message .= "Silakan lakukan pembayaran sisa sebelum jatuh tempo.\n\n";
+            }
+
+            $message .= "- {$companyName}";
+        }
 
         $sent = $this->sendMessage($noHp, $message);
         $this->logNotification($pendaftar->id ?? null, 'payment_partial', $noHp, $message, $sent);
@@ -371,14 +393,34 @@ class WhatsAppService
 
         $nama = $pendaftar->nama;
         $program = $pendaftar->product?->nama ?? '-';
-        $noInvoice = 'INV/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . $pendaftar->created_at->format('Ym');
+        $noReg = $pendaftar->no_registrasi ?? '-';
+        $company = \App\Models\CompanyProfile::getProfile();
+        $companyName = $company->company_name ?? 'MENDUNIA.ID';
 
-        $message = "Selamat.\n\n"
-            . "Seluruh pembayaran Anda telah *lunas*.\n\n"
-            . "*Program:* {$program}\n"
-            . "*Invoice:* {$noInvoice}\n\n"
-            . "Terima kasih telah menyelesaikan pembayaran.\n\n"
-            . "- Sistem SIM Mendunia";
+        // Load batch untuk link_grup
+        if (!$pendaftar->relationLoaded('batch')) {
+            $pendaftar->load('batch');
+        }
+        $linkGrup = $pendaftar->batch?->link_grup;
+
+        $rendered = \App\Models\NotificationTemplate::render('payment_verified_wa', [
+            'nama' => $nama,
+            'program' => $program,
+            'no_registrasi' => $noReg,
+            'link_grup' => $linkGrup,
+            'company_name' => $companyName,
+        ]);
+
+        if ($rendered) {
+            $message = $rendered['body'];
+        } else {
+            $message = "Selamat.\n\n"
+                . "Seluruh pembayaran Anda telah *lunas*.\n\n"
+                . "*Program:* {$program}\n"
+                . "*No. Registrasi:* {$noReg}\n\n"
+                . "Terima kasih telah menyelesaikan pembayaran.\n\n"
+                . "- {$companyName}";
+        }
 
         $sent = $this->sendMessage($noHp, $message);
         $this->logNotification($pendaftar->id ?? null, 'full_payment', $noHp, $message, $sent);

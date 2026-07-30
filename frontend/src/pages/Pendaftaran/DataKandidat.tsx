@@ -1268,7 +1268,7 @@ export default function DataKandidat() {
                                  'Calon Kandidat': { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', dot: 'bg-blue-500' },
                                  'Kandidat Aktif': { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' },
                                  'Mengundurkan Diri': { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-600', dot: 'bg-red-500' },
-                                 'Lulus Pendidikan': { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700', dot: 'bg-purple-500' },
+'Lulus Pendidikan': { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' },
                                }
                                const skStyle = skMap[sk] || skMap['Calon Kandidat']
                                return (
@@ -1360,7 +1360,7 @@ export default function DataKandidat() {
                                       }}
                                         disabled={updatingStatusKandidat === k.id || k.status_kandidat === st}
                                         className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-40">
-                                        <span className={`h-2 w-2 rounded-full ${st === 'Calon Kandidat' ? 'bg-blue-500' : st === 'Kandidat Aktif' ? 'bg-emerald-500' : st === 'Mengundurkan Diri' ? 'bg-red-500' : 'bg-purple-500'}`} />
+                                        <span className={`h-2 w-2 rounded-full ${st === 'Calon Kandidat' ? 'bg-blue-500' : st === 'Kandidat Aktif' ? 'bg-emerald-500' : st === 'Mengundurkan Diri' ? 'bg-red-500' : 'bg-emerald-500'}`} />
                                         <span>{st}</span>
                                         {k.status_kandidat === st && <span className="ml-auto text-[10px] text-slate-400">sekarang</span>}
                                       </button>
@@ -1604,7 +1604,7 @@ export default function DataKandidat() {
                     'Calon Kandidat': { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', dot: 'bg-blue-500' },
                     'Kandidat Aktif': { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' },
                     'Mengundurkan Diri': { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-600', dot: 'bg-red-500' },
-                    'Lulus Pendidikan': { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700', dot: 'bg-purple-500' },
+                    'Lulus Pendidikan': { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' },
                   }
                   const s = skMap[sk] || skMap['Calon Kandidat']
                   return (

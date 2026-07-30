@@ -28,7 +28,7 @@ class KehadiranController extends Controller
 
         $absensis = \App\Models\Absensi::with(['user.shift', 'user.divisi', 'cabang'])
             ->whereBetween('tanggal', [$start_date, $end_date])
-            ->whereHas('user', fn ($q) => $q->where('status', 'AKTIF'))
+            ->whereHas('user', fn ($q) => $q->where('status', 'AKTIF')->where('role', 'KARYAWAN'))
             ->whereDoesntHave('user.kelasSensei')
             ->when($status, function ($query) use ($status) {
                 return $query->where('status', $status);
@@ -102,7 +102,7 @@ class KehadiranController extends Controller
                 'shift',
             ])
                 ->whereBetween('tanggal', [$start_date, $end_date])
-                ->whereHas('user', fn($q) => $q->where('status', 'AKTIF'))
+                ->whereHas('user', fn($q) => $q->where('status', 'AKTIF')->where('role', 'KARYAWAN'))
                 ->whereDoesntHave('user.kelasSensei')
                 ->when($search, fn($q) => $q->whereHas('user', fn($qq) => $qq->where(function ($qqq) use ($search) {
                     $qqq->where('name', 'like', "%{$search}%")->orWhere('nip', 'like', "%{$search}%");
@@ -117,6 +117,7 @@ class KehadiranController extends Controller
             // Kirim juga daftar user aktif — frontend akan generate virtual records sendiri
             $users = User::with('divisi')
                 ->where('status', 'AKTIF')
+                ->where('role', 'KARYAWAN')
                 ->whereDoesntHave('kelasSensei')
                 ->when($cabang_id, fn($q) => $q->whereJsonContains('cabang_ids', (int)$cabang_id))
                 ->when($divisi_id, fn($q) => $q->where('divisi_id', $divisi_id))

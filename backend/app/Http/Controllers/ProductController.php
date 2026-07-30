@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\KomisiTier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
@@ -30,13 +31,17 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
+        $this->decodeJsonFields($request);
+
         $request->validate([
             'nama' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
             'kategori_items' => 'nullable|array',
             'komisi' => 'nullable|numeric|min:0',
             'status' => 'nullable|in:aktif,nonaktif',
+            'is_affiliable' => 'nullable|boolean',
             'batch_id' => 'nullable|exists:batches,id',
+            'gambar' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'komisi_tiers' => 'nullable|array',
             'komisi_tiers.*.kategori_id' => 'nullable|exists:biaya_kategoris,id',
             'komisi_tiers.*.kategori_name' => 'nullable|string|max:255',
@@ -47,8 +52,13 @@ class ProductController extends Controller
             'komisi_tiers.*.urutan' => 'nullable|integer|min:0',
         ]);
 
-        $kategoriItems = $request->input('kategori_items', []);
+        $kategoriItems = $this->parseArrayInput($request, 'kategori_items', []);
         $totalHarga = $this->sumHargaDeep($kategoriItems);
+
+        $gambarPath = null;
+        if ($request->hasFile('gambar')) {
+            $gambarPath = $request->file('gambar')->store('products', 'public');
+        }
 
         $product = Product::create([
             'nama' => $request->input('nama'),
@@ -57,7 +67,9 @@ class ProductController extends Controller
             'harga' => $totalHarga,
             'komisi' => $request->input('komisi'),
             'status' => $request->input('status', 'aktif'),
+            'is_affiliable' => $request->boolean('is_affiliable', true),
             'batch_id' => $request->input('batch_id'),
+            'gambar' => $gambarPath,
         ]);
 
         $product->syncKategoriItems($kategoriItems);
@@ -82,13 +94,17 @@ class ProductController extends Controller
     {
         $product = Product::findOrFail($id);
 
+        $this->decodeJsonFields($request);
+
         $request->validate([
             'nama' => 'sometimes|string|max:255',
             'deskripsi' => 'nullable|string',
             'kategori_items' => 'nullable|array',
             'komisi' => 'nullable|numeric|min:0',
             'status' => 'nullable|in:aktif,nonaktif',
+            'is_affiliable' => 'nullable|boolean',
             'batch_id' => 'nullable|exists:batches,id',
+            'gambar' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'komisi_tiers' => 'nullable|array',
             'komisi_tiers.*.kategori_id' => 'nullable|exists:biaya_kategoris,id',
             'komisi_tiers.*.kategori_name' => 'nullable|string|max:255',
@@ -104,14 +120,28 @@ class ProductController extends Controller
         if ($request->has('deskripsi')) $updateData['deskripsi'] = $request->input('deskripsi');
         if ($request->has('komisi')) $updateData['komisi'] = $request->input('komisi');
         if ($request->has('status')) $updateData['status'] = $request->input('status');
+        if ($request->has('is_affiliable')) $updateData['is_affiliable'] = $request->boolean('is_affiliable');
         if ($request->has('batch_id')) $updateData['batch_id'] = $request->input('batch_id');
 
         if ($request->has('nama')) {
             $updateData['slug'] = $this->generateUniqueSlug($request->input('nama'), $product->id);
         }
 
+        // Handle gambar upload
+        if ($request->hasFile('gambar')) {
+            if ($product->gambar) {
+                Storage::disk('public')->delete($product->gambar);
+            }
+            $updateData['gambar'] = $request->file('gambar')->store('products', 'public');
+        } elseif ($request->input('hapus_gambar') === '1') {
+            if ($product->gambar) {
+                Storage::disk('public')->delete($product->gambar);
+            }
+            $updateData['gambar'] = null;
+        }
+
         if ($request->has('kategori_items')) {
-            $kategoriItems = $request->input('kategori_items', []);
+            $kategoriItems = $this->parseArrayInput($request, 'kategori_items', []);
             $totalHarga = $this->sumHargaDeep($kategoriItems);
 
             $updateData['kategori_items'] = $kategoriItems;
@@ -136,6 +166,29 @@ class ProductController extends Controller
         return response()->json(['message' => 'Product deleted']);
     }
 
+    private function decodeJsonFields(Request $request): void
+    {
+        foreach (['kategori_items', 'komisi_tiers'] as $field) {
+            $value = $request->input($field);
+            if (is_string($value)) {
+                $decoded = json_decode($value, true);
+                if (is_array($decoded)) {
+                    $request->merge([$field => $decoded]);
+                }
+            }
+        }
+    }
+
+    private function parseArrayInput(Request $request, string $key, array $default = []): array
+    {
+        $value = $request->input($key);
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            return is_array($decoded) ? $decoded : $default;
+        }
+        return is_array($value) ? $value : $default;
+    }
+
     private function sumHargaDeep(array $items): float
     {
         $total = 0;
@@ -150,14 +203,16 @@ class ProductController extends Controller
 
     private function syncKomisiTiers(Product $product, Request $request)
     {
-        if (!$request->has('komisi_tiers')) return;
+        $komisiTiers = $this->parseArrayInput($request, 'komisi_tiers', []);
+        if (empty($komisiTiers)) return;
 
         $product->komisiTiers()->delete();
 
         // Reload biayaKategoris to resolve kategori_name → kategori_id
         $product->load('biayaKategoris');
 
-        foreach ($request->komisi_tiers as $tier) {
+        $komisiTiers = $this->parseArrayInput($request, 'komisi_tiers', []);
+        foreach ($komisiTiers as $tier) {
             $kategoriId = $tier['kategori_id'] ?? null;
 
             // Resolve kategori_name to kategori_id if not provided

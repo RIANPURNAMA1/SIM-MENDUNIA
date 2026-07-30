@@ -36,11 +36,20 @@ export default function DaftarAffiliateBaru() {
   const [loadingDistricts, setLoadingDistricts] = useState(false);
   const [loadingVillages, setLoadingVillages] = useState(false);
 
-  const bankOptions = [
-    "BCA", "BRI", "BNI", "Mandiri", "BTN", "BSI", "CIMB Niaga",
-    "Danamon", "Permata", "Maybank", "OCBC NISP", "BNI Syariah",
-    "BRI Syariah", "Mandiri Syariah", "BSI", "Panin Bank", "Bukopin",
-    "Sinarmas", "Muamalat", "Victoria", "BTN Syariah", "Lainnya",
+  const bankGroups = [
+    {
+      label: "Bank",
+      options: [
+        "BCA", "BRI", "BNI", "Mandiri", "BTN", "BSI", "CIMB Niaga",
+        "Danamon", "Permata", "Maybank", "OCBC NISP", "BNI Syariah",
+        "BRI Syariah", "Mandiri Syariah", "Panin Bank", "Bukopin",
+        "Sinarmas", "Muamalat", "Victoria", "BTN Syariah", "Lainnya",
+      ],
+    },
+    {
+      label: "E-Wallet",
+      options: ["Dana", "OVO", "GoPay", "ShopeePay", "LinkAja", "ASTPay", "Paylater"],
+    },
   ];
 
   useEffect(() => {
@@ -472,7 +481,7 @@ export default function DaftarAffiliateBaru() {
                   {step === 3 && (
                     <div className="space-y-8">
                       <div className="bg-[#f8f9fc] border border-[#e8eaf0] rounded-lg p-6">
-                        <h4 className="text-xs font-bold text-[#0E6187] uppercase tracking-wider mb-4">3. Rekening Bank</h4>
+                        <h4 className="text-xs font-bold text-[#0E6187] uppercase tracking-wider mb-4">3. Rekening & E-Wallet</h4>
 
                         <div className="space-y-4">
                           <div>
@@ -496,17 +505,21 @@ export default function DaftarAffiliateBaru() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Bank</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Bank / E-Wallet</label>
                             <select
                               value={bank}
                               onChange={(e) => setBank(e.target.value)}
                               className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm appearance-none cursor-pointer"
                             >
-                              <option value="">Pilih Bank</option>
-                              {bankOptions.map((b) => (
-                                <option key={b} value={b}>
-                                  {b}
-                                </option>
+                              <option value="">Pilih Bank / E-Wallet</option>
+                              {bankGroups.map((group) => (
+                                <optgroup key={group.label} label={group.label}>
+                                  {group.options.map((b) => (
+                                    <option key={b} value={b}>
+                                      {b}
+                                    </option>
+                                  ))}
+                                </optgroup>
                               ))}
                             </select>
                           </div>

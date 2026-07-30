@@ -15,11 +15,14 @@ class Product extends Model
         'harga',
         'komisi',
         'status',
+        'is_affiliable',
         'batch_id',
+        'gambar',
     ];
 
     protected $casts = [
         'kategori_items' => 'array',
+        'is_affiliable' => 'boolean',
     ];
 
     protected static function booted(): void

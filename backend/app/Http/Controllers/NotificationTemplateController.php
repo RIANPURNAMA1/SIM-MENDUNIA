@@ -173,8 +173,8 @@ class NotificationTemplateController extends Controller
                 'description' => 'Dikirim via WhatsApp saat pembayaran berhasil dikonfirmasi',
                 'channel' => 'whatsapp',
                 'subject' => null,
-                'variables' => ['nama', 'program', 'no_registrasi', 'company_name'],
-                'body' => "Halo *{nama}*! ✅\n\nPembayaran kamu untuk *{program}* (No. Registrasi: {no_registrasi}) telah *BERHASIL DIKONFIRMASI*!\n\nTerima kasih! Kamu sekarang resmi terdaftar di *{company_name}*.\n\n*{company_name}*",
+                'variables' => ['nama', 'program', 'no_registrasi', 'link_grup', 'company_name'],
+                'body' => "Halo *{nama}*! ✅\n\nPembayaran kamu untuk *{program}* (No. Registrasi: {no_registrasi}) telah *BERHASIL DIKONFIRMASI*!\n\nTerima kasih! Kamu sekarang resmi terdaftar di *{company_name}*.\n\n{link_grup}\n\n*{company_name}*",
             ],
             'payment_rejected_wa' => [
                 'name' => 'WA Pembayaran Ditolak',
