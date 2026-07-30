@@ -1892,9 +1892,14 @@ class PendaftaranController extends Controller
             ->get()
             ->map(fn($c) => ['id' => $c->id, 'nama' => $c->nama_cabang]);
 
+        $allBatches = \App\Models\Batch::aktif()->orderBy('nama_batch')
+            ->get()
+            ->map(fn($b) => ['id' => $b->id, 'nama' => $b->nama_batch, 'warna' => $b->warna]);
+
         return response()->json([
             'batches' => $batches,
-            'totalBatch' => count($batches),
+            'allBatches' => $allBatches,
+            'totalBatch' => count($allBatches),
             'totalKandidat' => $totalKandidat,
             'kandidatAktif' => $kandidatAktif,
             'cabangs' => $cabangs,
