@@ -340,8 +340,14 @@ export default function DataProduct() {
     req.then(() => {
       setShowModal(false); fetchProducts()
       Swal.fire({ icon: 'success', title: 'Berhasil!', text: editing ? 'Produk berhasil diperbarui.' : 'Produk berhasil ditambahkan.', confirmButtonColor: '#0E6187', timer: 2000, timerProgressBar: true, showConfirmButton: false })
-    }).catch(() => {
-      Swal.fire({ icon: 'error', title: 'Gagal', text: 'Terjadi kesalahan saat menyimpan data.', confirmButtonColor: '#0E6187' })
+    }).catch((err: any) => {
+      const msg = err?.response?.data?.message || err?.message || 'Terjadi kesalahan saat menyimpan data.'
+      const errors = err?.response?.data?.errors
+      let detail = msg
+      if (errors) {
+        detail = Object.entries(errors).map(([field, msgs]) => `${field}: ${(msgs as string[]).join(', ')}`).join('\n')
+      }
+      Swal.fire({ icon: 'error', title: 'Gagal', text: detail, confirmButtonColor: '#0E6187' })
     })
   }
 
