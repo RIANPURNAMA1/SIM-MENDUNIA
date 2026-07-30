@@ -2042,6 +2042,7 @@ class PendaftaranController extends Controller
             $result[] = [
                 'batch_id' => $batch->id,
                 'batch' => $batch->nama_batch,
+                'warna' => $batch->warna,
                 'kuota' => $batch->kuota,
                 'siswas_count' => $pendaftar->count(),
                 'total_biaya' => $grandBiaya,

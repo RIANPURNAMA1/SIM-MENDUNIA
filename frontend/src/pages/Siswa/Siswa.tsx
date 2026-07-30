@@ -20,7 +20,7 @@ const LEVEL_BADGE: Record<string, string> = {
 export default function SiswaPage() {
   const [data, setData] = useState<Siswa[]>([]);
   const [kelasList, setKelasList] = useState<{ id: number; nama_kelas: string }[]>([]);
-  const [batchList, setBatchList] = useState<{ id: number; nama_batch: string }[]>([]);
+  const [batchList, setBatchList] = useState<{ id: number; nama_batch: string; warna: string | null }[]>([]);
   const [shifts, setShifts] = useState<{ id: number; nama_shift: string; jam_masuk: string; jam_pulang: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState<Pagination | null>(null);
@@ -28,6 +28,7 @@ export default function SiswaPage() {
 
   const [editingLevel, setEditingLevel] = useState<{ siswaId: number; level: number } | null>(null);
   const [filterBatch, setFilterBatch] = useState("");
+  const [showBatchDropdown, setShowBatchDropdown] = useState(false);
   const [filterStatus, setFilterStatus] = useState("");
   const [filterStatusKandidat, setFilterStatusKandidat] = useState("");
   const [filterSearch, setFilterSearch] = useState("");
@@ -376,10 +377,36 @@ export default function SiswaPage() {
       {/* Filter */}
       <div className="mb-4 rounded-lg p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-          <select value={filterBatch} onChange={(e) => setFilterBatch(e.target.value)} className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-            <option value="">Semua Batch</option>
-            {batchList.map((b) => <option key={b.id} value={b.id}>{b.nama_batch}</option>)}
-          </select>
+          <div className="relative">
+            <button onClick={() => setShowBatchDropdown(!showBatchDropdown)}
+              className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+              {filterBatch ? (() => {
+                const b = batchList.find(x => String(x.id) === filterBatch)
+                return <>
+                  {b?.warna ? <span className="inline-block w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: b.warna }} /> : null}
+                  <span className="truncate">{b?.nama_batch || filterBatch}</span>
+                </>
+              })() : <span className="text-slate-500">Semua Batch</span>}
+            </button>
+            {showBatchDropdown && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowBatchDropdown(false)} />
+                <div className="absolute top-full left-0 mt-1 z-50 rounded-md border border-slate-200 bg-white shadow-lg max-h-48 overflow-y-auto min-w-[180px]">
+                  <button onClick={() => { setFilterBatch(''); setShowBatchDropdown(false); setPage(1) }}
+                    className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition hover:bg-slate-50 ${!filterBatch ? 'bg-blue-50 font-semibold' : ''}`}>
+                    Semua Batch
+                  </button>
+                  {batchList.map(b => (
+                    <button key={b.id} onClick={() => { setFilterBatch(String(b.id)); setShowBatchDropdown(false); setPage(1) }}
+                      className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition hover:bg-slate-50 ${String(b.id) === filterBatch ? 'bg-blue-50 font-semibold' : ''}`}>
+                      {b.warna ? <span className="inline-block w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: b.warna }} /> : null}
+                      {b.nama_batch}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
 
           <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
             <option value="">Semua Status</option>

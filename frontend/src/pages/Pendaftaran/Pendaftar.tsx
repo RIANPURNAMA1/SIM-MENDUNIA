@@ -62,6 +62,8 @@ export default function Pendaftar() {
   const [bayarSubmitting, setBayarSubmitting] = useState(false)
   const [bayarError, setBayarError] = useState('')
   const [kategoris, setKategoris] = useState<{ id: number; kode: string; nama: string; urutan: number }[]>([])
+  const [batchOptions, setBatchOptions] = useState<{ id: number; nama_batch: string; warna: string | null }[]>([])
+  const [showBatchDropdown, setShowBatchDropdown] = useState(false)
   const navigate = useNavigate()
   const [kategoriItems, setKategoriItems] = useState<Record<number, { kategori_id: number; biaya: number; dibayar: number }[]>>({})
   const [page, setPage] = useState(1)
@@ -88,9 +90,11 @@ export default function Pendaftar() {
     Promise.all([
       pendaftarApi.list({}),
       api.get('/biaya-kategori-flat'),
-    ]).then(([res, katRes]) => {
+      api.get('/batches'),
+    ]).then(([res, katRes, batchRes]) => {
       setData(res.data)
       setKategoris(katRes.data || [])
+      setBatchOptions(batchRes.data?.data || batchRes.data || [])
       setLoading(false)
     }).catch(() => setLoading(false))
   }
@@ -216,12 +220,6 @@ export default function Pendaftar() {
   const safePage = Math.min(page, totalPages)
   const pagedList = filtered.slice((safePage - 1) * perPage, safePage * perPage)
 
-  const batchList = useMemo(() => {
-    const set = new Set<string>()
-    data.forEach(p => { if (p.batch?.nama_batch) set.add(p.batch.nama_batch) })
-    return Array.from(set).sort()
-  }, [data])
-
   const stats = useMemo(() => ({
     total: data.length,
     menungguPembayaran: data.filter(p => p.status_pembayaran === 'unpaid').length,
@@ -321,13 +319,36 @@ export default function Pendaftar() {
             className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
           <input type="date" value={filterDateTo} onChange={e => { setFilterDateTo(e.target.value); setPage(1) }}
             className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-          <select value={filterBatch} onChange={e => { setFilterBatch(e.target.value); setPage(1) }}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-            <option value="">Semua Batch</option>
-            {batchList.map(b => (
-              <option key={b} value={b}>{b}</option>
-            ))}
-          </select>
+          <div className="relative">
+            <button onClick={() => setShowBatchDropdown(!showBatchDropdown)}
+              className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+              {filterBatch ? (() => {
+                const b = batchOptions.find(x => x.nama_batch === filterBatch)
+                return <>
+                  {b?.warna ? <span className="inline-block w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: b.warna }} /> : null}
+                  <span className="truncate">{b?.nama_batch || filterBatch}</span>
+                </>
+              })() : <span className="text-slate-500">Semua Batch</span>}
+            </button>
+            {showBatchDropdown && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowBatchDropdown(false)} />
+                <div className="absolute top-full left-0 mt-1 z-50 rounded-md border border-slate-200 bg-white shadow-lg max-h-48 overflow-y-auto min-w-[180px]">
+                  <button onClick={() => { setFilterBatch(''); setShowBatchDropdown(false); setPage(1) }}
+                    className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition hover:bg-slate-50 ${!filterBatch ? 'bg-blue-50 font-semibold' : ''}`}>
+                    Semua Batch
+                  </button>
+                  {batchOptions.map(b => (
+                    <button key={b.id} onClick={() => { setFilterBatch(b.nama_batch); setShowBatchDropdown(false); setPage(1) }}
+                      className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition hover:bg-slate-50 ${b.nama_batch === filterBatch ? 'bg-blue-50 font-semibold' : ''}`}>
+                      {b.warna ? <span className="inline-block w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: b.warna }} /> : null}
+                      {b.nama_batch}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
           <button
             onClick={resetFilter}
             className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-200"
