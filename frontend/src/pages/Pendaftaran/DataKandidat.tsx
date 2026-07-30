@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { Users, Search, RotateCcw, Eye, Edit3, Power, PowerOff, CalendarOff, Calendar, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, FileText, Download, Upload, Trash2, ArrowRight } from 'lucide-react'
+import { Users, Search, RotateCcw, Eye, Edit3, Power, PowerOff, CalendarOff, Calendar, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, FileText, Download, Upload, Trash2, ArrowRight, RefreshCw } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { pendaftarApi, batchApi, productApi } from '../../services/api'
 import * as XLSX from 'xlsx'
@@ -605,6 +605,40 @@ export default function DataKandidat() {
     })
   }
 
+  async function handleSyncNoRegistrasi() {
+    const result = await Swal.fire({
+      title: 'Sync No. Registrasi?',
+      text: 'Akan memperbarui nomor registrasi yang belum memiliki kode cabang. Lanjutkan?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#0E6187',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Ya, Sync!',
+      cancelButtonText: 'Batal',
+    })
+    if (!result.isConfirmed) return
+    try {
+      const res = await pendaftarApi.syncNoRegistrasi()
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        text: res.data?.message || 'No. Registrasi tersinkronisasi.',
+        confirmButtonColor: '#0E6187',
+        timer: 2000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      })
+      fetchData(search)
+    } catch {
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal',
+        text: 'Terjadi kesalahan saat sinkronisasi.',
+        confirmButtonColor: '#0E6187',
+      })
+    }
+  }
+
   const filteredList = kandidatList
 
   const statusCounts = useMemo(() => {
@@ -1076,6 +1110,13 @@ export default function DataKandidat() {
           >
             <Upload size={16} />
             Import
+          </button>
+          <button
+            onClick={handleSyncNoRegistrasi}
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-300 bg-white px-4 py-2.5 text-sm font-medium text-emerald-600 shadow-sm transition hover:bg-emerald-50 hover:text-emerald-800"
+          >
+            <RefreshCw size={16} />
+            Sync No. Reg
           </button>
         </div>
       </div>
