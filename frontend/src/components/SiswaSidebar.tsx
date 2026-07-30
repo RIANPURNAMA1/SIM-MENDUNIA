@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, User, CalendarCheck, CreditCard, BookOpen, Award, LogOut, Lock } from 'lucide-react'
+import { LayoutDashboard, User, CreditCard, X, LogOut } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import api from '../services/api'
 
 interface SiswaSidebarProps {
   isOpen: boolean
@@ -10,26 +9,14 @@ interface SiswaSidebarProps {
 }
 
 const menu = [
-  { to: '/siswa-dashboard', icon: LayoutDashboard, label: 'Dashboard', locked: false },
-  { to: '/siswa-dashboard/data-diri', icon: User, label: 'Data Diri', locked: false },
-  { to: '/siswa-dashboard/pembayaran', icon: CreditCard, label: 'Pembayaran', locked: false },
-  { to: '/siswa-dashboard/absensi', icon: CalendarCheck, label: 'Absensi', locked: true },
-  { to: '/siswa-dashboard/lms', icon: BookOpen, label: 'LMS', locked: true },
-  { to: '/siswa-dashboard/nilai', icon: Award, label: 'Nilai', locked: true },
+  { to: '/siswa-dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/siswa-dashboard/data-diri', icon: User, label: 'Data Diri' },
+  { to: '/siswa-dashboard/pembayaran', icon: CreditCard, label: 'Pembayaran' },
 ]
 
 export default function SiswaSidebar({ isOpen, onClose }: SiswaSidebarProps) {
   const location = useLocation()
   const { logout } = useAuth()
-  const [hasClass, setHasClass] = useState<boolean | null>(null)
-
-  useEffect(() => {
-    api.get('/siswa-dashboard').then(res => {
-      setHasClass(res.data.has_class)
-    }).catch(() => {
-      setHasClass(false)
-    })
-  }, [])
 
   return (
     <>
@@ -38,39 +25,25 @@ export default function SiswaSidebar({ isOpen, onClose }: SiswaSidebarProps) {
       )}
 
       <aside className={`
-        w-64 bg-[#0E6187] h-screen flex flex-col fixed left-0 top-0 z-40
+        w-64 bg-[#0E6187] h-[100dvh] max-h-[100dvh] flex flex-col fixed left-0 top-0 z-40 overflow-hidden
         transition-transform duration-300 ease-in-out shadow-[8px_0_30px_rgba(0,0,0,0.15)]
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0
       `}>
-        <div className="flex items-center gap-2 px-5 py-4 border-b border-white/10 bg-white/5">
-          <img src="/logo-sm.png" alt="SIM Mendunia" className="h-8 w-auto" />
-          <div className="leading-tight">
-            <p className="text-[10px] text-gray-400 tracking-wide">Sistem Informasi</p>
-            <p className="font-semibold text-white text-sm tracking-wide">SIM Mendunia</p>
-          </div>
+        <div className="relative flex items-center justify-center px-5 py-4 border-b border-white/10 bg-white/5 flex-shrink-0">
+          <img src="/logo-sm1.png" alt="SIM Mendunia" className="h-14 w-auto" />
+          <button
+            onClick={onClose}
+            aria-label="Tutup sidebar"
+            className="lg:hidden absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+          >
+            <X size={18} />
+          </button>
         </div>
 
-        <nav className="flex-1 px-2.5 py-3 space-y-0.5">
+        <nav className="flex-1 min-h-0 overflow-y-auto px-2.5 py-3 space-y-0.5">
           {menu.map(item => {
             const active = location.pathname === item.to
-            const isLocked = item.locked && hasClass === false
-
-            if (isLocked) {
-              return (
-                <div
-                  key={item.to}
-                  className="relative group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-500 cursor-not-allowed select-none"
-                >
-                  <Lock size={18} />
-                  <span>{item.label}</span>
-                  <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-2.5 py-1 bg-gray-800 text-white text-[11px] rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-lg pointer-events-none z-50">
-                    Belum ada kelas
-                    <div className="absolute left-1/2 -translate-x-1/2 top-full border-4 border-transparent border-t-gray-800" />
-                  </div>
-                </div>
-              )
-            }
 
             return (
               <Link
