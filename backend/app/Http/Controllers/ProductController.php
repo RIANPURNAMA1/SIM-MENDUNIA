@@ -39,7 +39,7 @@ class ProductController extends Controller
             'kategori_items' => 'nullable|array',
             'komisi' => 'nullable|numeric|min:0',
             'status' => 'nullable|in:aktif,nonaktif',
-            'is_affiliable' => 'nullable|boolean',
+            'is_affiliable' => 'nullable',
             'batch_id' => 'nullable|exists:batches,id',
             'gambar' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'komisi_tiers' => 'nullable|array',
@@ -102,7 +102,7 @@ class ProductController extends Controller
             'kategori_items' => 'nullable|array',
             'komisi' => 'nullable|numeric|min:0',
             'status' => 'nullable|in:aktif,nonaktif',
-            'is_affiliable' => 'nullable|boolean',
+            'is_affiliable' => 'nullable',
             'batch_id' => 'nullable|exists:batches,id',
             'gambar' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'komisi_tiers' => 'nullable|array',
@@ -120,7 +120,7 @@ class ProductController extends Controller
         if ($request->has('deskripsi')) $updateData['deskripsi'] = $request->input('deskripsi');
         if ($request->has('komisi')) $updateData['komisi'] = $request->input('komisi');
         if ($request->has('status')) $updateData['status'] = $request->input('status');
-        if ($request->has('is_affiliable')) $updateData['is_affiliable'] = $request->boolean('is_affiliable');
+        if ($request->exists('is_affiliable')) $updateData['is_affiliable'] = $request->boolean('is_affiliable');
         if ($request->has('batch_id')) $updateData['batch_id'] = $request->input('batch_id');
 
         if ($request->has('nama')) {
