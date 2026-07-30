@@ -56,7 +56,7 @@ class BatchController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'nama_batch' => 'required|string|max:100|unique:batches,nama_batch',
+            'nama_batch' => 'required|string|max:100|unique:batches,nama_batch,NULL,id,cabang_id,' . ($request->cabang_id ?? 'NULL'),
             'cabang_id' => 'nullable|exists:cabangs,id',
             'kuota' => 'nullable|integer|min:1',
             'warna' => 'nullable|string|max:20',
@@ -76,7 +76,7 @@ class BatchController extends Controller
         $batch = Batch::findOrFail($id);
 
         $request->validate([
-            'nama_batch' => 'required|string|max:100|unique:batches,nama_batch,' . $id,
+            'nama_batch' => 'required|string|max:100|unique:batches,nama_batch,' . $id . ',id,cabang_id,' . ($request->cabang_id ?? 'NULL'),
             'cabang_id' => 'nullable|exists:cabangs,id',
             'kuota' => 'nullable|integer|min:1',
             'warna' => 'nullable|string|max:20',
@@ -126,7 +126,7 @@ class BatchController extends Controller
     {
         $request->validate([
             'batches' => 'required|array|min:1|max:50',
-            'batches.*.nama_batch' => 'required|string|max:100|unique:batches,nama_batch',
+            'batches.*.nama_batch' => 'required|string|max:100',
             'batches.*.cabang_id' => 'nullable|exists:cabangs,id',
             'batches.*.kuota' => 'nullable|integer|min:1',
             'batches.*.warna' => 'nullable|string|max:20',
@@ -134,10 +134,25 @@ class BatchController extends Controller
         ]);
 
         $created = [];
+        $errors = [];
+        $existingNames = [];
         foreach ($request->batches as $batchData) {
+            $cabangId = $batchData['cabang_id'] ?? null;
+            $exists = Batch::where('nama_batch', $batchData['nama_batch'])
+                ->where('cabang_id', $cabangId)
+                ->exists();
+            if ($exists) {
+                $errors[] = $batchData['nama_batch'] . ' sudah ada di cabang ini';
+                continue;
+            }
+            if (in_array($batchData['nama_batch'] . '|' . $cabangId, $existingNames)) {
+                $errors[] = $batchData['nama_batch'] . ' duplikat dalam satu permintaan';
+                continue;
+            }
+            $existingNames[] = $batchData['nama_batch'] . '|' . $cabangId;
             $batch = Batch::create([
                 'nama_batch' => $batchData['nama_batch'],
-                'cabang_id' => $batchData['cabang_id'] ?? null,
+                'cabang_id' => $cabangId,
                 'kuota' => $batchData['kuota'] ?? null,
                 'warna' => $batchData['warna'] ?? null,
                 'link_grup' => $batchData['link_grup'] ?? null,
@@ -147,8 +162,9 @@ class BatchController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => count($created) . ' batch berhasil ditambahkan',
+            'message' => count($created) . ' batch berhasil ditambahkan' . (count($errors) ? ', ' . count($errors) . ' gagal' : ''),
             'data' => $created,
+            'errors' => $errors,
         ]);
     }
 

@@ -143,8 +143,9 @@ export default function BatchesPage() {
       setLinkGrup("");
       setEditId(null);
       fetchData(1);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Gagal menyimpan batch';
+      alert(msg);
     } finally {
       setSubmitting(false);
     }
