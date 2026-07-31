@@ -1417,7 +1417,10 @@ export default function DataKandidat() {
                                      onMouseDown={e => e.stopPropagation()}
                                      onClick={(e) => {
                                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-                                       setActionPos({ top: rect.bottom + 4, left: rect.right - 208 })
+                                       const dropdownHeight = Math.min(600, window.innerHeight * 0.7)
+                                       const spaceBelow = window.innerHeight - rect.bottom - 4
+                                       const top = spaceBelow > dropdownHeight ? rect.bottom + 4 : Math.max(8, rect.top - dropdownHeight - 4)
+                                       setActionPos({ top, left: Math.max(8, rect.right - 208) })
                                        setOpenActionId(openActionId === k.id ? null : k.id)
                                      }}
                                      className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
@@ -1430,7 +1433,7 @@ export default function DataKandidat() {
                                   <div
                                     ref={actionDropdownRef}
                                     onMouseDown={e => e.stopPropagation()}
-                                    className="fixed z-[9999] w-52 rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+                                    className="fixed z-[9999] max-h-[70vh] w-52 overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
                                     style={{ top: actionPos.top, left: actionPos.left }}
                                   >
                                     <button onClick={() => { setDetailKandidat(k); setOpenActionId(null) }}
