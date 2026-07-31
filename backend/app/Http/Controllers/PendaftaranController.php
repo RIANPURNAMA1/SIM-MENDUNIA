@@ -1049,6 +1049,7 @@ class PendaftaranController extends Controller
                     $rendered = $templateKey ? \App\Models\NotificationTemplate::render($templateKey, $templateVars) : null;
                     Mail::send('emails.status-update', [
                         'company' => $company,
+                        'logoUrl' => $frontendUrl . '/logo-sm.png',
                         'nama' => $nama,
                         'statusLabel' => $statusLabel,
                         'badgeBg' => $info['bg'],

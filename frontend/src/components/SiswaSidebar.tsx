@@ -16,7 +16,8 @@ const menu = [
   { to: '/siswa-dashboard/absensi', icon: CalendarCheck, label: 'Absensi', locked: true },
   { to: '/siswa-dashboard/lms', icon: BookOpen, label: 'LMS', locked: true },
   { to: '/siswa-dashboard/nilai', icon: Award, label: 'Nilai', locked: true },
-  { to: '/siswa-dashboard/matching-job', icon: Briefcase, label: 'Matching Job', locked: true },
+  { to: '/siswa-dashboard/matching-job', icon: Briefcase, label: 'Matching Job', locked: false },
+  { to: '/siswa-dashboard/profil', icon: User, label: 'Profil', locked: false },
 ]
 
 export default function SiswaSidebar({ isOpen, onClose }: SiswaSidebarProps) {

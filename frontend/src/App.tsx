@@ -49,6 +49,9 @@ import Pendaftar from './pages/Pendaftaran/Pendaftar'
 import InvoicePendaftar from './pages/Pendaftaran/InvoicePendaftar'
 import PendaftarDetail from './pages/Pendaftaran/PendaftarDetail'
 import DataMatchingJob from './pages/Akademik/DataMatchingJob'
+import KandidatMJ from './pages/Akademik/KandidatMJ'
+import MatchingJobForm from './pages/Siswa/MatchingJobForm'
+import ProfilSiswa from './pages/Siswa/ProfilSiswa'
 import Tagihan from './pages/Siswa/Tagihan'
 import RekapBatch from './pages/Siswa/RekapBatch'
 import Pembayaran from './pages/Siswa/Pembayaran'
@@ -245,6 +248,8 @@ function AppRoutes() {
         <Route path="pembayaran" element={<PembayaranSiswa />} />
         <Route path="lms" element={<LMS />} />
         <Route path="nilai" element={<SiswaNilai />} />
+        <Route path="matching-job" element={<MatchingJobForm />} />
+        <Route path="profil" element={<ProfilSiswa />} />
       </Route>
 
       <Route
@@ -773,6 +778,7 @@ function AppRoutes() {
                 <Route path="/pendaftar" element={<Pendaftar />} />
                 <Route path="/pendaftar/:id/invoice" element={<InvoicePendaftar />} />
                 <Route path="/data-matching-job" element={<DataMatchingJob />} />
+                <Route path="/kandidat-mj" element={<KandidatMJ />} />
                 <Route path="/data-affiliate" element={<DataAffiliate />} />
                 <Route path="/closing-pasukan" element={<ClosingPasukan />} />
                 <Route path="/pencairan-komisi" element={<DataPencairanKomisi />} />
