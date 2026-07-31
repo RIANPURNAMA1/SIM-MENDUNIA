@@ -240,13 +240,13 @@ export default function DataKehadiranPage() {
 
       {/* Filter */}
       <div className="mb-4 rounded-lg p-4 shadow-sm">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-wrap gap-3 items-center">
+          <div className="flex items-center gap-2 shrink-0">
             <span className="text-xs font-semibold text-slate-500 shrink-0">Dari</span>
             <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setPage(1) }}
               className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <span className="text-xs font-semibold text-slate-500 shrink-0">Sampai</span>
             <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setPage(1) }}
               className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
@@ -276,7 +276,7 @@ export default function DataKehadiranPage() {
             <option value="TIDAK ABSEN PULANG">Tidak Absen Pulang</option>
             <option value="LIBUR">Libur</option>
           </select>
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative w-full md:flex-1 md:w-auto min-w-[200px]">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input type="text" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }}
               placeholder="Cari nama atau NIP..."
