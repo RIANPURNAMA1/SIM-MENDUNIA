@@ -1,9 +1,10 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { DollarSign, Users, Search, RotateCcw, Eye, Edit3, Power, PowerOff, CalendarOff, Calendar, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, FileText, Download, Upload, Trash2, ArrowRight, RefreshCw } from 'lucide-react'
+import { DollarSign, Users, Search, RotateCcw, Eye, Edit3, Power, PowerOff, CalendarOff, Calendar, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, FileText, Download, Upload, Trash2, ArrowRight, RefreshCw, KeyRound } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import api, { pendaftarApi, batchApi, productApi } from '../../services/api'
 import * as XLSX from 'xlsx'
+import jsPDF from 'jspdf'
 import Swal from 'sweetalert2'
 
 interface Kandidat {
@@ -166,6 +167,12 @@ export default function DataKandidat() {
   const [showBulkBatchDropdown, setShowBulkBatchDropdown] = useState(false)
   const [showImportBatchDropdown, setShowImportBatchDropdown] = useState(false)
   const [productOptions, setProductOptions] = useState<{ id: number; nama: string }[]>([])
+  const [showExportLogin, setShowExportLogin] = useState(false)
+  const [exportBatchId, setExportBatchId] = useState('')
+  const [exportCabangId, setExportCabangId] = useState('')
+  const [exporting, setExporting] = useState(false)
+  const [showExportBatchDropdown, setShowExportBatchDropdown] = useState(false)
+  const exportBatchDropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     fetchData()
@@ -193,10 +200,12 @@ export default function DataKandidat() {
       if (batchDropdownRef.current?.contains(target)) return
       if (bulkBatchDropdownRef.current?.contains(target)) return
       if (importBatchDropdownRef.current?.contains(target)) return
+      if (exportBatchDropdownRef.current?.contains(target)) return
       setOpenActionId(null)
       setShowBatchDropdown(false)
       setShowBulkBatchDropdown(false)
       setShowImportBatchDropdown(false)
+      setShowExportBatchDropdown(false)
     }
     function handleScroll() {
       setOpenActionId(null)
@@ -781,6 +790,136 @@ export default function DataKandidat() {
     URL.revokeObjectURL(url)
   }
 
+  async function handleExportLoginPdf() {
+    if (!exportBatchId) {
+      Swal.fire({ icon: 'error', title: 'Pilih Batch', text: 'Pilih batch terlebih dahulu sebelum export.', confirmButtonColor: '#0E6187' })
+      return
+    }
+    setExporting(true)
+    try {
+      const params: Record<string, string> = { batch_id: exportBatchId }
+      if (exportCabangId) params.cabang_id = exportCabangId
+      const res = await pendaftarApi.kandidat(params)
+      const rows: { noReg: string; nama: string; email: string; password: string }[] = []
+      for (const b of res.data.batches || []) {
+        for (const k of b.kandidat || []) {
+          rows.push({
+            noReg: k.no_registrasi || '-',
+            nama: k.nama || '-',
+            email: k.email || '-',
+            password: k.password_plain || '-',
+          })
+        }
+      }
+      if (rows.length === 0) {
+        Swal.fire({ icon: 'warning', title: 'Data Kosong', text: 'Tidak ada kandidat untuk batch dan cabang terpilih.', confirmButtonColor: '#0E6187' })
+        return
+      }
+      const batchNama = batchOptions.find(b => String(b.id) === exportBatchId)?.nama || 'Batch terpilih'
+      const cabangNama = cabangOptions.find(c => String(c.id) === exportCabangId)?.nama || 'Semua Cabang'
+      exportLoginPdf(rows, batchNama, cabangNama)
+      setShowExportLogin(false)
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal', text: 'Terjadi kesalahan saat mengambil data kandidat.', confirmButtonColor: '#0E6187' })
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  function exportLoginPdf(rows: { noReg: string; nama: string; email: string; password: string }[], batchNama: string, cabangNama: string) {
+    const pdf = new jsPDF('l', 'mm', 'a4')
+    const pageW = pdf.internal.pageSize.getWidth()
+    const pageH = pdf.internal.pageSize.getHeight()
+    const brand: [number, number, number] = [14, 97, 135]
+    const margin = 12
+    const colWidths = [12, 44, 62, 74, 50]
+    const startX = margin
+    const tableW = colWidths.reduce((a, b) => a + b, 0)
+    const rowH = 8
+    const sanitize = (s: string) => s.replace(/[^\x00-\xFF]/g, '.')
+    const truncate = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '.' : s)
+    let y = 0
+
+    const drawHeader = () => {
+      pdf.setFillColor(...brand)
+      pdf.rect(0, 0, pageW, 16, 'F')
+      pdf.setTextColor(255, 255, 255)
+      pdf.setFont('helvetica', 'bold')
+      pdf.setFontSize(13)
+      pdf.text('DATA AKUN LOGIN KANDIDAT', margin, 10.5)
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(8)
+      pdf.text('mendunia.id', pageW - margin, 10.5, { align: 'right' })
+
+      y = 23
+      pdf.setTextColor(30, 41, 59)
+      pdf.setFontSize(9)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text(`Batch  : ${sanitize(batchNama)}`, margin, y)
+      pdf.text(`Cabang : ${sanitize(cabangNama)}`, margin + 100, y)
+      pdf.text(`Cetak  : ${new Date().toLocaleString('id-ID')}`, pageW - margin, y, { align: 'right' })
+      y += 5
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(8)
+      pdf.setTextColor(100, 116, 139)
+      pdf.text(`Total ${rows.length} kandidat. Login di aplikasi menggunakan E-mail dan Password.`, margin, y)
+      y += 7
+
+      pdf.setFillColor(...brand)
+      pdf.setTextColor(255, 255, 255)
+      pdf.setFont('helvetica', 'bold')
+      pdf.setFontSize(8)
+      pdf.rect(startX, y, tableW, 8, 'F')
+      const headers = ['No', 'No. Registrasi', 'Nama Kandidat', 'E-mail', 'Password']
+      let hx = startX
+      headers.forEach((h, i) => {
+        pdf.text(h, hx + 2, y + 5.5)
+        hx += colWidths[i]
+      })
+      y += 8
+    }
+
+    drawHeader()
+
+    rows.forEach((r, i) => {
+      if (y + rowH > pageH - 14) {
+        pdf.setFillColor(226, 232, 240)
+        pdf.rect(0, pageH - 14, pageW, 14, 'F')
+        pdf.setTextColor(71, 85, 105)
+        pdf.setFont('helvetica', 'normal')
+        pdf.setFontSize(7)
+        pdf.text(`Halaman ${pdf.getNumberOfPages()}`, pageW - margin, pageH - 8, { align: 'right' })
+        pdf.addPage()
+        drawHeader()
+      }
+      if (i % 2 === 1) {
+        pdf.setFillColor(248, 250, 252)
+        pdf.rect(startX, y, tableW, rowH, 'F')
+      }
+      pdf.setTextColor(30, 41, 59)
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(8)
+      const cells = [String(i + 1), r.noReg, r.nama, r.email, r.password]
+      const limits = [11, 40, 60, 70, 46]
+      let x = startX
+      cells.forEach((t, c) => {
+        pdf.text(truncate(sanitize(t), limits[c]), x + 2, y + 5.5)
+        x += colWidths[c]
+      })
+      y += rowH
+    })
+
+    pdf.setFillColor(226, 232, 240)
+    pdf.rect(0, pageH - 14, pageW, 14, 'F')
+    pdf.setTextColor(71, 85, 105)
+    pdf.setFont('helvetica', 'normal')
+    pdf.setFontSize(7)
+    pdf.text(`Halaman ${pdf.getNumberOfPages()}`, pageW - margin, pageH - 8, { align: 'right' })
+
+    const safeName = batchNama.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+    pdf.save(`akun-login-${safeName}-${new Date().toISOString().slice(0, 10)}.pdf`)
+  }
+
   const fieldOptions: { value: string; label: string }[] = [
     { value: '', label: '— Lewati —' },
     { value: 'nik', label: 'NIK' },
@@ -1108,7 +1247,7 @@ export default function DataKandidat() {
               <Download size={16} />
               Export
             </button>
-            <div className="absolute right-0 top-full z-30 mt-1 hidden w-40 rounded-lg border border-slate-200 bg-white py-1 shadow-lg group-hover:block">
+            <div className="absolute right-0 top-full z-30 mt-1 hidden w-48 rounded-lg border border-slate-200 bg-white py-1 shadow-lg group-hover:block">
               <button onClick={exportCSV} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
                 <Download size={14} className="text-slate-400" />
                 Export CSV
@@ -1116,6 +1255,12 @@ export default function DataKandidat() {
               <button onClick={exportExcel} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
                 <Download size={14} className="text-slate-400" />
                 Export Excel
+              </button>
+              <div className="my-1 border-t border-slate-100" />
+              <button onClick={() => { setShowExportLogin(true); setExportBatchId(''); setExportCabangId('') }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                <KeyRound size={14} className="text-emerald-400" />
+                Export PDF Akun Login
               </button>
             </div>
           </div>
@@ -2213,6 +2358,89 @@ export default function DataKandidat() {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Export Akun Login Modal */}
+      {showExportLogin && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowExportLogin(false)}>
+          <div className="w-full max-w-md rounded-xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
+                  <KeyRound size={18} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Export Akun Login Kandidat</h3>
+                  <p className="text-xs text-slate-500">Pilih batch & cabang, lalu export PDF</p>
+                </div>
+              </div>
+              <button onClick={() => setShowExportLogin(false)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 transition">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="space-y-4 px-5 py-4">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-600">Batch <span className="text-red-500">*</span></label>
+                <div className="relative" ref={exportBatchDropdownRef}>
+                  <button type="button" onClick={() => setShowExportBatchDropdown(!showExportBatchDropdown)}
+                    className="flex w-full items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-sm hover:shadow">
+                    {exportBatchId ? (
+                      <span className="flex items-center gap-2 truncate">
+                        <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: batchOptions.find(b => String(b.id) === exportBatchId)?.warna || '#3b82f6' }} />
+                        <span className="truncate">{batchOptions.find(b => String(b.id) === exportBatchId)?.nama || 'Pilih Batch...'}</span>
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">Pilih Batch...</span>
+                    )}
+                    <svg className={`ml-auto h-4 w-4 text-slate-400 transition-transform ${showExportBatchDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+                  {showExportBatchDropdown && (
+                    <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[220px] rounded-xl border border-slate-200 bg-white shadow-xl py-1 max-h-60 overflow-y-auto">
+                      <button type="button" onClick={() => { setExportBatchId(''); setShowExportBatchDropdown(false) }}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:bg-blue-50 hover:text-blue-700 transition">
+                        Pilih Batch...
+                      </button>
+                      {batchOptions.map(b => (
+                        <button key={b.id} type="button" onClick={() => { setExportBatchId(String(b.id)); setShowExportBatchDropdown(false) }}
+                          className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${String(b.id) === exportBatchId ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}>
+                          <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: b.warna || '#3b82f6' }} />
+                          <span className="truncate">{b.nama}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-600">Cabang</label>
+                <select
+                  value={exportCabangId}
+                  onChange={e => setExportCabangId(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                >
+                  <option value="">Semua Cabang</option>
+                  {cabangOptions.map(c => (
+                    <option key={c.id} value={c.id}>{c.nama}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs text-emerald-700">
+                PDF berisi <span className="font-semibold">No. Registrasi, Nama, E-mail, dan Password</span> login kandidat pada batch & cabang terpilih.
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-5 py-3.5">
+              <button onClick={() => setShowExportLogin(false)}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                Batal
+              </button>
+              <button onClick={handleExportLoginPdf} disabled={!exportBatchId || exporting}
+                className="inline-flex items-center gap-2 rounded-lg bg-[#0E6187] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#1a3a5c] disabled:opacity-50 disabled:cursor-not-allowed">
+                {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+                {exporting ? 'Mengekspor...' : 'Export PDF'}
+              </button>
             </div>
           </div>
         </div>
