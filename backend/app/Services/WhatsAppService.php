@@ -454,6 +454,42 @@ class WhatsAppService
     }
 
     /**
+     * Kirim notifikasi perubahan status (pendaftaran/pembayaran) ke kandidat.
+     * Pesan memakai template WA sesuai $templateKey, fallback ke pesan bawaan.
+     */
+    public function sendStatusNotification($pendaftar, $templateKey, $vars = [])
+    {
+        $noHp = $pendaftar->telepon ?? $pendaftar->user?->no_hp ?? null;
+        if (!$noHp) {
+            Log::warning('Pendaftar ' . $pendaftar->nama . ' tidak memiliki no_hp untuk notifikasi status.');
+            return false;
+        }
+
+        $defaults = [
+            'nama' => $pendaftar->nama,
+            'program' => $pendaftar->product?->nama ?? '-',
+            'no_registrasi' => $pendaftar->no_registrasi ?? '-',
+            'status' => 'diperbarui',
+            'waktu' => now()->translatedFormat('d F Y H:i'),
+            'company_name' => \App\Models\CompanyProfile::getProfile()->company_name ?? 'MENDUNIA.ID',
+        ];
+        $vars = array_merge($defaults, $vars);
+
+        $rendered = \App\Models\NotificationTemplate::render($templateKey, $vars);
+        if ($rendered) {
+            $message = $rendered['body'];
+        } else {
+            $message = "Halo *{$vars['nama']}*,\n\n"
+                . "Status pendaftaran/pembayaran kamu untuk *{$vars['program']}* (No. Registrasi: {$vars['no_registrasi']}) telah berubah menjadi: *{$vars['status']}*.\n\n"
+                . "- {$vars['company_name']}";
+        }
+
+        $sent = $this->sendMessage($noHp, $message);
+        $this->logNotification($pendaftar->id ?? null, str_replace('_wa', '', $templateKey), $noHp, $message, $sent);
+        return $sent;
+    }
+
+    /**
      * Hitung total tagihan pendaftar
      */
     private function getTotalTagihan($pendaftar)
