@@ -523,6 +523,8 @@ export const waSettingApi = {
   updateReminderSettings: (settings: { kategori_id: number; jatuh_tempo_hari: number; reminder_days: number[]; is_enabled: boolean; template_pesan: string | null }[]) => api.put('/wa-settings/reminder', { settings }),
   getGlobalSettings: () => api.get('/wa-settings/global'),
   updateGlobalSettings: (settings: { key: string; is_enabled: boolean; value?: string }[]) => api.put('/wa-settings/global', { settings }),
+  getMailSettings: () => api.get('/wa-settings/mail'),
+  updateMailSettings: (settings: { key: string; value?: string }[]) => api.put('/wa-settings/mail', { settings }),
 
   // Batch deadlines (per batch + kategori)
   getBatchKategoris: (batchId: number) => api.get('/wa-settings/batch-kategoris', { params: { batch_id: batchId } }),

@@ -97,7 +97,10 @@ class GuruDashboardController extends Controller
                 return $k;
             });
 
-        $batches = Batch::orderBy('nama_batch')->get();
+        $cabangIds = $user->cabang_ids ?? [];
+        $batches = Batch::when(count($cabangIds) > 0, fn ($q) => $q->whereIn('cabang_id', $cabangIds))
+            ->orderBy('nama_batch')
+            ->get();
 
         return response()->json([
             'kelas' => $kelas,
@@ -120,6 +123,14 @@ class GuruDashboardController extends Controller
             'tanggal_selesai' => 'nullable|date|after_or_equal:tanggal_mulai',
             'catatan' => 'nullable|string',
         ]);
+
+        $cabangIds = $user->cabang_ids ?? [];
+        if ($request->batch_id && count($cabangIds) > 0) {
+            $batch = Batch::find($request->batch_id);
+            if (!$batch || !in_array($batch->cabang_id, $cabangIds)) {
+                return response()->json(['message' => 'Batch tidak tersedia untuk cabang Anda'], 422);
+            }
+        }
 
         $tanggalMulai = $request->tanggal_mulai;
         $tanggalSelesai = $request->tanggal_selesai;

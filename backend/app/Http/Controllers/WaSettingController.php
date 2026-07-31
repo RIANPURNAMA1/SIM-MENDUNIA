@@ -322,6 +322,61 @@ class WaSettingController extends Controller
         return response()->json(['message' => 'Pengaturan global berhasil disimpan']);
     }
 
+    /**
+     * Ambil konfigurasi SMTP email dari database
+     */
+    public function mailIndex()
+    {
+        $keys = [
+            'mail_mailer' => 'Mailer',
+            'mail_host' => 'SMTP Host',
+            'mail_port' => 'SMTP Port',
+            'mail_username' => 'SMTP Username',
+            'mail_password' => 'SMTP Password',
+            'mail_encryption' => 'Enkripsi (tls / ssl / null)',
+            'mail_from_address' => 'Email Pengirim (From Address)',
+            'mail_from_name' => 'Nama Pengirim (From Name)',
+        ];
+
+        $settings = [];
+        foreach ($keys as $key => $desc) {
+            $existing = NotificationSetting::where('key', $key)->first();
+            $settings[] = [
+                'key' => $key,
+                'description' => $desc,
+                'value' => $existing?->value ?? null,
+            ];
+        }
+
+        return response()->json($settings);
+    }
+
+    /**
+     * Simpan konfigurasi SMTP email ke database lalu terapkan langsung
+     */
+    public function mailUpdate(Request $request)
+    {
+        $data = $request->validate([
+            'settings' => 'required|array',
+            'settings.*.key' => 'required|string',
+            'settings.*.value' => 'nullable|string',
+        ]);
+
+        foreach ($data['settings'] as $item) {
+            NotificationSetting::updateOrCreate(
+                ['key' => $item['key']],
+                [
+                    'value' => ($item['value'] ?? null) !== '' ? $item['value'] : null,
+                    'description' => $item['description'] ?? null,
+                ]
+            );
+        }
+
+        NotificationSetting::applyMailConfig();
+
+        return response()->json(['message' => 'Konfigurasi email berhasil disimpan']);
+    }
+
     // ==================== EMAIL NOTIFICATION LOG ====================
 
     /**
@@ -369,6 +424,8 @@ class WaSettingController extends Controller
         $request->validate([
             'to_email' => 'required|email',
         ]);
+
+        NotificationSetting::applyMailConfig();
 
         $to = $request->to_email;
         $mailer = config('mail.default');
