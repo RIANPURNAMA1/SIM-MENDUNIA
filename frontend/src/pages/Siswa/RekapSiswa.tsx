@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { BarChart3, Search, RotateCcw, Download } from "lucide-react";
+import { BarChart3, Search, RotateCcw, Download, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from "lucide-react";
 import { absensiSiswaApi, adminCabangApi, APP_URL } from "../../services/api";
 import type { RekapSiswaItem } from "../../types";
 
@@ -20,6 +20,8 @@ export default function RekapSiswaPage() {
   const [endDate, setEndDate] = useState(lastDay);
   const [filterBatch, setFilterBatch] = useState("");
   const [filterLevel, setFilterLevel] = useState("");
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(25);
 
   const fetchData = async () => {
     setLoading(true);
@@ -45,6 +47,7 @@ export default function RekapSiswaPage() {
   }, []);
 
   const handleFilter = () => {
+    setPage(1);
     fetchData();
   };
 
@@ -53,6 +56,7 @@ export default function RekapSiswaPage() {
     setEndDate(lastDay);
     setFilterBatch("");
     setFilterLevel("");
+    setPage(1);
   };
 
   const totals = rekap.reduce(
@@ -67,6 +71,10 @@ export default function RekapSiswaPage() {
     }),
     { hadir: 0, terlambat: 0, izin: 0, sakit: 0, alpa: 0, total_hadir: 0, total: 0 }
   );
+
+  const totalPages = Math.max(1, Math.ceil(rekap.length / perPage));
+  const safePage = Math.min(page, totalPages);
+  const pagedList = rekap.slice((safePage - 1) * perPage, safePage * perPage);
 
   const handleExportExcel = () => {
     const params = new URLSearchParams();
@@ -163,9 +171,9 @@ export default function RekapSiswaPage() {
                 <tr><td colSpan={11} className="border border-slate-200 px-4 py-12 text-center text-sm text-slate-400">Memuat data...</td></tr>
               ) : rekap.length === 0 ? (
                 <tr><td colSpan={11} className="border border-slate-200 px-4 py-12 text-center text-sm text-slate-400">Belum ada data rekap untuk periode ini</td></tr>
-              ) : rekap.map((item, idx) => (
+              ) : pagedList.map((item, idx) => (
                 <tr key={item.id} className="hover:bg-slate-50">
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-500">{idx + 1}</td>
+                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-500">{(safePage - 1) * perPage + idx + 1}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm font-medium text-slate-800">{item.nama}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">{item.batch}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-center font-medium text-emerald-700">{item.hadir}</td>
@@ -199,6 +207,68 @@ export default function RekapSiswaPage() {
           </table>
         </div>
       </div>
+
+      {/* Pagination */}
+      {!loading && rekap.length > 0 && (
+        <div className="mt-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3 text-sm text-slate-500">
+            <span>Per halaman</span>
+            <select value={perPage} onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1) }}
+              className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+              {[25, 50, 100, 200].map(n => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+            <span>Menampilkan {pagedList.length} dari {rekap.length} data</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setPage(1)} disabled={safePage <= 1}
+              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none">
+              <ChevronsLeft size={16} />
+            </button>
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage <= 1}
+              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none">
+              <ChevronLeft size={16} />
+            </button>
+            {(() => {
+              const pages: (number | '...')[] = []
+              if (totalPages <= 7) {
+                for (let i = 1; i <= totalPages; i++) pages.push(i)
+              } else {
+                pages.push(1)
+                if (safePage > 3) pages.push('...')
+                const start = Math.max(2, safePage - 1)
+                const end = Math.min(totalPages - 1, safePage + 1)
+                for (let i = start; i <= end; i++) pages.push(i)
+                if (safePage < totalPages - 2) pages.push('...')
+                pages.push(totalPages)
+              }
+              return pages.map((p, i) =>
+                p === '...' ? (
+                  <span key={`dots-${i}`} className="px-1 text-sm text-slate-300">...</span>
+                ) : (
+                  <button key={p} onClick={() => setPage(p)}
+                    className={`min-w-[32px] rounded-md border px-2 py-1.5 text-sm font-medium transition ${
+                      p === safePage
+                        ? 'border-slate-200 bg-slate-800 text-white'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}>
+                    {p}
+                  </button>
+                )
+              )
+            })()}
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}
+              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none">
+              <ChevronRight size={16} />
+            </button>
+            <button onClick={() => setPage(totalPages)} disabled={safePage >= totalPages}
+              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none">
+              <ChevronsRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
