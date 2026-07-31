@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Izin;
 use App\Models\Lembur;
+use App\Models\NotificationSetting;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use Carbon\Carbon;
@@ -27,6 +28,9 @@ class AppServiceProvider extends ServiceProvider
         date_default_timezone_set('Asia/Jakarta');
         config(['app.timezone' => 'Asia/Jakarta']);
         Carbon::setLocale('id');
+
+        // 1b. Terapkan konfigurasi SMTP email dinamis dari database
+        NotificationSetting::applyMailConfig();
 
         // 2. View Composer untuk membagikan data notifikasi ke semua view
         View::composer('*', function ($view) {

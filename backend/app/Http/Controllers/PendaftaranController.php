@@ -778,6 +778,8 @@ class PendaftaranController extends Controller
             );
         }
 
+        $this->normalizeKodeUnik($pendaftar->fresh());
+
         // WA: Kirim notifikasi persetujuan + tagihan baru
         try {
             $waService = new \App\Services\WhatsAppService();
@@ -980,6 +982,8 @@ class PendaftaranController extends Controller
                     }
                 }
             }
+
+            $this->normalizeKodeUnik($pendaftar->fresh());
 
             $this->cekDanCatatKomisiAffiliate($pendaftar->fresh());
         }
@@ -1369,6 +1373,8 @@ class PendaftaranController extends Controller
             ['jumlah' => $totalPerKategori]
         );
 
+        $this->normalizeKodeUnik($pendaftar->fresh());
+
         $pendaftar->status_pembayaran = 'processing';
         $pendaftar->bukti_pembayaran = $filePath;
         $pendaftar->save();
@@ -1566,6 +1572,8 @@ class PendaftaranController extends Controller
             );
         }
 
+        $this->normalizeKodeUnik($pendaftar->fresh());
+
         // Kirim notifikasi WA ke admin
         try {
             $waService = new \App\Services\WhatsAppService();
@@ -1626,6 +1634,8 @@ class PendaftaranController extends Controller
             ],
             ['jumlah' => $totalPerKategori]
         );
+
+        $this->normalizeKodeUnik($pendaftar->fresh());
 
         $totalDibayar = Pembayaran::where('pendaftar_id', $pendaftar->id)
             ->where('status', 'verified')
@@ -3130,6 +3140,56 @@ class PendaftaranController extends Controller
                 'jumlah' => $komisiAmount,
                 'status' => 'pending',
             ]);
+        }
+    }
+
+    private function firstKategoriId(Pendaftar $pendaftar): ?int
+    {
+        $product = $pendaftar->product;
+        if (!$product) return null;
+
+        $product->loadMissing('biayaKategoris');
+        $pivotById = $product->biayaKategoris->keyBy('id');
+
+        if (is_array($product->kategori_items)) {
+            foreach ($product->kategori_items as $item) {
+                $name = strtolower(trim($item['name'] ?? ''));
+                if ($name === '' || (float) ($item['harga'] ?? 0) <= 0) continue;
+                $kat = $pivotById->first(fn($k) => strtolower($k->nama) === $name || strtolower($k->kode) === $name);
+                if ($kat) return $kat->id;
+            }
+        }
+
+        return $product->biayaKategoris->first()?->id;
+    }
+
+    private function normalizeKodeUnik(Pendaftar $pendaftar): void
+    {
+        $firstId = $this->firstKategoriId($pendaftar);
+        if (!$firstId) return;
+
+        $items = \App\Models\PembayaranItem::where('pendaftar_id', $pendaftar->id)->get();
+        foreach ($items as $pi) {
+            if ((int) $pi->kategori_id === (int) $firstId) {
+                $jumlah = (float) $pi->jumlah;
+                if ($jumlah > 0) {
+                    $ku = (int) $pi->kode_unik;
+                    if ($ku <= 0) {
+                        $ku = \App\Models\PaymentSetting::generateUniqueCode();
+                    }
+                    $pi->update([
+                        'kode_unik' => $ku,
+                        'total_transfer' => \App\Models\PaymentSetting::calculateTotalTransfer($jumlah, $ku),
+                    ]);
+                }
+            } else {
+                if ((int) $pi->kode_unik !== 0 || (float) $pi->total_transfer !== (float) $pi->jumlah) {
+                    $pi->update([
+                        'kode_unik' => 0,
+                        'total_transfer' => (float) $pi->jumlah,
+                    ]);
+                }
+            }
         }
     }
 

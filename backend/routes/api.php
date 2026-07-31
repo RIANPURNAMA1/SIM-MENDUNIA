@@ -571,6 +571,8 @@ Route::middleware(['auth:sanctum'])->prefix('wa-settings')->group(function () {
     Route::put('/reminder', [\App\Http\Controllers\WaSettingController::class, 'reminderUpdate']);
     Route::get('/global', [\App\Http\Controllers\WaSettingController::class, 'globalIndex']);
     Route::put('/global', [\App\Http\Controllers\WaSettingController::class, 'globalUpdate']);
+    Route::get('/mail', [\App\Http\Controllers\WaSettingController::class, 'mailIndex']);
+    Route::put('/mail', [\App\Http\Controllers\WaSettingController::class, 'mailUpdate']);
 
     // Batch + kategori deadline CRUD
     Route::get('/batch-kategoris', [\App\Http\Controllers\WaSettingController::class, 'batchKategoris']);

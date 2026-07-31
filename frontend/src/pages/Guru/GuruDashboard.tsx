@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   Calendar, CheckCircle, X, Plus, Users, User,
   ChevronRight, FileText, Clock,
@@ -75,7 +75,6 @@ const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des']
 const monthNamesID = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 const dayAbbr = ['MIN', 'SEN', 'SEL', 'RAB', 'KAM', 'JUM', 'SAB']
-const LEVELS = ['1', '2', '3', '4']
 
 function formatTime() {
   return new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false })
@@ -199,6 +198,14 @@ export default function GuruDashboard() {
   }
 
   const selectedJadwal = form.batch_id && form.level ? jadwalLevels[`${form.batch_id}-${form.level}`] : null
+
+  const availableLevels = useMemo(() => {
+    if (!form.batch_id) return []
+    return Object.keys(jadwalLevels)
+      .filter(key => key.startsWith(`${form.batch_id}-`))
+      .map(key => key.split('-')[1])
+      .sort()
+  }, [form.batch_id, jadwalLevels])
 
   const startCamera = useCallback(async (kelasId: number, mode: 'masuk' | 'pulang') => {
     setCameraKelasId(kelasId)
@@ -719,7 +726,7 @@ export default function GuruDashboard() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Batch</label>
-                  <select value={form.batch_id} onChange={e => setForm(f => ({ ...f, batch_id: e.target.value }))}
+                  <select value={form.batch_id} onChange={e => setForm(f => ({ ...f, batch_id: e.target.value, level: '' }))}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]">
                     <option value="">Pilih Batch</option>
                     {batches.map(b => <option key={b.id} value={b.id}>{b.nama_batch}</option>)}
@@ -730,7 +737,7 @@ export default function GuruDashboard() {
                   <select required value={form.level} onChange={e => setForm(f => ({ ...f, level: e.target.value }))}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]">
                     <option value="">Pilih Level</option>
-                    {LEVELS.map(l => <option key={l} value={l}>Level {l}</option>)}
+                    {availableLevels.map(l => <option key={l} value={l}>Level {l}</option>)}
                   </select>
                 </div>
               </div>

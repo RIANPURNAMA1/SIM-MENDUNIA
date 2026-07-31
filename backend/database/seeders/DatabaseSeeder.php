@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             BiayaKategoriSeeder::class,
             AbsensiSeeder::class,
             AssessmentLevelSeeder::class,
+            NotificationTemplateSeeder::class,
         ]);
       
     }

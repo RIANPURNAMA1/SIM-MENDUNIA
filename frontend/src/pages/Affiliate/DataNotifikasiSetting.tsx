@@ -20,10 +20,18 @@ interface GlobalSetting {
   value?: string
 }
 
+interface MailSetting {
+  key: string
+  description: string
+  value?: string
+}
+
 export default function DataNotifikasiSetting() {
   const [globalSettings, setGlobalSettings] = useState<GlobalSetting[]>([])
+  const [mailSettings, setMailSettings] = useState<MailSetting[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [savingMail, setSavingMail] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
 
@@ -40,8 +48,12 @@ export default function DataNotifikasiSetting() {
   const loadInitialData = async () => {
     setLoading(true)
     try {
-      const globalRes = await waSettingApi.getGlobalSettings()
+      const [globalRes, mailRes] = await Promise.all([
+        waSettingApi.getGlobalSettings(),
+        waSettingApi.getMailSettings(),
+      ])
       setGlobalSettings(globalRes.data)
+      setMailSettings(mailRes.data)
     } catch {
       setErrorMsg('Gagal memuat data')
     } finally {
@@ -58,12 +70,25 @@ export default function DataNotifikasiSetting() {
     } catch { setErrorMsg('Gagal menyimpan') } finally { setSaving(false) }
   }
 
+  const saveMail = async () => {
+    setSavingMail(true); setSuccessMsg(''); setErrorMsg('')
+    try {
+      await waSettingApi.updateMailSettings(mailSettings)
+      setSuccessMsg('Konfigurasi email berhasil disimpan')
+      setTimeout(() => setSuccessMsg(''), 3000)
+    } catch { setErrorMsg('Gagal menyimpan') } finally { setSavingMail(false) }
+  }
+
   const handleGlobalToggle = (key: string, value: boolean) => {
     setGlobalSettings(prev => prev.map(s => s.key === key ? { ...s, is_enabled: value } : s))
   }
 
   const handleGlobalValueChange = (key: string, value: string) => {
     setGlobalSettings(prev => prev.map(s => s.key === key ? { ...s, value } : s))
+  }
+
+  const handleMailValueChange = (key: string, value: string) => {
+    setMailSettings(prev => prev.map(s => s.key === key ? { ...s, value } : s))
   }
 
   const handleTestEmail = async () => {
@@ -191,6 +216,65 @@ export default function DataNotifikasiSetting() {
         </div>
       </div>
 
+      {/* SMTP Email Settings */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+              <Mail size={20} className="text-blue-600" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-slate-800">Pengaturan SMTP Email</h2>
+              <p className="text-xs text-slate-500">Konfigurasi server email untuk pengiriman notifikasi (dipakai menggantikan .env)</p>
+            </div>
+          </div>
+          <button onClick={saveMail} disabled={savingMail}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors">
+            {savingMail ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Simpan
+          </button>
+        </div>
+        <div className="px-6 py-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {mailSettings.map(setting => {
+              const val = setting.value ?? ''
+              return (
+                <div key={setting.key}>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">
+                    {setting.description}
+                    <span className="ml-1 text-xs text-slate-400 font-mono">{setting.key}</span>
+                  </label>
+                  {setting.key === 'mail_encryption' ? (
+                    <select value={val} onChange={e => handleMailValueChange(setting.key, e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20">
+                      <option value="tls">tls</option>
+                      <option value="ssl">ssl</option>
+                      <option value="">none</option>
+                    </select>
+                  ) : setting.key === 'mail_mailer' ? (
+                    <select value={val} onChange={e => handleMailValueChange(setting.key, e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20">
+                      <option value="smtp">smtp</option>
+                      <option value="log">log</option>
+                    </select>
+                  ) : (
+                    <input
+                      type={setting.key === 'mail_password' ? 'password' : setting.key === 'mail_port' ? 'number' : 'text'}
+                      value={val}
+                      onChange={e => handleMailValueChange(setting.key, e.target.value)}
+                      placeholder={setting.key === 'mail_host' ? 'smtp.gmail.com' : setting.key === 'mail_port' ? '587' : setting.key === 'mail_encryption' ? 'tls' : ''}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20"
+                    />
+                  )}
+                </div>
+              )
+            })}
+          </div>
+          <p className="mt-4 text-xs text-slate-400">
+            Kosongkan field untuk memakai nilai bawaan dari <code className="bg-slate-100 px-1 rounded">.env</code>. Konfigurasi ini langsung dipakai untuk pengiriman email setelah disimpan.
+          </p>
+        </div>
+      </div>
+
       {/* Test Email */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100">
@@ -279,7 +363,7 @@ export default function DataNotifikasiSetting() {
         <ul className="list-disc list-inside space-y-1.5 text-xs">
           <li>Pengingat dikirim setiap hari jam 09:00 via <code className="bg-blue-100 px-1 rounded">php artisan app:reminder-pembayaran</code></li>
           <li>WhatsApp menggunakan API StarSender — atur API Key & URL di pengaturan global di atas</li>
-          <li>Email memerlukan konfigurasi SMTP di <code className="bg-blue-100 px-1 rounded">.env</code> (MAIL_MAILER, MAIL_HOST, dll)</li>
+          <li>Email memerlukan konfigurasi SMTP — atur pada "Pengaturan SMTP Email" di atas (menggantikan konfigurasi <code className="bg-blue-100 px-1 rounded">.env</code>)</li>
           <li>Jika SMTP belum dikonfigurasi, email akan di-log saja (tidak terkirim)</li>
           <li>Pengingat tidak akan dikirim jika kategori sudah lunas</li>
         </ul>
