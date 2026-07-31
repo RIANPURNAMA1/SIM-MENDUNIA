@@ -1921,7 +1921,7 @@ class PendaftaranController extends Controller
 
     public function rekapPerBatch()
     {
-        $batches = \App\Models\Batch::aktif()->orderBy('nama_batch')->get();
+        $batches = \App\Models\Batch::aktif()->orderByDesc('id')->get();
         $allKategoris = BiayaKategori::orderBy('urutan')->get();
 
         $result = [];

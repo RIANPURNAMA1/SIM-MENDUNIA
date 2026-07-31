@@ -656,8 +656,8 @@ class AdminCabangController extends Controller
     {
         $batchIds = $this->getBranchBatchIds();
         $batches = Batch::whereIn('id', $batchIds)
-            ->with('cabang')
-            ->orderBy('nama_batch')
+            ->aktif()
+            ->orderByDesc('id')
             ->get();
 
         return response()->json($batches);
