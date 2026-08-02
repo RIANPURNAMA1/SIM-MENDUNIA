@@ -137,8 +137,12 @@ export const rekapKehadiranSenseiApi = {
   getRekap: (userId: number, params?: Record<string, string | number>) =>
     api.get(`/rekap-kehadiran-sensei/${userId}`, { params }),
   tableData: () => api.get('/rekap-kehadiran-sensei/table-data'),
-  updateStatus: (data: { id: number; status: string }) =>
-    api.post('/rekap-kehadiran-sensei/update-status', data),
+  updateStatus: (data: {
+    kelas_sensei_id: number
+    user_id: number
+    tanggal: string
+    status: string
+  }) => api.post('/rekap-kehadiran-sensei/update-status', data),
 }
 
 export const guruApi = {
@@ -387,6 +391,8 @@ export const adminCabangApi = {
     api.get('/admin-cabang/tagihan', { params }),
   kandidat: (params?: Record<string, string>) =>
     api.get('/admin-cabang/kandidat', { params }),
+  createKandidat: (data: Record<string, unknown>) =>
+    api.post('/kandidat', data),
   siswa: (params?: Record<string, string | number | undefined>) =>
     api.get('/admin-cabang/siswa', { params }),
   batches: () => api.get('/admin-cabang/batches'),
