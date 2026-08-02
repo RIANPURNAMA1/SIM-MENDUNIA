@@ -12,10 +12,10 @@ import { Link } from 'react-router-dom'
 import {
   FileText, Search, Receipt, CheckCircle, Clock, AlertCircle, RotateCcw,
   DollarSign, X, Save, Bell, Eye, Check, Loader, XCircle,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Calendar,
 } from 'lucide-react'
 import api from '../../services/api'
-import { adminCabangApi, APP_URL } from '../../services/api'
+import { adminCabangApi, jadwalLevelApi, APP_URL } from '../../services/api'
 import Swal from 'sweetalert2'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -87,6 +87,24 @@ interface BatchGroup {
   items: TagihanItem[]
 }
 
+interface JadwalLevelEntry {
+  id: number
+  batch_id: number
+  level: number
+  tanggal_mulai: string
+  tanggal_selesai: string
+  batch_nama: string
+}
+
+const jadwalStages = [
+  { level: 1, label: 'Level 1' },
+  { level: 2, label: 'Level 2' },
+  { level: 3, label: 'Level 3' },
+  { level: 4, label: 'Level 4' },
+]
+
+const buildJadwalKey = (batchId: number, level: number) => `${batchId}-${level}`
+
 export default function AdminCabangTagihan() {
   const { user } = useAuth()
   const isManager = user?.role === 'MANAGER'
@@ -118,6 +136,10 @@ export default function AdminCabangTagihan() {
   const [batchPages, setBatchPages] = useState<Record<number, number>>({})
   const [uniqueCodeOp, setUniqueCodeOp] = useState<string>('add')
   const batchPerPage = 5
+  const [jadwalModal, setJadwalModal] = useState<BatchGroup | null>(null)
+  const [jadwalMap, setJadwalMap] = useState<Record<string, JadwalLevelEntry>>({})
+  const [jadwalForm, setJadwalForm] = useState<Record<number, { tanggal_mulai: string; tanggal_selesai: string }>>({})
+  const [jadwalSaving, setJadwalSaving] = useState<Record<number, boolean>>({})
 
   const pendingCount = Object.keys(pendingChanges).length
 
@@ -408,6 +430,62 @@ export default function AdminCabangTagihan() {
     }
   }
 
+  const reloadJadwal = async () => {
+    try {
+      const res = await adminCabangApi.jadwalLevel()
+      const map: Record<string, JadwalLevelEntry> = {}
+      const jadwal = res.data.jadwal || {}
+      Object.keys(jadwal).forEach(key => { map[key] = jadwal[key] })
+      setJadwalMap(map)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const openJadwalModal = async (group: BatchGroup) => {
+    setJadwalModal(group)
+    setJadwalForm({})
+    await reloadJadwal()
+  }
+
+  const handleSaveJadwalLevel = async (level: number, label: string) => {
+    if (!jadwalModal) return
+    const f = jadwalForm[level]
+    if (!f || !f.tanggal_mulai || !f.tanggal_selesai) return
+    setJadwalSaving(prev => ({ ...prev, [level]: true }))
+    try {
+      await jadwalLevelApi.store({
+        batch_id: jadwalModal.batchId,
+        level,
+        tanggal_mulai: f.tanggal_mulai,
+        tanggal_selesai: f.tanggal_selesai,
+      })
+      await reloadJadwal()
+    } catch (err) {
+      console.error(err)
+      Swal.fire({ icon: 'error', title: 'Gagal', text: `Gagal menyimpan jadwal ${label}`, confirmButtonColor: '#0E6187' })
+    } finally {
+      setJadwalSaving(prev => ({ ...prev, [level]: false }))
+    }
+  }
+
+  const handleDeleteJadwalLevel = async (level: number, label: string) => {
+    if (!jadwalModal) return
+    if (!confirm(`Hapus jadwal untuk ${jadwalModal.batchName} - ${label}?`)) return
+    try {
+      await jadwalLevelApi.destroy(jadwalModal.batchId, level)
+      await reloadJadwal()
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const formatJadwalDate = (dateStr: string) => {
+    if (!dateStr) return ''
+    const d = new Date(dateStr + 'T00:00:00')
+    return d.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  }
+
   const renderBatchTable = (group: BatchGroup) => {
     const { batchId, batchName, kategoris: kats, kategoriColumns, items } = group
     const isCollapsed = collapsedBatches.has(batchId)
@@ -427,35 +505,54 @@ export default function AdminCabangTagihan() {
 
     return (
       <div key={batchId} className="mb-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-        <button
-          onClick={() => setCollapsedBatches(prev => {
-            const next = new Set(prev)
-            if (next.has(batchId)) next.delete(batchId)
-            else next.add(batchId)
-            return next
-          })}
-          className="w-full flex items-center justify-between px-4 py-3 bg-white hover:bg-slate-50 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: group.batchWarna || '#0E6187' }}>
+        <div className="flex items-center justify-between gap-2 bg-white px-4 py-3 transition-colors hover:bg-slate-50">
+          <button
+            onClick={() => setCollapsedBatches(prev => {
+              const next = new Set(prev)
+              if (next.has(batchId)) next.delete(batchId)
+              else next.add(batchId)
+              return next
+            })}
+            className="flex items-center gap-3 min-w-0 flex-1 text-left"
+          >
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0" style={{ backgroundColor: group.batchWarna || '#0E6187' }}>
               <Receipt size={14} className="text-white" />
             </div>
-            <div className="text-left">
+            <div className="min-w-0">
               <h3 className="text-sm font-bold text-slate-800">
                 <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold text-white" style={{ backgroundColor: group.batchWarna || '#0E6187' }}>{batchName}</span>
               </h3>
               <p className="text-xs text-slate-500">{items.length} pendaftar</p>
             </div>
-          </div>
-          <div className="flex items-center gap-4">
+          </button>
+          <div className="flex items-center gap-3 shrink-0">
             <div className="hidden sm:flex items-center gap-4 text-xs">
               <span className="text-slate-500">Tagihan: <span className="font-bold text-slate-700">Rp {fmt(groupTagihan)}</span></span>
               <span className="text-emerald-600">Dibayar: <span className="font-bold">Rp {fmt(groupDibayar)}</span></span>
               <span className="text-red-600">Sisa: <span className="font-bold">Rp {fmt(groupSisa)}</span></span>
             </div>
-            <span className="text-slate-400">{isCollapsed ? '▶' : '▼'}</span>
+            <button
+              onClick={(e) => { e.stopPropagation(); openJadwalModal(group) }}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[11px] font-medium text-slate-600 shadow-sm transition hover:border-[#0E6187] hover:bg-[#0E6187]/5 hover:text-[#0E6187]"
+              title={`Jadwal level untuk ${batchName}`}
+            >
+              <Calendar size={13} />
+              Jadwal Level
+            </button>
+            <button
+              onClick={() => setCollapsedBatches(prev => {
+                const next = new Set(prev)
+                if (next.has(batchId)) next.delete(batchId)
+                else next.add(batchId)
+                return next
+              })}
+              className="text-slate-400 hover:text-slate-600"
+              title={isCollapsed ? 'Buka' : 'Tutup'}
+            >
+              {isCollapsed ? '▶' : '▼'}
+            </button>
           </div>
-        </button>
+        </div>
 
         {!isCollapsed && (
           <div className="overflow-x-auto border-t border-slate-200">
@@ -1032,6 +1129,87 @@ export default function AdminCabangTagihan() {
               <button onClick={() => handleRejectPembayaran(confirmRejectId)} disabled={rejectingId === confirmRejectId} className="flex-1 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-50">
                 {rejectingId === confirmRejectId ? 'Menolak...' : 'Ya, Tolak'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {jadwalModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-6" onClick={() => setJadwalModal(null)}>
+          <div className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-xl bg-white shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ backgroundColor: jadwalModal.batchWarna || '#0E6187' }}>
+                  <Calendar size={18} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800">Jadwal Level</h3>
+                  <p className="text-xs text-slate-500">{jadwalModal.batchName}</p>
+                </div>
+              </div>
+              <button onClick={() => setJadwalModal(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"><X size={17} /></button>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              {jadwalStages.map(s => {
+                const key = buildJadwalKey(jadwalModal.batchId, s.level)
+                const item = jadwalMap[key]
+                const form = jadwalForm[s.level] || { tanggal_mulai: item?.tanggal_mulai || '', tanggal_selesai: item?.tanggal_selesai || '' }
+                const isSaving = !!jadwalSaving[s.level]
+                return (
+                  <div key={s.level} className="rounded-lg border border-slate-200 p-3">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <span className="text-sm font-semibold text-slate-700">{s.label}</span>
+                      {item && (
+                        <span className="inline-flex rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 whitespace-nowrap">
+                          {formatJadwalDate(item.tanggal_mulai)} - {formatJadwalDate(item.tanggal_selesai)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="mb-1 block text-[10px] font-medium text-slate-500">Tanggal Mulai</label>
+                        <input
+                          type="date"
+                          value={form.tanggal_mulai}
+                          onChange={e => setJadwalForm(prev => ({ ...prev, [s.level]: { ...form, tanggal_mulai: e.target.value } }))}
+                          className="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-[10px] font-medium text-slate-500">Tanggal Selesai</label>
+                        <input
+                          type="date"
+                          value={form.tanggal_selesai}
+                          onChange={e => setJadwalForm(prev => ({ ...prev, [s.level]: { ...form, tanggal_selesai: e.target.value } }))}
+                          className="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-2 flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => handleSaveJadwalLevel(s.level, s.label)}
+                        disabled={isSaving || !form.tanggal_mulai || !form.tanggal_selesai}
+                        className="inline-flex items-center gap-1 rounded-md bg-[#0E6187] px-3 py-1.5 text-[10px] font-semibold text-white transition hover:bg-[#0a4d6b] disabled:opacity-50"
+                      >
+                        {isSaving ? <Loader size={11} className="animate-spin" /> : <Save size={11} />}
+                        {item ? 'Update' : 'Simpan'}
+                      </button>
+                      {item && (
+                        <button
+                          onClick={() => handleDeleteJadwalLevel(s.level, s.label)}
+                          className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-[10px] font-medium text-slate-500 transition hover:bg-rose-50 hover:text-rose-600"
+                        >
+                          <XCircle size={11} /> Hapus
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            <div className="flex items-center justify-between border-t border-slate-200 px-5 py-3">
+              <p className="text-[11px] text-slate-400">Jadwal dipakai untuk kelas &amp; absensi per level</p>
+              <button onClick={() => setJadwalModal(null)} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">Tutup</button>
             </div>
           </div>
         </div>

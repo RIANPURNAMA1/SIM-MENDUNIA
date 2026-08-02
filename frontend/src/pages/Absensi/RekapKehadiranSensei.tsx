@@ -38,11 +38,12 @@ export default function RekapKehadiranSenseiPage() {
 
   const [modal, setModal] = useState<{
     show: boolean;
-    absensi_id: number;
+    tanggal: string;
+    kelas_sensei_id: number;
     kelas_nama: string;
     status: string;
     submitting: boolean;
-  }>({ show: false, absensi_id: 0, kelas_nama: "", status: "HADIR", submitting: false });
+  }>({ show: false, tanggal: "", kelas_sensei_id: 0, kelas_nama: "", status: "HADIR", submitting: false });
 
   useEffect(() => {
     rekapKehadiranSenseiApi.listSensei()
@@ -99,23 +100,51 @@ export default function RekapKehadiranSenseiPage() {
   const dateStr = (day: number) =>
     `${tahun}-${String(bulan).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
-  const handleCellClick = (tanggal: string, dayData: RekapKehadiranSenseiDay) => {
-    if (!dayData.entries.length) return;
-    const e = dayData.entries[0];
+  const handleCellClick = (tanggal: string, dayData?: RekapKehadiranSenseiDay) => {
+    const classesInRange = filteredKelasList.filter(
+      (k) => tanggal >= k.tanggal_mulai && tanggal <= k.tanggal_selesai
+    );
+    if (!classesInRange.length) return;
+
+    const entries = dayData?.entries || [];
+    const entryForKelas = (kelasId: number) =>
+      entries.find((e) => e.kelas_id === kelasId);
+
+    const preselectKelas = classesInRange[0];
+    const initialEntry = entryForKelas(preselectKelas.id);
+
     setModal({
       show: true,
-      absensi_id: e.absensi_id,
-      kelas_nama: e.kelas_nama,
-      status: e.status === "BELUM ABSEN" ? "HADIR" : e.status,
+      tanggal,
+      kelas_sensei_id: preselectKelas.id,
+      kelas_nama: preselectKelas.nama_kelas,
+      status: initialEntry && initialEntry.status !== "BELUM ABSEN" ? initialEntry.status : "HADIR",
       submitting: false,
     });
+  };
+
+  const handleKelasChange = (kelasId: number) => {
+    const kelas = filteredKelasList.find((k) => k.id === kelasId);
+    const dayData = rekapData[modal.tanggal];
+    const entry = dayData?.entries.find((e) => e.kelas_id === kelasId);
+    setModal((prev) => ({
+      ...prev,
+      kelas_sensei_id: kelasId,
+      kelas_nama: kelas?.nama_kelas || "",
+      status: entry && entry.status !== "BELUM ABSEN" ? entry.status : "HADIR",
+    }));
   };
 
   const handleUpdateStatus = async () => {
     setModal((prev) => ({ ...prev, submitting: true }));
     try {
-      await rekapKehadiranSenseiApi.updateStatus({ id: modal.absensi_id, status: modal.status });
-      setModal({ show: false, absensi_id: 0, kelas_nama: "", status: "HADIR", submitting: false });
+      await rekapKehadiranSenseiApi.updateStatus({
+        kelas_sensei_id: modal.kelas_sensei_id,
+        user_id: selectedUserId as number,
+        tanggal: modal.tanggal,
+        status: modal.status,
+      });
+      setModal({ show: false, tanggal: "", kelas_sensei_id: 0, kelas_nama: "", status: "HADIR", submitting: false });
       fetchData();
     } catch (err) {
       console.error(err);
@@ -160,6 +189,13 @@ export default function RekapKehadiranSenseiPage() {
   const s = getSummary();
 
   const selectedSensei = senseiList.find((k) => k.id === selectedUserId);
+
+  const modalClassesInRange = modal.tanggal
+    ? filteredKelasList.filter((k) => modal.tanggal >= k.tanggal_mulai && modal.tanggal <= k.tanggal_selesai)
+    : [];
+
+  const closeModal = () =>
+    setModal({ show: false, tanggal: "", kelas_sensei_id: 0, kelas_nama: "", status: "HADIR", submitting: false });
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
@@ -432,12 +468,14 @@ export default function RekapKehadiranSenseiPage() {
                     }) || []
                   : dayData?.entries || [];
 
+                const clickable = !!dayData || inClassRange;
+
                 return (
                   <div
                     key={ds}
-                    className={`relative min-h-[70px] border-b border-r border-slate-100 p-1.5 transition last:border-r-0 ${dayData ? "cursor-pointer hover:bg-slate-50" : ""} ${!inClassRange && !dayData ? "bg-slate-50/30" : ""}`}
-                    onClick={() => dayData && handleCellClick(ds, dayData)}
-                    title={filteredEntries.length ? filteredEntries.map((e) => `${e.kelas_nama}: ${e.status}`).join(", ") : (inClassRange ? "Rentang kelas" : "")}
+                    className={`relative min-h-[70px] border-b border-r border-slate-100 p-1.5 transition last:border-r-0 ${clickable ? "cursor-pointer hover:bg-slate-50" : ""} ${!inClassRange && !dayData ? "bg-slate-50/30" : ""}`}
+                    onClick={() => clickable && handleCellClick(ds, dayData)}
+                    title={filteredEntries.length ? filteredEntries.map((e) => `${e.kelas_nama}: ${e.status}`).join(", ") : (inClassRange ? "Rentang kelas - klik untuk ubah status" : "")}
                     style={inClassRange ? { backgroundColor: "#fff3cd" } : undefined}
                   >
                     <span className={`text-[10px] font-bold ${filteredEntries.length ? "text-slate-600" : inClassRange ? "text-amber-700" : "text-slate-300"}`}>
@@ -471,15 +509,34 @@ export default function RekapKehadiranSenseiPage() {
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
               <h3 className="text-sm font-semibold text-slate-800">Ubah Status</h3>
               <button
-                onClick={() => setModal({ show: false, absensi_id: 0, kelas_nama: "", status: "HADIR", submitting: false })}
+                onClick={closeModal}
                 className="rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
               >
                 <X size={16} />
               </button>
             </div>
             <div className="px-4 py-4">
-              <p className="mb-1 text-xs text-slate-500">Kelas</p>
-              <p className="mb-3 text-sm font-semibold text-slate-800">{modal.kelas_nama}</p>
+              <p className="mb-1 text-xs text-slate-500">Tanggal</p>
+              <p className="mb-3 text-sm font-semibold text-slate-800">{modal.tanggal}</p>
+              {modalClassesInRange.length > 1 ? (
+                <>
+                  <label className="mb-1 block text-xs text-slate-500">Kelas</label>
+                  <select
+                    value={modal.kelas_sensei_id}
+                    onChange={(e) => handleKelasChange(Number(e.target.value))}
+                    className="mb-3 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  >
+                    {modalClassesInRange.map((k) => (
+                      <option key={k.id} value={k.id}>{k.nama_kelas}</option>
+                    ))}
+                  </select>
+                </>
+              ) : (
+                <>
+                  <p className="mb-1 text-xs text-slate-500">Kelas</p>
+                  <p className="mb-3 text-sm font-semibold text-slate-800">{modal.kelas_nama}</p>
+                </>
+              )}
               <label className="mb-1 block text-xs text-slate-500">Status</label>
               <select
                 value={modal.status}
@@ -493,7 +550,7 @@ export default function RekapKehadiranSenseiPage() {
             </div>
             <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3">
               <button
-                onClick={() => setModal({ show: false, absensi_id: 0, kelas_nama: "", status: "HADIR", submitting: false })}
+                onClick={closeModal}
                 className="rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
               >
                 Batal
