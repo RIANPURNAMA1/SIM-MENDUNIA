@@ -409,16 +409,6 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/admin-cabang/kelas-sensei"
-        element={
-          <ProtectedRoute roleAllowed="ADMIN_CABANG">
-            <AdminCabangLayout>
-              <KelasSensei />
-            </AdminCabangLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/admin-cabang/jadwal-level"
         element={
           <ProtectedRoute roleAllowed="ADMIN_CABANG">
