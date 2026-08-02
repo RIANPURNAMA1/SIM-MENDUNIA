@@ -194,7 +194,9 @@ class SiswaDashboardController extends Controller
         $liburEntries = [];
         $start = Carbon::now()->subMonth()->copy()->startOfDay();
         $end = Carbon::now()->copy()->endOfDay();
-        $existingDates = $riwayat->pluck('tanggal')->map(fn($d) => is_string($d) ? $d : $d)->values();
+        $existingDates = $riwayat->pluck('tanggal')
+            ->map(fn($d) => $d instanceof \DateTimeInterface ? $d->format('Y-m-d') : (string) $d)
+            ->values();
 
         $cursor = $start->copy();
         while ($cursor->lte($end)) {

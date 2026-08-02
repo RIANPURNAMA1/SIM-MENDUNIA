@@ -18,6 +18,9 @@ Schedule::command('absensi:generate-alpha-sensei')->dailyAt('23:55');
 // Cek absen pulang bisa tetap setiap 10 menit atau di akhir shift
 Schedule::command('app:cek-absen-pulang')->everyTenMinutes();
 
+// Cek absen pulang siswa (lewat 7 jam dari jam pulang shift)
+Schedule::command('app:cek-absen-pulang-siswa')->everyTenMinutes();
+
 // Kirim reminder absen 30 menit sebelum jam masuk shift
 Schedule::command('app:reminder-absen')->everyMinute();
 

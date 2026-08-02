@@ -83,6 +83,7 @@ const STATUS_ABBR: Record<string, string> = {
   SAKIT: 'S',
   ALPA: 'A',
   LIBUR: 'L',
+  'TIDAK ABSEN PULANG': 'TP',
 }
 
 const STATUS_BG: Record<string, string> = {
@@ -92,6 +93,7 @@ const STATUS_BG: Record<string, string> = {
   SAKIT: 'bg-sky-100 text-sky-700',
   ALPA: 'bg-rose-100 text-rose-700',
   LIBUR: 'bg-slate-100 text-slate-700',
+  'TIDAK ABSEN PULANG': 'bg-red-100 text-red-700',
 }
 
 const QUICK_STATUS = [
@@ -116,6 +118,12 @@ function toDate(dateStr: string) {
 function formatDayDate(dateStr: string) {
   const d = toDate(dateStr)
   return `${dayAbbr[d.getDay()]} ${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`
+}
+
+function isWeekend(dateStr: string) {
+  const d = toDate(dateStr)
+  const day = d.getDay()
+  return day === 0 || day === 6
 }
 
 function formatDateShort(dateStr: string) {
@@ -578,7 +586,7 @@ export default function GuruDataSiswa() {
                         <th className="text-left px-4 py-2.5 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wider sticky left-0 bg-white">Nama</th>
                         <th className="text-center px-2 py-2.5 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wider w-10">Lv</th>
                         {selectedKelas.dates.map(date => (
-                          <th key={date} className="text-center px-1.5 py-2.5 text-[9px] font-bold text-[#8B90A0] uppercase tracking-wider min-w-[48px]">
+                          <th key={date} className={`text-center px-1.5 py-2.5 text-[9px] font-bold uppercase tracking-wider min-w-[48px] ${isWeekend(date) ? 'bg-[#F1F2F6] text-[#B0B5C4]' : 'text-[#8B90A0]'}`}>
                             {formatDayDate(date)}
                           </th>
                         ))}
@@ -593,20 +601,30 @@ export default function GuruDataSiswa() {
                           <td className="text-center px-2 py-2 text-[11px] font-semibold text-[#8B90A0]">{s.level || '-'}</td>
                           {selectedKelas.dates.map(date => {
                             const status = s.absensi[date]
+                            const weekend = isWeekend(date)
                             return (
-                              <td key={date} className="text-center px-1.5 py-2">
-                                <button
-                                  onClick={() => openStatusModal(s, date)}
-                                  className="mx-auto cursor-pointer hover:scale-110 transition-transform"
-                                >
-                                  {status ? (
-                                    <span className={`inline-flex items-center justify-center w-6 h-6 rounded text-[10px] font-bold ${STATUS_BG[status] || 'bg-gray-100 text-gray-500'}`}>
-                                      {STATUS_ABBR[status] || status[0]}
-                                    </span>
-                                  ) : (
-                                    <span className="inline-flex items-center justify-center w-6 h-6 rounded text-[10px] text-gray-300 hover:text-[#0069b0] hover:bg-[#0069b0]/[0.06] transition-colors">-</span>
-                                  )}
-                                </button>
+                              <td key={date} className={`text-center px-1.5 py-2 ${weekend && !status ? 'bg-[#FAFBFC]' : ''}`}>
+                                {weekend && !status ? (
+                                  <span
+                                    className="inline-flex items-center justify-center w-6 h-6 rounded text-[10px] font-bold bg-slate-100 text-slate-700"
+                                    title="Libur (Sabtu/Minggu)"
+                                  >
+                                    L
+                                  </span>
+                                ) : (
+                                  <button
+                                    onClick={() => openStatusModal(s, date)}
+                                    className="mx-auto cursor-pointer hover:scale-110 transition-transform"
+                                  >
+                                    {status ? (
+                                      <span className={`inline-flex items-center justify-center w-6 h-6 rounded text-[10px] font-bold ${STATUS_BG[status] || 'bg-gray-100 text-gray-500'}`}>
+                                        {STATUS_ABBR[status] || status[0]}
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center justify-center w-6 h-6 rounded text-[10px] text-gray-300 hover:text-[#0069b0] hover:bg-[#0069b0]/[0.06] transition-colors">-</span>
+                                    )}
+                                  </button>
+                                )}
                               </td>
                             )
                           })}
@@ -1208,6 +1226,7 @@ export default function GuruDataSiswa() {
                                 absen.status === 'IZIN' ? 'bg-blue-100 text-blue-700' :
                                 absen.status === 'SAKIT' ? 'bg-sky-100 text-sky-700' :
                                 absen.status === 'ALPA' ? 'bg-rose-100 text-rose-700' :
+                                absen.status === 'TIDAK ABSEN PULANG' ? 'bg-red-100 text-red-700' :
                                 'bg-gray-100 text-gray-500'
                               }`}>
                                 {STATUS_ABBR[absen.status] || absen.status[0]}
@@ -1408,9 +1427,10 @@ export default function GuruDataSiswa() {
                               absen.status === 'HADIR' ? 'bg-emerald-100 text-emerald-700' :
                               absen.status === 'TERLAMBAT' ? 'bg-amber-100 text-amber-700' :
                               absen.status === 'IZIN' ? 'bg-blue-100 text-blue-700' :
-                              absen.status === 'SAKIT' ? 'bg-sky-100 text-sky-700' :
-                              absen.status === 'ALPA' ? 'bg-rose-100 text-rose-700' :
-                              'bg-gray-100 text-gray-500'
+                                absen.status === 'SAKIT' ? 'bg-sky-100 text-sky-700' :
+                                absen.status === 'ALPA' ? 'bg-rose-100 text-rose-700' :
+                                absen.status === 'TIDAK ABSEN PULANG' ? 'bg-red-100 text-red-700' :
+                                'bg-gray-100 text-gray-500'
                             }`}>
                               {STATUS_ABBR[absen.status] || absen.status[0]}
                             </span>

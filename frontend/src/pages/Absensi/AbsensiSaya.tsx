@@ -110,14 +110,16 @@ export default function AbsensiSaya() {
   }
 
   const getDisplayStatus = (a: any) => {
-    if (!a.jam_masuk) return 'belum_hadir'
     const s = (a.status || '').toLowerCase()
+    if (s === 'libur') return 'libur'
     if (s === 'terlambat') return 'terlambat'
     if (s === 'pulang lebih awal') return 'pulang_awal'
     if (s === 'tidak absen pulang') return 'tidak_absen_pulang'
     if (s === 'izin') return 'izin'
     if (s === 'sakit') return 'sakit'
     if (s === 'alpa') return 'alpa'
+    if (s === 'hadir') return 'hadir'
+    if (!a.jam_masuk) return 'belum_hadir'
     return 'hadir'
   }
 
@@ -127,6 +129,7 @@ export default function AbsensiSaya() {
       izin: 'bg-amber-100 text-amber-600',
       sakit: 'bg-red-100 text-red-600',
       alpa: 'bg-gray-100 text-gray-400',
+      libur: 'bg-slate-100 text-slate-500',
       terlambat: 'bg-orange-100 text-orange-600',
       pulang_awal: 'bg-sky-100 text-sky-600',
       tidak_absen_pulang: 'bg-red-100 text-red-500',
@@ -141,6 +144,7 @@ export default function AbsensiSaya() {
       izin: 'bg-amber-100 text-amber-700',
       sakit: 'bg-red-100 text-red-700',
       alpa: 'bg-slate-100 text-slate-500',
+      libur: 'bg-slate-100 text-slate-500',
       terlambat: 'bg-orange-100 text-orange-700',
       pulang_awal: 'bg-sky-100 text-sky-700',
       tidak_absen_pulang: 'bg-red-100 text-red-600',
@@ -155,6 +159,7 @@ export default function AbsensiSaya() {
       izin: 'Izin',
       sakit: 'Sakit',
       alpa: 'Alpha',
+      libur: 'Libur',
       terlambat: 'Terlambat',
       pulang_awal: 'Pulang Awal',
       tidak_absen_pulang: 'Tidak Absen Pulang',
@@ -169,6 +174,7 @@ export default function AbsensiSaya() {
       izin: AlertCircle,
       sakit: AlertCircle,
       alpa: X,
+      libur: CalendarDays,
       terlambat: Clock,
       pulang_awal: Clock,
       tidak_absen_pulang: AlertCircle,
@@ -222,7 +228,8 @@ export default function AbsensiSaya() {
               const ds = today ? getDisplayStatus(today) : null
               const isGood = ds === 'hadir'
               const isBad = ds === 'tidak_absen_pulang' || ds === 'alpa'
-              const cardBg = !today ? 'bg-white border-gray-200' : isGood ? 'bg-emerald-50 border-emerald-200' : isBad ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'
+              const isLibur = ds === 'libur'
+              const cardBg = !today ? 'bg-white border-gray-200' : isGood ? 'bg-emerald-50 border-emerald-200' : isBad ? 'bg-red-50 border-red-200' : isLibur ? 'bg-slate-50 border-gray-200' : 'bg-amber-50 border-amber-200'
               return (
                 <div className={`rounded-xl border px-4 py-3.5 flex items-center gap-3 ${cardBg}`}>
                   <div className={`w-9 h-9 rounded-full flex items-center justify-center ${ds ? statusIconBg(ds).split(' ')[0] : 'bg-gray-100'}`}>

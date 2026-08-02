@@ -729,7 +729,7 @@ class AbsensiController extends Controller
             }
         }
 
-        // AUTO-MARK: Jika ada absensi kemarin tanpa jam_keluar (>7 jam), tandai TIDAK ABSEN PULANG
+        // AUTO-MARK: Jika ada absensi kemarin tanpa jam_keluar (lewat 7 jam dari jam pulang shift), tandai TIDAK ABSEN PULANG
         $now = now();
         $yesterday = now()->subDay()->toDateString();
         $absenKemarin = \App\Models\AbsensiSiswa::where('siswa_id', $siswa->id)
@@ -738,9 +738,21 @@ class AbsensiController extends Controller
             ->whereNull('jam_keluar')
             ->first();
         if ($absenKemarin) {
-            $jamMasukKemarin = Carbon::parse($absenKemarin->jam_masuk);
-            $jamMasukKemarin->setDate($absenKemarin->tanggal);
-            if ($now->diffInHours($jamMasukKemarin) >= 7) {
+            $shiftKemarin = $siswa->shift;
+            $batasKemarin = null;
+            if ($shiftKemarin && $shiftKemarin->jam_pulang) {
+                $jamPulangKemarin = Carbon::parse($shiftKemarin->jam_pulang);
+                $jamMasukKemarin = Carbon::parse($absenKemarin->jam_masuk);
+                if ($jamPulangKemarin->lt($jamMasukKemarin)) {
+                    $jamPulangKemarin->addDay();
+                }
+                $batasKemarin = $jamPulangKemarin->copy()->addHours(7);
+            } else {
+                $jamMasukKemarin = Carbon::parse($absenKemarin->jam_masuk);
+                $jamMasukKemarin->setDate($absenKemarin->tanggal);
+                $batasKemarin = $jamMasukKemarin->copy()->addHours(7);
+            }
+            if ($now->gt($batasKemarin)) {
                 $absenKemarin->update(['status' => 'TIDAK ABSEN PULANG']);
             }
         }
@@ -2315,6 +2327,9 @@ class AbsensiController extends Controller
         if (!$filter || $filter === 'Semua') {
             $start = Carbon::create($tahun, $bulan, 1);
             $end = $start->copy()->endOfMonth();
+            if ($end->gt(Carbon::today())) {
+                $end = Carbon::today();
+            }
             $liburEntries = [];
             $date = $start->copy();
             while ($date->lte($end)) {
