@@ -149,16 +149,26 @@ class RekapKehadiranSenseiController extends Controller
     public function updateStatus(Request $request)
     {
         $request->validate([
-            'id' => 'required|exists:absensi_sensei,id',
+            'kelas_sensei_id' => 'required|exists:kelas_sensei,id',
+            'user_id' => 'required|exists:users,id',
+            'tanggal' => 'required|date',
             'status' => 'required|in:HADIR,TERLAMBAT,PULANG LEBIH AWAL,TIDAK ABSEN PULANG,ALPA,LIBUR',
         ]);
 
-        $absen = AbsensiSensei::findOrFail($request->id);
-        $absen->update(['status' => $request->status]);
+        $absen = AbsensiSensei::updateOrCreate(
+            [
+                'kelas_sensei_id' => $request->kelas_sensei_id,
+                'user_id' => $request->user_id,
+                'tanggal' => $request->tanggal,
+            ],
+            ['status' => $request->status]
+        );
 
         return response()->json([
             'success' => true,
-            'message' => 'Status kehadiran sensei berhasil diperbarui',
+            'message' => $absen->wasRecentlyCreated
+                ? 'Status kehadiran sensei berhasil ditambahkan'
+                : 'Status kehadiran sensei berhasil diperbarui',
         ]);
     }
 

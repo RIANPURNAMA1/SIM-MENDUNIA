@@ -959,6 +959,7 @@ class AdminCabangController extends Controller
 
     public function jadwalLevel()
     {
+        $branchIds = $this->getBranchIds();
         $batchIds = $this->getBranchBatchIds();
 
         $batches = Batch::whereIn('id', $batchIds)
@@ -983,9 +984,14 @@ class AdminCabangController extends Controller
             ];
         });
 
+        $cabangs = \App\Models\Cabang::whereIn('id', $branchIds)
+            ->orderBy('nama_cabang')
+            ->get(['id', 'nama_cabang']);
+
         return response()->json([
             'success' => true,
             'batches' => $batches,
+            'cabangs' => $cabangs,
             'levels' => $levels,
             'jadwal' => $jadwalMap,
         ]);
