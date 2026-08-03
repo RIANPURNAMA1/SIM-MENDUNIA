@@ -23,7 +23,7 @@ export default function KelasSenseiPage() {
   const isAdminCabang = location.pathname.startsWith('/admin-cabang');
   const [data, setData] = useState<KelasSenseiData[]>([]);
   const [listSensei, setListSensei] = useState<{ id: number; name: string }[]>([]);
-  const [listBatch, setListBatch] = useState<{ id: number; nama_batch: string }[]>([]);
+  const [listBatch, setListBatch] = useState<{ id: number; nama_batch: string; warna?: string | null }[]>([]);
   const [gurus, setGurus] = useState<Guru[]>([]);
   const [jadwalLevels, setJadwalLevels] = useState<Record<string, { tanggal_mulai: string; tanggal_selesai: string }>>({});
   const [loading, setLoading] = useState(true);
@@ -35,6 +35,7 @@ export default function KelasSenseiPage() {
   const [filterStatus, setFilterStatus] = useState("");
 
   const [showModal, setShowModal] = useState(false);
+  const [showBatchDropdown, setShowBatchDropdown] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -98,10 +99,12 @@ export default function KelasSenseiPage() {
 
   const closeModal = () => {
     setShowModal(false);
+    setShowBatchDropdown(false);
     setEditingId(null);
   };
 
   const selectedJadwal = form.batch_id && form.level ? jadwalLevels[`${form.batch_id}-${form.level}`] : null;
+  const selectedBatch = form.batch_id ? listBatch.find((b) => String(b.id) === form.batch_id) : null;
 
   const handleAdd = async () => {
     if (!form.nama_kelas || !form.user_id) return;
@@ -314,12 +317,37 @@ export default function KelasSenseiPage() {
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold text-slate-500">Batch</label>
-                <select value={form.batch_id} onChange={(e) => setForm({ ...form, batch_id: e.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-                  <option value="">Pilih Batch</option>
-                  {listBatch.map((b) => (
-                    <option key={b.id} value={b.id}>{b.nama_batch}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <button type="button" onClick={() => setShowBatchDropdown(!showBatchDropdown)}
+                    className="flex w-full items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    {selectedBatch ? (
+                      <>
+                        <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: selectedBatch.warna || '#3b82f6' }} />
+                        <span className="truncate">{selectedBatch.nama_batch}</span>
+                      </>
+                    ) : (
+                      <span className="text-slate-400">Pilih Batch</span>
+                    )}
+                  </button>
+                  {showBatchDropdown && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setShowBatchDropdown(false)} />
+                      <div className="absolute top-full left-0 z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg">
+                        <button type="button" onClick={() => { setForm({ ...form, batch_id: "" }); setShowBatchDropdown(false); }}
+                          className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-slate-50 ${!form.batch_id ? 'bg-blue-50 font-semibold' : ''}`}>
+                          Pilih Batch
+                        </button>
+                        {listBatch.map((b) => (
+                          <button type="button" key={b.id} onClick={() => { setForm({ ...form, batch_id: String(b.id) }); setShowBatchDropdown(false); }}
+                            className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-slate-50 ${String(b.id) === form.batch_id ? 'bg-blue-50 font-semibold' : ''}`}>
+                            <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: b.warna || '#3b82f6' }} />
+                            {b.nama_batch}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
