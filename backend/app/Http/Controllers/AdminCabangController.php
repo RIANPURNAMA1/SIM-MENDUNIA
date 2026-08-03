@@ -1021,7 +1021,12 @@ class AdminCabangController extends Controller
             ->orderBy('nama_kelas')
             ->get(['id', 'nama_kelas', 'batch_id', 'level']);
 
+        $cabangList = \App\Models\Cabang::whereIn('id', $this->getBranchIds())
+            ->orderBy('nama_cabang')
+            ->get(['id', 'nama_cabang']);
+
         $batchList = Batch::whereIn('id', $batchIds)
+            ->when($request->filled('cabang_id'), fn ($q) => $q->where('cabang_id', $request->cabang_id))
             ->orderBy('nama_batch')
             ->get(['id', 'nama_batch']);
 
@@ -1045,6 +1050,12 @@ class AdminCabangController extends Controller
 
         $query = Siswa::where('status', 'AKTIF')
             ->whereIn('batch_id', $batchIds);
+
+        if ($request->filled('cabang_id') && in_array($request->cabang_id, $this->getBranchIds())) {
+            $query->whereHas('batchRelasi', function ($q) use ($request) {
+                $q->where('cabang_id', $request->cabang_id);
+            });
+        }
 
         $selectedNamaKelas = null;
         if ($request->filled('kelas_sensei_id')) {
@@ -1093,6 +1104,7 @@ class AdminCabangController extends Controller
             'rekap' => $rekap,
             'kelas_list' => $kelasList,
             'batch_list' => $batchList,
+            'cabang_list' => $cabangList,
             'levels' => $levels,
             'start_date' => $start_date,
             'end_date' => $end_date,

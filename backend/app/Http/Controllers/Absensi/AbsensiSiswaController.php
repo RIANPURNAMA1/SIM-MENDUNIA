@@ -145,7 +145,9 @@ class AbsensiSiswaController extends Controller
             ->orderBy('nama_kelas')
             ->get(['id', 'nama_kelas', 'batch_id', 'level']);
 
-        $batchList = Batch::orderBy('nama_batch')->get(['id', 'nama_batch']);
+        $batchList = Batch::orderBy('nama_batch')
+            ->when($request->filled('cabang_id'), fn ($q) => $q->where('cabang_id', $request->cabang_id))
+            ->get(['id', 'nama_batch']);
         $levels = [1, 2, 3, 4];
 
         $selectedKelasSensei = null;
@@ -165,6 +167,7 @@ class AbsensiSiswaController extends Controller
             'rekap' => $data['rekap'],
             'kelas_list' => $kelasList,
             'batch_list' => $batchList,
+            'cabang_list' => \App\Models\Cabang::orderBy('nama_cabang')->get(['id', 'nama_cabang']),
             'levels' => $levels,
             'start_date' => $data['start_date'],
             'end_date' => $data['end_date'],
@@ -178,6 +181,12 @@ class AbsensiSiswaController extends Controller
         $end_date = $request->end_date ?? now()->endOfMonth()->toDateString();
 
         $query = Siswa::where('status', 'AKTIF');
+
+        if ($request->filled('cabang_id')) {
+            $query->whereHas('batchRelasi', function ($q) use ($request) {
+                $q->where('cabang_id', $request->cabang_id);
+            });
+        }
 
         $selectedNamaKelas = null;
         if ($request->filled('kelas_sensei_id')) {

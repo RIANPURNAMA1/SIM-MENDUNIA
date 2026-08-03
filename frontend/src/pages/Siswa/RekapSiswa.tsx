@@ -9,6 +9,7 @@ export default function RekapSiswaPage() {
   const isAdminCabang = location.pathname.startsWith('/admin-cabang');
   const [rekap, setRekap] = useState<RekapSiswaItem[]>([]);
   const [batchList, setBatchList] = useState<{ id: number; nama_batch: string }[]>([]);
+  const [cabangList, setCabangList] = useState<{ id: number; nama_cabang: string }[]>([]);
   const [levels] = useState([1, 2, 3, 4]);
   const [loading, setLoading] = useState(false);
 
@@ -20,6 +21,7 @@ export default function RekapSiswaPage() {
   const [endDate, setEndDate] = useState(lastDay);
   const [filterBatch, setFilterBatch] = useState("");
   const [filterLevel, setFilterLevel] = useState("");
+  const [filterCabang, setFilterCabang] = useState("");
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
 
@@ -32,9 +34,11 @@ export default function RekapSiswaPage() {
       };
       if (filterBatch) params.batch_id = filterBatch;
       if (filterLevel) params.level = filterLevel;
+      if (filterCabang) params.cabang_id = filterCabang;
       const res = isAdminCabang ? await adminCabangApi.rekapSiswa(params) : await absensiSiswaApi.rekap(params);
       setRekap(res.data.rekap || []);
       setBatchList(res.data.batch_list || []);
+      setCabangList(res.data.cabang_list || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -46,6 +50,13 @@ export default function RekapSiswaPage() {
     fetchData();
   }, []);
 
+  const handleCabangChange = (val: string) => {
+    setFilterCabang(val);
+    setFilterBatch("");
+    setPage(1);
+    fetchData();
+  };
+
   const handleFilter = () => {
     setPage(1);
     fetchData();
@@ -56,6 +67,7 @@ export default function RekapSiswaPage() {
     setEndDate(lastDay);
     setFilterBatch("");
     setFilterLevel("");
+    setFilterCabang("");
     setPage(1);
   };
 
@@ -82,7 +94,8 @@ export default function RekapSiswaPage() {
     params.set("end_date", endDate);
     if (filterBatch) params.set("batch_id", filterBatch);
     if (filterLevel) params.set("level", filterLevel);
-    window.open(`${APP_URL}/absensi-siswa/rekap/export-excel?${params.toString()}`, "_blank");
+    if (filterCabang) params.set("cabang_id", filterCabang);
+    window.open(`${APP_URL}/api/absensi-siswa/rekap/export-excel?${params.toString()}`, "_blank");
   };
 
   const handleExportPdf = () => {
@@ -91,7 +104,8 @@ export default function RekapSiswaPage() {
     params.set("end_date", endDate);
     if (filterBatch) params.set("batch_id", filterBatch);
     if (filterLevel) params.set("level", filterLevel);
-    window.open(`${APP_URL}/absensi-siswa/rekap/export-pdf?${params.toString()}`, "_blank");
+    if (filterCabang) params.set("cabang_id", filterCabang);
+    window.open(`${APP_URL}/api/absensi-siswa/rekap/export-pdf?${params.toString()}`, "_blank");
   };
 
   return (
@@ -113,6 +127,15 @@ export default function RekapSiswaPage() {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4">
           <div className="flex flex-wrap items-end gap-3">
+            <div className="w-44">
+              <label className="block text-xs font-medium text-gray-500 mb-1">Cabang</label>
+              <select value={filterCabang} onChange={(e) => handleCabangChange(e.target.value)} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]">
+                <option value="">Semua Cabang</option>
+                {cabangList.map((c) => (
+                  <option key={c.id} value={c.id}>{c.nama_cabang}</option>
+                ))}
+              </select>
+            </div>
             <div className="w-44">
               <label className="block text-xs font-medium text-gray-500 mb-1">Batch</label>
               <select value={filterBatch} onChange={(e) => setFilterBatch(e.target.value)} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]">
