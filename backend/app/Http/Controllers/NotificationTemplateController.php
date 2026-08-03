@@ -232,6 +232,14 @@ class NotificationTemplateController extends Controller
                 'variables' => ['nama', 'program', 'no_registrasi', 'status', 'waktu', 'company_name'],
                 'body' => "Halo *{nama}*,\n\nPembayaran kamu untuk *{program}* (No. Registrasi: {no_registrasi}) telah di-*refund*.\n\nStatus saat ini: *{status}*\nSilakan cek rekening kamu untuk detail refund. Hubungi admin jika ada pertanyaan.\n\n*{company_name}*",
             ],
+            'payment_new_wa' => [
+                'name' => 'WA Pembayaran Baru (ke Admin)',
+                'description' => 'Dikirim via WhatsApp ke admin saat kandidat mengirim konfirmasi pembayaran',
+                'channel' => 'whatsapp',
+                'subject' => null,
+                'variables' => ['tanggal', 'nama', 'no_registrasi', 'batch', 'kategori', 'jumlah', 'bukti_link', 'bukti_section', 'company_name'],
+                'body' => "💰 *NOTIFIKASI PEMBAYARAN BARU*\n\nTanggal: {tanggal}\nNama: {nama}\nNo. Registrasi: {no_registrasi}\nBatch: {batch}\nKategori: {kategori}\nJumlah: {jumlah}\nStatus: Menunggu Verifikasi\n\n{bukti_section}Silakan verifikasi pembayaran ini di panel admin.\n\n- {company_name}",
+            ],
         ];
     }
 }
