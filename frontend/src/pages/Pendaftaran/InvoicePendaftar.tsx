@@ -91,7 +91,7 @@ export default function InvoicePendaftar() {
 
   useEffect(() => {
     if (!data?.no_invoice) return
-    const verifikasiUrl = `${window.location.origin}/verifikasi/${data.no_invoice}`
+    const verifikasiUrl = `${window.location.origin}/verifikasi?inv=${encodeURIComponent(data.no_invoice)}`
     toDataURL(verifikasiUrl, {
       width: 120,
       margin: 1,
