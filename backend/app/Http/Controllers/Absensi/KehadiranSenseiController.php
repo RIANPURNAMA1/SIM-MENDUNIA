@@ -719,6 +719,39 @@ class KehadiranSenseiController extends Controller
         ]);
     }
 
+    public function apiKelasUpdate(Request $request, $id)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'batch_id' => 'nullable|exists:batches,id',
+            'nama_kelas' => 'required|string|max:255',
+            'level' => 'nullable|string|max:255',
+            'tanggal_mulai' => 'required|date',
+            'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
+            'catatan' => 'nullable|string',
+            'status' => 'nullable|in:aktif,selesai,dibatalkan',
+        ]);
+
+        $kelas = KelasSensei::findOrFail($id);
+
+        $kelas->update([
+            'user_id' => $request->user_id,
+            'batch_id' => $request->batch_id,
+            'nama_kelas' => $request->nama_kelas,
+            'level' => $request->level,
+            'tanggal_mulai' => $request->tanggal_mulai,
+            'tanggal_selesai' => $request->tanggal_selesai,
+            'catatan' => $request->catatan,
+            'status' => $request->status ?? $kelas->status,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Kelas berhasil diperbarui',
+            'data' => $kelas,
+        ]);
+    }
+
     public function destroy($id)
     {
         $kelas = KelasSensei::findOrFail($id);

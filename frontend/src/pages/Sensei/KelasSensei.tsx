@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { BookOpen, Search, RotateCcw, Plus, Trash2, X } from "lucide-react";
+import { BookOpen, Search, RotateCcw, Plus, Trash2, X, Pencil } from "lucide-react";
 import { kelasSenseiApi, guruApi, jadwalLevelApi, adminCabangApi } from "../../services/api";
 import type { KelasSenseiData, Guru } from "../../types";
 
@@ -35,6 +35,7 @@ export default function KelasSenseiPage() {
   const [filterStatus, setFilterStatus] = useState("");
 
   const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     nama_kelas: "", level: "", user_id: "", batch_id: "",
@@ -68,12 +69,36 @@ export default function KelasSenseiPage() {
   }, []);
 
   const openAddModal = async () => {
+    setEditingId(null);
     setForm({ nama_kelas: "", level: "", user_id: "", batch_id: "", tanggal_mulai: "", tanggal_selesai: "", catatan: "" });
     try {
       const res = isAdminCabang ? await adminCabangApi.guru() : await guruApi.list();
       setGurus(res.data.data || []);
     } catch (_) {}
     setShowModal(true);
+  };
+
+  const openEditModal = async (item: KelasSenseiData) => {
+    setEditingId(item.id);
+    setForm({
+      nama_kelas: item.nama_kelas || "",
+      level: item.level || "",
+      user_id: item.user_id ? String(item.user_id) : "",
+      batch_id: item.batch_id ? String(item.batch_id) : "",
+      tanggal_mulai: item.tanggal_mulai ? String(item.tanggal_mulai).slice(0, 10) : "",
+      tanggal_selesai: item.tanggal_selesai ? String(item.tanggal_selesai).slice(0, 10) : "",
+      catatan: item.catatan || "",
+    });
+    try {
+      const res = isAdminCabang ? await adminCabangApi.guru() : await guruApi.list();
+      setGurus(res.data.data || []);
+    } catch (_) {}
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setEditingId(null);
   };
 
   const selectedJadwal = form.batch_id && form.level ? jadwalLevels[`${form.batch_id}-${form.level}`] : null;
@@ -87,7 +112,7 @@ export default function KelasSenseiPage() {
     if (!tanggalMulai || !tanggalSelesai) return;
     setSubmitting(true);
     try {
-      await kelasSenseiApi.store({
+      const payload = {
         nama_kelas: form.nama_kelas,
         level: form.level,
         user_id: Number(form.user_id),
@@ -95,8 +120,13 @@ export default function KelasSenseiPage() {
         tanggal_mulai: tanggalMulai,
         tanggal_selesai: tanggalSelesai,
         catatan: form.catatan || null,
-      });
-      setShowModal(false);
+      };
+      if (editingId) {
+        await kelasSenseiApi.update(editingId, payload);
+      } else {
+        await kelasSenseiApi.store(payload);
+      }
+      closeModal();
       fetchData();
     } catch (err) {
       console.error(err);
@@ -238,9 +268,14 @@ export default function KelasSenseiPage() {
                   <td className="border border-slate-200 px-3 py-2.5 text-center font-medium">{item.jumlah_izin}</td>
                   <td className="border border-slate-200 px-3 py-2.5">{statusBadge(item.status)}</td>
                   <td className="border border-slate-200 px-3 py-2.5 text-center">
-                    <button onClick={() => handleDelete(item.id, item.nama_kelas)} className="rounded-md p-1.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-500" title="Hapus">
-                      <Trash2 size={14} />
-                    </button>
+                    <div className="flex items-center justify-center gap-1">
+                      <button onClick={() => openEditModal(item)} className="rounded-md p-1.5 text-slate-400 transition hover:bg-blue-50 hover:text-blue-600" title="Edit">
+                        <Pencil size={14} />
+                      </button>
+                      <button onClick={() => handleDelete(item.id, item.nama_kelas)} className="rounded-md p-1.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-500" title="Hapus">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -254,8 +289,8 @@ export default function KelasSenseiPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3">
           <div className="w-full max-w-lg rounded-lg bg-white shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-              <h3 className="text-sm font-semibold text-slate-800">Tambah Kelas</h3>
-              <button onClick={() => setShowModal(false)} className="rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
+              <h3 className="text-sm font-semibold text-slate-800">{editingId ? "Edit Kelas" : "Tambah Kelas"}</h3>
+              <button onClick={closeModal} className="rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
                 <X size={16} />
               </button>
             </div>
@@ -314,9 +349,9 @@ export default function KelasSenseiPage() {
               </div>
             </div>
             <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3">
-              <button onClick={() => setShowModal(false)} className="rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">Batal</button>
+              <button onClick={closeModal} className="rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">Batal</button>
               <button onClick={handleAdd} disabled={submitting || !form.nama_kelas || !form.user_id} className="rounded-md bg-slate-800 px-4 py-2 text-xs font-medium text-white transition hover:bg-slate-700 disabled:opacity-50">
-                {submitting ? "Menyimpan..." : "Simpan"}
+                {submitting ? "Menyimpan..." : editingId ? "Perbarui" : "Simpan"}
               </button>
             </div>
           </div>

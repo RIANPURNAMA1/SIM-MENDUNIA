@@ -217,6 +217,7 @@ Route::prefix('guru')->group(function () {
 Route::prefix('kelas-sensei')->group(function () {
     Route::get('/', [KehadiranSenseiController::class, 'apiKelasIndex']);
     Route::post('/', [KehadiranSenseiController::class, 'apiKelasStore']);
+    Route::put('/{id}', [KehadiranSenseiController::class, 'apiKelasUpdate']);
     Route::delete('/{id}', [KehadiranSenseiController::class, 'apiKelasDestroy']);
 });
 
