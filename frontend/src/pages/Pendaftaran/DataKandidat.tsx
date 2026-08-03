@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { DollarSign, Users, Search, RotateCcw, Eye, Edit3, Power, PowerOff, CalendarOff, Calendar, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, FileText, Download, Upload, Trash2, ArrowRight, RefreshCw, KeyRound } from 'lucide-react'
+import { DollarSign, Users, Search, RotateCcw, Eye, Edit3, Power, PowerOff, CalendarOff, Calendar, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, FileText, Download, Upload, Trash2, ArrowRight, RefreshCw, KeyRound, ClipboardPaste } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import api, { pendaftarApi, batchApi, productApi } from '../../services/api'
 import * as XLSX from 'xlsx'
@@ -149,6 +149,8 @@ export default function DataKandidat() {
   const [bulkBatchId, setBulkBatchId] = useState('')
   const [bulkMoving, setBulkMoving] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  const [importTab, setImportTab] = useState<'file' | 'paste'>('file')
+  const [importPasteText, setImportPasteText] = useState('')
   const [importFile, setImportFile] = useState<File | null>(null)
   const [importData, setImportData] = useState<Record<string, unknown>[]>([])
   const [paymentModal, setPaymentModal] = useState<{ kandidat: Kandidat; items: PembayaranItemData[]; kategoris: KategoriBayar[] } | null>(null)
@@ -1005,6 +1007,81 @@ export default function DataKandidat() {
     reader.readAsArrayBuffer(file)
   }
 
+  function handlePasteParse() {
+    const text = importPasteText.replace(/\r\n?/g, '\n')
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
+    if (lines.length === 0) return
+    const cells = lines.map(l => l.split('\t'))
+    const maxCols = Math.max(...cells.map(c => c.length))
+
+    const normKnown: Record<string, string> = {
+      'nik': 'nik', 'no ktp': 'nik',
+      'no. registrasi': 'no_registrasi', 'no registrasi': 'no_registrasi',
+      'nama': 'nama', 'nama kandidat': 'nama', 'nama lengkap': 'nama',
+      'batch': 'batch', 'nama batch': 'batch',
+      'jk': 'jenis_kelamin', 'jenis kelamin': 'jenis_kelamin',
+      'tempat, tanggal lahir': 'tempat_lahir', 'tempat tanggal lahir': 'tempat_lahir',
+      'tempat lahir': 'tempat_lahir', 'tempat': 'tempat_lahir', 'ttl': 'tempat_lahir',
+      'tanggal lahir': 'tanggal_lahir',
+      'alamat': 'alamat', 'desa': 'desa', 'kecamatan': 'kecamatan',
+      'kab./kota': 'kabupaten', 'kabupaten': 'kabupaten', 'kota': 'kabupaten',
+      'provinsi': 'provinsi',
+      'no. tlp': 'no_hp', 'no tlp': 'no_hp', 'no. handphone': 'no_hp', 'no hp': 'no_hp', 'telepon': 'telepon',
+      'pend. terakhir': 'pendidikan_terakhir', 'pendidikan terakhir': 'pendidikan_terakhir',
+      'tahun lulus': 'tahun_lulus', 'tb': 'tinggi_badan', 'bb': 'berat_badan',
+      'goldar': 'goldar', 'golongan darah': 'goldar',
+      'uk. baju': 'ukuran_baju', 'ukuran baju': 'ukuran_baju',
+      'status nikah': 'status_pernikahan', 'status pernikahan': 'status_pernikahan',
+      'e-mail': 'email', 'email': 'email',
+      'nama orang tua/wali': 'nama_ortu', 'nama orang tua': 'nama_ortu', 'nama ortu': 'nama_ortu',
+      'no. tlp orang tua': 'no_hp_ortu', 'no. tlp ortu': 'no_hp_ortu', 'no tlp ortu': 'no_hp_ortu',
+      'ket.': 'keterangan', 'keterangan': 'keterangan',
+    }
+    const defaultTemplate = ['nik', 'no_registrasi', 'nama', 'batch', 'jenis_kelamin', 'tempat_lahir', 'alamat', 'desa', 'kecamatan', 'kabupaten', 'provinsi', 'no_hp', 'pendidikan_terakhir', 'tahun_lulus', 'tinggi_badan', 'berat_badan', 'goldar', 'ukuran_baju', 'status_pernikahan', 'email', 'nama_ortu', 'no_hp_ortu']
+
+    let headers: string[] = []
+    for (let i = 0; i < maxCols; i++) headers.push(`Kolom ${i + 1}`)
+
+    let startIdx = 0
+    const firstRowNorm = cells[0].map(c => c.toLowerCase().trim())
+    const headerHits = firstRowNorm.filter(c => normKnown[c]).length
+
+    const mapping: Record<string, string> = {}
+    if (headerHits >= 2) {
+      headers = cells[0].map((c, i) => c.trim() || `Kolom ${i + 1}`)
+      headers.forEach(h => {
+        mapping[h] = normKnown[h.toLowerCase().trim()] || ''
+      })
+      startIdx = 1
+    } else {
+      headers.forEach((h, i) => {
+        mapping[h] = defaultTemplate[i] || ''
+      })
+    }
+
+    const rows: Record<string, unknown>[] = []
+    for (let i = startIdx; i < cells.length; i++) {
+      const row: Record<string, unknown> = {}
+      headers.forEach((h, j) => { row[h] = cells[i][j] ?? '' })
+      rows.push(row)
+    }
+
+    setImportHeaders(headers)
+    setImportData(rows)
+    setImportMapping(mapping)
+    setImportResult(null)
+
+    const batchField = Object.keys(mapping).find(k => mapping[k] === 'batch')
+    if (batchField && rows[0]) {
+      const namaBatch = String(rows[0][batchField] ?? '').trim()
+      if (namaBatch) {
+        const found = batchOptions.find(b => b.nama.toLowerCase() === namaBatch.toLowerCase())
+          || batchOptions.find(b => namaBatch.toLowerCase().includes(b.nama.toLowerCase()) || b.nama.toLowerCase().includes(namaBatch.toLowerCase()))
+        if (found) setImportBatchId(String(found.id))
+      }
+    }
+  }
+
   function parseTanggalLahir(val: string): { tempat: string; tanggal: string } {
     const v = (val || '').trim()
     if (!v) return { tempat: '', tanggal: '' }
@@ -1120,6 +1197,8 @@ export default function DataKandidat() {
 
   function resetImport() {
     setShowImport(false)
+    setImportTab('file')
+    setImportPasteText('')
     setImportFile(null)
     setImportData([])
     setImportHeaders([])
@@ -2165,7 +2244,7 @@ export default function DataKandidat() {
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-slate-900">Import Data Kandidat</h2>
-                  <p className="text-xs text-slate-500">Upload file CSV atau Excel (.xlsx, .xls)</p>
+                  <p className="text-xs text-slate-500">Upload file CSV/Excel, atau tempel langsung data dari Excel (dipisah TAB)</p>
                 </div>
               </div>
               <button onClick={resetImport} className="rounded-lg p-1.5 hover:bg-slate-100 transition">
@@ -2175,17 +2254,48 @@ export default function DataKandidat() {
             <div className="px-6 py-5">
               {!importResult ? (
                 <>
+                  <div className="mb-5 flex w-fit gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1">
+                    <button type="button" onClick={() => setImportTab('file')}
+                      className={`rounded-md px-4 py-1.5 text-xs font-semibold transition ${importTab === 'file' ? 'bg-white text-[#0E6187] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                      Upload File
+                    </button>
+                    <button type="button" onClick={() => setImportTab('paste')}
+                      className={`inline-flex items-center gap-1.5 rounded-md px-4 py-1.5 text-xs font-semibold transition ${importTab === 'paste' ? 'bg-white text-[#0E6187] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                      <ClipboardPaste size={13} /> Tempel Data
+                    </button>
+                  </div>
                   <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end">
-                    <div className="flex-1">
-                      <label className="mb-1 block text-xs font-medium text-slate-600">Pilih File</label>
-                      <input
-                        ref={importFileRef}
-                        type="file"
-                        accept=".csv,.xls,.xlsx"
-                        onChange={handleImportFile}
-                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-[#0E6187] file:px-3 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1a3a5c]"
-                      />
-                    </div>
+                    {importTab === 'file' ? (
+                      <div className="flex-1">
+                        <label className="mb-1 block text-xs font-medium text-slate-600">Pilih File</label>
+                        <input
+                          ref={importFileRef}
+                          type="file"
+                          accept=".csv,.xls,.xlsx"
+                          onChange={handleImportFile}
+                          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-[#0E6187] file:px-3 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1a3a5c]"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex-1">
+                        <label className="mb-1 block text-xs font-medium text-slate-600">Tempel Data dari Excel (tiap kolom dipisahkan TAB, satu kandidat per baris)</label>
+                        <textarea
+                          value={importPasteText}
+                          onChange={e => setImportPasteText(e.target.value)}
+                          rows={6}
+                          placeholder={'Contoh:\n3203065607070004\t2026-05-0335\tMila Citra Lestari\tBATCH 18 GEL2\tP\tCianjur, 16 Juli 2007\tAlamat\tDesa\tKecamatan\tKabupaten\tProvinsi\t087770241206\tSMA/SMK/Sederajat\t2026\t153\t48\t\tL\tBelum Menikah\temail@contoh.com\tRohanah\t087744141335'}
+                          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 font-mono"
+                        />
+                        <button
+                          type="button"
+                          onClick={handlePasteParse}
+                          disabled={!importPasteText.trim()}
+                          className="mt-2 inline-flex items-center gap-2 rounded-lg border border-[#0E6187] bg-[#0E6187]/5 px-4 py-2 text-xs font-semibold text-[#0E6187] transition hover:bg-[#0E6187]/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <ClipboardPaste size={14} /> Pindai & Parsing
+                        </button>
+                      </div>
+                    )}
                     <div className="sm:w-60">
                       <label className="mb-1 block text-xs font-medium text-slate-600">Batch Tujuan</label>
                       <div className="relative shrink-0" ref={importBatchDropdownRef}>

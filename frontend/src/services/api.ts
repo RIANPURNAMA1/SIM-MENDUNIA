@@ -260,6 +260,7 @@ export const kelasSenseiApi = {
   list: (params?: Record<string, string | number | undefined>) =>
     api.get('/kelas-sensei', { params }),
   store: (data: Record<string, unknown>) => api.post('/kelas-sensei', data),
+  update: (id: number, data: Record<string, unknown>) => api.put(`/kelas-sensei/${id}`, data),
   destroy: (id: number) => api.delete(`/kelas-sensei/${id}`),
 }
 
