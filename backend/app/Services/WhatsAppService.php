@@ -134,24 +134,43 @@ class WhatsAppService
         $jumlahFormat = 'Rp ' . number_format($jumlah, 0, ',', '.');
         $noReg = $pendaftar->no_registrasi ?? '-';
         $batch = $pendaftar->batch?->nama_batch ?? '-';
+        $company = \App\Models\CompanyProfile::getProfile()->company_name ?? 'MENDUNIA.ID';
 
         $buktiLink = $buktiPembayaran ? asset('storage/' . $buktiPembayaran) : null;
+        $buktiSection = $buktiLink ? "🧾 Bukti Pembayaran: {$buktiLink}\n\n" : '';
 
-        $message = "💰 *NOTIFIKASI PEMBAYARAN BARU*\n\n"
-            . "Tanggal: {$tanggal}\n"
-            . "Nama: {$nama}\n"
-            . "No. Registrasi: {$noReg}\n"
-            . "Batch: {$batch}\n"
-            . "Kategori: {$kategoriNama}\n"
-            . "Jumlah: {$jumlahFormat}\n"
-            . "Status: Menunggu Verifikasi\n\n";
+        $vars = [
+            'tanggal' => $tanggal,
+            'nama' => $nama,
+            'no_registrasi' => $noReg,
+            'batch' => $batch,
+            'kategori' => $kategoriNama,
+            'jumlah' => $jumlahFormat,
+            'bukti_link' => $buktiLink,
+            'bukti_section' => $buktiSection,
+            'company_name' => $company,
+        ];
 
-        if ($buktiLink) {
-            $message .= "🧾 Bukti Pembayaran: {$buktiLink}\n\n";
+        $message = null;
+        $rendered = \App\Models\NotificationTemplate::render('payment_new_wa', $vars);
+        if ($rendered) {
+            $message = $rendered['body'];
         }
 
-        $message .= "Silakan verifikasi pembayaran ini di panel admin.\n\n"
-            . "- Sistem SIM Mendunia";
+        // Fallback jika template tidak ditemukan atau tidak aktif
+        if (!$message) {
+            $message = "💰 *NOTIFIKASI PEMBAYARAN BARU*\n\n"
+                . "Tanggal: {$tanggal}\n"
+                . "Nama: {$nama}\n"
+                . "No. Registrasi: {$noReg}\n"
+                . "Batch: {$batch}\n"
+                . "Kategori: {$kategoriNama}\n"
+                . "Jumlah: {$jumlahFormat}\n"
+                . "Status: Menunggu Verifikasi\n\n"
+                . $buktiSection
+                . "Silakan verifikasi pembayaran ini di panel admin.\n\n"
+                . "- {$company}";
+        }
 
         $results = [];
         foreach ($adminPhones as $phone) {
