@@ -152,6 +152,14 @@ class NotificationTemplateController extends Controller
                 'variables' => ['nama', 'program', 'batch', 'no_registrasi', 'total_transfer', 'jatuh_tempo', 'company_name', 'bank_nama', 'bank_rekening', 'bank_pemilik', 'konfirmasi_url'],
                 'body' => "Halo *{nama}*! 👋\n\nPendaftaran kamu di *{company_name}* berhasil!\n\n📋 No. Registrasi: {no_registrasi}\n📚 Program: {program} ({batch})\n💰 Total Transfer: Rp {total_transfer}\n⏰ Jatuh Tempo: {jatuh_tempo}\n\n🏦 Transfer ke:\n{bank_nama} a.n {bank_pemilik}\nNo. Rekening: {bank_rekening}\n\n✅ Konfirmasi Pembayaran:\n{konfirmasi_url}\n\n*Email ini dikirim otomatis oleh {company_name}*",
             ],
+            'admin_new_registration_wa' => [
+                'name' => 'WA Admin - Pendaftar Baru',
+                'description' => 'Dikirim via WhatsApp ke admin saat ada pendaftaran baru',
+                'channel' => 'whatsapp',
+                'subject' => null,
+                'variables' => ['nama', 'program', 'batch', 'no_registrasi', 'total_transfer', 'tanggal', 'no_hp', 'konfirmasi_url', 'invoice_url', 'company_name', 'label_affiliate'],
+                'body' => "📋 *PENDAFTARAN BARU{label_affiliate}*\n\nHalo Admin,\n\nAda pendaftar baru di *{company_name}*.\n\n👤 Nama: {nama}\n📚 Program: {program} ({batch})\n🗂️ No. Registrasi: {no_registrasi}\n💰 Total Transfer: Rp {total_transfer}\n📱 No. WhatsApp: {no_hp}\n🕒 Waktu: {tanggal}\n\n🔗 Konfirmasi Pembayaran:\n{konfirmasi_url}\n🧾 Lihat Invoice:\n{invoice_url}\n\nSilakan cek panel admin untuk memproses pendaftaran ini.\n\n*{company_name}*",
+            ],
             'status_approved_wa' => [
                 'name' => 'WA Disetujui',
                 'description' => 'Dikirim via WhatsApp saat pendaftaran disetujui',
