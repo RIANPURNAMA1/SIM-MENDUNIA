@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { CheckCircle2, XCircle, Loader2, ShieldCheck } from 'lucide-react'
-import axios from 'axios'
+import api from '../services/api'
 
 interface VerifikasiData {
   valid: boolean
@@ -32,19 +32,24 @@ export default function Verifikasi() {
   const [data, setData] = useState<VerifikasiData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [errorMsg, setErrorMsg] = useState('')
 
   useEffect(() => {
     if (!noInvoice) return
     setLoading(true)
-    axios
-      .get('/api/verifikasi', { params: { inv: noInvoice } })
+    api
+      .get('/verifikasi', { params: { inv: noInvoice } })
       .then((res) => {
         setData(res.data)
         setError(false)
       })
-      .catch(() => {
+      .catch((err: unknown) => {
+        const msg =
+          (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+          'Invoice dengan nomor tersebut tidak ditemukan atau tidak valid.'
         setError(true)
         setData(null)
+        setErrorMsg(msg)
       })
       .finally(() => setLoading(false))
   }, [noInvoice])
@@ -69,7 +74,11 @@ export default function Verifikasi() {
           </div>
           <h1 className="mt-4 text-xl font-bold text-slate-800">Dokumen Tidak Valid</h1>
           <p className="mt-2 text-sm text-slate-500">
-            Invoice dengan nomor <strong className="text-slate-700">{noInvoice}</strong> tidak ditemukan atau tidak valid.
+            {errorMsg || (
+              <>
+                Invoice dengan nomor <strong className="text-slate-700">{noInvoice}</strong> tidak ditemukan atau tidak valid.
+              </>
+            )}
           </p>
           <p className="mt-1 text-xs text-slate-400">Hubungi admin untuk informasi lebih lanjut.</p>
         </div>
