@@ -264,9 +264,9 @@ class WaSettingController extends Controller
     {
         $keys = [
             'wa_pembayaran' => 'Notifikasi pembayaran ke admin (WA)',
-            'wa_pembayaran_admin_phones' => 'Nomor HP admin (pisahkan koma)',
+            'wa_pembayaran_admin_phones' => 'Nomor HP admin mutasi (pisahkan koma)',
             'wa_pendaftaran_baru' => 'Pendaftaran baru ke admin (WA)',
-            'wa_pendaftaran_admin_phones' => 'Nomor HP admin untuk pendaftaran baru (pisahkan koma)',
+            'wa_pendaftaran_admin_phones' => 'Nomor HP admin follow up (pisahkan koma)',
             'wa_new_bill' => 'Tagihan baru dibuat (WA)',
             'wa_payment_success' => 'Pembayaran berhasil (WA)',
             'wa_payment_rejected' => 'Pembayaran ditolak (WA)',
