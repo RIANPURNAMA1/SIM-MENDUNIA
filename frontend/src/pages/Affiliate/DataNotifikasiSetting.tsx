@@ -184,6 +184,12 @@ export default function DataNotifikasiSetting() {
                     placeholder="628xxxxxxxxxx"
                     className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20" />
                 )}
+                {setting.key === 'wa_pendaftaran_admin_phones' && (
+                  <input type="text" value={setting.value || ''}
+                    onChange={e => handleGlobalValueChange(setting.key, e.target.value)}
+                    placeholder="628xxxxxxxxxx"
+                    className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20" />
+                )}
                 {setting.key === 'email_pembayaran_admin_addresses' && (
                   <input type="text" value={setting.value || ''}
                     onChange={e => handleGlobalValueChange(setting.key, e.target.value)}
@@ -202,7 +208,7 @@ export default function DataNotifikasiSetting() {
                     placeholder="https://api.starsender.online/api/send"
                     className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm w-96 font-mono focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20" />
                 )}
-                {setting.key.startsWith('starsender_') || setting.key === 'wa_pembayaran_admin_phones' || setting.key === 'email_pembayaran_admin_addresses' ? (
+                {setting.key.startsWith('starsender_') || setting.key === 'wa_pembayaran_admin_phones' || setting.key === 'wa_pendaftaran_admin_phones' || setting.key === 'email_pembayaran_admin_addresses' ? (
                   <span className="w-11" />
                 ) : (
                 <button onClick={() => handleGlobalToggle(setting.key, !setting.is_enabled)}

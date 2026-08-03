@@ -61,6 +61,13 @@ class SendRegistrationNotifications
                 Log::error('Gagal kirim WA notifikasi daftar: ' . $e->getMessage());
             }
 
+            // Kirim WA notifikasi pendaftaran baru ke admin
+            try {
+                $waService->sendNewRegistrationToAdmin($pendaftar->fresh()->load('product'), $this->affiliate);
+            } catch (\Exception $e) {
+                Log::error('Gagal kirim WA notifikasi admin daftar: ' . $e->getMessage());
+            }
+
             // Kirim email selamat datang ke kandidat
             try {
                 if ($email) {

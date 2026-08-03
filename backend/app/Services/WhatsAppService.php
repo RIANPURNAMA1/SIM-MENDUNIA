@@ -537,7 +537,15 @@ class WhatsAppService
      */
     private function getAdminPaymentPhones()
     {
-        $setting = \App\Models\NotificationSetting::where('key', 'wa_pembayaran_admin_phones')->first();
+        return $this->getAdminPhones('wa_pembayaran_admin_phones');
+    }
+
+    /**
+     * Ambil daftar nomor HP dari notification_settings berdasarkan key (pisahkan koma)
+     */
+    private function getAdminPhones($key)
+    {
+        $setting = \App\Models\NotificationSetting::where('key', $key)->first();
         if (!$setting || !$setting->value) {
             return [];
         }
@@ -752,6 +760,84 @@ class WhatsAppService
         $sent = $this->sendMessage($noHp, $message);
         $this->logNotification($pendaftar->id ?? null, 'registration_success', $noHp, $message, $sent);
         return $sent;
+    }
+
+    /**
+     * Kirim notifikasi pendaftaran baru ke nomor admin via WhatsApp
+     * (nomor admin & teks dapat diatur dinamis lewat settings / template "admin_new_registration_wa")
+     */
+    public function sendNewRegistrationToAdmin($pendaftar, $affiliate = false)
+    {
+        $settingKey = 'wa_pendaftaran_baru';
+        if (!\App\Models\NotificationSetting::isEnabled($settingKey)) {
+            Log::info("Notifikasi {$settingKey} dinonaktifkan.");
+            return false;
+        }
+
+        $adminPhones = $this->getAdminPhones('wa_pendaftaran_admin_phones');
+        if (empty($adminPhones)) {
+            Log::warning('Tidak ada nomor admin untuk notifikasi pendaftaran baru.');
+            return false;
+        }
+
+        $nama = $pendaftar->nama;
+        $program = $pendaftar->product?->nama ?? '-';
+        $noReg = $pendaftar->no_registrasi ?? '-';
+        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+        $konfirmasiUrl = $frontendUrl . '/checkout-berhasil/' . $pendaftar->token;
+        $invoiceUrl = $frontendUrl . '/pendaftar/' . $pendaftar->id . '/invoice';
+        $tanggal = now()->format('d F Y H:i');
+        $label = $affiliate ? ' (via Affiliate)' : '';
+
+        if (!$pendaftar->relationLoaded('batch')) {
+            $pendaftar->load('batch');
+        }
+        $batchNama = $pendaftar->batch?->nama_batch ?? '-';
+
+        $pendaftar->loadMissing('pembayaranItems');
+        $totalTransfer = $pendaftar->pembayaranItems->first()?->total_transfer ?? $this->getTotalTagihan($pendaftar);
+
+        $company = \App\Models\CompanyProfile::getProfile();
+        $companyName = $company->company_name ?? 'MENDUNIA.ID';
+
+        $rendered = \App\Models\NotificationTemplate::render('admin_new_registration_wa', [
+            'nama' => $nama,
+            'program' => $program,
+            'batch' => $batchNama,
+            'no_registrasi' => $noReg,
+            'total_transfer' => number_format($totalTransfer, 0, ',', '.'),
+            'tanggal' => $tanggal,
+            'no_hp' => $pendaftar->telepon ?? '-',
+            'konfirmasi_url' => $konfirmasiUrl,
+            'invoice_url' => $invoiceUrl,
+            'company_name' => $companyName,
+            'label_affiliate' => $label,
+        ]);
+
+        if ($rendered) {
+            $message = $rendered['body'];
+        } else {
+            $message = "📋 *NOTIFIKASI PENDAFTARAN BARU{$label}*\n\n"
+                . "Halo Admin,\n\n"
+                . "Ada pendaftar baru di *{$companyName}*.\n\n"
+                . "👤 Nama: {$nama}\n"
+                . "📚 Program: {$program} ({$batchNama})\n"
+                . "🗂️ No. Registrasi: {$noReg}\n"
+                . "💰 Total Transfer: Rp " . number_format($totalTransfer, 0, ',', '.') . "\n"
+                . "📱 No. WhatsApp: {$pendaftar->telepon}\n"
+                . "🕒 Waktu: {$tanggal}\n\n"
+                . "🔗 Konfirmasi Pembayaran:\n{$konfirmasiUrl}\n\n"
+                . "- Sistem SIM Mendunia";
+        }
+
+        $results = [];
+        foreach ($adminPhones as $phone) {
+            $sent = $this->sendMessage($phone, $message);
+            $this->logNotification($pendaftar->id ?? null, 'registration_admin', $phone, $message, $sent);
+            $results[] = $sent;
+        }
+
+        return in_array(true, $results);
     }
 
     /**
