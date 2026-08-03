@@ -3273,12 +3273,20 @@ class PendaftaranController extends Controller
 
     public function verifikasi($noInvoice)
     {
-        $pendaftar = Pendaftar::with(['product', 'batch'])
-            ->where('no_registrasi', $noInvoice)
-            ->orWhereHas('pembayaranItems', function ($q) use ($noInvoice) {
-                $q->where('payment_code', $noInvoice);
-            })
-            ->first();
+        // Format INV/{id}/{Ym}: cari langsung berdasarkan id pendaftar
+        $pendaftar = null;
+        if (preg_match('/^INV\/(\d+)\//', $noInvoice, $m)) {
+            $pendaftar = Pendaftar::with(['product', 'batch'])->find($m[1]);
+        }
+
+        if (!$pendaftar) {
+            $pendaftar = Pendaftar::with(['product', 'batch'])
+                ->where('no_registrasi', $noInvoice)
+                ->orWhereHas('pembayaranItems', function ($q) use ($noInvoice) {
+                    $q->where('payment_code', $noInvoice);
+                })
+                ->first();
+        }
 
         if (!$pendaftar) {
             return response()->json([
