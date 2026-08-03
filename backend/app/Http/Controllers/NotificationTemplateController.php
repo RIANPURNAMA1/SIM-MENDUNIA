@@ -232,8 +232,8 @@ class NotificationTemplateController extends Controller
                 'description' => 'Dikirim via WhatsApp ke admin saat kandidat mengirim konfirmasi pembayaran',
                 'channel' => 'whatsapp',
                 'subject' => null,
-                'variables' => ['tanggal', 'nama', 'no_registrasi', 'batch', 'kategori', 'jumlah', 'bukti_link', 'bukti_section', 'company_name'],
-                'body' => "💰 *NOTIFIKASI PEMBAYARAN BARU*\n\nTanggal: {tanggal}\nNama: {nama}\nNo. Registrasi: {no_registrasi}\nBatch: {batch}\nKategori: {kategori}\nJumlah: {jumlah}\nStatus: Menunggu Verifikasi\n\n{bukti_section}Silakan verifikasi pembayaran ini di panel admin.\n\n- {company_name}",
+                'variables' => ['tanggal', 'nama', 'no_registrasi', 'batch', 'kategori', 'jumlah', 'bukti_link', 'bukti_section', 'reply_instructions', 'company_name'],
+                'body' => "💰 *NOTIFIKASI PEMBAYARAN BARU*\n\nTanggal: {tanggal}\nNama: {nama}\nNo. Registrasi: {no_registrasi}\nBatch: {batch}\nKategori: {kategori}\nJumlah: {jumlah}\nStatus: Menunggu Verifikasi\n\n{bukti_section}Silakan verifikasi pembayaran ini di panel admin.\n\n{reply_instructions}\n\n- {company_name}",
             ],
         ];
     }

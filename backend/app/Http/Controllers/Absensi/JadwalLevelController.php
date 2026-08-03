@@ -25,7 +25,7 @@ class JadwalLevelController extends Controller
     {
         $batches = Batch::aktif()->with('cabang')->get();
         $levels = [1, 2, 3, 4];
-        $jadwal = JadwalLevel::with('batch')->get()->keyBy(function ($item) {
+        $jadwal = JadwalLevel::with('batch', 'submittedBy', 'approvedBy')->get()->keyBy(function ($item) {
             return $item->batch_id . '-' . $item->level;
         });
 
@@ -34,9 +34,14 @@ class JadwalLevelController extends Controller
                 'id' => $item->id,
                 'batch_id' => $item->batch_id,
                 'level' => $item->level,
+                'status' => $item->status,
                 'tanggal_mulai' => $item->tanggal_mulai->format('Y-m-d'),
                 'tanggal_selesai' => $item->tanggal_selesai->format('Y-m-d'),
                 'batch_nama' => $item->batch->nama_batch ?? '-',
+                'submitted_by' => $item->submittedBy->name ?? null,
+                'approved_by' => $item->approvedBy->name ?? null,
+                'approved_at' => $item->approved_at?->format('Y-m-d H:i:s'),
+                'rejection_reason' => $item->rejection_reason,
             ];
         });
 
@@ -62,22 +67,86 @@ class JadwalLevelController extends Controller
 
         JadwalLevel::updateOrCreate(
             ['batch_id' => $request->batch_id, 'level' => $request->level],
-            ['tanggal_mulai' => $request->tanggal_mulai, 'tanggal_selesai' => $request->tanggal_selesai]
+            [
+                'tanggal_mulai' => $request->tanggal_mulai,
+                'tanggal_selesai' => $request->tanggal_selesai,
+                'status' => 'menunggu',
+                'submitted_by' => $request->user()?->id,
+                'approved_by' => null,
+                'approved_at' => null,
+                'rejection_reason' => null,
+            ]
         );
 
-        // Sync tanggal_mulai / tanggal_selesai ke kelas_sensei hanya untuk level 1-4
-        if ($request->level >= 1 && $request->level <= 4) {
-            KelasSensei::where('batch_id', $request->batch_id)
-                ->where('level', $request->level)
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Jadwal level berhasil disimpan dan menunggu approval',
+        ]);
+    }
+
+    public function approve($batchId, $level)
+    {
+        $jadwal = JadwalLevel::where('batch_id', $batchId)
+            ->where('level', $level)
+            ->firstOrFail();
+
+        if ($jadwal->status === 'ditolak') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Jadwal yang ditolak tidak bisa disetujui. Silakan diatur ulang terlebih dahulu.',
+            ], 422);
+        }
+
+        $jadwal->update([
+            'status' => 'disetujui',
+            'approved_by' => request()->user()?->id,
+            'approved_at' => now(),
+            'rejection_reason' => null,
+        ]);
+
+        // Sync tanggal ke kelas_sensei hanya untuk level 1-4 dan setelah disetujui
+        if ($level >= 1 && $level <= 4) {
+            KelasSensei::where('batch_id', $batchId)
+                ->where('level', $level)
                 ->update([
-                    'tanggal_mulai' => $request->tanggal_mulai,
-                    'tanggal_selesai' => $request->tanggal_selesai,
+                    'tanggal_mulai' => $jadwal->tanggal_mulai,
+                    'tanggal_selesai' => $jadwal->tanggal_selesai,
                 ]);
         }
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Jadwal level berhasil disimpan',
+            'message' => 'Jadwal level berhasil disetujui',
+        ]);
+    }
+
+    public function reject(Request $request, $batchId, $level)
+    {
+        $request->validate([
+            'rejection_reason' => 'nullable|string|max:500',
+        ]);
+
+        $jadwal = JadwalLevel::where('batch_id', $batchId)
+            ->where('level', $level)
+            ->firstOrFail();
+
+        if ($jadwal->status === 'disetujui') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Jadwal yang sudah disetujui tidak bisa ditolak.',
+            ], 422);
+        }
+
+        $jadwal->update([
+            'status' => 'ditolak',
+            'approved_by' => request()->user()?->id,
+            'approved_at' => now(),
+            'rejection_reason' => $request->rejection_reason,
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Jadwal level ditolak',
         ]);
     }
 

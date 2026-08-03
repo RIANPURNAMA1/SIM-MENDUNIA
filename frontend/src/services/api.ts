@@ -137,12 +137,8 @@ export const rekapKehadiranSenseiApi = {
   getRekap: (userId: number, params?: Record<string, string | number>) =>
     api.get(`/rekap-kehadiran-sensei/${userId}`, { params }),
   tableData: () => api.get('/rekap-kehadiran-sensei/table-data'),
-  updateStatus: (data: {
-    kelas_sensei_id: number
-    user_id: number
-    tanggal: string
-    status: string
-  }) => api.post('/rekap-kehadiran-sensei/update-status', data),
+  updateStatus: (data: FormData) =>
+    api.post('/rekap-kehadiran-sensei/update-status', data),
 }
 
 export const guruApi = {
@@ -213,11 +209,14 @@ export const batchApi = {
 }
 
 export const jadwalLevelApi = {
-  list: () => api.get('/jadwal-level'),
-  store: (data: { batch_id: number; level: number; tanggal_mulai: string; tanggal_selesai: string }) =>
-    api.post('/jadwal-level', data),
-  destroy: (batchId: number, level: number) => api.delete(`/jadwal-level/${batchId}/${level}`),
-}
+   list: () => api.get('/jadwal-level'),
+   store: (data: { batch_id: number; level: number; tanggal_mulai: string; tanggal_selesai: string }) =>
+     api.post('/jadwal-level', data),
+   destroy: (batchId: number, level: number) => api.delete(`/jadwal-level/${batchId}/${level}`),
+   approve: (batchId: number, level: number) => api.post(`/jadwal-level/${batchId}/${level}/approve`),
+   reject: (batchId: number, level: number, reason: string) =>
+     api.post(`/jadwal-level/${batchId}/${level}/reject`, { rejection_reason: reason }),
+ }
 
 export const absensiSiswaApi = {
   list: (params?: Record<string, string | number | undefined>) =>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { BarChart3, Search, RotateCcw, X, Table, Calendar } from "lucide-react";
-import { rekapKehadiranSenseiApi, batchApi } from "../../services/api";
+import { BarChart3, Search, RotateCcw, X, Table, Calendar, Clock, Camera } from "lucide-react";
+import { rekapKehadiranSenseiApi, batchApi, APP_URL } from "../../services/api";
 import type { RekapKehadiranSenseiDay, KelasSenseiInfo, Karyawan } from "../../types";
 
 const MONTHS_IND = [
@@ -42,8 +42,14 @@ export default function RekapKehadiranSenseiPage() {
     kelas_sensei_id: number;
     kelas_nama: string;
     status: string;
+    jam_masuk: string;
+    jam_pulang: string;
+    foto_masuk: File | null;
+    foto_pulang: File | null;
+    foto_masuk_prev: string | null;
+    foto_pulang_prev: string | null;
     submitting: boolean;
-  }>({ show: false, tanggal: "", kelas_sensei_id: 0, kelas_nama: "", status: "HADIR", submitting: false });
+  }>({ show: false, tanggal: "", kelas_sensei_id: 0, kelas_nama: "", status: "HADIR", jam_masuk: "", jam_pulang: "", foto_masuk: null, foto_pulang: null, foto_masuk_prev: null, foto_pulang_prev: null, submitting: false });
 
   useEffect(() => {
     rekapKehadiranSenseiApi.listSensei()
@@ -119,6 +125,12 @@ export default function RekapKehadiranSenseiPage() {
       kelas_sensei_id: preselectKelas.id,
       kelas_nama: preselectKelas.nama_kelas,
       status: initialEntry && initialEntry.status !== "BELUM ABSEN" ? initialEntry.status : "HADIR",
+      jam_masuk: initialEntry?.jam_masuk || "",
+      jam_pulang: initialEntry?.jam_pulang || "",
+      foto_masuk: null,
+      foto_pulang: null,
+      foto_masuk_prev: initialEntry?.foto_masuk || null,
+      foto_pulang_prev: initialEntry?.foto_pulang || null,
       submitting: false,
     });
   };
@@ -132,19 +144,30 @@ export default function RekapKehadiranSenseiPage() {
       kelas_sensei_id: kelasId,
       kelas_nama: kelas?.nama_kelas || "",
       status: entry && entry.status !== "BELUM ABSEN" ? entry.status : "HADIR",
+      jam_masuk: entry?.jam_masuk || "",
+      jam_pulang: entry?.jam_pulang || "",
+      foto_masuk: null,
+      foto_pulang: null,
+      foto_masuk_prev: entry?.foto_masuk || null,
+      foto_pulang_prev: entry?.foto_pulang || null,
     }));
   };
 
   const handleUpdateStatus = async () => {
     setModal((prev) => ({ ...prev, submitting: true }));
     try {
-      await rekapKehadiranSenseiApi.updateStatus({
-        kelas_sensei_id: modal.kelas_sensei_id,
-        user_id: selectedUserId as number,
-        tanggal: modal.tanggal,
-        status: modal.status,
-      });
-      setModal({ show: false, tanggal: "", kelas_sensei_id: 0, kelas_nama: "", status: "HADIR", submitting: false });
+      const fd = new FormData();
+      fd.append("kelas_sensei_id", String(modal.kelas_sensei_id));
+      fd.append("user_id", String(selectedUserId as number));
+      fd.append("tanggal", modal.tanggal);
+      fd.append("status", modal.status);
+      if (modal.jam_masuk) fd.append("jam_masuk", modal.jam_masuk);
+      if (modal.jam_pulang) fd.append("jam_pulang", modal.jam_pulang);
+      if (modal.foto_masuk) fd.append("foto_masuk", modal.foto_masuk);
+      if (modal.foto_pulang) fd.append("foto_pulang", modal.foto_pulang);
+
+      await rekapKehadiranSenseiApi.updateStatus(fd);
+      setModal({ show: false, tanggal: "", kelas_sensei_id: 0, kelas_nama: "", status: "HADIR", jam_masuk: "", jam_pulang: "", foto_masuk: null, foto_pulang: null, foto_masuk_prev: null, foto_pulang_prev: null, submitting: false });
       fetchData();
     } catch (err) {
       console.error(err);
@@ -195,7 +218,7 @@ export default function RekapKehadiranSenseiPage() {
     : [];
 
   const closeModal = () =>
-    setModal({ show: false, tanggal: "", kelas_sensei_id: 0, kelas_nama: "", status: "HADIR", submitting: false });
+    setModal({ show: false, tanggal: "", kelas_sensei_id: 0, kelas_nama: "", status: "HADIR", jam_masuk: "", jam_pulang: "", foto_masuk: null, foto_pulang: null, foto_masuk_prev: null, foto_pulang_prev: null, submitting: false });
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
@@ -505,7 +528,7 @@ export default function RekapKehadiranSenseiPage() {
       {/* Modal */}
       {modal.show && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3">
-          <div className="w-full max-w-sm rounded-lg bg-white shadow-xl">
+          <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
               <h3 className="text-sm font-semibold text-slate-800">Ubah Status</h3>
               <button
@@ -547,6 +570,88 @@ export default function RekapKehadiranSenseiPage() {
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
+
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 flex items-center gap-1 text-xs text-slate-500">
+                    <Clock size={12} /> Jam Masuk
+                  </label>
+                  <input
+                    type="time"
+                    value={modal.jam_masuk}
+                    onChange={(e) => setModal((prev) => ({ ...prev, jam_masuk: e.target.value }))}
+                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 flex items-center gap-1 text-xs text-slate-500">
+                    <Clock size={12} /> Jam Pulang
+                  </label>
+                  <input
+                    type="time"
+                    value={modal.jam_pulang}
+                    onChange={(e) => setModal((prev) => ({ ...prev, jam_pulang: e.target.value }))}
+                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 flex items-center gap-1 text-xs text-slate-500">
+                    <Camera size={12} /> Foto Masuk
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setModal((prev) => ({ ...prev, foto_masuk: e.target.files?.[0] || null }))}
+                    className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500 file:mr-2 file:rounded file:border-0 file:bg-blue-50 file:px-2 file:py-1 file:text-xs file:font-medium file:text-blue-700"
+                  />
+                  {modal.foto_masuk_prev && !modal.foto_masuk && (
+                    <a href={`${APP_URL}/storage/${modal.foto_masuk_prev}`} target="_blank" rel="noreferrer">
+                      <img
+                        src={`${APP_URL}/storage/${modal.foto_masuk_prev}`}
+                        alt="foto masuk"
+                        className="mt-2 h-16 w-16 rounded-lg border border-slate-200 object-cover"
+                      />
+                    </a>
+                  )}
+                  {modal.foto_masuk && (
+                    <img
+                      src={URL.createObjectURL(modal.foto_masuk)}
+                      alt="foto masuk baru"
+                      className="mt-2 h-16 w-16 rounded-lg border border-emerald-300 object-cover"
+                    />
+                  )}
+                </div>
+                <div>
+                  <label className="mb-1 flex items-center gap-1 text-xs text-slate-500">
+                    <Camera size={12} /> Foto Pulang
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setModal((prev) => ({ ...prev, foto_pulang: e.target.files?.[0] || null }))}
+                    className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500 file:mr-2 file:rounded file:border-0 file:bg-blue-50 file:px-2 file:py-1 file:text-xs file:font-medium file:text-blue-700"
+                  />
+                  {modal.foto_pulang_prev && !modal.foto_pulang && (
+                    <a href={`${APP_URL}/storage/${modal.foto_pulang_prev}`} target="_blank" rel="noreferrer">
+                      <img
+                        src={`${APP_URL}/storage/${modal.foto_pulang_prev}`}
+                        alt="foto pulang"
+                        className="mt-2 h-16 w-16 rounded-lg border border-slate-200 object-cover"
+                      />
+                    </a>
+                  )}
+                  {modal.foto_pulang && (
+                    <img
+                      src={URL.createObjectURL(modal.foto_pulang)}
+                      alt="foto pulang baru"
+                      className="mt-2 h-16 w-16 rounded-lg border border-emerald-300 object-cover"
+                    />
+                  )}
+                </div>
+              </div>
             </div>
             <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3">
               <button

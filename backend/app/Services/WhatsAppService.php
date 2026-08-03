@@ -139,6 +139,10 @@ class WhatsAppService
         $buktiLink = $buktiPembayaran ? asset('storage/' . $buktiPembayaran) : null;
         $buktiSection = $buktiLink ? "🧾 Bukti Pembayaran: {$buktiLink}\n\n" : '';
 
+        $replyInstructions = "Silakan balas pesan ini:\n"
+            . "• Balas *KONFIRMASI* untuk menyetujui pembayaran ✅\n"
+            . "• Balas *BATAL* untuk menolak pembayaran ❌";
+
         $vars = [
             'tanggal' => $tanggal,
             'nama' => $nama,
@@ -148,6 +152,7 @@ class WhatsAppService
             'jumlah' => $jumlahFormat,
             'bukti_link' => $buktiLink,
             'bukti_section' => $buktiSection,
+            'reply_instructions' => $replyInstructions,
             'company_name' => $company,
         ];
 
@@ -169,7 +174,17 @@ class WhatsAppService
                 . "Status: Menunggu Verifikasi\n\n"
                 . $buktiSection
                 . "Silakan verifikasi pembayaran ini di panel admin.\n\n"
+                . $replyInstructions . "\n\n"
                 . "- {$company}";
+        }
+
+        // Catat approval PENDING agar balasan admin bisa dipetakan ke pendaftar ini
+        foreach ($adminPhones as $phone) {
+            \App\Models\WaPaymentApproval::create([
+                'pendaftar_id' => $pendaftar->id,
+                'admin_phone' => $phone,
+                'status' => 'PENDING',
+            ]);
         }
 
         $results = [];

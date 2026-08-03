@@ -151,7 +151,8 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
 
       {/* Right */}
       <div className="flex items-center gap-3">
-        {/* Notifications */}
+        {/* Notifications (hidden for ADMIN_CABANG) */}
+        {user?.role !== 'ADMIN_CABANG' && (
         <div className="relative">
           <button
             onClick={() => setShowNotif(!showNotif)}
@@ -207,6 +208,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
             </div>
           )}
         </div>
+        )}
 
         {/* Profile */}
         <div className="relative">

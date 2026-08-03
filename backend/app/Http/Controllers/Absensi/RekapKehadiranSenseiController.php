@@ -123,6 +123,10 @@ class RekapKehadiranSenseiController extends Controller
                         'color' => $color,
                         'text_color' => $textColor,
                         'absensi_id' => $absen->id,
+                        'jam_masuk' => $absen->jam_masuk,
+                        'jam_pulang' => $absen->jam_keluar,
+                        'foto_masuk' => $absen->foto_masuk,
+                        'foto_pulang' => $absen->foto_pulang,
                     ];
                 }
             }
@@ -153,22 +157,60 @@ class RekapKehadiranSenseiController extends Controller
             'user_id' => 'required|exists:users,id',
             'tanggal' => 'required|date',
             'status' => 'required|in:HADIR,TERLAMBAT,PULANG LEBIH AWAL,TIDAK ABSEN PULANG,ALPA,LIBUR',
+            'jam_masuk' => 'nullable|date_format:H:i',
+            'jam_pulang' => 'nullable|date_format:H:i',
+            'foto_masuk' => 'nullable|image|max:5120',
+            'foto_pulang' => 'nullable|image|max:5120',
         ]);
 
-        $absen = AbsensiSensei::updateOrCreate(
-            [
+        $absen = AbsensiSensei::where([
+            'kelas_sensei_id' => $request->kelas_sensei_id,
+            'user_id' => $request->user_id,
+            'tanggal' => $request->tanggal,
+        ])->first();
+
+        if (!$absen) {
+            $absen = new AbsensiSensei([
                 'kelas_sensei_id' => $request->kelas_sensei_id,
                 'user_id' => $request->user_id,
                 'tanggal' => $request->tanggal,
-            ],
-            ['status' => $request->status]
-        );
+            ]);
+        }
+
+        $absen->status = $request->status;
+
+        if ($request->filled('jam_masuk')) {
+            $absen->jam_masuk = $request->jam_masuk;
+        }
+        if ($request->filled('jam_pulang')) {
+            $absen->jam_keluar = $request->jam_pulang;
+        }
+        if ($request->hasFile('foto_masuk')) {
+            if ($absen->foto_masuk) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($absen->foto_masuk);
+            }
+            $absen->foto_masuk = $request->file('foto_masuk')->store('absensi-sensei', 'public');
+        }
+        if ($request->hasFile('foto_pulang')) {
+            if ($absen->foto_pulang) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($absen->foto_pulang);
+            }
+            $absen->foto_pulang = $request->file('foto_pulang')->store('absensi-sensei', 'public');
+        }
+
+        $absen->save();
 
         return response()->json([
             'success' => true,
             'message' => $absen->wasRecentlyCreated
                 ? 'Status kehadiran sensei berhasil ditambahkan'
                 : 'Status kehadiran sensei berhasil diperbarui',
+            'data' => [
+                'jam_masuk' => $absen->jam_masuk,
+                'jam_pulang' => $absen->jam_keluar,
+                'foto_masuk' => $absen->foto_masuk,
+                'foto_pulang' => $absen->foto_pulang,
+            ],
         ]);
     }
 
