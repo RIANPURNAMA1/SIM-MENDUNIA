@@ -334,6 +334,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const [tagihanCount, setTagihanCount] = useState(0);
   const [lastPending, setLastPending] = useState(() => Number(localStorage.getItem('lastPending') || '0'));
   const [lastTagihan, setLastTagihan] = useState(() => Number(localStorage.getItem('lastTagihan') || '0'));
+  const [jadwalPendingCount, setJadwalPendingCount] = useState(0);
 
   const badgePending = Math.max(0, pendingCount - lastPending);
   const badgeTagihan = Math.max(0, tagihanCount - lastTagihan);
@@ -353,6 +354,22 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     const interval = setInterval(fetchPending, 30000);
     return () => clearInterval(interval);
   }, [isRestricted]);
+
+  const isApprover =
+    user?.role === "MANAGER" || user?.role === "HR" || user?.role === "ADMIN";
+
+  useEffect(() => {
+    if (isRestricted || !isApprover) return;
+    const fetchJadwalPending = () => {
+      api
+        .get("/jadwal-level/pending-count")
+        .then((res) => setJadwalPendingCount(res.data.count ?? 0))
+        .catch(() => {});
+    };
+    fetchJadwalPending();
+    const interval = setInterval(fetchJadwalPending, 30000);
+    return () => clearInterval(interval);
+  }, [isRestricted, isApprover]);
 
   const isActive = (href: string) => {
     if (href === "/") return path === "/";
@@ -454,6 +471,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                         {badgePending + badgeTagihan > 99 ? "99+" : badgePending + badgeTagihan}
                       </span>
                     )}
+                    {group.label === "Program" && isApprover && jadwalPendingCount > 0 && (
+                      <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+                        {jadwalPendingCount > 99 ? "99+" : jadwalPendingCount}
+                      </span>
+                    )}
                   </div>
                   <ChevronDown
                     size={14}
@@ -474,6 +496,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                         >
                           <ChildIcon size={14} />
                           <span>{child.label}</span>
+                          {child.label === "Jadwal Level" &&
+                            isApprover &&
+                            jadwalPendingCount > 0 && (
+                              <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+                                {jadwalPendingCount > 99 ? "99+" : jadwalPendingCount}
+                              </span>
+                            )}
                           {child.label === "Pendaftaran" &&
                             badgePending > 0 && (
                               <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
