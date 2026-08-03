@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
-import { BarChart3, Search, RotateCcw, X, Table, Calendar, Clock, Camera } from "lucide-react";
-import { rekapKehadiranSenseiApi, batchApi, APP_URL } from "../../services/api";
-import type { RekapKehadiranSenseiDay, KelasSenseiInfo, Karyawan } from "../../types";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { BarChart3, Search, RotateCcw, X, Table, Calendar, Clock, Camera, ChevronDown } from "lucide-react";
+import { rekapKehadiranSenseiApi, batchApi, cabangApi, APP_URL } from "../../services/api";
+import type { RekapKehadiranSenseiDay, KelasSenseiInfo, Karyawan, Cabang } from "../../types";
 
 const MONTHS_IND = [
   "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -19,6 +19,14 @@ const STATUS_OPTIONS = [
   { value: "LIBUR", label: "Libur" },
 ];
 
+interface BatchOption {
+  id: number;
+  nama_batch: string;
+  cabang_id: number | null;
+  warna: string | null;
+  cabang: { id: number; nama_cabang: string } | null;
+}
+
 export default function RekapKehadiranSenseiPage() {
   const now = new Date();
   const [rekapData, setRekapData] = useState<Record<string, RekapKehadiranSenseiDay>>({});
@@ -31,7 +39,9 @@ export default function RekapKehadiranSenseiPage() {
   const [senseiLoading, setSenseiLoading] = useState(true);
   const [filterBatch, setFilterBatch] = useState("");
   const [filterLevel, setFilterLevel] = useState("");
-  const [batchList, setBatchList] = useState<{ id: number; nama_batch: string }[]>([]);
+  const [filterCabang, setFilterCabang] = useState("");
+  const [batchList, setBatchList] = useState<BatchOption[]>([]);
+  const [cabangList, setCabangList] = useState<Cabang[]>([]);
   const [viewMode, setViewMode] = useState<"calendar" | "table">("calendar");
   const [tableData, setTableData] = useState<any[]>([]);
   const [tableLoading, setTableLoading] = useState(false);
@@ -58,6 +68,9 @@ export default function RekapKehadiranSenseiPage() {
       .finally(() => setSenseiLoading(false));
     batchApi.list()
       .then((res) => setBatchList(res.data?.data || res.data || []))
+      .catch(console.error);
+    cabangApi.list()
+      .then((res) => setCabangList(res.data?.data || []))
       .catch(console.error);
   }, []);
 
@@ -175,7 +188,14 @@ export default function RekapKehadiranSenseiPage() {
     }
   };
 
-  const batchOptions = batchList;
+  const batchOptions = filterCabang
+    ? batchList.filter((b) => b.cabang_id !== null && String(b.cabang_id) === filterCabang)
+    : batchList;
+
+  const handleCabangChange = (val: string) => {
+    setFilterCabang(val);
+    setFilterBatch("");
+  };
 
   const levelOptions = Array.from(new Set(kelasList.map((k) => k.level))).sort();
 
@@ -267,17 +287,24 @@ export default function RekapKehadiranSenseiPage() {
               <option key={y} value={y}>{y}</option>
             ))}
           </select>
-          {batchOptions.length > 0 && (
+          {cabangList.length > 0 && (
             <select
-              value={filterBatch}
-              onChange={(e) => setFilterBatch(e.target.value)}
+              value={filterCabang}
+              onChange={(e) => handleCabangChange(e.target.value)}
               className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             >
-              <option value="">Semua Batch</option>
-              {batchOptions.map((b) => (
-                <option key={b.id} value={b.id}>{b.nama_batch}</option>
+              <option value="">Semua Cabang</option>
+              {cabangList.map((c) => (
+                <option key={c.id} value={c.id}>{c.nama_cabang}</option>
               ))}
             </select>
+          )}
+          {batchOptions.length > 0 && (
+            <BatchSelect
+              options={batchOptions}
+              value={filterBatch}
+              onChange={(v) => setFilterBatch(v)}
+            />
           )}
           {levelOptions.length > 0 && (
             <select
@@ -306,6 +333,7 @@ export default function RekapKehadiranSenseiPage() {
               setTahun(now.getFullYear());
               setFilterBatch("");
               setFilterLevel("");
+              setFilterCabang("");
               setRekapData({});
               setKelasList([]);
             }}
@@ -393,13 +421,22 @@ export default function RekapKehadiranSenseiPage() {
       {/* Kelas Info Cards */}
       {filteredKelasList.length > 0 && (
         <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredKelasList.map((k) => (
+          {filteredKelasList.map((k) => {
+            const batchInfo = batchList.find((b) => b.id === k.batch_id);
+            return (
             <div key={k.id} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="text-xs font-bold text-slate-700">{k.nama_kelas}</div>
-                <span className="text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">{k.batch_nama}</span>
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0 truncate text-xs font-bold text-slate-700">{k.nama_kelas}</div>
+                {batchInfo && (
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white" style={{ backgroundColor: batchInfo.warna || "#0E6187" }}>
+                    <span className="h-1.5 w-1.5 rounded-full bg-white/80" />
+                    {k.batch_nama}
+                  </span>
+                )}
               </div>
-              <div className="mt-0.5 text-[10px] text-slate-400">Level {k.level}</div>
+              <div className="mt-0.5 text-[10px] text-slate-400">
+                Level {k.level} · {batchInfo?.cabang?.nama_cabang || "Tanpa Cabang"}
+              </div>
               <div className="mt-1.5 flex items-center justify-between text-[10px]">
                 <span className="text-slate-500">
                   {k.tanggal_mulai} - {k.tanggal_selesai}
@@ -409,7 +446,8 @@ export default function RekapKehadiranSenseiPage() {
                 </span>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -685,6 +723,66 @@ function statusColorClass(status: string): string {
     case "LIBUR": return "bg-slate-400 text-white";
     default: return "border border-slate-300 bg-white text-slate-600";
   }
+}
+
+function BatchSelect({ options, value, onChange }: {
+  options: BatchOption[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const selected = options.find((b) => String(b.id) === value);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+      >
+        {selected ? (
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: selected.warna || "#0E6187" }} />
+            <span className="max-w-[160px] truncate">{selected.nama_batch}</span>
+            <span className="text-slate-400">· {selected.cabang?.nama_cabang || "Tanpa Cabang"}</span>
+          </span>
+        ) : (
+          "Semua Batch"
+        )}
+        <ChevronDown size={14} className="shrink-0 text-slate-400" />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full z-40 mt-1 max-h-60 w-72 overflow-auto rounded-md border border-slate-200 bg-white py-1 shadow-lg">
+          <button
+            onClick={() => { onChange(""); setOpen(false); }}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-600 transition hover:bg-slate-50"
+          >
+            Semua Batch
+          </button>
+          {options.map((b) => (
+            <button
+              key={b.id}
+              onClick={() => { onChange(String(b.id)); setOpen(false); }}
+              className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-slate-50 ${String(b.id) === value ? "bg-blue-50 text-blue-700" : "text-slate-700"}`}
+            >
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: b.warna || "#0E6187" }} />
+              <span className="min-w-0 flex-1 truncate">{b.nama_batch}</span>
+              <span className="shrink-0 text-[10px] font-medium text-slate-400">{b.cabang?.nama_cabang || "Tanpa Cabang"}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 
