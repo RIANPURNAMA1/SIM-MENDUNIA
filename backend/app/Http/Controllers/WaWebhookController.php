@@ -24,8 +24,12 @@ class WaWebhookController extends Controller
     {
         Log::info('WA Webhook received:', $request->all());
 
-        $message = $request->input('message') ?? $request->input('body') ?? $request->input('text') ?? '';
-        $from = $request->input('from') ?? $request->input('sender') ?? $request->input('phone') ?? '';
+        $payload = $request->all();
+
+        // Robust extraction: berbagai gateway WA (StarSender dkk) membungkus
+        // pesan di level berbeda (data.*, message.*, senderPn/remoteJid, dll).
+        $message = $this->digPayload($payload, ['message', 'body', 'text', 'content', 'conversation', 'messageBody', 'message_body', 'messageText', 'message_text']);
+        $from = $this->digPayload($payload, ['from', 'sender', 'phone', 'sender_number', 'sender_phone', 'senderPhone', 'phoneNumber', 'phone_number', 'wa_id', 'remoteJid', 'senderPn', 'cleanedSenderPn']);
 
         $from = $this->formatPhone($from);
 
@@ -133,6 +137,49 @@ class WaWebhookController extends Controller
             $number = '62' . $number;
         }
         return $number;
+    }
+
+    /**
+     * Cari nilai scalar pertama dari salah satu key (case-insensitive) di
+     * seluruh struktur payload (termasuk bersarang data.* / message.*).
+     */
+    private function digPayload($node, array $keys): string
+    {
+        if (!is_array($node) && !is_object($node)) {
+            return '';
+        }
+
+        $arr = (array) $node;
+        $lower = [];
+        foreach ($arr as $k => $v) {
+            $lower[strtolower((string) $k)] = $v;
+        }
+
+        // 1) Cari di level saat ini (prioritas urutan key)
+        foreach ($keys as $key) {
+            $lk = strtolower($key);
+            if (array_key_exists($lk, $lower)) {
+                $v = $lower[$lk];
+                if (is_scalar($v)) {
+                    return (string) $v;
+                }
+                // Nilainya object/array (mis. message.conversation) -> turun ke dalamnya
+                $nested = $this->digPayload($v, $keys);
+                if ($nested !== '') {
+                    return $nested;
+                }
+            }
+        }
+
+        // 2) Turun ke semua anak
+        foreach ($arr as $v) {
+            $r = $this->digPayload($v, $keys);
+            if ($r !== '') {
+                return $r;
+            }
+        }
+
+        return '';
     }
 
     /**
