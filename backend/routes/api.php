@@ -390,6 +390,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{id}', [PendaftaranController::class, 'destroy']);
     });
 
+    // Tagihan: ringkasan per batch + kandidat per batch (server-side pagination)
+    Route::get('/tagihan/groups', [PendaftaranController::class, 'tagihanGroups']);
+    Route::get('/tagihan/batch/{batchId}', [PendaftaranController::class, 'tagihanBatch']);
+
     Route::get('/closing-pasukan', [PendaftaranController::class, 'closingPasukan']);
     Route::post('/closing-pasukan/{id}/toggle-cair', [PendaftaranController::class, 'toggleCair']);
     Route::get('/komisi-affiliate', [PendaftaranController::class, 'komisiAffiliate']);

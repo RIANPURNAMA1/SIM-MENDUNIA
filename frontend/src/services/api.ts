@@ -331,6 +331,10 @@ export const pendaftarApi = {
     api.post('/pendaftaran/daftar-langsung', data, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
+  tagihanGroups: (params?: Record<string, unknown>) =>
+    api.get('/tagihan/groups', { params }),
+  tagihanBatch: (batchId: number, params?: Record<string, unknown>) =>
+    api.get(`/tagihan/batch/${batchId}`, { params }),
   kandidat: (params?: Record<string, string>) =>
     api.get('/kandidat', { params }),
   createKandidat: (data: Record<string, unknown>) =>
