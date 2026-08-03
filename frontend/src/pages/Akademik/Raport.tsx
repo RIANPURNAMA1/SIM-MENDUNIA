@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Building2, Layers, ChevronLeft, FileText, School, Hash, User, MapPin, ChevronRight, Notebook } from 'lucide-react'
-import api from '../../services/api'
+import api, { adminCabangApi } from '../../services/api'
+import { useAuth } from '../../contexts/AuthContext'
 
 interface CabangItem {
   id: number
@@ -82,16 +83,28 @@ export default function RaportPage() {
 
   const [expandedSiswa, setExpandedSiswa] = useState<Set<number>>(new Set())
 
+  const { user } = useAuth()
+  const isAdminCabang = user?.role === 'ADMIN_CABANG'
+
   useEffect(() => {
     setLoading(true)
-    Promise.all([
-      api.get('/cabang'),
-      api.get('/batches'),
-    ]).then(([cabangRes, batchRes]) => {
-      setCabangs(cabangRes.data.data || cabangRes.data || [])
-      setBatches(batchRes.data.data || batchRes.data.batches || [])
-    }).catch(() => {}).finally(() => setLoading(false))
-  }, [])
+    const load = isAdminCabang
+      ? Promise.all([
+          adminCabangApi.myBranches(),
+          adminCabangApi.batches(),
+        ]).then(([cabangRes, batchRes]) => {
+          setCabangs(cabangRes.data?.data || cabangRes.data || [])
+          setBatches(batchRes.data?.data || batchRes.data || [])
+        })
+      : Promise.all([
+          api.get('/cabang'),
+          api.get('/batches'),
+        ]).then(([cabangRes, batchRes]) => {
+          setCabangs(cabangRes.data.data || cabangRes.data || [])
+          setBatches(batchRes.data.data || batchRes.data.batches || [])
+        })
+    load.catch(() => {}).finally(() => setLoading(false))
+  }, [isAdminCabang])
 
   const filteredBatches = selectedCabang
     ? batches.filter((b) => b.cabang_id === selectedCabang.id)

@@ -514,6 +514,14 @@ class AdminCabangController extends Controller
             ->whereIn('batch_id', $batchIds)
             ->where('status_pendaftaran', 'disetujui');
 
+        $batchOptions = (clone $query)->get()
+            ->groupBy('batch_id')
+            ->map(fn($items, $batchId) => [
+                'id' => $batchId,
+                'nama' => $items->first()->batch?->nama_batch ?? 'Batch #' . $batchId,
+            ])
+            ->values();
+
         if ($request->search) {
             $s = $request->search;
             $query->where(function ($q) use ($s) {
@@ -573,7 +581,8 @@ class AdminCabangController extends Controller
             ];
         });
 
-        $batchOptions = $pendaftar->groupBy('batch_id')
+        $batchOptions = (clone $query)->get()
+            ->groupBy('batch_id')
             ->map(fn($items, $batchId) => [
                 'id' => $batchId,
                 'nama' => $items->first()->batch?->nama_batch ?? 'Batch #' . $batchId,
