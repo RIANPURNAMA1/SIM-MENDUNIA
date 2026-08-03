@@ -85,11 +85,11 @@ export default function AdminCabangDataKandidat() {
 
   useEffect(() => { fetchData() }, [])
 
-  function fetchData(s?: string) {
+  function fetchData(s = search, b = filterBatch) {
     setLoading(true)
     const params: Record<string, string> = {}
     if (s) params.search = s
-    if (filterBatch) params.batch_id = filterBatch
+    if (b) params.batch_id = b
     adminCabangApi.kandidat(params)
       .then(res => {
         setKandidatList(res.data.kandidat || [])
@@ -110,16 +110,17 @@ export default function AdminCabangDataKandidat() {
   }
 
   function handleFilterBatch(e: React.ChangeEvent<HTMLSelectElement>) {
-    setFilterBatch(e.target.value)
+    const val = e.target.value
+    setFilterBatch(val)
     setPage(1)
-    fetchData(search)
+    fetchData(search, val)
   }
 
   function resetFilter() {
     setSearch('')
     setFilterBatch('')
     setPage(1)
-    fetchData()
+    fetchData('', '')
   }
 
   function startEdit(k: Kandidat) {

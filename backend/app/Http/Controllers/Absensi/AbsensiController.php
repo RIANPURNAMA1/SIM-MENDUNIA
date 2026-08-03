@@ -2315,7 +2315,7 @@ class AbsensiController extends Controller
             ->map(function ($item) use ($userRole) {
                 return [
                     'id' => $item->id,
-                    'tanggal' => $item->tanggal,
+                    'tanggal' => $item->tanggal ? $item->tanggal->toDateString() : $item->tanggal,
                     'jam_masuk' => $item->jam_masuk,
                     'jam_keluar' => $item->jam_keluar,
                     'status' => $item->status ? strtolower($item->status) : 'hadir',
