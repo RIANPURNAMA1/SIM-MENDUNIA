@@ -82,7 +82,9 @@ export default function IzinCutiPage() {
   }
 
   const formatDate = (t: string) => {
-    const d = new Date(t + 'T00:00:00')
+    if (!t) return '-'
+    const d = /^\d{4}-\d{2}-\d{2}$/.test(t) ? new Date(t + 'T00:00:00') : new Date(t)
+    if (isNaN(d.getTime())) return '-'
     return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
   }
 
