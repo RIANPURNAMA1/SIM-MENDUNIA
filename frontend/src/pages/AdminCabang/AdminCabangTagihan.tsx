@@ -8,7 +8,6 @@ function parseInput(v: string): number {
 }
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import { Link } from 'react-router-dom'
 import {
   FileText, Search, Receipt, CheckCircle, Clock, AlertCircle, RotateCcw,
   DollarSign, X, Save, Bell, Eye, Check, Loader, XCircle,
@@ -18,6 +17,7 @@ import api from '../../services/api'
 import { adminCabangApi, jadwalLevelApi, APP_URL } from '../../services/api'
 import Swal from 'sweetalert2'
 import { useAuth } from '../../contexts/AuthContext'
+import InvoiceModal from '../../components/InvoiceModal'
 
 interface KategoriInfo {
   id: number
@@ -140,6 +140,7 @@ export default function AdminCabangTagihan() {
   const [jadwalMap, setJadwalMap] = useState<Record<string, JadwalLevelEntry>>({})
   const [jadwalForm, setJadwalForm] = useState<Record<number, { tanggal_mulai: string; tanggal_selesai: string }>>({})
   const [jadwalSaving, setJadwalSaving] = useState<Record<number, boolean>>({})
+  const [invoiceId, setInvoiceId] = useState<number | null>(null)
 
   const pendingCount = Object.keys(pendingChanges).length
 
@@ -702,13 +703,13 @@ export default function AdminCabangTagihan() {
                         )}
                       </td>
                       <td className="border border-slate-200 px-4 py-3 text-center">
-                        <Link
-                          to={`/pendaftar/${p.id}/invoice`}
+                        <button
+                          onClick={() => setInvoiceId(p.id)}
                           className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600"
                           title="Invoice"
                         >
                           <FileText size={15} />
-                        </Link>
+                        </button>
                       </td>
                       <td className="border border-slate-200 px-4 py-3 text-center">
                         {isManager ? (
@@ -1214,6 +1215,8 @@ export default function AdminCabangTagihan() {
           </div>
         </div>
       )}
+
+      <InvoiceModal pendaftarId={invoiceId} onClose={() => setInvoiceId(null)} />
     </div>
   )
 }

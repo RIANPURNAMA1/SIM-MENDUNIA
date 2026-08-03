@@ -111,12 +111,13 @@ export default function DaftarProgram() {
 
   useEffect(() => {
     if (!slug) { setLoading(false); return; }
-    Promise.all([
-      productApi.getBySlug(slug),
-      paymentSettingApi.getPublicSettings().then(res => setPaymentSettings(res.data)).catch(() => {}),
-    ]).then(([prodRes]) => {
-      setSelectedProduct(prodRes.data);
-    }).catch(() => {}).finally(() => setLoading(false));
+    productApi.getBySlug(slug)
+      .then(res => setSelectedProduct(res.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+    paymentSettingApi.getPublicSettings()
+      .then(res => setPaymentSettings(res.data))
+      .catch(() => {});
   }, [slug]);
 
   const [provinsiLoaded, setProvinsiLoaded] = useState(false);

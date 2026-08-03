@@ -697,6 +697,7 @@ class WhatsAppService
 
     /**
      * Kirim notifikasi pendaftaran berhasil ke kandidat dengan link pembayaran
+     * (teks dapat diatur lewat template "welcome_wa")
      */
     public function sendRegistrationSuccessNotification($pendaftar)
     {
@@ -709,14 +710,44 @@ class WhatsAppService
         $noInvoice = 'INV/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . $pendaftar->created_at->format('Ym');
         $linkBayar = env('FRONTEND_URL', 'http://localhost:5173') . '/checkout-berhasil/' . $pendaftar->token;
 
-        $message = "Selamat, {$nama}!\n\n"
-            . "Pendaftaran Anda di program *{$program}* berhasil.\n\n"
-            . "*No. Registrasi:* {$noReg}\n"
-            . "*Invoice:* {$noInvoice}\n\n"
-            . "Silakan lakukan pembayaran melalui tautan berikut:\n"
-            . "🔗 {$linkBayar}\n\n"
-            . "Setelah transfer, upload bukti pembayaran di tautan tersebut agar segera diverifikasi.\n\n"
-            . "- Sistem SIM Mendunia";
+        if (!$pendaftar->relationLoaded('batch')) {
+            $pendaftar->load('batch');
+        }
+        $batchNama = $pendaftar->batch?->nama_batch ?? '-';
+
+        $company = \App\Models\CompanyProfile::getProfile();
+        $companyName = $company->company_name ?? 'MENDUNIA.ID';
+
+        $pendaftar->loadMissing('pembayaranItems');
+        $totalTransfer = $pendaftar->pembayaranItems->first()?->total_transfer ?? $this->getTotalTagihan($pendaftar);
+        $jatuhTempo = now()->addDays(1);
+
+        $rendered = \App\Models\NotificationTemplate::render('welcome_wa', [
+            'nama' => $nama,
+            'program' => $program,
+            'batch' => $batchNama,
+            'no_registrasi' => $noReg,
+            'total_transfer' => number_format($totalTransfer, 0, ',', '.'),
+            'jatuh_tempo' => $jatuhTempo->format('l, d F Y') . ' pukul ' . $jatuhTempo->format('H:i') . ' WIB',
+            'company_name' => $companyName,
+            'bank_nama' => $company->bank_nama ?? '-',
+            'bank_rekening' => $company->bank_nomor_rekening ?? '-',
+            'bank_pemilik' => $company->bank_pemilik ?? '-',
+            'konfirmasi_url' => $linkBayar,
+        ]);
+
+        if ($rendered) {
+            $message = $rendered['body'];
+        } else {
+            $message = "Selamat, {$nama}!\n\n"
+                . "Pendaftaran Anda di program *{$program}* berhasil.\n\n"
+                . "*No. Registrasi:* {$noReg}\n"
+                . "*Invoice:* {$noInvoice}\n\n"
+                . "Silakan lakukan pembayaran melalui tautan berikut:\n"
+                . "🔗 {$linkBayar}\n\n"
+                . "Setelah transfer, upload bukti pembayaran di tautan tersebut agar segera diverifikasi.\n\n"
+                . "- Sistem SIM Mendunia";
+        }
 
         $sent = $this->sendMessage($noHp, $message);
         $this->logNotification($pendaftar->id ?? null, 'registration_success', $noHp, $message, $sent);
