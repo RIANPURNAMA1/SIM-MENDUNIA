@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { CheckCircle2, XCircle, Loader2, ShieldCheck } from 'lucide-react'
 import axios from 'axios'
 
@@ -25,7 +25,9 @@ interface VerifikasiData {
 }
 
 export default function Verifikasi() {
-  const { noInvoice } = useParams()
+  const { noInvoice: noInvoiceParam } = useParams()
+  const [searchParams] = useSearchParams()
+  const noInvoice = searchParams.get('inv') || noInvoiceParam || ''
   const [data, setData] = useState<VerifikasiData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -34,7 +36,7 @@ export default function Verifikasi() {
     if (!noInvoice) return
     setLoading(true)
     axios
-      .get(`/api/verifikasi/${noInvoice}`)
+      .get('/api/verifikasi', { params: { inv: noInvoice } })
       .then((res) => {
         setData(res.data)
         setError(false)

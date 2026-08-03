@@ -3257,6 +3257,20 @@ class PendaftaranController extends Controller
         ]);
     }
 
+    public function verifikasiByQuery(Request $request)
+    {
+        $noInvoice = $request->query('inv');
+
+        if (!$noInvoice) {
+            return response()->json([
+                'valid' => false,
+                'message' => 'Parameter invoice tidak ditemukan.',
+            ], 422);
+        }
+
+        return $this->verifikasi($noInvoice);
+    }
+
     public function verifikasi($noInvoice)
     {
         $pendaftar = Pendaftar::with(['product', 'batch'])
