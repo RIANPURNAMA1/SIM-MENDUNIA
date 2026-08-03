@@ -23,7 +23,7 @@ export default function KelasSenseiPage() {
   const isAdminCabang = location.pathname.startsWith('/admin-cabang');
   const [data, setData] = useState<KelasSenseiData[]>([]);
   const [listSensei, setListSensei] = useState<{ id: number; name: string }[]>([]);
-  const [listBatch, setListBatch] = useState<{ id: number; nama_batch: string; warna?: string | null }[]>([]);
+  const [listBatch, setListBatch] = useState<{ id: number; nama_batch: string; warna?: string | null; cabang?: { id: number; nama_cabang: string } | null }[]>([]);
   const [gurus, setGurus] = useState<Guru[]>([]);
   const [jadwalLevels, setJadwalLevels] = useState<Record<string, { tanggal_mulai: string; tanggal_selesai: string }>>({});
   const [loading, setLoading] = useState(true);
@@ -257,7 +257,15 @@ export default function KelasSenseiPage() {
                 <tr key={item.id} className="bg-white transition hover:bg-slate-50">
                   <td className="border border-slate-200 px-3 py-2.5 text-center text-slate-400">{idx + 1}</td>
                   <td className="border border-slate-200 px-3 py-2.5">
-                    <span className="font-semibold text-slate-800">{item.batch_relasi?.nama_batch || item.nama_kelas}</span>
+                    <div className="flex flex-col">
+                      <span className="flex items-center gap-1.5 font-semibold text-slate-800">
+                        <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: item.batch_relasi?.warna || '#3b82f6' }} />
+                        {item.batch_relasi?.nama_batch || item.nama_kelas}
+                      </span>
+                      {item.batch_relasi?.cabang?.nama_cabang ? (
+                        <span className="mt-0.5 text-[10px] text-slate-400">{item.batch_relasi.cabang.nama_cabang}</span>
+                      ) : null}
+                    </div>
                   </td>
                   <td className="border border-slate-200 px-3 py-2.5">
                     <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-medium text-slate-500">{item.level || "-"}</span>
@@ -324,6 +332,7 @@ export default function KelasSenseiPage() {
                       <>
                         <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: selectedBatch.warna || '#3b82f6' }} />
                         <span className="truncate">{selectedBatch.nama_batch}</span>
+                        {selectedBatch.cabang?.nama_cabang ? <span className="ml-auto shrink-0 text-[10px] text-slate-400">{selectedBatch.cabang.nama_cabang}</span> : null}
                       </>
                     ) : (
                       <span className="text-slate-400">Pilih Batch</span>
@@ -341,7 +350,8 @@ export default function KelasSenseiPage() {
                           <button type="button" key={b.id} onClick={() => { setForm({ ...form, batch_id: String(b.id) }); setShowBatchDropdown(false); }}
                             className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-slate-50 ${String(b.id) === form.batch_id ? 'bg-blue-50 font-semibold' : ''}`}>
                             <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: b.warna || '#3b82f6' }} />
-                            {b.nama_batch}
+                            <span className="truncate">{b.nama_batch}</span>
+                            {b.cabang?.nama_cabang ? <span className="ml-auto shrink-0 text-[10px] text-slate-400">{b.cabang.nama_cabang}</span> : null}
                           </button>
                         ))}
                       </div>

@@ -911,7 +911,7 @@ class AdminCabangController extends Controller
     {
         $batchIds = $this->getBranchBatchIds();
 
-        $query = KelasSensei::with('user', 'batchRelasi')
+        $query = KelasSensei::with('user', 'batchRelasi.cabang')
             ->whereIn('batch_id', $batchIds);
 
         if ($request->user_id) $query->where('user_id', $request->user_id);
@@ -957,7 +957,7 @@ class AdminCabangController extends Controller
             return $kelasItem;
         });
 
-        $batches = Batch::whereIn('id', $batchIds)->orderBy('nama_batch')->get(['id', 'nama_batch']);
+        $batches = Batch::with('cabang')->whereIn('id', $batchIds)->orderBy('nama_batch')->get(['id', 'nama_batch', 'warna']);
 
         return response()->json([
             'success' => true,

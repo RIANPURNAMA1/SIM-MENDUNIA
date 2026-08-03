@@ -278,7 +278,7 @@ export const pengaturanShiftApi = {
 
 export const pengaturanWaApi = {
   get: () => api.get('/pengaturan-wa'),
-  update: (data: { settings: Record<string, boolean> }) => api.post('/pengaturan-wa', data),
+  update: (data: { settings: Record<string, { is_enabled: boolean; value?: string | null }> }) => api.post('/pengaturan-wa', data),
 }
 
 export const absensiKaryawanApi = {

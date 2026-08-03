@@ -471,6 +471,11 @@ export interface KelasSenseiData {
     id: number
     nama_batch: string
     status: string
+    warna?: string | null
+    cabang?: {
+      id: number
+      nama_cabang: string
+    } | null
   } | null
 }
 
