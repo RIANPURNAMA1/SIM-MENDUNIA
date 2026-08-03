@@ -83,10 +83,34 @@ interface BatchGroup {
   kategoris: KategoriInfo[]
   kategoriColumns: KategoriColumn[]
   items: TagihanItem[]
+  totalPendaftar: number
+  totalTagihan: number
+  totalDibayar: number
+  totalSisa: number
+  hasPending: boolean
+}
+
+interface BatchGroupMeta {
+  batch_id: number
+  nama_batch: string
+  warna: string | null
+  total_pendaftar: number
+  total_tagihan: number
+  total_dibayar: number
+  total_sisa: number
+  kategori_ids: number[]
+  has_pending: boolean
+}
+
+interface CandidatePage {
+  items: TagihanItem[]
+  page: number
+  totalPages: number
+  total: number
+  loading: boolean
 }
 
 export default function Tagihan() {
-  const [data, setData] = useState<TagihanItem[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
@@ -114,13 +138,20 @@ export default function Tagihan() {
   const [confirmRejectId, setConfirmRejectId] = useState<number | null>(null)
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const [collapsedBatches, setCollapsedBatches] = useState<Set<number>>(new Set())
-  const [batchPages, setBatchPages] = useState<Record<number, number>>({})
+  const [groupsMeta, setGroupsMeta] = useState<BatchGroupMeta[]>([])
+  const [candidates, setCandidates] = useState<Record<number, CandidatePage>>({})
+  const [stats, setStats] = useState({ total: 0, paid: 0, outstanding: 0, count: 0 })
+  const [batchPage, setBatchPage] = useState(1)
+  const [batchTotalPages, setBatchTotalPages] = useState(1)
+  const [batchTotal, setBatchTotal] = useState(0)
   const [uniqueCodeOp, setUniqueCodeOp] = useState<string>('add')
   const [openActionId, setOpenActionId] = useState<number | null>(null)
   const [selectedLunasIds, setSelectedLunasIds] = useState<Set<number>>(new Set())
   const [bulkLunasLoading, setBulkLunasLoading] = useState(false)
   const actionRef = useRef<HTMLDivElement>(null)
   const batchPerPage = 5
+  const candidatePerPage = 5
+  const isFirstRender = useRef(true)
 
   const pendingCount = Object.keys(pendingChanges).length
 
@@ -132,13 +163,11 @@ export default function Tagihan() {
 
   useEffect(() => {
     Promise.all([
-      pendaftarApi.list({}),
       api.get('/biaya-kategori-flat'),
       batchApi.list(),
       productApi.list(),
       api.get('/payment-settings'),
-    ]).then(([res, katRes, batchRes, prodRes, settingsRes]) => {
-      setData(res.data)
+    ]).then(([katRes, batchRes, prodRes, settingsRes]) => {
       setKategoris((() => {
         const all = katRes.data || []
         const childrenOf = new Map<number | null, KategoriInfo[]>()
@@ -163,8 +192,8 @@ export default function Tagihan() {
       setBatches(batchRes.data?.data || batchRes.data || [])
       setProducts(prodRes.data || [])
       setUniqueCodeOp(settingsRes.data?.unique_code_operation?.value ?? 'add')
-      setLoading(false)
-    }).catch(() => setLoading(false))
+    }).catch(() => {})
+    fetchGroups(1)
     fetchPendingPembayaran()
 
     const interval = setInterval(() => {
@@ -196,55 +225,64 @@ export default function Tagihan() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const filtered = useMemo(() => {
-    const result = data.filter(p => {
-      const matchSearch = !search || p.nama.toLowerCase().includes(search.toLowerCase()) || p.email.toLowerCase().includes(search.toLowerCase())
-      const matchStatus = !filterStatus || p.status_pembayaran === filterStatus
-      const matchBatch = !filterBatch || String(p.batch?.id) === filterBatch
-      const matchProduct = !filterProduct || String(p.product?.nama) === filterProduct
-      const d = new Date(p.created_at); d.setHours(0, 0, 0, 0)
-      const from = filterDateFrom ? new Date(filterDateFrom) : null
-      if (from) from.setHours(0, 0, 0, 0)
-      const to = filterDateTo ? new Date(filterDateTo) : null
-      if (to) to.setHours(23, 59, 59, 999)
-      const matchDate = (!from || d >= from) && (!to || d <= to)
-      return matchSearch && matchStatus && matchBatch && matchProduct && matchDate
-    })
-    return result.sort((a, b) => {
-      const aHasPending = pendingPembayaran.some((pp: any) => pp.pendaftar_id === a.id) ? 0 : 1
-      const bHasPending = pendingPembayaran.some((pp: any) => pp.pendaftar_id === b.id) ? 0 : 1
-      return aHasPending - bHasPending
-    })
-  }, [data, search, filterStatus, filterBatch, filterProduct, filterDateFrom, filterDateTo, pendingPembayaran])
+  const filterParams = useCallback(() => ({
+    search: search.trim() || undefined,
+    status: filterStatus || undefined,
+    batch_id: filterBatch || undefined,
+    product_id: filterProduct || undefined,
+    date_from: filterDateFrom || undefined,
+    date_to: filterDateTo || undefined,
+  }), [search, filterStatus, filterBatch, filterProduct, filterDateFrom, filterDateTo])
 
-  const batchGroups = useMemo<BatchGroup[]>(() => {
-    const groupMap = new Map<number, BatchGroup>()
-    const order: number[] = []
+  const fetchCandidates = useCallback(async (batchId: number, page: number) => {
+    setCandidates(prev => ({
+      ...prev,
+      [batchId]: { items: prev[batchId]?.items || [], page, totalPages: prev[batchId]?.totalPages || 1, total: prev[batchId]?.total || 0, loading: true },
+    }))
+    try {
+      const res = await pendaftarApi.tagihanBatch(batchId, { ...filterParams(), page, per_page: candidatePerPage })
+      setCandidates(prev => ({
+        ...prev,
+        [batchId]: { items: res.data.kandidat || [], page: res.data.page || 1, totalPages: res.data.total_pages || 1, total: res.data.total || 0, loading: false },
+      }))
+    } catch (err) {
+      console.error(err)
+      setCandidates(prev => ({
+        ...prev,
+        [batchId]: { items: prev[batchId]?.items || [], page, totalPages: prev[batchId]?.totalPages || 1, total: prev[batchId]?.total || 0, loading: false },
+      }))
+    }
+  }, [filterParams])
 
-    filtered.forEach(p => {
-      const bid = p.batch?.id || 0
-      if (!groupMap.has(bid)) {
-        order.push(bid)
-        groupMap.set(bid, {
-          batchId: bid,
-          batchName: p.batch?.nama_batch || 'Tanpa Batch',
-          batchWarna: p.batch?.warna ?? null,
-          kategoris: [],
-          kategoriColumns: [],
-          items: [],
-        })
-      }
-      groupMap.get(bid)!.items.push(p)
-    })
+  const fetchGroups = useCallback(async (page: number) => {
+    setLoading(true)
+    try {
+      const res = await pendaftarApi.tagihanGroups({ ...filterParams(), page, per_page: batchPerPage })
+      const batches = res.data.batches || []
+      setGroupsMeta(batches)
+      setStats(res.data.stats || { total: 0, paid: 0, outstanding: 0, count: 0 })
+      setBatchTotalPages(res.data.total_pages || 1)
+      setBatchTotal(res.data.total || 0)
+      await Promise.all(batches.map((b: BatchGroupMeta) => fetchCandidates(b.batch_id, 1)))
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }, [filterParams, fetchCandidates])
 
-    groupMap.forEach((group) => {
-      const usedIds = new Set<number>()
-      group.items.forEach(p => {
-        p.detail?.forEach(d => {
-          if (d.biaya > 0) usedIds.add(d.kategori_id)
-        })
-      })
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    setBatchPage(1)
+    fetchGroups(1)
+  }, [filterParams])
 
+  const renderGroups = useMemo<BatchGroup[]>(() => {
+    return groupsMeta.map(meta => {
+      const usedIds = new Set<number>(meta.kategori_ids || [])
       const columns: KategoriColumn[] = []
       const matchedIds = new Set<number>()
 
@@ -255,49 +293,45 @@ export default function Tagihan() {
         }
       }
 
-      group.kategoris = columns.map(c => c.kategori)
-      group.kategoriColumns = columns
-    })
-
-    const hasPending = (bid: number) => {
-      const group = groupMap.get(bid)
-      if (!group) return false
-      return group.items.some(item =>
-        pendingPembayaran.some((pp: any) => pp.pendaftar_id === item.id)
-      )
-    }
-    return order.map(id => groupMap.get(id)!).sort((a, b) => {
-      const aPending = hasPending(a.batchId) ? 0 : 1
-      const bPending = hasPending(b.batchId) ? 0 : 1
-      if (aPending !== bPending) return aPending - bPending
-      return b.batchId - a.batchId
-    })
-  }, [filtered, kategoris, pendingPembayaran])
-
-  const stats = useMemo(() => {
-    let total = 0
-    let paid = 0
-    for (const p of data) {
-      const details = p.detail || []
-      if (details.length > 0) {
-        for (const d of details) {
-          const biaya = Number(d.biaya || 0)
-          if (biaya <= 0) continue
-          total += biaya
-          paid += Number(d.dibayar || 0)
-        }
-      } else {
-        total += Number(p.product?.harga || 0) - Number(p.diskon || 0)
-        paid += Number(p.nominal || 0)
+      return {
+        batchId: meta.batch_id,
+        batchName: meta.nama_batch,
+        batchWarna: meta.warna,
+        kategoris: columns.map(c => c.kategori),
+        kategoriColumns: columns,
+        items: candidates[meta.batch_id]?.items || [],
+        totalPendaftar: meta.total_pendaftar,
+        totalTagihan: meta.total_tagihan,
+        totalDibayar: meta.total_dibayar,
+        totalSisa: meta.total_sisa,
+        hasPending: meta.has_pending,
       }
+    })
+  }, [groupsMeta, kategoris, candidates])
+
+  const goBatchPage = (page: number) => {
+    if (page < 1 || page > batchTotalPages || page === batchPage) return
+    setBatchPage(page)
+    fetchGroups(page)
+  }
+
+  const pageNumbers = useMemo(() => {
+    const pages: (number | string)[] = []
+    const total = batchTotalPages
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) pages.push(i)
+    } else {
+      const current = batchPage
+      pages.push(1)
+      if (current > 3) pages.push('...')
+      const start = Math.max(2, current - 1)
+      const end = Math.min(total - 1, current + 1)
+      for (let i = start; i <= end; i++) pages.push(i)
+      if (current < total - 2) pages.push('...')
+      pages.push(total)
     }
-    return {
-      total,
-      paid,
-      outstanding: total - paid,
-      count: data.length,
-    }
-  }, [data])
+    return pages
+  }, [batchTotalPages, batchPage])
 
   const getDibayar = (p: TagihanItem, kategoriId: number): number => {
     const key = `${p.id}_${kategoriId}`
@@ -364,8 +398,7 @@ export default function Tagihan() {
         )
       )
       setPendingChanges({})
-      const res = await pendaftarApi.list({})
-      setData(res.data)
+      await fetchGroups(batchPage)
     } catch (err) {
       console.error(err)
     } finally {
@@ -387,18 +420,15 @@ export default function Tagihan() {
   }
 
   const refreshAll = useCallback(async () => {
-    const [dataRes, pendingRes] = await Promise.all([
-      pendaftarApi.list({}),
-      api.get('/pembayaran-pending'),
-    ])
-    setData(dataRes.data)
+    const pendingRes = await api.get('/pembayaran-pending')
     const newPending = pendingRes.data.data || []
     setPendingPembayaran(newPending)
     if (newPending.length === 0) {
       setShowPendingModal(false)
       setSelectedPendingPendaftarId(null)
     }
-  }, [])
+    await fetchGroups(batchPage)
+  }, [fetchGroups, batchPage])
 
   async function handleVerifyPembayaran(id: number) {
     setVerifyingId(id)
@@ -430,17 +460,19 @@ export default function Tagihan() {
   const renderBatchTable = (group: BatchGroup) => {
     const { batchId, batchName, kategoris: kats, kategoriColumns, items } = group
     const isCollapsed = collapsedBatches.has(batchId)
-    const groupTagihan = items.reduce((sum, p) => sum + calcRow(p, kats).tagihan, 0)
-    const groupDibayar = items.reduce((sum, p) => sum + calcRow(p, kats).dibayar, 0)
-    const groupSisa = Math.max(0, groupTagihan - groupDibayar)
-
-    const currentPage = batchPages[batchId] || 1
-    const totalPages = Math.max(1, Math.ceil(items.length / batchPerPage))
+    const groupTagihan = group.totalTagihan
+    const groupDibayar = group.totalDibayar
+    const groupSisa = group.totalSisa
+    const cand = candidates[batchId]
+    const currentPage = cand?.page || 1
+    const totalPages = Math.max(1, cand?.totalPages || 1)
     const safePage = Math.min(currentPage, totalPages)
-    const pagedItems = items.slice((safePage - 1) * batchPerPage, safePage * batchPerPage)
+    const pagedItems = items
+    const isLoading = cand?.loading
 
     const setPage = (page: number) => {
-      setBatchPages(prev => ({ ...prev, [batchId]: page }))
+      if (page < 1 || page > totalPages || page === safePage) return
+      fetchCandidates(batchId, page)
     }
 
     return (
@@ -452,7 +484,7 @@ export default function Tagihan() {
             else next.add(batchId)
             return next
           })}
-          className="w-full flex items-center justify-between px-4 py-3 bg-white hover:bg-slate-50 transition-colors"
+          className={`w-full flex items-center justify-between px-4 py-3 transition-colors ${group.hasPending ? 'bg-red-50 hover:bg-red-100/60' : 'bg-white hover:bg-slate-50'}`}
         >
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: group.batchWarna || '#0E6187' }}>
@@ -461,8 +493,11 @@ export default function Tagihan() {
             <div className="text-left">
               <h3 className="text-sm font-bold text-slate-800">
                 <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold text-white" style={{ backgroundColor: group.batchWarna || '#0E6187' }}>{batchName}</span>
+                {group.hasPending && (
+                  <span className="ml-2 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-600">ada pengajuan</span>
+                )}
               </h3>
-              <p className="text-xs text-slate-500">{items.length} pendaftar</p>
+              <p className="text-xs text-slate-500">{group.totalPendaftar} pendaftar</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -533,7 +568,17 @@ export default function Tagihan() {
                   </tr>
                 </thead>
               <tbody>
-                {pagedItems.map(p => {
+                {isLoading && (
+                  <tr>
+                    <td colSpan={kategoriColumns.length + 6} className="border border-slate-200 px-4 py-8 text-center text-sm text-slate-400">
+                      <div className="flex items-center justify-center gap-2">
+                        <Loader size={16} className="animate-spin text-[#0E6187]" />
+                        Memuat data...
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                {!isLoading && pagedItems.map(p => {
                   const { tagihan, dibayar, sisa } = calcRow(p, kats)
                   return (
                     <tr key={p.id} className={`transition ${p.is_cuti ? 'bg-yellow-100 hover:bg-yellow-200/70' : p.status_kandidat === 'Mengundurkan Diri' ? 'bg-red-100 hover:bg-red-200/70' : 'bg-white hover:bg-slate-50'} ${selectedLunasIds.has(p.id) ? '!bg-blue-50/50' : ''}`}>
@@ -699,6 +744,7 @@ export default function Tagihan() {
                   )
                 })}
               </tbody>
+              {!isLoading && (
               <tfoot>
                 <tr className="bg-slate-50 font-semibold text-sm">
                   <td className="border border-slate-200 px-4 py-3" colSpan={kategoriColumns.length + 1}>
@@ -707,14 +753,15 @@ export default function Tagihan() {
                   <td className="border border-slate-200 px-4 py-3 text-right text-slate-800">Rp {fmt(groupTagihan)}</td>
                   <td className="border border-slate-200 px-4 py-3 text-right text-emerald-700">Rp {fmt(groupDibayar)}</td>
                   <td className="border border-slate-200 px-4 py-3 text-right text-red-600">{groupSisa > 0 ? `Rp ${fmt(groupSisa)}` : '-'}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-center text-slate-500">{items.length} orang</td>
+                  <td className="border border-slate-200 px-4 py-3 text-center text-slate-500">{group.totalPendaftar} orang</td>
                 </tr>
               </tfoot>
+              )}
             </table>
-            {items.length > batchPerPage && (
+            {!isLoading && totalPages > 1 && (
               <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3">
                 <span className="text-sm text-slate-500">
-                  Menampilkan {pagedItems.length} dari {items.length} pendaftar
+                  Menampilkan {pagedItems.length} dari {cand?.total || pagedItems.length} pendaftar
                 </span>
                 <div className="flex items-center gap-1">
                   <button
@@ -724,7 +771,37 @@ export default function Tagihan() {
                   >
                     <ChevronLeft size={16} />
                   </button>
-                  <span className="min-w-[32px] text-center text-sm font-medium text-slate-600">{safePage} / {totalPages}</span>
+                  {(() => {
+                    const pages: (number | string)[] = []
+                    if (totalPages <= 7) {
+                      for (let i = 1; i <= totalPages; i++) pages.push(i)
+                    } else {
+                      pages.push(1)
+                      if (safePage > 3) pages.push('...')
+                      const start = Math.max(2, safePage - 1)
+                      const end = Math.min(totalPages - 1, safePage + 1)
+                      for (let i = start; i <= end; i++) pages.push(i)
+                      if (safePage < totalPages - 2) pages.push('...')
+                      pages.push(totalPages)
+                    }
+                    return pages.map((pg: number | string, i: number) =>
+                      typeof pg !== 'number' ? (
+                        <span key={`e${i}`} className="px-1 text-sm text-slate-400">…</span>
+                      ) : (
+                        <button
+                          key={pg}
+                          onClick={() => setPage(pg)}
+                          className={`min-w-[32px] rounded-md border px-2 py-1 text-center text-sm transition ${
+                            pg === safePage
+                              ? 'border-[#0E6187] bg-[#0E6187] font-medium text-white'
+                              : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                          }`}
+                        >
+                          {pg}
+                        </button>
+                      )
+                    )
+                  })()}
                   <button
                     onClick={() => setPage(safePage + 1)}
                     disabled={safePage >= totalPages}
@@ -903,7 +980,7 @@ export default function Tagihan() {
             <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
           </div>
         </div>
-      ) : batchGroups.length === 0 ? (
+      ) : renderGroups.length === 0 ? (
         <div className="rounded-lg border border-slate-200 bg-white px-6 py-10 text-center shadow-sm">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
             <Receipt size={24} />
@@ -911,19 +988,61 @@ export default function Tagihan() {
           <p className="mt-3 text-sm font-medium text-slate-600">Tidak ada tagihan ditemukan</p>
         </div>
       ) : (
-        batchGroups.map(group => renderBatchTable(group))
+        renderGroups.map(group => renderBatchTable(group))
       )}
 
       {/* Summary */}
-      {!loading && batchGroups.length > 0 && (
+      {!loading && renderGroups.length > 0 && (
         <div className="mt-2 flex items-center justify-between">
           <p className="text-sm text-slate-500">
-            {batchGroups.length} batch &middot; {filtered.length} pendaftar
+            {batchTotal} batch &middot; {stats.count} pendaftar
           </p>
           <div className="flex items-center gap-3 text-[10px] text-slate-500">
             <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-600" /> Lunas</span>
             <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500" /> Belum Lunas</span>
             <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-300" /> Belum Bayar</span>
+          </div>
+        </div>
+      )}
+
+      {/* Batch list pagination */}
+      {!loading && renderGroups.length > 0 && batchTotalPages > 1 && (
+        <div className="mt-4 flex items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm">
+          <span className="text-sm text-slate-500">
+            Halaman {batchPage} dari {batchTotalPages}
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => goBatchPage(batchPage - 1)}
+              disabled={batchPage <= 1}
+              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            {pageNumbers.map((pg: number | string, i: number) =>
+              typeof pg !== 'number' ? (
+                <span key={`e${i}`} className="px-1 text-sm text-slate-400">…</span>
+              ) : (
+                <button
+                  key={pg}
+                  onClick={() => goBatchPage(pg)}
+                  className={`min-w-[32px] rounded-md border px-2 py-1 text-center text-sm transition ${
+                    pg === batchPage
+                      ? 'border-[#0E6187] bg-[#0E6187] font-medium text-white'
+                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  {pg}
+                </button>
+              )
+            )}
+            <button
+              onClick={() => goBatchPage(batchPage + 1)}
+              disabled={batchPage >= batchTotalPages}
+              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <ChevronRight size={16} />
+            </button>
           </div>
         </div>
       )}
@@ -1018,8 +1137,7 @@ export default function Tagihan() {
                           kategori_id: item.kategori_id,
                         })
                       }
-                      const res = await pendaftarApi.list({})
-                      setData(res.data)
+                      await fetchGroups(batchPage)
                       setModalBayar(null)
                     } catch (err: any) {
                       const msg = err?.response?.data?.message || err?.message || 'Terjadi kesalahan'
