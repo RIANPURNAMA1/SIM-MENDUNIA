@@ -989,21 +989,22 @@ class PendaftaranController extends Controller
                 ->update(['status' => $data['status_pembayaran']]);
         }
 
-        // Kirim notifikasi (WA + Email) ke kandidat secara ASYNC (afterResponse)
-        // agar request cepat selesai dan alert admin langsung tampil.
+        // Kirim notifikasi (WA + Email) ke kandidat.
+        // Dijalankan sinkron (dibungkus try/catch) karena JsonResponse tidak
+        // mendukung afterResponse() — sebelumnya method ini selalu melempar
+        // "Method JsonResponse::afterResponse does not exist" dan notifikasi tidak pernah terkirim.
         $pendaftarId = $pendaftar->id;
 
-        return response()->json(['message' => 'Status berhasil diperbarui'])
-            ->afterResponse(function () use ($pendaftarId, $data) {
-                try {
-                    $fresh = \App\Models\Pendaftar::with(['product', 'batch', 'user'])->find($pendaftarId);
-                    if ($fresh) {
-                        $this->sendStatusNotifications($fresh, $data);
-                    }
-                } catch (\Exception $e) {
-                    Log::error('Gagal kirim notifikasi status (afterResponse): ' . $e->getMessage());
-                }
-            });
+        try {
+            $fresh = \App\Models\Pendaftar::with(['product', 'batch', 'user'])->find($pendaftarId);
+            if ($fresh) {
+                $this->sendStatusNotifications($fresh, $data);
+            }
+        } catch (\Exception $e) {
+            Log::error('Gagal kirim notifikasi status: ' . $e->getMessage());
+        }
+
+        return response()->json(['message' => 'Status berhasil diperbarui']);
     }
 
     /**
