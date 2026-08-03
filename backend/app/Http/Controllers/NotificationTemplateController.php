@@ -164,7 +164,7 @@ class NotificationTemplateController extends Controller
                 'body' => "Halo *{nama}*! 👋\n\nPendaftaran kamu di *{company_name}* berhasil!\n\n📋 No. Registrasi: {no_registrasi}\n📚 Program: {program} ({batch})\n💰 Total Transfer: Rp {total_transfer}\n⏰ Jatuh Tempo: {jatuh_tempo}\n\n🏦 Transfer ke:\n{bank_nama} a.n {bank_pemilik}\nNo. Rekening: {bank_rekening}\n\n✅ Konfirmasi Pembayaran:\n{konfirmasi_url}\n\n*Email ini dikirim otomatis oleh {company_name}*",
             ],
             'admin_new_registration_wa' => [
-                'name' => 'WA Admin - Pendaftar Baru',
+                'name' => 'WA Pendaftar Baru (ke Admin)',
                 'description' => 'Dikirim via WhatsApp ke admin saat ada pendaftaran baru',
                 'channel' => 'whatsapp',
                 'subject' => null,
