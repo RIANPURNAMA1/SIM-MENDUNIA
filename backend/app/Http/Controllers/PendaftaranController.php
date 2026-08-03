@@ -824,14 +824,12 @@ class PendaftaranController extends Controller
             $sr = $data['status_pendaftaran'] ?? null;
 
             $info = match (true) {
-                $sp === 'refund' => ['label' => 'Refund', 'subject' => 'Pembayaran Direfund', 'bg' => '#F8FAFC', 'color' => '#64748B', 'border' => '#E2E8F0', 'template' => 'payment_refund', 'wa_template' => 'payment_refund_wa'],
                 $sp === 'verified' => ['label' => 'Pembayaran Dikonfirmasi', 'subject' => 'Pembayaran Berhasil', 'bg' => '#F0FDF4', 'color' => '#16A34A', 'border' => '#BBF7D0', 'template' => 'payment_verified', 'wa_template' => 'payment_verified_wa'],
                 $sp === 'ditolak' && $sr === 'ditolak' => ['label' => 'Ditolak', 'subject' => 'Pendaftaran Ditolak', 'bg' => '#FEF2F2', 'color' => '#DC2626', 'border' => '#FECACA', 'template' => 'status_rejected', 'wa_template' => 'status_rejected_wa'],
                 $sr === 'disetujui' => ['label' => 'Disetujui', 'subject' => 'Pendaftaran Disetujui', 'bg' => '#F0FDF4', 'color' => '#16A34A', 'border' => '#BBF7D0', 'template' => 'status_approved', 'wa_template' => 'status_approved_wa'],
                 $sr === 'pending' && $sp === 'processing' => ['label' => 'Menunggu Verifikasi', 'subject' => 'Status Pendaftaran Diubah', 'bg' => '#FFFBEB', 'color' => '#D97706', 'border' => '#FDE68A', 'template' => 'status_pending', 'wa_template' => 'status_pending_wa'],
                 $sp === 'unpaid' => ['label' => 'Menunggu Pembayaran', 'subject' => 'Menunggu Pembayaran', 'bg' => '#FFFBEB', 'color' => '#D97706', 'border' => '#FDE68A', 'template' => 'payment_unpaid', 'wa_template' => 'payment_unpaid_wa'],
-                $sp === 'processing' => ['label' => 'Pembayaran Diverifikasi', 'subject' => 'Pembayaran Diverifikasi', 'bg' => '#EFF6FF', 'color' => '#2563EB', 'border' => '#BFDBFE', 'template' => 'payment_processing', 'wa_template' => 'payment_processing_wa'],
-                $sp === 'pending' => ['label' => 'Pembayaran Diproses', 'subject' => 'Pembayaran Diproses', 'bg' => '#EFF6FF', 'color' => '#2563EB', 'border' => '#BFDBFE', 'template' => 'payment_pending', 'wa_template' => 'payment_pending_wa'],
+$sp === 'processing' => ['label' => 'Pembayaran Diverifikasi', 'subject' => 'Pembayaran Diverifikasi', 'bg' => '#EFF6FF', 'color' => '#2563EB', 'border' => '#BFDBFE', 'template' => 'payment_processing', 'wa_template' => 'payment_processing_wa'],
                 $sr === 'pending' => ['label' => 'Menunggu Verifikasi', 'subject' => 'Status Pendaftaran Diubah', 'bg' => '#FFFBEB', 'color' => '#D97706', 'border' => '#FDE68A', 'template' => 'status_pending', 'wa_template' => 'status_pending_wa'],
                 $sp === 'ditolak' => ['label' => 'Pembayaran Ditolak', 'subject' => 'Pembayaran Ditolak', 'bg' => '#FEF2F2', 'color' => '#DC2626', 'border' => '#FECACA', 'template' => 'payment_rejected', 'wa_template' => 'payment_rejected_wa'],
                 default => ['label' => 'Diperbarui', 'subject' => 'Status Diperbarui', 'bg' => '#F8FAFC', 'color' => '#64748B', 'border' => '#E2E8F0', 'template' => '', 'wa_template' => ''],

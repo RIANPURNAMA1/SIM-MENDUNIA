@@ -13,6 +13,7 @@ import {
   EyeOff,
   Mail,
   MessageSquare,
+  Trash2,
 } from 'lucide-react'
 
 interface Template {
@@ -83,6 +84,19 @@ export default function DataTemplateNotifikasi() {
       setTimeout(() => setSuccessMsg(''), 3000)
     } catch {
       setErrorMsg('Gagal mereset template')
+    }
+  }
+
+  const handleDelete = async (tmpl: Template) => {
+    if (!confirm(`Yakin ingin menghapus template "${tmpl.name}"?`)) return
+    setSuccessMsg(''); setErrorMsg('')
+    try {
+      await api.delete(`/notification-templates/${tmpl.id}`)
+      setTemplates(prev => prev.filter(t => t.id !== tmpl.id))
+      setSuccessMsg(`Template "${tmpl.name}" berhasil dihapus`)
+      setTimeout(() => setSuccessMsg(''), 3000)
+    } catch {
+      setErrorMsg('Gagal menghapus template')
     }
   }
 
@@ -276,6 +290,13 @@ export default function DataTemplateNotifikasi() {
                   >
                     <RotateCcw size={14} />
                     Reset ke Default
+                  </button>
+                  <button
+                    onClick={() => handleDelete(tmpl)}
+                    className="flex items-center gap-2 px-4 py-2.5 border border-red-200 text-red-600 rounded-xl text-sm font-medium hover:bg-red-50 transition-colors"
+                  >
+                    <Trash2 size={14} />
+                    Hapus
                   </button>
                 </div>
               </div>
