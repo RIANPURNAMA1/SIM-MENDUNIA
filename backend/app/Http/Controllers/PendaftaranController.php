@@ -811,89 +811,107 @@ class PendaftaranController extends Controller
                 ->update(['status' => $data['status_pembayaran']]);
         }
 
-        // Kirim notifikasi (WA + Email) ke kandidat saat status berubah
-        if (isset($data['status_pembayaran']) || isset($data['status_pendaftaran'])) {
-            $nama = $pendaftar->nama;
-            $noReg = $pendaftar->no_registrasi ?? '-';
-            $program = $pendaftar->product?->nama ?? '-';
-            $company = \App\Models\CompanyProfile::getProfile();
-            $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
-            $waktu = now()->format('d F Y H:i');
+        // Kirim notifikasi (WA + Email) ke kandidat secara ASYNC (afterResponse)
+        // agar request cepat selesai dan alert admin langsung tampil.
+        $pendaftarId = $pendaftar->id;
 
-            $sp = $data['status_pembayaran'] ?? null;
-            $sr = $data['status_pendaftaran'] ?? null;
-
-            $info = match (true) {
-                $sp === 'verified' => ['label' => 'Pembayaran Dikonfirmasi', 'subject' => 'Pembayaran Berhasil', 'bg' => '#F0FDF4', 'color' => '#16A34A', 'border' => '#BBF7D0', 'template' => 'payment_verified', 'wa_template' => 'payment_verified_wa'],
-                $sp === 'ditolak' && $sr === 'ditolak' => ['label' => 'Ditolak', 'subject' => 'Pendaftaran Ditolak', 'bg' => '#FEF2F2', 'color' => '#DC2626', 'border' => '#FECACA', 'template' => 'status_rejected', 'wa_template' => 'status_rejected_wa'],
-                $sr === 'disetujui' => ['label' => 'Disetujui', 'subject' => 'Pendaftaran Disetujui', 'bg' => '#F0FDF4', 'color' => '#16A34A', 'border' => '#BBF7D0', 'template' => 'status_approved', 'wa_template' => 'status_approved_wa'],
-                $sr === 'pending' && $sp === 'processing' => ['label' => 'Menunggu Verifikasi', 'subject' => 'Status Pendaftaran Diubah', 'bg' => '#FFFBEB', 'color' => '#D97706', 'border' => '#FDE68A', 'template' => 'status_pending', 'wa_template' => 'status_pending_wa'],
-                $sp === 'unpaid' => ['label' => 'Menunggu Pembayaran', 'subject' => 'Menunggu Pembayaran', 'bg' => '#FFFBEB', 'color' => '#D97706', 'border' => '#FDE68A', 'template' => 'payment_unpaid', 'wa_template' => 'payment_unpaid_wa'],
-$sp === 'processing' => ['label' => 'Pembayaran Diverifikasi', 'subject' => 'Pembayaran Diverifikasi', 'bg' => '#EFF6FF', 'color' => '#2563EB', 'border' => '#BFDBFE', 'template' => 'payment_processing', 'wa_template' => 'payment_processing_wa'],
-                $sr === 'pending' => ['label' => 'Menunggu Verifikasi', 'subject' => 'Status Pendaftaran Diubah', 'bg' => '#FFFBEB', 'color' => '#D97706', 'border' => '#FDE68A', 'template' => 'status_pending', 'wa_template' => 'status_pending_wa'],
-                $sp === 'ditolak' => ['label' => 'Pembayaran Ditolak', 'subject' => 'Pembayaran Ditolak', 'bg' => '#FEF2F2', 'color' => '#DC2626', 'border' => '#FECACA', 'template' => 'payment_rejected', 'wa_template' => 'payment_rejected_wa'],
-                default => ['label' => 'Diperbarui', 'subject' => 'Status Diperbarui', 'bg' => '#F8FAFC', 'color' => '#64748B', 'border' => '#E2E8F0', 'template' => '', 'wa_template' => ''],
-            };
-
-            $statusLabel = $info['label'];
-            $subject = "[SIM Mendunia] {$info['subject']} - {$nama}";
-            $templateKey = $info['template'];
-            $waTemplateKey = $info['wa_template'];
-
-            $templateVars = [
-                'nama' => $nama,
-                'program' => $program,
-                'no_registrasi' => $noReg,
-                'status' => $statusLabel,
-                'waktu' => $waktu,
-                'company_name' => $company->company_name ?? 'MENDUNIA.ID',
-                'login_url' => $frontendUrl . '/login',
-                'link_grup' => $pendaftar->batch?->link_grup ?? '',
-                'total_transfer' => number_format((int) $pendaftar->nominal, 0, ',', '.'),
-                'jatuh_tempo' => '1×24 jam sejak invoice diterbitkan',
-                'bank_nama' => $company->bank_nama ?? '-',
-                'bank_rekening' => $company->bank_nomor_rekening ?? '-',
-                'bank_pemilik' => $company->bank_pemilik ?? '-',
-                'konfirmasi_url' => $pendaftar->token ? $frontendUrl . '/checkout-berhasil/' . $pendaftar->token : $frontendUrl . '/login',
-            ];
-
-            // Email
-            try {
-                if ($pendaftar->email) {
-                    $rendered = $templateKey ? \App\Models\NotificationTemplate::render($templateKey, $templateVars) : null;
-                    Mail::send('emails.status-update', [
-                        'company' => $company,
-                        'logoUrl' => $frontendUrl . '/logo-sm.png',
-                        'nama' => $nama,
-                        'statusLabel' => $statusLabel,
-                        'badgeBg' => $info['bg'],
-                        'badgeColor' => $info['color'],
-                        'badgeBorder' => $info['border'],
-                        'waktu' => $waktu,
-                        'loginUrl' => $frontendUrl . '/login',
-                        'bodyContent' => $rendered['body'] ?? "Status pendaftaran Anda telah diperbarui.\n\nStatus: {$statusLabel}\nProgram: {$program}\nNo. Registrasi: {$noReg}\nWaktu: {$waktu}",
-                    ], function ($message) use ($pendaftar, $rendered, $subject) {
-                        $message->to($pendaftar->email)
-                            ->subject($rendered['subject'] ?? $subject)
-                            ->from(config('mail.from.address'), config('mail.from.name'));
-                    });
+        return response()->json(['message' => 'Status berhasil diperbarui'])
+            ->afterResponse(function () use ($pendaftarId, $data) {
+                try {
+                    $fresh = \App\Models\Pendaftar::with(['product', 'batch', 'user'])->find($pendaftarId);
+                    if ($fresh) {
+                        $this->sendStatusNotifications($fresh, $data);
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Gagal kirim notifikasi status (afterResponse): ' . $e->getMessage());
                 }
-            } catch (\Exception $e) {
-                Log::error('Gagal kirim email notifikasi status ke kandidat: ' . $e->getMessage());
-            }
+            });
+    }
 
-            // WhatsApp
-            try {
-                if ($pendaftar->telepon && $waTemplateKey) {
-                    $waService = new \App\Services\WhatsAppService();
-                    $waService->sendStatusNotification($pendaftar, $waTemplateKey, $templateVars);
-                }
-            } catch (\Exception $e) {
-                Log::error('Gagal kirim WA notifikasi status ke kandidat: ' . $e->getMessage());
+    /**
+     * Kirim notifikasi (WA + Email) ke kandidat saat status pendaftaran/pembayaran berubah.
+     * Dipanggil setelah response dikirim agar tidak memperlambat request admin.
+     */
+    private function sendStatusNotifications($pendaftar, array $data)
+    {
+        $nama = $pendaftar->nama;
+        $noReg = $pendaftar->no_registrasi ?? '-';
+        $program = $pendaftar->product?->nama ?? '-';
+        $company = \App\Models\CompanyProfile::getProfile();
+        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+        $waktu = now()->format('d F Y H:i');
+
+        $sp = $data['status_pembayaran'] ?? null;
+        $sr = $data['status_pendaftaran'] ?? null;
+
+        $info = match (true) {
+            $sp === 'verified' => ['label' => 'Pembayaran Dikonfirmasi', 'subject' => 'Pembayaran Berhasil', 'bg' => '#F0FDF4', 'color' => '#16A34A', 'border' => '#BBF7D0', 'template' => 'payment_verified', 'wa_template' => 'payment_verified_wa'],
+            $sp === 'ditolak' && $sr === 'ditolak' => ['label' => 'Ditolak', 'subject' => 'Pendaftaran Ditolak', 'bg' => '#FEF2F2', 'color' => '#DC2626', 'border' => '#FECACA', 'template' => 'status_rejected', 'wa_template' => 'status_rejected_wa'],
+            $sr === 'disetujui' => ['label' => 'Disetujui', 'subject' => 'Pendaftaran Disetujui', 'bg' => '#F0FDF4', 'color' => '#16A34A', 'border' => '#BBF7D0', 'template' => 'status_approved', 'wa_template' => 'status_approved_wa'],
+            $sr === 'pending' && $sp === 'processing' => ['label' => 'Menunggu Verifikasi', 'subject' => 'Status Pendaftaran Diubah', 'bg' => '#FFFBEB', 'color' => '#D97706', 'border' => '#FDE68A', 'template' => 'status_pending', 'wa_template' => 'status_pending_wa'],
+            $sp === 'unpaid' => ['label' => 'Menunggu Pembayaran', 'subject' => 'Menunggu Pembayaran', 'bg' => '#FFFBEB', 'color' => '#D97706', 'border' => '#FDE68A', 'template' => 'payment_unpaid', 'wa_template' => 'payment_unpaid_wa'],
+            $sp === 'processing' => ['label' => 'Pembayaran Diverifikasi', 'subject' => 'Pembayaran Diverifikasi', 'bg' => '#EFF6FF', 'color' => '#2563EB', 'border' => '#BFDBFE', 'template' => 'payment_processing', 'wa_template' => 'payment_processing_wa'],
+            $sr === 'pending' => ['label' => 'Menunggu Verifikasi', 'subject' => 'Status Pendaftaran Diubah', 'bg' => '#FFFBEB', 'color' => '#D97706', 'border' => '#FDE68A', 'template' => 'status_pending', 'wa_template' => 'status_pending_wa'],
+            $sp === 'ditolak' => ['label' => 'Pembayaran Ditolak', 'subject' => 'Pembayaran Ditolak', 'bg' => '#FEF2F2', 'color' => '#DC2626', 'border' => '#FECACA', 'template' => 'payment_rejected', 'wa_template' => 'payment_rejected_wa'],
+            default => ['label' => 'Diperbarui', 'subject' => 'Status Diperbarui', 'bg' => '#F8FAFC', 'color' => '#64748B', 'border' => '#E2E8F0', 'template' => '', 'wa_template' => ''],
+        };
+
+        $statusLabel = $info['label'];
+        $subject = "[SIM Mendunia] {$info['subject']} - {$nama}";
+        $templateKey = $info['template'];
+        $waTemplateKey = $info['wa_template'];
+
+        $templateVars = [
+            'nama' => $nama,
+            'program' => $program,
+            'no_registrasi' => $noReg,
+            'status' => $statusLabel,
+            'waktu' => $waktu,
+            'company_name' => $company->company_name ?? 'MENDUNIA.ID',
+            'login_url' => $frontendUrl . '/login',
+            'link_grup' => $pendaftar->batch?->link_grup ?? '',
+            'total_transfer' => number_format((int) $pendaftar->nominal, 0, ',', '.'),
+            'jatuh_tempo' => '1×24 jam sejak invoice diterbitkan',
+            'bank_nama' => $company->bank_nama ?? '-',
+            'bank_rekening' => $company->bank_nomor_rekening ?? '-',
+            'bank_pemilik' => $company->bank_pemilik ?? '-',
+            'konfirmasi_url' => $pendaftar->token ? $frontendUrl . '/checkout-berhasil/' . $pendaftar->token : $frontendUrl . '/login',
+        ];
+
+        // Email
+        try {
+            if ($pendaftar->email) {
+                $rendered = $templateKey ? \App\Models\NotificationTemplate::render($templateKey, $templateVars) : null;
+                Mail::send('emails.status-update', [
+                    'company' => $company,
+                    'logoUrl' => $frontendUrl . '/logo-sm.png',
+                    'nama' => $nama,
+                    'statusLabel' => $statusLabel,
+                    'badgeBg' => $info['bg'],
+                    'badgeColor' => $info['color'],
+                    'badgeBorder' => $info['border'],
+                    'waktu' => $waktu,
+                    'loginUrl' => $frontendUrl . '/login',
+                    'bodyContent' => $rendered['body'] ?? "Status pendaftaran Anda telah diperbarui.\n\nStatus: {$statusLabel}\nProgram: {$program}\nNo. Registrasi: {$noReg}\nWaktu: {$waktu}",
+                ], function ($message) use ($pendaftar, $rendered, $subject) {
+                    $message->to($pendaftar->email)
+                        ->subject($rendered['subject'] ?? $subject)
+                        ->from(config('mail.from.address'), config('mail.from.name'));
+                });
             }
+        } catch (\Exception $e) {
+            Log::error('Gagal kirim email notifikasi status ke kandidat: ' . $e->getMessage());
         }
 
-        return response()->json(['message' => 'Status berhasil diperbarui']);
+        // WhatsApp
+        try {
+            if ($pendaftar->telepon && $waTemplateKey) {
+                $waService = new \App\Services\WhatsAppService();
+                $waService->sendStatusNotification($pendaftar, $waTemplateKey, $templateVars);
+            }
+        } catch (\Exception $e) {
+            Log::error('Gagal kirim WA notifikasi status ke kandidat: ' . $e->getMessage());
+        }
     }
 
     /**

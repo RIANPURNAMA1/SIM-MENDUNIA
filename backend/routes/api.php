@@ -226,6 +226,12 @@ Route::prefix('jadwal-level')->group(function () {
     Route::get('/', [JadwalLevelController::class, 'apiIndex']);
     Route::post('/', [JadwalLevelController::class, 'store']);
     Route::delete('/{batchId}/{level}', [JadwalLevelController::class, 'destroy']);
+
+    // Approval jadwal level (MANAGER/HR/ADMIN)
+    Route::middleware(['role:MANAGER,HR,ADMIN'])->group(function () {
+        Route::post('/{batchId}/{level}/approve', [JadwalLevelController::class, 'approve']);
+        Route::post('/{batchId}/{level}/reject', [JadwalLevelController::class, 'reject']);
+    });
 });
 
 // Siswa

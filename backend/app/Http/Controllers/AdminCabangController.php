@@ -978,7 +978,7 @@ class AdminCabangController extends Controller
 
         $levels = [1, 2, 3, 4];
         $jadwal = JadwalLevel::whereIn('batch_id', $batchIds)
-            ->with('batch')
+            ->with('batch', 'submittedBy', 'approvedBy')
             ->get()
             ->keyBy(fn($item) => $item->batch_id . '-' . $item->level);
 
@@ -987,9 +987,14 @@ class AdminCabangController extends Controller
                 'id' => $item->id,
                 'batch_id' => $item->batch_id,
                 'level' => $item->level,
+                'status' => $item->status,
                 'tanggal_mulai' => $item->tanggal_mulai->format('Y-m-d'),
                 'tanggal_selesai' => $item->tanggal_selesai->format('Y-m-d'),
                 'batch_nama' => $item->batch?->nama_batch ?? '-',
+                'submitted_by' => $item->submittedBy->name ?? null,
+                'approved_by' => $item->approvedBy->name ?? null,
+                'approved_at' => $item->approved_at?->format('Y-m-d H:i:s'),
+                'rejection_reason' => $item->rejection_reason,
             ];
         });
 

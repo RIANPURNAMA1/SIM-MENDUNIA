@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { Calendar, Plus, Pencil, Trash2, X, ChevronLeft, Building2, Layers } from "lucide-react";
+import { Calendar, Plus, Pencil, Trash2, X, ChevronLeft, Building2, Layers, Check, ThumbsUp, ThumbsDown } from "lucide-react";
 import { jadwalLevelApi, adminCabangApi } from "../../services/api";
+import { useAuth } from "../../contexts/AuthContext";
 import type { BatchData, JadwalLevelItem } from "../../types";
 
 interface CabangItem {
@@ -19,6 +20,8 @@ const stages = [
 export default function JadwalLevelPage() {
   const location = useLocation();
   const isAdminCabang = location.pathname.startsWith('/admin-cabang');
+  const { user } = useAuth();
+  const canApprove = !isAdminCabang && ["MANAGER", "HR", "ADMIN"].includes(user?.role || "");
   const [batches, setBatches] = useState<BatchData[]>([]);
   const [cabangs, setCabangs] = useState<CabangItem[]>([]);
   const [jadwalMap, setJadwalMap] = useState<Record<string, JadwalLevelItem>>({});
@@ -33,6 +36,11 @@ export default function JadwalLevelPage() {
     batch_id: 0, batch_nama: "", level: 0, levelLabel: "",
     tanggal_mulai: "", tanggal_selesai: "",
   });
+
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectTarget, setRejectTarget] = useState<{ batch: BatchData; level: number; label: string } | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejecting, setRejecting] = useState(false);
 
   const buildKey = (batchId: number, level: number) => `${batchId}-${level}`;
 
@@ -100,6 +108,67 @@ export default function JadwalLevelPage() {
     }
   };
 
+  const handleApprove = async (batch: BatchData, level: number, label: string) => {
+    if (!confirm(`Setujui jadwal ${batch.nama_batch} - ${label}?`)) return;
+    try {
+      await jadwalLevelApi.approve(batch.id, level);
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      alert("Gagal menyetujui jadwal. Coba lagi.");
+    }
+  };
+
+  const openReject = (batch: BatchData, level: number, label: string) => {
+    setRejectTarget({ batch, level, label });
+    setRejectReason("");
+    setShowRejectModal(true);
+  };
+
+  const handleReject = async () => {
+    if (!rejectTarget) return;
+    setRejecting(true);
+    try {
+      await jadwalLevelApi.reject(rejectTarget.batch.id, rejectTarget.level, rejectReason);
+      setShowRejectModal(false);
+      setRejectTarget(null);
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      alert("Gagal menolak jadwal. Coba lagi.");
+    } finally {
+      setRejecting(false);
+    }
+  };
+
+  const statusBadge = (item?: JadwalLevelItem) => {
+    if (!item) {
+      return <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-medium text-slate-500">Belum diatur</span>;
+    }
+    if (item.status === "menunggu") {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-medium text-amber-700">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
+          Menunggu Approval
+        </span>
+      );
+    }
+    if (item.status === "disetujui") {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-medium text-emerald-700">
+          <Check size={10} />
+          Disetujui
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-1 text-[10px] font-medium text-rose-700">
+        <X size={10} />
+        Ditolak
+      </span>
+    );
+  };
+
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "";
     const d = new Date(dateStr + "T00:00:00");
@@ -130,7 +199,7 @@ export default function JadwalLevelPage() {
           </div>
           <div>
             <h1 className="text-lg font-semibold text-slate-800">Jadwal Level</h1>
-            <p className="text-sm text-slate-500">Atur tanggal mulai dan selesai setiap tahapan per batch</p>
+            <p className="text-sm text-slate-500">Atur tanggal mulai dan selesai setiap tahapan per batch, lalu diverifikasi oleh Manager / HR</p>
           </div>
         </div>
       </div>
@@ -232,6 +301,7 @@ export default function JadwalLevelPage() {
                   <tr>
                     <th className="border border-slate-200 px-3 py-2.5 font-semibold">Tahapan</th>
                     <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold">Tanggal</th>
+                    <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold">Status</th>
                     <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold">Aksi</th>
                   </tr>
                 </thead>
@@ -244,12 +314,29 @@ export default function JadwalLevelPage() {
                         <td className="border border-slate-200 px-3 py-2.5 font-semibold text-slate-700">{s.label}</td>
                         <td className="border border-slate-200 px-3 py-2.5 text-center">
                           {item ? (
-                            <span className="inline-flex rounded-md bg-emerald-100 px-3 py-1.5 text-[10px] font-medium text-emerald-700 whitespace-nowrap">
-                              {formatDate(item.tanggal_mulai)} - {formatDate(item.tanggal_selesai)}
-                            </span>
+                            <div className="flex flex-col items-center gap-1">
+                              <span className="inline-flex rounded-md bg-emerald-100 px-3 py-1.5 text-[10px] font-medium text-emerald-700 whitespace-nowrap">
+                                {formatDate(item.tanggal_mulai)} - {formatDate(item.tanggal_selesai)}
+                              </span>
+                              {item.status === "ditolak" && item.rejection_reason && (
+                                <span className="max-w-[220px] text-[9px] italic leading-snug text-rose-500">
+                                  Alasan: {item.rejection_reason}
+                                </span>
+                              )}
+                            </div>
                           ) : (
                             <span className="text-[10px] text-slate-400">Belum diatur</span>
                           )}
+                        </td>
+                        <td className="border border-slate-200 px-3 py-2.5 text-center">
+                          <div className="flex flex-col items-center gap-0.5">
+                            {statusBadge(item)}
+                            {item?.approved_by && (
+                              <span className="text-[9px] text-slate-400">
+                                oleh {item.approved_by}{item.approved_at ? ` • ${new Date(item.approved_at).toLocaleDateString("id-ID")}` : ""}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="border border-slate-200 px-3 py-2.5 text-center">
                           <div className="flex items-center justify-center gap-1">
@@ -260,6 +347,26 @@ export default function JadwalLevelPage() {
                               {item ? <Pencil size={12} /> : <Plus size={12} />}
                               {item ? "Edit" : "Atur"}
                             </button>
+                            {item?.status === "menunggu" && canApprove && (
+                              <>
+                                <button
+                                  onClick={() => handleApprove(selectedBatch, s.level, s.label)}
+                                  className="inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-[10px] font-medium text-emerald-700 transition hover:bg-emerald-100"
+                                  title="Setujui"
+                                >
+                                  <ThumbsUp size={12} />
+                                  Setujui
+                                </button>
+                                <button
+                                  onClick={() => openReject(selectedBatch, s.level, s.label)}
+                                  className="inline-flex items-center gap-1 rounded-md border border-rose-300 bg-rose-50 px-2.5 py-1.5 text-[10px] font-medium text-rose-700 transition hover:bg-rose-100"
+                                  title="Tolak"
+                                >
+                                  <ThumbsDown size={12} />
+                                  Tolak
+                                </button>
+                              </>
+                            )}
                             {item && (
                               <button
                                 onClick={() => handleDelete(selectedBatch, s.level, s.label)}
@@ -315,6 +422,38 @@ export default function JadwalLevelPage() {
               <button onClick={() => setShowModal(false)} className="rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">Batal</button>
               <button onClick={handleSave} disabled={submitting || !form.tanggal_mulai || !form.tanggal_selesai} className="rounded-md bg-slate-800 px-4 py-2 text-xs font-medium text-white transition hover:bg-slate-700 disabled:opacity-50">
                 {submitting ? "Menyimpan..." : "Simpan"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Tolak */}
+      {showRejectModal && rejectTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3">
+          <div className="w-full max-w-sm rounded-lg bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+              <h3 className="text-sm font-semibold text-slate-800">
+                Tolak Jadwal - {rejectTarget.batch.nama_batch} {rejectTarget.label}
+              </h3>
+              <button onClick={() => setShowRejectModal(false)} className="rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="px-4 py-4">
+              <label className="mb-1 block text-xs font-semibold text-slate-500">Alasan Penolakan</label>
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                rows={3}
+                placeholder="Tulis alasan penolakan agar admin cabang bisa memperbaiki..."
+                className="w-full resize-none rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-rose-400 focus:ring-1 focus:ring-rose-400"
+              />
+            </div>
+            <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3">
+              <button onClick={() => setShowRejectModal(false)} className="rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">Batal</button>
+              <button onClick={handleReject} disabled={rejecting} className="rounded-md bg-rose-600 px-4 py-2 text-xs font-medium text-white transition hover:bg-rose-700 disabled:opacity-50">
+                {rejecting ? "Menyimpan..." : "Tolak"}
               </button>
             </div>
           </div>

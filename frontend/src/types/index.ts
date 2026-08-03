@@ -293,6 +293,10 @@ export interface RekapKehadiranSenseiDayEntry {
   color: string
   text_color: string
   absensi_id: number
+  jam_masuk?: string | null
+  jam_pulang?: string | null
+  foto_masuk?: string | null
+  foto_pulang?: string | null
 }
 
 export interface RekapKehadiranSenseiDay {
@@ -443,9 +447,14 @@ export interface JadwalLevelItem {
   id: number
   batch_id: number
   level: number
+  status: 'menunggu' | 'disetujui' | 'ditolak'
   tanggal_mulai: string
   tanggal_selesai: string
   batch_nama: string
+  submitted_by: string | null
+  approved_by: string | null
+  approved_at: string | null
+  rejection_reason: string | null
 }
 
 export interface KelasSenseiData {

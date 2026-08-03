@@ -985,11 +985,19 @@ export default function Pendaftar() {
                           })
                           if (!result.isConfirmed) return
                           try {
+                            Swal.fire({
+                              title: 'Menyimpan...',
+                              text: 'Mohon tunggu, sedang memperbarui status.',
+                              allowOutsideClick: false,
+                              didOpen: () => Swal.showLoading(),
+                            })
                             await pendaftarApi.updateStatus(detailModal.id, target)
                             setDetailModal(prev => prev ? { ...prev, ...target } : prev)
                             setData(prev => prev.map(item => item.id === detailModal.id ? { ...item, ...target } : item))
+                            Swal.close()
                             Swal.fire({ icon: 'success', title: 'Status diperbarui', timer: 1200, showConfirmButton: false })
                           } catch {
+                            Swal.close()
                             Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal memperbarui status' })
                           }
                         }}

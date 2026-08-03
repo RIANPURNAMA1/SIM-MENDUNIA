@@ -28,6 +28,15 @@ class WaWebhookController extends Controller
         $from = $request->input('from') ?? $request->input('sender') ?? $request->input('phone') ?? '';
 
         $from = $this->formatPhone($from);
+
+        // 1) Proses balasan konfirmasi pembayaran dari admin mutasi
+        if ($this->isPaymentAdmin($from)) {
+            $result = $this->handlePaymentReply($from, $message);
+            if ($result) {
+                return response()->json($result);
+            }
+        }
+
         $managerPhone = $this->formatPhone('085773141623');
 
         if ($from !== $managerPhone) {
@@ -124,6 +133,137 @@ class WaWebhookController extends Controller
             $number = '62' . $number;
         }
         return $number;
+    }
+
+    /**
+     * Cek apakah nomor termasuk daftar admin mutasi pembayaran
+     */
+    private function isPaymentAdmin(string $phone): bool
+    {
+        $phones = \App\Models\NotificationSetting::getValue('wa_pembayaran_admin_phones');
+        if (!$phones) return false;
+        foreach (array_map('trim', explode(',', $phones)) as $p) {
+            if ($p !== '' && $this->formatPhone($p) === $phone) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Proses balasan admin: KONFIRMASI => verifikasi pembayaran, BATAL => tolak
+     */
+    private function handlePaymentReply(string $from, string $message): ?array
+    {
+        $reply = strtoupper(trim($message));
+
+        $approveWords = ['KONFIRMASI', 'CONFIRM', 'SETUJU', 'VERIFIKASI', 'VERIFY', 'BAYAR'];
+        $rejectWords = ['BATAL', 'TOLAK', 'REJECT'];
+
+        $isApprove = in_array($reply, $approveWords);
+        $isReject = in_array($reply, $rejectWords);
+
+        if (!$isApprove && !$isReject) {
+            Log::info("WA Webhook: unrecognized payment reply: {$reply}");
+            return ['status' => 'unrecognized_payment'];
+        }
+
+        $approval = \App\Models\WaPaymentApproval::where('admin_phone', $from)
+            ->where('status', 'PENDING')
+            ->latest()
+            ->first();
+
+        if (!$approval) {
+            $this->wa->sendMessage($from, "Tidak ada konfirmasi pembayaran yang menunggu balasan. Silakan kirim bukti pembayaran via panel admin.");
+            return ['status' => 'no_pending_payment'];
+        }
+
+        $pendaftar = \App\Models\Pendaftar::with('product')->find($approval->pendaftar_id);
+        if (!$pendaftar) {
+            $approval->update(['status' => 'REJECTED', 'replied_at' => now()]);
+            return ['status' => 'not_found'];
+        }
+
+        $nama = $pendaftar->nama;
+        $noReg = $pendaftar->no_registrasi ?? '-';
+
+        try {
+            if ($isApprove) {
+                $this->approvePayment($pendaftar);
+            } else {
+                $this->rejectPendingPayment($pendaftar);
+            }
+
+            $approval->update([
+                'status' => $isApprove ? 'APPROVED' : 'REJECTED',
+                'replied_at' => now(),
+            ]);
+
+            $statusText = $isApprove ? 'KONFIRMASI ✅' : 'BATAL ❌';
+            $message = "Pembayaran atas nama *{$nama}* (No. Registrasi: {$noReg}) telah *{$statusText}*.";
+
+            if ($isApprove) {
+                $message .= "\n\nStatus kandidat sekarang: *Pembayaran Dikonfirmasi*.";
+            } else {
+                $message .= "\n\nStatus pembayaran dikembalikan ke *Menunggu Pembayaran*.";
+            }
+
+            $this->wa->sendMessage($from, $message);
+
+            Log::info("WA Webhook: payment #{$pendaftar->id} {$statusText} by {$from}");
+
+            return [
+                'status' => 'success',
+                'action' => $isApprove ? 'approved' : 'rejected',
+                'pendaftar_id' => $pendaftar->id,
+            ];
+        } catch (\Exception $e) {
+            Log::error('WA Webhook: gagal proses pembayaran: ' . $e->getMessage());
+            $this->wa->sendMessage($from, "Terjadi kesalahan saat memproses pembayaran *{$nama}*. Silakan proses lewat panel admin.");
+            return ['status' => 'error', 'message' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Konfirmasi pembayaran: verifikasi semua pembayaran pending pendaftar
+     */
+    private function approvePayment($pendaftar)
+    {
+        $updateReq = Request::create(
+            "/pendaftar/{$pendaftar->id}/update-status",
+            'POST',
+            ['status_pembayaran' => 'verified', 'status_pendaftaran' => 'disetujui']
+        );
+
+        (new PendaftaranController)->updateStatus($updateReq, $pendaftar->id);
+    }
+
+    /**
+     * Batalkan pembayaran: tolak semua pembayaran pending pendaftar
+     */
+    private function rejectPendingPayment($pendaftar)
+    {
+        $pending = \App\Models\Pembayaran::where('pendaftar_id', $pendaftar->id)
+            ->where('status', 'pending')
+            ->get();
+
+        foreach ($pending as $pembayaran) {
+            try {
+                (new PendaftaranController)->rejectPayment($pembayaran->id);
+            } catch (\Exception $e) {
+                Log::warning("WA Webhook: gagal tolak pembayaran #{$pembayaran->id}: " . $e->getMessage());
+            }
+        }
+
+        $pendaftar->refresh();
+        $sisaPending = \App\Models\Pembayaran::where('pendaftar_id', $pendaftar->id)
+            ->where('status', 'pending')
+            ->exists();
+
+        if (!$sisaPending) {
+            $pendaftar->status_pembayaran = 'unpaid';
+            $pendaftar->save();
+        }
     }
 
     public function sendTest(Request $request)
