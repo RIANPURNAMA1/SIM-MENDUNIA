@@ -25,9 +25,10 @@ interface VerifikasiData {
 }
 
 export default function Verifikasi() {
-  const { noInvoice: noInvoiceParam } = useParams()
+  const { noInvoice: noInvoiceParam, '*': splat } = useParams()
   const [searchParams] = useSearchParams()
-  const noInvoice = searchParams.get('inv') || noInvoiceParam || ''
+  const legacyPath = noInvoiceParam && splat ? `${noInvoiceParam}/${splat}` : noInvoiceParam || splat || ''
+  const noInvoice = searchParams.get('inv') || legacyPath || ''
   const [data, setData] = useState<VerifikasiData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
