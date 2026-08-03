@@ -102,8 +102,8 @@ class RekapKehadiranSenseiController extends Controller
                     $kelas = $absen->kelasSensei;
                     if (!$kelas) continue;
 
-                    $initial = strtoupper(substr($kelas->nama_kelas, 0, 1));
                     $status = $absen->status ?: 'BELUM ABSEN';
+                    $initial = strtoupper(substr($status, 0, 1));
 
                     $color = match ($status) {
                         'HADIR' => 'bg-success',

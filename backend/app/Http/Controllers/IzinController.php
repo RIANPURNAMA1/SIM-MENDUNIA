@@ -229,35 +229,37 @@ class IzinController extends Controller
 
             $izin->save();
 
-            try {
-                $managerPhone = '6285773141623';
-                $userName = $izin->user->name;
-                $tglMulai = \Carbon\Carbon::parse($izin->tgl_mulai)->translatedFormat('d F Y');
-                $tglSelesai = \Carbon\Carbon::parse($izin->tgl_selesai)->translatedFormat('d F Y');
-                $periode = $izin->tgl_mulai === $izin->tgl_selesai
-                    ? $tglMulai
-                    : "{$tglMulai} s/d {$tglSelesai}";
+            if (\App\Models\NotificationSetting::isEnabled('wa_izin')) {
+                try {
+                    $managerPhone = '6285773141623';
+                    $userName = $izin->user->name;
+                    $tglMulai = \Carbon\Carbon::parse($izin->tgl_mulai)->translatedFormat('d F Y');
+                    $tglSelesai = \Carbon\Carbon::parse($izin->tgl_selesai)->translatedFormat('d F Y');
+                    $periode = $izin->tgl_mulai === $izin->tgl_selesai
+                        ? $tglMulai
+                        : "{$tglMulai} s/d {$tglSelesai}";
 
-                WaIzinApproval::create([
-                    'izin_id' => $izin->id,
-                    'manager_phone' => $managerPhone,
-                    'status' => 'PENDING',
-                ]);
+                    WaIzinApproval::create([
+                        'izin_id' => $izin->id,
+                        'manager_phone' => $managerPhone,
+                        'status' => 'PENDING',
+                    ]);
 
-                $waMessage = "📋 *PENGAJUAN IZIN KARYAWAN*\n\n"
-                    . "Ada pengajuan izin baru:\n\n"
-                    . "👤 *Nama:* {$userName}\n"
-                    . "📋 *Jenis:* {$izin->jenis_izin}\n"
-                    . "📅 *Tanggal:* {$periode}\n"
-                    . "📝 *Alasan:* {$izin->alasan}\n\n"
-                    . "Apakah Anda menyetujui izin ini?\n\n"
-                    . "Balas: *IYA* untuk menyetujui ✅\n"
-                    . "Balas: *TIDAK* untuk menolak ❌";
+                    $waMessage = "📋 *PENGAJUAN IZIN KARYAWAN*\n\n"
+                        . "Ada pengajuan izin baru:\n\n"
+                        . "👤 *Nama:* {$userName}\n"
+                        . "📋 *Jenis:* {$izin->jenis_izin}\n"
+                        . "📅 *Tanggal:* {$periode}\n"
+                        . "📝 *Alasan:* {$izin->alasan}\n\n"
+                        . "Apakah Anda menyetujui izin ini?\n\n"
+                        . "Balas: *IYA* untuk menyetujui ✅\n"
+                        . "Balas: *TIDAK* untuk menolak ❌";
 
-                $wa = app(WhatsAppService::class);
-                $wa->sendMessage($managerPhone, $waMessage);
-            } catch (\Exception $waErr) {
-                Log::error('Gagal kirim WA izin: ' . $waErr->getMessage());
+                    $wa = app(WhatsAppService::class);
+                    $wa->sendMessage($managerPhone, $waMessage);
+                } catch (\Exception $waErr) {
+                    Log::error('Gagal kirim WA izin: ' . $waErr->getMessage());
+                }
             }
 
             if ($request->ajax() || $request->wantsJson()) {
@@ -472,33 +474,35 @@ class IzinController extends Controller
 
             $izin->save();
 
-            try {
-                $managerPhone = '6285773141623';
-                $userName = $izin->user->name;
-                $tglMulai = \Carbon\Carbon::parse($izin->tgl_mulai)->translatedFormat('d F Y');
-                $tglSelesai = \Carbon\Carbon::parse($izin->tgl_selesai)->translatedFormat('d F Y');
-                $periode = $izin->tgl_mulai === $izin->tgl_selesai ? $tglMulai : "{$tglMulai} s/d {$tglSelesai}";
+            if (\App\Models\NotificationSetting::isEnabled('wa_izin')) {
+                try {
+                    $managerPhone = '6285773141623';
+                    $userName = $izin->user->name;
+                    $tglMulai = \Carbon\Carbon::parse($izin->tgl_mulai)->translatedFormat('d F Y');
+                    $tglSelesai = \Carbon\Carbon::parse($izin->tgl_selesai)->translatedFormat('d F Y');
+                    $periode = $izin->tgl_mulai === $izin->tgl_selesai ? $tglMulai : "{$tglMulai} s/d {$tglSelesai}";
 
-                WaIzinApproval::create([
-                    'izin_id' => $izin->id,
-                    'manager_phone' => $managerPhone,
-                    'status' => 'PENDING',
-                ]);
+                    WaIzinApproval::create([
+                        'izin_id' => $izin->id,
+                        'manager_phone' => $managerPhone,
+                        'status' => 'PENDING',
+                    ]);
 
-                $waMessage = "📋 *PENGAJUAN IZIN KARYAWAN*\n\n"
-                    . "Ada pengajuan izin baru:\n\n"
-                    . "👤 *Nama:* {$userName}\n"
-                    . "📋 *Jenis:* {$izin->jenis_izin}\n"
-                    . "📅 *Tanggal:* {$periode}\n"
-                    . "📝 *Alasan:* {$izin->alasan}\n\n"
-                    . "Apakah Anda menyetujui izin ini?\n\n"
-                    . "Balas: *IYA* untuk menyetujui ✅\n"
-                    . "Balas: *TIDAK* untuk menolak ❌";
+                    $waMessage = "📋 *PENGAJUAN IZIN KARYAWAN*\n\n"
+                        . "Ada pengajuan izin baru:\n\n"
+                        . "👤 *Nama:* {$userName}\n"
+                        . "📋 *Jenis:* {$izin->jenis_izin}\n"
+                        . "📅 *Tanggal:* {$periode}\n"
+                        . "📝 *Alasan:* {$izin->alasan}\n\n"
+                        . "Apakah Anda menyetujui izin ini?\n\n"
+                        . "Balas: *IYA* untuk menyetujui ✅\n"
+                        . "Balas: *TIDAK* untuk menolak ❌";
 
-                $wa = app(WhatsAppService::class);
-                $wa->sendMessage($managerPhone, $waMessage);
-            } catch (\Exception $waErr) {
-                Log::error('Gagal kirim WA izin: ' . $waErr->getMessage());
+                    $wa = app(WhatsAppService::class);
+                    $wa->sendMessage($managerPhone, $waMessage);
+                } catch (\Exception $waErr) {
+                    Log::error('Gagal kirim WA izin: ' . $waErr->getMessage());
+                }
             }
 
             return response()->json([

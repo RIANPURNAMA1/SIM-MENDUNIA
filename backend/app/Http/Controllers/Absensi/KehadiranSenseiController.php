@@ -614,7 +614,7 @@ class KehadiranSenseiController extends Controller
         $end_date = $request->end_date;
         $batch_id = $request->batch_id;
 
-        $query = KelasSensei::with('user', 'batchRelasi');
+        $query = KelasSensei::with('user', 'batchRelasi.cabang');
 
         if ($user_id) $query->where('user_id', $user_id);
         if ($status) $query->where('status', $status);
@@ -674,7 +674,7 @@ class KehadiranSenseiController extends Controller
             'success' => true,
             'data' => $kelas,
             'list_sensei' => $list_sensei,
-            'list_batch' => $list_batch,
+            'list_batch' => \App\Models\Batch::with('cabang')->orderBy('nama_batch', 'asc')->get(),
         ]);
     }
 

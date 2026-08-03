@@ -17,6 +17,7 @@ const statusColors: Record<string, string> = {
   wa_tidak_absen_pulang: 'bg-red-100 text-red-700',
   wa_alpa: 'bg-rose-100 text-rose-700',
   wa_reminder_belum_absen: 'bg-blue-100 text-blue-700',
+  wa_izin: 'bg-teal-100 text-teal-700',
   wa_pembayaran: 'bg-yellow-100 text-yellow-700',
   wa_pembayaran_admin_phones: 'bg-purple-100 text-purple-700',
 }
@@ -99,7 +100,7 @@ export default function PengaturanWaPage() {
         </div>
         <div>
           <h1 className="text-lg font-semibold text-slate-800">Pengaturan Notifikasi WhatsApp</h1>
-          <p className="text-sm text-slate-500">Kelola notifikasi WhatsApp untuk absensi & pembayaran</p>
+          <p className="text-sm text-slate-500">Kelola notifikasi WhatsApp untuk absensi, izin & pembayaran</p>
         </div>
       </div>
 
@@ -114,7 +115,7 @@ export default function PengaturanWaPage() {
         <div className="px-5 py-3 bg-slate-50 border-b border-slate-200">
           <h2 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
             <MessageCircle size={16} />
-            Notifikasi Absensi
+            Notifikasi Absensi & Izin
           </h2>
         </div>
         <div className="overflow-x-auto">
