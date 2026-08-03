@@ -3275,8 +3275,9 @@ class PendaftaranController extends Controller
     {
         // Format INV/{id}/{Ym}: cari langsung berdasarkan id pendaftar
         $pendaftar = null;
-        if (preg_match('/^INV\/(\d+)\//', $noInvoice, $m)) {
-            $pendaftar = Pendaftar::with(['product', 'batch'])->find($m[1]);
+        $noInvoice = trim($noInvoice);
+        if (preg_match('/^INV\/(\d+)(\/|$)/', $noInvoice, $m)) {
+            $pendaftar = Pendaftar::with(['product', 'batch'])->find((int) $m[1]);
         }
 
         if (!$pendaftar) {

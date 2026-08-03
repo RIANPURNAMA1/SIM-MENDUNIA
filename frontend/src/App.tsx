@@ -202,7 +202,7 @@ function AppRoutes() {
       <Route path="/konfirmasi-pembayaran/:id" element={<KonfirmasiPembayaran />} />
       <Route path="/syarat-ketentuan" element={<SyaratKetentuan />} />
       <Route path="/verifikasi" element={<Verifikasi />} />
-      <Route path="/verifikasi/:noInvoice" element={<Verifikasi />} />
+      <Route path="/verifikasi/*" element={<Verifikasi />} />
 
       <Route
         path="/affiliate-dashboard"
