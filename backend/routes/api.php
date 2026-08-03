@@ -594,6 +594,7 @@ Route::middleware(['auth:sanctum'])->prefix('notification-templates')->group(fun
     Route::get('/{key}', [\App\Http\Controllers\NotificationTemplateController::class, 'show']);
     Route::put('/{id}', [\App\Http\Controllers\NotificationTemplateController::class, 'update']);
     Route::post('/{id}/reset', [\App\Http\Controllers\NotificationTemplateController::class, 'reset']);
+    Route::delete('/{id}', [\App\Http\Controllers\NotificationTemplateController::class, 'destroy']);
 });
 
 // Public — batch deadlines untuk countdown frontend

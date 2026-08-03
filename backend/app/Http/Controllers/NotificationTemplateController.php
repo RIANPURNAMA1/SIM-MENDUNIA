@@ -59,6 +59,17 @@ class NotificationTemplateController extends Controller
         ]);
     }
 
+    public function destroy($id)
+    {
+        $template = NotificationTemplate::findOrFail($id);
+        $key = $template->key;
+        $template->delete();
+
+        Log::info('Notification template deleted', ['key' => $key, 'by' => auth()->id()]);
+
+        return response()->json(['message' => 'Template notifikasi berhasil dihapus']);
+    }
+
     public static function getDefaultTemplates(): array
     {
         return [
@@ -208,14 +219,6 @@ class NotificationTemplateController extends Controller
                 'variables' => ['nama', 'program', 'no_registrasi', 'status', 'waktu', 'company_name'],
                 'body' => "Halo *{nama}*,\n\nPendaftaran kamu di *{company_name}* untuk program *{program}* (No. Registrasi: {no_registrasi}) sedang *menunggu verifikasi*.\n\nStatus saat ini: *{status}*\nKami akan mengabari kamu begitu ada perkembangan. Terima kasih!\n\n*{company_name}*",
             ],
-            'payment_pending_wa' => [
-                'name' => 'WA Pembayaran Diproses',
-                'description' => 'Dikirim via WhatsApp saat status pembayaran diproses',
-                'channel' => 'whatsapp',
-                'subject' => null,
-                'variables' => ['nama', 'program', 'no_registrasi', 'status', 'waktu', 'company_name'],
-                'body' => "Halo *{nama}*,\n\nPembayaran kamu untuk *{program}* (No. Registrasi: {no_registrasi}) sedang *diproses*.\n\nStatus saat ini: *{status}*\nKami akan mengabari kamu begitu ada perkembangan. Terima kasih!\n\n*{company_name}*",
-            ],
             'payment_processing_wa' => [
                 'name' => 'WA Pembayaran Diverifikasi',
                 'description' => 'Dikirim via WhatsApp saat pembayaran sedang diverifikasi',
@@ -224,16 +227,8 @@ class NotificationTemplateController extends Controller
                 'variables' => ['nama', 'program', 'no_registrasi', 'status', 'waktu', 'company_name'],
                 'body' => "Halo *{nama}*! ⏳\n\nBukti pembayaran kamu untuk *{program}* (No. Registrasi: {no_registrasi}) sedang *diverifikasi*.\n\nStatus saat ini: *{status}*\nMohon tunggu, kami akan konfirmasi segera setelah pembayaran terverifikasi.\n\n*{company_name}*",
             ],
-            'payment_refund_wa' => [
-                'name' => 'WA Pembayaran Direfund',
-                'description' => 'Dikirim via WhatsApp saat pembayaran direfund',
-                'channel' => 'whatsapp',
-                'subject' => null,
-                'variables' => ['nama', 'program', 'no_registrasi', 'status', 'waktu', 'company_name'],
-                'body' => "Halo *{nama}*,\n\nPembayaran kamu untuk *{program}* (No. Registrasi: {no_registrasi}) telah di-*refund*.\n\nStatus saat ini: *{status}*\nSilakan cek rekening kamu untuk detail refund. Hubungi admin jika ada pertanyaan.\n\n*{company_name}*",
-            ],
             'payment_new_wa' => [
-                'name' => 'WA Pembayaran Baru (ke Admin)',
+                'name' => 'WA Pembayaran Baru (ke Admin Mutasi)',
                 'description' => 'Dikirim via WhatsApp ke admin saat kandidat mengirim konfirmasi pembayaran',
                 'channel' => 'whatsapp',
                 'subject' => null,
