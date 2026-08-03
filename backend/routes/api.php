@@ -229,6 +229,7 @@ Route::prefix('jadwal-level')->group(function () {
 
     // Approval jadwal level (MANAGER/HR/ADMIN)
     Route::middleware(['role:MANAGER,HR,ADMIN'])->group(function () {
+        Route::get('/pending-count', [JadwalLevelController::class, 'pendingCount']);
         Route::post('/{batchId}/{level}/approve', [JadwalLevelController::class, 'approve']);
         Route::post('/{batchId}/{level}/reject', [JadwalLevelController::class, 'reject']);
     });

@@ -56,6 +56,13 @@ class JadwalLevelController extends Controller
         ]);
     }
 
+    public function pendingCount()
+    {
+        $count = JadwalLevel::where('status', 'menunggu')->count();
+
+        return response()->json(['count' => $count]);
+    }
+
     public function store(Request $request)
     {
         $request->validate([
