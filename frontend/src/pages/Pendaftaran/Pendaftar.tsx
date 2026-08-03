@@ -76,6 +76,21 @@ export default function Pendaftar() {
   }, [])
 
   useEffect(() => {
+    function onFocus() {
+      fetchData()
+    }
+    function onVisibility() {
+      if (document.visibilityState === 'visible') fetchData()
+    }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [])
+
+  useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (actionRef.current && !actionRef.current.contains(e.target as Node)) {
         setOpenActionId(null)
