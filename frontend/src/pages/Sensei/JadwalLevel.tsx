@@ -67,6 +67,18 @@ export default function JadwalLevelPage() {
     fetchData();
   }, []);
 
+  const pendingByBatch: Record<number, number> = {};
+  let totalPending = 0;
+  Object.values(jadwalMap).forEach((item) => {
+    if (item.status === "menunggu") {
+      pendingByBatch[item.batch_id] = (pendingByBatch[item.batch_id] || 0) + 1;
+      totalPending += 1;
+    }
+  });
+
+  const pendingSum = (batchList: BatchData[]) =>
+    batchList.reduce((sum, b) => sum + (pendingByBatch[b.id] || 0), 0);
+
   const openModal = (batch: BatchData, level: number, label: string, existing?: JadwalLevelItem) => {
     setForm({
       batch_id: batch.id,
@@ -204,6 +216,23 @@ export default function JadwalLevelPage() {
         </div>
       </div>
 
+      {/* Banner pengajuan untuk approver */}
+      {canApprove && totalPending > 0 && (
+        <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-red-500 text-white">
+            <ThumbsUp size={14} />
+          </div>
+          <div className="text-xs text-red-800">
+            <p className="font-semibold">
+              {totalPending} pengajuan jadwal menunggu persetujuan
+            </p>
+            <p className="mt-0.5 text-red-600">
+              Buka cabang dan batch yang ditandai merah untuk melihat detail lalu menyetujui atau menolak.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* View: Cabang Cards */}
       {!selectedCabang && !selectedBatch && (
         <>
@@ -215,31 +244,53 @@ export default function JadwalLevelPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {cabangs.map((cabang) => (
-                <button
-                  key={cabang.id}
-                  onClick={() => setSelectedCabang(cabang)}
-                  className="group rounded-lg border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-blue-300 hover:shadow-md"
-                >
-                  <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600 group-hover:bg-blue-100">
-                    <Building2 size={20} />
-                  </div>
-                  <h3 className="text-sm font-semibold text-slate-800">{cabang.nama_cabang}</h3>
-                  <p className="mt-1 text-xs text-slate-400">{batchesByCabang(cabang.id).length} batch</p>
-                </button>
-              ))}
-              {hasUnassigned && (
-                <button
-                  onClick={() => setSelectedCabang({ id: 0, nama_cabang: "Tanpa Cabang" })}
-                  className="group rounded-lg border border-dashed border-slate-300 bg-white p-4 text-left shadow-sm transition hover:border-slate-400 hover:shadow-md"
-                >
-                  <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-slate-50 text-slate-500 group-hover:bg-slate-100">
-                    <Building2 size={20} />
-                  </div>
-                  <h3 className="text-sm font-semibold text-slate-600">Tanpa Cabang</h3>
-                  <p className="mt-1 text-xs text-slate-400">{cabangTanpaCabang.length} batch</p>
-                </button>
-              )}
+              {[...cabangs]
+                .sort((a, b) => pendingSum(batchesByCabang(b.id)) - pendingSum(batchesByCabang(a.id)))
+                .map((cabang) => {
+                  const pending = pendingSum(batchesByCabang(cabang.id));
+                  return (
+                    <button
+                      key={cabang.id}
+                      onClick={() => setSelectedCabang(cabang)}
+                      className={`group rounded-lg border bg-white p-4 text-left shadow-sm transition hover:shadow-md ${pending > 0 ? "border-red-300 ring-1 ring-red-100 hover:border-red-400" : "border-slate-200 hover:border-blue-300"}`}
+                    >
+                      <div className="mb-2 flex items-center justify-between">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600 group-hover:bg-blue-100">
+                          <Building2 size={20} />
+                        </div>
+                        {pending > 0 && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                            {pending} pengajuan
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-sm font-semibold text-slate-800">{cabang.nama_cabang}</h3>
+                      <p className="mt-1 text-xs text-slate-400">{batchesByCabang(cabang.id).length} batch</p>
+                    </button>
+                  );
+                })}
+              {hasUnassigned && (() => {
+                const pending = pendingSum(cabangTanpaCabang);
+                return (
+                  <button
+                    onClick={() => setSelectedCabang({ id: 0, nama_cabang: "Tanpa Cabang" })}
+                    className={`group rounded-lg border border-dashed bg-white p-4 text-left shadow-sm transition hover:shadow-md ${pending > 0 ? "border-red-300 ring-1 ring-red-100 hover:border-red-400" : "border-slate-300 hover:border-slate-400"}`}
+                  >
+                    <div className="mb-2 flex items-center justify-between">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-50 text-slate-500 group-hover:bg-slate-100">
+                        <Building2 size={20} />
+                      </div>
+                      {pending > 0 && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                          {pending} pengajuan
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-sm font-semibold text-slate-600">Tanpa Cabang</h3>
+                    <p className="mt-1 text-xs text-slate-400">{cabangTanpaCabang.length} batch</p>
+                  </button>
+                );
+              })()}
             </div>
           )}
         </>
@@ -266,18 +317,31 @@ export default function JadwalLevelPage() {
             }
             return (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {list.map((batch) => (
-                  <button
-                    key={batch.id}
-                    onClick={() => setSelectedBatch(batch)}
-                    className="group rounded-lg border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-emerald-300 hover:shadow-md"
-                  >
-                    <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100">
-                      <Layers size={20} />
-                    </div>
-                    <h3 className="text-sm font-semibold text-slate-800">{batch.nama_batch}</h3>
-                  </button>
-                ))}
+                {[...list]
+                  .sort((a, b) => (pendingByBatch[b.id] || 0) - (pendingByBatch[a.id] || 0))
+                  .map((batch) => {
+                    const pending = pendingByBatch[batch.id] || 0;
+                    return (
+                      <button
+                        key={batch.id}
+                        onClick={() => setSelectedBatch(batch)}
+                        className={`group rounded-lg border bg-white p-4 text-left shadow-sm transition hover:shadow-md ${pending > 0 ? "border-red-300 ring-1 ring-red-100 hover:border-red-400" : "border-slate-200 hover:border-emerald-300"}`}
+                      >
+                        <div className="mb-2 flex items-center justify-between">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100">
+                            <Layers size={20} />
+                          </div>
+                          {pending > 0 && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                              {pending} pengajuan
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="text-sm font-semibold text-slate-800">{batch.nama_batch}</h3>
+                        <p className="mt-1 text-xs text-slate-400">{selectedCabang.nama_cabang}</p>
+                      </button>
+                    );
+                  })}
               </div>
             );
           })()}
