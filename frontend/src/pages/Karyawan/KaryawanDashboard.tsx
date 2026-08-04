@@ -7,6 +7,7 @@ import { Camera, MapPin, CheckCircle, X, Calendar,
   QrCode, FileText, History, Clock, ClipboardList,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
+import { Html5Qrcode } from 'html5-qrcode'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
 
 declare global {
@@ -70,6 +71,10 @@ export default function KaryawanDashboard() {
   const faceDetectorRef = useRef<any>(null)
   const detectionFrameRef = useRef<number>(0)
   const [faceDetected, setFaceDetected] = useState(false)
+
+  const [showQrScanner, setShowQrScanner] = useState(false)
+  const qrScannerRef = useRef<Html5Qrcode | null>(null)
+  const [userCoords, setUserCoords] = useState<{ lat: number; long: number } | null>(null)
 
   const [riwayat, setRiwayat] = useState<RiwayatItem[]>([])
   const [riwayatFilter, setRiwayatFilter] = useState('Semua')
@@ -144,13 +149,13 @@ export default function KaryawanDashboard() {
 
     setShowCamera(true)
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } })
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } } })
       streamRef.current = stream
       if (videoRef.current) videoRef.current.srcObject = stream
 
       // Init face detection
       if ('FaceDetector' in window) {
-        faceDetectorRef.current = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 })
+        faceDetectorRef.current = new window.FaceDetector({ fastMode: false, maxDetectedFaces: 1 })
         videoRef.current?.addEventListener('loadeddata', () => detectFaces())
       } else {
         // Fallback: canvas pixel analysis
@@ -172,6 +177,74 @@ export default function KaryawanDashboard() {
     }
     setShowCamera(false)
   }, [])
+
+  const openQrScanner = useCallback(() => {
+    setUserCoords(null)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setUserCoords({ lat: pos.coords.latitude, long: pos.coords.longitude }),
+      () => {},
+      { enableHighAccuracy: true, timeout: 5000 },
+    )
+    setShowQrScanner(true)
+  }, [])
+
+  useEffect(() => {
+    if (!showQrScanner) {
+      if (qrScannerRef.current) {
+        qrScannerRef.current.stop().catch(() => {})
+        qrScannerRef.current.clear().catch(() => {})
+        qrScannerRef.current = null
+      }
+      return
+    }
+
+    const scanner = new Html5Qrcode('qr-scanner-dashboard')
+    qrScannerRef.current = scanner
+
+    scanner.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 220, height: 220 } },
+      (decodedText) => {
+        scanner.stop().catch(() => {})
+        qrScannerRef.current = null
+        setShowQrScanner(false)
+
+        Swal.fire({
+          title: 'Memproses...',
+          text: 'Silakan tunggu',
+          didOpen: () => Swal.showLoading(),
+          allowOutsideClick: false,
+        })
+
+        absensiKaryawanApi.scanQr(decodedText, userCoords?.lat, userCoords?.long)
+          .then((res) => {
+            Swal.fire({
+              icon: 'success',
+              title: 'Berhasil!',
+              text: res.data.message,
+              footer: res.data.cabang ? `Cabang: ${res.data.cabang}` : undefined,
+            })
+            loadData()
+          })
+          .catch((err) => {
+            Swal.fire({
+              icon: 'error',
+              title: 'Gagal',
+              text: err?.response?.data?.message || err.message || 'Terjadi kesalahan',
+            })
+          })
+      },
+      () => {}
+    ).catch(() => {})
+
+    return () => {
+      if (qrScannerRef.current) {
+        qrScannerRef.current.stop().catch(() => {})
+        qrScannerRef.current.clear().catch(() => {})
+        qrScannerRef.current = null
+      }
+    }
+  }, [showQrScanner])
 
   const detectFaces = useCallback(async () => {
     if (!faceDetectorRef.current || !videoRef.current) return
@@ -216,7 +289,7 @@ export default function KaryawanDashboard() {
       return
     }
     const tempCanvas = document.createElement('canvas')
-    const w = 160, h = 120
+    const w = 320, h = 240
     tempCanvas.width = w
     tempCanvas.height = h
     const ctx = tempCanvas.getContext('2d', { willReadFrequently: true })
@@ -227,8 +300,8 @@ export default function KaryawanDashboard() {
     ctx.drawImage(video, 0, 0, w, h)
 
     // --- Step 1: Scan center-upper region for skin-tone ---
-    const scanX = Math.floor(w * 0.2), scanY = Math.floor(h * 0.05)
-    const scanW = Math.floor(w * 0.6), scanH = Math.floor(h * 0.65)
+    const scanX = Math.floor(w * 0.10), scanY = Math.floor(h * 0.02)
+    const scanW = Math.floor(w * 0.80), scanH = Math.floor(h * 0.80)
     const imageData = ctx.getImageData(scanX, scanY, scanW, scanH)
     const pixels = imageData.data
 
@@ -244,7 +317,7 @@ export default function KaryawanDashboard() {
     const totalPixels = skinMask.length
     const skinRatio = skinCount / totalPixels
 
-    if (skinRatio < 0.10) {
+    if (skinRatio < 0.05) {
       setFaceDetected(false)
       if (overlayCanvasRef.current) {
         const oc = overlayCanvasRef.current; oc.width = video.videoWidth; oc.height = video.videoHeight
@@ -271,7 +344,7 @@ export default function KaryawanDashboard() {
     const bboxRatio = bboxH / bboxW // face: ~1.2–1.8 (taller than wide)
 
     // Must be face-shaped: taller than wide, not too elongated
-    if (bboxRatio < 0.8 || bboxRatio > 3.0) {
+    if (bboxRatio < 0.7 || bboxRatio > 4.0) {
       setFaceDetected(false)
       if (overlayCanvasRef.current) {
         const oc = overlayCanvasRef.current; oc.width = video.videoWidth; oc.height = video.videoHeight
@@ -284,7 +357,7 @@ export default function KaryawanDashboard() {
     // --- Step 3: Skin fill ratio within bounding box (face = ~50-85%, body = >90%) ---
     const bboxArea = bboxH * bboxW
     const fillRatio = skinCount / bboxArea
-    if (fillRatio < 0.35 || fillRatio > 0.95) {
+    if (fillRatio < 0.25 || fillRatio > 0.95) {
       setFaceDetected(false)
       if (overlayCanvasRef.current) {
         const oc = overlayCanvasRef.current; oc.width = video.videoWidth; oc.height = video.videoHeight
@@ -309,7 +382,7 @@ export default function KaryawanDashboard() {
     }
     const eyeDarkRatio = eyeTotalPixels > 0 ? eyeDarkPixels / eyeTotalPixels : 0
     // Eyes region should have some dark pixels (10-50% dark is face-like)
-    const hasEyes = eyeDarkRatio > 0.08 && eyeDarkRatio < 0.6
+    const hasEyes = eyeDarkRatio > 0.05 && eyeDarkRatio < 0.6
 
     // --- Step 5: Check for lighter forehead (upper 25%) vs darker eye band ---
     const foreheadEndRow = minRow + Math.floor(bboxH * 0.25)
@@ -328,7 +401,7 @@ export default function KaryawanDashboard() {
     const hasForehead = avgForehead > 80 // forehead should be reasonably bright
 
     // --- Final verdict: face detected if all checks pass ---
-    const detected = skinRatio > 0.10 && bboxRatio > 0.8 && bboxRatio < 3.0 && fillRatio > 0.35 && fillRatio < 0.95 && hasEyes && hasForehead
+    const detected = skinRatio > 0.05 && bboxRatio > 0.7 && bboxRatio < 4.0 && fillRatio > 0.25 && fillRatio < 0.95 && hasEyes && hasForehead
     setFaceDetected(detected)
 
     // Clear overlay
@@ -493,7 +566,7 @@ export default function KaryawanDashboard() {
           <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase mb-4">Menu Cepat</h3>
           <div className="grid grid-cols-3 gap-2">
             {[
-              { icon: QrCode, label: 'Scan QR' },
+              { icon: QrCode, label: 'Scan QR', action: openQrScanner },
               { icon: FileText, label: 'Izin/Sakit', href: '/pengajuan-izin' },
               { icon: History, label: 'Riwayat', href: '/riwayat-absensi-karyawan' },
               { icon: Clock, label: 'Lembur', href: '/lembur-karyawan' },
@@ -501,7 +574,11 @@ export default function KaryawanDashboard() {
               ...(user?.role === 'GURU' || user?.jabatan === 'Guru' ? [{ icon: ClipboardList, label: 'Data Siswa', href: '/guru-data-siswa' }] : []),
               ...(user?.jabatan === 'Guru' ? [{ icon: Users, label: 'Sensei' }] : []),
             ].map((item, i) => (
-              <button key={i} onClick={() => item.href && (window.location.href = item.href)} className="flex flex-col items-center gap-2 py-3 rounded-lg hover:bg-[#F4F5F8] transition-colors">
+              <button key={i} onClick={() => {
+                const it = item as { href?: string; action?: () => void }
+                if (it.action) it.action()
+                else if (it.href) window.location.href = it.href
+              }} className="flex flex-col items-center gap-2 py-3 rounded-lg hover:bg-[#F4F5F8] transition-colors">
                 <div className="w-10 h-10 rounded-lg bg-[#0069b0]/[0.06] flex items-center justify-center">
                   <item.icon size={17} className="text-[#0069b0]" strokeWidth={1.8} />
                 </div>
@@ -660,6 +737,36 @@ export default function KaryawanDashboard() {
       </div>
 
       {/* Camera Modal — Full Screen */}
+      {showQrScanner && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                <QrCode size={18} className="text-[#0069b0]" />
+                Scan QR Absensi
+              </h3>
+              <button
+                onClick={() => setShowQrScanner(false)}
+                className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <X size={20} className="text-slate-400" />
+              </button>
+            </div>
+            <div className="p-5">
+              <div className="aspect-square bg-black rounded-xl overflow-hidden relative flex items-center justify-center">
+                <div id="qr-scanner-dashboard" className="w-full h-full" />
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="w-48 h-48 border-2 border-[#0069b0] rounded-xl opacity-70" />
+                </div>
+              </div>
+              <p className="text-xs text-slate-400 text-center mt-3">
+                Arahkan kamera ke QR code cabang untuk absen masuk/pulang
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showCamera && (
         <div className="fixed inset-0 z-50 bg-black flex flex-col">
           <video ref={videoRef} autoPlay playsInline muted className="flex-1 w-full h-full object-cover" style={{ transform: 'scaleX(-1)' }} />
@@ -667,7 +774,7 @@ export default function KaryawanDashboard() {
 
           {/* Dark overlay with transparent face guide hole */}
           <div className="absolute inset-0 z-[2] pointer-events-none">
-            <div className={`absolute left-1/2 top-[28%] -translate-x-1/2 -translate-y-1/2 w-[220px] h-[280px] rounded-[50%] border-[3px] transition-all duration-300 ${
+            <div className={`absolute left-1/2 top-[26%] -translate-x-1/2 -translate-y-1/2 w-[340px] h-[420px] rounded-[50%] border-[3px] transition-all duration-300 ${
               faceDetected
                 ? 'border-[#4ADE80] shadow-[0_0_20px_rgba(74,222,128,0.5)]'
                 : 'border-white/60'
@@ -692,7 +799,7 @@ export default function KaryawanDashboard() {
           </div>
 
           {/* Instruction below face guide */}
-          <div className="absolute z-10 left-1/2 -translate-x-1/2 text-center" style={{ top: 'calc(28% + 148px)' }}>
+          <div className="absolute z-10 left-1/2 -translate-x-1/2 text-center" style={{ top: 'calc(26% + 215px)' }}>
             <p className={`text-xs font-semibold drop-shadow-lg transition-colors ${
               faceDetected ? 'text-[#4ADE80]' : 'text-white/70'
             }`}>
