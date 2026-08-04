@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   GraduationCap, Search, RotateCcw, Plus, Upload, Bot, Timer,
-  Trash2, Pencil, Check, X, Sparkles,
+  Trash2, Pencil, X, Sparkles,
 } from "lucide-react";
 import { siswaApi, adminCabangApi, APP_URL } from "../../services/api";
 import type { Siswa } from "../../types";
@@ -38,7 +38,6 @@ export default function SiswaPage() {
 
   const [showModalTambah, setShowModalTambah] = useState(false);
   const [showModalEdit, setShowModalEdit] = useState(false);
-  const [showModalAkun, setShowModalAkun] = useState(false);
   const [showModalImport, setShowModalImport] = useState(false);
   const [showModalImportAi, setShowModalImportAi] = useState(false);
   const [showModalBulkShift, setShowModalBulkShift] = useState(false);
@@ -52,8 +51,6 @@ export default function SiswaPage() {
   };
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState<number | null>(null);
-
-  const [akunForm, setAkunForm] = useState({ siswa_id: 0, nama: "", email: "", password: "siswa123" });
 
   const [importAiText, setImportAiText] = useState("");
   const [importAiBatch, setImportAiBatch] = useState("");
@@ -188,22 +185,6 @@ export default function SiswaPage() {
       fetchData();
     } catch (err) {
       console.error(err);
-    }
-  };
-
-  const handleBuatAkun = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!akunForm.email || !akunForm.password) return;
-    setSubmitting(true);
-    try {
-      await siswaApi.buatkanAkun(akunForm.siswa_id, { email: akunForm.email, password: akunForm.password });
-      setShowModalAkun(false);
-      setAkunForm({ siswa_id: 0, nama: "", email: "", password: "siswa123" });
-      fetchData();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSubmitting(false);
     }
   };
 
@@ -459,7 +440,6 @@ export default function SiswaPage() {
               <th className="border border-slate-600 px-3 py-2.5 text-center font-semibold">L/P</th>
               <th className="border border-slate-600 px-3 py-2.5 font-semibold">No. HP</th>
               <th className="border border-slate-600 px-3 py-2.5 text-center font-semibold">Status</th>
-              <th className="border border-slate-600 px-3 py-2.5 text-center font-semibold">Akun</th>
               <th className="border border-slate-600 px-3 py-2.5 text-center font-semibold w-24">Aksi</th>
             </tr>
           </thead>
@@ -467,12 +447,12 @@ export default function SiswaPage() {
             {loading ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <tr key={i}>
-                  <td colSpan={13} className="border border-slate-200 px-3 py-3"><div className="h-3 w-full rounded bg-slate-200/70" /></td>
+                  <td colSpan={12} className="border border-slate-200 px-3 py-3"><div className="h-3 w-full rounded bg-slate-200/70" /></td>
                 </tr>
               ))
             ) : data.length === 0 ? (
               <tr>
-                <td colSpan={13} className="border border-slate-200 px-4 py-10 text-center">
+                <td colSpan={12} className="border border-slate-200 px-4 py-10 text-center">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400"><GraduationCap size={24} /></div>
                   <p className="mt-3 text-sm font-medium text-slate-600">Belum ada data siswa</p>
                 </td>
@@ -558,15 +538,6 @@ export default function SiswaPage() {
                     </span>
                   </td>
                   <td className="border border-slate-200 px-3 py-2.5 text-center">
-                    {s.user_id ? (
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-medium text-emerald-700"><Check size={10} /> Ada</span>
-                    ) : (
-                      <button onClick={() => { setAkunForm({ siswa_id: s.id, nama: s.nama, email: "", password: "siswa123" }); setShowModalAkun(true); }} className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[9px] font-medium text-slate-600 transition hover:bg-sky-50 hover:text-sky-700">
-                        <X size={10} className="inline mr-0.5" /> Buat Akun
-                      </button>
-                    )}
-                  </td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-center">
                     <div className="flex items-center justify-center gap-1">
                       <button onClick={() => openEdit(s)} className="rounded-md p-1.5 text-slate-400 transition hover:bg-amber-50 hover:text-amber-600" title="Edit"><Pencil size={13} /></button>
                       <button onClick={() => handleDelete(s.id, s.nama)} className="rounded-md p-1.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-500" title="Hapus"><Trash2 size={13} /></button>
@@ -637,35 +608,6 @@ export default function SiswaPage() {
               <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3">
                 <button type="button" onClick={() => { setShowModalEdit(false); setForm(emptyForm); setEditId(null); }} className="rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">Batal</button>
                 <button type="submit" disabled={submitting || !form.nama} className="rounded-md bg-slate-800 px-4 py-2 text-xs font-medium text-white transition hover:bg-slate-700 disabled:opacity-50">{submitting ? "Menyimpan..." : "Simpan"}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Buat Akun */}
-      {showModalAkun && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3">
-          <div className="w-full max-w-sm rounded-lg bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-              <h3 className="text-sm font-semibold text-slate-800">Buat Akun Login untuk {akunForm.nama}</h3>
-              <button onClick={() => { setShowModalAkun(false); setAkunForm({ siswa_id: 0, nama: "", email: "", password: "siswa123" }); }} className="rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"><X size={16} /></button>
-            </div>
-            <form onSubmit={handleBuatAkun}>
-              <div className="px-4 py-4 space-y-3">
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-500">Email <span className="text-rose-500">*</span></label>
-                  <input type="email" value={akunForm.email} onChange={(e) => setAkunForm({ ...akunForm, email: e.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-500">Password <span className="text-rose-500">*</span></label>
-                  <input type="text" value={akunForm.password} onChange={(e) => setAkunForm({ ...akunForm, password: e.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required />
-                  <p className="mt-1 text-[10px] text-slate-400">Default: siswa123</p>
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3">
-                <button type="button" onClick={() => { setShowModalAkun(false); setAkunForm({ siswa_id: 0, nama: "", email: "", password: "siswa123" }); }} className="rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">Batal</button>
-                <button type="submit" disabled={submitting || !akunForm.email} className="rounded-md bg-slate-800 px-4 py-2 text-xs font-medium text-white transition hover:bg-slate-700 disabled:opacity-50">{submitting ? "Menyimpan..." : "Buat Akun"}</button>
               </div>
             </form>
           </div>

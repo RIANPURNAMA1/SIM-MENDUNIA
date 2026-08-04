@@ -188,13 +188,23 @@ export default function KaryawanDashboard() {
     setShowQrScanner(true)
   }, [])
 
+  const stopQrScanner = useCallback(async () => {
+    const s = qrScannerRef.current
+    qrScannerRef.current = null
+    if (!s) return
+    try {
+      await s.stop()
+    } catch (e) {
+      // stop() dipanggil saat start() masih ber-transisi -> tunggu lalu ulangi
+      await new Promise(r => setTimeout(r, 150))
+      try { await s.stop() } catch {}
+    }
+    try { await s.clear() } catch {}
+  }, [])
+
   useEffect(() => {
     if (!showQrScanner) {
-      if (qrScannerRef.current) {
-        qrScannerRef.current.stop().catch(() => {})
-        qrScannerRef.current.clear().catch(() => {})
-        qrScannerRef.current = null
-      }
+      stopQrScanner()
       return
     }
 
@@ -205,8 +215,7 @@ export default function KaryawanDashboard() {
       { facingMode: 'environment' },
       { fps: 10, qrbox: { width: 220, height: 220 } },
       (decodedText) => {
-        scanner.stop().catch(() => {})
-        qrScannerRef.current = null
+        stopQrScanner()
         setShowQrScanner(false)
 
         Swal.fire({
@@ -238,11 +247,7 @@ export default function KaryawanDashboard() {
     ).catch(() => {})
 
     return () => {
-      if (qrScannerRef.current) {
-        qrScannerRef.current.stop().catch(() => {})
-        qrScannerRef.current.clear().catch(() => {})
-        qrScannerRef.current = null
-      }
+      stopQrScanner()
     }
   }, [showQrScanner])
 
