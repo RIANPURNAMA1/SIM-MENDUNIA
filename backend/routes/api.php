@@ -597,6 +597,7 @@ Route::middleware(['auth:sanctum'])->prefix('wa-settings')->group(function () {
     Route::get('/email-stats', [\App\Http\Controllers\WaSettingController::class, 'emailStats']);
     Route::post('/test-email', [\App\Http\Controllers\WaSettingController::class, 'testEmail']);
     Route::post('/test-wa', [\App\Http\Controllers\WaSettingController::class, 'testWa']);
+    Route::post('/test-webhook', [\App\Http\Controllers\WaWebhookController::class, 'simulate']);
 });
 
 // ========== Notification Templates ==========

@@ -11,6 +11,8 @@ import {
   Mail,
   MessageSquare,
   Send,
+  Webhook,
+  ShieldAlert,
 } from 'lucide-react'
 
 interface GlobalSetting {
@@ -42,6 +44,15 @@ export default function DataNotifikasiSetting() {
   const [testWaPhone, setTestWaPhone] = useState('')
   const [testingWa, setTestingWa] = useState(false)
   const [testWaResult, setTestWaResult] = useState<{ success: boolean; message: string; config?: any } | null>(null)
+
+  const [testWhScenario, setTestWhScenario] = useState('payment_confirm')
+  const [testWhPhone, setTestWhPhone] = useState('')
+  const [testWhMessage, setTestWhMessage] = useState('KONFIRMASI')
+  const [testWhPayload, setTestWhPayload] = useState('')
+  const [testWhUsePayload, setTestWhUsePayload] = useState(false)
+  const [testWhExecute, setTestWhExecute] = useState(false)
+  const [testingWh, setTestingWh] = useState(false)
+  const [testWhResult, setTestWhResult] = useState<any>(null)
 
   useEffect(() => { loadInitialData() }, [])
 
@@ -118,6 +129,50 @@ export default function DataNotifikasiSetting() {
       setTestWaResult({ success: false, message: msg, config: err?.response?.data?.config })
     } finally {
       setTestingWa(false)
+    }
+  }
+
+  const adminPhones = (globalSettings.find(s => s.key === 'wa_pembayaran_admin_phones')?.value || '')
+    .split(',').map(p => p.trim()).filter(Boolean)
+
+  const handleScenarioChange = (value: string) => {
+    setTestWhScenario(value)
+    const preset: Record<string, string> = {
+      payment_confirm: 'KONFIRMASI',
+      payment_cancel: 'BATAL',
+      izin_approve: 'IYA',
+      unknown: 'HALO',
+    }
+    setTestWhMessage(preset[value] || '')
+    if (value === 'payment_confirm' || value === 'payment_cancel') {
+      setTestWhPhone(adminPhones[0] || '')
+    } else if (value === 'izin_approve') {
+      setTestWhPhone('085773141623')
+    } else {
+      setTestWhPhone('')
+    }
+  }
+
+  const handleTestWebhook = async () => {
+    setTestingWh(true)
+    setTestWhResult(null)
+    try {
+      const data: any = { execute: testWhExecute }
+      if (testWhUsePayload && testWhPayload.trim()) {
+        data.payload = testWhPayload.trim()
+      } else {
+        data.from = testWhPhone.trim()
+        data.message = testWhMessage.trim()
+      }
+      const res = await waSettingApi.testWebhook(data)
+      setTestWhResult(res.data)
+    } catch (err: any) {
+      setTestWhResult({
+        success: false,
+        message: err?.response?.data?.message || 'Gagal menjalankan uji webhook',
+      })
+    } finally {
+      setTestingWh(false)
     }
   }
 
@@ -357,6 +412,147 @@ export default function DataNotifikasiSetting() {
                 <pre className="mt-2 text-xs bg-white/60 rounded-lg p-3 overflow-x-auto">
                   {JSON.stringify(testWaResult.config, null, 2)}
                 </pre>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Test Webhook StarSender */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center">
+              <Webhook size={20} className="text-violet-600" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-slate-800">Uji Coba Webhook StarSender</h2>
+              <p className="text-xs text-slate-500">Simulasikan payload yang dikirim StarSender ke endpoint webhook & lihat hasil pemrosesannya</p>
+            </div>
+          </div>
+        </div>
+        <div className="px-6 py-4 space-y-4">
+          <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2.5 text-xs text-slate-600">
+            <span className="font-semibold text-slate-700">Webhook URL:</span>{' '}
+            <code className="text-[#0E6187] font-mono">https://api.sim.mendunia.id/api/wa-webhook</code>
+            <span className="block mt-0.5 text-slate-400">Paste URL ini di panel StarSender → Incoming Webhook / Callback untuk meneruskan pesan masuk.</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1.5">Skenario</label>
+              <select value={testWhScenario} onChange={e => handleScenarioChange(e.target.value)}
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20">
+                <option value="payment_confirm">Balasan admin mutasi — KONFIRMASI</option>
+                <option value="payment_cancel">Balasan admin mutasi — BATAL</option>
+                <option value="izin_approve">Balasan manager izin — IYA</option>
+                <option value="unknown">Pesan tidak dikenali</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1.5">Nomor Pengirim</label>
+              <input type="text" value={testWhPhone} onChange={e => setTestWhPhone(e.target.value)}
+                placeholder="628xxxxxxxxxx"
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1.5">Isi Pesan</label>
+            <input type="text" value={testWhMessage} onChange={e => setTestWhMessage(e.target.value)}
+              placeholder="KONFIRMASI / BATAL / IYA / TIDAK"
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label className="inline-flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+              <input type="checkbox" checked={testWhUsePayload} onChange={e => setTestWhUsePayload(e.target.checked)} className="rounded border-slate-300" />
+              Gunakan payload StarSender kustom (JSON)
+            </label>
+          </div>
+          {testWhUsePayload && (
+            <textarea value={testWhPayload} onChange={e => setTestWhPayload(e.target.value)} rows={5}
+              placeholder='{"data":{"message":{"from":"6282118364415","conversation":"KONFIRMASI"}}}'
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
+          )}
+
+          <div className="flex flex-wrap items-center gap-4">
+            <label className="inline-flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+              <input type="checkbox" checked={testWhExecute} onChange={e => setTestWhExecute(e.target.checked)} className="rounded border-slate-300" />
+              Eksekusi sungguhan (mengubah status data)
+            </label>
+            <button onClick={handleTestWebhook} disabled={testingWh}
+              className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 disabled:opacity-50 transition-colors">
+              {testingWh ? <Loader2 size={14} className="animate-spin" /> : <Webhook size={14} />}
+              Uji Webhook
+            </button>
+          </div>
+          {testWhExecute && (
+            <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-xs text-amber-700">
+              <ShieldAlert size={14} className="mt-0.5 shrink-0" />
+              <span>Mode eksekusi sungguhan akan benar-benar memverifikasi/menolak pembayaran atau menyetujui/menolak izin jika ada pengajuan pending yang cocok.</span>
+            </div>
+          )}
+
+          {testWhResult && (
+            <div className={`p-4 rounded-xl text-sm border ${testWhResult.success === false ? 'bg-red-50 border-red-200 text-red-700' : 'bg-violet-50 border-violet-200 text-violet-800'}`}>
+              <div className="flex items-center gap-2 mb-2">
+                {testWhResult.success === false ? <AlertCircle size={16} /> : <CheckCircle size={16} />}
+                <span className="font-medium">{testWhResult.success === false ? 'Gagal' : 'Payload diproses'}</span>
+                {testWhResult.executed && <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">Eksekusi nyata</span>}
+              </div>
+              {testWhResult.message && <p>{testWhResult.message}</p>}
+              {testWhResult.success !== false && (
+                <div className="mt-3 space-y-2 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="rounded-lg bg-white/70 px-3 py-2">
+                      <p className="text-[10px] text-violet-400 font-semibold uppercase">Parsed From</p>
+                      <p className="font-mono font-semibold">{testWhResult.parsed_from || '-'}</p>
+                    </div>
+                    <div className="rounded-lg bg-white/70 px-3 py-2">
+                      <p className="text-[10px] text-violet-400 font-semibold uppercase">Parsed Message</p>
+                      <p className="font-mono font-semibold">{testWhResult.parsed_message || '-'}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <span className={`rounded-full px-2.5 py-1 font-semibold ${testWhResult.is_payment_admin ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                      Admin Mutasi: {testWhResult.is_payment_admin ? 'YA' : 'TIDAK'}
+                    </span>
+                    <span className={`rounded-full px-2.5 py-1 font-semibold ${testWhResult.is_manager ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}`}>
+                      Manager Izin: {testWhResult.is_manager ? 'YA' : 'TIDAK'}
+                    </span>
+                    {testWhResult.payment_reply && (
+                      <span className={`rounded-full px-2.5 py-1 font-semibold ${testWhResult.payment_reply === 'approve' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                        Balasan: {testWhResult.payment_reply === 'approve' ? 'KONFIRMASI (setujui)' : 'BATAL (tolak)'}
+                      </span>
+                    )}
+                    {testWhResult.manager_reply && (
+                      <span className="rounded-full px-2.5 py-1 font-semibold bg-blue-100 text-blue-700">Balasan Izin: {testWhResult.manager_reply}</span>
+                    )}
+                    <span className={`rounded-full px-2.5 py-1 font-semibold ${testWhResult.has_pending_payment ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
+                      Ada pembayaran pending: {testWhResult.has_pending_payment ? 'YA' : 'TIDAK'}
+                    </span>
+                    <span className={`rounded-full px-2.5 py-1 font-semibold ${testWhResult.has_pending_izin ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
+                      Ada izin pending: {testWhResult.has_pending_izin ? 'YA' : 'TIDAK'}
+                    </span>
+                  </div>
+                  {testWhResult.pending_payment_detail && (
+                    <div className="rounded-lg bg-white/70 px-3 py-2">
+                      <p className="text-[10px] text-violet-400 font-semibold uppercase">Detail Pembayaran Pending</p>
+                      <p className="font-medium">{testWhResult.pending_payment_detail.nama} — No. Reg: {testWhResult.pending_payment_detail.no_registrasi || '-'} (Status: {testWhResult.pending_payment_detail.status_pembayaran})</p>
+                    </div>
+                  )}
+                  {testWhResult.executed ? (
+                    <div className="rounded-lg bg-white/70 px-3 py-2">
+                      <p className="text-[10px] text-violet-400 font-semibold uppercase">Hasil Webhook</p>
+                      <pre className="mt-1 text-xs overflow-x-auto">{JSON.stringify(testWhResult.webhook_result, null, 2)}</pre>
+                    </div>
+                  ) : (
+                    <div className="rounded-lg bg-white/70 px-3 py-2">
+                      <p className="text-[10px] text-violet-400 font-semibold uppercase">Prediksi Hasil</p>
+                      <p className="font-medium">{testWhResult.expected || '-'}</p>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}
