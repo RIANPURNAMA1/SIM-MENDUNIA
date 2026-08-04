@@ -1,10 +1,12 @@
+import { useEffect, useMemo, useState } from 'react'
+import type { LucideIcon } from 'lucide-react'
 import {
   Users, Send, Eye, CheckCircle, FileText, ClipboardList, ArrowRight, Briefcase, ShieldCheck, BarChart3, Award,
   Filter, ChevronDown, Check, LayoutGrid, User, MapPin,
   Utensils, Sprout, ChefHat, HeartPulse, Sparkles, Coffee, Car, Bed, Wrench, HardHat, Fish, BadgeCheck,
-  RotateCcw, CalendarRange, ExternalLink, PhoneCall, Percent, TrendingUp, ListChecks,
+  RotateCcw, CalendarRange, ExternalLink, PhoneCall, Percent, TrendingUp, ListChecks, Loader2, AlertCircle, X,
 } from 'lucide-react'
-import { useState } from 'react'
+import api from '../../services/api'
 import {
   Chart as ChartJS,
   CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend,
@@ -21,65 +23,20 @@ const tabs = [
   { label: 'Status Kandidat', icon: Users },
 ]
 
-const stats = [
-  { label: 'Total Kandidat', value: 365, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-  { label: 'Terkirim', value: 28, icon: Send, color: 'text-amber-600', bg: 'bg-amber-50' },
-  { label: 'Direview', value: 0, icon: Eye, color: 'text-purple-600', bg: 'bg-purple-50' },
-  { label: 'Disetujui', value: 71, icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-]
-
-const quickActions = [
-  {
-    label: 'Formulir Draft',
-    desc: '265 belum di submit',
-    color: 'text-amber-600',
-    bg: 'bg-amber-50',
-    icon: FileText,
-  },
-  {
-    label: 'Review Formulir Baru',
-    desc: '28 menunggu review',
-    color: 'text-blue-600',
-    bg: 'bg-blue-50',
-    icon: ClipboardList,
-  },
-  {
-    label: 'Lihat Semua Kandidat',
-    desc: 'Total 365 kandidat',
-    color: 'text-emerald-600',
-    bg: 'bg-emerald-50',
-    icon: Users,
-  },
-]
-
 interface BidangSSW {
   id: string
   nama: string
-  icon: React.ComponentType<{ size?: number | string; className?: string }>
+  icon: LucideIcon
   bg: string
   color: string
   laki: number
   perempuan: number
 }
 
-const sswBidang: BidangSSW[] = [
-  { id: 'pengolahan-makanan', nama: 'Pengolahan Makanan', icon: Utensils, bg: 'bg-emerald-50', color: 'text-emerald-600', laki: 5, perempuan: 3 },
-  { id: 'pertanian', nama: 'Pertanian', icon: Sprout, bg: 'bg-green-50', color: 'text-green-600', laki: 12, perempuan: 8 },
-  { id: 'gaishoku', nama: 'Gaishoku', icon: ChefHat, bg: 'bg-orange-50', color: 'text-orange-600', laki: 0, perempuan: 0 },
-  { id: 'kaigo', nama: 'Kaigo (perawat)', icon: HeartPulse, bg: 'bg-rose-50', color: 'text-rose-600', laki: 2, perempuan: 5 },
-  { id: 'building-cleaning', nama: 'Building Cleaning', icon: Sparkles, bg: 'bg-sky-50', color: 'text-sky-600', laki: 0, perempuan: 1 },
-  { id: 'restoran', nama: 'Restoran', icon: Coffee, bg: 'bg-amber-50', color: 'text-amber-600', laki: 0, perempuan: 0 },
-  { id: 'driver', nama: 'Driver', icon: Car, bg: 'bg-blue-50', color: 'text-blue-600', laki: 0, perempuan: 0 },
-  { id: 'perhotelan', nama: 'Perhotelan', icon: Bed, bg: 'bg-purple-50', color: 'text-purple-600', laki: 0, perempuan: 1 },
-  { id: 'perbaikan-mobil', nama: 'Perbaikan dan Perawatan Mobil', icon: Wrench, bg: 'bg-slate-100', color: 'text-slate-600', laki: 1, perempuan: 0 },
-  { id: 'konstruksi', nama: 'Konstruksi', icon: HardHat, bg: 'bg-yellow-50', color: 'text-yellow-600', laki: 0, perempuan: 1 },
-  { id: 'perikanan', nama: 'Perikanan', icon: Fish, bg: 'bg-cyan-50', color: 'text-cyan-600', laki: 0, perempuan: 0 },
-]
-
 interface SertifikasiInfo {
   id: string
   nama: string
-  icon: React.ComponentType<{ size?: number | string; className?: string }>
+  icon: LucideIcon
   bg: string
   color: string
   lakiSudah: number
@@ -88,10 +45,58 @@ interface SertifikasiInfo {
   perempuanBelum: number
 }
 
-const sertifikasiList: SertifikasiInfo[] = [
-  { id: 'jft', nama: 'Sertifikat JFT', icon: BadgeCheck, bg: 'bg-blue-50', color: 'text-blue-600', lakiSudah: 185, lakiBelum: 22, perempuanSudah: 124, perempuanBelum: 7 },
-  { id: 'ssw', nama: 'Sertifikat SSW', icon: Award, bg: 'bg-amber-50', color: 'text-amber-600', lakiSudah: 20, lakiBelum: 187, perempuanSudah: 20, perempuanBelum: 111 },
+interface DashboardData {
+  total: number
+  byStatus: { status_formulir: string; count: number }[]
+  byCabang: { nama_cabang: string | null; count: number }[]
+  bySSWGender: { ssw: string; laki: number; perempuan: number; total: number }[]
+  bySSWProgres: { ssw: string; progres: { status: string; count: number }[] }[]
+  byCabangProgres: { nama_cabang: string | null; status_progres: string; count: number }[]
+  jftByGender: { jenis_kelamin: string | null; has_jft: number; no_jft: number }[]
+  sswByGender: { jenis_kelamin: string | null; has_ssw: number; no_ssw: number }[]
+  interviewByCabang: { nama_cabang: string | null; interview_laki: number; interview_perempuan: number; jadwalkan_laki: number; jadwalkan_perempuan: number; lulus_laki: number; lulus_perempuan: number }[]
+  interviewByGender: { jenis_kelamin: string | null; interview: number; lulus: number }[]
+}
+
+const sswMeta: { id: string; nama: string; icon: LucideIcon; bg: string; color: string }[] = [
+  { id: 'pengolahan-makanan', nama: 'Pengolahan Makanan', icon: Utensils, bg: 'bg-emerald-50', color: 'text-emerald-600' },
+  { id: 'pertanian', nama: 'Pertanian', icon: Sprout, bg: 'bg-green-50', color: 'text-green-600' },
+  { id: 'gaishoku', nama: 'Gaishoku', icon: ChefHat, bg: 'bg-orange-50', color: 'text-orange-600' },
+  { id: 'kaigo', nama: 'Kaigo (perawat)', icon: HeartPulse, bg: 'bg-rose-50', color: 'text-rose-600' },
+  { id: 'building-cleaning', nama: 'Building Cleaning', icon: Sparkles, bg: 'bg-sky-50', color: 'text-sky-600' },
+  { id: 'restoran', nama: 'Restoran', icon: Coffee, bg: 'bg-amber-50', color: 'text-amber-600' },
+  { id: 'driver', nama: 'Driver', icon: Car, bg: 'bg-blue-50', color: 'text-blue-600' },
+  { id: 'perhotelan', nama: 'Perhotelan', icon: Bed, bg: 'bg-purple-50', color: 'text-purple-600' },
+  { id: 'perbaikan-mobil', nama: 'Perbaikan dan Perawatan Mobil', icon: Wrench, bg: 'bg-slate-100', color: 'text-slate-600' },
+  { id: 'konstruksi', nama: 'Konstruksi', icon: HardHat, bg: 'bg-yellow-50', color: 'text-yellow-600' },
+  { id: 'perikanan', nama: 'Perikanan', icon: Fish, bg: 'bg-cyan-50', color: 'text-cyan-600' },
 ]
+
+const sertifikasiMeta = [
+  { id: 'jft', nama: 'Sertifikat JFT', icon: BadgeCheck, bg: 'bg-blue-50', color: 'text-blue-600' },
+  { id: 'ssw', nama: 'Sertifikat SSW', icon: Award, bg: 'bg-amber-50', color: 'text-amber-600' },
+]
+
+const FORM_STATUS_COLOR: Record<string, string> = {
+  draft: '#94A3B8',
+  submitted: '#0E6187',
+  reviewed: '#F59E0B',
+  approved: '#10B981',
+  rejected: '#EF4444',
+}
+
+const STATUS_PROGRES_COLOR: Record<string, string> = {
+  'Job Matching': '#0E6187',
+  'Pending': '#94A3B8',
+  'lamar ke perusahaan': '#0E6187',
+  'Interview': '#F59E0B',
+  'Jadwalkan Interview Ulang': '#F59E0B',
+  'Lulus interview': '#10B981',
+  'Gagal Interview': '#EF4444',
+  'Pemberkasan': '#8B5CF6',
+  'Berangkat': '#10B981',
+  'Ditolak': '#EF4444',
+}
 
 export default function DataMatchingJob() {
   const [activeTab, setActiveTab] = useState('Verifikasi')
@@ -103,12 +108,147 @@ export default function DataMatchingJob() {
   const [joFrom, setJoFrom] = useState('')
   const [joTo, setJoTo] = useState('')
 
-  const jobMatchingStatus = [
-    { label: 'Lamar ke Perusahaan', pct: 92, count: 69, laki: 35, perempuan: 33, color: '#0E6187' },
-    { label: 'Interview', pct: 3, count: 2, laki: 1, perempuan: 1, color: '#F59E0B' },
-    { label: 'Berangkat', pct: 1, count: 1, laki: 0, perempuan: 1, color: '#10B981' },
-    { label: 'Belum Diproses', pct: 4, count: 3, laki: 3, perempuan: 0, color: '#94A3B8' },
+  const [dash, setDash] = useState<DashboardData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [reloadKey, setReloadKey] = useState(0)
+  const [selectedSsw, setSelectedSsw] = useState<BidangSSW | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      setLoading(true)
+      setError('')
+      try {
+        const res = await api.get('/penempatan/dashboard')
+        const data = res.data
+        if (!data?.success) {
+          if (!cancelled) setError(data?.message || 'Gagal mengambil data dashboard')
+        } else {
+          if (!cancelled) setDash(data.data)
+        }
+      } catch (err: any) {
+        if (!cancelled) setError(err?.response?.data?.message || 'Gagal terhubung ke Sistem Penempatan')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [reloadKey])
+
+  const byStatusCount = (s: string) => dash?.byStatus.find(x => x.status_formulir === s)?.count ?? 0
+  const total = dash?.total ?? 0
+  const submitted = byStatusCount('submitted')
+  const reviewed = byStatusCount('reviewed')
+  const approved = byStatusCount('approved')
+
+  const stats = [
+    { label: 'Total Kandidat', value: total, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: 'Terkirim', value: submitted, icon: Send, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { label: 'Direview', value: reviewed, icon: Eye, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { label: 'Disetujui', value: approved, icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
   ]
+
+  const sswBidang: BidangSSW[] = useMemo(() => {
+    return (dash?.bySSWGender ?? []).map(s => {
+      const meta = sswMeta.find(m => m.nama.toLowerCase() === (s.ssw || '').toLowerCase())
+      return {
+        id: meta?.id ?? s.ssw,
+        nama: s.ssw,
+        icon: meta?.icon ?? Briefcase,
+        bg: meta?.bg ?? 'bg-slate-50',
+        color: meta?.color ?? 'text-slate-600',
+        laki: s.laki ?? 0,
+        perempuan: s.perempuan ?? 0,
+      }
+    })
+  }, [dash])
+
+  const jftGender = useMemo(() => {
+    const map = new Map<string, { has: number; no: number }>()
+    ;(dash?.jftByGender ?? []).forEach(g => {
+      if (g.jenis_kelamin) map.set(g.jenis_kelamin, { has: g.has_jft ?? 0, no: g.no_jft ?? 0 })
+    })
+    return map
+  }, [dash])
+
+  const sswGender = useMemo(() => {
+    const map = new Map<string, { has: number; no: number }>()
+    ;(dash?.sswByGender ?? []).forEach(g => {
+      if (g.jenis_kelamin) map.set(g.jenis_kelamin, { has: g.has_ssw ?? 0, no: g.no_ssw ?? 0 })
+    })
+    return map
+  }, [dash])
+
+  const sertifikasiList: SertifikasiInfo[] = useMemo(() => {
+    return sertifikasiMeta.map(s => {
+      const g = s.id === 'jft' ? jftGender : sswGender
+      return {
+        ...s,
+        lakiSudah: g.get('Laki-laki')?.has ?? 0,
+        lakiBelum: g.get('Laki-laki')?.no ?? 0,
+        perempuanSudah: g.get('Perempuan')?.has ?? 0,
+        perempuanBelum: g.get('Perempuan')?.no ?? 0,
+      }
+    })
+  }, [jftGender, sswGender])
+
+  const progresAgg = useMemo(() => {
+    const agg: Record<string, number> = {}
+    ;(dash?.bySSWProgres ?? []).forEach(p => {
+      ;(p.progres ?? []).forEach(s => {
+        agg[s.status] = (agg[s.status] || 0) + (s.count || 0)
+      })
+    })
+    return agg
+  }, [dash])
+
+  const sswProgresMap = useMemo(() => {
+    const map = new Map<string, { status: string; count: number }[]>()
+    ;(dash?.bySSWProgres ?? []).forEach(p => {
+      map.set(p.ssw, p.progres ?? [])
+    })
+    return map
+  }, [dash])
+
+  const progresTotal = Object.values(progresAgg).reduce((a, b) => a + b, 0)
+
+  const jobMatchingStatus = Object.entries(progresAgg)
+    .map(([label, count]) => ({
+      label,
+      count,
+      pct: progresTotal > 0 ? Math.round((count / progresTotal) * 100) : 0,
+      laki: null as number | null,
+      perempuan: null as number | null,
+      color: STATUS_PROGRES_COLOR[label] ?? '#0E6187',
+    }))
+    .sort((a, b) => b.count - a.count)
+
+  const interviewByGender = dash?.interviewByGender ?? []
+  const totalInterview = interviewByGender.reduce((a, g) => a + (g.interview || 0), 0)
+  const totalLulus = interviewByGender.reduce((a, g) => a + (g.lulus || 0), 0)
+  const interviewPct = totalInterview > 0 ? Math.round((totalLulus / totalInterview) * 100) : 0
+
+  const interviewCabangAgg = (dash?.interviewByCabang ?? []).reduce(
+    (acc, c) => {
+      acc.interview += (c.interview_laki || 0) + (c.interview_perempuan || 0)
+      acc.jadwalkan += (c.jadwalkan_laki || 0) + (c.jadwalkan_perempuan || 0)
+      acc.lulus += (c.lulus_laki || 0) + (c.lulus_perempuan || 0)
+      return acc
+    },
+    { interview: 0, jadwalkan: 0, lulus: 0 }
+  )
+  const distribusiTotal = interviewCabangAgg.interview + interviewCabangAgg.jadwalkan
+  const distribusiPct = distribusiTotal > 0 ? Math.round((interviewCabangAgg.lulus / distribusiTotal) * 100) : 0
+
+  const formStatusList = dash?.byStatus ?? []
+  const formStatusTotal = formStatusList.reduce((a, s) => a + (s.count || 0), 0)
+
+  const cabangData = (dash?.byCabang ?? [])
+    .map(c => ({ nama: c.nama_cabang || 'Tanpa Cabang', count: c.count ?? 0 }))
+    .sort((a, b) => b.count - a.count)
+
   const now = new Date()
   const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
   const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
@@ -246,6 +386,7 @@ export default function DataMatchingJob() {
             return (
               <div
                 key={b.id}
+                onClick={() => setSelectedSsw(b)}
                 className="group cursor-pointer rounded-lg border border-slate-200 p-4 transition hover:border-[#0E6187]/40 hover:shadow-md"
               >
                 <div className="flex items-center gap-3">
@@ -289,7 +430,7 @@ export default function DataMatchingJob() {
     </div>
   )
 
-  const totalSertifikasiKandidat = 338
+  const totalSertifikasiKandidat = total
 
   const getSertifikasiNumbers = (s: SertifikasiInfo) => {
     if (genderFilter === 'laki') {
@@ -474,7 +615,7 @@ export default function DataMatchingJob() {
               <Users size={16} className="text-blue-600" />
             </div>
           </div>
-          <div className="mt-2 text-2xl font-bold text-slate-800">75</div>
+          <div className="mt-2 text-2xl font-bold text-slate-800">{total}</div>
         </div>
         <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between">
@@ -483,7 +624,7 @@ export default function DataMatchingJob() {
               <PhoneCall size={16} className="text-amber-600" />
             </div>
           </div>
-          <div className="mt-2 text-2xl font-bold text-slate-800">1</div>
+          <div className="mt-2 text-2xl font-bold text-slate-800">{totalInterview}</div>
         </div>
         <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between">
@@ -492,7 +633,7 @@ export default function DataMatchingJob() {
               <CheckCircle size={16} className="text-emerald-600" />
             </div>
           </div>
-          <div className="mt-2 text-2xl font-bold text-slate-800">0</div>
+          <div className="mt-2 text-2xl font-bold text-slate-800">{totalLulus}</div>
         </div>
         <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between">
@@ -501,23 +642,23 @@ export default function DataMatchingJob() {
               <Percent size={16} className="text-purple-600" />
             </div>
           </div>
-          <div className="mt-2 text-2xl font-bold text-slate-800">0%</div>
+          <div className="mt-2 text-2xl font-bold text-slate-800">{interviewPct}%</div>
         </div>
       </div>
 
       <div className="mt-4 grid gap-3 lg:grid-cols-2">
         <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <h3 className="text-sm font-semibold text-slate-800">Status Progress Chart</h3>
-          <p className="mt-0.5 text-xs text-slate-500">Distribusi status kandidat saat ini</p>
+          <p className="mt-0.5 text-xs text-slate-500">Distribusi status formulir kandidat saat ini</p>
           <div className="mt-4 flex flex-col items-center gap-6 sm:flex-row">
             <div className="relative h-44 w-44 shrink-0">
               <Doughnut
                 data={{
-                  labels: jobMatchingStatus.map(s => s.label),
+                  labels: formStatusList.map(s => s.status_formulir),
                   datasets: [
                     {
-                      data: jobMatchingStatus.map(s => s.count),
-                      backgroundColor: jobMatchingStatus.map(s => s.color),
+                      data: formStatusList.map(s => s.count),
+                      backgroundColor: formStatusList.map(s => FORM_STATUS_COLOR[s.status_formulir] ?? '#94A3B8'),
                       borderWidth: 2,
                       borderColor: '#ffffff',
                       hoverOffset: 6,
@@ -532,17 +673,19 @@ export default function DataMatchingJob() {
                 }}
               />
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-xl font-bold text-slate-800">75</span>
+                <span className="text-xl font-bold text-slate-800">{formStatusTotal}</span>
                 <span className="text-[10px] font-medium text-slate-500">Kandidat</span>
               </div>
             </div>
             <div className="w-full space-y-2.5">
-              {jobMatchingStatus.map(s => (
-                <div key={s.label} className="flex items-center gap-2 text-xs">
-                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
-                  <span className="flex-1 truncate text-slate-600">{s.label}</span>
+              {formStatusList.map(s => (
+                <div key={s.status_formulir} className="flex items-center gap-2 text-xs">
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: FORM_STATUS_COLOR[s.status_formulir] ?? '#94A3B8' }} />
+                  <span className="flex-1 truncate text-slate-600">{s.status_formulir}</span>
                   <b className="text-slate-800">{s.count}</b>
-                  <span className="w-10 text-right text-slate-500">{s.pct}%</span>
+                  <span className="w-10 text-right text-slate-500">
+                    {formStatusTotal > 0 ? Math.round((s.count / formStatusTotal) * 100) : 0}%
+                  </span>
                 </div>
               ))}
             </div>
@@ -555,23 +698,23 @@ export default function DataMatchingJob() {
           <div className="mt-4 space-y-2">
             <div className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2.5 text-sm">
               <span className="text-slate-600">Interview</span>
-              <b className="text-slate-800">1</b>
+              <b className="text-slate-800">{interviewCabangAgg.interview}</b>
             </div>
             <div className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2.5 text-sm">
               <span className="text-slate-600">Jadwal Ulang</span>
-              <b className="text-slate-800">0</b>
+              <b className="text-slate-800">{interviewCabangAgg.jadwalkan}</b>
             </div>
             <div className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2.5 text-sm">
               <span className="text-slate-600">Lulus Interview</span>
-              <b className="text-slate-800">0</b>
+              <b className="text-slate-800">{interviewCabangAgg.lulus}</b>
             </div>
             <div className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2.5 text-sm">
               <span className="text-slate-600">Total Interview</span>
-              <b className="text-slate-800">1</b>
+              <b className="text-slate-800">{distribusiTotal}</b>
             </div>
             <div className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5 text-sm">
               <span className="text-slate-600">Persentase Kelulusan</span>
-              <b className="text-[#0E6187]">0%</b>
+              <b className="text-[#0E6187]">{distribusiPct}%</b>
             </div>
           </div>
           <button className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
@@ -592,12 +735,16 @@ export default function DataMatchingJob() {
               <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-slate-700">{s.label}</span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 px-2 py-0.5 text-[11px] text-slate-500">
-                    <User size={11} className="text-blue-600" /> {s.laki}
-                  </span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 px-2 py-0.5 text-[11px] text-slate-500">
-                    <User size={11} className="text-pink-500" /> {s.perempuan}
-                  </span>
+                  {s.laki != null && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 px-2 py-0.5 text-[11px] text-slate-500">
+                      <User size={11} className="text-blue-600" /> {s.laki}
+                    </span>
+                  )}
+                  {s.perempuan != null && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 px-2 py-0.5 text-[11px] text-slate-500">
+                      <User size={11} className="text-pink-500" /> {s.perempuan}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-3">
                   <b className="text-slate-800">{s.count}</b>
@@ -728,49 +875,22 @@ export default function DataMatchingJob() {
   )
 
   const renderVerifikasi = () => (
-    <>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-        {stats.map((s) => {
-          const Icon = s.icon
-          return (
-            <div key={s.label} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500">{s.label}</span>
-                <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${s.bg}`}>
-                  <Icon size={16} className={s.color} />
-                </div>
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+      {stats.map((s) => {
+        const Icon = s.icon
+        return (
+          <div key={s.label} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-500">{s.label}</span>
+              <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${s.bg}`}>
+                <Icon size={16} className={s.color} />
               </div>
-              <div className="mt-2 text-2xl font-bold text-slate-800">{s.value.toLocaleString('id-ID')}</div>
             </div>
-          )
-        })}
-      </div>
-
-      <div className="mt-4">
-        <h2 className="mb-3 text-sm font-semibold text-slate-600">Status Formulir</h2>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {quickActions.map((a) => {
-            const Icon = a.icon
-            return (
-              <a
-                key={a.label}
-                href="#"
-                className="flex items-center gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md"
-              >
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${a.bg}`}>
-                  <Icon size={18} className={a.color} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className={`text-sm font-semibold ${a.color}`}>{a.label}</p>
-                  <p className="mt-0.5 text-xs text-slate-500">{a.desc}</p>
-                </div>
-                <ArrowRight size={16} className={`shrink-0 ${a.color}`} />
-              </a>
-            )
-          })}
-        </div>
-      </div>
-    </>
+            <div className="mt-2 text-2xl font-bold text-slate-800">{s.value.toLocaleString('id-ID')}</div>
+          </div>
+        )
+      })}
+    </div>
   )
 
   const renderPlaceholder = (label: string) => (
@@ -779,6 +899,93 @@ export default function DataMatchingJob() {
       <p className="mt-3 text-sm font-medium text-slate-500">Modul {label} sedang disiapkan</p>
     </div>
   )
+
+  const renderProgressModal = () => {
+    if (!selectedSsw) return null
+    const SswIcon = selectedSsw.icon
+    const progres = (sswProgresMap.get(selectedSsw.nama) ?? [])
+      .filter(s => (s.count || 0) > 0)
+    const totalProgres = progres.reduce((a, s) => a + (s.count || 0), 0)
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/50" onClick={() => setSelectedSsw(null)} />
+        <div className="relative w-full max-w-2xl rounded-xl bg-white shadow-2xl">
+          <div className="flex items-center justify-between rounded-t-xl border-b border-slate-100 px-5 py-4">
+            <div className="flex items-center gap-3">
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${selectedSsw.bg}`}>
+                <SswIcon size={18} className={selectedSsw.color} />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-800">Detail Progress — {selectedSsw.nama}</h3>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  {selectedSsw.laki + selectedSsw.perempuan} kandidat ({selectedSsw.laki} L · {selectedSsw.perempuan} P)
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setSelectedSsw(null)}
+              className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <div className="max-h-[70vh] overflow-y-auto p-5">
+            {progres.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <BarChart3 size={32} className="text-slate-300" />
+                <p className="mt-3 text-sm font-medium text-slate-500">Belum ada data progress untuk bidang ini</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-6 sm:flex-row">
+                <div className="relative h-44 w-44 shrink-0">
+                  <Doughnut
+                    data={{
+                      labels: progres.map(s => s.status),
+                      datasets: [
+                        {
+                          data: progres.map(s => s.count),
+                          backgroundColor: progres.map(s => STATUS_PROGRES_COLOR[s.status] ?? '#0E6187'),
+                          borderWidth: 2,
+                          borderColor: '#ffffff',
+                          hoverOffset: 6,
+                        },
+                      ],
+                    }}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: { legend: { display: false } },
+                      cutout: '62%',
+                    }}
+                  />
+                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-xl font-bold text-slate-800">{totalProgres}</span>
+                    <span className="text-[10px] font-medium text-slate-500">Kandidat</span>
+                  </div>
+                </div>
+                <div className="w-full space-y-2.5">
+                  {progres.map(s => (
+                    <div key={s.status} className="flex items-center gap-2 text-xs">
+                      <span
+                        className="h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: STATUS_PROGRES_COLOR[s.status] ?? '#0E6187' }}
+                      />
+                      <span className="flex-1 truncate text-slate-600">{s.status}</span>
+                      <b className="text-slate-800">{s.count}</b>
+                      <span className="w-10 text-right text-slate-500">
+                        {totalProgres > 0 ? Math.round((s.count / totalProgres) * 100) : 0}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
@@ -792,7 +999,29 @@ export default function DataMatchingJob() {
             <p className="text-sm text-slate-500">Selamat datang, Admin Penempatan — {dateStr}</p>
           </div>
         </div>
+        {loading && (
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <Loader2 size={14} className="animate-spin text-[#0E6187]" />
+            Memuat data dashboard...
+          </div>
+        )}
       </div>
+
+      {error && (
+        <div className="mb-5 flex items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="flex items-center gap-2">
+            <AlertCircle size={16} />
+            {error}
+          </div>
+          <button
+            onClick={() => setReloadKey(k => k + 1)}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-100"
+          >
+            <RotateCcw size={13} />
+            Muat Ulang
+          </button>
+        </div>
+      )}
 
       <div className="mb-5 flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
         {tabs.map((t) => {
@@ -822,9 +1051,25 @@ export default function DataMatchingJob() {
           <div className="mt-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <h2 className="text-sm font-semibold text-slate-800">Progress Kandidat per Cabang</h2>
             <p className="mt-0.5 text-xs text-slate-500">Distribusi kandidat SSW berdasarkan cabang</p>
-            <div className="mt-4 flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 py-10 text-center">
-              <MapPin size={28} className="text-slate-300" />
-              <p className="mt-2 text-sm text-slate-500">Belum ada data cabang</p>
+            <div className="mt-4">
+              {cabangData.length > 0 ? (
+                <div className="space-y-2">
+                  {cabangData.map(c => (
+                    <div key={c.nama} className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2.5 text-sm">
+                      <span className="flex items-center gap-2 text-slate-600">
+                        <MapPin size={14} className="text-slate-400" />
+                        {c.nama}
+                      </span>
+                      <b className="text-slate-800">{c.count}</b>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 py-10 text-center">
+                  <MapPin size={28} className="text-slate-300" />
+                  <p className="mt-2 text-sm text-slate-500">Belum ada data cabang</p>
+                </div>
+              )}
             </div>
           </div>
         </>
@@ -833,6 +1078,8 @@ export default function DataMatchingJob() {
       {activeTab === 'Job Order' && renderJobOrder()}
       {activeTab === 'Status Kandidat' && renderStatusKandidat()}
       {!['Verifikasi', 'Statistik', 'Sertifikasi', 'Job Order', 'Status Kandidat'].includes(activeTab) && renderPlaceholder(activeTab)}
+
+      {renderProgressModal()}
     </div>
   )
 }

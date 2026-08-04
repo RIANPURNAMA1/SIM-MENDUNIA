@@ -44,4 +44,9 @@ return [
         'api_key' => env('GROQ_API_KEY'),
     ],
 
+    'penempatan' => [
+        'api_key' => env('PENEMPATAN_API_KEY'),
+        'base_url' => env('PENEMPATAN_BASE_URL', 'https://api.penempatan.mendunia.id'),
+    ],
+
 ];
