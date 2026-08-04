@@ -369,6 +369,13 @@ export const affiliateDashboardApi = {
   index: () => api.get('/affiliate-dashboard'),
 }
 
+export const penempatanApi = {
+  dashboard: (params?: Record<string, unknown>) => api.get('/penempatan/dashboard', { params }),
+  kandidat: (params?: Record<string, unknown>) => api.get('/penempatan/kandidat', { params }),
+  kandidatDetail: (id: number) => api.get(`/penempatan/kandidat/${id}`),
+  cabang: (params?: Record<string, unknown>) => api.get('/penempatan/cabang', { params }),
+}
+
 export const couponApi = {
   list: () => api.get('/coupons'),
   store: (data: Record<string, unknown>) => api.post('/coupons', data),

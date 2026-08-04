@@ -55,7 +55,7 @@ import Tagihan from './pages/Siswa/Tagihan'
 import RekapBatch from './pages/Siswa/RekapBatch'
 import Pembayaran from './pages/Siswa/Pembayaran'
 import PembayaranTagihan from './pages/PembayaranTagihan'
-import DataDiri from './pages/Siswa/DataDiri'
+import MatchingJobForm from './pages/Siswa/MatchingJobForm'
 import DataAffiliate from './pages/Affiliate/DataAffiliate'
 import ClosingPasukan from './pages/Affiliate/ClosingPasukan'
 import DataPencairanKomisi from './pages/Affiliate/DataPencairanKomisi'
@@ -243,12 +243,12 @@ function AppRoutes() {
         }
       >
         <Route index element={<SiswaDashboard />} />
-        <Route path="data-diri" element={<DataDiri />} />
+        <Route path="data-diri" element={<Navigate to="/siswa-dashboard/matching-job" replace />} />
         <Route path="absensi" element={<AbsensiSaya />} />
         <Route path="pembayaran" element={<PembayaranSiswa />} />
         <Route path="lms" element={<LMS />} />
         <Route path="nilai" element={<SiswaNilai />} />
-        <Route path="matching-job" element={<Navigate to="/siswa-dashboard" replace />} />
+        <Route path="matching-job" element={<MatchingJobForm />} />
         <Route path="profil" element={<ProfilSiswa />} />
       </Route>
 

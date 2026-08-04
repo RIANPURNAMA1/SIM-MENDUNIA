@@ -667,3 +667,14 @@ Route::get('/redis-test', function () {
 // ========== Public: Verifikasi Invoice (no auth) ==========
 Route::get('/verifikasi', [PendaftaranController::class, 'verifikasiByQuery']);
 Route::get('/verifikasi/{noInvoice}', [PendaftaranController::class, 'verifikasi']);
+
+// ========== Integrasi Sistem Penempatan (proxy) ==========
+Route::middleware(['auth:sanctum'])->prefix('penempatan')->group(function () {
+    Route::get('/kandidat', [\App\Http\Controllers\PenempatanKandidatController::class, 'index']);
+    Route::post('/kandidat', [\App\Http\Controllers\PenempatanKandidatController::class, 'store']);
+    Route::get('/kandidat/{id}', [\App\Http\Controllers\PenempatanKandidatController::class, 'show']);
+    Route::put('/kandidat/{id}', [\App\Http\Controllers\PenempatanKandidatController::class, 'update']);
+    Route::post('/kandidat/{id}/upload-dokumen', [\App\Http\Controllers\PenempatanKandidatController::class, 'uploadDokumen']);
+    Route::get('/cabang', [\App\Http\Controllers\PenempatanKandidatController::class, 'cabangIndex']);
+    Route::get('/dashboard', [\App\Http\Controllers\PenempatanKandidatController::class, 'dashboard']);
+});
