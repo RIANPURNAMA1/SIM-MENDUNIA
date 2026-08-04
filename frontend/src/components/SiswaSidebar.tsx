@@ -16,7 +16,7 @@ const menu = [
   { to: '/siswa-dashboard/absensi', icon: CalendarCheck, label: 'Absensi', locked: true },
   { to: '/siswa-dashboard/lms', icon: BookOpen, label: 'LMS', locked: true },
   { to: '/siswa-dashboard/nilai', icon: Award, label: 'Nilai', locked: true },
-  { to: '/siswa-dashboard/matching-job', icon: Briefcase, label: 'Matching Job', locked: false },
+  { to: '/siswa-dashboard/matching-job', icon: Briefcase, label: 'Matching Job', locked: true, permanentlyLocked: true },
   { to: '/siswa-dashboard/profil', icon: User, label: 'Profil', locked: false },
 ]
 
@@ -59,7 +59,8 @@ export default function SiswaSidebar({ isOpen, onClose }: SiswaSidebarProps) {
         <nav className="flex-1 min-h-0 overflow-y-auto px-2.5 py-3 space-y-0.5">
           {menu.map(item => {
             const active = location.pathname === item.to
-            const isLocked = item.locked && hasClass === false
+            const isLocked = item.permanentlyLocked || (item.locked && hasClass === false)
+            const lockHint = item.permanentlyLocked ? 'Segera hadir' : 'Belum ada kelas'
 
             if (isLocked) {
               return (
@@ -70,7 +71,7 @@ export default function SiswaSidebar({ isOpen, onClose }: SiswaSidebarProps) {
                   <Lock size={18} />
                   <span>{item.label}</span>
                   <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-2.5 py-1 bg-gray-800 text-white text-[11px] rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-lg pointer-events-none z-50">
-                    Belum ada kelas
+                    {lockHint}
                     <div className="absolute left-1/2 -translate-x-1/2 top-full border-4 border-transparent border-t-gray-800" />
                   </div>
                 </div>

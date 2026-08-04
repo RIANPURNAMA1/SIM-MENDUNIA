@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { BookOpen, Plus, Edit3, Trash2, Search, Layers, X, Image as ImageIcon, FileText, Download } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
-import { lmsAdminApi, adminCabangApi, APP_URL } from '../../services/api'
+import { lmsAdminApi, adminCabangApi, jadwalLevelApi, APP_URL } from '../../services/api'
 import Swal from 'sweetalert2'
 
 interface Course {
@@ -38,6 +38,7 @@ export default function DataCourse() {
   const isAdminCabang = location.pathname.startsWith('/admin-cabang');
   const [courses, setCourses] = useState<Course[]>([])
   const [batches, setBatches] = useState<Batch[]>([])
+  const [batchLevels, setBatchLevels] = useState<Record<number, string[]>>({})
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
@@ -139,6 +140,21 @@ export default function DataCourse() {
       setCourses(res.data.courses || [])
       setBatches(res.data.batches || [])
     }).catch(() => {}).finally(() => setLoading(false))
+
+    const levelPromise = isAdminCabang ? adminCabangApi.jadwalLevel() : jadwalLevelApi.list()
+    levelPromise.then(res => {
+      const map: Record<number, string[]> = {}
+      const jadwal = res.data.jadwal || {}
+      Object.values(jadwal).forEach((item: any) => {
+        const bid = Number(item?.batch_id)
+        if (!bid) return
+        if (!map[bid]) map[bid] = []
+        const lvl = String(item.level)
+        if (!map[bid].includes(lvl)) map[bid].push(lvl)
+      })
+      Object.keys(map).forEach(k => map[Number(k)].sort((a, b) => Number(a) - Number(b)))
+      setBatchLevels(map)
+    }).catch(() => {})
   }
 
   const openCreate = () => {
@@ -282,6 +298,10 @@ export default function DataCourse() {
   })
 
   const uniqueLevels = [...new Set(courses.map(c => c.level).filter(Boolean))] as string[]
+
+  const levelOptions = form.batch_id ? [...(batchLevels[Number(form.batch_id)] || [])] : []
+  if (editing && form.level && !levelOptions.includes(form.level)) levelOptions.push(form.level)
+  levelOptions.sort((a, b) => Number(a) - Number(b))
 
   return (
     <div className="p-6">
@@ -491,19 +511,36 @@ export default function DataCourse() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Level</label>
-                  <input
-                    type="text"
+                  <select
                     value={form.level}
                     onChange={e => setForm({ ...form, level: e.target.value })}
-                    className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                    placeholder="Contoh: 1, 2, 3"
-                  />
+                    disabled={!form.batch_id || levelOptions.length === 0}
+                    className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
+                  >
+                    <option value="">
+                      {!form.batch_id
+                        ? 'Pilih Batch terlebih dahulu'
+                        : levelOptions.length === 0
+                          ? 'Belum ada jadwal level'
+                          : 'Pilih Level'}
+                    </option>
+                    {levelOptions.map(l => (
+                      <option key={l} value={l}>Level {l}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Batch</label>
                   <select
                     value={form.batch_id}
-                    onChange={e => setForm({ ...form, batch_id: e.target.value })}
+                    onChange={e => {
+                      const batchId = e.target.value
+                      setForm(prev => {
+                        const levels = batchLevels[Number(batchId)] || []
+                        const keepLevel = prev.level && levels.includes(prev.level) ? prev.level : ''
+                        return { ...prev, batch_id: batchId, level: batchId === prev.batch_id ? prev.level : keepLevel }
+                      })
+                    }}
                     className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   >
                     <option value="">Semua Batch</option>

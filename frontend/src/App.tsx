@@ -50,7 +50,6 @@ import InvoicePendaftar from './pages/Pendaftaran/InvoicePendaftar'
 import PendaftarDetail from './pages/Pendaftaran/PendaftarDetail'
 import DataMatchingJob from './pages/Akademik/DataMatchingJob'
 import KandidatMJ from './pages/Akademik/KandidatMJ'
-import MatchingJobForm from './pages/Siswa/MatchingJobForm'
 import ProfilSiswa from './pages/Siswa/ProfilSiswa'
 import Tagihan from './pages/Siswa/Tagihan'
 import RekapBatch from './pages/Siswa/RekapBatch'
@@ -249,7 +248,7 @@ function AppRoutes() {
         <Route path="pembayaran" element={<PembayaranSiswa />} />
         <Route path="lms" element={<LMS />} />
         <Route path="nilai" element={<SiswaNilai />} />
-        <Route path="matching-job" element={<MatchingJobForm />} />
+        <Route path="matching-job" element={<Navigate to="/siswa-dashboard" replace />} />
         <Route path="profil" element={<ProfilSiswa />} />
       </Route>
 

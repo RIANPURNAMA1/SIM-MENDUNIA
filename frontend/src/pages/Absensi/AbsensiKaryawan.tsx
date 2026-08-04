@@ -114,9 +114,17 @@ export default function AbsensiKaryawan() {
   useEffect(() => {
     if (!showQrScanner) {
       if (qrScannerRef.current) {
-        qrScannerRef.current.stop().catch(() => {})
-        qrScannerRef.current.clear().catch(() => {})
+        const s = qrScannerRef.current
         qrScannerRef.current = null
+        ;(async () => {
+          try {
+            await s.stop()
+          } catch (e) {
+            await new Promise(r => setTimeout(r, 150))
+            try { await s.stop() } catch {}
+          }
+          try { await s.clear() } catch {}
+        })()
       }
       return
     }
@@ -128,8 +136,12 @@ export default function AbsensiKaryawan() {
       { facingMode: 'environment' },
       { fps: 10, qrbox: { width: 250, height: 250 } },
       (decodedText) => {
-        scanner.stop().catch(() => {})
-        qrScannerRef.current = null
+        ;(async () => {
+          const s = qrScannerRef.current
+          qrScannerRef.current = null
+          try { await s?.stop() } catch {}
+          try { await s?.clear() } catch {}
+        })()
         setShowQrScanner(false)
 
         Swal.fire({
@@ -168,9 +180,17 @@ export default function AbsensiKaryawan() {
 
     return () => {
       if (qrScannerRef.current) {
-        qrScannerRef.current.stop().catch(() => {})
-        qrScannerRef.current.clear().catch(() => {})
+        const s = qrScannerRef.current
         qrScannerRef.current = null
+        ;(async () => {
+          try {
+            await s.stop()
+          } catch (e) {
+            await new Promise(r => setTimeout(r, 150))
+            try { await s.stop() } catch {}
+          }
+          try { await s.clear() } catch {}
+        })()
       }
     }
   }, [showQrScanner])
