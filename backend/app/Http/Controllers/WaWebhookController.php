@@ -361,4 +361,135 @@ class WaWebhookController extends Controller
 
         return $this->wa->sendMessage($managerPhone, $message);
     }
+
+    /**
+     * Uji webhook StarSender (dry-run default).
+     * Mensimulasikan payload yang dikirim StarSender ke /api/wa-webhook,
+     * lalu melaporkan hasil parsing & aksi yang akan dijalankan tanpa
+     * mengubah data. Opsional: execute=true untuk eksekusi sungguhan.
+     */
+    public function simulate(Request $request)
+    {
+        $payloadRaw = $request->input('payload');
+        $fromInput = $request->input('from');
+        $messageInput = $request->input('message');
+
+        if (is_string($payloadRaw) && trim($payloadRaw) !== '') {
+            $decoded = json_decode($payloadRaw, true);
+            if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payload JSON tidak valid: ' . json_last_error_msg(),
+                ], 422);
+            }
+            $body = $decoded;
+        } elseif (is_array($payloadRaw) && !empty($payloadRaw)) {
+            $body = $payloadRaw;
+        } else {
+            $body = [
+                'data' => [
+                    'message' => [
+                        'from' => $fromInput,
+                        'conversation' => $messageInput,
+                    ],
+                ],
+            ];
+        }
+
+        $message = $this->digPayload($body, ['message', 'body', 'text', 'content', 'conversation', 'messageBody', 'message_body', 'messageText', 'message_text']);
+        $fromRaw = $this->digPayload($body, ['from', 'sender', 'phone', 'sender_number', 'sender_phone', 'senderPhone', 'phoneNumber', 'phone_number', 'wa_id', 'remoteJid', 'senderPn', 'cleanedSenderPn']);
+        $from = $this->formatPhone($fromRaw);
+
+        $reply = strtoupper(trim($message));
+        $approveWords = ['KONFIRMASI', 'CONFIRM', 'SETUJU', 'VERIFIKASI', 'VERIFY', 'BAYAR'];
+        $rejectWords = ['BATAL', 'TOLAK', 'REJECT'];
+
+        $isPaymentAdmin = $this->isPaymentAdmin($from);
+        $isApprove = in_array($reply, $approveWords);
+        $isReject = in_array($reply, $rejectWords);
+        $paymentReply = $isApprove ? 'approve' : ($isReject ? 'reject' : null);
+
+        $pendingPayment = null;
+        $pendingPaymentDetail = null;
+        if ($isPaymentAdmin) {
+            $pendingPayment = \App\Models\WaPaymentApproval::where('admin_phone', $from)
+                ->where('status', 'PENDING')
+                ->latest()
+                ->first();
+            if ($pendingPayment) {
+                $pend = \App\Models\Pendaftar::find($pendingPayment->pendaftar_id);
+                $pendingPaymentDetail = $pend ? [
+                    'pendaftar_id' => $pend->id,
+                    'nama' => $pend->nama,
+                    'no_registrasi' => $pend->no_registrasi,
+                    'status_pembayaran' => $pend->status_pembayaran,
+                ] : null;
+            }
+        }
+
+        $managerPhone = $this->formatPhone('085773141623');
+        $isManager = $from === $managerPhone;
+        $managerReply = in_array($reply, ['IYA', 'YA', 'YES', 'TIDAK', 'NO', 'GAK']) ? $reply : null;
+        $hasPendingIzin = $isManager
+            ? \App\Models\WaIzinApproval::where('manager_phone', $managerPhone)->where('status', 'PENDING')->latest()->exists()
+            : false;
+
+        // Eksekusi sungguhan: lewati ke handler webhook (bisa mengubah data)
+        if ($request->boolean('execute')) {
+            $newReq = Request::create('/api/wa-webhook', 'POST', $body);
+            $newReq->headers->set('Content-Type', 'application/json');
+            $realResult = $this->handle($newReq)->getData(true);
+
+            return response()->json([
+                'success' => true,
+                'executed' => true,
+                'webhook_url' => url('/api/wa-webhook'),
+                'parsed_from' => $from,
+                'parsed_message' => $message,
+                'is_payment_admin' => $isPaymentAdmin,
+                'is_manager' => $isManager,
+                'payment_reply' => $paymentReply,
+                'has_pending_payment' => (bool) $pendingPayment,
+                'pending_payment_detail' => $pendingPaymentDetail,
+                'manager_reply' => $managerReply,
+                'has_pending_izin' => $hasPendingIzin,
+                'webhook_result' => $realResult,
+            ]);
+        }
+
+        if ($paymentReply && $isPaymentAdmin) {
+            $expected = $pendingPayment
+                ? "Akan memproses {$paymentReply} pembayaran untuk *{$pendingPaymentDetail['nama']}* (No. Reg: {$pendingPaymentDetail['no_registrasi']}) dan membalas WhatsApp ke admin."
+                : "Tidak ada konfirmasi pembayaran yang menunggu. Webhook akan membalas: 'Tidak ada konfirmasi pembayaran yang menunggu balasan'.";
+            $expectedResult = $pendingPayment ? 'success' : 'no_pending_payment';
+        } elseif ($managerReply && $isManager) {
+            $expected = $hasPendingIzin
+                ? "Akan memproses persetujuan izin sesuai balasan *{$managerReply}* dan membalas WhatsApp ke manager."
+                : "Tidak ada pengajuan izin yang menunggu. Webhook akan membalas: 'Tidak ada pengajuan izin yang menunggu persetujuan'.";
+            $expectedResult = $hasPendingIzin ? 'success' : 'no_pending';
+        } elseif ($isPaymentAdmin || $isManager) {
+            $expected = "Nomor terdaftar, tapi pesan '{$reply}' tidak dikenali. Webhook akan membalas status unrecognized.";
+            $expectedResult = $isPaymentAdmin ? 'unrecognized_payment' : 'unrecognized';
+        } else {
+            $expected = "Nomor '{$from}' bukan admin mutasi / manager. Webhook akan mengabaikan pesan (status: ignored).";
+            $expectedResult = 'ignored';
+        }
+
+        return response()->json([
+            'success' => true,
+            'executed' => false,
+            'webhook_url' => url('/api/wa-webhook'),
+            'parsed_from' => $from,
+            'parsed_message' => $message,
+            'is_payment_admin' => $isPaymentAdmin,
+            'is_manager' => $isManager,
+            'payment_reply' => $paymentReply,
+            'has_pending_payment' => (bool) $pendingPayment,
+            'pending_payment_detail' => $pendingPaymentDetail,
+            'manager_reply' => $managerReply,
+            'has_pending_izin' => $hasPendingIzin,
+            'expected_result' => $expectedResult,
+            'expected' => $expected,
+        ]);
+    }
 }

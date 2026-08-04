@@ -549,6 +549,7 @@ export const waSettingApi = {
   getEmailStats: () => api.get('/wa-settings/email-stats'),
   testEmail: (toEmail: string) => api.post('/wa-settings/test-email', { to_email: toEmail }),
   testWa: (toPhone: string) => api.post('/wa-settings/test-wa', { to_phone: toPhone }),
+  testWebhook: (data: { from?: string; message?: string; payload?: string; execute?: boolean }) => api.post('/wa-settings/test-webhook', data),
 }
 
 export const guruLmsApi = {
