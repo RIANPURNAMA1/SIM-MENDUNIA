@@ -175,7 +175,7 @@ export default function AdminCabangDashboard() {
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       {/* Header */}
-      <div className="mb-6 flex items-center gap-3">
+      <div className="mb-6 flex items-center gap-3 animate-fade-up">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
           <LayoutDashboard size={20} className="text-white" />
         </div>
@@ -193,7 +193,7 @@ export default function AdminCabangDashboard() {
           { icon: <Clock size={20} className="text-amber-600" />, bg: 'bg-amber-50', label: 'Pending', value: data.stats.pendaftar_pending, color: 'text-amber-700' },
           { icon: <UserX size={20} className="text-red-600" />, bg: 'bg-red-50', label: 'Ditolak', value: data.stats.pendaftar_ditolak, color: 'text-red-700' },
         ].map((s, i) => (
-          <div key={i} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <div key={i} className={`animate-fade-up ${['', 'delay-100', 'delay-200', 'delay-300', 'delay-400'][i] || ''} rounded-lg border border-slate-200 bg-white p-4 shadow-sm`}>
             <div className="flex items-center gap-3">
               <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${s.bg}`}>{s.icon}</div>
               <div>
@@ -207,7 +207,7 @@ export default function AdminCabangDashboard() {
 
       {/* Secondary Stats */}
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="animate-fade-up delay-150 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50"><Activity size={20} className="text-indigo-600" /></div>
             <div>
@@ -216,7 +216,7 @@ export default function AdminCabangDashboard() {
             </div>
           </div>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="animate-fade-up delay-250 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-rose-50"><Wallet size={20} className="text-rose-600" /></div>
             <div>
@@ -225,7 +225,7 @@ export default function AdminCabangDashboard() {
             </div>
           </div>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="animate-fade-up delay-350 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-50"><AlertCircle size={20} className="text-red-600" /></div>
             <div>
@@ -239,7 +239,7 @@ export default function AdminCabangDashboard() {
       {/* === CHARTS ROW 1 === */}
       <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Bar: Pendaftar per bulan */}
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="animate-fade-up delay-200 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp size={18} className="text-blue-600" />
             <h3 className="text-sm font-semibold text-slate-800">Pendaftar per Bulan</h3>
@@ -250,7 +250,7 @@ export default function AdminCabangDashboard() {
         </div>
 
         {/* Line: Pembayaran per bulan */}
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="animate-fade-up delay-300 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <DollarSign size={18} className="text-emerald-600" />
             <h3 className="text-sm font-semibold text-slate-800">Pembayaran per Bulan</h3>
@@ -264,7 +264,7 @@ export default function AdminCabangDashboard() {
       {/* === CHARTS ROW 2 === */}
       <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Bar: Pengeluaran per bulan */}
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="animate-fade-up delay-250 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <Wallet size={18} className="text-orange-600" />
             <h3 className="text-sm font-semibold text-slate-800">Pengeluaran per Bulan</h3>
@@ -275,7 +275,7 @@ export default function AdminCabangDashboard() {
         </div>
 
         {/* Doughnut: Pengeluaran per kategori */}
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="animate-fade-up delay-350 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <Layers size={18} className="text-purple-600" />
             <h3 className="text-sm font-semibold text-slate-800">Pengeluaran per Kategori</h3>
@@ -291,7 +291,7 @@ export default function AdminCabangDashboard() {
 
       {/* === REKAP KEUANGAN + BATCH === */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="animate-fade-up delay-300 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <DollarSign size={18} className="text-slate-600" />
             <h3 className="text-sm font-semibold text-slate-800">Rekap Keuangan</h3>
@@ -321,7 +321,7 @@ export default function AdminCabangDashboard() {
           </div>
         </div>
 
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="animate-fade-up delay-400 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <Layers size={18} className="text-slate-600" />
             <h3 className="text-sm font-semibold text-slate-800">Batch Aktif</h3>
@@ -347,7 +347,7 @@ export default function AdminCabangDashboard() {
 
       {/* === RECENT ACTIVITY === */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="animate-fade-up delay-350 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp size={18} className="text-slate-600" />
             <h3 className="text-sm font-semibold text-slate-800">Pendaftar Terbaru</h3>
@@ -372,7 +372,7 @@ export default function AdminCabangDashboard() {
           }
         </div>
 
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="animate-fade-up delay-450 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <DollarSign size={18} className="text-slate-600" />
             <h3 className="text-sm font-semibold text-slate-800">Pembayaran Terbaru</h3>

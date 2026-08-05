@@ -71,6 +71,11 @@ export default function KaryawanDashboard() {
   const faceDetectorRef = useRef<any>(null)
   const detectionFrameRef = useRef<number>(0)
   const [faceDetected, setFaceDetected] = useState(false)
+  const [countdown, setCountdown] = useState<number | null>(null)
+  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const countdownValueRef = useRef(3)
+  const captureTriggeredRef = useRef(false)
+  const submittingRef = useRef(false)
 
   const [showQrScanner, setShowQrScanner] = useState(false)
   const qrScannerRef = useRef<Html5Qrcode | null>(null)
@@ -129,6 +134,13 @@ export default function KaryawanDashboard() {
   const startCamera = useCallback(async (mode: 'masuk' | 'pulang') => {
     setCameraMode(mode)
     setFaceDetected(false)
+    setCountdown(null)
+    countdownValueRef.current = 3
+    captureTriggeredRef.current = false
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current)
+      countdownIntervalRef.current = null
+    }
 
     // Minta izin GPS
     coordsRef.current = null
@@ -168,6 +180,13 @@ export default function KaryawanDashboard() {
   }, [])
 
   const stopCamera = useCallback(() => {
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current)
+      countdownIntervalRef.current = null
+    }
+    countdownValueRef.current = 3
+    setCountdown(null)
+    captureTriggeredRef.current = false
     if (detectionFrameRef.current) cancelAnimationFrame(detectionFrameRef.current)
     faceDetectorRef.current = null
     setFaceDetected(false)
@@ -422,16 +441,25 @@ export default function KaryawanDashboard() {
   }, [])
 
   const capturePhoto = useCallback(async () => {
+    if (submittingRef.current) return
     if (!videoRef.current || !canvasRef.current) return
+    submittingRef.current = true
     const video = videoRef.current
     const canvas = canvasRef.current
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
     const ctx = canvas.getContext('2d')
-    if (!ctx) return
+    if (!ctx) {
+      submittingRef.current = false
+      return
+    }
     ctx.drawImage(video, 0, 0)
     canvas.toBlob(async (blob) => {
-      if (!blob) return
+      if (!blob) {
+        submittingRef.current = false
+        captureTriggeredRef.current = false
+        return
+      }
       stopCamera()
       setIsSubmitting(true)
       try {
@@ -457,11 +485,38 @@ export default function KaryawanDashboard() {
       } catch (e: any) {
         const msg = e?.response?.data?.message || (e instanceof Error ? e.message : 'Gagal melakukan absensi')
         Swal.fire({ icon: 'error', title: 'Absensi Gagal', text: msg })
+        captureTriggeredRef.current = false
       } finally {
         setIsSubmitting(false)
+        submittingRef.current = false
       }
     }, 'image/jpeg', 0.8)
   }, [cameraMode, stopCamera])
+
+  // Auto-capture: hitung mundur 3-2-1 saat wajah terdeteksi, lalu foto otomatis
+  useEffect(() => {
+    if (!showCamera || captureTriggeredRef.current) return
+    if (faceDetected) {
+      if (countdownIntervalRef.current) return
+      countdownValueRef.current = 3
+      setCountdown(3)
+      countdownIntervalRef.current = setInterval(() => {
+        countdownValueRef.current -= 1
+        setCountdown(countdownValueRef.current)
+        if (countdownValueRef.current <= 0) {
+          if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current)
+          countdownIntervalRef.current = null
+          captureTriggeredRef.current = true
+          setCountdown(null)
+          capturePhoto()
+        }
+      }, 1000)
+    } else {
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current)
+      countdownIntervalRef.current = null
+      setCountdown(null)
+    }
+  }, [faceDetected, showCamera, capturePhoto])
 
   const statusLabel = () => {
     if (absenStatus === 'pulang') return 'Selesai'
@@ -783,7 +838,15 @@ export default function KaryawanDashboard() {
               faceDetected
                 ? 'border-[#4ADE80] shadow-[0_0_20px_rgba(74,222,128,0.5)]'
                 : 'border-white/60'
-            }`} />
+            }`}>
+              {countdown !== null && countdown > 0 && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-28 h-28 rounded-full bg-black/70 border-4 border-[#4ADE80] flex items-center justify-center shadow-[0_0_30px_rgba(74,222,128,0.7)]">
+                    <span className="text-6xl font-black text-[#4ADE80] tabular-nums drop-shadow">{countdown}</span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Close button */}
@@ -806,17 +869,19 @@ export default function KaryawanDashboard() {
           {/* Instruction below face guide */}
           <div className="absolute z-10 left-1/2 -translate-x-1/2 text-center" style={{ top: 'calc(26% + 215px)' }}>
             <p className={`text-xs font-semibold drop-shadow-lg transition-colors ${
-              faceDetected ? 'text-[#4ADE80]' : 'text-white/70'
+              countdown !== null && countdown > 0 ? 'text-[#4ADE80]' : faceDetected ? 'text-[#4ADE80]' : 'text-white/70'
             }`}>
-              {faceDetected ? 'Wajah terdeteksi — Siap absen!' : 'Posisikan wajah Anda di dalam lingkaran'}
+              {countdown !== null && countdown > 0
+                ? `Foto otomatis dalam ${countdown}...`
+                : faceDetected ? 'Wajah terdeteksi — Siap absen!' : 'Posisikan wajah Anda di dalam lingkaran'}
             </p>
           </div>
 
-          {/* Capture button */}
+          {/* Capture button (fallback manual) */}
           <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10">
-            <button onClick={capturePhoto} disabled={!faceDetected || isSubmitting}
+            <button onClick={capturePhoto} disabled={!faceDetected || isSubmitting || countdown !== null}
               className={`w-20 h-20 rounded-full border-[4px] flex items-center justify-center transition-all shadow-xl ${
-                faceDetected && !isSubmitting
+                faceDetected && !isSubmitting && countdown === null
                   ? 'border-[#4ADE80] hover:scale-105 active:scale-95 cursor-pointer bg-[#4ADE80]/20'
                   : 'border-white/30 opacity-40 cursor-not-allowed'
               }`}>
@@ -824,6 +889,9 @@ export default function KaryawanDashboard() {
             </button>
             {!faceDetected && (
               <p className="text-center text-[10px] text-white/50 mt-3 font-medium">Tunggu deteksi wajah</p>
+            )}
+            {countdown !== null && countdown > 0 && (
+              <p className="text-center text-[10px] text-[#4ADE80] mt-3 font-medium">Foto diambil otomatis...</p>
             )}
           </div>
           <canvas ref={canvasRef} className="hidden" />
