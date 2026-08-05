@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import {
   ClipboardList, ChevronLeft, ChevronRight, Save, Send, Upload, Plus, Trash2, Loader2,
+  LayoutDashboard, Wallet, CalendarCheck, BookOpen, User,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 import api from '../../services/api'
@@ -260,8 +262,6 @@ const emptyPendidikan = (): Pendidikan => ({ nama_sekolah: '', jurusan: '', bula
 const emptyPengalaman = (): Pengalaman => ({ nama_perusahaan: '', alamat_perusahaan: '', posisi: '', bulan_masuk: '', tahun_masuk: '', bulan_keluar: '', tahun_keluar: '', masih_bekerja: false, deskripsi_pekerjaan: '' })
 const emptyKeluarga = (hubungan: string): Keluarga => ({ hubungan, nama: '', usia: '', pekerjaan: '', penghasilan: '' })
 
-interface DokumenFile { jenis: string; file: File | null }
-
 const dokumenList: { jenis: string; label: string; required: boolean; maxKB: number }[] = [
   { jenis: 'sertifikat_jft', label: 'Sertifikat JFT', required: false, maxKB: 500 },
   { jenis: 'pas_foto', label: 'Pas Foto', required: true, maxKB: 500 },
@@ -283,6 +283,7 @@ export default function MatchingJobForm() {
   const [loading, setLoading] = useState(true)
   const [dokumen, setDokumen] = useState<Record<string, File | null>>({})
   const [cabangList, setCabangList] = useState<{ id: number; nama_cabang: string }[]>([])
+  const location = useLocation()
 
   const [form, setForm] = useState({
     cabang: '',
@@ -433,7 +434,13 @@ export default function MatchingJobForm() {
   const toNum = (v: string) => (v === '' ? null : Number(v))
 
   const buildPayload = () => {
-    const keluarga: Keluarga[] = [ayah, ibu, ...suami, ...istri, ...kakak, ...adik].filter(k =>
+    const keluarga: Array<{
+      hubungan: string
+      nama: string | null
+      usia: number | null
+      pekerjaan: string | null
+      penghasilan: string | null
+    }> = [ayah, ibu, ...suami, ...istri, ...kakak, ...adik].filter(k =>
       k.nama || k.pekerjaan || k.usia
     ).map(k => ({
       hubungan: k.hubungan,
@@ -608,62 +615,115 @@ export default function MatchingJobForm() {
     }
   }
 
+  const bottomNav = [
+    { label: 'Dashboard', to: '/siswa-dashboard', icon: LayoutDashboard },
+    { label: 'LMS', to: '/siswa-dashboard/lms', icon: BookOpen },
+    { label: 'Absensi', to: '/siswa-dashboard/absensi', icon: CalendarCheck },
+    { label: 'Pembayaran', to: '/siswa-dashboard/pembayaran', icon: Wallet },
+    { label: 'Profil', to: '/siswa-dashboard/profil', icon: User },
+  ]
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="animate-spin text-[#0E6187]" size={32} />
+      <div className="min-h-screen bg-[#f0f2f5] flex items-center justify-center">
+        <div className="relative w-14 h-14 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
+          <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
+        </div>
       </div>
     )
   }
 
+  const progressPct = Math.round(((activeStep + 1) / steps.length) * 100)
+
   return (
-    <div className="px-4 py-4 sm:px-6 sm:py-5">
-      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
+    <div className="min-h-screen bg-[#f0f2f5] pb-24 lg:pb-8">
+      {/* ============ Top App Bar ============ */}
+      <header className="bg-[#0E6187] px-4 pb-9 pt-5 text-white">
+        <div className="mx-auto max-w-lg">
+          <div className="flex items-center justify-between">
+            <Link
+              to="/siswa-dashboard"
+              aria-label="Kembali ke dashboard"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20"
+            >
+              <ChevronLeft size={18} />
+            </Link>
+            <div className="flex items-center gap-2">
+              <img src="/logo-sm.png" alt="Mendunia" className="h-8 w-auto" />
+              <span className="text-base font-bold tracking-tight">Kelas Mendunia</span>
+            </div>
+            <div className="w-9" />
+          </div>
+          <div className="mt-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
               <ClipboardList size={20} />
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-slate-800">Formulir Pendaftaran</h1>
-              <p className="text-sm text-slate-500">Isi data lengkap untuk matching pekerjaan terbaik di Jepang</p>
+              <h1 className="text-xl font-bold">Data Diri &amp; Matching Job</h1>
+              <p className="mt-0.5 text-[13px] text-teal-100">Lengkapi data untuk pekerjaan terbaik di Jepang</p>
             </div>
           </div>
-          <span className={`inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${submitted ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+          <div className="mt-5">
+            <div className="mb-1.5 flex items-center justify-between text-[11px] font-medium text-teal-100">
+              <span>Langkah {activeStep + 1} dari {steps.length}</span>
+              <span>{progressPct}%</span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/15">
+              <div
+                className="h-1.5 rounded-full bg-white transition-all duration-300"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto -mt-5 max-w-lg space-y-4 px-4">
+        {/* ============ Status Formulir ============ */}
+        <div className="flex items-center justify-between gap-3 rounded-xl bg-white p-4 shadow-sm">
+          <div>
+            <p className="text-sm font-semibold text-slate-800">Status Formulir</p>
+            <p className="mt-0.5 text-[11px] text-slate-400">
+              {submitted ? 'Formulir sudah dikirim ke Sistem Penempatan' : 'Formulir disimpan sebagai draft di Sistem Penempatan'}
+            </p>
+          </div>
+          <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${submitted ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
             <span className={`h-1.5 w-1.5 rounded-full ${submitted ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-            {submitted ? 'Terkirim' : 'Belum dikirim'}
+            {submitted ? 'Terkirim' : 'Draft'}
           </span>
         </div>
-      </div>
 
-      <div className="mt-4 overflow-x-auto rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
-        <div className="flex min-w-max gap-1">
-          {steps.map((s, i) => {
-            const active = activeStep === i
-            const done = i < activeStep
-            return (
-              <button
-                key={s.label}
-                onClick={() => setActiveStep(i)}
-                className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition ${
-                  active ? 'bg-[#0E6187] text-white shadow-sm'
-                    : done ? 'text-[#0E6187] hover:bg-blue-50'
-                      : 'text-slate-500 hover:bg-slate-100'
-                }`}
-              >
-                <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
-                  active ? 'bg-white/20' : done ? 'bg-[#0E6187]/10' : 'bg-slate-100'
-                }`}>
-                  {done ? '✓' : i + 1}
-                </span>
-                {s.label}
-              </button>
-            )
-          })}
+        {/* ============ Step Pills ============ */}
+        <div className="-mx-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+          <div className="flex min-w-max items-stretch gap-2">
+            {steps.map((s, i) => {
+              const active = activeStep === i
+              const done = i < activeStep
+              return (
+                <button
+                  key={s.label}
+                  onClick={() => setActiveStep(i)}
+                  className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-xs font-medium transition ${
+                    active ? 'bg-[#0E6187] text-white shadow-sm'
+                      : done ? 'bg-white text-[#0E6187] shadow-sm hover:bg-[#0E6187]/5'
+                        : 'bg-white/70 text-slate-500 hover:bg-white'
+                  }`}
+                >
+                  <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
+                    active ? 'bg-white/20' : done ? 'bg-[#0E6187]/10' : 'bg-slate-100'
+                  }`}>
+                    {done ? '✓' : i + 1}
+                  </span>
+                  {s.label}
+                </button>
+              )
+            })}
+          </div>
         </div>
-      </div>
 
-      <div className="mt-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+        {/* ============ Form Card ============ */}
+        <div className="rounded-xl bg-white p-4 shadow-sm sm:p-6">
         {activeStep === 0 && (
           <div className="space-y-6">
             <div>
@@ -982,20 +1042,20 @@ export default function MatchingJobForm() {
           </div>
         )}
 
-        <div className="mt-6 flex flex-col-reverse items-center justify-between gap-3 border-t border-slate-100 pt-5 sm:flex-row">
+        <div className="mt-6 flex items-center justify-between gap-3 border-t border-slate-100 pt-5">
           <button
             onClick={() => setActiveStep(s => Math.max(0, s - 1))}
             disabled={activeStep === 0}
-            className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <ChevronLeft size={15} />
-            Sebelumnya
+            Kembali
           </button>
           <div className="flex items-center gap-2">
             <button
               onClick={() => kirim(false)}
               disabled={sending}
-              className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[#0E6187]/30 bg-[#0E6187]/5 px-4 py-2.5 text-sm font-semibold text-[#0E6187] transition hover:bg-[#0E6187]/10 disabled:opacity-50"
             >
               {sending ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
               Simpan
@@ -1003,7 +1063,7 @@ export default function MatchingJobForm() {
             {activeStep < steps.length - 1 ? (
               <button
                 onClick={() => setActiveStep(s => Math.min(steps.length - 1, s + 1))}
-                className="inline-flex items-center gap-1.5 rounded-md bg-[#0E6187] px-5 py-2 text-sm font-medium text-white transition hover:bg-[#0a4a6a]"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[#0E6187] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0a4a6a]"
               >
                 Lanjut
                 <ChevronRight size={15} />
@@ -1012,7 +1072,7 @@ export default function MatchingJobForm() {
               <button
                 onClick={() => kirim(true)}
                 disabled={sending}
-                className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-5 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
               >
                 {sending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
                 Kirim Formulir
@@ -1021,6 +1081,29 @@ export default function MatchingJobForm() {
           </div>
         </div>
       </div>
+      </div>
+
+      {/* ============ Bottom Nav Bar ============ */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden">
+        <div className="mx-auto grid max-w-lg grid-cols-5">
+          {bottomNav.map(nav => {
+            const Icon = nav.icon
+            const isActive = nav.to === location.pathname
+            return (
+              <Link
+                key={nav.label}
+                to={nav.to}
+                className={`flex flex-col items-center gap-1 py-2.5 transition ${
+                  isActive ? 'text-[#0E6187]' : 'text-slate-400'
+                }`}
+              >
+                <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
+                <span className="text-[10px] font-medium">{nav.label}</span>
+              </Link>
+            )
+          })}
+        </div>
+      </nav>
     </div>
   )
 }

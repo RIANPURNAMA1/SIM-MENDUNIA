@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react'
-import { CreditCard, CheckCircle, Clock, Upload, X, Eye, FileText, ChevronRight, Building2, Copy } from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
+import {
+  CreditCard, CheckCircle, Clock, Upload, X, FileText, ChevronRight, Building2, Copy,
+  ChevronLeft, Wallet, LayoutDashboard, CalendarCheck, BookOpen, User,
+} from 'lucide-react'
 import Swal from 'sweetalert2'
 import api, { APP_URL } from '../../services/api'
 
 // Class bergaya kartu Facebook
-const fbCardClass = "bg-white rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.12)]"
+const fbCardClass = "bg-white rounded-xl shadow-sm"
 
 function getDeadlineInfo(dueAt?: string | null): { deadline: Date; diff: number; days: number; hours: number; minutes: number; expired: boolean; formatted: string } | null {
   if (!dueAt) return null
@@ -70,9 +74,9 @@ export default function PembayaranSiswa() {
   const [ewallets, setEwallets] = useState<{ kode: string; nama: string }[]>([])
   const [company, setCompany] = useState<{ bank_nama: string; bank_nomor_rekening: string; bank_pemilik: string } | null>(null)
   const [copiedField, setCopiedField] = useState<string | null>(null)
-  const [tanggalPersetujuan, setTanggalPersetujuan] = useState<string | null>(null)
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
   const [paymentSettings, setPaymentSettings] = useState<{ manual_payment_enabled: boolean; unique_code_max: number; unique_code_operation: string } | null>(null)
+  const location = useLocation()
 
   function loadData() {
     setLoading(true)
@@ -87,7 +91,6 @@ export default function PembayaranSiswa() {
         api.get(`/pendaftar/${p.id}/riwayat-pembayaran`).then(r => setRiwayat(r.data)).catch(() => {})
         api.get(`/pembayaran-item/${p.id}`).then(r => {
           setKategoriItems(r.data.items || [])
-          setTanggalPersetujuan(r.data.tanggal_persetujuan || p.tanggal_persetujuan || null)
         }).catch(() => {})
       }
     }).catch(() => {}).finally(() => setLoading(false))
@@ -431,23 +434,47 @@ export default function PembayaranSiswa() {
     }
   }
 
+  const bottomNav = [
+    { label: 'Dashboard', to: '/siswa-dashboard', icon: LayoutDashboard },
+    { label: 'LMS', to: '/siswa-dashboard/lms', icon: BookOpen },
+    { label: 'Absensi', to: '/siswa-dashboard/absensi', icon: CalendarCheck },
+    { label: 'Pembayaran', to: '/siswa-dashboard/pembayaran', icon: Wallet },
+    { label: 'Profil', to: '/siswa-dashboard/profil', icon: User },
+  ]
+
   return (
-    <div className="min-h-screen bg-[#F0F2F5] px-3 py-4 sm:px-6 sm:py-6 flex justify-center">
-      <div className="w-full max-w-3xl space-y-3 sm:space-y-4">
-        
-        {/* HEADER CARD - Mobile: centered, Desktop: left-aligned */}
-        <div className={`${fbCardClass} p-4 sm:p-4`}>
-          <div className="flex items-center gap-3 sm:justify-start justify-center">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100">
-              <CreditCard size={20} className="text-[#0E6187]" />
+    <div className="min-h-screen bg-[#f0f2f5] pb-24 lg:pb-8">
+      {/* ============ Top App Bar ============ */}
+      <header className="bg-[#0E6187] px-4 pb-16 pt-5 text-white">
+        <div className="mx-auto max-w-lg">
+          <div className="flex items-center justify-between">
+            <Link
+              to="/siswa-dashboard"
+              aria-label="Kembali ke dashboard"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20"
+            >
+              <ChevronLeft size={18} />
+            </Link>
+            <div className="flex items-center gap-2">
+              <img src="/logo-sm.png" alt="Mendunia" className="h-8 w-auto" />
+              <span className="text-base font-bold tracking-tight">Kelas Mendunia</span>
             </div>
-            <div className="sm:text-left text-center">
-              <h1 className="text-lg sm:text-xl font-bold text-gray-900 leading-tight">Keuangan Anda</h1>
-              <p className="text-[12px] sm:text-[13px] text-gray-500">Kelola dan pantau pembayaran pendaftaran</p>
+            <div className="w-9" />
+          </div>
+          <div className="mt-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
+              <Wallet size={20} />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold">Keuangan Anda</h1>
+              <p className="mt-0.5 text-[13px] text-teal-100">Kelola dan pantau pembayaran pendaftaran</p>
             </div>
           </div>
         </div>
+      </header>
 
+      <div className="mx-auto -mt-10 max-w-lg space-y-4 px-4">
+        
         {pendaftar ? (
           <>
             {/* MAIN INFO CARD */}
@@ -477,10 +504,8 @@ export default function PembayaranSiswa() {
                       const isPartial = partialKategoriIds.includes(k.id) || pendingKategoriIds.has(k.id)
                       const isNext = k.id === nextKat?.id
                       const rawBiaya = item?.biaya || 0
-                      const katDibayar = item?.dibayar || 0
                       const katBiaya = totalBiaya > 0 ? Math.round(rawBiaya - (diskon * rawBiaya / totalBiaya)) : rawBiaya
                       const isUnpaid = !isLunas && katBiaya > 0
-                      const jatuhTempoHari = item?.jatuh_tempo_hari ?? 30
                       const dueAt = item?.due_at
                       const deadlineInfo = isUnpaid ? getDeadlineInfo(dueAt) : null
 
@@ -867,16 +892,37 @@ export default function PembayaranSiswa() {
             )}
           </>
         ) : (
-          <div className={`${fbCardClass} p-8 sm:p-10 text-center flex flex-col items-center`}>
-            <div className="flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-gray-100 text-gray-400 mb-3 sm:mb-4">
-              <CreditCard size={28} className="sm:hidden" />
-              <CreditCard size={32} className="hidden sm:block" />
+          <div className={`${fbCardClass} p-8 text-center flex flex-col items-center`}>
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400 mb-3">
+              <CreditCard size={28} />
             </div>
-            <h3 className="text-[16px] sm:text-lg font-bold text-gray-900">Belum ada data</h3>
-            <p className="mt-1 text-[13px] sm:text-[14px] text-gray-500">Data pembayaran pendaftaran belum tersedia.</p>
+            <h3 className="text-base font-bold text-slate-800">Belum ada data</h3>
+            <p className="mt-1 text-[13px] text-slate-500">Data pembayaran pendaftaran belum tersedia.</p>
           </div>
         )}
       </div>
+
+      {/* ============ Bottom Nav Bar ============ */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden">
+        <div className="mx-auto grid max-w-lg grid-cols-5">
+          {bottomNav.map(nav => {
+            const Icon = nav.icon
+            const isActive = nav.to === location.pathname
+            return (
+              <Link
+                key={nav.label}
+                to={nav.to}
+                className={`flex flex-col items-center gap-1 py-2.5 transition ${
+                  isActive ? 'text-[#0E6187]' : 'text-slate-400'
+                }`}
+              >
+                <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
+                <span className="text-[10px] font-medium">{nav.label}</span>
+              </Link>
+            )
+          })}
+        </div>
+      </nav>
     </div>
   )
 }
