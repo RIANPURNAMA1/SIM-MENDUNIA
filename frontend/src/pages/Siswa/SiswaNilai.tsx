@@ -140,8 +140,7 @@ export default function SiswaNilai() {
                 <ChevronLeft size={18} />
               </Link>
               <div className="flex items-center gap-2">
-                <img src="/logo-sm.png" alt="Mendunia" className="h-8 w-auto" />
-                <span className="text-base font-bold tracking-tight">Kelas Mendunia</span>
+                <img src="/logo-sm1.png" alt="Kelas Mendunia" className="h-8 w-auto" />
               </div>
               <div className="w-9" />
             </div>
@@ -258,8 +257,7 @@ export default function SiswaNilai() {
               <ChevronLeft size={18} />
             </button>
             <div className="flex items-center gap-2">
-              <img src="/logo-sm.png" alt="Mendunia" className="h-8 w-auto" />
-              <span className="text-base font-bold tracking-tight">Kelas Mendunia</span>
+              <img src="/logo-sm1.png" alt="Kelas Mendunia" className="h-8 w-auto" />
             </div>
             <div className="w-9" />
           </div>

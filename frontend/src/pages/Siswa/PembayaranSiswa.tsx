@@ -445,8 +445,7 @@ export default function PembayaranSiswa() {
               <ChevronLeft size={18} />
             </Link>
             <div className="flex items-center gap-2">
-              <img src="/logo-sm.png" alt="Mendunia" className="h-8 w-auto" />
-              <span className="text-base font-bold tracking-tight">Kelas Mendunia</span>
+              <img src="/logo-sm1.png" alt="Kelas Mendunia" className="h-8 w-auto" />
             </div>
             <div className="w-9" />
           </div>

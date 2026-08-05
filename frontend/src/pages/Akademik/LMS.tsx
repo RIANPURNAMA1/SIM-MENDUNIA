@@ -884,8 +884,7 @@ export default function LMS() {
         <div className="mx-auto max-w-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <img src="/logo-sm.png" alt="Mendunia" className="h-8 w-auto" />
-              <span className="text-base font-bold tracking-tight">Kelas Mendunia</span>
+              <img src="/logo-sm1.png" alt="Kelas Mendunia" className="h-8 w-auto" />
             </div>
             {courses.length > 0 && (
               <div className="flex items-center gap-3 text-white/80">
