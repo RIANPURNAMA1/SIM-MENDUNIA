@@ -57,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // tetap lanjutkan hapus state meski gagal
     }
     setUser(null)
+    localStorage.removeItem('token')
   }, [])
 
   return (

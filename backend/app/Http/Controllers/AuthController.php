@@ -226,17 +226,37 @@ class AuthController extends Controller
 
     public function logoutApi(Request $request)
     {
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        $user = $request->user() ?? Auth::user();
+        if ($user) {
+            $user->setRememberToken(null);
+            $user->save();
+            if (method_exists($user, 'tokens')) {
+                $user->tokens()->delete();
+            }
+        }
 
-        $response = response()->json([
+        try {
+            Auth::guard('web')->logout();
+        } catch (\Throwable $e) {}
+
+        try {
+            Auth::logout();
+        } catch (\Throwable $e) {}
+
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
+
+        $cookieName = config('session.cookie', 'laravel_session');
+        $recallerName = Auth::guard('web')->getRecallerName();
+
+        return response()->json([
             'message' => 'Logout berhasil',
-        ]);
-
-        $response->headers->clearCookie('laravel_session');
-
-        return $response;
+        ])
+        ->withCookie(cookie()->forget($cookieName))
+        ->withCookie(cookie()->forget('XSRF-TOKEN'))
+        ->withCookie(cookie()->forget($recallerName));
     }
 
     public function userApi(Request $request)

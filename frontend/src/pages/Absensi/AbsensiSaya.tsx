@@ -280,9 +280,9 @@ export default function AbsensiSaya() {
             <button
               onClick={openQrScanner}
               disabled={scanning}
-              className="rounded-xl bg-[#0E6187] text-white px-4 py-3.5 flex items-center gap-3 active:scale-[0.97] transition-transform disabled:opacity-60"
+              className="rounded-xl bg-[#0E6187] text-white px-4 py-3.5 flex items-center gap-3 active:scale-[0.97] transition-all disabled:opacity-60 border-2 border-white shadow-md hover:bg-[#0c5273] hover:shadow-lg"
             >
-              <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center border border-white/40">
                 {scanning ? (
                   <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                 ) : (
@@ -290,7 +290,7 @@ export default function AbsensiSaya() {
                 )}
               </div>
               <div className="text-left">
-                <p className="text-[10px] text-white/60 font-medium uppercase tracking-wide">Absensi</p>
+                <p className="text-[10px] text-white/80 font-medium uppercase tracking-wide">Absensi</p>
                 <p className="text-sm font-bold">{scanning ? 'Mencari Lokasi...' : 'Scan QR'}</p>
               </div>
             </button>
