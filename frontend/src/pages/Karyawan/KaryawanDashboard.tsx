@@ -72,6 +72,7 @@ export default function KaryawanDashboard() {
   const detectionFrameRef = useRef<number>(0)
   const [faceDetected, setFaceDetected] = useState(false)
   const [countdown, setCountdown] = useState<number | null>(null)
+  const [processing, setProcessing] = useState(false)
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const countdownValueRef = useRef(3)
   const captureTriggeredRef = useRef(false)
@@ -444,6 +445,7 @@ export default function KaryawanDashboard() {
     if (submittingRef.current) return
     if (!videoRef.current || !canvasRef.current) return
     submittingRef.current = true
+    setProcessing(true)
     const video = videoRef.current
     const canvas = canvasRef.current
     canvas.width = video.videoWidth
@@ -451,16 +453,17 @@ export default function KaryawanDashboard() {
     const ctx = canvas.getContext('2d')
     if (!ctx) {
       submittingRef.current = false
+      setProcessing(false)
       return
     }
     ctx.drawImage(video, 0, 0)
     canvas.toBlob(async (blob) => {
       if (!blob) {
         submittingRef.current = false
+        setProcessing(false)
         captureTriggeredRef.current = false
         return
       }
-      stopCamera()
       setIsSubmitting(true)
       try {
         const formData = new FormData()
@@ -474,21 +477,25 @@ export default function KaryawanDashboard() {
           await absensiKaryawanApi.masuk(formData as unknown as Record<string, unknown>)
           setAbsenStatus('masuk')
           setJamMasuk(formatTime())
+          stopCamera()
           Swal.fire({ icon: 'success', title: 'Absen Masuk Berhasil', timer: 2000, showConfirmButton: false })
         } else {
           await absensiKaryawanApi.pulang(formData as unknown as Record<string, unknown>)
           setAbsenStatus('pulang')
           setJamKeluar(formatTime())
+          stopCamera()
           Swal.fire({ icon: 'success', title: 'Absen Pulang Berhasil', timer: 2000, showConfirmButton: false })
         }
         loadData()
       } catch (e: any) {
         const msg = e?.response?.data?.message || (e instanceof Error ? e.message : 'Gagal melakukan absensi')
+        stopCamera()
         Swal.fire({ icon: 'error', title: 'Absensi Gagal', text: msg })
         captureTriggeredRef.current = false
       } finally {
         setIsSubmitting(false)
         submittingRef.current = false
+        setProcessing(false)
       }
     }, 'image/jpeg', 0.8)
   }, [cameraMode, stopCamera])
@@ -895,6 +902,23 @@ export default function KaryawanDashboard() {
             )}
           </div>
           <canvas ref={canvasRef} className="hidden" />
+
+          {/* Loading animasi saat proses ambil foto & kirim absensi */}
+          {processing && (
+            <div className="absolute inset-0 z-[20] bg-black/75 flex flex-col items-center justify-center">
+              <div className="relative w-24 h-24">
+                <div className="absolute inset-0 rounded-full border-4 border-[#4ADE80]/20" />
+                <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-[#4ADE80] animate-spin" />
+                <div className="absolute inset-3 rounded-full border-4 border-[#4ADE80]/20" />
+                <div className="absolute inset-3 rounded-full border-4 border-transparent border-b-[#4ADE80] animate-spin" style={{ animationDirection: 'reverse', animationDuration: '0.8s' }} />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Camera size={28} className="text-[#4ADE80]" />
+                </div>
+              </div>
+              <p className="text-white text-sm font-bold mt-5">Mengambil Foto...</p>
+              <p className="text-white/60 text-xs mt-1">Memproses absensi Anda, tunggu sebentar</p>
+            </div>
+          )}
         </div>
       )}
 
