@@ -506,6 +506,267 @@ class AdminCabangController extends Controller
         ]);
     }
 
+    private function applyTagihanFilters($q, Request $request)
+    {
+        if ($request->search) {
+            $s = $request->search;
+            $q->where(function ($qq) use ($s) {
+                $qq->where('nama', 'like', "%{$s}%")
+                  ->orWhere('email', 'like', "%{$s}%")
+                  ->orWhere('no_registrasi', 'like', "%{$s}%");
+            });
+        }
+
+        if ($request->status) {
+            $q->where('status_pembayaran', $request->status);
+        }
+
+        if ($request->batch_id) {
+            $q->where('batch_id', $request->batch_id);
+        }
+
+        if ($request->product_id) {
+            $q->where('product_id', $request->product_id);
+        }
+
+        if ($request->date_from) {
+            $q->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->date_to) {
+            $q->whereDate('created_at', '<=', $request->date_to);
+        }
+    }
+
+    private function hydrateTagihanData($pendaftars)
+    {
+        $pendaftarIds = $pendaftars->pluck('id');
+        $allPembayaran = PembayaranItem::whereIn('pendaftar_id', $pendaftarIds)
+            ->get()
+            ->groupBy('pendaftar_id');
+
+        $allBayar = \App\Models\Pembayaran::whereIn('pendaftar_id', $pendaftarIds)
+            ->where('status', 'verified')
+            ->get()
+            ->groupBy('pendaftar_id');
+
+        $uniqueCodeOperation = \App\Models\PaymentSetting::getValue('unique_code_operation', 'add');
+
+        return $pendaftars->map(function ($p) use ($allPembayaran, $allBayar, $uniqueCodeOperation) {
+            $pembayaranItems = $allPembayaran->get($p->id, collect())->keyBy('kategori_id');
+            $pembayaranList = $allBayar->get($p->id, collect());
+            $product = $p->product;
+
+            $nameToKategori = [];
+            $kodeToKategori = [];
+            if ($product && $product->relationLoaded('biayaKategoris')) {
+                foreach ($product->biayaKategoris as $k) {
+                    $nameToKategori[strtolower($k->nama)] = $k;
+                    $kodeToKategori[strtolower($k->kode)] = $k;
+                }
+            }
+
+            $aggregated = [];
+            if ($product && is_array($product->kategori_items)) {
+                $walkAgg = function ($items, $depth) use (&$walkAgg, $nameToKategori, $kodeToKategori, &$aggregated) {
+                    foreach ($items as $item) {
+                        $name = strtolower(trim($item['name'] ?? ''));
+                        if ($name === '') continue;
+                        $kategori = $nameToKategori[$name] ?? $kodeToKategori[$name] ?? null;
+                        if (!$kategori) continue;
+
+                        $aggregated[] = [
+                            'id' => $kategori->id,
+                            'kode' => $kategori->kode,
+                            'nama' => $kategori->nama,
+                            'biaya' => (float) ($kategori->pivot->harga ?? 0),
+                        ];
+
+                        $children = $item['children'] ?? [];
+                        if (!empty($children)) {
+                            $walkAgg($children, $depth + 1);
+                        }
+                    }
+                };
+                $walkAgg($product->kategori_items, 0);
+            }
+
+            $detail = [];
+            foreach ($aggregated as $item) {
+                $pi = $pembayaranItems->get($item['id']);
+                $dibayar = $pi ? (int) $pi->jumlah : 0;
+                $pembayaran = $pembayaranList->firstWhere('kategori_id', $item['id']);
+                $biaya = $item['biaya'];
+                $kodeUnik = $pi ? ($pi->kode_unik ?? 0) : 0;
+                if ($pi) {
+                    $totalTransfer = $pi->total_transfer ?? $biaya;
+                } else {
+                    $totalTransfer = $uniqueCodeOperation === 'subtract'
+                        ? max(0, $biaya - $kodeUnik)
+                        : $biaya + $kodeUnik;
+                }
+                $detail[] = [
+                    'kategori_id' => $item['id'],
+                    'kode' => $item['kode'],
+                    'nama' => $item['nama'],
+                    'biaya' => $biaya,
+                    'dibayar' => $dibayar,
+                    'kode_unik' => $kodeUnik,
+                    'total_transfer' => $totalTransfer,
+                    'tanggal_bayar' => $pembayaran ? $pembayaran->created_at : null,
+                ];
+            }
+            return array_merge($p->toArray(), [
+                'detail' => $detail,
+                'status_kandidat' => $p->siswa?->status_kandidat,
+                'is_cuti' => $p->siswa?->is_cuti ?? false,
+            ]);
+        });
+    }
+
+    /**
+     * Ringkasan per batch + statistik (server-side pagination), dibatasi ke cabang admin.
+     */
+    public function tagihanGroups(Request $request)
+    {
+        $batchIds = $this->getBranchBatchIds();
+
+        $base = Pendaftar::with(['product.biayaKategoris', 'batch', 'siswa'])
+            ->whereIn('batch_id', $batchIds)
+            ->orderBy('created_at', 'desc');
+        $this->applyTagihanFilters($base, $request);
+
+        $all = $base->get();
+        $hydrated = $this->hydrateTagihanData($all);
+
+        $total = 0;
+        $paid = 0;
+        foreach ($hydrated as $p) {
+            if (!empty($p['detail'])) {
+                foreach ($p['detail'] as $d) {
+                    $biaya = (float) $d['biaya'];
+                    if ($biaya <= 0) continue;
+                    $total += $biaya;
+                    $paid += (float) $d['dibayar'];
+                }
+            } else {
+                $total += (float) ($p['product']['harga'] ?? 0) - (float) ($p['diskon'] ?? 0);
+                $paid += (float) ($p['nominal'] ?? 0);
+            }
+        }
+        $stats = [
+            'total' => $total,
+            'paid' => $paid,
+            'outstanding' => max(0, $total - $paid),
+            'count' => $all->count(),
+        ];
+
+        $pendingPids = \App\Models\Pembayaran::where('status', 'processing')
+            ->whereIn('pendaftar_id', $all->pluck('id'))
+            ->pluck('pendaftar_id')
+            ->unique()
+            ->flip();
+
+        $groupMap = [];
+        foreach ($hydrated as $p) {
+            $bid = $p['batch']['id'] ?? 0;
+            if (!isset($groupMap[$bid])) {
+                $groupMap[$bid] = [
+                    'batch_id' => (int) $bid,
+                    'nama_batch' => $p['batch']['nama_batch'] ?? 'Tanpa Batch',
+                    'warna' => $p['batch']['warna'] ?? null,
+                    'total_pendaftar' => 0,
+                    'total_tagihan' => 0,
+                    'total_dibayar' => 0,
+                    'total_sisa' => 0,
+                    'kategori_ids' => [],
+                    'has_pending' => false,
+                ];
+            }
+            $groupMap[$bid]['total_pendaftar']++;
+
+            if (!empty($p['detail'])) {
+                foreach ($p['detail'] as $d) {
+                    $biaya = (float) $d['biaya'];
+                    if ($biaya <= 0) continue;
+                    $groupMap[$bid]['total_tagihan'] += $biaya;
+                    $groupMap[$bid]['total_dibayar'] += (float) $d['dibayar'];
+                    $groupMap[$bid]['kategori_ids'][] = $d['kategori_id'];
+                }
+            } else {
+                $groupMap[$bid]['total_tagihan'] += (float) ($p['product']['harga'] ?? 0) - (float) ($p['diskon'] ?? 0);
+                $groupMap[$bid]['total_dibayar'] += (float) ($p['nominal'] ?? 0);
+            }
+
+            if (isset($pendingPids[$p['id']])) {
+                $groupMap[$bid]['has_pending'] = true;
+            }
+        }
+
+        foreach ($groupMap as &$g) {
+            $g['total_sisa'] = max(0, $g['total_tagihan'] - $g['total_dibayar']);
+            $g['kategori_ids'] = array_values(array_unique($g['kategori_ids']));
+        }
+        unset($g);
+
+        $groups = collect($groupMap)->values()
+            ->sort(function ($a, $b) {
+                if ($a['has_pending'] !== $b['has_pending']) {
+                    return $a['has_pending'] ? -1 : 1;
+                }
+                return $b['batch_id'] <=> $a['batch_id'];
+            })
+            ->values();
+
+        $page = max(1, (int) $request->get('page', 1));
+        $perPage = min(50, max(1, (int) $request->get('per_page', 5)));
+        $totalBatches = $groups->count();
+        $totalPages = max(1, (int) ceil($totalBatches / $perPage));
+        $paged = $groups->slice(($page - 1) * $perPage, $perPage)->values();
+
+        return response()->json([
+            'stats' => $stats,
+            'batches' => $paged,
+            'page' => $page,
+            'per_page' => $perPage,
+            'total_pages' => $totalPages,
+            'total' => $totalBatches,
+        ]);
+    }
+
+    /**
+     * Baris kandidat per batch (server-side pagination), dibatasi ke cabang admin.
+     */
+    public function tagihanBatch(Request $request, $batchId)
+    {
+        $batchIds = $this->getBranchBatchIds();
+
+        $base = Pendaftar::with(['product.biayaKategoris', 'batch', 'siswa'])
+            ->whereIn('batch_id', $batchIds)
+            ->orderBy('created_at', 'desc');
+        $this->applyTagihanFilters($base, $request);
+
+        if ((int) $batchId === 0) {
+            $base->whereNull('batch_id');
+        } else {
+            $base->where('batch_id', (int) $batchId);
+        }
+
+        $page = max(1, (int) $request->get('page', 1));
+        $perPage = min(50, max(1, (int) $request->get('per_page', 5)));
+        $total = $base->count();
+        $rows = $this->hydrateTagihanData($base->skip(($page - 1) * $perPage)->take($perPage)->get());
+
+        return response()->json([
+            'batch_id' => (int) $batchId,
+            'kandidat' => $rows->values(),
+            'page' => $page,
+            'per_page' => $perPage,
+            'total_pages' => max(1, (int) ceil($total / $perPage)),
+            'total' => $total,
+        ]);
+    }
+
     public function kandidat(Request $request)
     {
         $batchIds = $this->getBranchBatchIds();
