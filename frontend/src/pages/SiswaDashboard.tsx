@@ -1,8 +1,14 @@
 import { useState, useEffect, FormEvent } from 'react'
-import { Link } from 'react-router-dom'
-import { User, CheckCircle, Clock, XCircle, CreditCard, Package, Check, Copy, AlertTriangle, ShieldCheck, ChevronDown, ChevronUp, Building2, Upload, Loader, MessageSquare, ChevronRight } from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
+import {
+  User, CheckCircle, Clock, XCircle, CreditCard, Package, Check, Copy, AlertTriangle,
+  ChevronDown, ChevronUp, Building2, Upload, Loader, MessageSquare, ChevronRight,
+  LayoutDashboard, Wallet, CalendarCheck, BookOpen, Award, Briefcase, Bell, ClipboardList,
+  LogOut,
+} from 'lucide-react'
+import Swal from 'sweetalert2'
 import { useAuth } from '../contexts/AuthContext'
-import api from '../services/api'
+import api, { APP_URL } from '../services/api'
 
 interface PendaftarData {
   id: number
@@ -132,8 +138,13 @@ function maskPhone(phone: string) {
   return '•'.repeat(phone.length - 6) + phone.slice(-6)
 }
 
+function cap(s: string) {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : '-'
+}
+
 export default function SiswaDashboard() {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
+  const location = useLocation()
   const [pendaftar, setPendaftar] = useState<PendaftarData | null>(null)
   const [siswa, setSiswa] = useState<SiswaData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -153,7 +164,6 @@ export default function SiswaDashboard() {
   const [success, setSuccess] = useState(false)
 
   const [evaluations, setEvaluations] = useState<Record<string, { evaluasi: string | null; user?: { name: string } }>>({})
-  const [loadingEval, setLoadingEval] = useState(false)
 
   useEffect(() => {
     api.get('/siswa-dashboard')
@@ -171,7 +181,6 @@ export default function SiswaDashboard() {
     api.get('/siswa/evaluations').then((res: any) => {
       setEvaluations(res.data.evaluations || {})
     }).catch(() => {})
-    setLoadingEval(false)
   }, [])
 
   useEffect(() => {
@@ -237,6 +246,23 @@ export default function SiswaDashboard() {
     }).replace(/\./g, ':')
   }
 
+  function handleLogout() {
+    Swal.fire({
+      icon: 'question',
+      title: 'Yakin ingin logout?',
+      text: 'Anda akan keluar dari akun Kelas Mendunia.',
+      showCancelButton: true,
+      confirmButtonText: 'Logout',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#0E6187',
+    }).then(async result => {
+      if (result.isConfirmed) {
+        await logout()
+        window.location.href = '/login'
+      }
+    })
+  }
+
   async function handleSubmitPayment(e: FormEvent) {
     e.preventDefault()
     if (!fileBukti || !checkoutData) return
@@ -300,8 +326,6 @@ export default function SiswaDashboard() {
 
   const StatusIcon = pendaftar ? statusIcon[pendaftar.status_pendaftaran] || Clock : Clock
 
-  const cardClass = "bg-white border border-gray-200 rounded-lg shadow-sm"
-
   const isDataLengkap = siswa?.nik && siswa?.alamat && siswa?.jenis_kelamin && siswa?.agama
 
   const showPaymentBanner = pendaftar && pendaftar.status_pembayaran !== 'verified'
@@ -325,199 +349,277 @@ export default function SiswaDashboard() {
   const bankOwner = checkoutData?.company?.bank_pemilik || 'PT. INDONESIA SUKSES MENDUNIA'
   const paymentEnabled = checkoutData?.payment_settings?.manual_payment_enabled ?? false
 
+  const firstName = (user?.name || 'Siswa').split(' ')[0]
+  const initials = (user?.name || 'S')
+    .split(' ').slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('')
+  const fotoUrl = user?.foto_profil ? `${APP_URL}/uploads/foto_profil/${user.foto_profil}` : null
+  const dateStr = new Date().toLocaleDateString('id-ID', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  })
+
+  const quickActions = [
+    { label: 'Dashboard', to: '/siswa-dashboard', icon: LayoutDashboard, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
+    { label: 'Data Diri', to: '/siswa-dashboard/matching-job', icon: ClipboardList, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { label: 'Bayar', to: '/siswa-dashboard/pembayaran', icon: Wallet, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { label: 'Absensi', to: '/siswa-dashboard/absensi', icon: CalendarCheck, color: 'text-sky-600', bg: 'bg-sky-50' },
+    { label: 'LMS', to: '/siswa-dashboard/lms', icon: BookOpen, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { label: 'Nilai', to: '/siswa-dashboard/nilai', icon: Award, color: 'text-rose-500', bg: 'bg-rose-50' },
+    { label: 'Matching Job', to: '/siswa-dashboard/matching-job', icon: Briefcase, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+    { label: 'Profil', to: '/siswa-dashboard/profil', icon: User, color: 'text-slate-600', bg: 'bg-slate-100' },
+  ]
+
+  const bottomNav = [
+    { label: 'Dashboard', to: '/siswa-dashboard', icon: LayoutDashboard },
+    { label: 'LMS', to: '/siswa-dashboard/lms', icon: BookOpen },
+    { label: 'Absensi', to: '/siswa-dashboard/absensi', icon: CalendarCheck },
+    { label: 'Pembayaran', to: '/siswa-dashboard/pembayaran', icon: Wallet },
+    { label: 'Profil', to: '/siswa-dashboard/profil', icon: User },
+  ]
+
   return (
-    <div className="min-h-screen bg-[#f0f2f5] px-3 py-4 sm:px-6 sm:py-5">
-      {showPaymentBanner && (
-        <div className={`mb-4 p-4 border rounded-lg flex items-start gap-3 ${
-          pendaftar?.status_pembayaran === 'processing'
-            ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-200'
-            : 'bg-gradient-to-r from-red-50 to-orange-50 border-red-200'
-        }`}>
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
-            pendaftar?.status_pembayaran === 'processing' ? 'bg-amber-100' : 'bg-red-100'
+    <div className="min-h-screen bg-[#f0f2f5] pb-24 lg:pb-8">
+      {/* ============ Top App Bar ============ */}
+      <header className="bg-[#0E6187] px-4 pb-16 pt-5 text-white">
+        <div className="mx-auto max-w-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <img src="/logo-sm.png" alt="Mendunia" className="h-8 w-auto" />
+              <span className="text-base font-bold tracking-tight">Kelas Mendunia</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                aria-label="Notifikasi"
+                className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20"
+              >
+                <Bell size={18} />
+                <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-400 ring-2 ring-[#0E6187]" />
+              </button>
+              <Link
+                to="/siswa-dashboard/profil"
+                className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-white/10 ring-2 ring-white/30"
+              >
+                {fotoUrl ? (
+                  <img src={fotoUrl} alt="Profil" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-xs font-bold text-white">{initials}</span>
+                )}
+              </Link>
+              <button
+                onClick={handleLogout}
+                aria-label="Logout"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20"
+              >
+                <LogOut size={17} />
+              </button>
+            </div>
+          </div>
+          <div className="mt-6">
+            <p className="text-[13px] font-medium text-teal-100">Selamat datang kembali</p>
+            <h1 className="mt-0.5 text-2xl font-bold">Halo, {firstName}!</h1>
+            <p className="mt-1 text-[13px] text-teal-100">{dateStr}</p>
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto -mt-10 max-w-lg space-y-4 px-4">
+        {/* ============ Alert System ============ */}
+        {showPaymentBanner && (
+          <div className={`rounded-xl border p-4 shadow-sm ${
+            pendaftar?.status_pembayaran === 'processing'
+              ? 'border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50'
+              : 'border-red-200 bg-gradient-to-r from-red-50 to-orange-50'
           }`}>
-            {pendaftar?.status_pembayaran === 'processing' ? (
-              <Clock size={16} className="text-amber-600" />
-            ) : (
-              <CreditCard size={16} className="text-red-600" />
-            )}
-          </div>
-          <div className="flex-1">
-            {pendaftar?.status_pembayaran === 'processing' ? (
-              <>
-                <p className="text-sm font-semibold text-amber-800">Pembayaran sedang diproses</p>
-                <p className="text-xs text-amber-700 mt-1">
-                  Bukti pembayaran Anda sedang menunggu verifikasi dari admin.
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="text-sm font-semibold text-red-800">Anda memiliki tagihan yang belum dibayar</p>
-                <p className="text-xs text-red-700 mt-1">
-                  Silakan selesaikan pembayaran untuk melanjutkan proses pendaftaran.
-                </p>
-              </>
-            )}
-          </div>
-          {pendaftar?.status_pembayaran !== 'processing' && (
-            <button
-              onClick={() => setShowPaymentModal(true)}
-              className="shrink-0 px-4 py-2 bg-red-600 text-white rounded-md text-sm font-semibold hover:bg-red-700 transition-colors">
-              Bayar Sekarang
-            </button>
-          )}
-        </div>
-      )}
-
-      {!isDataLengkap && pendaftar && (
-        <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <span className="text-amber-700 font-bold text-sm">!</span>
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-amber-800">Data diri Anda belum lengkap</p>
-            <p className="text-xs text-amber-700 mt-1">
-              Silakan lengkapi data diri dan upload dokumen Anda.
-            </p>
-          </div>
-          <Link to="/siswa-dashboard/data-diri"
-            className="shrink-0 px-4 py-2 bg-amber-600 text-white rounded-md text-sm font-semibold hover:bg-amber-700 transition-colors">
-            Lengkapi Sekarang
-          </Link>
-        </div>
-      )}
-
-      <div className={`mb-4 ${cardClass} p-4 sm:p-5`}>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#eef1f6]">
-              <User size={22} className="text-[#0E6187]" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-gray-900">Halo, {user?.name}!</h1>
-              <p className="text-sm text-gray-500">Status pendaftaran Anda</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {(siswa?.batch_id || pendaftar?.batch_id) && Object.keys(jadwalLevels).length > 0 && (
-        <div className={`${cardClass} mb-4`}>
-          <div className="border-b border-gray-200 px-5 py-3.5">
-            <h2 className="text-sm font-semibold text-gray-800">Timeline Tahapan</h2>
-          </div>
-          <div className="p-5">
-            <TimelineStages jadwalLevels={jadwalLevels} />
-          </div>
-        </div>
-      )}
-
-      {Object.keys(evaluations).length > 0 && (
-        <div className={`${cardClass} mb-4`}>
-          <div className="border-b border-gray-200 px-5 py-3.5 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-800">Evaluasi Sensei</h2>
-            <Link to="/siswa-dashboard/nilai" className="text-[11px] font-semibold text-[#0E6187] hover:underline flex items-center gap-1">
-              Lihat Semua <ChevronRight size={12} />
-            </Link>
-          </div>
-          <div className="divide-y divide-gray-100">
-            {Object.entries(evaluations).map(([level, ev]) => (
-              ev.evaluasi ? (
-                <div key={level} className="p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <MessageSquare size={12} className="text-[#0E6187]" />
-                    <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Level {level}</p>
-                  </div>
-                  <div className="border border-gray-200 rounded-lg p-3 bg-white">
-                    <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">{ev.evaluasi}</p>
-                    {ev.user && (
-                      <p className="text-[10px] text-gray-400 mt-2">— {ev.user.name}</p>
-                    )}
-                  </div>
-                </div>
-              ) : null
-            ))}
-          </div>
-        </div>
-      )}
-
-      {pendaftar ? (<>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <div className={cardClass}>
-            <div className="border-b border-gray-200 px-5 py-3.5">
-              <h2 className="text-sm font-semibold text-gray-800">Status Pendaftaran</h2>
-            </div>
-            <div className="space-y-4 p-5">
-              <div className="flex items-center gap-3">
-                <StatusIcon size={20} className={
-                  pendaftar.status_pendaftaran === 'disetujui' ? 'text-emerald-500' :
-                  pendaftar.status_pendaftaran === 'ditolak' ? 'text-red-500' : 'text-amber-500'
-                } />
-                <div>
-                  <p className="text-xs text-gray-500">Status Pendaftaran</p>
-                  <span className={`mt-0.5 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusColor[pendaftar.status_pendaftaran]}`}>
-                    {pendaftar.status_pendaftaran}
-                  </span>
-                </div>
+            <div className="flex items-start gap-3">
+              <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                pendaftar?.status_pembayaran === 'processing' ? 'bg-amber-100' : 'bg-red-100'
+              }`}>
+                {pendaftar?.status_pembayaran === 'processing' ? (
+                  <Clock size={16} className="text-amber-600" />
+                ) : (
+                  <CreditCard size={16} className="text-red-600" />
+                )}
               </div>
-              <div className="flex items-center gap-3">
-                <CreditCard size={20} className="text-[#0E6187]" />
-                <div>
-                  <p className="text-xs text-gray-500">Status Pembayaran</p>
-                  <span className={`mt-0.5 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${paymentColor[pendaftar.status_pembayaran]}`}>
-                    {pendaftar.status_pembayaran}
-                  </span>
-                </div>
+              <div className="flex-1">
+                {pendaftar?.status_pembayaran === 'processing' ? (
+                  <>
+                    <p className="text-sm font-semibold text-amber-800">Pembayaran sedang diproses</p>
+                    <p className="mt-0.5 text-xs text-amber-700">
+                      Bukti pembayaran Anda sedang menunggu verifikasi dari admin.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-semibold text-red-800">Anda memiliki tagihan yang belum dibayar</p>
+                    <p className="mt-0.5 text-xs text-red-700">
+                      Silakan selesaikan pembayaran untuk melanjutkan proses pendaftaran.
+                    </p>
+                  </>
+                )}
               </div>
-              {pendaftar.product && (
-                <div className="flex items-center gap-3">
-                  <Package size={20} className="text-[#0E6187]" />
-                  <div>
-                    <p className="text-xs text-gray-500">Program</p>
-                    <p className="font-semibold text-gray-900">{pendaftar.product.nama}</p>
-                  </div>
-                </div>
+              {pendaftar?.status_pembayaran !== 'processing' && (
+                <button
+                  onClick={() => setShowPaymentModal(true)}
+                  className="shrink-0 rounded-lg bg-red-600 px-3.5 py-2 text-xs font-bold text-white transition-colors hover:bg-red-700">
+                  Bayar Sekarang
+                </button>
               )}
             </div>
           </div>
+        )}
 
-          <div className={`${cardClass} lg:col-span-2`}>
-            <div className="border-b border-gray-200 px-5 py-3.5">
-              <h2 className="text-sm font-semibold text-gray-800">Kelola Data</h2>
+        {!isDataLengkap && pendaftar && (
+          <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100">
+              <AlertTriangle size={16} className="text-amber-600" />
             </div>
-            <div className="p-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Link to="/siswa-dashboard/data-diri"
-                  className="rounded-lg border border-gray-200 p-4 flex items-center gap-3 hover:bg-gray-50 transition-colors">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187]/10 text-[#0E6187]">
-                    <User size={18} />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-amber-800">Data diri belum lengkap</p>
+              <p className="mt-0.5 text-xs text-amber-700">
+                Lengkapi data diri dan upload dokumen Anda untuk melanjutkan proses pendaftaran.
+              </p>
+            </div>
+            <Link
+              to="/siswa-dashboard/matching-job"
+              className="shrink-0 rounded-lg bg-amber-600 px-3.5 py-2 text-xs font-bold text-white transition-colors hover:bg-amber-700">
+              Lengkapi
+            </Link>
+          </div>
+        )}
+
+        {/* ============ Quick Actions ============ */}
+        <section className="rounded-xl bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-slate-800">Akses Cepat</h2>
+            <span className="text-[11px] text-slate-400">{quickActions.length} menu</span>
+          </div>
+          <div className="-mx-4 mt-3 flex items-stretch gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+            {quickActions.map(qa => {
+              const Icon = qa.icon
+              return (
+                <Link
+                  key={qa.label}
+                  to={qa.to}
+                  className="flex w-[68px] shrink-0 flex-col items-center gap-1.5 transition-transform active:scale-95"
+                >
+                  <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${qa.bg} ${qa.color}`}>
+                    <Icon size={20} />
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-gray-800">Data Diri & Dokumen</p>
-                    <p className="text-xs text-gray-500">Lengkapi profil dan upload dokumen</p>
-                  </div>
+                  <span className="text-center text-[10px] font-medium leading-tight text-slate-600">{qa.label}</span>
                 </Link>
-                <div className="rounded-lg border border-gray-200 p-4 flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187]/10 text-[#0E6187]">
-                    <CheckCircle size={18} />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-gray-800">Status Lengkapi</p>
-                    <p className="text-xs text-gray-500">{isDataLengkap ? 'Data sudah lengkap' : 'Belum lengkap'}</p>
-                  </div>
-                </div>
+              )
+            })}
+          </div>
+        </section>
+
+        {/* ============ Status Overview ============ */}
+        <section className="rounded-xl bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-slate-800">Status Pendaftaran</h2>
+            <Link
+              to="/siswa-dashboard/matching-job"
+              className="flex items-center gap-0.5 text-[11px] font-semibold text-[#0E6187]">
+              Lengkapi <ChevronRight size={12} />
+            </Link>
+          </div>
+          {pendaftar ? (
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-center">
+                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${statusColor[pendaftar.status_pendaftaran] || 'bg-slate-100 text-slate-600'}`}>
+                  <StatusIcon size={10} /> {cap(pendaftar.status_pendaftaran)}
+                </span>
+                <p className="mt-1.5 text-[10px] font-medium text-slate-400">Pendaftaran</p>
+              </div>
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-center">
+                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${paymentColor[pendaftar.status_pembayaran] || 'bg-slate-100 text-slate-600'}`}>
+                  <CheckCircle size={10} /> {cap(pendaftar.status_pembayaran)}
+                </span>
+                <p className="mt-1.5 text-[10px] font-medium text-slate-400">Pembayaran</p>
+              </div>
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-center">
+                <span className="inline-flex items-center rounded-full bg-[#0E6187]/10 px-2 py-0.5 text-[10px] font-bold text-[#0E6187]">
+                  <Package size={10} /> Program
+                </span>
+                <p className="mt-1.5 text-[10px] font-medium leading-tight text-slate-700">{pendaftar.product?.nama || '-'}</p>
               </div>
             </div>
-          </div>
+          ) : (
+            <p className="mt-3 rounded-xl border border-dashed border-slate-200 p-4 text-center text-xs text-slate-400">
+              Belum ada data pendaftaran
+            </p>
+          )}
+        </section>
+
+        {/* ============ Progress Timeline ============ */}
+        {(siswa?.batch_id || pendaftar?.batch_id) && Object.keys(jadwalLevels).length > 0 && (
+          <section className="rounded-xl bg-white p-4 shadow-sm">
+            <h2 className="text-sm font-bold text-slate-800">Progress Belajar</h2>
+            <p className="mt-0.5 text-[11px] text-slate-400">Tahapan level pembelajaran Anda</p>
+            <div className="mt-4">
+              <TimelineStages jadwalLevels={jadwalLevels} />
+            </div>
+          </section>
+        )}
+
+        {/* ============ Evaluasi Sensei ============ */}
+        {Object.keys(evaluations).length > 0 && (
+          <section className="rounded-xl bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-slate-800">Evaluasi Sensei</h2>
+              <Link to="/siswa-dashboard/nilai" className="flex items-center gap-0.5 text-[11px] font-semibold text-[#0E6187]">
+                Lihat Semua <ChevronRight size={12} />
+              </Link>
+            </div>
+            <div className="mt-3 space-y-3">
+              {Object.entries(evaluations).map(([level, ev]) =>
+                ev.evaluasi ? (
+                  <div key={level} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                    <div className="flex items-center gap-1.5">
+                      <MessageSquare size={12} className="text-[#0E6187]" />
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Level {level}</p>
+                    </div>
+                    <p className="mt-1.5 whitespace-pre-wrap text-xs leading-relaxed text-slate-600">{ev.evaluasi}</p>
+                    {ev.user && (
+                      <p className="mt-1.5 text-[10px] text-slate-400">— {ev.user.name}</p>
+                    )}
+                  </div>
+                ) : null
+              )}
+            </div>
+          </section>
+        )}
+
+        {!pendaftar && (
+          <section className="rounded-xl bg-white p-6 text-center shadow-sm">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+              <User size={28} />
+            </div>
+            <p className="mt-3 text-sm font-medium text-slate-500">Belum ada data pendaftaran</p>
+            <p className="mt-1 text-xs text-slate-400">Silakan hubungi admin untuk informasi pendaftaran Anda.</p>
+          </section>
+        )}
+      </div>
+
+      {/* ============ Bottom Nav Bar ============ */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden">
+        <div className="mx-auto grid max-w-lg grid-cols-5">
+          {bottomNav.map(nav => {
+            const Icon = nav.icon
+            const isActive = nav.to === location.pathname
+            return (
+              <Link
+                key={nav.label}
+                to={nav.to}
+                className={`flex flex-col items-center gap-1 py-2.5 transition ${
+                  isActive ? 'text-[#0E6187]' : 'text-slate-400'
+                }`}
+              >
+                <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
+                <span className="text-[10px] font-medium">{nav.label}</span>
+              </Link>
+            )
+          })}
         </div>
-      </>) : (
-        <div className={`${cardClass} p-8 text-center`}>
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-400">
-            <User size={28} />
-          </div>
-          <p className="mt-3 text-sm font-medium text-gray-500">Belum ada data pendaftaran</p>
-        </div>
-      )}
+      </nav>
 
       {showPaymentModal && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 py-4 px-4">
@@ -899,12 +1001,7 @@ export default function SiswaDashboard() {
 }
 
 function TimelineStages({ jadwalLevels }: { jadwalLevels: Record<string, { tanggal_mulai: string; tanggal_selesai: string }> }) {
-  const stages = [
-    { level: 1, label: 'Level 1' },
-    { level: 2, label: 'Level 2' },
-    { level: 3, label: 'Level 3' },
-    { level: 4, label: 'Level 4' },
-  ]
+  const stages = [1, 2, 3, 4]
 
   const today = new Date().toISOString().slice(0, 10)
 
@@ -921,46 +1018,59 @@ function TimelineStages({ jadwalLevels }: { jadwalLevels: Record<string, { tangg
     return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
   }
 
-  const colorMap = {
-    none: { dot: 'bg-gray-300', line: 'bg-gray-200', text: 'text-gray-400' },
-    upcoming: { dot: 'bg-blue-400', line: 'bg-gray-200', text: 'text-gray-500' },
-    active: { dot: 'bg-emerald-500', line: 'bg-emerald-400', text: 'text-emerald-700' },
-    done: { dot: 'bg-slate-600', line: 'bg-slate-400', text: 'text-slate-700' },
+  const dotClass: Record<string, string> = {
+    none: 'bg-slate-200 text-slate-400',
+    upcoming: 'bg-white text-[#0E6187] ring-2 ring-[#0E6187]',
+    active: 'bg-[#0E6187] text-white',
+    done: 'bg-emerald-500 text-white',
+  }
+
+  const lineClass: Record<string, string> = {
+    none: 'bg-slate-200',
+    upcoming: 'bg-slate-200',
+    active: 'bg-[#0E6187]/40',
+    done: 'bg-emerald-400',
   }
 
   return (
-    <div className="flex items-start gap-0 overflow-x-auto pb-2">
-      {stages.map((s, idx) => {
-        const key = String(s.level)
+    <div className="space-y-0">
+      {stages.map((level, idx) => {
+        const key = String(level)
         const status = getStatus(key)
-        const c = colorMap[status]
         const j = jadwalLevels[key]
+        const isLast = idx === stages.length - 1
         return (
-          <div key={s.level} className="flex items-start shrink-0">
-            <div className="flex flex-col items-center" style={{ minWidth: 110 }}>
-              <div className={`w-4 h-4 rounded-full ${c.dot} border-2 border-white shadow-sm flex items-center justify-center`}>
-                {status === 'done' && <CheckCircle size={10} className="text-white" />}
-                {status === 'active' && <div className="w-2 h-2 rounded-full bg-white animate-pulse" />}
-              </div>
-              <div className={`mt-2 text-center ${status === 'none' ? 'opacity-50' : ''}`}>
-                <p className={`text-[10px] font-semibold ${c.text} leading-tight`}>{s.label}</p>
-                {j ? (
-                  <p className="text-[9px] text-gray-400 mt-0.5 leading-tight">
-                    {formatDate(j.tanggal_mulai)}<br />s/d {formatDate(j.tanggal_selesai)}
-                  </p>
+          <div key={level} className="flex gap-3">
+            <div className="flex flex-col items-center">
+              <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${dotClass[status]}`}>
+                {status === 'done' ? (
+                  <Check size={14} strokeWidth={3} />
+                ) : status === 'active' ? (
+                  <span className="h-2.5 w-2.5 rounded-full bg-white animate-pulse" />
                 ) : (
-                  <p className="text-[9px] text-gray-300 mt-0.5 italic">Belum diatur</p>
-                )}
-                {status === 'active' && (
-                  <span className="mt-1 inline-block rounded-full bg-emerald-100 px-1.5 py-0.5 text-[8px] font-bold text-emerald-700">
-                    BERLANGSUNG
-                  </span>
+                  level
                 )}
               </div>
+              {!isLast && (
+                <div className={`w-0.5 flex-1 ${lineClass[status]}`} style={{ minHeight: 36 }} />
+              )}
             </div>
-            {idx < stages.length - 1 && (
-              <div className={`w-8 h-0.5 mt-2 ${c.line} shrink-0`} />
-            )}
+            <div className={`-mt-1 flex-1 pb-5 ${status === 'none' ? 'opacity-50' : ''}`}>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-slate-800">Level {level}</p>
+                {status === 'active' && (
+                  <span className="rounded-full bg-[#0E6187]/10 px-2 py-0.5 text-[10px] font-bold text-[#0E6187]">BERLANGSUNG</span>
+                )}
+                {status === 'done' && (
+                  <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-600">SELESAI</span>
+                )}
+              </div>
+              {j ? (
+                <p className="mt-0.5 text-[11px] text-slate-400">{formatDate(j.tanggal_mulai)} — {formatDate(j.tanggal_selesai)}</p>
+              ) : (
+                <p className="mt-0.5 text-[11px] italic text-slate-300">Belum diatur</p>
+              )}
+            </div>
           </div>
         )
       })}
