@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import {
   BookOpen, Play, CheckCircle, Circle, ChevronLeft, ChevronRight,
-  FileText, Video, ArrowLeft, Clock, BarChart3, ListChecks,
-  ClipboardList, Upload, Download, Send, GraduationCap, Star, Award, AlertTriangle, X, Trash2
+  FileText, Video, ArrowLeft, Clock, ListChecks,
+  ClipboardList, Upload, Download, Send, GraduationCap, Star, Award, AlertTriangle, X, Trash2,
+  CalendarCheck, LayoutDashboard, Wallet, User,
 } from 'lucide-react'
 import { lmsApi, APP_URL } from '../../services/api'
 import Swal from 'sweetalert2'
@@ -56,6 +58,7 @@ interface AssignmentItem {
 type ViewType = 'courses' | 'course-detail' | 'lesson'
 
 export default function LMS() {
+  const location = useLocation()
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<ViewType>('courses')
@@ -64,7 +67,7 @@ export default function LMS() {
   const [completedLessonIds, setCompletedLessonIds] = useState<number[]>([])
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null)
   const [lessonDetail, setLessonDetail] = useState<{ completed: boolean; completed_at: string | null } | null>(null)
-  const [detailLoading, setDetailLoading] = useState(false)
+  const [, setDetailLoading] = useState(false)
   const [completing, setCompleting] = useState(false)
   const [activeTab, setActiveTab] = useState<'lessons' | 'assignments'>('lessons')
   const [assignments, setAssignments] = useState<AssignmentItem[]>([])
@@ -173,16 +176,17 @@ export default function LMS() {
 
   const getProgressPercent = () => Math.round((completedLessonIds.length / Math.max(lessons.length, 1)) * 100)
 
-  const getCourseProgress = (courseId: number) => {
-    if (selectedCourse?.id === courseId && lessons.length > 0) {
-      return { done: completedLessonIds.length, total: lessons.length }
-    }
-    return { done: 0, total: 0 }
-  }
+  const bottomNav = [
+    { label: 'Dashboard', to: '/siswa-dashboard', icon: LayoutDashboard },
+    { label: 'LMS', to: '/siswa-dashboard/lms', icon: BookOpen },
+    { label: 'Absensi', to: '/siswa-dashboard/absensi', icon: CalendarCheck },
+    { label: 'Pembayaran', to: '/siswa-dashboard/pembayaran', icon: Wallet },
+    { label: 'Profil', to: '/siswa-dashboard/profil', icon: User },
+  ]
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F7F8FC] flex items-center justify-center pb-24">
+      <div className="min-h-screen bg-[#f0f2f5] flex items-center justify-center">
         <div className="relative w-14 h-14 flex items-center justify-center">
           <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
           <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
@@ -198,31 +202,31 @@ export default function LMS() {
     const currentIdx = lessons.findIndex(l => l.id === selectedLesson.id)
 
     return (
-      <div className="min-h-screen bg-[#F7F8FC]">
+      <div className="min-h-screen bg-[#f0f2f5] pb-24 lg:pb-8">
         {/* Sticky Header */}
-        <div className="bg-white border-b border-gray-200 sticky top-0 z-30">
-          <div className="max-w-5xl mx-auto px-4 py-3">
+        <div className="bg-[#0E6187] text-white sticky top-0 z-30 shadow-sm">
+          <div className="max-w-lg mx-auto px-4 py-3">
             <div className="flex items-center gap-2 mb-1">
               <button onClick={goBack}
-                className="flex items-center gap-1 text-[11px] font-bold text-gray-400 hover:text-gray-700 transition-colors">
+                className="flex items-center gap-1 text-[11px] font-bold text-white/60 hover:text-white transition-colors">
                 <ArrowLeft size={12} /> Kembali
               </button>
-              <span className="text-gray-300 text-[10px]">/</span>
-              <span className="text-[11px] font-medium text-gray-400 truncate">{selectedCourse.title}</span>
+              <span className="text-white/30 text-[10px]">/</span>
+              <span className="text-[11px] font-medium text-white/60 truncate">{selectedCourse.title}</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-[#0E6187]/10 text-[#0E6187] text-[10px] font-bold shrink-0">
+                <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-white/15 text-white text-[10px] font-bold shrink-0">
                   {currentIdx + 1}
                 </span>
-                <h1 className="text-sm font-bold text-gray-900 truncate">{selectedLesson.title}</h1>
+                <h1 className="text-sm font-bold text-white truncate">{selectedLesson.title}</h1>
               </div>
-              <span className="text-[10px] font-bold text-gray-400">{currentIdx + 1}/{total}</span>
+              <span className="text-[10px] font-bold text-white/60">{currentIdx + 1}/{total}</span>
             </div>
           </div>
         </div>
 
-        <div className="max-w-5xl mx-auto px-4 py-4">
+        <div className="max-w-lg mx-auto px-4 py-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-4">
@@ -249,12 +253,12 @@ export default function LMS() {
                     <div className="prose prose-sm max-w-none text-gray-600 leading-relaxed
                       [&_img]:max-w-full [&_img]:rounded-xl [&_img]:my-4 [&_img]:shadow-sm
                       [&_iframe]:w-full [&_iframe]:aspect-video [&_iframe]:rounded-xl
-                      [&_a]:text-[#0069b0] [&_a]:underline
+                      [&_a]:text-[#0E6187] [&_a]:underline
                       [&_h1]:text-lg [&_h1]:font-bold [&_h1]:text-gray-900 [&_h1]:mt-6 [&_h1]:mb-3
                       [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-gray-900 [&_h2]:mt-5 [&_h2]:mb-2
                       [&_h3]:text-sm [&_h3]:font-bold [&_h3]:text-gray-900 [&_h3]:mt-4 [&_h3]:mb-2
                       [&_p]:mb-3 [&_ul]:mb-3 [&_ol]:mb-3 [&_li]:mb-1
-                      [&_blockquote]:border-l-4 [&_blockquote]:border-[#0069b0]/30 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-gray-500"
+                      [&_blockquote]:border-l-4 [&_blockquote]:border-[#0E6187]/30 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-gray-500"
                       dangerouslySetInnerHTML={{ __html: selectedLesson.content }} />
                   ) : !selectedLesson.video_url ? (
                     <div className="text-center py-12">
@@ -268,19 +272,19 @@ export default function LMS() {
               {/* File Attachment */}
               {selectedLesson.file_path && (
                 <a href={`${APP_URL}/storage/${selectedLesson.file_path}`} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-3 bg-white rounded-2xl border border-gray-200 p-4 hover:border-[#0069b0]/30 hover:bg-[#0069b0]/5 transition-all group">
-                  <div className="w-10 h-10 rounded-xl bg-[#0069b0]/10 flex items-center justify-center shrink-0">
-                    <FileText size={18} className="text-[#0069b0]" />
+                  className="flex items-center gap-3 bg-white rounded-2xl border border-gray-200 p-4 hover:border-[#0E6187]/30 hover:bg-[#0E6187]/5 transition-all group">
+                  <div className="w-10 h-10 rounded-xl bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+                    <FileText size={18} className="text-[#0E6187]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-800 truncate group-hover:text-[#0069b0] transition-colors">
+                    <p className="text-sm font-semibold text-gray-800 truncate group-hover:text-[#0E6187] transition-colors">
                       {selectedLesson.file_name}
                     </p>
                     <p className="text-[10px] text-gray-400 mt-0.5">
                       File Lampiran{selectedLesson.file_size ? ` - ${selectedLesson.file_size < 1024 * 1024 ? (selectedLesson.file_size / 1024).toFixed(1) + ' KB' : (selectedLesson.file_size / (1024 * 1024)).toFixed(1) + ' MB'}` : ''}
                     </p>
                   </div>
-                  <Download size={16} className="text-gray-300 group-hover:text-[#0069b0] shrink-0 transition-colors" />
+                  <Download size={16} className="text-gray-300 group-hover:text-[#0E6187] shrink-0 transition-colors" />
                 </a>
               )}
 
@@ -347,10 +351,10 @@ export default function LMS() {
               <div className="bg-white rounded-2xl border border-gray-200 p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Progress</span>
-                  <span className="text-xs font-black text-[#0069b0]">{getProgressPercent()}%</span>
+                  <span className="text-xs font-black text-[#0E6187]">{getProgressPercent()}%</span>
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                  <div className="bg-gradient-to-r from-[#0069b0] to-[#0089d0] h-full rounded-full transition-all duration-700"
+                  <div className="bg-gradient-to-r from-[#0E6187] to-[#0E6187] h-full rounded-full transition-all duration-700"
                     style={{ width: `${getProgressPercent()}%` }} />
                 </div>
                 <p className="text-[10px] text-gray-400 mt-1.5">{progress} dari {total} selesai</p>
@@ -390,6 +394,28 @@ export default function LMS() {
             </div>
           </div>
         </div>
+
+        {/* ============ Bottom Nav Bar ============ */}
+        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden">
+          <div className="mx-auto grid max-w-lg grid-cols-5">
+            {bottomNav.map(nav => {
+              const Icon = nav.icon
+              const isActive = nav.to === location.pathname
+              return (
+                <Link
+                  key={nav.label}
+                  to={nav.to}
+                  className={`flex flex-col items-center gap-1 py-2.5 transition ${
+                    isActive ? 'text-[#0E6187]' : 'text-slate-400'
+                  }`}
+                >
+                  <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
+                  <span className="text-[10px] font-medium">{nav.label}</span>
+                </Link>
+              )
+            })}
+          </div>
+        </nav>
       </div>
     )
   }
@@ -403,7 +429,7 @@ export default function LMS() {
 
     return (
       <>
-      <div className="min-h-screen bg-[#F7F8FC] pb-24">
+      <div className="min-h-screen bg-[#f0f2f5] pb-24">
         {/* Hero */}
         <div className="relative h-52 bg-gradient-to-br from-[#0E6187] to-[#1a3355] overflow-hidden">
           {selectedCourse.image && (
@@ -411,7 +437,7 @@ export default function LMS() {
               className="absolute inset-0 w-full h-full object-cover opacity-30" />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-[#0E6187] via-[#0E6187]/60 to-transparent" />
-          <div className="relative max-w-5xl mx-auto px-4 h-full flex flex-col justify-end pb-6">
+          <div className="relative max-w-lg mx-auto px-4 h-full flex flex-col justify-end pb-6">
             <button onClick={goBack}
               className="flex items-center gap-1.5 text-[11px] font-bold text-white/50 hover:text-white transition-colors mb-4 self-start">
               <ArrowLeft size={12} /> Semua Kursus
@@ -443,7 +469,7 @@ export default function LMS() {
         </div>
 
         {/* Tabs */}
-        <div className="max-w-5xl mx-auto px-4 mt-4">
+        <div className="max-w-lg mx-auto px-4 mt-4">
           <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
             {([
               { key: 'lessons' as const, label: 'Pelajaran', icon: ListChecks, count: lessons.length },
@@ -466,7 +492,7 @@ export default function LMS() {
         </div>
 
         {/* Content */}
-        <div className="max-w-5xl mx-auto px-4 mt-3">
+        <div className="max-w-lg mx-auto px-4 mt-3">
           {/* Lessons Tab */}
           {activeTab === 'lessons' && (
             <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
@@ -486,12 +512,12 @@ export default function LMS() {
                       <button key={lesson.id} onClick={() => openLesson(lesson)}
                         className="w-full text-left flex items-center gap-3 px-5 py-4 hover:bg-gray-50/80 transition-colors group">
                         <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold ${
-                          isCompleted ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-400 group-hover:bg-[#0069b0]/10 group-hover:text-[#0069b0]'
+                          isCompleted ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-400 group-hover:bg-[#0E6187]/10 group-hover:text-[#0E6187]'
                         } transition-colors`}>
                           {isCompleted ? <CheckCircle size={16} /> : idx + 1}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-800 truncate group-hover:text-[#0069b0] transition-colors">
+                          <p className="text-sm font-semibold text-gray-800 truncate group-hover:text-[#0E6187] transition-colors">
                             {lesson.title}
                           </p>
                           <div className="flex items-center gap-2 mt-1">
@@ -506,7 +532,7 @@ export default function LMS() {
                               </span>
                             )}
                             {'file_name' in lesson && (lesson as any).file_name && (
-                              <span className="flex items-center gap-1 text-[10px] font-medium text-[#0069b0]">
+                              <span className="flex items-center gap-1 text-[10px] font-medium text-[#0E6187]">
                                 <Download size={10} /> File
                               </span>
                             )}
@@ -516,7 +542,7 @@ export default function LMS() {
                           {isCompleted && (
                             <span className="text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full">Selesai</span>
                           )}
-                          <ChevronRight size={14} className="text-gray-300 group-hover:text-[#0069b0] transition-colors" />
+                          <ChevronRight size={14} className="text-gray-300 group-hover:text-[#0E6187] transition-colors" />
                         </div>
                       </button>
                     )
@@ -532,7 +558,7 @@ export default function LMS() {
               {assignLoading ? (
                 <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
                   <div className="relative w-10 h-10 mx-auto flex items-center justify-center">
-                    <div className="absolute inset-0 rounded-full border-2 border-[#0069b0]/10 border-t-[#0069b0] animate-spin" />
+                    <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
                   </div>
                   <p className="text-xs text-gray-400 mt-3">Memuat tugas...</p>
                 </div>
@@ -564,7 +590,7 @@ export default function LMS() {
                         isGraded ? 'bg-gradient-to-r from-emerald-400 to-emerald-500'
                           : hasSubmitted ? 'bg-gradient-to-r from-amber-400 to-amber-500'
                             : isPastDue ? 'bg-gradient-to-r from-red-400 to-red-500'
-                              : 'bg-gradient-to-r from-[#0069b0] to-[#0088d4]'
+                              : 'bg-gradient-to-r from-[#0E6187] to-[#0E6187]'
                       }`} />
 
                       <div className="p-5">
@@ -573,7 +599,7 @@ export default function LMS() {
                           <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
                             isGraded ? 'bg-emerald-50 text-emerald-500'
                               : hasSubmitted ? 'bg-amber-50 text-amber-500'
-                                : 'bg-[#0069b0]/10 text-[#0069b0]'
+                                : 'bg-[#0E6187]/10 text-[#0E6187]'
                           }`}>
                             {isGraded ? <Award size={20} /> : hasSubmitted ? <CheckCircle size={20} /> : <ClipboardList size={20} />}
                           </div>
@@ -603,7 +629,7 @@ export default function LMS() {
                                 ? 'bg-red-50 text-red-600'
                                 : daysLeft !== null && daysLeft <= 2
                                   ? 'bg-amber-50 text-amber-600'
-                                  : 'bg-[#0069b0]/10 text-[#0069b0]'
+                                  : 'bg-[#0E6187]/10 text-[#0E6187]'
                             }`}>
                               <Clock size={12} />
                               {isPastDue
@@ -625,15 +651,15 @@ export default function LMS() {
                         {/* File Lampiran Guru */}
                         {a.file_name && (
                           <a href={`${APP_URL}/storage/${a.file_path}`} target="_blank" rel="noopener noreferrer"
-                            className="flex items-center gap-3 mt-4 p-3.5 bg-gray-50 border border-gray-200 rounded-xl hover:border-[#0069b0]/30 hover:bg-[#0069b0]/5 transition-all group">
-                            <div className="w-10 h-10 rounded-xl bg-[#0069b0]/10 flex items-center justify-center shrink-0">
-                              <FileText size={18} className="text-[#0069b0]" />
+                            className="flex items-center gap-3 mt-4 p-3.5 bg-gray-50 border border-gray-200 rounded-xl hover:border-[#0E6187]/30 hover:bg-[#0E6187]/5 transition-all group">
+                            <div className="w-10 h-10 rounded-xl bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+                              <FileText size={18} className="text-[#0E6187]" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-bold text-gray-800 group-hover:text-[#0069b0] transition-colors truncate">{a.file_name}</p>
+                              <p className="text-xs font-bold text-gray-800 group-hover:text-[#0E6187] transition-colors truncate">{a.file_name}</p>
                               <p className="text-[10px] text-gray-400 mt-0.5">File Lampiran dari Guru</p>
                             </div>
-                            <Download size={16} className="text-gray-300 group-hover:text-[#0069b0] shrink-0 transition-colors" />
+                            <Download size={16} className="text-gray-300 group-hover:text-[#0E6187] shrink-0 transition-colors" />
                           </a>
                         )}
 
@@ -655,10 +681,10 @@ export default function LMS() {
                             </div>
                             {sub?.file_name && (
                               <a href={`${APP_URL}/storage/${sub.file_path}`} target="_blank"
-                                className="flex items-center gap-2 mt-2 p-2.5 bg-white border border-gray-200 rounded-xl hover:border-[#0069b0]/30 transition-all group">
-                                <FileText size={14} className="text-[#0069b0] shrink-0" />
-                                <span className="text-xs font-semibold text-gray-700 group-hover:text-[#0069b0] truncate transition-colors">{sub.file_name}</span>
-                                <Download size={12} className="text-gray-300 group-hover:text-[#0069b0] shrink-0 ml-auto transition-colors" />
+                                className="flex items-center gap-2 mt-2 p-2.5 bg-white border border-gray-200 rounded-xl hover:border-[#0E6187]/30 transition-all group">
+                                <FileText size={14} className="text-[#0E6187] shrink-0" />
+                                <span className="text-xs font-semibold text-gray-700 group-hover:text-[#0E6187] truncate transition-colors">{sub.file_name}</span>
+                                <Download size={12} className="text-gray-300 group-hover:text-[#0E6187] shrink-0 ml-auto transition-colors" />
                               </a>
                             )}
                             {sub?.feedback && (
@@ -676,7 +702,7 @@ export default function LMS() {
                               </div>
                             ) : (
                               <button onClick={() => setShowSubmitForm(a.id)}
-                                className="mt-4 w-full flex items-center justify-center gap-2 text-xs font-bold text-white bg-gradient-to-r from-[#0069b0] to-[#0088d4] px-4 py-3 rounded-xl hover:from-[#004d7a] hover:to-[#0069b0] transition-all shadow-sm shadow-[#0069b0]/20">
+                                className="mt-4 w-full flex items-center justify-center gap-2 text-xs font-bold text-white bg-gradient-to-r from-[#0E6187] to-[#0E6187] px-4 py-3 rounded-xl hover:from-[#0a4f66] hover:to-[#0E6187] transition-all shadow-sm shadow-[#0E6187]/20">
                                 <Upload size={14} /> Kumpulkan Tugas
                               </button>
                             )}
@@ -707,8 +733,8 @@ export default function LMS() {
               {/* Modal Header */}
               <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between rounded-t-2xl z-10">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-[#0069b0]/10 flex items-center justify-center">
-                    <Upload size={16} className="text-[#0069b0]" />
+                  <div className="w-9 h-9 rounded-xl bg-[#0E6187]/10 flex items-center justify-center">
+                    <Upload size={16} className="text-[#0E6187]" />
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-gray-900">Kumpulkan Tugas</h3>
@@ -734,7 +760,7 @@ export default function LMS() {
                     <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold ${
                       hoursLeft !== null && hoursLeft <= 48
                         ? 'bg-amber-50 text-amber-600'
-                        : 'bg-[#0069b0]/10 text-[#0069b0]'
+                        : 'bg-[#0E6187]/10 text-[#0E6187]'
                     }`}>
                       <Clock size={10} />
                       {daysLeft !== null && daysLeft > 0 ? `${daysLeft} hari lagi` : hoursLeft !== null && hoursLeft > 0 ? `${hoursLeft} jam lagi` : 'Hari ini'}
@@ -745,15 +771,15 @@ export default function LMS() {
                 {/* File guru jika ada */}
                 {assignment.file_name && (
                   <a href={`${APP_URL}/storage/${assignment.file_path}`} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-xl hover:border-[#0069b0]/30 transition-all group">
-                    <div className="w-9 h-9 rounded-lg bg-[#0069b0]/10 flex items-center justify-center shrink-0">
-                      <FileText size={16} className="text-[#0069b0]" />
+                    className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-xl hover:border-[#0E6187]/30 transition-all group">
+                    <div className="w-9 h-9 rounded-lg bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+                      <FileText size={16} className="text-[#0E6187]" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-bold text-gray-700 truncate group-hover:text-[#0069b0] transition-colors">{assignment.file_name}</p>
+                      <p className="text-[11px] font-bold text-gray-700 truncate group-hover:text-[#0E6187] transition-colors">{assignment.file_name}</p>
                       <p className="text-[9px] text-gray-400">File dari guru</p>
                     </div>
-                    <Download size={14} className="text-gray-300 group-hover:text-[#0069b0] shrink-0" />
+                    <Download size={14} className="text-gray-300 group-hover:text-[#0E6187] shrink-0" />
                   </a>
                 )}
 
@@ -762,16 +788,16 @@ export default function LMS() {
                   <label className="text-[11px] font-bold text-gray-600 block mb-1.5">Catatan <span className="text-gray-400 font-normal">(opsional)</span></label>
                   <textarea value={submitNote} onChange={e => setSubmitNote(e.target.value)}
                     placeholder="Tulis catatan untuk pengumpulan ini..." rows={3}
-                    className="w-full text-xs border border-gray-200 rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 resize-none transition-all placeholder:text-gray-300" />
+                    className="w-full text-xs border border-gray-200 rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0E6187] focus:ring-2 focus:ring-[#0E6187]/10 resize-none transition-all placeholder:text-gray-300" />
                 </div>
 
                 {/* File Upload */}
                 <div>
                   <label className="text-[11px] font-bold text-gray-600 block mb-1.5">File Tugas <span className="text-red-400">*</span></label>
                   {submitFile ? (
-                    <div className="flex items-center gap-3 p-3 bg-[#0069b0]/5 border-2 border-[#0069b0]/20 rounded-xl">
-                      <div className="w-10 h-10 rounded-xl bg-[#0069b0]/10 flex items-center justify-center shrink-0">
-                        <FileText size={18} className="text-[#0069b0]" />
+                    <div className="flex items-center gap-3 p-3 bg-[#0E6187]/5 border-2 border-[#0E6187]/20 rounded-xl">
+                      <div className="w-10 h-10 rounded-xl bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+                        <FileText size={18} className="text-[#0E6187]" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-bold text-gray-800 truncate">{submitFile.name}</p>
@@ -783,7 +809,7 @@ export default function LMS() {
                       </button>
                     </div>
                   ) : (
-                    <label className="flex flex-col items-center gap-2 px-4 py-6 border-2 border-dashed border-gray-200 rounded-xl text-xs text-gray-400 hover:border-[#0069b0]/30 hover:bg-gray-50 cursor-pointer transition-all">
+                    <label className="flex flex-col items-center gap-2 px-4 py-6 border-2 border-dashed border-gray-200 rounded-xl text-xs text-gray-400 hover:border-[#0E6187]/30 hover:bg-gray-50 cursor-pointer transition-all">
                       <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center">
                         <Upload size={18} className="text-gray-300" />
                       </div>
@@ -806,7 +832,7 @@ export default function LMS() {
                     Batal
                   </button>
                   <button onClick={() => handleSubmitAssignment(assignment.id)} disabled={submitting || !submitFile}
-                    className="flex-[2] text-xs font-bold text-white bg-gradient-to-r from-[#0069b0] to-[#0088d4] px-4 py-3 rounded-xl hover:from-[#004d7a] hover:to-[#0069b0] disabled:opacity-50 disabled:from-gray-300 disabled:to-gray-300 transition-all shadow-sm shadow-[#0069b0]/20 flex items-center justify-center gap-1.5">
+                    className="flex-[2] text-xs font-bold text-white bg-gradient-to-r from-[#0E6187] to-[#0E6187] px-4 py-3 rounded-xl hover:from-[#0a4f66] hover:to-[#0E6187] disabled:opacity-50 disabled:from-gray-300 disabled:to-gray-300 transition-all shadow-sm shadow-[#0E6187]/20 flex items-center justify-center gap-1.5">
                     {submitting ? (
                       <>
                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -825,62 +851,87 @@ export default function LMS() {
         )
       })()}
 
+      {/* ============ Bottom Nav Bar ============ */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden">
+        <div className="mx-auto grid max-w-lg grid-cols-5">
+          {bottomNav.map(nav => {
+            const Icon = nav.icon
+            const isActive = nav.to === location.pathname
+            return (
+              <Link
+                key={nav.label}
+                to={nav.to}
+                className={`flex flex-col items-center gap-1 py-2.5 transition ${
+                  isActive ? 'text-[#0E6187]' : 'text-slate-400'
+                }`}
+              >
+                <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
+                <span className="text-[10px] font-medium">{nav.label}</span>
+              </Link>
+            )
+          })}
+        </div>
+      </nav>
     </>
     )
   }
 
   // ==================== COURSE LIST VIEW ====================
   return (
-    <div className="min-h-screen bg-[#F7F8FC] pb-24">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-4 py-4">
+    <div className="min-h-screen bg-[#f0f2f5] pb-24 lg:pb-8">
+      {/* ============ Top App Bar ============ */}
+      <header className="bg-[#0E6187] px-4 pb-16 pt-5 text-white">
+        <div className="mx-auto max-w-lg">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0E6187] to-[#1a3355] flex items-center justify-center">
-                <GraduationCap size={18} className="text-white" />
-              </div>
-              <div>
-                <h1 className="text-sm font-bold text-gray-900">Learning Management System</h1>
-                <p className="text-[10px] text-gray-400 font-medium">Materi pembelajaran dan progress belajar</p>
-              </div>
+            <div className="flex items-center gap-2">
+              <img src="/logo-sm.png" alt="Mendunia" className="h-8 w-auto" />
+              <span className="text-base font-bold tracking-tight">Kelas Mendunia</span>
             </div>
             {courses.length > 0 && (
-              <div className="flex items-center gap-3 text-center">
-                <div className="px-3">
-                  <p className="text-base font-black text-gray-900">{courses.length}</p>
-                  <p className="text-[9px] font-bold text-gray-400">Kursus</p>
+              <div className="flex items-center gap-3 text-white/80">
+                <div className="text-center">
+                  <p className="text-base font-black text-white">{courses.length}</p>
+                  <p className="text-[9px] font-bold text-white/50">Kursus</p>
                 </div>
-                <div className="w-px h-6 bg-gray-200" />
-                <div className="px-3">
-                  <p className="text-base font-black text-gray-900">{courses.reduce((a, c) => a + c.lessons_count, 0)}</p>
-                  <p className="text-[9px] font-bold text-gray-400">Pelajaran</p>
+                <div className="w-px h-6 bg-white/15" />
+                <div className="text-center">
+                  <p className="text-base font-black text-white">{courses.reduce((a, c) => a + c.lessons_count, 0)}</p>
+                  <p className="text-[9px] font-bold text-white/50">Pelajaran</p>
                 </div>
               </div>
             )}
           </div>
+          <div className="mt-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
+              <GraduationCap size={20} />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold">LMS</h1>
+              <p className="mt-0.5 text-[13px] text-teal-100">Materi pembelajaran dan progress belajar</p>
+            </div>
+          </div>
         </div>
-      </div>
+      </header>
 
       {/* Course Grid */}
-      <div className="max-w-5xl mx-auto px-4 pt-4">
+      <div className="mx-auto -mt-10 max-w-lg space-y-4 px-4">
         {courses.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-200 p-16 text-center">
-            <div className="w-20 h-20 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-5">
-              <BookOpen size={36} className="text-gray-300" />
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
+              <BookOpen size={28} className="text-gray-300" />
             </div>
-            <h2 className="text-base font-bold text-gray-800 mb-2">Belum Ada Kursus</h2>
+            <h2 className="text-sm font-bold text-gray-800 mb-1.5">Belum Ada Kursus</h2>
             <p className="text-xs text-gray-400 max-w-xs mx-auto leading-relaxed">
               Belum ada kursus yang tersedia untuk Anda. Silakan hubungi pengajar atau admin untuk informasi lebih lanjut.
             </p>
           </div>
         ) : (
           <>
-            <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Semua Kursus</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Semua Kursus</h2>
+            <div className="grid grid-cols-1 gap-4">
               {courses.map(course => (
                 <button key={course.id} onClick={() => openCourse(course)}
-                  className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-lg hover:shadow-gray-200/50 hover:border-gray-300 transition-all text-left group">
+                  className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg hover:shadow-gray-200/50 hover:border-gray-300 transition-all text-left group">
                   <div className="h-36 bg-gradient-to-br from-[#0E6187] to-[#1a3355] flex items-center justify-center relative overflow-hidden">
                     {course.image ? (
                       <img src={`${APP_URL}/storage/${course.image}`} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -897,7 +948,7 @@ export default function LMS() {
                     </div>
                   </div>
                   <div className="p-4">
-                    <h3 className="text-sm font-bold text-gray-900 group-hover:text-[#0069b0] transition-colors">
+                    <h3 className="text-sm font-bold text-gray-900 group-hover:text-[#0E6187] transition-colors">
                       {course.title}
                     </h3>
                     {course.description && (
@@ -916,6 +967,28 @@ export default function LMS() {
           </>
         )}
       </div>
+
+      {/* ============ Bottom Nav Bar ============ */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden">
+        <div className="mx-auto grid max-w-lg grid-cols-5">
+          {bottomNav.map(nav => {
+            const Icon = nav.icon
+            const isActive = nav.to === location.pathname
+            return (
+              <Link
+                key={nav.label}
+                to={nav.to}
+                className={`flex flex-col items-center gap-1 py-2.5 transition ${
+                  isActive ? 'text-[#0E6187]' : 'text-slate-400'
+                }`}
+              >
+                <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
+                <span className="text-[10px] font-medium">{nav.label}</span>
+              </Link>
+            )
+          })}
+        </div>
+      </nav>
     </div>
   )
 }

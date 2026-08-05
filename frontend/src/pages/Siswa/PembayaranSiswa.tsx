@@ -75,7 +75,6 @@ export default function PembayaranSiswa() {
   const [company, setCompany] = useState<{ bank_nama: string; bank_nomor_rekening: string; bank_pemilik: string } | null>(null)
   const [copiedField, setCopiedField] = useState<string | null>(null)
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
-  const [paymentSettings, setPaymentSettings] = useState<{ manual_payment_enabled: boolean; unique_code_max: number; unique_code_operation: string } | null>(null)
   const location = useLocation()
 
   function loadData() {
@@ -109,14 +108,6 @@ export default function PembayaranSiswa() {
     }).catch(() => {})
     api.get('/bank-accounts-public').then(r => {
       setBankAccounts(r.data || [])
-    }).catch(() => {})
-    api.get('/payment-settings').then(r => {
-      const s = r.data
-      setPaymentSettings({
-        manual_payment_enabled: s.manual_payment_enabled?.is_enabled ?? false,
-        unique_code_max: parseInt(s.unique_code_max?.value ?? '99'),
-        unique_code_operation: s.unique_code_operation?.value ?? 'add',
-      })
     }).catch(() => {})
   }, [])
 
@@ -196,7 +187,6 @@ export default function PembayaranSiswa() {
   }
 
   const orderedColumns: Kategori[] = []
-  const uniqueCodeOp = paymentSettings?.unique_code_operation ?? 'add'
 
   const aggregatedItems: KategoriItem[] = []
   const processedIds = new Set<number>()
@@ -221,8 +211,7 @@ export default function PembayaranSiswa() {
         for (const id of allIds) {
           const kItem = itemByKategoriId.get(id)
           if (kItem) {
-            const effBiaya = uniqueCodeOp === 'subtract' && kItem.total_transfer ? Number(kItem.total_transfer) : Number(kItem.biaya)
-            totalBiaya += effBiaya
+            totalBiaya += Number(kItem.biaya)
             totalDibayar += Number(kItem.dibayar)
             if (kItem.due_at && (!dueAt || kItem.due_at < dueAt)) {
               dueAt = kItem.due_at

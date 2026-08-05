@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import {
-  Award, ChevronDown, ChevronRight,
-  Calendar, BarChart3, Clock, MessageSquare, ArrowLeft, Star,
-  ChevronLeft, Send, BookOpen, Users, Shield, ClipboardCheck
+  Award, ChevronRight, BarChart3, MessageSquare, Star,
+  ChevronLeft, Send, BookOpen, Users, Shield, ClipboardCheck,
+  LayoutDashboard, CalendarCheck, Wallet, User,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 import api from '../../services/api'
@@ -39,22 +40,26 @@ export default function SiswaNilai() {
   const [selectedBatch, setSelectedBatch] = useState<BatchInfo | null>(null)
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null)
   const [levels, setLevels] = useState<LevelData[]>([])
-  const [overallAvg, setOverallAvg] = useState<number | null>(null)
-  const [totalPenilaian, setTotalPenilaian] = useState(0)
-  const [totalHari, setTotalHari] = useState(0)
   const [loading, setLoading] = useState(true)
   const [loadingDetail, setLoadingDetail] = useState(false)
-  const [expandedLevel, setExpandedLevel] = useState<string | null>(null)
   const [evaluations, setEvaluations] = useState<Record<string, { evaluasi: string | null; user?: { name: string } }>>({})
   const [studentEvals, setStudentEvals] = useState<Record<string, { rating: number; komentar: string | null; scores?: Record<string, number> | null; text_responses?: Record<string, string> | null }>>({})
   const [evalRating, setEvalRating] = useState<Record<string, number>>({})
-  const [evalKomentar, setEvalKomentar] = useState<Record<string, string>>({})
-  const [savingEval, setSavingEval] = useState<string | null>(null)
   const [showEvalModal, setShowEvalModal] = useState<string | null>(null)
   const [evalStep, setEvalStep] = useState(0)
   const [evalScores, setEvalScores] = useState<Record<string, number>>({})
   const [evalTexts, setEvalTexts] = useState<Record<string, string>>({})
   const [evalModalComment, setEvalModalComment] = useState('')
+
+  const location = useLocation()
+
+  const bottomNav = [
+    { label: 'Dashboard', to: '/siswa-dashboard', icon: LayoutDashboard },
+    { label: 'LMS', to: '/siswa-dashboard/lms', icon: BookOpen },
+    { label: 'Absensi', to: '/siswa-dashboard/absensi', icon: CalendarCheck },
+    { label: 'Pembayaran', to: '/siswa-dashboard/pembayaran', icon: Wallet },
+    { label: 'Profil', to: '/siswa-dashboard/profil', icon: User },
+  ]
 
   useEffect(() => {
     api.get('/siswa/siswa-batches').then((res: any) => {
@@ -66,18 +71,11 @@ export default function SiswaNilai() {
     setSelectedBatch(batch)
     setSelectedLevel(level || null)
     setLoadingDetail(true)
-    setExpandedLevel(level || null)
     setLevels([])
-    setOverallAvg(null)
-    setTotalPenilaian(0)
-    setTotalHari(0)
     setEvaluations({})
 
     api.get('/siswa/nilai-lms', { params: { batch_id: batch.id } }).then((res: any) => {
       setLevels(res.data.levels || [])
-      setOverallAvg(res.data.summary?.overall_avg ?? null)
-      setTotalPenilaian(res.data.summary?.total_penilaian ?? 0)
-      setTotalHari(res.data.summary?.total_hari ?? 0)
     }).catch(() => {}).finally(() => setLoadingDetail(false))
 
     api.get('/siswa/evaluations', { params: { batch_id: batch.id } }).then((res: any) => {
@@ -87,13 +85,10 @@ export default function SiswaNilai() {
       const raw = res.data.evaluations || {}
       setStudentEvals(raw)
       const r: Record<string, number> = {}
-      const k: Record<string, string> = {}
       for (const [lv, ev] of Object.entries(raw)) {
         r[lv] = (ev as any).rating || 0
-        k[lv] = (ev as any).komentar || ''
       }
       setEvalRating(r)
-      setEvalKomentar(k)
     }).catch(() => {})
   }, [])
 
@@ -101,26 +96,9 @@ export default function SiswaNilai() {
     setSelectedBatch(null)
     setSelectedLevel(null)
     setLevels([])
-    setOverallAvg(null)
-    setTotalPenilaian(0)
-    setTotalHari(0)
     setEvaluations({})
     setStudentEvals({})
     setEvalRating({})
-    setEvalKomentar({})
-    setExpandedLevel(null)
-  }
-
-  const getBarColor = (score: number | null) => {
-    if (score === null) return 'bg-gray-200'
-    if (score >= 80) return 'bg-[#0E6187]'
-    if (score >= 60) return 'bg-gray-500'
-    return 'bg-gray-400'
-  }
-
-  const formatDate = (d: string) => {
-    const date = new Date(d + 'T00:00:00')
-    return date.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
   }
 
   const formatDateShort = (d: string) => {
@@ -135,35 +113,12 @@ export default function SiswaNilai() {
     return `${m.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} – ${s.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}`
   }
 
-  const saveStudentEval = async (level: string) => {
-    if (!selectedBatch || !evalRating[level]) return
-    setSavingEval(level)
-    try {
-      await api.post('/siswa/evaluasi-guru', {
-        batch_id: selectedBatch.id,
-        level,
-        rating: evalRating[level],
-        komentar: evalKomentar[level] || null,
-      })
-      setStudentEvals(prev => ({
-        ...prev,
-        [level]: { rating: evalRating[level], komentar: evalKomentar[level] || null }
-      }))
-    } catch { }
-    setSavingEval(null)
-  }
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F7F8FC] pb-24">
-        <div className="bg-white border-b border-gray-200 px-4 py-4">
-          <h1 className="text-sm font-bold text-gray-900">Penilaian</h1>
-        </div>
-        <div className="p-8 text-center">
-          <div className="relative w-10 h-10 mx-auto flex items-center justify-center">
-            <div className="absolute inset-0 rounded-full border-2 border-gray-200 border-t-[#0E6187] animate-spin" />
-          </div>
-          <p className="text-xs text-gray-400 mt-3">Memuat data...</p>
+      <div className="min-h-screen bg-[#f0f2f5] flex items-center justify-center">
+        <div className="relative w-14 h-14 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
+          <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
         </div>
       </div>
     )
@@ -172,15 +127,37 @@ export default function SiswaNilai() {
   // ─── BATCH LIST VIEW ───
   if (!selectedBatch) {
     return (
-      <div className="min-h-screen bg-[#F7F8FC] pb-24">
-        <div className="bg-white border-b border-gray-200 px-4 py-4">
-          <div className="max-w-5xl mx-auto">
-            <h1 className="text-sm font-bold text-gray-900">Penilaian</h1>
-            <p className="text-[10px] text-gray-400 font-medium mt-0.5">Hasil penilaian harian per level</p>
+      <div className="min-h-screen bg-[#f0f2f5] pb-24 lg:pb-8">
+        {/* ============ Top App Bar ============ */}
+        <header className="bg-[#0E6187] px-4 pb-16 pt-5 text-white">
+          <div className="mx-auto max-w-lg">
+            <div className="flex items-center justify-between">
+              <Link
+                to="/siswa-dashboard"
+                aria-label="Kembali ke dashboard"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20"
+              >
+                <ChevronLeft size={18} />
+              </Link>
+              <div className="flex items-center gap-2">
+                <img src="/logo-sm.png" alt="Mendunia" className="h-8 w-auto" />
+                <span className="text-base font-bold tracking-tight">Kelas Mendunia</span>
+              </div>
+              <div className="w-9" />
+            </div>
+            <div className="mt-6 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
+                <BarChart3 size={20} />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold">Penilaian</h1>
+                <p className="mt-0.5 text-[13px] text-teal-100">Hasil penilaian harian per level</p>
+              </div>
+            </div>
           </div>
-        </div>
+        </header>
 
-        <div className="max-w-5xl mx-auto px-4 pt-4 space-y-3">
+        <div className="mx-auto -mt-10 max-w-lg space-y-4 px-4">
           {batches.length === 0 ? (
             <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
               <div className="w-14 h-14 rounded-full border border-gray-200 bg-white flex items-center justify-center mx-auto mb-3">
@@ -240,34 +217,74 @@ export default function SiswaNilai() {
             </div>
           )}
         </div>
+
+        {/* ============ Bottom Nav Bar ============ */}
+        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden">
+          <div className="mx-auto grid max-w-lg grid-cols-5">
+            {bottomNav.map(nav => {
+              const Icon = nav.icon
+              const isActive = nav.to === location.pathname
+              return (
+                <Link
+                  key={nav.label}
+                  to={nav.to}
+                  className={`flex flex-col items-center gap-1 py-2.5 transition ${
+                    isActive ? 'text-[#0E6187]' : 'text-slate-400'
+                  }`}
+                >
+                  <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
+                  <span className="text-[10px] font-medium">{nav.label}</span>
+                </Link>
+              )
+            })}
+          </div>
+        </nav>
       </div>
     )
   }
 
   // ─── BATCH DETAIL VIEW ───
   return (
-    <div className="min-h-screen bg-[#F7F8FC] pb-24">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 py-4">
-        <div className="max-w-5xl mx-auto flex items-center gap-3">
-          <button onClick={goBack} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100 -ml-1 transition-colors">
-            <ArrowLeft size={16} className="text-gray-600" />
-          </button>
-          <div>
-            <h1 className="text-sm font-bold text-gray-900">Penilaian</h1>
-            <p className="text-[10px] text-gray-400 font-medium mt-0.5">Hasil penilaian harian per level</p>
+    <div className="min-h-screen bg-[#f0f2f5] pb-24 lg:pb-8">
+      {/* ============ Top App Bar ============ */}
+      <header className="bg-[#0E6187] px-4 pb-16 pt-5 text-white">
+        <div className="mx-auto max-w-lg">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={goBack}
+              aria-label="Kembali"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <div className="flex items-center gap-2">
+              <img src="/logo-sm.png" alt="Mendunia" className="h-8 w-auto" />
+              <span className="text-base font-bold tracking-tight">Kelas Mendunia</span>
+            </div>
+            <div className="w-9" />
+          </div>
+          <div className="mt-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
+              <BarChart3 size={20} />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold">Penilaian</h1>
+              <p className="mt-0.5 text-[13px] text-teal-100">
+                {selectedBatch.nama_batch}{selectedLevel ? ` • Level ${selectedLevel}` : ''}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-5xl mx-auto px-4 pt-4 space-y-4">
+      <div className="mx-auto -mt-10 max-w-lg space-y-4 px-4">
 
         {loadingDetail ? (
-          <div className="p-8 text-center">
-            <div className="relative w-10 h-10 mx-auto flex items-center justify-center">
-              <div className="absolute inset-0 rounded-full border-2 border-gray-200 border-t-[#0E6187] animate-spin" />
+          <div className="flex items-center justify-center py-16">
+            <div className="relative w-14 h-14 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
+              <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
             </div>
-            <p className="text-xs text-gray-400 mt-3">Memuat data...</p>
           </div>
         ) : (
           <>
@@ -288,7 +305,6 @@ export default function SiswaNilai() {
               ) : (
                 <div className="space-y-3">
                   {displayLevels.map(level => {
-                    const isExpanded = expandedLevel === level.level
                     const componentNames = [...new Set(
                       level.daily.flatMap(d => d.komponen.map(k => k.nama))
                     )]
@@ -339,7 +355,6 @@ export default function SiswaNilai() {
                                   onClick={() => {
                                     const ev = studentEvals[level.level]
                                     setEvalRating(prev => ({ ...prev, [level.level]: ev.rating }))
-                                    setEvalKomentar(prev => ({ ...prev, [level.level]: ev.komentar || '' }))
                                     setEvalScores(ev.scores || {})
                                     setEvalTexts(ev.text_responses || {})
                                     setEvalModalComment(ev.komentar || '')
@@ -360,7 +375,7 @@ export default function SiswaNilai() {
                                   setEvalTexts({})
                                   setEvalModalComment('')
                                 }}
-                                className="w-full rounded-lg bg-[#42b72a] px-3 py-2.5 text-xs font-semibold text-white hover:bg-[#36a022] transition flex items-center justify-center gap-2"
+                                className="w-full rounded-lg bg-[#0E6187] px-3 py-2.5 text-xs font-semibold text-white hover:bg-[#1a5e6f] transition flex items-center justify-center gap-2"
                               >
                                 <ClipboardCheck size={14} />
                                 {studentEvals[level.level] ? 'Edit Evaluasi' : 'Beri Evaluasi'}
@@ -437,8 +452,6 @@ export default function SiswaNilai() {
           setTexts={setEvalTexts}
           comment={evalModalComment}
           setComment={setEvalModalComment}
-          existingRatings={evalRating[showEvalModal] || 0}
-          existingKomentar={evalKomentar[showEvalModal] || ''}
           onClose={() => {
             setShowEvalModal(null)
             setEvalStep(0)
@@ -448,7 +461,6 @@ export default function SiswaNilai() {
           }}
           onSuccess={(scores, avg, komentar) => {
             setEvalRating(prev => ({ ...prev, [showEvalModal!]: avg }))
-            setEvalKomentar(prev => ({ ...prev, [showEvalModal!]: komentar }))
             setStudentEvals(prev => ({
               ...prev,
               [showEvalModal!]: { rating: avg, komentar, scores, text_responses: evalTexts }
@@ -462,6 +474,28 @@ export default function SiswaNilai() {
           batchName={selectedBatch!.nama_batch}
         />
       )}
+
+      {/* ============ Bottom Nav Bar ============ */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden">
+        <div className="mx-auto grid max-w-lg grid-cols-5">
+          {bottomNav.map(nav => {
+            const Icon = nav.icon
+            const isActive = nav.to === location.pathname
+            return (
+              <Link
+                key={nav.label}
+                to={nav.to}
+                className={`flex flex-col items-center gap-1 py-2.5 transition ${
+                  isActive ? 'text-[#0E6187]' : 'text-slate-400'
+                }`}
+              >
+                <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
+                <span className="text-[10px] font-medium">{nav.label}</span>
+              </Link>
+            )
+          })}
+        </div>
+      </nav>
     </div>
   )
 }
@@ -477,8 +511,6 @@ interface EvalInstrukturModalProps {
   setTexts: (fn: (prev: Record<string, string>) => Record<string, string>) => void
   comment: string
   setComment: (v: string) => void
-  existingRatings: number
-  existingKomentar: string
   onClose: () => void
   onSuccess: (scores: Record<string, number>, avg: number, komentar: string) => void
   batchName: string
@@ -486,7 +518,7 @@ interface EvalInstrukturModalProps {
 
 function EvalInstrukturModal({
   level, batchId, step, setStep, scores, setScores, texts, setTexts,
-  comment, setComment, existingRatings, existingKomentar, onClose, onSuccess, batchName
+  comment, setComment, onClose, onSuccess, batchName
 }: EvalInstrukturModalProps) {
   const [saving, setSaving] = useState(false)
 
@@ -782,13 +814,13 @@ function EvalInstrukturModal({
           {step < steps.length - 1 ? (
             <button onClick={() => canProceed() && setStep(step + 1)}
               disabled={!canProceed()}
-              className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold text-white bg-[#0E6187] rounded-lg hover:bg-[#005a96] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+              className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold text-white bg-[#0E6187] rounded-lg hover:bg-[#1a5e6f] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
               Selanjutnya <ChevronRight size={16} />
             </button>
           ) : (
             <button onClick={handleSubmit}
               disabled={saving}
-              className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold text-white bg-[#42b72a] rounded-lg hover:bg-[#36a022] transition-colors disabled:opacity-50">
+              className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold text-white bg-[#0E6187] rounded-lg hover:bg-[#1a5e6f] transition-colors disabled:opacity-50">
               {saving ? (
                 <><span className="animate-spin">&#9696;</span> Mengirim...</>
               ) : (
