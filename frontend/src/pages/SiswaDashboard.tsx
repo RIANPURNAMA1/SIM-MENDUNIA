@@ -359,13 +359,13 @@ export default function SiswaDashboard() {
 
   const quickActions = [
     { label: 'Dashboard', to: '/siswa-dashboard', icon: LayoutDashboard, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
-    { label: 'Data Diri', to: '/siswa-dashboard/matching-job', icon: ClipboardList, color: 'text-amber-600', bg: 'bg-amber-50' },
-    { label: 'Bayar', to: '/siswa-dashboard/pembayaran', icon: Wallet, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Absensi', to: '/siswa-dashboard/absensi', icon: CalendarCheck, color: 'text-sky-600', bg: 'bg-sky-50' },
-    { label: 'LMS', to: '/siswa-dashboard/lms', icon: BookOpen, color: 'text-purple-600', bg: 'bg-purple-50' },
-    { label: 'Nilai', to: '/siswa-dashboard/nilai', icon: Award, color: 'text-rose-500', bg: 'bg-rose-50' },
-    { label: 'Matching Job', to: '/siswa-dashboard/matching-job', icon: Briefcase, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-    { label: 'Profil', to: '/siswa-dashboard/profil', icon: User, color: 'text-slate-600', bg: 'bg-slate-100' },
+    { label: 'Data Diri', to: '/siswa-dashboard/matching-job', icon: ClipboardList, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
+    { label: 'Bayar', to: '/siswa-dashboard/pembayaran', icon: Wallet, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
+    { label: 'Absensi', to: '/siswa-dashboard/absensi', icon: CalendarCheck, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
+    { label: 'LMS', to: '/siswa-dashboard/lms', icon: BookOpen, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
+    { label: 'Nilai', to: '/siswa-dashboard/nilai', icon: Award, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
+    { label: 'Matching Job', to: '/siswa-dashboard/matching-job', icon: Briefcase, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
+    { label: 'Profil', to: '/siswa-dashboard/profil', icon: User, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
   ]
 
   const bottomNav = [
@@ -383,8 +383,7 @@ export default function SiswaDashboard() {
         <div className="mx-auto max-w-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <img src="/logo-sm.png" alt="Mendunia" className="h-8 w-auto" />
-              <span className="text-base font-bold tracking-tight">Kelas Mendunia</span>
+              <img src="/logo-sm1.png" alt="Kelas Mendunia" className="h-8 w-auto" />
             </div>
             <div className="flex items-center gap-3">
               <button

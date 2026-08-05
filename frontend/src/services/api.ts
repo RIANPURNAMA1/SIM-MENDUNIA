@@ -400,6 +400,10 @@ export const adminCabangApi = {
     api.get('/admin-cabang/pendaftar', { params }),
   tagihan: (params?: Record<string, string | undefined>) =>
     api.get('/admin-cabang/tagihan', { params }),
+  tagihanGroups: (params?: Record<string, unknown>) =>
+    api.get('/admin-cabang/tagihan/groups', { params }),
+  tagihanBatch: (batchId: number, params?: Record<string, unknown>) =>
+    api.get(`/admin-cabang/tagihan/batch/${batchId}`, { params }),
   kandidat: (params?: Record<string, string>) =>
     api.get('/admin-cabang/kandidat', { params }),
   createKandidat: (data: Record<string, unknown>) =>

@@ -516,6 +516,8 @@ Route::prefix('admin-cabang')->middleware(['auth:sanctum'])->group(function () {
     Route::get('/dashboard', [AdminCabangController::class, 'dashboard']);
     Route::get('/pendaftar', [AdminCabangController::class, 'pendaftar']);
     Route::get('/tagihan', [AdminCabangController::class, 'tagihan']);
+    Route::get('/tagihan/groups', [AdminCabangController::class, 'tagihanGroups']);
+    Route::get('/tagihan/batch/{batchId}', [AdminCabangController::class, 'tagihanBatch']);
     Route::get('/kandidat', [AdminCabangController::class, 'kandidat']);
     Route::get('/siswa', [AdminCabangController::class, 'siswa']);
     Route::get('/batches', [AdminCabangController::class, 'batches']);

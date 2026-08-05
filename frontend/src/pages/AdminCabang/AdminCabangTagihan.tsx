@@ -10,20 +10,18 @@ function parseInput(v: string): number {
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import {
   FileText, Search, Receipt, CheckCircle, Clock, AlertCircle, RotateCcw,
-  DollarSign, X, Save, Bell, Eye, Check, Loader, XCircle,
-  ChevronLeft, ChevronRight, Calendar,
+  DollarSign, X, Save, Bell, Eye, Check, Loader, XCircle, Users,
+  ChevronLeft, ChevronRight, MoreHorizontal,
 } from 'lucide-react'
-import api from '../../services/api'
-import { adminCabangApi, jadwalLevelApi, APP_URL } from '../../services/api'
 import Swal from 'sweetalert2'
-import { useAuth } from '../../contexts/AuthContext'
+import api, { adminCabangApi, productApi, APP_URL } from '../../services/api'
 import InvoiceModal from '../../components/InvoiceModal'
 
 interface KategoriInfo {
   id: number
   kode: string
   nama: string
-  parent_id?: number | null
+  parent_id: number | null
   children?: KategoriInfo[]
 }
 
@@ -85,30 +83,34 @@ interface BatchGroup {
   kategoris: KategoriInfo[]
   kategoriColumns: KategoriColumn[]
   items: TagihanItem[]
+  totalPendaftar: number
+  totalTagihan: number
+  totalDibayar: number
+  totalSisa: number
+  hasPending: boolean
 }
 
-interface JadwalLevelEntry {
-  id: number
+interface BatchGroupMeta {
   batch_id: number
-  level: number
-  tanggal_mulai: string
-  tanggal_selesai: string
-  batch_nama: string
+  nama_batch: string
+  warna: string | null
+  total_pendaftar: number
+  total_tagihan: number
+  total_dibayar: number
+  total_sisa: number
+  kategori_ids: number[]
+  has_pending: boolean
 }
 
-const jadwalStages = [
-  { level: 1, label: 'Level 1' },
-  { level: 2, label: 'Level 2' },
-  { level: 3, label: 'Level 3' },
-  { level: 4, label: 'Level 4' },
-]
-
-const buildJadwalKey = (batchId: number, level: number) => `${batchId}-${level}`
+interface CandidatePage {
+  items: TagihanItem[]
+  page: number
+  totalPages: number
+  total: number
+  loading: boolean
+}
 
 export default function AdminCabangTagihan() {
-  const { user } = useAuth()
-  const isManager = user?.role === 'MANAGER'
-  const [data, setData] = useState<TagihanItem[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
@@ -122,25 +124,35 @@ export default function AdminCabangTagihan() {
   const [modalBayar, setModalBayar] = useState<{
     pendaftar: TagihanItem
     items: KategoriItem[]
+    originalItems: KategoriItem[]
   } | null>(null)
   const [saving, setSaving] = useState(false)
   const [pendingChanges, setPendingChanges] = useState<Record<string, number>>({})
   const [savingInline, setSavingInline] = useState(false)
   const [pendingPembayaran, setPendingPembayaran] = useState<any[]>([])
+  const [showBatchDropdown, setShowBatchDropdown] = useState(false)
   const [showPendingModal, setShowPendingModal] = useState(false)
+  const [selectedPendingPendaftarId, setSelectedPendingPendaftarId] = useState<number | null>(null)
   const [verifyingId, setVerifyingId] = useState<number | null>(null)
   const [rejectingId, setRejectingId] = useState<number | null>(null)
   const [confirmRejectId, setConfirmRejectId] = useState<number | null>(null)
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const [collapsedBatches, setCollapsedBatches] = useState<Set<number>>(new Set())
-  const [batchPages, setBatchPages] = useState<Record<number, number>>({})
+  const [groupsMeta, setGroupsMeta] = useState<BatchGroupMeta[]>([])
+  const [candidates, setCandidates] = useState<Record<number, CandidatePage>>({})
+  const [stats, setStats] = useState({ total: 0, paid: 0, outstanding: 0, count: 0 })
+  const [batchPage, setBatchPage] = useState(1)
+  const [batchTotalPages, setBatchTotalPages] = useState(1)
+  const [batchTotal, setBatchTotal] = useState(0)
   const [uniqueCodeOp, setUniqueCodeOp] = useState<string>('add')
-  const batchPerPage = 5
-  const [jadwalModal, setJadwalModal] = useState<BatchGroup | null>(null)
-  const [jadwalMap, setJadwalMap] = useState<Record<string, JadwalLevelEntry>>({})
-  const [jadwalForm, setJadwalForm] = useState<Record<number, { tanggal_mulai: string; tanggal_selesai: string }>>({})
-  const [jadwalSaving, setJadwalSaving] = useState<Record<number, boolean>>({})
+  const [openActionId, setOpenActionId] = useState<number | null>(null)
+  const [selectedLunasIds, setSelectedLunasIds] = useState<Set<number>>(new Set())
+  const [bulkLunasLoading, setBulkLunasLoading] = useState(false)
   const [invoiceId, setInvoiceId] = useState<number | null>(null)
+  const actionRef = useRef<HTMLDivElement>(null)
+  const batchPerPage = 5
+  const candidatePerPage = 5
+  const isFirstRender = useRef(true)
 
   const pendingCount = Object.keys(pendingChanges).length
 
@@ -152,13 +164,11 @@ export default function AdminCabangTagihan() {
 
   useEffect(() => {
     Promise.all([
-      adminCabangApi.tagihan(),
       adminCabangApi.biayaKategori(),
       adminCabangApi.batches(),
-      api.get('/products'),
+      productApi.list(),
       api.get('/payment-settings'),
-    ]).then(([tagihanRes, katRes, batchRes, prodRes, settingsRes]) => {
-      setData(tagihanRes.data.data || [])
+    ]).then(([katRes, batchRes, prodRes, settingsRes]) => {
       setKategoris((() => {
         const all = katRes.data || []
         const childrenOf = new Map<number | null, KategoriInfo[]>()
@@ -183,8 +193,8 @@ export default function AdminCabangTagihan() {
       setBatches(batchRes.data?.data || batchRes.data || [])
       setProducts(prodRes.data || [])
       setUniqueCodeOp(settingsRes.data?.unique_code_operation?.value ?? 'add')
-      setLoading(false)
-    }).catch(() => setLoading(false))
+    }).catch(() => {})
+    fetchGroups(1)
     fetchPendingPembayaran()
 
     const interval = setInterval(() => {
@@ -198,6 +208,7 @@ export default function AdminCabangTagihan() {
         })
         if (newPending.length === 0) {
           setShowPendingModal(false)
+          setSelectedPendingPendaftarId(null)
         }
       }).catch(() => {})
     }, 15000)
@@ -205,55 +216,74 @@ export default function AdminCabangTagihan() {
     return () => clearInterval(interval)
   }, [])
 
-  const filtered = useMemo(() => {
-    const result = data.filter(p => {
-      const matchSearch = !search || p.nama.toLowerCase().includes(search.toLowerCase()) || p.email.toLowerCase().includes(search.toLowerCase())
-      const matchStatus = !filterStatus || p.status_pembayaran === filterStatus
-      const matchBatch = !filterBatch || String(p.batch?.id) === filterBatch
-      const matchProduct = !filterProduct || String(p.product?.nama) === filterProduct
-      const d = new Date(p.created_at); d.setHours(0, 0, 0, 0)
-      const from = filterDateFrom ? new Date(filterDateFrom) : null
-      if (from) from.setHours(0, 0, 0, 0)
-      const to = filterDateTo ? new Date(filterDateTo) : null
-      if (to) to.setHours(23, 59, 59, 999)
-      const matchDate = (!from || d >= from) && (!to || d <= to)
-      return matchSearch && matchStatus && matchBatch && matchProduct && matchDate
-    })
-    return result.sort((a, b) => {
-      const aHasPending = pendingPembayaran.some((pp: any) => pp.pendaftar_id === a.id) ? 0 : 1
-      const bHasPending = pendingPembayaran.some((pp: any) => pp.pendaftar_id === b.id) ? 0 : 1
-      return aHasPending - bHasPending
-    })
-  }, [data, search, filterStatus, filterBatch, filterProduct, filterDateFrom, filterDateTo, pendingPembayaran])
-
-  const batchGroups = useMemo<BatchGroup[]>(() => {
-    const groupMap = new Map<number, BatchGroup>()
-    const order: number[] = []
-
-    filtered.forEach(p => {
-      const bid = p.batch?.id || 0
-      if (!groupMap.has(bid)) {
-        order.push(bid)
-        groupMap.set(bid, {
-          batchId: bid,
-          batchName: p.batch?.nama_batch || 'Tanpa Batch',
-          batchWarna: p.batch?.warna ?? null,
-          kategoris: [],
-          kategoriColumns: [],
-          items: [],
-        })
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (actionRef.current && !actionRef.current.contains(e.target as Node)) {
+        setOpenActionId(null)
       }
-      groupMap.get(bid)!.items.push(p)
-    })
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
-    groupMap.forEach((group) => {
-      const usedIds = new Set<number>()
-      group.items.forEach(p => {
-        p.detail?.forEach(d => {
-          if (d.biaya > 0) usedIds.add(d.kategori_id)
-        })
-      })
+  const filterParams = useCallback(() => ({
+    search: search.trim() || undefined,
+    status: filterStatus || undefined,
+    batch_id: filterBatch || undefined,
+    product_id: filterProduct || undefined,
+    date_from: filterDateFrom || undefined,
+    date_to: filterDateTo || undefined,
+  }), [search, filterStatus, filterBatch, filterProduct, filterDateFrom, filterDateTo])
 
+  const fetchCandidates = useCallback(async (batchId: number, page: number) => {
+    setCandidates(prev => ({
+      ...prev,
+      [batchId]: { items: prev[batchId]?.items || [], page, totalPages: prev[batchId]?.totalPages || 1, total: prev[batchId]?.total || 0, loading: true },
+    }))
+    try {
+      const res = await adminCabangApi.tagihanBatch(batchId, { ...filterParams(), page, per_page: candidatePerPage })
+      setCandidates(prev => ({
+        ...prev,
+        [batchId]: { items: res.data.kandidat || [], page: res.data.page || 1, totalPages: res.data.total_pages || 1, total: res.data.total || 0, loading: false },
+      }))
+    } catch (err) {
+      console.error(err)
+      setCandidates(prev => ({
+        ...prev,
+        [batchId]: { items: prev[batchId]?.items || [], page, totalPages: prev[batchId]?.totalPages || 1, total: prev[batchId]?.total || 0, loading: false },
+      }))
+    }
+  }, [filterParams])
+
+  const fetchGroups = useCallback(async (page: number) => {
+    setLoading(true)
+    try {
+      const res = await adminCabangApi.tagihanGroups({ ...filterParams(), page, per_page: batchPerPage })
+      const batches = res.data.batches || []
+      setGroupsMeta(batches)
+      setStats(res.data.stats || { total: 0, paid: 0, outstanding: 0, count: 0 })
+      setBatchTotalPages(res.data.total_pages || 1)
+      setBatchTotal(res.data.total || 0)
+      await Promise.all(batches.map((b: BatchGroupMeta) => fetchCandidates(b.batch_id, 1)))
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }, [filterParams, fetchCandidates])
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    setBatchPage(1)
+    fetchGroups(1)
+  }, [filterParams])
+
+  const renderGroups = useMemo<BatchGroup[]>(() => {
+    return groupsMeta.map(meta => {
+      const usedIds = new Set<number>(meta.kategori_ids || [])
       const columns: KategoriColumn[] = []
       const matchedIds = new Set<number>()
 
@@ -264,66 +294,45 @@ export default function AdminCabangTagihan() {
         }
       }
 
-      group.kategoris = columns.map(c => c.kategori)
-      group.kategoriColumns = columns
-    })
-
-    const hasPending = (bid: number) => {
-      const group = groupMap.get(bid)
-      if (!group) return false
-      return group.items.some(item =>
-        pendingPembayaran.some((pp: any) => pp.pendaftar_id === item.id)
-      )
-    }
-    return order.map(id => groupMap.get(id)!).sort((a, b) => {
-      const aPending = hasPending(a.batchId) ? 0 : 1
-      const bPending = hasPending(b.batchId) ? 0 : 1
-      if (aPending !== bPending) return aPending - bPending
-      return a.batchName.localeCompare(b.batchName)
-    })
-  }, [filtered, kategoris, pendingPembayaran])
-
-  const stats = useMemo(() => {
-    let total = 0
-    let paid = 0
-    for (const p of data) {
-      for (const d of (p.detail || [])) {
-        const biaya = Number(d.biaya || 0)
-        if (biaya <= 0) continue
-        total += biaya
-        paid += Number(d.dibayar || 0)
+      return {
+        batchId: meta.batch_id,
+        batchName: meta.nama_batch,
+        batchWarna: meta.warna,
+        kategoris: columns.map(c => c.kategori),
+        kategoriColumns: columns,
+        items: candidates[meta.batch_id]?.items || [],
+        totalPendaftar: meta.total_pendaftar,
+        totalTagihan: meta.total_tagihan,
+        totalDibayar: meta.total_dibayar,
+        totalSisa: meta.total_sisa,
+        hasPending: meta.has_pending,
       }
-      if (!p.detail || p.detail.length === 0) {
-        total += Number(p.product?.harga || 0) - Number(p.diskon || 0)
-        paid += Number(p.nominal || 0)
-      }
-    }
-    return {
-      total,
-      paid,
-      outstanding: total - paid,
-      count: data.length,
-    }
-  }, [data])
+    })
+  }, [groupsMeta, kategoris, candidates])
 
-  const calcRow = (p: TagihanItem) => {
-    const details = p.detail || []
-    let tagihan = 0
-    let dibayar = 0
-    for (const d of details) {
-      const biaya = Number(d.biaya || 0)
-      if (biaya <= 0) continue
-      tagihan += biaya
-      dibayar += Number(d.dibayar || 0)
-    }
-    if (details.length === 0) {
-      const diskon = Number(p.diskon || 0)
-      tagihan = Number(p.product?.harga || 0) - diskon
-      dibayar = Number(p.nominal || 0)
-    }
-    const sisa = Math.max(0, tagihan - dibayar)
-    return { tagihan, dibayar, sisa }
+  const goBatchPage = (page: number) => {
+    if (page < 1 || page > batchTotalPages || page === batchPage) return
+    setBatchPage(page)
+    fetchGroups(page)
   }
+
+  const pageNumbers = useMemo(() => {
+    const pages: (number | string)[] = []
+    const total = batchTotalPages
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) pages.push(i)
+    } else {
+      const current = batchPage
+      pages.push(1)
+      if (current > 3) pages.push('...')
+      const start = Math.max(2, current - 1)
+      const end = Math.min(total - 1, current + 1)
+      for (let i = start; i <= end; i++) pages.push(i)
+      if (current < total - 2) pages.push('...')
+      pages.push(total)
+    }
+    return pages
+  }, [batchTotalPages, batchPage])
 
   const getDibayar = (p: TagihanItem, kategoriId: number): number => {
     const key = `${p.id}_${kategoriId}`
@@ -355,6 +364,25 @@ export default function AdminCabangTagihan() {
     )
   }
 
+  const calcRow = (p: TagihanItem, kats: KategoriInfo[]) => {
+    const details = p.detail || []
+    let tagihan = 0
+    let dibayar = 0
+    for (const d of details) {
+      const biaya = Number(d.biaya || 0)
+      if (biaya <= 0) continue
+      tagihan += biaya
+      dibayar += Number(d.dibayar || 0)
+    }
+    if (details.length === 0) {
+      const diskon = Number(p.diskon || 0)
+      tagihan = Number(p.product?.harga || 0) - diskon
+      dibayar = Number(p.nominal || 0)
+    }
+    const sisa = Math.max(0, tagihan - dibayar)
+    return { tagihan, dibayar, sisa }
+  }
+
   const handleSaveInline = async () => {
     if (pendingCount === 0) return
     setSavingInline(true)
@@ -371,8 +399,7 @@ export default function AdminCabangTagihan() {
         )
       )
       setPendingChanges({})
-      const res = await adminCabangApi.tagihan()
-      setData(res.data.data || [])
+      await fetchGroups(batchPage)
     } catch (err) {
       console.error(err)
     } finally {
@@ -394,25 +421,24 @@ export default function AdminCabangTagihan() {
   }
 
   const refreshAll = useCallback(async () => {
-    const [dataRes, pendingRes] = await Promise.all([
-      adminCabangApi.tagihan(),
-      adminCabangApi.pendingPembayaran(),
-    ])
-    setData(dataRes.data.data || [])
+    const pendingRes = await adminCabangApi.pendingPembayaran()
     const newPending = pendingRes.data.data || []
     setPendingPembayaran(newPending)
     if (newPending.length === 0) {
       setShowPendingModal(false)
+      setSelectedPendingPendaftarId(null)
     }
-  }, [])
+    await fetchGroups(batchPage)
+  }, [fetchGroups, batchPage])
 
   async function handleVerifyPembayaran(id: number) {
     setVerifyingId(id)
     try {
       await adminCabangApi.verifyPayment(id)
       await refreshAll()
+      Swal.fire({ icon: 'success', title: 'Pembayaran diverifikasi', text: 'Status pembayaran telah diperbarui', timer: 1500, showConfirmButton: false, toast: true, position: 'top-end' })
     } catch (err) {
-      console.error(err)
+      Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal memverifikasi pembayaran', timer: 2000, showConfirmButton: false, toast: true, position: 'top-end' })
     } finally {
       setVerifyingId(null)
     }
@@ -424,169 +450,144 @@ export default function AdminCabangTagihan() {
     try {
       await adminCabangApi.rejectPayment(pembayaranId)
       await refreshAll()
+      Swal.fire({ icon: 'success', title: 'Pembayaran ditolak', text: 'Pembayaran berhasil ditolak', timer: 1500, showConfirmButton: false, toast: true, position: 'top-end' })
     } catch (err) {
-      console.error(err)
+      Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal menolak pembayaran', timer: 2000, showConfirmButton: false, toast: true, position: 'top-end' })
     } finally {
       setRejectingId(null)
     }
   }
 
-  const reloadJadwal = async () => {
-    try {
-      const res = await adminCabangApi.jadwalLevel()
-      const map: Record<string, JadwalLevelEntry> = {}
-      const jadwal = res.data.jadwal || {}
-      Object.keys(jadwal).forEach(key => { map[key] = jadwal[key] })
-      setJadwalMap(map)
-    } catch (err) {
-      console.error(err)
-    }
-  }
-
-  const openJadwalModal = async (group: BatchGroup) => {
-    setJadwalModal(group)
-    setJadwalForm({})
-    await reloadJadwal()
-  }
-
-  const handleSaveJadwalLevel = async (level: number, label: string) => {
-    if (!jadwalModal) return
-    const f = jadwalForm[level]
-    if (!f || !f.tanggal_mulai || !f.tanggal_selesai) return
-    setJadwalSaving(prev => ({ ...prev, [level]: true }))
-    try {
-      await jadwalLevelApi.store({
-        batch_id: jadwalModal.batchId,
-        level,
-        tanggal_mulai: f.tanggal_mulai,
-        tanggal_selesai: f.tanggal_selesai,
-      })
-      await reloadJadwal()
-    } catch (err) {
-      console.error(err)
-      Swal.fire({ icon: 'error', title: 'Gagal', text: `Gagal menyimpan jadwal ${label}`, confirmButtonColor: '#0E6187' })
-    } finally {
-      setJadwalSaving(prev => ({ ...prev, [level]: false }))
-    }
-  }
-
-  const handleDeleteJadwalLevel = async (level: number, label: string) => {
-    if (!jadwalModal) return
-    if (!confirm(`Hapus jadwal untuk ${jadwalModal.batchName} - ${label}?`)) return
-    try {
-      await jadwalLevelApi.destroy(jadwalModal.batchId, level)
-      await reloadJadwal()
-    } catch (err) {
-      console.error(err)
-    }
-  }
-
-  const formatJadwalDate = (dateStr: string) => {
-    if (!dateStr) return ''
-    const d = new Date(dateStr + 'T00:00:00')
-    return d.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' })
-  }
-
   const renderBatchTable = (group: BatchGroup) => {
     const { batchId, batchName, kategoris: kats, kategoriColumns, items } = group
     const isCollapsed = collapsedBatches.has(batchId)
-    const groupTagihan = items.reduce((sum, p) => sum + calcRow(p).tagihan, 0)
-    const groupDibayar = items.reduce((sum, p) => sum + calcRow(p).dibayar, 0)
-    const groupSisa = Math.max(0, groupTagihan - groupDibayar)
-    const hasHierarchy = kategoriColumns.some(c => c.depth > 0)
-
-    const currentPage = batchPages[batchId] || 1
-    const totalPages = Math.max(1, Math.ceil(items.length / batchPerPage))
+    const groupTagihan = group.totalTagihan
+    const groupDibayar = group.totalDibayar
+    const groupSisa = group.totalSisa
+    const cand = candidates[batchId]
+    const currentPage = cand?.page || 1
+    const totalPages = Math.max(1, cand?.totalPages || 1)
     const safePage = Math.min(currentPage, totalPages)
-    const pagedItems = items.slice((safePage - 1) * batchPerPage, safePage * batchPerPage)
+    const pagedItems = items
+    const isLoading = cand?.loading
 
     const setPage = (page: number) => {
-      setBatchPages(prev => ({ ...prev, [batchId]: page }))
+      if (page < 1 || page > totalPages || page === safePage) return
+      fetchCandidates(batchId, page)
     }
 
     return (
       <div key={batchId} className="mb-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div className="flex items-center justify-between gap-2 bg-white px-4 py-3 transition-colors hover:bg-slate-50">
-          <button
-            onClick={() => setCollapsedBatches(prev => {
-              const next = new Set(prev)
-              if (next.has(batchId)) next.delete(batchId)
-              else next.add(batchId)
-              return next
-            })}
-            className="flex items-center gap-3 min-w-0 flex-1 text-left"
-          >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0" style={{ backgroundColor: group.batchWarna || '#0E6187' }}>
+        <button
+          onClick={() => setCollapsedBatches(prev => {
+            const next = new Set(prev)
+            if (next.has(batchId)) next.delete(batchId)
+            else next.add(batchId)
+            return next
+          })}
+          className={`w-full flex items-center justify-between px-4 py-3 transition-colors ${group.hasPending ? 'bg-red-50 hover:bg-red-100/60' : 'bg-white hover:bg-slate-50'}`}
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: group.batchWarna || '#0E6187' }}>
               <Receipt size={14} className="text-white" />
             </div>
-            <div className="min-w-0">
+            <div className="text-left">
               <h3 className="text-sm font-bold text-slate-800">
                 <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold text-white" style={{ backgroundColor: group.batchWarna || '#0E6187' }}>{batchName}</span>
+                {group.hasPending && (
+                  <span className="ml-2 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-600">ada pengajuan</span>
+                )}
               </h3>
-              <p className="text-xs text-slate-500">{items.length} pendaftar</p>
+              <p className="text-xs text-slate-500">{group.totalPendaftar} pendaftar</p>
             </div>
-          </button>
-          <div className="flex items-center gap-3 shrink-0">
+          </div>
+          <div className="flex items-center gap-4">
             <div className="hidden sm:flex items-center gap-4 text-xs">
               <span className="text-slate-500">Tagihan: <span className="font-bold text-slate-700">Rp {fmt(groupTagihan)}</span></span>
               <span className="text-emerald-600">Dibayar: <span className="font-bold">Rp {fmt(groupDibayar)}</span></span>
               <span className="text-red-600">Sisa: <span className="font-bold">Rp {fmt(groupSisa)}</span></span>
             </div>
-            <button
-              onClick={(e) => { e.stopPropagation(); openJadwalModal(group) }}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[11px] font-medium text-slate-600 shadow-sm transition hover:border-[#0E6187] hover:bg-[#0E6187]/5 hover:text-[#0E6187]"
-              title={`Jadwal level untuk ${batchName}`}
-            >
-              <Calendar size={13} />
-              Jadwal Level
-            </button>
-            <button
-              onClick={() => setCollapsedBatches(prev => {
-                const next = new Set(prev)
-                if (next.has(batchId)) next.delete(batchId)
-                else next.add(batchId)
-                return next
-              })}
-              className="text-slate-400 hover:text-slate-600"
-              title={isCollapsed ? 'Buka' : 'Tutup'}
-            >
-              {isCollapsed ? '▶' : '▼'}
-            </button>
+            <span className="text-slate-400">{isCollapsed ? '▶' : '▼'}</span>
           </div>
-        </div>
+        </button>
 
         {!isCollapsed && (
           <div className="overflow-x-auto border-t border-slate-200">
+            {selectedLunasIds.size > 0 && (
+              <div className="flex items-center gap-3 border-b border-slate-200 bg-blue-50/50 px-4 py-2">
+                <span className="text-xs font-medium text-slate-600">{selectedLunasIds.size} pendaftar dipilih</span>
+                <button onClick={async () => {
+                  setBulkLunasLoading(true)
+                  try {
+                    await Promise.all([...selectedLunasIds].map(id => adminCabangApi.setLunas(id)))
+                    setSelectedLunasIds(new Set())
+                    await refreshAll()
+                    Swal.fire({ icon: 'success', title: 'Berhasil!', text: `${selectedLunasIds.size} pendaftar di-set lunas`, confirmButtonColor: '#0E6187', timer: 2000, timerProgressBar: true, showConfirmButton: false })
+                  } catch {
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal mengubah status pembayaran', confirmButtonColor: '#0E6187' })
+                  } finally {
+                    setBulkLunasLoading(false)
+                  }
+                }} disabled={bulkLunasLoading} className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50">
+                  {bulkLunasLoading ? 'Memproses...' : 'Set Lunas'}
+                </button>
+                <button onClick={() => setSelectedLunasIds(new Set())} className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50">
+                  Batal Pilih
+                </button>
+              </div>
+            )}
             <table className="w-full min-w-[900px] border-collapse text-left text-sm text-slate-700">
-              <thead className="text-sm text-slate-600 bg-slate-50">
-                <tr>
-                  <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[220px]">Pendaftar</th>
+              <thead className="bg-[#0e6187]">
+                  <tr>
+                    <th scope="col" className="border border-slate-600 px-3 py-3 text-center font-medium text-white w-[40px]">
+                      <input type="checkbox" checked={pagedItems.length > 0 && pagedItems.every(p => selectedLunasIds.has(p.id))} onChange={() => {
+                        if (pagedItems.every(p => selectedLunasIds.has(p.id))) {
+                          setSelectedLunasIds(prev => { const n = new Set(prev); pagedItems.forEach(p => n.delete(p.id)); return n })
+                        } else {
+                          setSelectedLunasIds(prev => { const n = new Set(prev); pagedItems.forEach(p => n.add(p.id)); return n })
+                        }
+                      }} className="h-4 w-4 rounded border-white/50 bg-white/20 text-white focus:ring-0 cursor-pointer" />
+                    </th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 font-medium text-white w-[220px]">Pendaftar</th>
                   {kategoriColumns.map(col => {
                     const k = col.kategori
                     return (
                       <th
                         key={k.id}
                         scope="col"
-                        className="border border-slate-200 px-4 py-3 text-right font-medium min-w-[120px] w-[130px]"
+                        className="border border-slate-600 px-4 py-3 text-right font-medium text-white min-w-[120px] w-[130px]"
                       >
                         {k.nama}
                       </th>
                     )
                   })}
-                  <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium w-[120px]">Tagihan</th>
-                  <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium w-[120px]">Dibayar</th>
-                  <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium w-[120px]">Sisa</th>
-                  <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium w-[110px]">Status</th>
-                  <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium w-[70px]">Lunas</th>
-                  <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium w-[80px]">Invoice</th>
-                  <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium w-[80px]">Aksi</th>
-                </tr>
-              </thead>
+                  <th scope="col" className="border border-slate-600 px-4 py-3 text-right font-medium text-white w-[120px]">Tagihan</th>
+                  <th scope="col" className="border border-slate-600 px-4 py-3 text-right font-medium text-white w-[120px]">Dibayar</th>
+                  <th scope="col" className="border border-slate-600 px-4 py-3 text-right font-medium text-white w-[120px]">Sisa</th>
+                  <th scope="col" className="border border-slate-600 px-4 py-3 text-center font-medium text-white w-[110px]">Status</th>
+                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center font-medium text-white w-[80px]">Aksi</th>
+                  </tr>
+                </thead>
               <tbody>
-                {pagedItems.map(p => {
-                  const { tagihan, dibayar, sisa } = calcRow(p)
+                {isLoading && (
+                  <tr>
+                    <td colSpan={kategoriColumns.length + 6} className="border border-slate-200 px-4 py-8 text-center text-sm text-slate-400">
+                      <div className="flex items-center justify-center gap-2">
+                        <Loader size={16} className="animate-spin text-[#0E6187]" />
+                        Memuat data...
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                {!isLoading && pagedItems.map(p => {
+                  const { tagihan, dibayar, sisa } = calcRow(p, kats)
                   return (
-                    <tr key={p.id} className={`transition ${p.is_cuti ? 'bg-yellow-100 hover:bg-yellow-200/70' : p.status_kandidat === 'Mengundurkan Diri' ? 'bg-red-100 hover:bg-red-200/70' : 'bg-white hover:bg-slate-50'}`}>
+                    <tr key={p.id} className={`transition ${p.is_cuti ? 'bg-yellow-100 hover:bg-yellow-200/70' : p.status_kandidat === 'Mengundurkan Diri' ? 'bg-red-100 hover:bg-red-200/70' : 'bg-white hover:bg-slate-50'} ${selectedLunasIds.has(p.id) ? '!bg-blue-50/50' : ''}`}>
+                      <td className="border border-slate-200 px-3 py-3 text-center">
+                        <input type="checkbox" checked={selectedLunasIds.has(p.id)} onChange={() => {
+                          setSelectedLunasIds(prev => { const n = new Set(prev); if (n.has(p.id)) n.delete(p.id); else n.add(p.id); return n })
+                        }} className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                      </td>
                       <td className="border border-slate-200 px-4 py-3">
                         <div className="flex items-center gap-3">
                           <img
@@ -599,7 +600,7 @@ export default function AdminCabangTagihan() {
                               {p.nama}
                               {pendingPembayaran.some((pp: any) => pp.pendaftar_id === p.id) && (
                                 <button
-                                  onClick={() => setShowPendingModal(true)}
+                                  onClick={() => { setSelectedPendingPendaftarId(p.id); setShowPendingModal(true) }}
                                   title="Ada pembayaran menunggu verifikasi"
                                   className="h-2 w-2 rounded-full bg-red-500 shrink-0"
                                 />
@@ -612,6 +613,7 @@ export default function AdminCabangTagihan() {
                       {kategoriColumns.map(col => {
                         const k = col.kategori
                         const relevant = hasKategori(p, k.id)
+                        const isUnpaid = p.status_pembayaran === 'unpaid'
                         if (!relevant) {
                           return (
                             <td key={k.id} className="border border-slate-200 px-4 py-3 text-right text-sm text-slate-300 min-w-[120px]">-</td>
@@ -625,44 +627,36 @@ export default function AdminCabangTagihan() {
                         const biayaKat = uniqueCodeOp === 'subtract' && katDetail?.total_transfer ? Number(katDetail.total_transfer) : biayaKatRaw
                         const isLunas = biayaKatRaw > 0 && val >= biayaKatRaw
                         const isPartial = val > 0 && !isLunas
+                        if (isUnpaid) {
+                          return (
+                            <td key={k.id} className="border border-slate-200 px-4 py-3 text-right text-sm text-slate-300 min-w-[120px]">-</td>
+                          )
+                        }
                         return (
                           <td key={k.id} className="border border-slate-200 px-4 py-3 text-right whitespace-nowrap min-w-[120px]">
-                            {isManager ? (
-                              <>
-                                <input
-                                  ref={el => { inputRefs.current[key] = el }}
-                                  type="text"
-                                  value={val > 0 ? val.toLocaleString('id-ID') : ''}
-                                  title={val > 0 ? val.toLocaleString('id-ID') : ''}
-                                  onChange={e => {
-                                    const num = parseInput(e.target.value)
-                                    setPendingChanges(prev => {
-                                      const next = { ...prev }
-                                      if (num === (p.detail?.find(d => d.kategori_id === k.id)?.dibayar || 0)) {
-                                        delete next[key]
-                                      } else {
-                                        next[key] = num
-                                      }
-                                      return next
-                                    })
-                                  }}
-                                  onKeyDown={e => handleKeyDown(e, key, p, kats)}
-                                  className={`w-full bg-transparent text-right text-sm outline-none transition ${isChanged ? 'font-semibold text-blue-700' : isLunas ? 'font-semibold text-emerald-700' : isPartial ? 'font-semibold text-orange-600' : 'text-slate-500'} placeholder:text-slate-300 focus:bg-blue-50 focus:rounded focus:px-1`}
-                                  placeholder="-"
-                                />
-                                {biayaKatRaw > 0 && (
-                                  <div className="text-[10px] text-slate-400 mt-0.5">Rp {fmt(biayaKatRaw)}</div>
-                                )}
-                              </>
-                            ) : (
-                              <div>
-                                <span className={`text-sm font-semibold ${isLunas ? 'text-emerald-700' : isPartial ? 'text-orange-600' : val > 0 ? 'text-emerald-700' : 'text-slate-500'}`}>
-                                  {val > 0 ? `Rp ${fmt(val)}` : '-'}
-                                </span>
-                                {biayaKatRaw > 0 && (
-                                  <div className="text-[10px] text-slate-400 mt-0.5">Rp {fmt(biayaKatRaw)}</div>
-                                )}
-                              </div>
+                            <input
+                              ref={el => { inputRefs.current[key] = el }}
+                              type="text"
+                              value={val > 0 ? val.toLocaleString('id-ID') : ''}
+                              title={val > 0 ? val.toLocaleString('id-ID') : ''}
+                              onChange={e => {
+                                const num = parseInput(e.target.value)
+                                setPendingChanges(prev => {
+                                  const next = { ...prev }
+                                  if (num === (p.detail?.find(d => d.kategori_id === k.id)?.dibayar || 0)) {
+                                    delete next[key]
+                                  } else {
+                                    next[key] = num
+                                  }
+                                  return next
+                                })
+                              }}
+                              onKeyDown={e => handleKeyDown(e, key, p, kats)}
+                              className={`w-full bg-transparent text-right text-sm outline-none transition ${isChanged ? 'font-semibold text-blue-700' : isLunas ? 'font-semibold text-emerald-700' : isPartial ? 'font-semibold text-orange-600' : 'text-slate-500'} placeholder:text-slate-300 focus:bg-blue-50 focus:rounded focus:px-1`}
+                              placeholder="-"
+                            />
+                            {biayaKatRaw > 0 && (
+                              <div className="text-[10px] text-slate-400 mt-0.5">Rp {fmt(biayaKatRaw)}</div>
                             )}
                           </td>
                         )
@@ -680,61 +674,80 @@ export default function AdminCabangTagihan() {
                         {statusBadge(p.status_pembayaran, dibayar, tagihan)}
                       </td>
                       <td className="border border-slate-200 px-4 py-3 text-center">
-                        {isManager && tagihan > 0 && (
+                        <div className="relative flex justify-center" ref={openActionId === p.id ? actionRef : undefined}>
                           <button
-                            onClick={async () => {
-                              try {
-                                if (dibayar >= tagihan) {
-                                  await adminCabangApi.batalLunas(p.id)
-                                } else {
-                                  await adminCabangApi.setLunas(p.id)
-                                }
-                                refreshAll()
-                              } catch (err) {
-                                console.error(err)
-                                Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal mengubah status pembayaran', confirmButtonColor: '#0E6187' })
-                              }
-                            }}
-                            className={`rounded-lg border p-2 transition ${dibayar >= tagihan && tagihan > 0 ? 'border-red-200 bg-red-50 text-red-500 hover:bg-red-100' : 'border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}
-                            title={dibayar >= tagihan && tagihan > 0 ? 'Batalkan Lunas' : 'Set Lunas'}
+                            onClick={() => setOpenActionId(openActionId === p.id ? null : p.id)}
+                            className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
+                            title="Aksi"
                           >
-                            {dibayar >= tagihan && tagihan > 0 ? <XCircle size={15} /> : <CheckCircle size={15} />}
+                            <MoreHorizontal size={16} />
                           </button>
-                        )}
-                      </td>
-                      <td className="border border-slate-200 px-4 py-3 text-center">
-                        <button
-                          onClick={() => setInvoiceId(p.id)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600"
-                          title="Invoice"
-                        >
-                          <FileText size={15} />
-                        </button>
-                      </td>
-                      <td className="border border-slate-200 px-4 py-3 text-center">
-                        {isManager ? (
-                          <button
-                            onClick={async () => {
-                              try {
-                                const res = await adminCabangApi.pembayaranItem(p.id)
-                                setModalBayar({ pendaftar: p, items: (res.data.items || []) })
-                              } catch (err) {
-                                console.error(err)
-                              }
-                            }}
-                            className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-600"
-                            title="Bayar"
-                          >
-                            <DollarSign size={15} />
-                          </button>
-                        ) : (
-                          <span className="text-[10px] text-slate-400">-</span>
-                        )}
+                          {openActionId === p.id && (
+                            <div className="absolute right-0 top-full z-30 mt-1 w-52 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+                              <button
+                                onClick={() => { setOpenActionId(null); setInvoiceId(p.id) }}
+                                className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                              >
+                                <FileText size={14} className="text-slate-400" />
+                                <span>Lihat Invoice</span>
+                              </button>
+                              <div className="my-1 border-t border-slate-100" />
+                              <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Status</p>
+                              {(() => {
+                                const { tagihan, dibayar } = calcRow(p, kats)
+                                const isLunas = dibayar >= tagihan && tagihan > 0
+                                return (
+                                  <button
+                                    onClick={async () => {
+                                      setOpenActionId(null)
+                                      try {
+                                        if (isLunas) {
+                                          await adminCabangApi.batalLunas(p.id)
+                                        } else {
+                                          await adminCabangApi.setLunas(p.id)
+                                        }
+                                        refreshAll()
+                                      } catch (err) {
+                                        console.error(err)
+                                        Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal mengubah status pembayaran', confirmButtonColor: '#0E6187' })
+                                      }
+                                    }}
+                                    className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                                  >
+                                    {isLunas
+                                      ? <XCircle size={14} className="text-red-400" />
+                                      : <CheckCircle size={14} className="text-emerald-400" />}
+                                    <span>{isLunas ? 'Batalkan Lunas' : 'Set Lunas'}</span>
+                                  </button>
+                                )
+                              })()}
+                              <div className="my-1 border-t border-slate-100" />
+                              <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Pembayaran</p>
+                              <button
+                                onClick={async () => {
+                                  setOpenActionId(null)
+                                  try {
+                                    const res = await adminCabangApi.pembayaranItem(p.id)
+                                    const items = res.data.items || []
+                                    setModalBayar({ pendaftar: p, items, originalItems: (items as KategoriItem[]).map(i => ({...i})) })
+                                  } catch (err) {
+                                    console.error(err)
+                                  }
+                                }}
+                                className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                              >
+                                <DollarSign size={14} className="text-emerald-400" />
+                                <span>Input Pembayaran</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )
                 })}
               </tbody>
+              {!isLoading && (
               <tfoot>
                 <tr className="bg-slate-50 font-semibold text-sm">
                   <td className="border border-slate-200 px-4 py-3" colSpan={kategoriColumns.length + 1}>
@@ -743,16 +756,15 @@ export default function AdminCabangTagihan() {
                   <td className="border border-slate-200 px-4 py-3 text-right text-slate-800">Rp {fmt(groupTagihan)}</td>
                   <td className="border border-slate-200 px-4 py-3 text-right text-emerald-700">Rp {fmt(groupDibayar)}</td>
                   <td className="border border-slate-200 px-4 py-3 text-right text-red-600">{groupSisa > 0 ? `Rp ${fmt(groupSisa)}` : '-'}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-center text-slate-500">{items.length} orang</td>
-                  <td className="border border-slate-200 px-4 py-3" />
-                  <td className="border border-slate-200 px-4 py-3" />
+                  <td className="border border-slate-200 px-4 py-3 text-center text-slate-500">{group.totalPendaftar} orang</td>
                 </tr>
               </tfoot>
+              )}
             </table>
-            {items.length > batchPerPage && (
+            {!isLoading && totalPages > 1 && (
               <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3">
                 <span className="text-sm text-slate-500">
-                  Menampilkan {pagedItems.length} dari {items.length} pendaftar
+                  Menampilkan {pagedItems.length} dari {cand?.total || pagedItems.length} pendaftar
                 </span>
                 <div className="flex items-center gap-1">
                   <button
@@ -762,7 +774,37 @@ export default function AdminCabangTagihan() {
                   >
                     <ChevronLeft size={16} />
                   </button>
-                  <span className="min-w-[32px] text-center text-sm font-medium text-slate-600">{safePage} / {totalPages}</span>
+                  {(() => {
+                    const pages: (number | string)[] = []
+                    if (totalPages <= 7) {
+                      for (let i = 1; i <= totalPages; i++) pages.push(i)
+                    } else {
+                      pages.push(1)
+                      if (safePage > 3) pages.push('...')
+                      const start = Math.max(2, safePage - 1)
+                      const end = Math.min(totalPages - 1, safePage + 1)
+                      for (let i = start; i <= end; i++) pages.push(i)
+                      if (safePage < totalPages - 2) pages.push('...')
+                      pages.push(totalPages)
+                    }
+                    return pages.map((pg: number | string, i: number) =>
+                      typeof pg !== 'number' ? (
+                        <span key={`e${i}`} className="px-1 text-sm text-slate-400">…</span>
+                      ) : (
+                        <button
+                          key={pg}
+                          onClick={() => setPage(pg)}
+                          className={`min-w-[32px] rounded-md border px-2 py-1 text-center text-sm transition ${
+                            pg === safePage
+                              ? 'border-[#0E6187] bg-[#0E6187] font-medium text-white'
+                              : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                          }`}
+                        >
+                          {pg}
+                        </button>
+                      )
+                    )
+                  })()}
                   <button
                     onClick={() => setPage(safePage + 1)}
                     disabled={safePage >= totalPages}
@@ -770,9 +812,9 @@ export default function AdminCabangTagihan() {
                   >
                     <ChevronRight size={16} />
                   </button>
-                </div>
-              </div>
-            )}
+          </div>
+        </div>
+      )}
           </div>
         )}
       </div>
@@ -781,6 +823,7 @@ export default function AdminCabangTagihan() {
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
+      {/* Header */}
       <div className="mb-4 flex flex-col gap-4 rounded-lg bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between border border-slate-200">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
@@ -792,7 +835,7 @@ export default function AdminCabangTagihan() {
           </div>
         </div>
         <button
-          onClick={() => setShowPendingModal(true)}
+          onClick={() => { setSelectedPendingPendaftarId(null); setShowPendingModal(true) }}
           className="relative inline-flex items-center gap-2 rounded-md bg-white border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
         >
           <span>Verifikasi</span>
@@ -804,6 +847,7 @@ export default function AdminCabangTagihan() {
         </button>
       </div>
 
+      {/* Stats */}
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
@@ -834,15 +878,16 @@ export default function AdminCabangTagihan() {
         </div>
         <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50">
-            <Receipt size={18} className="text-amber-600" />
+            <Users size={18} className="text-amber-600" />
           </div>
           <div>
-            <p className="text-xs text-slate-500">Total Pendaftar</p>
+            <p className="text-xs text-slate-500">Total Kandidat</p>
             <p className="text-2xl font-bold text-slate-800">{stats.count}</p>
           </div>
         </div>
       </div>
 
+      {/* Filter */}
       <div className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
           <div className="relative sm:col-span-2 md:col-span-3 lg:col-span-2">
@@ -875,13 +920,36 @@ export default function AdminCabangTagihan() {
               className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
           </div>
-          <select value={filterBatch} onChange={e => setFilterBatch(e.target.value)}
-            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-            <option value="">Semua Batch</option>
-            {batches.map(b => (
-              <option key={b.id} value={b.id}>{b.nama_batch}</option>
-            ))}
-          </select>
+          <div className="relative">
+            <button onClick={() => setShowBatchDropdown(!showBatchDropdown)}
+              className="flex items-center gap-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+              {filterBatch ? (() => {
+                const b = batches.find(x => String(x.id) === filterBatch)
+                return <>
+                  {b?.warna ? <span className="inline-block w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: b.warna }} /> : null}
+                  <span className="truncate">{b?.nama_batch || filterBatch}</span>
+                </>
+              })() : <span className="text-slate-500">Semua Batch</span>}
+            </button>
+            {showBatchDropdown && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowBatchDropdown(false)} />
+                <div className="absolute top-full left-0 mt-1 w-full z-50 rounded-md border border-slate-200 bg-white shadow-lg max-h-48 overflow-y-auto">
+                  <button onClick={() => { setFilterBatch(''); setShowBatchDropdown(false) }}
+                    className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition hover:bg-slate-50 ${!filterBatch ? 'bg-blue-50 font-semibold' : ''}`}>
+                    Semua Batch
+                  </button>
+                  {batches.map(b => (
+                    <button key={b.id} onClick={() => { setFilterBatch(String(b.id)); setShowBatchDropdown(false) }}
+                      className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition hover:bg-slate-50 ${String(b.id) === filterBatch ? 'bg-blue-50 font-semibold' : ''}`}>
+                      {b.warna ? <span className="inline-block w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: b.warna }} /> : null}
+                      {b.nama_batch}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
           <select value={filterProduct} onChange={e => setFilterProduct(e.target.value)}
             className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
             <option value="">Semua Program</option>
@@ -907,6 +975,7 @@ export default function AdminCabangTagihan() {
         </div>
       </div>
 
+      {/* Program Tables */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="relative w-14 h-14 flex items-center justify-center">
@@ -914,7 +983,7 @@ export default function AdminCabangTagihan() {
             <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
           </div>
         </div>
-      ) : batchGroups.length === 0 ? (
+      ) : renderGroups.length === 0 ? (
         <div className="rounded-lg border border-slate-200 bg-white px-6 py-10 text-center shadow-sm">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
             <Receipt size={24} />
@@ -922,13 +991,14 @@ export default function AdminCabangTagihan() {
           <p className="mt-3 text-sm font-medium text-slate-600">Tidak ada tagihan ditemukan</p>
         </div>
       ) : (
-        batchGroups.map(group => renderBatchTable(group))
+        renderGroups.map(group => renderBatchTable(group))
       )}
 
-      {!loading && batchGroups.length > 0 && (
+      {/* Summary */}
+      {!loading && renderGroups.length > 0 && (
         <div className="mt-2 flex items-center justify-between">
           <p className="text-sm text-slate-500">
-            {batchGroups.length} batch &middot; {filtered.length} pendaftar
+            {batchTotal} batch &middot; {stats.count} pendaftar
           </p>
           <div className="flex items-center gap-3 text-[10px] text-slate-500">
             <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-600" /> Lunas</span>
@@ -938,7 +1008,50 @@ export default function AdminCabangTagihan() {
         </div>
       )}
 
-      {isManager && pendingCount > 0 && (
+      {/* Batch list pagination */}
+      {!loading && renderGroups.length > 0 && batchTotalPages > 1 && (
+        <div className="mt-4 flex items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm">
+          <span className="text-sm text-slate-500">
+            Halaman {batchPage} dari {batchTotalPages}
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => goBatchPage(batchPage - 1)}
+              disabled={batchPage <= 1}
+              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            {pageNumbers.map((pg: number | string, i: number) =>
+              typeof pg !== 'number' ? (
+                <span key={`e${i}`} className="px-1 text-sm text-slate-400">…</span>
+              ) : (
+                <button
+                  key={pg}
+                  onClick={() => goBatchPage(pg)}
+                  className={`min-w-[32px] rounded-md border px-2 py-1 text-center text-sm transition ${
+                    pg === batchPage
+                      ? 'border-[#0E6187] bg-[#0E6187] font-medium text-white'
+                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  {pg}
+                </button>
+              )
+            )}
+            <button
+              onClick={() => goBatchPage(batchPage + 1)}
+              disabled={batchPage >= batchTotalPages}
+              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Floating save bar */}
+      {pendingCount > 0 && (
         <div className="sticky bottom-4 z-40 mt-4 flex items-center justify-between rounded-xl border border-blue-200 bg-blue-50 px-5 py-3 shadow-lg">
           <p className="text-xs text-blue-700">
             <span className="font-bold">{pendingCount}</span> perubahan belum disimpan
@@ -962,6 +1075,7 @@ export default function AdminCabangTagihan() {
         </div>
       )}
 
+      {/* Modal Bayar Manual */}
       {modalBayar && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-6" onClick={() => setModalBayar(null)}>
           <div className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-xl bg-white shadow-xl" onClick={e => e.stopPropagation()}>
@@ -1011,16 +1125,26 @@ export default function AdminCabangTagihan() {
                     if (!modalBayar) return
                     setSaving(true)
                     try {
-                      const items = modalBayar.items.map(i => ({
-                        kategori_id: i.kategori_id,
-                        jumlah: i.dibayar || 0,
-                      }))
-                      await adminCabangApi.savePembayaranItem(modalBayar.pendaftar.id, items)
-                      const res = await adminCabangApi.tagihan()
-                      setData(res.data.data || [])
+                      const changed = modalBayar.items.filter((item, i) => {
+                        const orig = modalBayar.originalItems[i]
+                        return item.dibayar > 0 && item.dibayar !== orig?.dibayar
+                      })
+                      if (changed.length === 0) {
+                        setModalBayar(null)
+                        setSaving(false)
+                        return
+                      }
+                      for (const item of changed) {
+                        await adminCabangApi.bayarManual(modalBayar.pendaftar.id, {
+                          jumlah: item.dibayar,
+                          kategori_id: item.kategori_id,
+                        })
+                      }
+                      await fetchGroups(batchPage)
                       setModalBayar(null)
-                    } catch (err) {
-                      console.error(err)
+                    } catch (err: any) {
+                      const msg = err?.response?.data?.message || err?.message || 'Terjadi kesalahan'
+                      Swal.fire({ icon: 'error', title: 'Gagal', text: msg })
                     } finally {
                       setSaving(false)
                     }
@@ -1036,8 +1160,16 @@ export default function AdminCabangTagihan() {
         </div>
       )}
 
-      {showPendingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-6" onClick={() => setShowPendingModal(false)}>
+      {/* Modal Verifikasi */}
+      {showPendingModal && (() => {
+        const filteredPembayaran = selectedPendingPendaftarId
+          ? pendingPembayaran.filter((pp: any) => pp.pendaftar_id === selectedPendingPendaftarId)
+          : pendingPembayaran
+        const filteredNama = selectedPendingPendaftarId
+          ? filteredPembayaran[0]?.pendaftar?.nama || ''
+          : ''
+        return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-6" onClick={() => { setShowPendingModal(false); setSelectedPendingPendaftarId(null) }}>
           <div className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-xl bg-white shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
               <div className="flex items-center gap-3">
@@ -1046,12 +1178,12 @@ export default function AdminCabangTagihan() {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-800">Verifikasi Pembayaran</h3>
-                  <p className="text-xs text-slate-500">{pendingPembayaran.length} pembayaran menunggu verifikasi</p>
+                  <p className="text-xs text-slate-500">{filteredPembayaran.length} pembayaran menunggu verifikasi{filteredNama ? ` — ${filteredNama}` : ''}</p>
                 </div>
               </div>
-              <button onClick={() => setShowPendingModal(false)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"><X size={17} /></button>
+              <button onClick={() => { setShowPendingModal(false); setSelectedPendingPendaftarId(null) }} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"><X size={17} /></button>
             </div>
-            {pendingPembayaran.length === 0 ? (
+            {filteredPembayaran.length === 0 ? (
               <div className="px-5 py-10 text-center">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-500 mb-3">
                   <CheckCircle size={24} />
@@ -1060,7 +1192,7 @@ export default function AdminCabangTagihan() {
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
-                {pendingPembayaran.map((pp: any) => (
+                {filteredPembayaran.map((pp: any) => (
                   <div key={pp.id} className="px-5 py-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
@@ -1115,7 +1247,8 @@ export default function AdminCabangTagihan() {
             )}
           </div>
         </div>
-      )}
+        )
+      })()}
 
       {confirmRejectId !== null && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => setConfirmRejectId(null)}>
@@ -1130,87 +1263,6 @@ export default function AdminCabangTagihan() {
               <button onClick={() => handleRejectPembayaran(confirmRejectId)} disabled={rejectingId === confirmRejectId} className="flex-1 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-50">
                 {rejectingId === confirmRejectId ? 'Menolak...' : 'Ya, Tolak'}
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {jadwalModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-6" onClick={() => setJadwalModal(null)}>
-          <div className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-xl bg-white shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ backgroundColor: jadwalModal.batchWarna || '#0E6187' }}>
-                  <Calendar size={18} className="text-white" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-800">Jadwal Level</h3>
-                  <p className="text-xs text-slate-500">{jadwalModal.batchName}</p>
-                </div>
-              </div>
-              <button onClick={() => setJadwalModal(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"><X size={17} /></button>
-            </div>
-            <div className="px-5 py-4 space-y-3">
-              {jadwalStages.map(s => {
-                const key = buildJadwalKey(jadwalModal.batchId, s.level)
-                const item = jadwalMap[key]
-                const form = jadwalForm[s.level] || { tanggal_mulai: item?.tanggal_mulai || '', tanggal_selesai: item?.tanggal_selesai || '' }
-                const isSaving = !!jadwalSaving[s.level]
-                return (
-                  <div key={s.level} className="rounded-lg border border-slate-200 p-3">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <span className="text-sm font-semibold text-slate-700">{s.label}</span>
-                      {item && (
-                        <span className="inline-flex rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 whitespace-nowrap">
-                          {formatJadwalDate(item.tanggal_mulai)} - {formatJadwalDate(item.tanggal_selesai)}
-                        </span>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="mb-1 block text-[10px] font-medium text-slate-500">Tanggal Mulai</label>
-                        <input
-                          type="date"
-                          value={form.tanggal_mulai}
-                          onChange={e => setJadwalForm(prev => ({ ...prev, [s.level]: { ...form, tanggal_mulai: e.target.value } }))}
-                          className="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-[10px] font-medium text-slate-500">Tanggal Selesai</label>
-                        <input
-                          type="date"
-                          value={form.tanggal_selesai}
-                          onChange={e => setJadwalForm(prev => ({ ...prev, [s.level]: { ...form, tanggal_selesai: e.target.value } }))}
-                          className="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
-                    <div className="mt-2 flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => handleSaveJadwalLevel(s.level, s.label)}
-                        disabled={isSaving || !form.tanggal_mulai || !form.tanggal_selesai}
-                        className="inline-flex items-center gap-1 rounded-md bg-[#0E6187] px-3 py-1.5 text-[10px] font-semibold text-white transition hover:bg-[#0a4d6b] disabled:opacity-50"
-                      >
-                        {isSaving ? <Loader size={11} className="animate-spin" /> : <Save size={11} />}
-                        {item ? 'Update' : 'Simpan'}
-                      </button>
-                      {item && (
-                        <button
-                          onClick={() => handleDeleteJadwalLevel(s.level, s.label)}
-                          className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-[10px] font-medium text-slate-500 transition hover:bg-rose-50 hover:text-rose-600"
-                        >
-                          <XCircle size={11} /> Hapus
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-            <div className="flex items-center justify-between border-t border-slate-200 px-5 py-3">
-              <p className="text-[11px] text-slate-400">Jadwal dipakai untuk kelas &amp; absensi per level</p>
-              <button onClick={() => setJadwalModal(null)} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">Tutup</button>
             </div>
           </div>
         </div>
