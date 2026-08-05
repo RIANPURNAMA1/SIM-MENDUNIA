@@ -379,23 +379,23 @@ export default function SiswaDashboard() {
   return (
     <div className="min-h-screen bg-[#f0f2f5] pb-24 lg:pb-8">
       {/* ============ Top App Bar ============ */}
-      <header className="bg-[#0E6187] px-4 pb-16 pt-5 text-white">
+      <header className="bg-[#0E6187] px-4 pb-16 pt-5 text-white animate-fade-in">
         <div className="mx-auto max-w-lg">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between animate-fade-in delay-75">
             <div className="flex items-center gap-2">
               <img src="/logo-sm1.png" alt="Kelas Mendunia" className="h-8 w-auto" />
             </div>
             <div className="flex items-center gap-3">
               <button
                 aria-label="Notifikasi"
-                className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20"
+                className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20 active:scale-95"
               >
                 <Bell size={18} />
                 <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-400 ring-2 ring-[#0E6187]" />
               </button>
               <Link
                 to="/siswa-dashboard/profil"
-                className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-white/10 ring-2 ring-white/30"
+                className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-white/10 ring-2 ring-white/30 transition hover:ring-white/60 active:scale-95"
               >
                 {fotoUrl ? (
                   <img src={fotoUrl} alt="Profil" className="h-full w-full object-cover" />
@@ -406,13 +406,13 @@ export default function SiswaDashboard() {
               <button
                 onClick={handleLogout}
                 aria-label="Logout"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20 active:scale-95"
               >
                 <LogOut size={17} />
               </button>
             </div>
           </div>
-          <div className="mt-6">
+          <div className="mt-6 animate-fade-up delay-100">
             <p className="text-[13px] font-medium text-teal-100">Selamat datang kembali</p>
             <h1 className="mt-0.5 text-2xl font-bold">Halo, {firstName}!</h1>
             <p className="mt-1 text-[13px] text-teal-100">{dateStr}</p>
@@ -423,7 +423,7 @@ export default function SiswaDashboard() {
       <div className="mx-auto -mt-10 max-w-lg space-y-4 px-4">
         {/* ============ Alert System ============ */}
         {showPaymentBanner && (
-          <div className={`rounded-xl border p-4 shadow-sm ${
+          <div className={`rounded-xl border p-4 shadow-sm animate-fade-up delay-150 transition-all ${
             pendaftar?.status_pembayaran === 'processing'
               ? 'border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50'
               : 'border-red-200 bg-gradient-to-r from-red-50 to-orange-50'
@@ -458,7 +458,7 @@ export default function SiswaDashboard() {
               {pendaftar?.status_pembayaran !== 'processing' && (
                 <button
                   onClick={() => setShowPaymentModal(true)}
-                  className="shrink-0 rounded-lg bg-red-600 px-3.5 py-2 text-xs font-bold text-white transition-colors hover:bg-red-700">
+                  className="shrink-0 rounded-lg bg-red-600 px-3.5 py-2 text-xs font-bold text-white transition-all hover:bg-red-700 active:scale-95 shadow-sm hover:shadow">
                   Bayar Sekarang
                 </button>
               )}
@@ -467,7 +467,7 @@ export default function SiswaDashboard() {
         )}
 
         {!isDataLengkap && pendaftar && (
-          <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+          <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm animate-fade-up delay-150">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100">
               <AlertTriangle size={16} className="text-amber-600" />
             </div>
@@ -479,31 +479,32 @@ export default function SiswaDashboard() {
             </div>
             <Link
               to="/siswa-dashboard/matching-job"
-              className="shrink-0 rounded-lg bg-amber-600 px-3.5 py-2 text-xs font-bold text-white transition-colors hover:bg-amber-700">
+              className="shrink-0 rounded-lg bg-amber-600 px-3.5 py-2 text-xs font-bold text-white transition-all hover:bg-amber-700 active:scale-95 shadow-sm">
               Lengkapi
             </Link>
           </div>
         )}
 
         {/* ============ Quick Actions ============ */}
-        <section className="rounded-xl bg-white p-4 shadow-sm">
+        <section className="rounded-xl bg-white p-4 shadow-sm animate-fade-up delay-200">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-slate-800">Akses Cepat</h2>
             <span className="text-[11px] text-slate-400">{quickActions.length} menu</span>
           </div>
           <div className="-mx-4 mt-3 flex items-stretch gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
-            {quickActions.map(qa => {
+            {quickActions.map((qa, idx) => {
               const Icon = qa.icon
+              const delays = ['delay-75', 'delay-100', 'delay-150', 'delay-200', 'delay-250', 'delay-300', 'delay-350', 'delay-400']
               return (
                 <Link
                   key={qa.label}
                   to={qa.to}
-                  className="flex w-[68px] shrink-0 flex-col items-center gap-1.5 transition-transform active:scale-95"
+                  className={`flex w-[68px] shrink-0 flex-col items-center gap-1.5 transition-all duration-200 hover:-translate-y-1 active:scale-95 group animate-pop-in ${delays[idx % delays.length]}`}
                 >
-                  <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${qa.bg} ${qa.color}`}>
+                  <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${qa.bg} ${qa.color} transition-all duration-200 group-hover:shadow-md group-hover:scale-105`}>
                     <Icon size={20} />
                   </div>
-                  <span className="text-center text-[10px] font-medium leading-tight text-slate-600">{qa.label}</span>
+                  <span className="text-center text-[10px] font-medium leading-tight text-slate-600 group-hover:text-slate-900">{qa.label}</span>
                 </Link>
               )
             })}
@@ -511,30 +512,30 @@ export default function SiswaDashboard() {
         </section>
 
         {/* ============ Status Overview ============ */}
-        <section className="rounded-xl bg-white p-4 shadow-sm">
+        <section className="rounded-xl bg-white p-4 shadow-sm animate-fade-up delay-250">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-slate-800">Status Pendaftaran</h2>
             <Link
               to="/siswa-dashboard/matching-job"
-              className="flex items-center gap-0.5 text-[11px] font-semibold text-[#0E6187]">
+              className="flex items-center gap-0.5 text-[11px] font-semibold text-[#0E6187] hover:underline">
               Lengkapi <ChevronRight size={12} />
             </Link>
           </div>
           {pendaftar ? (
             <div className="mt-3 grid grid-cols-3 gap-2">
-              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-center">
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-center transition-all hover:bg-slate-100/80 animate-pop-in delay-100">
                 <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${statusColor[pendaftar.status_pendaftaran] || 'bg-slate-100 text-slate-600'}`}>
                   <StatusIcon size={10} /> {cap(pendaftar.status_pendaftaran)}
                 </span>
                 <p className="mt-1.5 text-[10px] font-medium text-slate-400">Pendaftaran</p>
               </div>
-              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-center">
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-center transition-all hover:bg-slate-100/80 animate-pop-in delay-150">
                 <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${paymentColor[pendaftar.status_pembayaran] || 'bg-slate-100 text-slate-600'}`}>
                   <CheckCircle size={10} /> {cap(pendaftar.status_pembayaran)}
                 </span>
                 <p className="mt-1.5 text-[10px] font-medium text-slate-400">Pembayaran</p>
               </div>
-              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-center">
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-center transition-all hover:bg-slate-100/80 animate-pop-in delay-200">
                 <span className="inline-flex items-center rounded-full bg-[#0E6187]/10 px-2 py-0.5 text-[10px] font-bold text-[#0E6187]">
                   <Package size={10} /> Program
                 </span>
@@ -550,7 +551,7 @@ export default function SiswaDashboard() {
 
         {/* ============ Progress Timeline ============ */}
         {(siswa?.batch_id || pendaftar?.batch_id) && Object.keys(jadwalLevels).length > 0 && (
-          <section className="rounded-xl bg-white p-4 shadow-sm">
+          <section className="rounded-xl bg-white p-4 shadow-sm animate-fade-up delay-300">
             <h2 className="text-sm font-bold text-slate-800">Progress Belajar</h2>
             <p className="mt-0.5 text-[11px] text-slate-400">Tahapan level pembelajaran Anda</p>
             <div className="mt-4">
@@ -561,17 +562,17 @@ export default function SiswaDashboard() {
 
         {/* ============ Evaluasi Sensei ============ */}
         {Object.keys(evaluations).length > 0 && (
-          <section className="rounded-xl bg-white p-4 shadow-sm">
+          <section className="rounded-xl bg-white p-4 shadow-sm animate-fade-up delay-350">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-bold text-slate-800">Evaluasi Sensei</h2>
-              <Link to="/siswa-dashboard/nilai" className="flex items-center gap-0.5 text-[11px] font-semibold text-[#0E6187]">
+              <Link to="/siswa-dashboard/nilai" className="flex items-center gap-0.5 text-[11px] font-semibold text-[#0E6187] hover:underline">
                 Lihat Semua <ChevronRight size={12} />
               </Link>
             </div>
             <div className="mt-3 space-y-3">
-              {Object.entries(evaluations).map(([level, ev]) =>
+              {Object.entries(evaluations).map(([level, ev], i) =>
                 ev.evaluasi ? (
-                  <div key={level} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                  <div key={level} className="rounded-xl border border-slate-100 bg-slate-50 p-3 animate-fade-up transition-all hover:bg-slate-100/70" style={{ animationDelay: `${350 + i * 50}ms` }}>
                     <div className="flex items-center gap-1.5">
                       <MessageSquare size={12} className="text-[#0E6187]" />
                       <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Level {level}</p>
@@ -588,8 +589,8 @@ export default function SiswaDashboard() {
         )}
 
         {!pendaftar && (
-          <section className="rounded-xl bg-white p-6 text-center shadow-sm">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+          <section className="rounded-xl bg-white p-6 text-center shadow-sm animate-fade-up delay-300">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400 animate-pop-in">
               <User size={28} />
             </div>
             <p className="mt-3 text-sm font-medium text-slate-500">Belum ada data pendaftaran</p>
@@ -599,7 +600,7 @@ export default function SiswaDashboard() {
       </div>
 
       {/* ============ Bottom Nav Bar ============ */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden animate-fade-in delay-300">
         <div className="mx-auto grid max-w-lg grid-cols-5">
           {bottomNav.map(nav => {
             const Icon = nav.icon
@@ -608,11 +609,11 @@ export default function SiswaDashboard() {
               <Link
                 key={nav.label}
                 to={nav.to}
-                className={`flex flex-col items-center gap-1 py-2.5 transition ${
-                  isActive ? 'text-[#0E6187]' : 'text-slate-400'
+                className={`flex flex-col items-center gap-1 py-2.5 transition-all duration-200 active:scale-90 ${
+                  isActive ? 'text-[#0E6187]' : 'text-slate-400 hover:text-slate-600'
                 }`}
               >
-                <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
+                <Icon size={20} strokeWidth={isActive ? 2.4 : 2} className="transition-transform duration-200" />
                 <span className="text-[10px] font-medium">{nav.label}</span>
               </Link>
             )
