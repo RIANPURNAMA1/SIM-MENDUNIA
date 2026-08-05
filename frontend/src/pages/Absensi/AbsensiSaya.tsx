@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import {
-  Clock, CalendarDays, QrCode, X, CheckCircle,
-  AlertCircle, History, ChevronRight
+  Clock, CalendarDays, CalendarCheck, QrCode, X, CheckCircle,
+  AlertCircle, History, ChevronLeft, LayoutDashboard, BookOpen, Wallet, User,
 } from 'lucide-react'
 import { Html5Qrcode } from 'html5-qrcode'
 import Swal from 'sweetalert2'
 import api from '../../services/api'
 
 export default function AbsensiSaya() {
+  const location = useLocation()
   const [siswa, setSiswa] = useState<any>(null)
   const [riwayat, setRiwayat] = useState<any[]>([])
   const [kelasAktif, setKelasAktif] = useState<any[]>([])
@@ -186,7 +188,7 @@ export default function AbsensiSaya() {
 
   if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center min-h-[50vh]">
+      <div className="min-h-screen bg-[#F0F2F5] flex items-center justify-center">
         <div className="relative w-14 h-14 flex items-center justify-center">
           <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
           <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
@@ -203,24 +205,52 @@ export default function AbsensiSaya() {
 
   const formatDate = (d: string) => d ? new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'
 
-  return (
-    <div className="min-h-screen bg-[#f0f2f5]">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-200">
-        <div className="px-4 py-3 sm:px-6 sm:py-4">
-          <h1 className="text-lg font-bold text-gray-900 sm:text-2xl">Absensi Saya</h1>
-          <p className="text-xs text-gray-500 sm:text-sm mt-0.5">Jadwal shift dan riwayat kehadiran</p>
-        </div>
-      </div>
+  const bottomNav = [
+    { label: 'Dashboard', to: '/siswa-dashboard', icon: LayoutDashboard },
+    { label: 'LMS', to: '/siswa-dashboard/lms', icon: BookOpen },
+    { label: 'Absensi', to: '/siswa-dashboard/absensi', icon: CalendarCheck },
+    { label: 'Pembayaran', to: '/siswa-dashboard/pembayaran', icon: Wallet },
+    { label: 'Profil', to: '/siswa-dashboard/profil', icon: User },
+  ]
 
-      {!siswa ? (
-        <div className="p-4 sm:p-6">
+  return (
+    <div className="min-h-screen bg-[#f0f2f5] pb-24 lg:pb-8">
+      {/* ============ Top App Bar ============ */}
+      <header className="bg-[#0E6187] px-4 pb-16 pt-5 text-white">
+        <div className="mx-auto max-w-lg">
+          <div className="flex items-center justify-between">
+            <Link
+              to="/siswa-dashboard"
+              aria-label="Kembali ke dashboard"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20"
+            >
+              <ChevronLeft size={18} />
+            </Link>
+            <div className="flex items-center gap-2">
+              <img src="/logo-sm.png" alt="Mendunia" className="h-8 w-auto" />
+              <span className="text-base font-bold tracking-tight">Kelas Mendunia</span>
+            </div>
+            <div className="w-9" />
+          </div>
+          <div className="mt-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
+              <CalendarCheck size={20} />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold">Absensi</h1>
+              <p className="mt-0.5 text-[13px] text-teal-100">Jadwal shift dan riwayat kehadiran</p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto -mt-10 max-w-lg space-y-4 px-4">
+        {!siswa ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
             <p className="text-gray-400">Data siswa tidak ditemukan</p>
           </div>
-        </div>
-      ) : (
-        <div className="px-4 py-4 sm:px-6 sm:py-5 space-y-4">
+        ) : (
+          <>
 
           {/* Absensi Hari Ini + QR — Meta-style compact cards */}
           <div className="grid grid-cols-2 gap-3">
@@ -484,8 +514,9 @@ export default function AbsensiSaya() {
               </>
             )}
           </div>
-        </div>
-      )}
+          </>
+        )}
+      </div>
 
       {showQr && (
         <div className="fixed inset-0 z-50 bg-white sm:bg-black/60 sm:flex sm:items-center sm:justify-center sm:p-4">
@@ -519,8 +550,27 @@ export default function AbsensiSaya() {
         </div>
       )}
 
-      {/* Nilai Modal */}
-
+      {/* ============ Bottom Nav Bar ============ */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden">
+        <div className="mx-auto grid max-w-lg grid-cols-5">
+          {bottomNav.map(nav => {
+            const Icon = nav.icon
+            const isActive = nav.to === location.pathname
+            return (
+              <Link
+                key={nav.label}
+                to={nav.to}
+                className={`flex flex-col items-center gap-1 py-2.5 transition ${
+                  isActive ? 'text-[#0E6187]' : 'text-slate-400'
+                }`}
+              >
+                <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
+                <span className="text-[10px] font-medium">{nav.label}</span>
+              </Link>
+            )
+          })}
+        </div>
+      </nav>
     </div>
   )
 }
