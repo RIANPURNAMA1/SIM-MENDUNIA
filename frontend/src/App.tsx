@@ -468,6 +468,16 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/admin-cabang/pendaftar/:id/invoice"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <InvoicePendaftar variant="cabang" />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
 
       <Route
         path="/riwayat-absensi-karyawan"

@@ -273,9 +273,18 @@ const dokumenList: { jenis: string; label: string; required: boolean; maxKB: num
   { jenis: 'lainnya', label: 'Dokumen Lainnya', required: false, maxKB: 500 },
 ]
 
+const statusFormulirMeta: Record<string, { label: string; desc: string; cls: string; dot: string }> = {
+  draft: { label: 'Draft', desc: 'Formulir disimpan sebagai draft di Sistem Penempatan', cls: 'bg-amber-100 text-amber-700', dot: 'bg-amber-500' },
+  submitted: { label: 'Terkirim', desc: 'Formulir sudah dikirim ke Sistem Penempatan', cls: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' },
+  reviewed: { label: 'Direview', desc: 'Formulir sedang direview oleh tim penempatan', cls: 'bg-purple-100 text-purple-700', dot: 'bg-purple-500' },
+  approved: { label: 'Disetujui', desc: 'Formulir telah disetujui oleh tim penempatan', cls: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' },
+  rejected: { label: 'Ditolak', desc: 'Formulir ditolak oleh tim penempatan', cls: 'bg-red-100 text-red-700', dot: 'bg-red-500' },
+}
+
 export default function MatchingJobForm() {
   const [activeStep, setActiveStep] = useState(0)
-  const [submitted, setSubmitted] = useState(false)
+  const [statusFormulir, setStatusFormulir] = useState('draft')
+  const [kandidatId, setKandidatId] = useState<number | null>(null)
   const [sending, setSending] = useState(false)
   const [pengalaman, setPengalaman] = useState<Pengalaman[]>([])
   const [sswSelected, setSswSelected] = useState<Set<string>>(new Set())
@@ -409,6 +418,26 @@ export default function MatchingJobForm() {
           pendidikanTerakhir: mapPendidikan(s.pendidikan_terakhir || u.pendidikan_terakhir || ''),
           tahunLulus: s.tahun_lulus || '',
         }))
+
+        const studentEmail = (u.email || '').trim()
+        const studentNama = (s.nama || u.name || '').trim()
+        const query = studentEmail || studentNama
+        if (query) {
+          api.get('/penempatan/kandidat', { params: { search: query, limit: 20 } })
+            .then(res2 => {
+              const list: any[] = Array.isArray(res2.data?.data) ? res2.data.data : []
+              const rec = list.find((k: any) =>
+                studentEmail && (k.email_kontak || '').toLowerCase() === studentEmail.toLowerCase()
+              ) || list.find((k: any) =>
+                studentNama && (k.nama_romaji || '').toLowerCase() === studentNama.toLowerCase()
+              )
+              if (rec?.id) {
+                setKandidatId(rec.id)
+                if (rec.status_formulir) setStatusFormulir(rec.status_formulir)
+              }
+            })
+            .catch(() => {})
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -433,7 +462,7 @@ export default function MatchingJobForm() {
   const toBool = (v: string) => (v === 'Ya' ? 1 : v === 'Tidak' ? 0 : null)
   const toNum = (v: string) => (v === '' ? null : Number(v))
 
-  const buildPayload = () => {
+  const buildPayload = (final = false) => {
     const keluarga: Array<{
       hubungan: string
       nama: string | null
@@ -537,7 +566,7 @@ export default function MatchingJobForm() {
       rencana_pulang: form.rencanaPulang || null,
       sumber_biaya: form.sumberBiaya || null,
       biaya_disiapkan: form.biayaDisiapkan || null,
-      status_formulir: 'draft',
+      status_formulir: final ? 'submitted' : 'draft',
       status_progres: 'Pending',
       pendidikan: pendidikanArr,
       pengalaman: pengalamanArr,
@@ -553,7 +582,9 @@ export default function MatchingJobForm() {
     }
     setSending(true)
     try {
-      const res = await api.post('/penempatan/kandidat', buildPayload())
+      const res = kandidatId
+        ? await api.put(`/penempatan/kandidat/${kandidatId}`, buildPayload(final))
+        : await api.post('/penempatan/kandidat', buildPayload(final))
       if (!res.data?.success) {
         Swal.fire({
           icon: 'error',
@@ -564,7 +595,8 @@ export default function MatchingJobForm() {
         return
       }
 
-      const kandidatId: number | undefined = res.data?.data?.id
+      const savedId: number | undefined = kandidatId ?? res.data?.data?.id
+      setStatusFormulir(res.data?.data?.status_formulir || (final ? 'submitted' : 'draft'))
       const uploads: { jenis: string; file: File }[] = []
 
       dokumenList.forEach(d => {
@@ -575,12 +607,12 @@ export default function MatchingJobForm() {
 
       let uploaded = 0
       const errors: string[] = []
-      if (kandidatId && uploads.length > 0) {
+      if (savedId && uploads.length > 0) {
         for (const u of uploads) {
           try {
             const fd = new FormData()
             fd.append('file', u.file)
-            const up = await api.post(`/penempatan/kandidat/${kandidatId}/upload-dokumen?jenis_dokumen=${u.jenis}`, fd)
+            const up = await api.post(`/penempatan/kandidat/${savedId}/upload-dokumen?jenis_dokumen=${u.jenis}`, fd)
             if (up.data?.success) uploaded++
             else errors.push(`${u.jenis}: ${up.data?.message || 'gagal'}`)
           } catch (e: any) {
@@ -588,8 +620,6 @@ export default function MatchingJobForm() {
           }
         }
       }
-
-      setSubmitted(true)
       const dokumenMsg = uploads.length === 0
         ? ''
         : errors.length === 0
@@ -635,6 +665,7 @@ export default function MatchingJobForm() {
   }
 
   const progressPct = Math.round(((activeStep + 1) / steps.length) * 100)
+  const currentStatus = statusFormulirMeta[statusFormulir] || statusFormulirMeta.draft
 
   return (
     <div className="min-h-screen bg-[#f0f2f5] pb-24 lg:pb-8">
@@ -684,12 +715,12 @@ export default function MatchingJobForm() {
           <div>
             <p className="text-sm font-semibold text-slate-800">Status Formulir</p>
             <p className="mt-0.5 text-[11px] text-slate-400">
-              {submitted ? 'Formulir sudah dikirim ke Sistem Penempatan' : 'Formulir disimpan sebagai draft di Sistem Penempatan'}
+              {currentStatus.desc}
             </p>
           </div>
-          <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${submitted ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-            <span className={`h-1.5 w-1.5 rounded-full ${submitted ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-            {submitted ? 'Terkirim' : 'Draft'}
+          <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${currentStatus.cls}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${currentStatus.dot}`} />
+            {currentStatus.label}
           </span>
         </div>
 

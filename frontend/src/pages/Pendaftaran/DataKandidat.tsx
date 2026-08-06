@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { DollarSign, Users, Search, RotateCcw, Eye, Edit3, Power, PowerOff, CalendarOff, Calendar, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, FileText, Download, Upload, Trash2, ArrowRight, RefreshCw, KeyRound, ClipboardPaste, LayoutDashboard } from 'lucide-react'
+import { DollarSign, Users, Search, RotateCcw, Eye, Edit3, Power, PowerOff, CalendarOff, Calendar, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronUp, ChevronDown, ChevronsUpDown, MoreHorizontal, FileText, Download, Upload, Trash2, ArrowRight, RefreshCw, KeyRound, ClipboardPaste, LayoutDashboard } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import api, { pendaftarApi, batchApi, productApi } from '../../services/api'
+import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, flexRender, type ColumnDef, type SortingState } from '@tanstack/react-table'
+import api, { pendaftarApi, batchApi, productApi, adminCabangApi } from '../../services/api'
 import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
 import Swal from 'sweetalert2'
@@ -78,7 +79,8 @@ type EditableField = keyof Pick<Kandidat,
 const inputCls = "w-full min-w-[70px] px-1.5 py-0.5 border border-blue-400 rounded bg-blue-50 text-xs text-slate-700 outline-none focus:ring-1 focus:ring-blue-500"
 const selectCls = "w-full min-w-[70px] px-1 py-0.5 border border-blue-400 rounded bg-blue-50 text-xs text-slate-700 outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
 
-export default function DataKandidat() {
+export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'cabang' } = {}) {
+  const isCabang = variant === 'cabang'
   const batchColors = [
     { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', badge: 'bg-blue-100 text-blue-700 border-blue-200' },
     { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', badge: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
@@ -115,6 +117,7 @@ export default function DataKandidat() {
   const [filterBatch, setFilterBatch] = useState('')
   const [filterCabang, setFilterCabang] = useState('')
   const [showBatchDropdown, setShowBatchDropdown] = useState(false)
+  const [showTambahBatchDropdown, setShowTambahBatchDropdown] = useState(false)
   const [cabangOptions, setCabangOptions] = useState<{ id: number; nama: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -137,6 +140,7 @@ export default function DataKandidat() {
   })
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(25)
+  const [sorting, setSorting] = useState<SortingState>([])
   const [togglingId, setTogglingId] = useState<number | null>(null)
   const [togglingCutiId, setTogglingCutiId] = useState<number | null>(null)
   const [updatingStatusKandidat, setUpdatingStatusKandidat] = useState<number | null>(null)
@@ -182,7 +186,8 @@ export default function DataKandidat() {
 
   useEffect(() => {
     fetchData()
-    batchApi.list().then(res => {
+    const batchReq = isCabang ? adminCabangApi.batches() : batchApi.list()
+    batchReq.then(res => {
       const raw = res.data.data || res.data.batches || res.data || []
       const all = raw.map((b: { id: number; nama_batch: string; warna?: string | null }) => ({ id: b.id, nama: b.nama_batch, warna: b.warna ?? null }))
       setBatchOptions(prev => {
@@ -235,8 +240,8 @@ export default function DataKandidat() {
 
   const doFetch = useCallback(function (params: Record<string, string>) {
     setLoading(true)
-    pendaftarApi.kandidat(params)
-      .then(res => {
+    const req = isCabang ? adminCabangApi.kandidat(params) : pendaftarApi.kandidat(params)
+    req.then(res => {
         const allKandidat: Kandidat[] = []
         const seen = new Set<number>()
         const batches: BatchOption[] = []
@@ -287,7 +292,7 @@ export default function DataKandidat() {
     const params: Record<string, string> = {}
     if (s) params.search = s
     if (b) params.batch_id = b
-    if (c) params.cabang_id = c
+    if (c && !isCabang) params.cabang_id = c
     return params
   }
 
@@ -349,7 +354,7 @@ export default function DataKandidat() {
       if (status === 'Mengundurkan Diri') {
         payload.status_akademik = 'NONAKTIF'
       }
-      await pendaftarApi.updateKandidat(id, payload)
+      await (isCabang ? adminCabangApi.updateKandidat(id, payload) : pendaftarApi.updateKandidat(id, payload))
       fetchData(search)
     } catch {
       alert('Gagal mengubah status kandidat')
@@ -377,7 +382,7 @@ export default function DataKandidat() {
         if (v === '' || v === undefined) payload[k] = null
         else payload[k] = v
       }
-      await pendaftarApi.updateKandidat(editingId, payload)
+      await (isCabang ? adminCabangApi.updateKandidat(editingId, payload) : pendaftarApi.updateKandidat(editingId, payload))
       setKandidatList(prev => prev.map(k => k.id === editingId ? { ...k, ...editForm } as Kandidat : k))
       setEditingId(null)
       setEditForm({})
@@ -457,7 +462,7 @@ export default function DataKandidat() {
       if (payload.product_id) payload.product_id = Number(payload.product_id)
       if (payload.tinggi_badan) payload.tinggi_badan = Number(payload.tinggi_badan)
       if (payload.berat_badan) payload.berat_badan = Number(payload.berat_badan)
-      const res = await pendaftarApi.createKandidat(payload)
+      const res = await (isCabang ? adminCabangApi.createKandidat(payload) : pendaftarApi.createKandidat(payload))
       setTambahSuccess({ noReg: res.data.no_registrasi, password: res.data.password })
       setTambahError('')
       setTambahErrors({})
@@ -512,7 +517,7 @@ export default function DataKandidat() {
   async function handlePindahBatch(kandidatId: number, newBatchId: string) {
     const id = newBatchId ? Number(newBatchId) : null
     try {
-      await pendaftarApi.updateKandidat(kandidatId, { batch_id: id })
+      await (isCabang ? adminCabangApi.updateKandidat(kandidatId, { batch_id: id }) : pendaftarApi.updateKandidat(kandidatId, { batch_id: id }))
       setKandidatList(prev => prev.map(k =>
         k.id === kandidatId
           ? { ...k, batch_id: id, batch_nama: batchOptions.find(b => b.id === id)?.nama || '-', batch_warna: batchOptions.find(b => b.id === id)?.warna ?? null }
@@ -537,7 +542,7 @@ export default function DataKandidat() {
   }
 
   function toggleSelectAll() {
-    const pageIds = pagedList.map(k => k.id)
+    const pageIds = table.getRowModel().rows.map(r => (r.original as Kandidat).id)
     const allSelected = pageIds.length > 0 && pageIds.every(id => selectedIds.has(id))
     if (allSelected) {
       setSelectedIds(prev => {
@@ -737,7 +742,64 @@ export default function DataKandidat() {
 
   const totalPages = Math.max(1, Math.ceil(filteredList.length / perPage))
   const safePage = Math.min(page, totalPages)
-  const pagedList = filteredList.slice((safePage - 1) * perPage, safePage * perPage)
+
+  const thBase = 'border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white '
+  const columns: ColumnDef<Kandidat, any>[] = [
+    { id: 'no', header: 'No', enableSorting: false, meta: { thClass: `${thBase}text-center w-[36px] min-w-[36px]` } },
+    ...(isCabang
+      ? []
+      : [{
+          id: 'checkbox',
+          header: ({ table: t }: any) => (
+            <input
+              type="checkbox"
+              checked={t.getRowModel().rows.length > 0 && t.getRowModel().rows.every((r: any) => selectedIds.has((r.original as Kandidat).id))}
+              onChange={toggleSelectAll}
+              className="h-4 w-4 rounded border-slate-400 text-blue-600 focus:ring-blue-500 cursor-pointer"
+            />
+          ),
+          enableSorting: false,
+          meta: { thClass: 'border border-slate-600 px-3 py-3 text-center w-[40px] min-w-[40px]' },
+        }]),
+    { id: 'nik', accessorKey: 'nik', header: 'NIK', meta: { thClass: `${thBase}w-[150px] min-w-[150px]` } },
+    { id: 'no_registrasi', accessorKey: 'no_registrasi', header: 'No. Registrasi', meta: { thClass: `${thBase}w-[150px] min-w-[150px]` } },
+    { id: 'nama', accessorKey: 'nama', header: 'Nama Kandidat', meta: { thClass: `${thBase}w-[180px] min-w-[180px]` } },
+    { id: 'batch', accessorFn: k => k.batch_nama, header: 'Batch', meta: { thClass: `${thBase}w-[110px] min-w-[110px]` } },
+    { id: 'cabang', accessorFn: k => k.cabang_nama, header: 'Cabang', meta: { thClass: `${thBase}w-[110px] min-w-[110px]` } },
+    { id: 'real_batch', accessorKey: 'real_batch', header: 'Real Batch', meta: { thClass: `${thBase}w-[90px] min-w-[90px]` } },
+    { id: 'jk', accessorFn: k => k.jenis_kelamin, header: 'JK', meta: { thClass: `${thBase}text-center w-[36px] min-w-[36px]` } },
+    { id: 'ttl', accessorFn: k => `${k.tempat_lahir} ${k.tanggal_lahir}`, header: 'Tempat, Tanggal Lahir', meta: { thClass: `${thBase}w-[170px] min-w-[170px]` } },
+    { id: 'alamat', accessorKey: 'alamat', header: 'Alamat', meta: { thClass: `${thBase}w-[200px] min-w-[200px]` } },
+    { id: 'desa', accessorKey: 'desa', header: 'Desa', meta: { thClass: `${thBase}w-[110px] min-w-[110px]` } },
+    { id: 'kecamatan', accessorKey: 'kecamatan', header: 'Kecamatan', meta: { thClass: `${thBase}w-[110px] min-w-[110px]` } },
+    { id: 'kabupaten', accessorKey: 'kabupaten', header: 'Kab./Kota', meta: { thClass: `${thBase}w-[120px] min-w-[120px]` } },
+    { id: 'provinsi', accessorKey: 'provinsi', header: 'Provinsi', meta: { thClass: `${thBase}w-[110px] min-w-[110px]` } },
+    { id: 'pendidikan_terakhir', accessorKey: 'pendidikan_terakhir', header: 'Pend. Terakhir', meta: { thClass: `${thBase}w-[110px] min-w-[110px]` } },
+    { id: 'tahun_lulus', accessorKey: 'tahun_lulus', header: 'Tahun Lulus', meta: { thClass: `${thBase}text-center w-[60px] min-w-[60px]` } },
+    { id: 'tinggi_badan', accessorKey: 'tinggi_badan', header: 'TB', meta: { thClass: `${thBase}text-center w-[40px] min-w-[40px]` } },
+    { id: 'berat_badan', accessorKey: 'berat_badan', header: 'BB', meta: { thClass: `${thBase}text-center w-[40px] min-w-[40px]` } },
+    { id: 'goldar', accessorKey: 'goldar', header: 'Goldar', meta: { thClass: `${thBase}text-center w-[50px] min-w-[50px]` } },
+    { id: 'ukuran_baju', accessorKey: 'ukuran_baju', header: 'Uk. Baju', meta: { thClass: `${thBase}text-center w-[55px] min-w-[55px]` } },
+    { id: 'status_pernikahan', accessorKey: 'status_pernikahan', header: 'Status Nikah', meta: { thClass: `${thBase}w-[90px] min-w-[90px]` } },
+    { id: 'email', accessorKey: 'email', header: 'E-mail', meta: { thClass: `${thBase}w-[200px] min-w-[200px]` } },
+    { id: 'no_hp', accessorKey: 'no_hp', header: 'No. Tlp', meta: { thClass: `${thBase}w-[110px] min-w-[110px]` } },
+    { id: 'nama_ortu', accessorKey: 'nama_ortu', header: 'Nama Orang Tua/Wali', meta: { thClass: `${thBase}w-[140px] min-w-[140px]` } },
+    { id: 'no_hp_ortu', accessorKey: 'no_hp_ortu', header: 'No. Tlp Orang Tua', meta: { thClass: `${thBase}w-[110px] min-w-[110px]` } },
+    { id: 'status_kandidat', accessorKey: 'status_kandidat', header: 'Status Kandidat', meta: { thClass: `${thBase}text-center w-[150px] min-w-[150px]` } },
+    { id: 'keterangan', accessorKey: 'keterangan', header: 'Ket.', meta: { thClass: `${thBase}w-[140px] min-w-[140px]` } },
+    { id: 'aksi', header: 'Aksi', enableSorting: false, meta: { thClass: 'sticky right-0 z-30 border border-slate-600 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-white bg-[#0e6187] shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] w-[60px] min-w-[60px]' } },
+  ]
+
+  const table = useReactTable({
+    data: filteredList,
+    columns,
+    state: { sorting, pagination: { pageIndex: safePage - 1, pageSize: perPage } },
+    onSortingChange: updater => { setSorting(updater); setPage(1) },
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    autoResetPageIndex: false,
+  })
 
   const statusBadge = (status: string) => {
     const map: Record<string, { bg: string; text: string; label: string }> = {
@@ -851,7 +913,7 @@ export default function DataKandidat() {
     try {
       const params: Record<string, string> = { batch_id: exportBatchId }
       if (exportCabangId) params.cabang_id = exportCabangId
-      const res = await pendaftarApi.kandidat(params)
+      const res = await (isCabang ? adminCabangApi.kandidat(params) : pendaftarApi.kandidat(params))
       const rows: { noReg: string; nama: string; email: string; password: string }[] = []
       for (const b of res.data.batches || []) {
         for (const k of b.kandidat || []) {
@@ -864,11 +926,12 @@ export default function DataKandidat() {
         }
       }
       if (rows.length === 0) {
-        Swal.fire({ icon: 'warning', title: 'Data Kosong', text: 'Tidak ada kandidat untuk batch dan cabang terpilih.', confirmButtonColor: '#0E6187' })
+        Swal.fire({ icon: 'warning', title: 'Data Kosong', text: 'Tidak ada kandidat untuk batch terpilih.', confirmButtonColor: '#0E6187' })
         return
       }
       const batchNama = batchOptions.find(b => String(b.id) === exportBatchId)?.nama || 'Batch terpilih'
-      const cabangNama = cabangOptions.find(c => String(c.id) === exportCabangId)?.nama || 'Semua Cabang'
+      const cabangNama = cabangOptions.find(c => String(c.id) === exportCabangId)?.nama
+        || (cabangOptions.length === 1 ? cabangOptions[0].nama : 'Semua Cabang')
       exportLoginPdf(rows, batchNama, cabangNama)
       setShowExportLogin(false)
     } catch {
@@ -1269,7 +1332,7 @@ export default function DataKandidat() {
           <span>Beranda</span>
         </Link>
         <ChevronRight size={12} className="text-slate-300" />
-        <Link to="/pendaftar" className="transition-colors hover:text-[#0E6187]">
+        <Link to={isCabang ? '/admin-cabang/pendaftar' : '/pendaftar'} className="transition-colors hover:text-[#0E6187]">
           Pendaftaran
         </Link>
         <ChevronRight size={12} className="text-slate-300" />
@@ -1277,7 +1340,7 @@ export default function DataKandidat() {
       </nav>
 
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between border border-slate-200">
+      <div className="mb-4 flex flex-col gap-4 rounded-sm p-4 sm:flex-row sm:items-center sm:justify-between border border-slate-200">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
             <Users size={20} />
@@ -1307,7 +1370,7 @@ export default function DataKandidat() {
           { label: 'Lulus Pendidikan', value: statusCounts['Lulus Pendidikan'] },
           { label: 'Cuti', value: statusCounts.Cuti },
         ].map(s => (
-          <div key={s.label} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+          <div key={s.label} className="rounded-sm border border-slate-200 bg-white p-3 ">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{s.label}</p>
             <p className="mt-0.5 text-xl font-bold text-slate-800">{s.value}</p>
           </div>
@@ -1315,7 +1378,7 @@ export default function DataKandidat() {
       </div>
 
       {/* Filter */}
-      <div className="mb-4 rounded-sm  border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mb-4 rounded-sm  border border-slate-200 bg-white p-4 ">
         <div className="flex flex-wrap gap-3 items-center">
           <div className="relative w-full md:flex-1 md:w-auto">
             <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -1327,19 +1390,21 @@ export default function DataKandidat() {
               className="w-full rounded-lg border border-slate-300 bg-slate-50 py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
             />
           </div>
-          <div className="relative">
-            <select
-              value={filterCabang}
-              onChange={handleFilterCabang}
-              className="appearance-none rounded-lg border border-slate-300 bg-slate-50 px-8 py-2.5 pr-8 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
-            >
-              <option value="">Semua Cabang</option>
-              {cabangOptions.map(c => (
-                <option key={c.id} value={c.id}>{c.nama}</option>
-              ))}
-            </select>
-            <svg className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-          </div>
+          {!isCabang && (
+            <div className="relative">
+              <select
+                value={filterCabang}
+                onChange={handleFilterCabang}
+                className="appearance-none rounded-lg border border-slate-300 bg-slate-50 px-8 py-2.5 pr-8 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
+              >
+                <option value="">Semua Cabang</option>
+                {cabangOptions.map(c => (
+                  <option key={c.id} value={c.id}>{c.nama}</option>
+                ))}
+              </select>
+              <svg className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            </div>
+          )}
           <div className="relative shrink-0" ref={batchDropdownRef}>
             <button type="button" onClick={() => setShowBatchDropdown(!showBatchDropdown)}
               className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 w-full min-w-[180px] shadow-sm hover:shadow">
@@ -1407,26 +1472,30 @@ export default function DataKandidat() {
               </button>
             </div>
           </div>
-          <button
-            onClick={() => setShowImport(true)}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-800"
-          >
-            <Upload size={16} />
-            Import
-          </button>
-          <button
-            onClick={handleSyncNoRegistrasi}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-300 bg-white px-4 py-2.5 text-sm font-medium text-emerald-600 shadow-sm transition hover:bg-emerald-50 hover:text-emerald-800"
-          >
-            <RefreshCw size={16} />
-            Sync No. Reg
-          </button>
+          {!isCabang && (
+            <button
+              onClick={() => setShowImport(true)}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-800"
+            >
+              <Upload size={16} />
+              Import
+            </button>
+          )}
+          {!isCabang && (
+            <button
+              onClick={handleSyncNoRegistrasi}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-300 bg-white px-4 py-2.5 text-sm font-medium text-emerald-600 shadow-sm transition hover:bg-emerald-50 hover:text-emerald-800"
+            >
+              <RefreshCw size={16} />
+              Sync No. Reg
+            </button>
+          )}
         </div>
       </div>
 
       {/* Bulk Action Bar */}
-      {selectedIds.size > 0 && (
-        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 shadow-sm">
+      {selectedIds.size > 0 && !isCabang && (
+        <div className="mb-4 rounded-sm border border-blue-200 bg-blue-50 px-4 py-3 ">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2 text-sm text-blue-700">
               <Users size={16} />
@@ -1533,7 +1602,7 @@ export default function DataKandidat() {
       )}
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-sm border border-slate-200 ">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="relative w-14 h-14 flex items-center justify-center">
@@ -1543,65 +1612,55 @@ export default function DataKandidat() {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto max-h-[calc(100vh-260px)] overflow-y-auto rounded-lg border border-slate-200">
+            <div className="overflow-x-auto max-h-[calc(100vh-260px)] overflow-y-auto rounded-sm border border-slate-200">
               <table className="w-full min-w-[3200px] border-collapse text-left text-sm text-black">
                 <thead className="sticky top-0 z-20">
                   <tr className="bg-[#0e6187]">
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-white w-[36px] min-w-[36px]">No</th>
-                    <th scope="col" className="border border-slate-600 px-3 py-3 text-center w-[40px] min-w-[40px]">
-                      <input
-                        type="checkbox"
-                        checked={pagedList.length > 0 && pagedList.every(k => selectedIds.has(k.id))}
-                        onChange={toggleSelectAll}
-                        className="h-4 w-4 rounded border-slate-400 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                      />
-                    </th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[150px] min-w-[150px]">NIK</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[150px] min-w-[150px]">No. Registrasi</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[180px] min-w-[180px]">Nama Kandidat</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[110px] min-w-[110px]">Batch</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[110px] min-w-[110px]">Cabang</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[90px] min-w-[90px]">Real Batch</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-white w-[36px] min-w-[36px]">JK</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[170px] min-w-[170px]">Tempat, Tanggal Lahir</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[200px] min-w-[200px]">Alamat</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[110px] min-w-[110px]">Desa</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[110px] min-w-[110px]">Kecamatan</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[120px] min-w-[120px]">Kab./Kota</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[110px] min-w-[110px]">Provinsi</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[110px] min-w-[110px]">Pend. Terakhir</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-white w-[60px] min-w-[60px]">Tahun Lulus</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-white w-[40px] min-w-[40px]">TB</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-white w-[40px] min-w-[40px]">BB</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-white w-[50px] min-w-[50px]">Goldar</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-white w-[55px] min-w-[55px]">Uk. Baju</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[90px] min-w-[90px]">Status Nikah</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[200px] min-w-[200px]">E-mail</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[110px] min-w-[110px]">No. Tlp</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[140px] min-w-[140px]">Nama Orang Tua/Wali</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[110px] min-w-[110px]">No. Tlp Orang Tua</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-white w-[150px] min-w-[150px]">Status Kandidat</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white w-[140px] min-w-[140px]">Ket.</th>
-                    <th scope="col" className="sticky right-0 z-30 border border-slate-600 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-white bg-[#0e6187] shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] w-[60px] min-w-[60px]">Aksi</th>
+                    {table.getHeaderGroups()[0].headers.map(header => {
+                      const canSort = header.column.getCanSort()
+                      const sorted = header.column.getIsSorted()
+                      const meta = header.column.columnDef.meta as { thClass?: string } | undefined
+                      return (
+                        <th
+                          key={header.id}
+                          scope="col"
+                          onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
+                          title={canSort ? 'Klik untuk urutkan' : undefined}
+                          className={`${meta?.thClass || 'border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white'} ${canSort ? 'cursor-pointer select-none hover:bg-[#0a4f6e] transition-colors' : ''}`}
+                        >
+                          <span className="inline-flex items-center gap-1">
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                            {canSort && (
+                              sorted === 'asc' ? <ChevronUp size={13} className="flex-none" />
+                              : sorted === 'desc' ? <ChevronDown size={13} className="flex-none" />
+                              : <ChevronsUpDown size={13} className="opacity-40 flex-none" />
+                            )}
+                          </span>
+                        </th>
+                      )
+                    })}
                   </tr>
                 </thead>
                 <tbody>
-                  {pagedList.length > 0 ? (
-                    pagedList.map((k, idx) => {
+                  {table.getRowModel().rows.length > 0 ? (
+                    table.getRowModel().rows.map((row, idx) => {
+                      const k = row.original
                       const isEditing = editingId === k.id
                       const rowNum = (safePage - 1) * perPage + idx + 1
                       const batchBadgeBg = k.batch_warna || '#3b82f6'
                       return (
                         <tr key={k.id} className={`${isEditing ? 'bg-blue-50/50' : k.level_status_keluar ? 'bg-red-200' : k.is_cuti ? 'bg-yellow-300' : 'bg-white'} transition hover:brightness-[0.97] group`}>
                           <td className="border border-slate-200 px-4 py-3 text-center text-xs font-normal text-black">{rowNum}</td>
-                          <td className="border border-slate-200 px-3 py-3 text-center">
-                            <input
-                              type="checkbox"
-                              checked={selectedIds.has(k.id)}
-                              onChange={() => toggleSelect(k.id)}
-                              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                            />
-                          </td>
+                          {!isCabang && (
+                            <td className="border border-slate-200 px-3 py-3 text-center">
+                              <input
+                                type="checkbox"
+                                checked={selectedIds.has(k.id)}
+                                onChange={() => toggleSelect(k.id)}
+                                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                              />
+                            </td>
+                          )}
                           <td className="border border-slate-200 px-4 py-3 text-xs font-mono font-semibold text-black whitespace-nowrap">
                             {isEditing ? <CellEdit field="nik" /> : k.nik || <span className="text-gray-400">-</span>}
                           </td>
@@ -1773,17 +1832,18 @@ export default function DataKandidat() {
                                       <Edit3 size={14} className="text-slate-400" />
                                       <span>Edit Data</span>
                                     </button>
-                                    <Link to={`/pendaftar/${k.id}/invoice`} onClick={() => setOpenActionId(null)}
+                                    <Link to={isCabang ? `/admin-cabang/pendaftar/${k.id}/invoice` : `/pendaftar/${k.id}/invoice`} onClick={() => setOpenActionId(null)}
                                       className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
                                       <Receipt size={14} className="text-slate-400" />
                                       <span>Lihat Invoice</span>
                                     </Link>
+                                    {!isCabang && (
                                     <button onClick={async () => {
                                       setOpenActionId(null)
                                       try {
                                         const [itemRes, katRes] = await Promise.all([
-                                          api.get(`/pembayaran-item/${k.id}`),
-                                          api.get('/biaya-kategori-flat'),
+                                          isCabang ? adminCabangApi.pembayaranItem(k.id) : api.get(`/pembayaran-item/${k.id}`),
+                                          isCabang ? adminCabangApi.biayaKategori() : api.get('/biaya-kategori-flat'),
                                         ])
                                         setPaymentModal({
                                           kandidat: k,
@@ -1799,6 +1859,7 @@ export default function DataKandidat() {
                                       <DollarSign size={14} className="text-emerald-400" />
                                       <span>Pembayaran Tagihan</span>
                                     </button>
+                                    )}
                                     <div className="my-1 border-t border-slate-100" />
                                     <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Status Kandidat</p>
                                     {['Calon Kandidat', 'Kandidat Aktif', 'Mengundurkan Diri', 'Lulus Pendidikan'].map((st) => (
@@ -1828,6 +1889,7 @@ export default function DataKandidat() {
                                     ))}
                                     <div className="my-1 border-t border-slate-100" />
                                     <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Lainnya</p>
+                                    {!isCabang && (
                                     <button onClick={() => {
                                       setOpenActionId(null)
                                       const isNonaktif = k.status_akademik === 'NONAKTIF'
@@ -1853,6 +1915,7 @@ export default function DataKandidat() {
                                         : <PowerOff size={14} className="text-amber-400" />}
                                       <span>{k.status_akademik === 'NONAKTIF' ? 'Aktifkan' : 'Nonaktifkan'}</span>
                                     </button>
+                                    )}
                                     <button onClick={() => {
                                       setOpenActionId(null)
                                       Swal.fire({
@@ -1878,6 +1941,7 @@ export default function DataKandidat() {
                                       <span>{k.is_cuti ? 'Aktifkan dari Cuti' : 'Cuti'}</span>
                                     </button>
                                     <div className="my-1 border-t border-slate-100" />
+                                    {!isCabang && (
                                     <button onClick={() => {
                                       setOpenActionId(null)
                                       Swal.fire({
@@ -1905,6 +1969,8 @@ export default function DataKandidat() {
                                       <Trash2 size={14} className="text-red-400" />
                                       <span>Hapus Kandidat</span>
                                     </button>
+                                    )}
+                                    {!isCabang && (
                                     <button onClick={() => {
                                       setOpenActionId(null)
                                       const isNonaktif = k.status_akademik === 'NONAKTIF' || k.status_kandidat === 'Mengundurkan Diri'
@@ -1920,7 +1986,7 @@ export default function DataKandidat() {
                                       }).then(async (result) => {
                                         if (result.isConfirmed) {
                                           try {
-                                            await pendaftarApi.updateKandidat(k.id, { status_kandidat: 'Mengundurkan Diri', status_akademik: 'NONAKTIF' })
+                                            await (isCabang ? adminCabangApi.updateKandidat(k.id, { status_kandidat: 'Mengundurkan Diri', status_akademik: 'NONAKTIF' }) : pendaftarApi.updateKandidat(k.id, { status_kandidat: 'Mengundurkan Diri', status_akademik: 'NONAKTIF' }))
                                             fetchData(search)
                                             Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Kandidat telah dinonaktifkan.', confirmButtonColor: '#0E6187', timer: 2000, timerProgressBar: true, showConfirmButton: false })
                                           } catch {
@@ -1933,6 +1999,7 @@ export default function DataKandidat() {
                                       <PowerOff size={14} className="text-red-400" />
                                       <span>Nonaktifkan</span>
                                     </button>
+                                    )}
                                   </div>,
                                   document.body
                                 )}
@@ -1956,7 +2023,7 @@ export default function DataKandidat() {
               </table>
             </div>
             <div className="border-t border-slate-200 px-4 py-3 text-sm text-slate-500">
-              Menampilkan {pagedList.length} dari {filteredList.length} kandidat
+              Menampilkan {table.getRowModel().rows.length} dari {filteredList.length} kandidat
               {selectedIds.size > 0 && <span className="ml-2 font-semibold text-red-600">({selectedIds.size} dipilih)</span>}
             </div>
           </>
@@ -2162,7 +2229,7 @@ export default function DataKandidat() {
                 className="flex items-center gap-2 rounded-lg bg-[#0E6187] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1a3a5c]">
                 <Edit3 size={14} /> Edit Data
               </button>
-              <Link to={`/pendaftar/${detailKandidat.id}/invoice`}
+              <Link to={isCabang ? `/admin-cabang/pendaftar/${detailKandidat.id}/invoice` : `/pendaftar/${detailKandidat.id}/invoice`}
                 className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
                 <Receipt size={14} /> Lihat Invoice
               </Link>
@@ -2307,8 +2374,38 @@ export default function DataKandidat() {
                 <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   <FormField label="Nama Orang Tua/Wali" value={tambahForm.nama_ortu} onChange={v => updateTambahField('nama_ortu', v)} placeholder="Nama orang tua (maks. 255)" maxLength={255} error={tambahErrors.nama_ortu} />
                   <FormField label="No. Tlp Orang Tua" value={tambahForm.no_hp_ortu} onChange={v => updateTambahField('no_hp_ortu', v)} placeholder="No. tlp orang tua (maks. 20)" maxLength={20} error={tambahErrors.no_hp_ortu} />
-                  <FormSelect label="Batch" value={tambahForm.batch_id} onChange={v => updateTambahField('batch_id', v)}
-                    options={batchOptions.map(b => ({ value: String(b.id), label: b.nama }))} error={tambahErrors.batch_id} />
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-600">Batch</label>
+                    <div className="relative">
+                      <button type="button" onClick={() => setShowTambahBatchDropdown(!showTambahBatchDropdown)}
+                        className={`flex w-full items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm text-left outline-none transition ${tambahErrors.batch_id
+                            ? 'border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500'
+                            : 'border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                          }`}>
+                        {tambahForm.batch_id ? (
+                          <span className="flex items-center gap-2 truncate">
+                            <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: batchOptions.find(b => String(b.id) === tambahForm.batch_id)?.warna || '#3b82f6' }} />
+                            <span className="truncate text-slate-700">{batchOptions.find(b => String(b.id) === tambahForm.batch_id)?.nama || 'Pilih...'}</span>
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">Pilih...</span>
+                        )}
+                        <svg className={`ml-auto h-4 w-4 shrink-0 text-slate-400 transition-transform ${showTambahBatchDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                      </button>
+                      {showTambahBatchDropdown && (
+                        <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[200px] rounded-xl border border-slate-200 bg-white py-1 shadow-xl max-h-60 overflow-y-auto">
+                          {batchOptions.map(b => (
+                            <button key={b.id} type="button" onClick={() => { updateTambahField('batch_id', String(b.id)); setShowTambahBatchDropdown(false) }}
+                              className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${String(b.id) === tambahForm.batch_id ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}>
+                              <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: b.warna || '#3b82f6' }} />
+                              <span className="truncate">{b.nama}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {tambahErrors.batch_id && <p className="mt-1 text-[11px] text-red-500">{tambahErrors.batch_id}</p>}
+                  </div>
                   <FormSelect label="Program" value={tambahForm.product_id} onChange={v => updateTambahField('product_id', v)}
                     options={productOptions.map(p => ({ value: String(p.id), label: p.nama }))} error={tambahErrors.product_id} />
                   <FormField label="Real Batch" value={tambahForm.real_batch} onChange={v => updateTambahField('real_batch', v)} placeholder="Real batch (maks. 255)" maxLength={255} error={tambahErrors.real_batch} />
@@ -2628,6 +2725,7 @@ export default function DataKandidat() {
                   )}
                 </div>
               </div>
+              {!isCabang && (
               <div>
                 <label className="mb-1 block text-xs font-medium text-slate-600">Cabang</label>
                 <select
@@ -2641,6 +2739,7 @@ export default function DataKandidat() {
                   ))}
                 </select>
               </div>
+              )}
               <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs text-emerald-700">
                 PDF berisi <span className="font-semibold">No. Registrasi, Nama, E-mail, dan Password</span> login kandidat pada batch & cabang terpilih.
               </div>
@@ -2769,7 +2868,7 @@ export default function DataKandidat() {
                       try {
                         for (const d of distribusi) {
                           if (d.bayar <= 0) continue
-                          await pendaftarApi.bayarManual(k.id, { jumlah: d.bayar, kategori_id: d.kategori_id })
+                          await (isCabang ? adminCabangApi.bayarManual(k.id, { jumlah: d.bayar, kategori_id: d.kategori_id }) : pendaftarApi.bayarManual(k.id, { jumlah: d.bayar, kategori_id: d.kategori_id }))
                         }
                         setPaymentModal(null)
                         fetchData(search)

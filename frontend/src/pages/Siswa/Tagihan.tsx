@@ -118,6 +118,7 @@ export default function Tagihan() {
   const [filterProduct, setFilterProduct] = useState('')
   const [filterDateFrom, setFilterDateFrom] = useState('')
   const [filterDateTo, setFilterDateTo] = useState('')
+  const [showFilter, setShowFilter] = useState(false)
   const [batches, setBatches] = useState<BatchOption[]>([])
   const [products, setProducts] = useState<ProductOption[]>([])
   const [kategoris, setKategoris] = useState<KategoriInfo[]>([])
@@ -234,13 +235,13 @@ export default function Tagihan() {
     date_to: filterDateTo || undefined,
   }), [search, filterStatus, filterBatch, filterProduct, filterDateFrom, filterDateTo])
 
-  const fetchCandidates = useCallback(async (batchId: number, page: number) => {
+  const fetchCandidates = useCallback(async (batchId: number, page: number, params = filterParams()) => {
     setCandidates(prev => ({
       ...prev,
       [batchId]: { items: prev[batchId]?.items || [], page, totalPages: prev[batchId]?.totalPages || 1, total: prev[batchId]?.total || 0, loading: true },
     }))
     try {
-      const res = await pendaftarApi.tagihanBatch(batchId, { ...filterParams(), page, per_page: candidatePerPage })
+      const res = await pendaftarApi.tagihanBatch(batchId, { ...params, page, per_page: candidatePerPage })
       setCandidates(prev => ({
         ...prev,
         [batchId]: { items: res.data.kandidat || [], page: res.data.page || 1, totalPages: res.data.total_pages || 1, total: res.data.total || 0, loading: false },
@@ -254,16 +255,16 @@ export default function Tagihan() {
     }
   }, [filterParams])
 
-  const fetchGroups = useCallback(async (page: number) => {
+  const fetchGroups = useCallback(async (page: number, params = filterParams()) => {
     setLoading(true)
     try {
-      const res = await pendaftarApi.tagihanGroups({ ...filterParams(), page, per_page: batchPerPage })
+      const res = await pendaftarApi.tagihanGroups({ ...params, page, per_page: batchPerPage })
       const batches = res.data.batches || []
       setGroupsMeta(batches)
       setStats(res.data.stats || { total: 0, paid: 0, outstanding: 0, count: 0 })
       setBatchTotalPages(res.data.total_pages || 1)
       setBatchTotal(res.data.total || 0)
-      await Promise.all(batches.map((b: BatchGroupMeta) => fetchCandidates(b.batch_id, 1)))
+      await Promise.all(batches.map((b: BatchGroupMeta) => fetchCandidates(b.batch_id, 1, params)))
     } catch (err) {
       console.error(err)
     } finally {
@@ -846,17 +847,26 @@ export default function Tagihan() {
             <p className="text-sm text-slate-500">Kelola tagihan pendaftaran</p>
           </div>
         </div>
-        <button
-          onClick={() => { setSelectedPendingPendaftarId(null); setShowPendingModal(true) }}
-          className="relative inline-flex items-center gap-2 rounded-md bg-white border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
-        >
-          <span>Verifikasi</span>
-          {pendingPembayaran.length > 0 && (
-            <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-              {new Set(pendingPembayaran.map((pp: any) => pp.pendaftar_id)).size}
-            </span>
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setSelectedPendingPendaftarId(null); setShowPendingModal(true) }}
+            className="relative inline-flex items-center gap-2 rounded-md bg-white border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+          >
+            <span>Verifikasi</span>
+            {pendingPembayaran.length > 0 && (
+              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                {new Set(pendingPembayaran.map((pp: any) => pp.pendaftar_id)).size}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setShowFilter(v => !v)}
+            className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium shadow-sm transition ${showFilter ? 'bg-[#1a3a5c] text-white' : 'bg-[#0E6187] text-white hover:bg-[#1a3a5c]'}`}
+          >
+            <Search size={16} />
+            Filter
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -900,6 +910,7 @@ export default function Tagihan() {
       </div>
 
       {/* Filter */}
+      {showFilter && (
       <div className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
           <div className="relative sm:col-span-2 md:col-span-3 lg:col-span-2">
@@ -986,6 +997,7 @@ export default function Tagihan() {
           </button>
         </div>
       </div>
+      )}
 
       {/* Program Tables */}
       {loading ? (

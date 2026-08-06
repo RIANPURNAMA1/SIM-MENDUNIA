@@ -1,6 +1,15 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Search, FileText, Eye, RotateCcw, CreditCard, X, Loader, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Users } from 'lucide-react'
+import { Search, FileText, Eye, RotateCcw, CreditCard, X, Loader, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Users, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import { adminCabangApi, APP_URL } from '../../services/api'
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  getPaginationRowModel,
+  flexRender,
+  createColumnHelper,
+  type SortingState,
+} from '@tanstack/react-table'
 
 function fmt(n: number) {
   return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
@@ -53,8 +62,8 @@ export default function AdminCabangPendaftaran() {
   const [riwayatData, setRiwayatData] = useState<any[]>([])
   const [riwayatLoading, setRiwayatLoading] = useState(false)
   const [detailModal, setDetailModal] = useState<PendaftarItem | null>(null)
-  const [page, setPage] = useState(1)
-  const [perPage, setPerPage] = useState(25)
+  const [sorting, setSorting] = useState<SortingState>([])
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 25 })
 
   useEffect(() => {
     fetchData()
@@ -82,7 +91,7 @@ export default function AdminCabangPendaftaran() {
     setFilterBatch('')
     setFilterDateFrom('')
     setFilterDateTo('')
-    setPage(1)
+    table.setPageIndex(0)
   }
 
   function combinedStatus(p: PendaftarItem) {
@@ -111,9 +120,123 @@ export default function AdminCabangPendaftaran() {
     })
   }, [data, search, filterStatus, filterBatch, filterDateFrom, filterDateTo])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage))
-  const safePage = Math.min(page, totalPages)
-  const pagedList = filtered.slice((safePage - 1) * perPage, safePage * perPage)
+  const helper = createColumnHelper<PendaftarItem>()
+
+  const columns = useMemo(() => [
+    helper.accessor('nama', {
+      header: 'Nama',
+      cell: ({ row }) => {
+        const p = row.original
+        return (
+          <div className="flex items-center gap-3">
+            <img
+              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(p.nama)}&background=e5e7eb&color=6b7280&size=28`}
+              className="h-8 w-8 rounded-full object-cover"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+            />
+            <div>
+              <div className="text-sm font-semibold text-slate-800">{p.nama}</div>
+              <div className="text-xs text-slate-500">{p.email}</div>
+            </div>
+          </div>
+        )
+      },
+    }),
+    helper.accessor('no_registrasi', {
+      header: 'No. Registrasi',
+      cell: ({ getValue }) => getValue() ? (
+        <span className="text-sm font-mono text-slate-700">{getValue()}</span>
+      ) : <span className="text-slate-300">-</span>,
+    }),
+    helper.accessor('created_at', {
+      header: 'Tgl. Daftar',
+      cell: ({ getValue }) => (
+        <span className="text-sm text-slate-600 whitespace-nowrap">
+          {new Date(getValue() as string).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+        </span>
+      ),
+    }),
+    helper.accessor(row => row.product?.nama || '-', {
+      id: 'product',
+      header: 'Program',
+      cell: ({ getValue }) => <span className="text-sm text-slate-600">{getValue()}</span>,
+    }),
+    helper.accessor(row => row.batch?.nama_batch || '-', {
+      id: 'batch',
+      header: 'Batch',
+      cell: ({ getValue }) => <span className="text-sm text-slate-600">{getValue()}</span>,
+    }),
+    helper.accessor(row => row.affiliateLink?.affiliate?.name || '', {
+      id: 'affiliate',
+      header: 'Affiliate',
+      cell: ({ getValue }) => getValue() ? (
+        <span className="text-sm text-slate-600">{getValue()}</span>
+      ) : <span className="text-slate-300">-</span>,
+    }),
+    helper.accessor(row => {
+      const firstCategory = row.detail?.[0]
+      const amt = firstAmount(firstCategory)
+      if (amt > 0) return amt
+      return row.nominal ? Number(row.nominal) : 0
+    }, {
+      id: 'nominal',
+      header: 'Nominal',
+      cell: ({ row }) => {
+        const p = row.original
+        const firstCategory = p.detail?.[0]
+        const amt = firstAmount(firstCategory)
+        if (amt > 0) return `Rp ${amt.toLocaleString('id-ID')}`
+        if (p.nominal) return `Rp ${Number(p.nominal).toLocaleString('id-ID')}`
+        return '-'
+      },
+      meta: { align: 'text-right' as const },
+    }),
+    helper.display({
+      id: 'status',
+      header: 'Status',
+      cell: ({ row }) => {
+        const s = combinedStatus(row.original)
+        return <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium shadow-sm ${s.bg}`}>{s.label}</span>
+      },
+    }),
+    helper.display({
+      id: 'bukti',
+      header: 'Bukti',
+      cell: ({ row }) => row.original.bukti_pembayaran ? (
+        <button onClick={() => setPreviewImg(`${APP_URL}/storage/${row.original.bukti_pembayaran}`)}
+          className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600">
+          <Eye size={15} />
+        </button>
+      ) : <span className="text-slate-300">-</span>,
+    }),
+    helper.display({
+      id: 'aksi',
+      header: 'Aksi',
+      cell: ({ row }) => (
+        <div className="flex justify-center gap-1.5">
+          <button onClick={() => setDetailModal(row.original)}
+            className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600" title="Detail Lengkap">
+            <FileText size={15} />
+          </button>
+          <button onClick={() => openRiwayat(row.original.id, row.original.nama)}
+            className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600" title="Riwayat Pembayaran">
+            <CreditCard size={15} />
+          </button>
+        </div>
+      ),
+    }),
+  ], [helper])
+
+  const table = useReactTable({
+    data: filtered,
+    columns,
+    state: { sorting, pagination },
+    onSortingChange: setSorting,
+    onPaginationChange: setPagination,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+  })
 
   const batchList = useMemo(() => {
     const set = new Set<string>()
@@ -180,11 +303,11 @@ export default function AdminCabangPendaftaran() {
               type="text"
               placeholder="Cari nama/email..."
               value={search}
-              onChange={e => { setSearch(e.target.value); setPage(1) }}
+              onChange={e => { setSearch(e.target.value); table.setPageIndex(0) }}
               className="w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
           </div>
-          <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1) }}
+          <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); table.setPageIndex(0) }}
             className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
             <option value="">Semua Status</option>
             <option value="proses">Proses</option>
@@ -192,11 +315,11 @@ export default function AdminCabangPendaftaran() {
             <option value="batal">Batal</option>
             <option value="refund">Refund</option>
           </select>
-          <input type="date" value={filterDateFrom} onChange={e => { setFilterDateFrom(e.target.value); setPage(1) }}
+          <input type="date" value={filterDateFrom} onChange={e => { setFilterDateFrom(e.target.value); table.setPageIndex(0) }}
             className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-          <input type="date" value={filterDateTo} onChange={e => { setFilterDateTo(e.target.value); setPage(1) }}
+          <input type="date" value={filterDateTo} onChange={e => { setFilterDateTo(e.target.value); table.setPageIndex(0) }}
             className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-          <select value={filterBatch} onChange={e => { setFilterBatch(e.target.value); setPage(1) }}
+          <select value={filterBatch} onChange={e => { setFilterBatch(e.target.value); table.setPageIndex(0) }}
             className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
             <option value="">Semua Batch</option>
             {batchList.map(b => (
@@ -217,35 +340,35 @@ export default function AdminCabangPendaftaran() {
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
         <table className="w-full min-w-full border-collapse text-left text-sm text-slate-700">
           <thead className="text-sm text-slate-600">
-            <tr>
-              <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Nama</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">No. Registrasi</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Tgl. Daftar</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Program</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Batch</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Affiliate</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium">Nominal</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Status</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Bukti</th>
-              <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Aksi</th>
-            </tr>
+            {table.getHeaderGroups().map(hg => (
+              <tr key={hg.id}>
+                {hg.headers.map(header => {
+                  const align = (header.column.columnDef.meta as { align?: string } | undefined)?.align
+                  const canSort = header.column.getCanSort()
+                  const center = header.column.id === 'status' || header.column.id === 'bukti' || header.column.id === 'aksi'
+                  return (
+                    <th
+                      key={header.id}
+                      scope="col"
+                      onClick={header.column.getToggleSortingHandler()}
+                      className={`border border-slate-200 px-4 py-3 font-medium select-none ${canSort ? 'cursor-pointer hover:bg-slate-50' : ''} ${align || ''} ${center ? 'text-center' : ''}`}
+                    >
+                      <span className={`inline-flex items-center gap-1.5 ${align || ''}`}>
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                        {canSort && (
+                          header.column.getIsSorted() === 'asc' ? <ArrowUp size={14} className="text-blue-600" /> :
+                          header.column.getIsSorted() === 'desc' ? <ArrowDown size={14} className="text-blue-600" /> :
+                          <ArrowUpDown size={14} className="text-slate-300" />
+                        )}
+                      </span>
+                    </th>
+                  )
+                })}
+              </tr>
+            ))}
           </thead>
           <tbody>
-            {loading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i}>
-                  <td colSpan={10} className="border border-slate-200 px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full bg-slate-200/70" />
-                      <div className="flex-1 space-y-2">
-                        <div className="h-3 w-40 rounded bg-slate-200/70" />
-                        <div className="h-2.5 w-24 rounded bg-slate-100" />
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            ) : pagedList.length === 0 ? (
+            {table.getRowModel().rows.length === 0 ? (
               <tr>
                 <td colSpan={10} className="border border-slate-200 px-6 py-10 text-center">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
@@ -255,84 +378,35 @@ export default function AdminCabangPendaftaran() {
                 </td>
               </tr>
             ) : (
-              pagedList.map(p => (
-                <tr key={p.id} className="bg-white transition hover:bg-slate-50">
-                  <td className="border border-slate-200 px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(p.nama)}&background=e5e7eb&color=6b7280&size=28`}
-                        className="h-8 w-8 rounded-full object-cover"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                      />
-                      <div>
-                        <div className="text-sm font-semibold text-slate-800">{p.nama}</div>
-                        <div className="text-xs text-slate-500">{p.email}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm font-mono text-slate-700">
-                    {p.no_registrasi || <span className="text-slate-300">-</span>}
-                  </td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
-                    {new Date(p.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                  </td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">{p.product?.nama || '-'}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">{p.batch?.nama_batch || '-'}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">
-                    {p.affiliateLink?.affiliate?.name || <span className="text-slate-300">-</span>}
-                  </td>
-                  <td className="border border-slate-200 px-4 py-3 text-right text-sm font-medium text-slate-800">
-                    {(() => {
-                      const firstCategory = p.detail?.[0]
-                      const amt = firstAmount(firstCategory)
-                      if (amt > 0) return `Rp ${amt.toLocaleString('id-ID')}`
-                      if (p.nominal) return `Rp ${Number(p.nominal).toLocaleString('id-ID')}`
-                      return '-'
-                    })()}
-                  </td>
-                  <td className="border border-slate-200 px-4 py-3 text-center">
-                    {(() => { const s = combinedStatus(p); return (<span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium shadow-sm ${s.bg}`}>{s.label}</span>) })()}
-                  </td>
-                  <td className="border border-slate-200 px-4 py-3 text-center">
-                    {p.bukti_pembayaran ? (
-                      <button onClick={() => setPreviewImg(`${APP_URL}/storage/${p.bukti_pembayaran}`)}
-                        className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600">
-                        <Eye size={15} />
-                      </button>
-                    ) : (
-                      <span className="text-slate-300">-</span>
-                    )}
-                  </td>
-                  <td className="border border-slate-200 px-4 py-3 text-center">
-                    <div className="flex justify-center gap-1.5">
-                      <button onClick={() => setDetailModal(p)}
-                        className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600" title="Detail Lengkap">
-                        <FileText size={15} />
-                      </button>
-                      <button onClick={() => openRiwayat(p.id, p.nama)}
-                        className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600" title="Riwayat Pembayaran">
-                        <CreditCard size={15} />
-                      </button>
-                    </div>
-                  </td>
+              table.getRowModel().rows.map(row => (
+                <tr key={row.original.id} className="bg-white transition hover:bg-slate-50">
+                  {row.getVisibleCells().map(cell => {
+                    const align = (cell.column.columnDef.meta as { align?: string } | undefined)?.align
+                    const center = cell.column.id === 'status' || cell.column.id === 'bukti' || cell.column.id === 'aksi'
+                    return (
+                      <td key={cell.id} className={`border border-slate-200 px-4 py-3 ${align || ''} ${center ? 'text-center' : ''}`}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    )
+                  })}
                 </tr>
               ))
             )}
           </tbody>
         </table>
         <div className="border-t border-slate-200 px-4 py-3 text-sm text-slate-500">
-          Menampilkan {pagedList.length} dari {filtered.length} pendaftar
+          Menampilkan {table.getRowModel().rows.length} dari {filtered.length} pendaftar
         </div>
       </div>
 
       {/* Pagination */}
-      {!loading && filtered.length > 0 && (
+      {filtered.length > 0 && (
         <div className="mt-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3 text-sm text-slate-500">
             <span>Per halaman</span>
             <select
-              value={perPage}
-              onChange={e => { setPerPage(Number(e.target.value)); setPage(1) }}
+              value={table.getState().pagination.pageSize}
+              onChange={e => table.setPageSize(Number(e.target.value))}
               className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             >
               {[10, 25, 50, 100].map(n => (
@@ -342,20 +416,22 @@ export default function AdminCabangPendaftaran() {
           </div>
           <div className="flex items-center gap-1">
             <button
-              onClick={() => setPage(1)}
-              disabled={safePage <= 1}
+              onClick={() => table.firstPage()}
+              disabled={!table.getCanPreviousPage()}
               className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none"
             >
               <ChevronsLeft size={16} />
             </button>
             <button
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={safePage <= 1}
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
               className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none"
             >
               <ChevronLeft size={16} />
             </button>
             {(() => {
+              const totalPages = table.getPageCount()
+              const safePage = table.getState().pagination.pageIndex + 1
               const pages: (number | '...')[] = []
               if (totalPages <= 7) {
                 for (let i = 1; i <= totalPages; i++) pages.push(i)
@@ -374,7 +450,7 @@ export default function AdminCabangPendaftaran() {
                 ) : (
                   <button
                     key={p}
-                    onClick={() => setPage(p)}
+                    onClick={() => table.setPageIndex(p - 1)}
                     className={`min-w-[32px] rounded-md border px-2 py-1.5 text-sm font-medium transition ${
                       p === safePage
                         ? 'border-slate-200 bg-slate-800 text-white'
@@ -387,15 +463,15 @@ export default function AdminCabangPendaftaran() {
               )
             })()}
             <button
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              disabled={safePage >= totalPages}
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
               className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none"
             >
               <ChevronRight size={16} />
             </button>
             <button
-              onClick={() => setPage(totalPages)}
-              disabled={safePage >= totalPages}
+              onClick={() => table.lastPage()}
+              disabled={!table.getCanNextPage()}
               className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none"
             >
               <ChevronsRight size={16} />
