@@ -376,7 +376,7 @@ export default function MatchingJobForm() {
 
         const mapGender = (v: string) => (v === 'L' ? 'Laki-laki' : v === 'P' ? 'Perempuan' : v || '')
         const mapStatus = (v: string) =>
-          v === 'Belum Nikah' ? 'Lajang' : v === 'Nikah' ? 'Menikah' : v || ''
+          v === 'Belum Nikah' ? 'Belum Menikah' : v === 'Nikah' ? 'Menikah' : v || ''
         const mapBaju = (v: string) => (v === 'XS' ? 'S' : v || '')
         const mapPendidikan = (v: string) =>
           v === 'SD/Sederajat' ? 'SD' : v === 'SMP/Sederajat' ? 'SMP' : v === 'SMA/Sederajat' ? 'SMA/SMK' : v === 'D1-D3' ? 'D3' : v || ''
@@ -745,7 +745,7 @@ export default function MatchingJobForm() {
                   <select className={inputCls} value={form.jenisKelamin} onChange={set('jenisKelamin')}><option value="">Pilih...</option><option>Laki-laki</option><option>Perempuan</option></select>
                 </Field>
                 <Field label="Status Pernikahan" required>
-                  <select className={inputCls} value={form.statusPernikahan} onChange={set('statusPernikahan')}><option value="">Pilih...</option><option>Lajang</option><option>Menikah</option><option>Cerai</option><option>Cerai Mati</option></select>
+                  <select className={inputCls} value={form.statusPernikahan} onChange={set('statusPernikahan')}><option value="">Pilih...</option><option>Belum Menikah</option><option>Menikah</option></select>
                 </Field>
                 <Field label="Agama" required>
                   <select className={inputCls} value={form.agama} onChange={set('agama')}><option value="">Pilih...</option><option>Islam</option><option>Kristen</option><option>Katolik</option><option>Hindu</option><option>Buddha</option><option>Konghucu</option></select>
@@ -862,7 +862,7 @@ export default function MatchingJobForm() {
               </Field>
               <Field label="Lama Belajar Bahasa Jepang" required><input className={inputCls} placeholder="6 bulan, 1 tahun, dll." value={form.lamaBelajarJepang} onChange={set('lamaBelajarJepang')} /></Field>
               <Field label="Level Bahasa Jepang" required>
-                <select className={inputCls} value={form.levelBahasaJepang} onChange={set('levelBahasaJepang')}><option value="">Pilih...</option><option>Pemula</option><option>Menengah</option><option>Mahir</option></select>
+                <select className={inputCls} value={form.levelBahasaJepang} onChange={set('levelBahasaJepang')}><option value="">Pilih...</option><option>Dasar</option><option>Menengah</option><option>Lancar</option></select>
               </Field>
               <Field label="ID Prometric (opsional)"><input className={inputCls} placeholder="ID Prometric" value={form.idPrometric} onChange={set('idPrometric')} /></Field>
               <Field label="Password Prometric (opsional)"><input className={inputCls} placeholder="Password" value={form.passwordPrometric} onChange={set('passwordPrometric')} /></Field>
@@ -939,19 +939,19 @@ export default function MatchingJobForm() {
               <YesNo label="Bersedia Lembur?" required value={form.bersediaLembur} onChange={v => setForm(f => ({ ...f, bersediaLembur: v }))} />
               <YesNo label="Bersedia Kerja Hari Libur?" required value={form.bersediaHariLibur} onChange={v => setForm(f => ({ ...f, bersediaHariLibur: v }))} />
               <Field label="Lama Ingin Tinggal di Jepang" required>
-                <select className={inputCls} value={form.lamaTinggalJepang} onChange={set('lamaTinggalJepang')}><option value="">Pilih...</option><option>&lt; 1 tahun</option><option>1-3 tahun</option><option>3-5 tahun</option><option>&gt; 5 tahun</option></select>
+                <select className={inputCls} value={form.lamaTinggalJepang} onChange={set('lamaTinggalJepang')}><option value="">Pilih...</option><option>2-3 tahun</option><option>3-5 tahun</option></select>
               </Field>
               <Field label="Lama Ingin Bekerja di Perusahaan" required>
-                <select className={inputCls} value={form.lamaKerjaPerusahaan} onChange={set('lamaKerjaPerusahaan')}><option value="">Pilih...</option><option>&lt; 1 tahun</option><option>1-3 tahun</option><option>3-5 tahun</option><option>&gt; 5 tahun</option></select>
+                <select className={inputCls} value={form.lamaKerjaPerusahaan} onChange={set('lamaKerjaPerusahaan')}><option value="">Pilih...</option><option>1-2 tahun</option><option>2-3 tahun</option><option>3-5 tahun</option></select>
               </Field>
               <Field label="Rencana Pulang ke Indonesia (5 tahun)" required>
-                <select className={inputCls} value={form.rencanaPulang} onChange={set('rencanaPulang')}><option value="">Pilih...</option><option>1 tahun</option><option>2 tahun</option><option>3 tahun</option><option>4 tahun</option><option>5 tahun</option></select>
+                <select className={inputCls} value={form.rencanaPulang} onChange={set('rencanaPulang')}><option value="">Pilih...</option><option>1-2 kali</option><option>3-4 kali</option><option>Lainnya</option></select>
               </Field>
               <Field label="Sumber Biaya Keberangkatan" required>
-                <select className={inputCls} value={form.sumberBiaya} onChange={set('sumberBiaya')}><option value="">Pilih...</option><option>Biaya sendiri</option><option>Pinjaman</option><option>Beasiswa</option><option>Lainnya</option></select>
+                <select className={inputCls} value={form.sumberBiaya} onChange={set('sumberBiaya')}><option value="">Pilih...</option><option>Dana Pribadi</option><option>Dana Talang LPK</option></select>
               </Field>
               <Field label="Biaya yang Disiapkan" required>
-                <select className={inputCls} value={form.biayaDisiapkan} onChange={set('biayaDisiapkan')}><option value="">Pilih...</option><option>Rp 5.000.000</option><option>Rp 10.000.000</option><option>Rp 15.000.000</option><option>&gt; Rp 15.000.000</option></select>
+                <select className={inputCls} value={form.biayaDisiapkan} onChange={set('biayaDisiapkan')}><option value="">Pilih...</option><option>10-20 Juta</option><option>20-30 Juta</option><option>40-50 Juta</option><option>Lainnya</option></select>
               </Field>
             </div>
           </div>

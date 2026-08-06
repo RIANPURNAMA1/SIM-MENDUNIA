@@ -128,7 +128,7 @@ export default function DataKandidat() {
   const [tambahError, setTambahError] = useState('')
   const [tambahErrors, setTambahErrors] = useState<Record<string, string>>({})
   const [tambahForm, setTambahForm] = useState({
-    nama: '', email: '', telepon: '', nik: '', batch_id: '',
+    nama: '', email: '', telepon: '', nik: '', batch_id: '', product_id: '',
     real_batch: '', jenis_kelamin: '', tempat_lahir: '', tanggal_lahir: '',
     alamat: '', desa: '', kecamatan: '', kabupaten: '', provinsi: '',
     pendidikan_terakhir: '', tahun_lulus: '', tinggi_badan: '', berat_badan: '',
@@ -448,6 +448,7 @@ export default function DataKandidat() {
         if (v !== '' && v !== null && v !== undefined) payload[k] = v
       }
       if (payload.batch_id) payload.batch_id = Number(payload.batch_id)
+      if (payload.product_id) payload.product_id = Number(payload.product_id)
       if (payload.tinggi_badan) payload.tinggi_badan = Number(payload.tinggi_badan)
       if (payload.berat_badan) payload.berat_badan = Number(payload.berat_badan)
       const res = await pendaftarApi.createKandidat(payload)
@@ -455,7 +456,7 @@ export default function DataKandidat() {
       setTambahError('')
       setTambahErrors({})
       setTambahForm({
-        nama: '', email: '', telepon: '', nik: '', batch_id: '',
+        nama: '', email: '', telepon: '', nik: '', batch_id: '', product_id: '',
         real_batch: '', jenis_kelamin: '', tempat_lahir: '', tanggal_lahir: '',
         alamat: '', desa: '', kecamatan: '', kabupaten: '', provinsi: '',
         pendidikan_terakhir: '', tahun_lulus: '', tinggi_badan: '', berat_badan: '',
@@ -482,7 +483,7 @@ export default function DataKandidat() {
               goldar: 'Golongan darah', ukuran_baju: 'Ukuran baju',
               status_pernikahan: 'Status nikah', nama_ortu: 'Nama orang tua',
               no_hp_ortu: 'No. tlp orang tua', keterangan: 'Keterangan',
-              real_batch: 'Real batch',
+              real_batch: 'Real batch', product_id: 'Program',
             }
             const label = translated[field] || field
             fieldErrors[field] = `${label}: ${msgs[0]}`
@@ -2220,6 +2221,8 @@ export default function DataKandidat() {
                   <FormField label="No. Tlp Orang Tua" value={tambahForm.no_hp_ortu} onChange={v => updateTambahField('no_hp_ortu', v)} placeholder="No. tlp orang tua (maks. 20)" maxLength={20} error={tambahErrors.no_hp_ortu} />
                   <FormSelect label="Batch" value={tambahForm.batch_id} onChange={v => updateTambahField('batch_id', v)}
                     options={batchOptions.map(b => ({ value: String(b.id), label: b.nama }))} error={tambahErrors.batch_id} />
+                  <FormSelect label="Program" value={tambahForm.product_id} onChange={v => updateTambahField('product_id', v)}
+                    options={productOptions.map(p => ({ value: String(p.id), label: p.nama }))} error={tambahErrors.product_id} />
                   <FormField label="Real Batch" value={tambahForm.real_batch} onChange={v => updateTambahField('real_batch', v)} placeholder="Real batch (maks. 255)" maxLength={255} error={tambahErrors.real_batch} />
                   <div className="sm:col-span-2 lg:col-span-3">
                     <FormField label="Keterangan" value={tambahForm.keterangan} onChange={v => updateTambahField('keterangan', v)} placeholder="Keterangan tambahan (maks. 500)" maxLength={500} error={tambahErrors.keterangan} />
