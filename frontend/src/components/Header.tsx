@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { izinApi, lemburApi, pendaftarApi, pembayaranApi, APP_URL } from '../services/api'
+import ThemeToggle from './ThemeToggle'
 
 interface HeaderProps {
   onToggleSidebar: () => void
@@ -151,6 +152,9 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
 
       {/* Right */}
       <div className="flex items-center gap-3">
+        {/* Dark mode toggle */}
+        <ThemeToggle />
+
         {/* Notifications (hidden for ADMIN_CABANG) */}
         {user?.role !== 'ADMIN_CABANG' && (
         <div className="relative">

@@ -274,7 +274,7 @@ export default function RekapBatch() {
         {!isCollapsed && (
           <div className="overflow-x-auto border-t border-slate-200">
             <table className="w-full min-w-[900px] border-collapse text-left text-sm text-slate-700">
-              <thead className="text-sm text-slate-600 bg-slate-50">
+              <thead className="text-sm text-white bg-[#0E6187]">
                 <tr>
                   <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[220px]">Kandidat</th>
                   {kategoriColumns.map(col => {

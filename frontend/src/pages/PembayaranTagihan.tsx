@@ -135,7 +135,7 @@ export default function PembayaranTagihan() {
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
         <table className="w-full min-w-full border-collapse text-left text-sm text-slate-700">
-          <thead className="text-sm text-slate-600">
+          <thead className="text-sm text-white bg-[#0E6187]">
             <tr>
               <th className="border border-slate-200 px-4 py-3 font-medium">Tanggal</th>
               <th className="border border-slate-200 px-4 py-3 font-medium">Nama Kandidat</th>

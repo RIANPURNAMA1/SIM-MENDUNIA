@@ -417,7 +417,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         lg:translate-x-0
       `}
       >
-        <div className="relative flex items-center justify-center px-5 py-4 border-b border-white/10 bg-white/5 flex-shrink-0">
+        <div className="relative flex items-center justify-center px-5 py-4  flex-shrink-0">
           <img src="/logo-sm1.png" alt="SIM Mendunia" className="h-14 w-auto" />
           <button
             onClick={onClose}

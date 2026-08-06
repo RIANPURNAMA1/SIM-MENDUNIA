@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Tag, Plus, Edit3, Trash2, X, Search, Percent, DollarSign, RotateCcw, Users } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Tag, Plus, Edit3, Trash2, X, Search, Percent, DollarSign, RotateCcw, Users, ChevronRight, LayoutDashboard } from 'lucide-react'
 import { couponApi, productApi } from '../../services/api'
 
 interface Coupon {
@@ -97,6 +98,20 @@ export default function DataCoupon() {
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
+      {/* Breadcrumb */}
+      <nav className="mb-4 flex items-center gap-1.5 text-xs text-slate-500" aria-label="Breadcrumb">
+        <Link to="/" className="flex items-center gap-1 transition-colors hover:text-[#0E6187]">
+          <LayoutDashboard size={13} />
+          <span>Beranda</span>
+        </Link>
+        <ChevronRight size={12} className="text-slate-300" />
+        <Link to="/affiliate-dashboard" className="transition-colors hover:text-[#0E6187]">
+          Dashboard
+        </Link>
+        <ChevronRight size={12} className="text-slate-300" />
+        <span className="font-medium text-slate-700">Data Coupon</span>
+      </nav>
+
       {/* Header */}
       <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
