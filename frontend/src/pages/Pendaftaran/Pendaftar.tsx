@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, FileText, Eye, Trash2, RotateCcw, CreditCard, X, Loader, AlertTriangle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Users, MoreHorizontal, BadgeCheck, Ban, RefreshCw, Clock, CheckCircle2, Banknote, Upload, Receipt } from 'lucide-react'
+import { Search, FileText, Eye, Trash2, RotateCcw, CreditCard, X, Loader, AlertTriangle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Users, MoreHorizontal, BadgeCheck, Ban, RefreshCw, Clock, CheckCircle2, Banknote, Upload, Receipt, LayoutDashboard } from 'lucide-react'
 import { pendaftarApi, pendaftarApi as apiModule } from '../../services/api'
 import api, { APP_URL } from '../../services/api'
 import Swal from 'sweetalert2'
@@ -267,6 +267,26 @@ export default function Pendaftar() {
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
+      {/* Breadcrumb */}
+      <nav className="mb-4 flex items-center gap-1.5 text-xs text-slate-500" aria-label="Breadcrumb">
+        <button
+          onClick={() => navigate('/')}
+          className="flex items-center gap-1 transition-colors hover:text-[#0E6187]"
+        >
+          <LayoutDashboard size={13} />
+          <span>Beranda</span>
+        </button>
+        <ChevronRight size={12} className="text-slate-300" />
+        <button
+          onClick={() => navigate('/pendaftar')}
+          className="transition-colors hover:text-[#0E6187]"
+        >
+          Pendaftaran
+        </button>
+        <ChevronRight size={12} className="text-slate-300" />
+        <span className="font-medium text-slate-700">Daftar Pendaftar</span>
+      </nav>
+
       {/* Header */}
       <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
@@ -461,7 +481,15 @@ export default function Pendaftar() {
                     <span className="block truncate" title={p.product?.nama || '-'}>{p.product?.nama || '-'}</span>
                   </td>
                   <td className="border border-slate-200 px-3 py-3 text-sm font-normal text-black">
-                    <span className="block truncate" title={p.batch?.nama_batch || '-'}>{p.batch?.nama_batch || '-'}</span>
+                    {p.batch?.nama_batch ? (() => {
+                      const warna = batchOptions.find(b => b.id === p.batch?.id)?.warna || '#3b82f6'
+                      return (
+                        <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium text-white whitespace-nowrap"
+                          style={{ backgroundColor: warna }} title={p.batch?.nama_batch}>
+                          {p.batch.nama_batch}
+                        </span>
+                      )
+                    })() : <span className="text-gray-400">-</span>}
                   </td>
                   <td className="border border-slate-200 px-3 py-3 text-sm font-normal text-black">
                     <span className="block truncate">{p.affiliate_link?.affiliate?.name || <span className="text-gray-400">-</span>}</span>

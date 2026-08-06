@@ -12,7 +12,7 @@ import { Link } from 'react-router-dom'
 import {
   FileText, Search, Receipt, CheckCircle, Clock, AlertCircle, RotateCcw,
   DollarSign, X, Save, Bell, Eye, Check, Loader, XCircle, Users,
-  ChevronLeft, ChevronRight, MoreHorizontal,
+  ChevronLeft, ChevronRight, MoreHorizontal, LayoutDashboard,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 import api, { pendaftarApi, batchApi, productApi, APP_URL } from '../../services/api'
@@ -821,6 +821,20 @@ export default function Tagihan() {
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
+      {/* Breadcrumb */}
+      <nav className="mb-4 flex items-center gap-1.5 text-xs text-slate-500" aria-label="Breadcrumb">
+        <Link to="/" className="flex items-center gap-1 transition-colors hover:text-[#0E6187]">
+          <LayoutDashboard size={13} />
+          <span>Beranda</span>
+        </Link>
+        <ChevronRight size={12} className="text-slate-300" />
+        <Link to="/pendaftar" className="transition-colors hover:text-[#0E6187]">
+          Manage Kandidat
+        </Link>
+        <ChevronRight size={12} className="text-slate-300" />
+        <span className="font-medium text-slate-700">Tagihan</span>
+      </nav>
+
       {/* Header */}
       <div className="mb-4 flex flex-col gap-4 rounded-lg bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between border border-slate-200">
         <div className="flex items-center gap-3">

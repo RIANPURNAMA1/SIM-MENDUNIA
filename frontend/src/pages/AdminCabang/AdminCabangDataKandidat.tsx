@@ -50,8 +50,8 @@ type EditableField = keyof Pick<Kandidat,
   'status_pernikahan' | 'email' | 'no_hp' | 'nama_ortu' | 'no_hp_ortu' | 'keterangan'
 >
 
-const inputCls = "w-full min-w-[70px] px-1.5 py-0.5 border border-blue-400 rounded bg-blue-50 text-xs text-slate-700 outline-none focus:ring-1 focus:ring-blue-500"
-const selectCls = "w-full min-w-[70px] px-1 py-0.5 border border-blue-400 rounded bg-blue-50 text-xs text-slate-700 outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
+const inputCls = "w-full min-w-[70px] px-1.5 py-0.5 border border-slate-300 rounded bg-slate-50 text-xs text-slate-700 outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-400"
+const selectCls = "w-full min-w-[70px] px-1 py-0.5 border border-slate-300 rounded bg-slate-50 text-xs text-slate-700 outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-400 appearance-none"
 
 export default function AdminCabangDataKandidat() {
   const [kandidatList, setKandidatList] = useState<Kandidat[]>([])
@@ -280,14 +280,14 @@ export default function AdminCabangDataKandidat() {
 
   const statusBadge = (status: string) => {
     const map: Record<string, { bg: string; text: string; label: string }> = {
-      Disetujui: { bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700', label: 'Disetujui' },
-      Ditolak: { bg: 'bg-red-50 border-red-200', text: 'text-red-700', label: 'Ditolak' },
-      Pending: { bg: 'bg-amber-50 border-amber-200', text: 'text-amber-700', label: 'Pending' },
+      Disetujui: { bg: 'bg-slate-900 border-slate-900', text: 'text-white', label: 'Disetujui' },
+      Ditolak: { bg: 'bg-slate-100 border-slate-300', text: 'text-slate-700', label: 'Ditolak' },
+      Pending: { bg: 'bg-slate-50 border-slate-200', text: 'text-slate-600', label: 'Pending' },
     }
     const s = map[status] || { bg: 'bg-slate-50 border-slate-200', text: 'text-slate-600', label: status }
     return (
       <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${s.bg} ${s.text}`}>
-        <span className={`h-1.5 w-1.5 rounded-full ${status === 'Disetujui' ? 'bg-emerald-500' : status === 'Ditolak' ? 'bg-red-500' : 'bg-amber-500'}`} />
+        <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
         {s.label}
       </span>
     )
@@ -395,7 +395,7 @@ export default function AdminCabangDataKandidat() {
         </div>
         <button
           onClick={() => { setShowTambah(true); setTambahSuccess(null); setTambahError(''); setTambahErrors({}) }}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700"
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0E6187] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#1a3a5c]"
         >
           <Plus size={16} />
           Tambah Data
@@ -405,8 +405,8 @@ export default function AdminCabangDataKandidat() {
       {/* Summary */}
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-4 transition hover:shadow-md">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-50 to-blue-100">
-            <Users size={20} className="text-blue-600" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100">
+            <Users size={20} className="text-slate-600" />
           </div>
           <div>
             <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Total Batch</p>
@@ -414,8 +414,8 @@ export default function AdminCabangDataKandidat() {
           </div>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-4 transition hover:shadow-md">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100">
-            <Users size={20} className="text-emerald-600" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100">
+            <Users size={20} className="text-slate-600" />
           </div>
           <div>
             <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Total Kandidat</p>
@@ -423,8 +423,8 @@ export default function AdminCabangDataKandidat() {
           </div>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-4 transition hover:shadow-md">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-amber-50 to-amber-100">
-            <Users size={20} className="text-amber-600" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100">
+            <Users size={20} className="text-slate-600" />
           </div>
           <div>
             <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Kandidat Aktif</p>
@@ -544,7 +544,7 @@ export default function AdminCabangDataKandidat() {
                       const isEditing = editingId === k.id
                       const rowNum = (safePage - 1) * perPage + idx + 1
                       return (
-                        <tr key={k.id} className={`${isEditing ? 'bg-blue-50/50' : 'bg-white'} transition hover:bg-slate-50 group`}>
+                        <tr key={k.id} className={`${isEditing ? 'bg-slate-100' : 'bg-white'} transition hover:bg-slate-50 group`}>
                           <td className="border border-slate-200 px-4 py-3 text-center text-xs text-slate-500">{rowNum}</td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-mono text-slate-700 whitespace-nowrap">
                             {isEditing ? <CellEdit field="nik" /> : k.nik || <span className="text-slate-300">-</span>}
@@ -645,16 +645,16 @@ export default function AdminCabangDataKandidat() {
                           <td className="border border-slate-200 px-4 py-3 text-xs text-slate-600 max-w-[180px]">
                             {isEditing ? <CellEdit field="keterangan" /> : <span className="truncate block" title={k.keterangan}>{k.keterangan || <span className="text-slate-300">-</span>}</span>}
                           </td>
-                          <td className={`sticky right-0 z-10 border border-slate-200 px-3 py-3 text-center shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] ${isEditing ? 'bg-blue-50/50' : 'bg-white'}`}>
+                          <td className={`sticky right-0 z-10 border border-slate-200 px-3 py-3 text-center shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] ${isEditing ? 'bg-slate-100' : 'bg-white'}`}>
                             <div className="flex justify-center gap-1">
                               {isEditing ? (
                                 <>
                                   <button onClick={saveEdit} disabled={saving}
-                                    className="rounded-lg border border-emerald-200 bg-emerald-50 p-1.5 text-emerald-600 transition hover:bg-emerald-100 disabled:opacity-50" title="Simpan">
+                                    className="rounded-lg border border-slate-300 bg-slate-100 p-1.5 text-slate-700 transition hover:bg-slate-200 disabled:opacity-50" title="Simpan">
                                     <Check size={14} />
                                   </button>
                                   <button onClick={cancelEdit}
-                                    className="rounded-lg border border-red-200 bg-red-50 p-1.5 text-red-500 transition hover:bg-red-100" title="Batal">
+                                    className="rounded-lg border border-slate-300 bg-white p-1.5 text-slate-500 transition hover:bg-slate-100" title="Batal">
                                     <X size={14} />
                                   </button>
                                 </>
@@ -665,7 +665,7 @@ export default function AdminCabangDataKandidat() {
                                     <Eye size={14} />
                                   </button>
                                   <button onClick={() => startEdit(k)}
-                                    className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 group-hover:border-slate-300" title="Edit">
+                                    className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 group-hover:border-slate-300" title="Edit">
                                     <Edit3 size={14} />
                                   </button>
                                   <Link to={`/admin-cabang/pendaftar/${k.id}/invoice`}
@@ -887,7 +887,7 @@ export default function AdminCabangDataKandidat() {
           <div className="w-full max-w-4xl rounded-xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600 text-white">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
                   <Plus size={18} />
                 </div>
                 <div>
@@ -902,8 +902,8 @@ export default function AdminCabangDataKandidat() {
 
             {tambahSuccess ? (
               <div className="px-6 py-10 text-center">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
-                  <Check size={32} className="text-emerald-600" />
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
+                  <Check size={32} className="text-slate-700" />
                 </div>
                 <h3 className="text-lg font-bold text-slate-900 mb-2">Kandidat Berhasil Ditambahkan!</h3>
                 <p className="text-sm text-slate-500 mb-6">Data kandidat baru telah tersimpan di sistem.</p>
@@ -914,7 +914,7 @@ export default function AdminCabangDataKandidat() {
                   </div>
                   <div>
                     <p className="text-xs text-slate-400">Password Akun</p>
-                    <p className="text-sm font-mono font-bold text-red-600">{tambahSuccess.password}</p>
+                    <p className="text-sm font-mono font-bold text-slate-800">{tambahSuccess.password}</p>
                   </div>
                 </div>
                 <p className="text-xs text-slate-400 mb-4">Simpan informasi di atas, password hanya ditampilkan sekali.</p>
@@ -991,7 +991,7 @@ export default function AdminCabangDataKandidat() {
                   Batal
                 </button>
                 <button type="submit" onClick={handleTambahSubmit} disabled={tambahLoading || !tambahForm.nama || !tambahForm.email}
-                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#0E6187] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#1a3a5c] disabled:opacity-50 disabled:cursor-not-allowed">
                   {tambahLoading ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
                   {tambahLoading ? 'Menyimpan...' : 'Simpan Kandidat'}
                 </button>
@@ -1029,7 +1029,7 @@ function FormField({ label, value, onChange, type, placeholder, error, maxLength
         className={`w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 ${
           hasError
             ? 'border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500'
-            : 'border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+            : 'border-slate-300 focus:border-slate-400 focus:ring-1 focus:ring-slate-400'
         }`}
       />
       {hasError && <p className="mt-1 text-[11px] text-red-500">{error}</p>}
@@ -1048,7 +1048,7 @@ function FormSelect({ label, value, onChange, options, error }: { label: string;
         className={`w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-700 outline-none transition ${
           hasError
             ? 'border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500'
-            : 'border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+            : 'border-slate-300 focus:border-slate-400 focus:ring-1 focus:ring-slate-400'
         }`}
       >
         <option value="">Pilih...</option>

@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from 'react'
 import {
   Package, Plus, Edit3, Trash2, X, Search, RotateCcw, Link as LinkIcon,
-  Check, GraduationCap, ExternalLink, Trash, ChevronDown, ChevronRight,
+  Check, GraduationCap, ExternalLink, Trash, ChevronDown, ChevronRight, LayoutDashboard,
   Info, Tag, DollarSign, Award, Users, Layers, Upload,
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import Swal from 'sweetalert2'
 import api, { productApi, APP_URL } from '../../services/api'
 
@@ -724,6 +725,18 @@ export default function DataProduct() {
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
+      {/* Breadcrumb */}
+      <nav className="mb-4 flex flex-wrap items-center gap-1.5 text-xs text-slate-500" aria-label="Breadcrumb">
+        <Link to="/" className="flex items-center gap-1 transition-colors hover:text-[#0E6187]">
+          <LayoutDashboard size={13} />
+          <span>Beranda</span>
+        </Link>
+        <ChevronRight size={12} className="text-slate-300" />
+        <span className="text-slate-500">Program &amp; Affiliate</span>
+        <ChevronRight size={12} className="text-slate-300" />
+        <span className="font-medium text-slate-700">Data Product</span>
+      </nav>
+
       {/* Header */}
       <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">

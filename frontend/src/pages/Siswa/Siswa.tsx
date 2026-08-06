@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   GraduationCap, Search, RotateCcw, Plus, Upload, Bot, Timer,
-  Trash2, Pencil, X, Sparkles,
+  Trash2, Pencil, X, Sparkles, ChevronRight, LayoutDashboard,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { siswaApi, adminCabangApi, APP_URL } from "../../services/api";
 import type { Siswa } from "../../types";
 import type { Pagination } from "../../types";
@@ -328,6 +329,20 @@ export default function SiswaPage() {
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
+      {/* Breadcrumb */}
+      <nav className="mb-4 flex items-center gap-1.5 text-xs text-slate-500" aria-label="Breadcrumb">
+        <Link to="/" className="flex items-center gap-1 transition-colors hover:text-[#0E6187]">
+          <LayoutDashboard size={13} />
+          <span>Beranda</span>
+        </Link>
+        <ChevronRight size={12} className="text-slate-300" />
+        <Link to="/pendaftar" className="transition-colors hover:text-[#0E6187]">
+          Manage Kandidat
+        </Link>
+        <ChevronRight size={12} className="text-slate-300" />
+        <span className="font-medium text-slate-700">Kelas Kandidat</span>
+      </nav>
+
       {/* Header */}
       <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
