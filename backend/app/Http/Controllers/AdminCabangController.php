@@ -771,17 +771,9 @@ class AdminCabangController extends Controller
     {
         $batchIds = $this->getBranchBatchIds();
 
-        $query = Pendaftar::with(['product', 'batch', 'user', 'siswa'])
+        $query = Pendaftar::with(['product', 'batch.cabang', 'user', 'siswa', 'pembayaranItems.kategori'])
             ->whereIn('batch_id', $batchIds)
             ->where('status_pendaftaran', 'disetujui');
-
-        $batchOptions = (clone $query)->get()
-            ->groupBy('batch_id')
-            ->map(fn($items, $batchId) => [
-                'id' => $batchId,
-                'nama' => $items->first()->batch?->nama_batch ?? 'Batch #' . $batchId,
-            ])
-            ->values();
 
         if ($request->search) {
             $s = $request->search;
@@ -789,7 +781,12 @@ class AdminCabangController extends Controller
                 $q->where('nama', 'like', "%{$s}%")
                   ->orWhere('email', 'like', "%{$s}%")
                   ->orWhere('no_registrasi', 'like', "%{$s}%")
-                  ->orWhereHas('siswa', fn($sq) => $sq->where('nik', 'like', "%{$s}%"));
+                  ->orWhereHas('siswa', function ($sq) use ($s) {
+                      $sq->where('nik', 'like', "%{$s}%");
+                  })
+                  ->orWhereHas('user', function ($qq) use ($s) {
+                      $qq->where('nik', 'like', "%{$s}%");
+                  });
             });
         }
 
@@ -799,48 +796,122 @@ class AdminCabangController extends Controller
 
         $pendaftar = $query->orderBy('created_at', 'desc')->get();
 
-        $allKandidat = $pendaftar->map(function ($p) {
-            $s = $p->siswa;
-            $tempat = $s?->tempat_lahir ?? '-';
-            $tgl = $s?->tanggal_lahir ?? '-';
-            $ttl = ($tempat !== '-' && $tgl !== '-') ? $tempat . ', ' . $tgl : '-';
+        $grouped = $pendaftar->groupBy(function ($p) {
+            return $p->batch_id ?? 0;
+        });
+
+        $batches = [];
+        $ungrouped = $grouped->pull(0);
+
+        $mapKandidat = function ($p) {
+            $siswa = $p->siswa;
+            $user = $p->user;
+
+            // Compute status_kandidat: use stored value if set, otherwise compute from payment data
+            $statusKandidat = $siswa->status_kandidat ?? null;
+            if (!$statusKandidat) {
+                $statusKandidat = 'Calon Kandidat';
+                if ($siswa && $siswa->level_status && in_array('Keluar', $siswa->level_status)) {
+                    $statusKandidat = 'Mengundurkan Diri';
+                } else {
+                    $kategoriItems = $p->product?->kategori_items ?? [];
+                    $pembayaranItems = $p->pembayaranItems ?? collect();
+                    $paidKategoris = [];
+                    foreach ($kategoriItems as $ki) {
+                        $biaya = (int) ($ki['harga'] ?? 0);
+                        if ($biaya <= 0) continue;
+                        $name = strtolower(trim($ki['name'] ?? ''));
+                        $pi = $pembayaranItems->first(function ($item) use ($name) {
+                            $katNama = strtolower(trim($item->kategori?->nama ?? ''));
+                            $katKode = strtolower(trim($item->kategori?->kode ?? ''));
+                            return $katNama === $name || $katKode === $name;
+                        });
+                        $paid = $pi ? (int) $pi->jumlah : 0;
+                        $paidKategoris[] = ['name' => $ki['name'], 'biaya' => $biaya, 'paid' => $paid, 'lunas' => $paid >= $biaya];
+                    }
+                    $totalKategoris = count($paidKategoris);
+                    $lunasCount = count(array_filter($paidKategoris, fn($k) => $k['lunas']));
+                    if ($totalKategoris > 0 && $lunasCount === $totalKategoris) {
+                        $statusKandidat = 'Kandidat Aktif';
+                    } elseif ($lunasCount > 0) {
+                        $statusKandidat = 'Calon Kandidat';
+                    }
+                }
+            }
 
             return [
                 'id' => $p->id,
-                'nik' => $s?->nik ?? '-',
-                'no_registrasi' => $p->no_registrasi ?? '-',
                 'nama' => $p->nama,
-                'batch_nama' => $p->batch?->nama_batch ?? '-',
-                'real_batch' => $s?->real_batch ?? '-',
-                'jenis_kelamin' => $s?->jenis_kelamin ?? '-',
-                'ttl' => $ttl,
-                'tempat_lahir' => $tempat,
-                'tanggal_lahir' => $tgl,
-                'alamat' => $s?->alamat ?? '-',
-                'desa' => $s?->desa ?? '-',
-                'kecamatan' => $s?->kecamatan ?? '-',
-                'kabupaten' => $s?->kabupaten ?? '-',
-                'provinsi' => $s?->provinsi ?? '-',
-                'pendidikan_terakhir' => $s?->pendidikan_terakhir ?? '-',
-                'tahun_lulus' => $s?->tahun_lulus ?? '-',
-                'tinggi_badan' => $s?->tinggi_badan ?? '-',
-                'berat_badan' => $s?->berat_badan ?? '-',
-                'goldar' => $s?->goldar ?? '-',
-                'ukuran_baju' => $s?->ukuran_baju ?? '-',
-                'status_pernikahan' => $s?->status_pernikahan ?? '-',
                 'email' => $p->email,
-                'no_hp' => $s?->no_hp ?? $p->telepon ?? '-',
-                'nama_ortu' => $s?->nama_ortu ?? '-',
-                'no_hp_ortu' => $s?->no_hp_ortu ?? '-',
+                'telepon' => $p->telepon,
+                'nik' => $siswa?->nik ?? $user?->nik ?? '-',
+                'no_registrasi' => $p->no_registrasi ?? $siswa?->no_registrasi ?? '-',
+                'batch_id' => $p->batch_id ?? $siswa?->batch_id,
+                'batch_nama' => $p->batch?->nama_batch ?? $siswa?->batchRelasi?->nama_batch ?? '-',
+                'batch_warna' => $p->batch?->warna ?? $siswa?->batchRelasi?->warna ?? null,
+                'cabang_nama' => $p->batch?->cabang?->nama_cabang ?? '-',
+                'real_batch' => $siswa?->real_batch ?? '-',
+                'jenis_kelamin' => $siswa?->jenis_kelamin ?? '-',
+                'tempat_lahir' => $siswa?->tempat_lahir ?? '-',
+                'tanggal_lahir' => $siswa?->tanggal_lahir ? Carbon::parse($siswa->tanggal_lahir)->format('d M Y') : '-',
+                'alamat' => $siswa?->alamat ?? $p->alamat ?? '-',
+                'desa' => $siswa?->desa ?? $p->desa ?? '-',
+                'kecamatan' => $siswa?->kecamatan ?? $p->kecamatan ?? '-',
+                'kabupaten' => $siswa?->kabupaten ?? $p->kabupaten ?? '-',
+                'provinsi' => $siswa?->provinsi ?? $p->provinsi ?? '-',
+                'pendidikan_terakhir' => $siswa?->pendidikan_terakhir ?? $user?->pendidikan_terakhir ?? '-',
+                'tahun_lulus' => $siswa?->tahun_lulus ?? '-',
+                'tinggi_badan' => $siswa?->tinggi_badan ?? '-',
+                'berat_badan' => $siswa?->berat_badan ?? '-',
+                'goldar' => $siswa?->goldar ?? '-',
+                'ukuran_baju' => $siswa?->ukuran_baju ?? '-',
+                'status_pernikahan' => $siswa?->status_pernikahan ?? '-',
+                'no_hp' => $siswa?->no_hp ?? $p->telepon ?? '-',
+                'nama_ortu' => $siswa?->nama_ortu ?? '-',
+                'no_hp_ortu' => $siswa?->no_hp_ortu ?? '-',
+                'status_pendaftaran' => $p->status_pendaftaran,
                 'status' => $p->status_pendaftaran === 'pending' ? 'Pending'
                     : ($p->status_pendaftaran === 'disetujui' ? 'Disetujui'
                     : ($p->status_pendaftaran === 'ditolak' ? 'Ditolak' : $p->status_pendaftaran)),
-                'keterangan' => $s?->keterangan ?? '-',
-                'batch_id' => $p->batch_id,
+                'status_kandidat' => $statusKandidat,
+                'tanggalDaftar' => $p->created_at->format('d F Y'),
                 'user_id' => $p->user_id,
-                'program' => $p->product?->nama ?? '-',
+                'keterangan' => $siswa?->keterangan ?? '-',
+                'posisi' => $p->product?->nama ?? '-',
+                'status_akademik' => $siswa?->status ?? 'AKTIF',
+                'is_cuti' => $siswa?->is_cuti ?? false,
+                'cuti_sejak' => $siswa?->cuti_sejak,
+                'level_status_keluar' => ($siswa && $siswa->status_kandidat === 'Mengundurkan Diri')
+                    || ($siswa && $siswa->level_status && collect($siswa->level_status)->contains('Keluar')),
+                'password_plain' => $user?->password_plain ?? null,
             ];
-        });
+        };
+
+        foreach ($grouped as $batchId => $items) {
+            $batch = $items->first()->batch;
+            $batches[] = [
+                'id' => $batchId,
+                'nama' => $batch?->nama_batch ?? 'Batch #' . $batchId,
+                'warna' => $batch?->warna ?? null,
+                'jumlahKandidat' => $items->count(),
+                'kandidat' => $items->map($mapKandidat),
+            ];
+        }
+
+        if ($ungrouped) {
+            $batches[] = [
+                'id' => 0,
+                'nama' => 'Tanpa Batch',
+                'warna' => null,
+                'jumlahKandidat' => $ungrouped->count(),
+                'kandidat' => $ungrouped->map($mapKandidat),
+            ];
+        }
+
+        $branchIds = $this->getBranchIds();
+        $allBatches = Batch::whereIn('cabang_id', $branchIds)->aktif()->orderBy('nama_batch')
+            ->get()
+            ->map(fn($b) => ['id' => $b->id, 'nama' => $b->nama_batch, 'warna' => $b->warna]);
 
         $batchOptions = (clone $query)->get()
             ->groupBy('batch_id')
@@ -850,12 +921,19 @@ class AdminCabangController extends Controller
             ])
             ->values();
 
+        $cabangs = \App\Models\Cabang::whereIn('id', $branchIds)
+            ->orderBy('nama_cabang')
+            ->get()
+            ->map(fn($c) => ['id' => $c->id, 'nama' => $c->nama_cabang]);
+
         return response()->json([
-            'kandidat' => $allKandidat,
-            'batchOptions' => $batchOptions,
-            'totalBatch' => $batchOptions->count(),
+            'batches' => $batches,
+            'allBatches' => $allBatches,
+            'totalBatch' => count($allBatches),
             'totalKandidat' => $pendaftar->count(),
             'kandidatAktif' => $pendaftar->where('status_pendaftaran', 'disetujui')->count(),
+            'cabangs' => $cabangs,
+            'batchOptions' => $batchOptions,
         ]);
     }
 
