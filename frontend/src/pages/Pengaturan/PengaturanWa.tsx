@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { MessageCircle, CheckCircle2, XCircle, Phone, CreditCard } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { MessageCircle, CheckCircle2, XCircle, Phone, CreditCard, ChevronRight, LayoutDashboard } from 'lucide-react'
 import { pengaturanWaApi } from '../../services/api'
 
 interface WaSetting {
@@ -94,6 +95,16 @@ export default function PengaturanWaPage() {
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4 max-w-3xl">
+      {/* Breadcrumb */}
+      <nav className="mb-4 flex items-center gap-1.5 text-xs text-slate-500" aria-label="Breadcrumb">
+        <Link to="/" className="flex items-center gap-1 transition-colors hover:text-[#0E6187]">
+          <LayoutDashboard size={13} />
+          <span>Beranda</span>
+        </Link>
+        <ChevronRight size={12} className="text-slate-300" />
+        <span className="font-medium text-slate-700">Notifikasi WhatsApp</span>
+      </nav>
+
       <div className="mb-4 flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
           <MessageCircle size={20} className="text-white" />
