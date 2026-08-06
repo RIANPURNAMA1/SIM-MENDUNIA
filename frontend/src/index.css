@@ -504,6 +504,23 @@ html.dark .force-light body {
   color-scheme: light;
 }
 
+/* Form controls must use dark text on the restored light backgrounds */
+html.dark .force-light input,
+html.dark .force-light select,
+html.dark .force-light textarea {
+  color: #1f2937;
+  -webkit-text-fill-color: currentcolor;
+}
+html.dark .force-light input::placeholder,
+html.dark .force-light textarea::placeholder {
+  color: #9ca3af;
+  -webkit-text-fill-color: #9ca3af;
+}
+html.dark .force-light select option {
+  color: #1f2937;
+  background-color: #ffffff;
+}
+
 /* ---- Backgrounds ---- */
 html.dark .force-light .bg-white { background-color: #ffffff; }
 html.dark .force-light .bg-slate-50 { background-color: #f8fafc; }
