@@ -832,12 +832,20 @@ class PendaftaranController extends Controller
         foreach ($verifiedByKategori as $vb) {
             $katHarga = (int) ($pendaftar->product->biayaKategoris->firstWhere('id', $vb->kategori_id)?->pivot->harga ?? 0);
             $jumlah = $katHarga > 0 ? min((int) $vb->total, $katHarga) : (int) $vb->total;
+            $existingPi = PembayaranItem::where('pendaftar_id', $pendaftar->id)
+                ->where('kategori_id', $vb->kategori_id)
+                ->first();
+            $kodeUnikPi = $existingPi ? (int) $existingPi->kode_unik : 0;
+            $totalTransferPi = PaymentSetting::calculateTotalTransfer((float) $jumlah, $kodeUnikPi);
             PembayaranItem::updateOrCreate(
                 [
                     'pendaftar_id' => $pendaftar->id,
                     'kategori_id' => $vb->kategori_id,
                 ],
-                ['jumlah' => $jumlah]
+                [
+                    'jumlah' => $jumlah,
+                    'total_transfer' => $totalTransferPi,
+                ]
             );
         }
 
@@ -1641,12 +1649,21 @@ class PendaftaranController extends Controller
             ->where('kategori_id', $request->kategori_id)
             ->sum('jumlah');
 
+        $existingPi = PembayaranItem::where('pendaftar_id', $pendaftar->id)
+            ->where('kategori_id', $request->kategori_id)
+            ->first();
+        $kodeUnikPi = $existingPi ? (int) $existingPi->kode_unik : 0;
+        $totalTransferPi = PaymentSetting::calculateTotalTransfer((float) $totalPerKategori, $kodeUnikPi);
+
         PembayaranItem::updateOrCreate(
             [
                 'pendaftar_id' => $pendaftar->id,
                 'kategori_id' => $request->kategori_id,
             ],
-            ['jumlah' => $totalPerKategori]
+            [
+                'jumlah' => $totalPerKategori,
+                'total_transfer' => $totalTransferPi,
+            ]
         );
 
         $this->normalizeKodeUnik($pendaftar->fresh());

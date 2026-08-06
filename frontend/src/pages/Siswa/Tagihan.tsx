@@ -623,7 +623,8 @@ export default function Tagihan() {
                         const isChanged = key in pendingChanges
                         const katDetail = p.detail?.find((d: DetailItem) => d.kategori_id === k.id)
                         const biayaKatRaw = katDetail?.biaya || 0
-                        const biayaKat = uniqueCodeOp === 'subtract' && katDetail?.total_transfer ? Number(katDetail.total_transfer) : biayaKatRaw
+                        const katTotalTransfer = Number(katDetail?.total_transfer) || 0
+                        const biayaKat = uniqueCodeOp === 'subtract' && katTotalTransfer > 0 ? katTotalTransfer : biayaKatRaw
                         const isLunas = biayaKatRaw > 0 && val >= biayaKatRaw
                         const isPartial = val > 0 && !isLunas
                         if (isUnpaid) {

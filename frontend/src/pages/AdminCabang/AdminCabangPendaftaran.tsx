@@ -6,6 +6,15 @@ function fmt(n: number) {
   return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
 }
 
+function firstAmount(detail?: { biaya: number; dibayar: number; total_transfer?: number } | null): number {
+  if (!detail) return 0
+  const totalTransfer = Number(detail.total_transfer) || 0
+  const dibayar = Number(detail.dibayar) || 0
+  const biaya = Number(detail.biaya) || 0
+  if (dibayar > 0) return totalTransfer > 0 ? totalTransfer : dibayar
+  return biaya
+}
+
 interface PendaftarItem {
   id: number
   nama: string
@@ -275,10 +284,8 @@ export default function AdminCabangPendaftaran() {
                   <td className="border border-slate-200 px-4 py-3 text-right text-sm font-medium text-slate-800">
                     {(() => {
                       const firstCategory = p.detail?.[0]
-                      if (firstCategory) {
-                        if (firstCategory.dibayar > 0) return `Rp ${Number(firstCategory.total_transfer || firstCategory.dibayar).toLocaleString('id-ID')}`
-                        return `Rp ${Number(firstCategory.biaya).toLocaleString('id-ID')}`
-                      }
+                      const amt = firstAmount(firstCategory)
+                      if (amt > 0) return `Rp ${amt.toLocaleString('id-ID')}`
                       if (p.nominal) return `Rp ${Number(p.nominal).toLocaleString('id-ID')}`
                       return '-'
                     })()}
@@ -578,9 +585,8 @@ export default function AdminCabangPendaftaran() {
                     <p className="text-sm font-bold text-gray-800">
                       {(() => {
                         const firstCategory = detailModal.detail?.[0]
-                        if (firstCategory) {
-                          return `Rp ${Number(firstCategory.total_transfer || firstCategory.dibayar || firstCategory.biaya).toLocaleString('id-ID')}`
-                        }
+                        const amt = firstAmount(firstCategory)
+                        if (amt > 0) return `Rp ${amt.toLocaleString('id-ID')}`
                         return detailModal.nominal ? `Rp ${Number(detailModal.nominal).toLocaleString('id-ID')}` : '-'
                       })()}
                     </p>
@@ -613,7 +619,7 @@ export default function AdminCabangPendaftaran() {
                         {detailModal.detail.map((d, i) => (
                           <tr key={i} className="bg-white">
                             <td className="px-3 py-2 text-gray-700">{d.nama}</td>
-                            <td className="px-3 py-2 text-right text-gray-700">Rp {Number(d.total_transfer || d.biaya).toLocaleString('id-ID')}</td>
+                            <td className="px-3 py-2 text-right text-gray-700">Rp {(() => { const tt = Number(d.total_transfer) || 0; const b = Number(d.biaya) || 0; return Number(tt > 0 ? tt : b).toLocaleString('id-ID') })()}</td>
                             <td className="px-3 py-2 text-right text-gray-800 font-semibold">Rp {Number(d.dibayar).toLocaleString('id-ID')}</td>
                           </tr>
                         ))}

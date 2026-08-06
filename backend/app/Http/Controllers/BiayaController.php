@@ -6,6 +6,7 @@ use App\Models\Batch;
 use App\Models\BatchBiaya;
 use App\Models\BatchKategoriDeadline;
 use App\Models\BiayaKategori;
+use App\Models\PaymentSetting;
 use App\Models\PembayaranItem;
 use App\Models\Pendaftar;
 use Illuminate\Http\Request;
@@ -266,12 +267,23 @@ class BiayaController extends Controller
         ]);
 
         foreach ($request->items as $item) {
+            $existing = PembayaranItem::where('pendaftar_id', $pendaftarId)
+                ->where('kategori_id', $item['kategori_id'])
+                ->first();
+
+            $jumlah = (int) $item['jumlah'];
+            $kodeUnik = $existing ? (int) $existing->kode_unik : 0;
+            $totalTransfer = PaymentSetting::calculateTotalTransfer($jumlah, $kodeUnik);
+
             PembayaranItem::updateOrCreate(
                 [
                     'pendaftar_id' => $pendaftarId,
                     'kategori_id' => $item['kategori_id'],
                 ],
-                ['jumlah' => $item['jumlah']]
+                [
+                    'jumlah' => $jumlah,
+                    'total_transfer' => $totalTransfer,
+                ]
             );
         }
 
@@ -303,12 +315,21 @@ class BiayaController extends Controller
             $bb = $biayaBatch->get($k->id);
             $biaya = $bb ? (int) $bb->biaya : $pivotPrices->get($k->id, 0);
             if ($biaya > 0) {
+                $existing = PembayaranItem::where('pendaftar_id', $pendaftarId)
+                    ->where('kategori_id', $k->id)
+                    ->first();
+                $kodeUnik = $existing ? (int) $existing->kode_unik : 0;
+                $totalTransfer = PaymentSetting::calculateTotalTransfer($biaya, $kodeUnik);
+
                 PembayaranItem::updateOrCreate(
                     [
                         'pendaftar_id' => $pendaftarId,
                         'kategori_id' => $k->id,
                     ],
-                    ['jumlah' => $biaya]
+                    [
+                        'jumlah' => $biaya,
+                        'total_transfer' => $totalTransfer,
+                    ]
                 );
                 $saved++;
             }
