@@ -121,17 +121,31 @@ class ProfileController extends Controller
         $user->nama_rekening = $request->nama_rekening;
 
         if ($request->hasFile('foto_profil')) {
-            $folderPath = public_path('uploads/foto_profil');
-            if (!file_exists($folderPath)) {
-                mkdir($folderPath, 0777, true);
+            try {
+                $file = $request->file('foto_profil');
+                $folderPath = public_path('uploads/foto_profil');
+                if (!is_dir($folderPath)) {
+                    mkdir($folderPath, 0777, true);
+                }
+                $namaFoto = time() . '_' . $user->id . '.' . $file->getClientOriginalExtension();
+                $file->move($folderPath, $namaFoto);
+                if ($user->foto_profil && $user->foto_profil !== $namaFoto) {
+                    $oldFile = $folderPath . '/' . $user->foto_profil;
+                    if (is_file($oldFile)) {
+                        unlink($oldFile);
+                    }
+                }
+                $user->foto_profil = $namaFoto;
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Foto profil upload gagal', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Gagal menyimpan foto profil: ' . $e->getMessage(),
+                ], 422);
             }
-            if ($user->foto_profil && file_exists($folderPath . '/' . $user->foto_profil)) {
-                unlink($folderPath . '/' . $user->foto_profil);
-            }
-            $file = $request->file('foto_profil');
-            $namaFoto = time() . '_' . $user->id . '.' . $file->getClientOriginalExtension();
-            $file->move($folderPath, $namaFoto);
-            $user->foto_profil = $namaFoto;
         }
 
         $user->save();

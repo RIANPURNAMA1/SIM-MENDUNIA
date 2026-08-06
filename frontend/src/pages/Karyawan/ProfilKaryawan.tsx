@@ -84,8 +84,8 @@ export default function ProfilKaryawan() {
       setFotoPreview(null)
       Swal.fire({ icon: 'success', title: 'Profil diperbarui', timer: 1500, showConfirmButton: false })
       loadData()
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Gagal memperbarui profil'
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || (e instanceof Error ? e.message : 'Gagal memperbarui profil')
       Swal.fire({ icon: 'error', title: 'Gagal', text: msg })
     } finally {
       setSaving(false)
