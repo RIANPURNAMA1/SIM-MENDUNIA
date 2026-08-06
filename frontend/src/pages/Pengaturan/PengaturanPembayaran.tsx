@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Settings, Save, Loader2, Plus, Trash2, Edit3, X, CreditCard, Building2, Upload, Check, Copy } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Settings, Save, Loader2, Plus, Trash2, Edit3, X, CreditCard, Building2, Upload, Check, Copy, ChevronRight, LayoutDashboard } from 'lucide-react'
 import Swal from 'sweetalert2'
 import { paymentSettingApi } from '../../services/api'
 
@@ -167,6 +168,16 @@ export default function PengaturanPembayaran() {
   return (
     <div className="min-h-screen  px-4 py-6 sm:px-6 flex justify-center">
       <div className="w-full max-w-3xl space-y-4">
+
+        {/* Breadcrumb */}
+        <nav className="mb-4 flex items-center gap-1.5 text-xs text-slate-500" aria-label="Breadcrumb">
+          <Link to="/" className="flex items-center gap-1 transition-colors hover:text-[#0E6187]">
+            <LayoutDashboard size={13} />
+            <span>Beranda</span>
+          </Link>
+          <ChevronRight size={12} className="text-slate-300" />
+          <span className="font-medium text-slate-700">Pengaturan Pembayaran</span>
+        </nav>
 
         {/* HEADER */}
         <div className={`${fbCardClass} p-4 flex items-center justify-between`}>

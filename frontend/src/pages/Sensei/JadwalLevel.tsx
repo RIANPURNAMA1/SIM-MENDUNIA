@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
-import { Calendar, Plus, Pencil, Trash2, X, ChevronLeft, Building2, Layers, Check, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { Calendar, Plus, Pencil, Trash2, X, ChevronLeft, Building2, Layers, Check, ThumbsUp, ThumbsDown, ChevronRight, LayoutDashboard } from "lucide-react";
 import { jadwalLevelApi, adminCabangApi } from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
 import type { BatchData, JadwalLevelItem } from "../../types";
@@ -203,6 +203,16 @@ export default function JadwalLevelPage() {
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
+      {/* Breadcrumb */}
+      <nav className="mb-4 flex items-center gap-1.5 text-xs text-slate-500" aria-label="Breadcrumb">
+        <Link to="/" className="flex items-center gap-1 transition-colors hover:text-[#0E6187]">
+          <LayoutDashboard size={13} />
+          <span>Beranda</span>
+        </Link>
+        <ChevronRight size={12} className="text-slate-300" />
+        <span className="font-medium text-slate-700">Jadwal Level</span>
+      </nav>
+
       {/* Header */}
       <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
