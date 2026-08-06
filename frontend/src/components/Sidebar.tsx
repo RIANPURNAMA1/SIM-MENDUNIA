@@ -133,11 +133,6 @@ const navItems: NavItem[] = [
     label: "Matching Job",
     icon: "Search",
     children: [
-      {
-        label: "Kandidat Matching Job",
-        icon: "UserPlus",
-        href: "/data-matching-job",
-      },
       { label: "Kandidat MJ", icon: "UserPlus", href: "/kandidat-mj" },
     ],
   },

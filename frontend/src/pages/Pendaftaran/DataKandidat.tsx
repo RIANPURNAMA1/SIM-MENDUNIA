@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { DollarSign, Users, Search, RotateCcw, Eye, Edit3, Power, PowerOff, CalendarOff, Calendar, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, FileText, Download, Upload, Trash2, ArrowRight, RefreshCw, KeyRound, ClipboardPaste } from 'lucide-react'
+import { DollarSign, Users, Search, RotateCcw, Eye, Edit3, Power, PowerOff, CalendarOff, Calendar, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, FileText, Download, Upload, Trash2, ArrowRight, RefreshCw, KeyRound, ClipboardPaste, LayoutDashboard } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import api, { pendaftarApi, batchApi, productApi } from '../../services/api'
 import * as XLSX from 'xlsx'
@@ -187,11 +187,11 @@ export default function DataKandidat() {
         for (const b of prev) if (!merged.has(b.nama)) merged.set(b.nama, b)
         return [...merged.values()]
       })
-    }).catch(() => {})
+    }).catch(() => { })
     productApi.list().then(res => {
       const raw = res.data.data || res.data.products || res.data || []
       setProductOptions(raw.map((p: { id: number; nama: string }) => ({ id: p.id, nama: p.nama })))
-    }).catch(() => {})
+    }).catch(() => { })
   }, [])
 
   useEffect(() => {
@@ -262,7 +262,7 @@ export default function DataKandidat() {
         setKandidatAktif(res.data.kandidatAktif)
         if (res.data.cabangs) setCabangOptions(res.data.cabangs)
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false))
   }, [])
 
@@ -1212,6 +1212,20 @@ export default function DataKandidat() {
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
+      {/* Breadcrumb */}
+      <nav className="mb-4 flex items-center gap-1.5 text-xs text-slate-500" aria-label="Breadcrumb">
+        <Link to="/" className="flex items-center gap-1 transition-colors hover:text-[#0E6187]">
+          <LayoutDashboard size={13} />
+          <span>Beranda</span>
+        </Link>
+        <ChevronRight size={12} className="text-slate-300" />
+        <Link to="/pendaftar" className="transition-colors hover:text-[#0E6187]">
+          Pendaftaran
+        </Link>
+        <ChevronRight size={12} className="text-slate-300" />
+        <span className="font-medium text-slate-700">Data Kandidat</span>
+      </nav>
+
       {/* Header */}
       <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between border border-slate-200">
         <div className="flex items-center gap-3">
@@ -1593,27 +1607,27 @@ export default function DataKandidat() {
                           <td className="border border-slate-200 px-4 py-3 text-xs font-mono font-semibold text-black whitespace-nowrap">
                             {isEditing ? <CellEdit field="no_hp_ortu" /> : k.no_hp_ortu || <span className="text-gray-400">-</span>}
                           </td>
-                            <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
-                             {isEditing ? (
-                               <CellEdit field="status_kandidat" type="select" />
-                             ) : (() => {
-                               const sk = k.status_kandidat || 'Calon Kandidat'
-                               const skMap: Record<string, { bg: string; border: string; text: string; dot: string }> = {
-                                 'Calon Kandidat': { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', dot: 'bg-blue-500' },
-                                 'Kandidat Aktif': { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' },
-                                 'Mengundurkan Diri': { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-600', dot: 'bg-red-500' },
-'Lulus Pendidikan': { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' },
-                               }
-                               const skStyle = skMap[sk] || skMap['Calon Kandidat']
-                               return (
-                                 <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${skStyle.bg} ${skStyle.border} ${skStyle.text}`}>
-                                   <span className={`h-1.5 w-1.5 rounded-full ${skStyle.dot}`} />
-                                   {sk}
-                                 </span>
-                               )
-                             })()}
-                           </td>
-                           <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black max-w-[180px]">
+                          <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
+                            {isEditing ? (
+                              <CellEdit field="status_kandidat" type="select" />
+                            ) : (() => {
+                              const sk = k.status_kandidat || 'Calon Kandidat'
+                              const skMap: Record<string, { bg: string; border: string; text: string; dot: string }> = {
+                                'Calon Kandidat': { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', dot: 'bg-blue-500' },
+                                'Kandidat Aktif': { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+                                'Mengundurkan Diri': { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-600', dot: 'bg-red-500' },
+                                'Lulus Pendidikan': { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+                              }
+                              const skStyle = skMap[sk] || skMap['Calon Kandidat']
+                              return (
+                                <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${skStyle.bg} ${skStyle.border} ${skStyle.text}`}>
+                                  <span className={`h-1.5 w-1.5 rounded-full ${skStyle.dot}`} />
+                                  {sk}
+                                </span>
+                              )
+                            })()}
+                          </td>
+                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black max-w-[180px]">
                             {isEditing ? <CellEdit field="keterangan" /> : (
                               <div className="flex flex-col gap-1">
                                 {k.level_status_keluar ? <span className="inline-block w-fit rounded bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">KELUAR</span> : null}
@@ -1621,7 +1635,7 @@ export default function DataKandidat() {
                                 {k.keterangan && k.keterangan !== '-' && String(k.keterangan) !== '0' ? <span className="truncate block" title={k.keterangan}>{k.keterangan}</span> : <span className="text-gray-400">-</span>}
                               </div>
                             )}
-                           </td>
+                          </td>
                           <td className={`sticky right-0 z-10 border border-slate-200 px-3 py-3 text-center shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] ${isEditing ? 'bg-blue-50/50' : 'bg-white'}`}>
                             {isEditing ? (
                               <div className="flex justify-center gap-1">
@@ -1635,23 +1649,23 @@ export default function DataKandidat() {
                                 </button>
                               </div>
                             ) : (
-                                <>
+                              <>
                                 <div className="relative flex justify-center" ref={actionRef}>
                                   <button
-                                     onMouseDown={e => e.stopPropagation()}
-                                     onClick={(e) => {
-                                       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-                                       const dropdownHeight = Math.min(600, window.innerHeight * 0.7)
-                                       const spaceBelow = window.innerHeight - rect.bottom - 4
-                                       const top = spaceBelow > dropdownHeight ? rect.bottom + 4 : Math.max(8, rect.top - dropdownHeight - 4)
-                                       setActionPos({ top, left: Math.max(8, rect.right - 208) })
-                                       setOpenActionId(openActionId === k.id ? null : k.id)
-                                     }}
-                                     className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
-                                     title="Aksi"
-                                   >
-                                     <MoreHorizontal size={16} />
-                                   </button>
+                                    onMouseDown={e => e.stopPropagation()}
+                                    onClick={(e) => {
+                                      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                                      const dropdownHeight = Math.min(600, window.innerHeight * 0.7)
+                                      const spaceBelow = window.innerHeight - rect.bottom - 4
+                                      const top = spaceBelow > dropdownHeight ? rect.bottom + 4 : Math.max(8, rect.top - dropdownHeight - 4)
+                                      setActionPos({ top, left: Math.max(8, rect.right - 208) })
+                                      setOpenActionId(openActionId === k.id ? null : k.id)
+                                    }}
+                                    className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
+                                    title="Aksi"
+                                  >
+                                    <MoreHorizontal size={16} />
+                                  </button>
                                 </div>
                                 {openActionId === k.id && createPortal(
                                   <div
@@ -1726,23 +1740,23 @@ export default function DataKandidat() {
                                     <div className="my-1 border-t border-slate-100" />
                                     <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Lainnya</p>
                                     <button onClick={() => {
-                                        setOpenActionId(null)
-                                        const isNonaktif = k.status_akademik === 'NONAKTIF'
-                                        Swal.fire({
-                                          title: isNonaktif ? 'Aktifkan Kandidat?' : 'Nonaktifkan Kandidat?',
-                                          text: isNonaktif ? `${k.nama} akan diaktifkan kembali.` : `${k.nama} akan dinonaktifkan.`,
-                                          icon: 'warning',
-                                          showCancelButton: true,
-                                          confirmButtonColor: isNonaktif ? '#0E6187' : '#dc2626',
-                                          cancelButtonColor: '#64748b',
-                                          confirmButtonText: isNonaktif ? 'Ya, Aktifkan!' : 'Ya, Nonaktifkan!',
-                                          cancelButtonText: 'Batal',
-                                        }).then((result) => {
-                                          if (result.isConfirmed) {
-                                            handleToggleStatus(k.id)
-                                          }
-                                        })
-                                      }}
+                                      setOpenActionId(null)
+                                      const isNonaktif = k.status_akademik === 'NONAKTIF'
+                                      Swal.fire({
+                                        title: isNonaktif ? 'Aktifkan Kandidat?' : 'Nonaktifkan Kandidat?',
+                                        text: isNonaktif ? `${k.nama} akan diaktifkan kembali.` : `${k.nama} akan dinonaktifkan.`,
+                                        icon: 'warning',
+                                        showCancelButton: true,
+                                        confirmButtonColor: isNonaktif ? '#0E6187' : '#dc2626',
+                                        cancelButtonColor: '#64748b',
+                                        confirmButtonText: isNonaktif ? 'Ya, Aktifkan!' : 'Ya, Nonaktifkan!',
+                                        cancelButtonText: 'Batal',
+                                      }).then((result) => {
+                                        if (result.isConfirmed) {
+                                          handleToggleStatus(k.id)
+                                        }
+                                      })
+                                    }}
                                       disabled={togglingId === k.id}
                                       className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50">
                                       {k.status_akademik === 'NONAKTIF'
@@ -1751,22 +1765,22 @@ export default function DataKandidat() {
                                       <span>{k.status_akademik === 'NONAKTIF' ? 'Aktifkan' : 'Nonaktifkan'}</span>
                                     </button>
                                     <button onClick={() => {
-                                        setOpenActionId(null)
-                                        Swal.fire({
-                                          title: k.is_cuti ? 'Aktifkan dari Cuti?' : 'Cuti Kandidat?',
-                                          text: k.is_cuti ? `${k.nama} akan diaktifkan dari cuti.` : `${k.nama} akan diatur cuti.`,
-                                          icon: 'question',
-                                          showCancelButton: true,
-                                          confirmButtonColor: '#0E6187',
-                                          cancelButtonColor: '#64748b',
-                                          confirmButtonText: 'Ya!',
-                                          cancelButtonText: 'Batal',
-                                        }).then((result) => {
-                                          if (result.isConfirmed) {
-                                            handleToggleCuti(k.id)
-                                          }
-                                        })
-                                      }}
+                                      setOpenActionId(null)
+                                      Swal.fire({
+                                        title: k.is_cuti ? 'Aktifkan dari Cuti?' : 'Cuti Kandidat?',
+                                        text: k.is_cuti ? `${k.nama} akan diaktifkan dari cuti.` : `${k.nama} akan diatur cuti.`,
+                                        icon: 'question',
+                                        showCancelButton: true,
+                                        confirmButtonColor: '#0E6187',
+                                        cancelButtonColor: '#64748b',
+                                        confirmButtonText: 'Ya!',
+                                        cancelButtonText: 'Batal',
+                                      }).then((result) => {
+                                        if (result.isConfirmed) {
+                                          handleToggleCuti(k.id)
+                                        }
+                                      })
+                                    }}
                                       disabled={togglingCutiId === k.id}
                                       className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50">
                                       {k.is_cuti
@@ -1776,56 +1790,56 @@ export default function DataKandidat() {
                                     </button>
                                     <div className="my-1 border-t border-slate-100" />
                                     <button onClick={() => {
-                                        setOpenActionId(null)
-                                        Swal.fire({
-                                          title: 'Hapus Kandidat?',
-                                          text: `Semua data ${k.nama} akan dihapus permanen termasuk akun login. Tindakan ini tidak bisa dibatalkan!`,
-                                          icon: 'warning',
-                                          showCancelButton: true,
-                                          confirmButtonColor: '#dc2626',
-                                          cancelButtonColor: '#64748b',
-                                          confirmButtonText: 'Ya, Hapus!',
-                                          cancelButtonText: 'Batal',
-                                        }).then(async (result) => {
-                                          if (result.isConfirmed) {
-                                            try {
-                                              await pendaftarApi.deleteKandidat(k.id)
-                                              fetchData(search)
-                                              Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Kandidat berhasil dihapus.', confirmButtonColor: '#0E6187', timer: 2000, timerProgressBar: true, showConfirmButton: false })
-                                            } catch {
-                                              Swal.fire({ icon: 'error', title: 'Gagal', text: 'Terjadi kesalahan.', confirmButtonColor: '#0E6187' })
-                                            }
+                                      setOpenActionId(null)
+                                      Swal.fire({
+                                        title: 'Hapus Kandidat?',
+                                        text: `Semua data ${k.nama} akan dihapus permanen termasuk akun login. Tindakan ini tidak bisa dibatalkan!`,
+                                        icon: 'warning',
+                                        showCancelButton: true,
+                                        confirmButtonColor: '#dc2626',
+                                        cancelButtonColor: '#64748b',
+                                        confirmButtonText: 'Ya, Hapus!',
+                                        cancelButtonText: 'Batal',
+                                      }).then(async (result) => {
+                                        if (result.isConfirmed) {
+                                          try {
+                                            await pendaftarApi.deleteKandidat(k.id)
+                                            fetchData(search)
+                                            Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Kandidat berhasil dihapus.', confirmButtonColor: '#0E6187', timer: 2000, timerProgressBar: true, showConfirmButton: false })
+                                          } catch {
+                                            Swal.fire({ icon: 'error', title: 'Gagal', text: 'Terjadi kesalahan.', confirmButtonColor: '#0E6187' })
                                           }
-                                        })
-                                      }}
+                                        }
+                                      })
+                                    }}
                                       className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 transition-colors">
                                       <Trash2 size={14} className="text-red-400" />
                                       <span>Hapus Kandidat</span>
                                     </button>
                                     <button onClick={() => {
-                                        setOpenActionId(null)
-                                        const isNonaktif = k.status_akademik === 'NONAKTIF' || k.status_kandidat === 'Mengundurkan Diri'
-                                        Swal.fire({
-                                          title: isNonaktif ? 'Nonaktifkan Kandidat?' : 'Mengundurkan Diri?',
-                                          text: isNonaktif ? `${k.nama} akan dinonaktifkan.` : `${k.nama} akan diatur sebagai Mengundurkan Diri dan dinonaktifkan.`,
-                                          icon: 'warning',
-                                          showCancelButton: true,
-                                          confirmButtonColor: '#dc2626',
-                                          cancelButtonColor: '#64748b',
-                                          confirmButtonText: 'Ya, Nonaktifkan!',
-                                          cancelButtonText: 'Batal',
-                                        }).then(async (result) => {
-                                          if (result.isConfirmed) {
-                                            try {
-                                              await pendaftarApi.updateKandidat(k.id, { status_kandidat: 'Mengundurkan Diri', status_akademik: 'NONAKTIF' })
-                                              fetchData(search)
-                                              Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Kandidat telah dinonaktifkan.', confirmButtonColor: '#0E6187', timer: 2000, timerProgressBar: true, showConfirmButton: false })
-                                            } catch {
-                                              Swal.fire({ icon: 'error', title: 'Gagal', text: 'Terjadi kesalahan.', confirmButtonColor: '#0E6187' })
-                                            }
+                                      setOpenActionId(null)
+                                      const isNonaktif = k.status_akademik === 'NONAKTIF' || k.status_kandidat === 'Mengundurkan Diri'
+                                      Swal.fire({
+                                        title: isNonaktif ? 'Nonaktifkan Kandidat?' : 'Mengundurkan Diri?',
+                                        text: isNonaktif ? `${k.nama} akan dinonaktifkan.` : `${k.nama} akan diatur sebagai Mengundurkan Diri dan dinonaktifkan.`,
+                                        icon: 'warning',
+                                        showCancelButton: true,
+                                        confirmButtonColor: '#dc2626',
+                                        cancelButtonColor: '#64748b',
+                                        confirmButtonText: 'Ya, Nonaktifkan!',
+                                        cancelButtonText: 'Batal',
+                                      }).then(async (result) => {
+                                        if (result.isConfirmed) {
+                                          try {
+                                            await pendaftarApi.updateKandidat(k.id, { status_kandidat: 'Mengundurkan Diri', status_akademik: 'NONAKTIF' })
+                                            fetchData(search)
+                                            Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Kandidat telah dinonaktifkan.', confirmButtonColor: '#0E6187', timer: 2000, timerProgressBar: true, showConfirmButton: false })
+                                          } catch {
+                                            Swal.fire({ icon: 'error', title: 'Gagal', text: 'Terjadi kesalahan.', confirmButtonColor: '#0E6187' })
                                           }
-                                        })
-                                      }}
+                                        }
+                                      })
+                                    }}
                                       className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 transition-colors">
                                       <PowerOff size={14} className="text-red-400" />
                                       <span>Nonaktifkan</span>
@@ -1833,9 +1847,9 @@ export default function DataKandidat() {
                                   </div>,
                                   document.body
                                 )}
-                                </>
-                              )}
-                              </td>
+                              </>
+                            )}
+                          </td>
                         </tr>
                       )
                     })
@@ -1913,11 +1927,10 @@ export default function DataKandidat() {
                   <button
                     key={p}
                     onClick={() => setPage(p)}
-                    className={`min-w-[34px] rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
-                      p === safePage
+                    className={`min-w-[34px] rounded-lg border px-3 py-1.5 text-sm font-medium transition ${p === safePage
                         ? 'border-[#0E6187] bg-[#0E6187] text-white shadow-sm'
                         : 'border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50 hover:text-slate-800'
-                    }`}
+                      }`}
                   >
                     {p}
                   </button>
@@ -2381,7 +2394,7 @@ export default function DataKandidat() {
                           <thead>
                             <tr className="bg-slate-50">
                               {importHeaders.filter(h => importMapping[h]).map(h => (
-                                <th key={h} className="border border-slate-200 px-3 py-2 font-semibold text-slate-600">{h}<br/><span className="font-normal text-slate-400">→ {fieldOptions.find(f => f.value === importMapping[h])?.label || importMapping[h]}</span></th>
+                                <th key={h} className="border border-slate-200 px-3 py-2 font-semibold text-slate-600">{h}<br /><span className="font-normal text-slate-400">→ {fieldOptions.find(f => f.value === importMapping[h])?.label || importMapping[h]}</span></th>
                               ))}
                             </tr>
                           </thead>
@@ -2713,11 +2726,10 @@ function FormField({ label, value, onChange, type, placeholder, error, maxLength
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
-        className={`w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 ${
-          hasError
+        className={`w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 ${hasError
             ? 'border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500'
             : 'border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
-        }`}
+          }`}
       />
       {hasError && <p className="mt-1 text-[11px] text-red-500">{error}</p>}
     </div>
@@ -2732,11 +2744,10 @@ function FormSelect({ label, value, onChange, options, error }: { label: string;
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
-        className={`w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-700 outline-none transition ${
-          hasError
+        className={`w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-700 outline-none transition ${hasError
             ? 'border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500'
             : 'border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
-        }`}
+          }`}
       >
         <option value="">Pilih...</option>
         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}

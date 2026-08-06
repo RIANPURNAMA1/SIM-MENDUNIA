@@ -245,6 +245,37 @@ export default function DataMatchingJob() {
   const formStatusList = dash?.byStatus ?? []
   const formStatusTotal = formStatusList.reduce((a, s) => a + (s.count || 0), 0)
 
+  const statusChartData = {
+    labels: formStatusList.map(s => s.status_formulir),
+    datasets: [
+      {
+        data: formStatusList.map(s => s.count),
+        backgroundColor: formStatusList.map(s => FORM_STATUS_COLOR[s.status_formulir] ?? '#0E6187'),
+        borderWidth: 2,
+        borderColor: '#ffffff',
+        hoverOffset: 6,
+      },
+    ],
+  }
+
+  const statusChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (ctx: any) => {
+            const value = ctx.raw as number
+            const pct = formStatusTotal > 0 ? Math.round((value / formStatusTotal) * 100) : 0
+            return ` ${value} kandidat (${pct}%)`
+          },
+        },
+      },
+    },
+    cutout: '62%',
+  }
+
   const cabangData = (dash?.byCabang ?? [])
     .map(c => ({ nama: c.nama_cabang || 'Tanpa Cabang', count: c.count ?? 0 }))
     .sort((a, b) => b.count - a.count)
@@ -875,22 +906,60 @@ export default function DataMatchingJob() {
   )
 
   const renderVerifikasi = () => (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-      {stats.map((s) => {
-        const Icon = s.icon
-        return (
-          <div key={s.label} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500">{s.label}</span>
-              <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${s.bg}`}>
-                <Icon size={16} className={s.color} />
+    <>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+        {stats.map((s) => {
+          const Icon = s.icon
+          return (
+            <div key={s.label} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-500">{s.label}</span>
+                <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${s.bg}`}>
+                  <Icon size={16} className={s.color} />
+                </div>
               </div>
+              <div className="mt-2 text-2xl font-bold text-slate-800">{s.value.toLocaleString('id-ID')}</div>
             </div>
-            <div className="mt-2 text-2xl font-bold text-slate-800">{s.value.toLocaleString('id-ID')}</div>
+          )
+        })}
+      </div>
+      {formStatusList.length > 0 && (
+        <div className="mt-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <BarChart3 size={16} className="text-[#0E6187]" />
+            <h3 className="text-sm font-semibold text-slate-800">Distribusi Status Kandidat</h3>
           </div>
-        )
-      })}
-    </div>
+          <p className="mt-0.5 text-xs text-slate-500">Persentase kandidat berdasarkan status formulir</p>
+          <div className="mt-4 flex flex-col items-center sm:flex-row sm:items-center sm:justify-center gap-6">
+            <div className="relative h-56 w-56 sm:h-64 sm:w-64 shrink-0">
+              <Doughnut
+                data={statusChartData}
+                options={statusChartOptions}
+              />
+              {formStatusTotal > 0 && (
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-xl font-bold text-slate-800">{formStatusTotal}</span>
+                  <span className="text-[10px] font-medium text-slate-500">Total</span>
+                </div>
+              )}
+            </div>
+            <div className="w-full space-y-2.5">
+              {formStatusList.map(s => {
+                const pct = formStatusTotal > 0 ? Math.round((s.count / formStatusTotal) * 100) : 0
+                return (
+                  <div key={s.status_formulir} className="flex items-center gap-2 text-sm">
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: FORM_STATUS_COLOR[s.status_formulir] ?? '#0E6187' }} />
+                    <span className="flex-1 capitalize text-slate-600">{s.status_formulir}</span>
+                    <b className="text-slate-800">{s.count}</b>
+                    <span className="w-10 text-right text-xs font-semibold" style={{ color: FORM_STATUS_COLOR[s.status_formulir] ?? '#0E6187' }}>{pct}%</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 
   const renderPlaceholder = (label: string) => (

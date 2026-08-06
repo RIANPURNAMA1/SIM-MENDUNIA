@@ -3,10 +3,10 @@ function fmt(n: number) {
 }
 
 import { useState, useEffect, useMemo } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, Link } from 'react-router-dom'
 import {
   Layers, Receipt, CheckCircle, AlertCircle,
-  RotateCcw, ChevronLeft, ChevronRight,
+  RotateCcw, ChevronLeft, ChevronRight, LayoutDashboard,
 } from 'lucide-react'
 import api from '../../services/api'
 import { adminCabangApi } from '../../services/api'
@@ -395,6 +395,20 @@ export default function RekapBatch() {
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
+      {/* Breadcrumb */}
+      <nav className="mb-4 flex items-center gap-1.5 text-xs text-slate-500" aria-label="Breadcrumb">
+        <Link to="/" className="flex items-center gap-1 transition-colors hover:text-[#0E6187]">
+          <LayoutDashboard size={13} />
+          <span>Beranda</span>
+        </Link>
+        <ChevronRight size={12} className="text-slate-300" />
+        <Link to="/pendaftar" className="transition-colors hover:text-[#0E6187]">
+          Manage Kandidat
+        </Link>
+        <ChevronRight size={12} className="text-slate-300" />
+        <span className="font-medium text-slate-700">Rekap Per Batch</span>
+      </nav>
+
       <div className="mb-4 flex flex-col gap-4 rounded-lg bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between border border-slate-200">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
