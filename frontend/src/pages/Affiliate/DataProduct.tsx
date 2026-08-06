@@ -18,6 +18,7 @@ interface KategoriItem {
   due_type: string
   due_value: string | null
   reminder_setting: string[] | null
+  reminder_hour: string
   channel: string
   template_pesan: string | null
   template_email: string | null
@@ -48,6 +49,16 @@ interface BiayaKategori {
   urutan: number
   parent_id: number | null
   children?: BiayaKategori[]
+  trigger_type?: string
+  trigger_value?: string | null
+  due_type?: string
+  due_value?: string | null
+  reminder_setting?: string[] | null
+  reminder_hour?: string | null
+  channel?: string
+  template_pesan?: string | null
+  template_email?: string | null
+  subject_email?: string | null
 }
 
 interface Product {
@@ -88,7 +99,7 @@ const EMAIL_TEMPLATES = [
 ]
 
 function emptyKategoriItem(): KategoriItem {
-  return { name: '', harga: 0, komisi: 0, children: [], trigger_type: 'registration', trigger_value: null, due_type: 'days_after_invoice', due_value: null, reminder_setting: null, channel: 'wa', template_pesan: null, template_email: null, subject_email: null }
+  return { name: '', harga: 0, komisi: 0, children: [], trigger_type: 'registration', trigger_value: null, due_type: 'days_after_invoice', due_value: null, reminder_setting: null, reminder_hour: '09:00', channel: 'wa', template_pesan: null, template_email: null, subject_email: null }
 }
 
 function sumHargaDeep(item: KategoriItem): number {
@@ -158,6 +169,7 @@ export default function DataProduct() {
           due_type: billingKategori?.due_type || i.due_type || 'days_after_invoice',
           due_value: billingKategori?.due_value || i.due_value || null,
           reminder_setting: billingKategori?.reminder_setting || i.reminder_setting || null,
+          reminder_hour: billingKategori?.reminder_hour || i.reminder_hour || '09:00',
           channel: billingKategori?.channel || i.channel || 'wa',
           template_pesan: billingKategori?.template_pesan || i.template_pesan || null,
           template_email: billingKategori?.template_email || i.template_email || null,
@@ -286,6 +298,7 @@ export default function DataProduct() {
           due_type: i.due_type || 'days_after_invoice',
           due_value: i.due_value || null,
           reminder_setting: i.reminder_setting || null,
+          reminder_hour: i.reminder_hour || '09:00',
           channel: i.channel || 'wa',
           template_pesan: i.template_pesan || null,
           template_email: i.template_email || null,
@@ -483,7 +496,7 @@ export default function DataProduct() {
               className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors">
               <span className="text-[11px] font-bold text-amber-700">Pengaturan Tagihan</span>
               <div className="flex items-center gap-1.5">
-                {(item.trigger_type !== 'registration' || item.due_type !== 'days_after_invoice' || item.reminder_setting) && (
+                {(item.trigger_type !== 'registration' || item.due_type !== 'days_after_invoice' || item.reminder_setting || (item.reminder_hour && item.reminder_hour !== '09:00')) && (
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                 )}
                 {isBillingOpen ? <ChevronDown size={12} className="text-amber-600" /> : <ChevronRight size={12} className="text-amber-600" />}
@@ -579,6 +592,12 @@ export default function DataProduct() {
                           }`}>{r}</button>
                       )
                     })}
+                  </div>
+                  <div className="mt-2 ml-1">
+                    <label className="block text-[10px] font-semibold text-slate-500 mb-1">Jam Pengiriman Notifikasi</label>
+                    <input type="time" value={item.reminder_hour || '09:00'}
+                      onChange={e => updateBilling('reminder_hour', e.target.value || '09:00')}
+                      className="rounded-md border border-amber-300 bg-white px-2.5 py-1.5 text-[11px] text-slate-700 outline-none focus:ring-1 focus:ring-amber-400" />
                   </div>
                 </div>
 
@@ -818,13 +837,13 @@ export default function DataProduct() {
             <thead className="text-sm text-slate-600">
               <tr>
                 <th className="border border-slate-200 px-4 py-3 font-medium">Nama Produk</th>
-                <th className="border border-slate-200 px-4 py-3 font-medium">Batch</th>
-                <th className="border border-slate-200 px-4 py-3 font-medium">Kategori / Harga</th>
-                <th className="border border-slate-200 px-4 py-3 font-medium">Deskripsi</th>
-                <th className="border border-slate-200 px-4 py-3 font-medium">Komisi Tier</th>
+                <th className="hidden border border-slate-200 px-4 py-3 font-medium md:table-cell">Batch</th>
+                <th className="hidden border border-slate-200 px-4 py-3 font-medium lg:table-cell">Kategori / Harga</th>
+                <th className="hidden border border-slate-200 px-4 py-3 font-medium xl:table-cell">Deskripsi</th>
+                <th className="hidden border border-slate-200 px-4 py-3 font-medium lg:table-cell">Komisi Tier</th>
                 <th className="border border-slate-200 px-4 py-3 text-right font-medium">Total</th>
                 <th className="border border-slate-200 px-4 py-3 text-center font-medium">Status</th>
-                <th className="border border-slate-200 px-4 py-3 text-center font-medium">Affiliate</th>
+                <th className="hidden border border-slate-200 px-4 py-3 text-center font-medium md:table-cell">Affiliate</th>
                 <th className="border border-slate-200 px-4 py-3 text-center font-medium">Aksi</th>
               </tr>
             </thead>
@@ -848,7 +867,7 @@ export default function DataProduct() {
                       <span className="text-sm font-semibold text-slate-800">{p.nama}</span>
                     </div>
                   </td>
-                  <td className="border border-slate-200 px-4 py-3">
+                  <td className="hidden border border-slate-200 px-4 py-3 md:table-cell">
                     {p.batch ? (
                       <span className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-[11px] font-semibold text-indigo-700">
                         <Layers size={11} /> {p.batch.nama_batch}
@@ -857,9 +876,9 @@ export default function DataProduct() {
                       <span className="text-xs text-slate-400">-</span>
                     )}
                   </td>
-                  <td className="border border-slate-200 px-4 py-3">{renderKategoriDisplay(p)}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-500 max-w-xs truncate">{p.deskripsi || '-'}</td>
-                  <td className="border border-slate-200 px-4 py-3">
+                  <td className="hidden border border-slate-200 px-4 py-3 lg:table-cell">{renderKategoriDisplay(p)}</td>
+                  <td className="hidden border border-slate-200 px-4 py-3 text-sm text-slate-500 max-w-xs truncate xl:table-cell">{p.deskripsi || '-'}</td>
+                  <td className="hidden border border-slate-200 px-4 py-3 lg:table-cell">
                     {p.komisi_tiers && p.komisi_tiers.length > 0 ? (
                       <div className="space-y-1">
                         {(() => {
@@ -902,7 +921,7 @@ export default function DataProduct() {
                   </td>
                   <td className="border border-slate-200 px-4 py-3 text-right text-sm font-semibold text-slate-800">Rp {Number(p.harga).toLocaleString('id-ID')}</td>
                   <td className="border border-slate-200 px-4 py-3 text-center">{statusBadge(p.status)}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-center">
+                  <td className="hidden border border-slate-200 px-4 py-3 text-center md:table-cell">
                     {p.is_affiliable !== false ? (
                       <span className="inline-flex items-center gap-1 rounded bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700"><Check size={10} /> Bisa</span>
                     ) : (

@@ -29,6 +29,9 @@ interface Kategori {
   nama: string
   urutan: number
   parent_id: number | null
+  trigger_type?: string
+  due_type?: string
+  due_value?: string | null
 }
 
 interface KategoriItem {
@@ -296,14 +299,14 @@ export default function PembayaranSiswa() {
   const paidKategoriIds = parentAggregatedItems.filter(i => {
     if (i.biaya <= 0) return false
     const effectiveBiaya = totalBiaya > 0 ? Math.round(i.biaya - (diskon * i.biaya / totalBiaya)) : i.biaya
-    const verified = groupVerified.get(i.kategori_id) || 0
-    return verified >= effectiveBiaya
+    const paid = Math.max(i.dibayar || 0, groupVerified.get(i.kategori_id) || 0)
+    return paid >= effectiveBiaya
   }).map(i => i.kategori_id)
   const partialKategoriIds = parentAggregatedItems.filter(i => {
     const effectiveBiaya = totalBiaya > 0 ? Math.round(i.biaya - (diskon * i.biaya / totalBiaya)) : i.biaya
-    const verified = groupVerified.get(i.kategori_id) || 0
+    const paid = Math.max(i.dibayar || 0, groupVerified.get(i.kategori_id) || 0)
     const pending = groupPending.get(i.kategori_id) || 0
-    return pending > 0 && verified < effectiveBiaya
+    return pending > 0 && paid < effectiveBiaya
   }).map(i => i.kategori_id)
 
   const pendingKategoriIds = new Set<number>()
@@ -494,8 +497,11 @@ export default function PembayaranSiswa() {
                       const rawBiaya = item?.biaya || 0
                       const katBiaya = totalBiaya > 0 ? Math.round(rawBiaya - (diskon * rawBiaya / totalBiaya)) : rawBiaya
                       const isUnpaid = !isLunas && katBiaya > 0
+                      // Trigger 'previous_paid': countdown hanya muncul setelah kategori sebelumnya Lunas
+                      const katTrigger = kategoris.find(kt => kt.id === item?.kategori_id)?.trigger_type
+                      const prevKatPaid = katTrigger !== 'previous_paid' || idx === 0 || paidKategoriIds.includes(sortedKat[idx - 1]?.id)
                       const dueAt = item?.due_at
-                      const deadlineInfo = isUnpaid ? getDeadlineInfo(dueAt) : null
+                      const deadlineInfo = isUnpaid && prevKatPaid ? getDeadlineInfo(dueAt) : null
 
                       return (
                         <div key={k.id} className={`snap-start flex-none w-[140px] sm:w-[130px] flex flex-col p-3 rounded-xl border transition-all ${

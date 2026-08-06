@@ -594,7 +594,7 @@ export default function KaryawanDashboard() {
                 className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-white/10 ring-2 ring-white/30 transition hover:ring-white/60 active:scale-95"
               >
                 {user?.foto_profil && user.foto_profil.trim() ? (
-                  <img src={`${APP_URL}/uploads/karyawan/${user.foto_profil}`} alt="Profil" className="h-full w-full object-cover" />
+                  <img src={`${APP_URL}/uploads/foto_profil/${user.foto_profil}`} alt="Profil" className="h-full w-full object-cover" />
                 ) : (
                   <span className="text-xs font-bold text-white">{initials}</span>
                 )}

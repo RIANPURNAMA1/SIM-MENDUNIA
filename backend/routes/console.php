@@ -30,5 +30,5 @@ Schedule::command('app:notif-keterlambatan')->everyFifteenMinutes();
 // Kirim notifikasi tidak absen pulang (di akhir shift masing-masing)
 Schedule::command('app:notif-tidak-absen-pulang')->hourlyAt(5);
 
-// Kirim pengingat pembayaran via WA (H-7, H-3, H-1) — setiap jam 9 pagi
-Schedule::command('app:reminder-pembayaran')->dailyAt('09:00');
+// Kirim pengingat pembayaran via WA (H-7, H-3, H-1) — jam pengiriman diatur per kategori (reminder_hour)
+Schedule::command('app:reminder-pembayaran')->everyFifteenMinutes();

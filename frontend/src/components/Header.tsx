@@ -104,7 +104,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
   }
 
   const avatarUrl = user?.foto_profil
-    ? `${APP_URL}/uploads/profil/${user.foto_profil}`
+    ? `${APP_URL}/uploads/foto_profil/${user.foto_profil}`
     : `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=e5e7eb&color=6b7280&size=36`
 
   const filteredNavItems = navItems

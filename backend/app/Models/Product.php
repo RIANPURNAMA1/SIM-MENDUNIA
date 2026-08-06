@@ -110,6 +110,7 @@ class Product extends Model
                 'due_type' => $item['due_type'] ?? 'days_after_invoice',
                 'due_value' => $item['due_value'] ?? null,
                 'reminder_setting' => $item['reminder_setting'] ?? null,
+                'reminder_hour' => $item['reminder_hour'] ?? '09:00',
                 'channel' => $item['channel'] ?? 'wa',
                 'template_pesan' => $item['template_pesan'] ?? null,
                 'template_email' => $item['template_email'] ?? null,

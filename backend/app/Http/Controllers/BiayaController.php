@@ -181,12 +181,14 @@ class BiayaController extends Controller
             : collect();
 
         $kategoris = BiayaKategori::orderBy('urutan')->get();
-        $result = $kategoris->filter(function ($k) use ($data, $biayaBatch, $pivotPrices) {
+        $orderedKats = $kategoris->filter(function ($k) use ($data, $biayaBatch, $pivotPrices) {
             $bb = $biayaBatch->get($k->id);
             $pi = $data->get($k->id);
             $biaya = $bb ? (int) $bb->biaya : $pivotPrices->get($k->id, 0);
             return $biaya > 0;
-        })->values()->map(function ($k) use ($data, $biayaBatch, $pivotPrices, $batchDeadlines, $reminderSettings, $billingMap, $pendaftar) {
+        })->values();
+
+        $result = $orderedKats->map(function ($k, $idx) use ($data, $biayaBatch, $pivotPrices, $batchDeadlines, $reminderSettings, $billingMap, $pendaftar, $orderedKats) {
             $bb = $biayaBatch->get($k->id);
             $pi = $data->get($k->id);
             $biaya = $bb ? (int) $bb->biaya : $pivotPrices->get($k->id, 0);
@@ -229,6 +231,21 @@ class BiayaController extends Controller
                         $dueAt = \Carbon\Carbon::parse($pendaftar->tanggal_persetujuan)
                             ->addDays($jatuh_tempo_hari)
                             ->timezone('Asia/Jakarta')->toIso8601String();
+                    }
+                }
+            }
+
+            // Trigger 'previous_paid': jatuh tempo hanya aktif setelah kategori sebelumnya Lunas
+            if (($k->trigger_type ?? 'registration') === 'previous_paid' && $idx > 0) {
+                $prev = $orderedKats[$idx - 1] ?? null;
+                if ($prev) {
+                    $prevBb = $biayaBatch->get($prev->id);
+                    $prevBiaya = $prevBb ? (int) $prevBb->biaya : $pivotPrices->get($prev->id, 0);
+                    $prevPi = $data->get($prev->id);
+                    $prevPaid = $prevPi ? (int) $prevPi->jumlah : 0;
+                    if ($prevPaid < $prevBiaya) {
+                        $dueAt = null;
+                        $jatuh_tempo_hari = null;
                     }
                 }
             }

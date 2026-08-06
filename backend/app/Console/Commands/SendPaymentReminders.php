@@ -132,6 +132,10 @@ class SendPaymentReminders extends Command
 
                 if (!in_array($hariTersisa, $reminderDays)) continue;
 
+                // Hanya kirim setelah jam pengiriman yang dikonfigurasi (default 09:00)
+                $reminderHour = $k->reminder_hour ?? '09:00';
+                if (now()->format('H:i') < $reminderHour) continue;
+
                 $kategoriNama = $k->nama;
                 $jumlah = 'Rp ' . number_format((int) $k->pivot->harga, 0, ',', '.');
                 $noInvoice = 'INV/' . str_pad($p->id, 5, '0', STR_PAD_LEFT) . '/' . $p->created_at->format('Ym');
@@ -194,6 +198,12 @@ class SendPaymentReminders extends Command
 
         $reminderDays = [7, 3, 1, 0];
         if (!in_array($hariTersisa, $reminderDays)) {
+            $skipped++;
+            return;
+        }
+
+        // Hanya kirim setelah jam pengiriman default (09:00)
+        if (now()->format('H:i') < '09:00') {
             $skipped++;
             return;
         }

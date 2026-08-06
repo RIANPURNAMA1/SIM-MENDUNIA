@@ -288,9 +288,9 @@ export default function Pendaftar() {
       </nav>
 
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-4 rounded-sm p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white border border-blue-100">
+          <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-[#0E6187] text-white border border-blue-100">
             <FileText size={20} />
           </div>
           <div>
@@ -311,7 +311,7 @@ export default function Pendaftar() {
           { label: 'Batal', value: stats.batal },
           { label: 'Refund', value: stats.refund },
         ].map(s => (
-          <div key={s.label} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+          <div key={s.label} className="rounded-sm border border-slate-200 bg-white p-3">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{s.label}</p>
             <p className="mt-0.5 text-xl font-bold text-slate-800">{s.value}</p>
           </div>
@@ -320,7 +320,7 @@ export default function Pendaftar() {
 
       {/* Notifikasi Pembayaran Masuk */}
       {stats.pendingVerifikasi > 0 && (
-        <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 shadow-sm">
+        <div className="mb-4 flex items-start gap-3 rounded-sm border border-amber-200 bg-amber-50 p-4">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100">
             <Clock size={16} className="text-amber-600" />
           </div>
@@ -336,7 +336,7 @@ export default function Pendaftar() {
       )}
 
       {/* Filter */}
-      <div className="mb-4 rounded-lg p-4 shadow-sm">
+      <div className="mb-4 rounded-sm p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative flex-1">
             <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -376,7 +376,7 @@ export default function Pendaftar() {
             {showBatchDropdown && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowBatchDropdown(false)} />
-                <div className="absolute top-full left-0 mt-1 z-50 rounded-md border border-slate-200 bg-white shadow-lg max-h-48 overflow-y-auto min-w-[180px]">
+                <div className="absolute top-full left-0 mt-1 z-50 rounded-md border border-slate-200 bg-white max-h-48 overflow-y-auto min-w-[180px]">
                   <button onClick={() => { setFilterBatch(''); setShowBatchDropdown(false); setPage(1) }}
                     className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition hover:bg-slate-50 ${!filterBatch ? 'bg-blue-50 font-semibold' : ''}`}>
                     Semua Batch
@@ -394,7 +394,7 @@ export default function Pendaftar() {
           </div>
           <button
             onClick={resetFilter}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-200"
+            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-200"
           >
             <RotateCcw size={16} />
             Reset
@@ -403,7 +403,7 @@ export default function Pendaftar() {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-sm border border-slate-200 bg-white">
         <table className="w-full border-collapse text-left text-sm text-black" style={{ tableLayout: 'fixed', minWidth: '900px' }}>
           <colgroup>
             <col className="w-[220px]" />
@@ -507,19 +507,19 @@ export default function Pendaftar() {
                     {p.diskon ? `Rp ${Number(p.diskon).toLocaleString('id-ID')}` : <span className="text-gray-400">-</span>}
                   </td>
                   <td className="border border-slate-200 px-3 py-3 text-center">
-                    {(() => { const s = combinedStatus(p); return (<span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium shadow-sm ${s.bg}`}>{s.label}</span>) })()}
+                    {(() => { const s = combinedStatus(p); return (<span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium ${s.bg}`}>{s.label}</span>) })()}
                   </td>
                   <td className="border border-slate-200 px-2 py-3">
                     <div className="relative flex justify-center" ref={openActionId === p.id ? actionRef : undefined}>
                       <button
                         onClick={() => setOpenActionId(openActionId === p.id ? null : p.id)}
-                        className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
+                        className="rounded-sm border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
                         title="Aksi"
                       >
                         <MoreHorizontal size={16} />
                       </button>
                       {openActionId === p.id && (
-                        <div className="absolute right-0 top-full z-30 mt-1 w-52 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+                        <div className="absolute right-0 top-full z-30 mt-1 w-52 rounded-sm border border-slate-200 bg-white py-1">
                           <button onClick={() => { setDetailModal(p); setOpenActionId(null) }}
                             className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
                             <FileText size={14} className="text-slate-400" />
@@ -564,7 +564,7 @@ export default function Pendaftar() {
 
       {/* Pagination */}
       {!loading && filtered.length > 0 && (
-        <div className="mt-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-4 flex flex-col gap-3 rounded-sm border border-slate-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3 text-sm text-slate-500">
             <span>Per halaman</span>
             <select
@@ -644,10 +644,10 @@ export default function Pendaftar() {
       {/* Riwayat Pembayaran Modal */}
       {riwayatModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setRiwayatModal(null)}>
-          <div className="w-full max-w-lg rounded-xl bg-white border border-gray-200 shadow-sm" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-lg rounded-sm bg-white border border-gray-200" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5">
               <h2 className="text-sm font-semibold text-gray-800">Riwayat Pembayaran — {riwayatModal.nama}</h2>
-              <button onClick={() => setRiwayatModal(null)} className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors">
+              <button onClick={() => setRiwayatModal(null)} className="rounded-sm p-1.5 hover:bg-gray-100 transition-colors">
                 <X size={18} className="text-gray-400" />
               </button>
             </div>
@@ -683,12 +683,12 @@ export default function Pendaftar() {
                           href={`${APP_URL}/storage/${r.bukti_pembayaran}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="rounded-lg border border-gray-200 p-1.5 text-gray-400 hover:border-blue-200 hover:text-blue-600 transition-colors"
+                          className="rounded-sm border border-gray-200 p-1.5 text-gray-400 hover:border-blue-200 hover:text-blue-600 transition-colors"
                         >
                           <Eye size={14} />
                         </a>
                       ) : (
-                        <span className="rounded-lg border border-gray-200 p-1.5 text-gray-300">
+                        <span className="rounded-sm border border-gray-200 p-1.5 text-gray-300">
                           <Eye size={14} />
                         </span>
                       )}
@@ -707,7 +707,7 @@ export default function Pendaftar() {
       {/* Confirm Modal */}
       {confirm.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setConfirm({ ...confirm, open: false })}>
-          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-sm rounded-sm bg-white p-6" onClick={e => e.stopPropagation()}>
             <div className="flex flex-col items-center text-center">
               <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
                 <AlertTriangle size={24} className="text-amber-600" />
@@ -717,11 +717,11 @@ export default function Pendaftar() {
             </div>
             <div className="mt-5 flex justify-center gap-3">
               <button onClick={() => setConfirm({ ...confirm, open: false })}
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+                className="rounded-sm border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
                 Batal
               </button>
               <button onClick={executeConfirm}
-                className={`rounded-lg px-4 py-2 text-sm font-medium text-white transition ${
+                className={`rounded-sm px-4 py-2 text-sm font-medium text-white transition ${
                   confirm.type === 'approve' ? 'bg-emerald-600 hover:bg-emerald-700' :
                   confirm.type === 'delete' ? 'bg-red-600 hover:bg-red-700' :
                   'bg-slate-600 hover:bg-slate-700'
@@ -736,8 +736,8 @@ export default function Pendaftar() {
       {/* Preview Bukti */}
       {previewImg && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setPreviewImg(null)}>
-          <div className="max-w-lg rounded-xl bg-white p-2 shadow-xl" onClick={e => e.stopPropagation()}>
-            <img src={previewImg} alt="Bukti Pembayaran" className="max-h-[70vh] max-w-full rounded-lg" />
+          <div className="max-w-lg rounded-sm bg-white p-2" onClick={e => e.stopPropagation()}>
+            <img src={previewImg} alt="Bukti Pembayaran" className="max-h-[70vh] max-w-full rounded-sm" />
             <div className="pb-1 pt-2 text-center">
               <button onClick={() => setPreviewImg(null)} className="text-sm text-slate-500 hover:text-slate-700">Tutup</button>
             </div>
@@ -748,13 +748,13 @@ export default function Pendaftar() {
       {/* Modal Bayar Pendaftaran */}
       {bayarModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setBayarModal(null)}>
-          <div className="w-full max-w-md rounded-xl bg-white border border-gray-200 shadow-sm p-6" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-md rounded-sm bg-white border border-gray-200 p-6" onClick={e => e.stopPropagation()}>
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-gray-900">Bayar Pendaftaran</h2>
                 <p className="text-xs text-gray-500">{bayarModal.nama}</p>
               </div>
-              <button onClick={() => setBayarModal(null)} className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors">
+              <button onClick={() => setBayarModal(null)} className="rounded-sm p-1.5 hover:bg-gray-100 transition-colors">
                 <X size={20} className="text-gray-500" />
               </button>
             </div>
@@ -764,7 +764,7 @@ export default function Pendaftar() {
             )}
 
             <form onSubmit={handleBayarSubmit} className="space-y-4">
-              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+              <div className="bg-gray-50 rounded-sm p-4 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Kategori</span>
                   <span className="font-semibold text-gray-900">Pendaftaran</span>
@@ -791,7 +791,7 @@ export default function Pendaftar() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Upload Bukti Pembayaran</label>
-                <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-white hover:border-[#0E6187] transition-colors">
+                <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-300 rounded-sm cursor-pointer bg-gray-50 hover:bg-white hover:border-[#0E6187] transition-colors">
                   {bayarBukti ? (
                     <div className="flex flex-col items-center">
                       <Upload className="w-6 h-6 text-[#0E6187]" />
@@ -825,13 +825,13 @@ export default function Pendaftar() {
       {/* Detail Lengkap Modal */}
       {detailModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setDetailModal(null)}>
-          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl bg-white border border-gray-200 shadow-xl" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-sm bg-white border border-gray-200" onClick={e => e.stopPropagation()}>
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4">
               <div>
                 <h2 className="text-base font-semibold text-gray-900">Detail Pendaftar</h2>
                 <p className="text-xs text-gray-400">{detailModal.no_registrasi || 'Belum ada no. registrasi'}</p>
               </div>
-              <button onClick={() => setDetailModal(null)} className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors">
+              <button onClick={() => setDetailModal(null)} className="rounded-sm p-1.5 hover:bg-gray-100 transition-colors">
                 <X size={18} className="text-gray-400" />
               </button>
             </div>
@@ -839,26 +839,26 @@ export default function Pendaftar() {
             <div className="px-6 py-4 space-y-5">
               {/* Status */}
               <div className="flex items-center gap-3">
-                {(() => { const s = combinedStatus(detailModal); return (<span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium shadow-sm ${s.bg}`}>{s.label}</span>) })()}
+                {(() => { const s = combinedStatus(detailModal); return (<span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium ${s.bg}`}>{s.label}</span>) })()}
               </div>
 
               {/* Data Diri */}
               <div>
                 <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Data Diri</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="rounded-lg bg-gray-50 p-3">
+                  <div className="rounded-sm bg-gray-50 p-3">
                     <p className="text-[11px] text-gray-400">Nama</p>
                     <p className="text-sm font-medium text-gray-800">{detailModal.nama}</p>
                   </div>
-                  <div className="rounded-lg bg-gray-50 p-3">
+                  <div className="rounded-sm bg-gray-50 p-3">
                     <p className="text-[11px] text-gray-400">Email</p>
                     <p className="text-sm font-medium text-gray-800">{detailModal.email}</p>
                   </div>
-                  <div className="rounded-lg bg-gray-50 p-3">
+                  <div className="rounded-sm bg-gray-50 p-3">
                     <p className="text-[11px] text-gray-400">No. Registrasi</p>
                     <p className="text-sm font-medium text-gray-800 font-mono">{detailModal.no_registrasi || '-'}</p>
                   </div>
-                  <div className="rounded-lg bg-gray-50 p-3">
+                  <div className="rounded-sm bg-gray-50 p-3">
                     <p className="text-[11px] text-gray-400">Tanggal Daftar</p>
                     <p className="text-sm font-medium text-gray-800">{new Date(detailModal.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                   </div>
@@ -869,27 +869,27 @@ export default function Pendaftar() {
               <div>
                 <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Kontak</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="rounded-lg bg-gray-50 p-3">
+                  <div className="rounded-sm bg-gray-50 p-3">
                     <p className="text-[11px] text-gray-400">Telepon</p>
                     <p className="text-sm font-medium text-gray-800">{detailModal.telepon || '-'}</p>
                   </div>
-                  <div className="rounded-lg bg-gray-50 p-3 sm:col-span-2">
+                  <div className="rounded-sm bg-gray-50 p-3 sm:col-span-2">
                     <p className="text-[11px] text-gray-400">Alamat</p>
                     <p className="text-sm font-medium text-gray-800">{detailModal.alamat || '-'}</p>
                   </div>
-                  <div className="rounded-lg bg-gray-50 p-3">
+                  <div className="rounded-sm bg-gray-50 p-3">
                     <p className="text-[11px] text-gray-400">Provinsi</p>
                     <p className="text-sm font-medium text-gray-800">{detailModal.provinsi || '-'}</p>
                   </div>
-                  <div className="rounded-lg bg-gray-50 p-3">
+                  <div className="rounded-sm bg-gray-50 p-3">
                     <p className="text-[11px] text-gray-400">Kabupaten</p>
                     <p className="text-sm font-medium text-gray-800">{detailModal.kabupaten || '-'}</p>
                   </div>
-                  <div className="rounded-lg bg-gray-50 p-3">
+                  <div className="rounded-sm bg-gray-50 p-3">
                     <p className="text-[11px] text-gray-400">Kecamatan</p>
                     <p className="text-sm font-medium text-gray-800">{detailModal.kecamatan || '-'}</p>
                   </div>
-                  <div className="rounded-lg bg-gray-50 p-3">
+                  <div className="rounded-sm bg-gray-50 p-3">
                     <p className="text-[11px] text-gray-400">Desa</p>
                     <p className="text-sm font-medium text-gray-800">{detailModal.desa || '-'}</p>
                   </div>
@@ -900,19 +900,19 @@ export default function Pendaftar() {
               <div>
                 <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Program & Affiliate</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="rounded-lg bg-gray-50 p-3">
+                  <div className="rounded-sm bg-gray-50 p-3">
                     <p className="text-[11px] text-gray-400">Program</p>
                     <p className="text-sm font-medium text-gray-800">{detailModal.product?.nama || '-'}</p>
                   </div>
-                  <div className="rounded-lg bg-gray-50 p-3">
+                  <div className="rounded-sm bg-gray-50 p-3">
                     <p className="text-[11px] text-gray-400">Batch</p>
                     <p className="text-sm font-medium text-gray-800">{detailModal.batch?.nama_batch || '-'}</p>
                   </div>
-                  <div className="rounded-lg bg-gray-50 p-3">
+                  <div className="rounded-sm bg-gray-50 p-3">
                     <p className="text-[11px] text-gray-400">Affiliate</p>
                     <p className="text-sm font-medium text-gray-800">{detailModal.affiliate_link?.affiliate?.name || '-'}</p>
                   </div>
-                  <div className="rounded-lg bg-gray-50 p-3">
+                  <div className="rounded-sm bg-gray-50 p-3">
                     <p className="text-[11px] text-gray-400">Kupon</p>
                     <p className="text-sm font-medium text-gray-800">{detailModal.coupon?.kode || '-'}</p>
                   </div>
@@ -923,7 +923,7 @@ export default function Pendaftar() {
               <div>
                 <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Pembayaran</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-                  <div className="rounded-lg bg-gray-50 p-3">
+                  <div className="rounded-sm bg-gray-50 p-3">
                     <p className="text-[11px] text-gray-400">Nominal</p>
                     <p className="text-sm font-bold text-gray-800">
                       {(() => {
@@ -934,11 +934,11 @@ export default function Pendaftar() {
                       })()}
                     </p>
                   </div>
-                  <div className="rounded-lg bg-gray-50 p-3">
+                  <div className="rounded-sm bg-gray-50 p-3">
                     <p className="text-[11px] text-gray-400">Diskon</p>
                     <p className="text-sm font-bold text-emerald-600">{detailModal.diskon ? `Rp ${Number(detailModal.diskon).toLocaleString('id-ID')}` : '-'}</p>
                   </div>
-                  <div className="rounded-lg bg-gray-50 p-3">
+                  <div className="rounded-sm bg-gray-50 p-3">
                     <p className="text-[11px] text-gray-400">Bukti Bayar</p>
                     {detailModal.bukti_pembayaran ? (
                       <a href={`${APP_URL}/storage/${detailModal.bukti_pembayaran}`} target="_blank" rel="noreferrer"
@@ -949,7 +949,7 @@ export default function Pendaftar() {
                   </div>
                 </div>
                 {detailModal.detail && detailModal.detail.length > 0 && (
-                  <div className="rounded-lg border border-gray-200 overflow-hidden">
+                  <div className="rounded-sm border border-gray-200 overflow-hidden">
                     <table className="w-full text-sm">
                       <thead className="bg-gray-50 text-left text-xs text-gray-500">
                         <tr>
@@ -1045,7 +1045,7 @@ export default function Pendaftar() {
                           }
                         }}
                         disabled={isActive}
-                        className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition ${opt.bg} ${isActive ? 'ring-2 ring-offset-1 ring-[#0E6187] opacity-100 cursor-default' : 'cursor-pointer'}`}
+                        className={`flex items-center gap-2 rounded-sm border px-3 py-2.5 text-left text-sm font-medium transition ${opt.bg} ${isActive ? 'ring-2 ring-offset-1 ring-[#0E6187] opacity-100 cursor-default' : 'cursor-pointer'}`}
                       >
                         <Icon size={15} className={opt.iconColor} />
                         <span className="text-gray-700">{opt.label}</span>
@@ -1071,7 +1071,7 @@ export default function Pendaftar() {
                       setDetailModal(null)
                       handleDelete(id)
                     }}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-100"
+                    className="flex w-full items-center justify-center gap-2 rounded-sm border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-100"
                   >
                     <Trash2 size={15} />
                     <span>Hapus Pendaftar</span>

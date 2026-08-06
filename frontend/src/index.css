@@ -318,6 +318,8 @@ html.dark .text-fuchsia-600 { color: #e879f9; }
 html.dark .text-fuchsia-700 { color: #f0abfc; }
 html.dark .text-lime-600 { color: #a3e635; }
 html.dark .text-lime-700 { color: #bef264; }
+html.dark .text-emerald-800 { color: #d1fae5; }
+html.dark .text-\[\#0E6187\] { color: #38bdf8; }
 
 /* ---- Borders: neutrals ---- */
 html.dark .border-gray-100, html.dark .border-slate-100 { border-color: #1e293b; }
@@ -353,6 +355,11 @@ html.dark .border-pink-200 { border-color: rgba(236, 72, 153, 0.35); }
 html.dark .border-fuchsia-200 { border-color: rgba(217, 70, 239, 0.35); }
 html.dark .border-lime-200 { border-color: rgba(101, 163, 13, 0.35); }
 
+html.dark .border-\[\#0E6187\] { border-color: #38bdf8; }
+html.dark .border-\[\#0E6187\]\/10 { border-color: rgba(56, 189, 248, 0.14); }
+html.dark .border-\[\#0E6187\]\/20 { border-color: rgba(56, 189, 248, 0.2); }
+html.dark .border-\[\#0E6187\]\/30 { border-color: rgba(56, 189, 248, 0.3); }
+
 /* ---- Dividers ---- */
 html.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color: #1e293b; }
 html.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: #334155; }
@@ -377,6 +384,7 @@ html.dark .hover\:bg-gray-200:hover { background-color: #475569; }
 html.dark .hover\:bg-slate-50:hover { background-color: #1e293b; }
 html.dark .hover\:bg-slate-100:hover { background-color: #334155; }
 html.dark .hover\:bg-slate-200:hover { background-color: #475569; }
+html.dark .hover\:bg-\[\#f5f6fa\]:hover { background-color: #1e293b; }
 html.dark .hover\:text-gray-600:hover, html.dark .hover\:text-slate-600:hover { color: #cbd5e1; }
 html.dark .hover\:text-gray-700:hover, html.dark .hover\:text-slate-700:hover { color: #e2e8f0; }
 html.dark .hover\:text-gray-900:hover, html.dark .hover\:text-slate-900:hover { color: #ffffff; }
@@ -415,6 +423,15 @@ html.dark .bg-white\/60 { background-color: rgba(15, 23, 42, 0.6); }
 /* ---- Translucent slate surfaces (table stripes, row hovers) ---- */
 html.dark .bg-slate-50\/50 { background-color: rgba(15, 23, 42, 0.5); }
 html.dark .hover\:bg-slate-50\/50:hover { background-color: rgba(30, 41, 59, 0.5); }
+
+/* ---- Translucent tinted panels (edit form accordion boxes) ---- */
+html.dark .bg-amber-50\/50 { background-color: rgba(245, 158, 11, 0.15); }
+html.dark .bg-emerald-50\/50 { background-color: rgba(16, 185, 129, 0.15); }
+
+/* ---- Brand teal: brightened so headings/links/tabs stay readable ---- */
+html.dark .bg-\[\#0E6187\]\/5 { background-color: rgba(56, 189, 248, 0.08); }
+html.dark .bg-\[\#0E6187\]\/10 { background-color: rgba(56, 189, 248, 0.12); }
+html.dark .hover\:bg-\[\#0E6187\]\/5:hover { background-color: rgba(56, 189, 248, 0.12); }
 
 /* ---- Quill editor (ReactQuill snow theme) dark ---- */
 html.dark .ql-toolbar.ql-snow,
