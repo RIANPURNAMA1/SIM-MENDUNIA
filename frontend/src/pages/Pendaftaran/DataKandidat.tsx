@@ -148,6 +148,8 @@ export default function DataKandidat() {
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [bulkBatchId, setBulkBatchId] = useState('')
   const [bulkMoving, setBulkMoving] = useState(false)
+  const [bulkProductId, setBulkProductId] = useState('')
+  const [bulkChangingProduct, setBulkChangingProduct] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [importTab, setImportTab] = useState<'file' | 'paste'>('file')
   const [importPasteText, setImportPasteText] = useState('')
@@ -165,8 +167,10 @@ export default function DataKandidat() {
   const importFileRef = useRef<HTMLInputElement>(null)
   const batchDropdownRef = useRef<HTMLDivElement>(null)
   const bulkBatchDropdownRef = useRef<HTMLDivElement>(null)
+  const bulkProductDropdownRef = useRef<HTMLDivElement>(null)
   const importBatchDropdownRef = useRef<HTMLDivElement>(null)
   const [showBulkBatchDropdown, setShowBulkBatchDropdown] = useState(false)
+  const [showBulkProductDropdown, setShowBulkProductDropdown] = useState(false)
   const [showImportBatchDropdown, setShowImportBatchDropdown] = useState(false)
   const [productOptions, setProductOptions] = useState<{ id: number; nama: string }[]>([])
   const [showExportLogin, setShowExportLogin] = useState(false)
@@ -201,11 +205,13 @@ export default function DataKandidat() {
       if (actionDropdownRef.current?.contains(target)) return
       if (batchDropdownRef.current?.contains(target)) return
       if (bulkBatchDropdownRef.current?.contains(target)) return
+      if (bulkProductDropdownRef.current?.contains(target)) return
       if (importBatchDropdownRef.current?.contains(target)) return
       if (exportBatchDropdownRef.current?.contains(target)) return
       setOpenActionId(null)
       setShowBatchDropdown(false)
       setShowBulkBatchDropdown(false)
+      setShowBulkProductDropdown(false)
       setShowImportBatchDropdown(false)
       setShowExportBatchDropdown(false)
     }
@@ -627,6 +633,49 @@ export default function DataKandidat() {
           })
         } finally {
           setBulkMoving(false)
+        }
+      }
+    })
+  }
+
+  function handleBulkChangeProduct() {
+    if (selectedIds.size === 0 || !bulkProductId) return
+    const productName = productOptions.find(p => String(p.id) === bulkProductId)?.nama || ''
+    Swal.fire({
+      title: 'Ubah Program?',
+      text: `${selectedIds.size} kandidat akan diubah programnya menjadi "${productName}".`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#0E6187',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Ya, Ubah!',
+      cancelButtonText: 'Batal',
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        setBulkChangingProduct(true)
+        try {
+          await pendaftarApi.bulkUpdateProductKandidat(Array.from(selectedIds), Number(bulkProductId))
+          setSelectedIds(new Set())
+          setBulkProductId('')
+          fetchData(search)
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil!',
+            text: 'Program kandidat telah diubah.',
+            confirmButtonColor: '#0E6187',
+            timer: 2000,
+            timerProgressBar: true,
+            showConfirmButton: false,
+          })
+        } catch {
+          Swal.fire({
+            icon: 'error',
+            title: 'Gagal',
+            text: 'Terjadi kesalahan saat mengubah program kandidat.',
+            confirmButtonColor: '#0E6187',
+          })
+        } finally {
+          setBulkChangingProduct(false)
         }
       }
     })
@@ -1424,8 +1473,47 @@ export default function DataKandidat() {
                 </button>
               </div>
               <div className="flex items-center gap-2">
+                <div className="relative shrink-0" ref={bulkProductDropdownRef}>
+                  <button type="button" onClick={() => setShowBulkProductDropdown(!showBulkProductDropdown)}
+                    className="flex items-center gap-2 rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 w-full min-w-[180px] shadow-sm hover:shadow">
+                    {bulkProductId ? (
+                      <span className="flex items-center gap-2 truncate">
+                        <span className="inline-block h-3 w-3 shrink-0 rounded-full bg-blue-500" />
+                        <span className="truncate">{productOptions.find(p => String(p.id) === bulkProductId)?.nama || 'Pilih Program...'}</span>
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">Pilih Program...</span>
+                    )}
+                    <svg className={`ml-auto h-4 w-4 text-slate-400 transition-transform ${showBulkProductDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+                  {showBulkProductDropdown && (
+                    <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[220px] rounded-xl border border-slate-200 bg-white shadow-xl py-1 max-h-60 overflow-y-auto">
+                      <button type="button" onClick={() => { setBulkProductId(''); setShowBulkProductDropdown(false) }}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:bg-blue-50 hover:text-blue-700 transition">
+                        Pilih Program...
+                      </button>
+                      {productOptions.map(p => (
+                        <button key={p.id} type="button" onClick={() => { setBulkProductId(String(p.id)); setShowBulkProductDropdown(false) }}
+                          className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${String(p.id) === bulkProductId ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}>
+                          <span className="inline-block h-3 w-3 shrink-0 rounded-full bg-blue-500" />
+                          <span className="truncate">{p.nama}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <button
-                  onClick={() => { setSelectedIds(new Set()); setBulkBatchId('') }}
+                  onClick={handleBulkChangeProduct}
+                  disabled={!bulkProductId || bulkChangingProduct}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#0E6187] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1a3a5c] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {bulkChangingProduct ? <Loader2 size={14} className="animate-spin" /> : <ArrowRight size={14} />}
+                  {bulkChangingProduct ? 'Mengubah...' : 'Ubah Program'}
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => { setSelectedIds(new Set()); setBulkBatchId(''); setBulkProductId('') }}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
                 >
                   <X size={14} /> Batal
