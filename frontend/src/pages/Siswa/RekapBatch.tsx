@@ -320,7 +320,8 @@ export default function RekapBatch() {
                         const katDetail = p.detail?.find((d: DetailItem) => d.kategori_id === k.id)
                         const dibayar = katDetail?.dibayar || 0
                         const biayaRaw = katDetail?.biaya || 0
-                        const biaya = uniqueCodeOp === 'subtract' && katDetail?.total_transfer ? Number(katDetail.total_transfer) : biayaRaw
+                        const katTotalTransfer = Number(katDetail?.total_transfer) || 0
+                        const biaya = uniqueCodeOp === 'subtract' && katTotalTransfer > 0 ? katTotalTransfer : biayaRaw
                         const isLunas = biaya > 0 && dibayar >= biaya
                         const isPartial = dibayar > 0 && !isLunas
                         return (

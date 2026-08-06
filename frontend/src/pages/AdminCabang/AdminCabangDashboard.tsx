@@ -17,7 +17,8 @@ const fmt = (n: number) => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d)
 const formatRupiah = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n)
 
-const COLORS = ['#f97316', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899', '#14b8a6', '#6366f1']
+const BRAND = '#0E6187'
+const COLORS = ['#0E6187', '#3b7ea6', '#5b95b5', '#7dacc4', '#9fc3d3', '#b8d3e0', '#d1e3ec', '#e5eef4', '#9ca3af', '#d1d5db']
 
 interface DashboardData {
   user: { name: string; email: string; role: string }
@@ -45,9 +46,9 @@ interface DashboardData {
 }
 
 const statusColor: Record<string, string> = {
-  disetujui: 'bg-emerald-50 text-emerald-700',
-  pending: 'bg-amber-50 text-amber-700',
-  ditolak: 'bg-red-50 text-red-700',
+  disetujui: 'bg-slate-100 text-slate-600',
+  pending: 'bg-slate-100 text-slate-600',
+  ditolak: 'bg-slate-100 text-slate-600',
 }
 
 export default function AdminCabangDashboard() {
@@ -85,7 +86,7 @@ export default function AdminCabangDashboard() {
     datasets: [{
       label: 'Pendaftar',
       data: data.charts.rekap_pendaftar.map(r => r.total),
-      backgroundColor: '#3b82f6',
+      backgroundColor: BRAND,
       borderRadius: 6,
       barThickness: 28,
     }],
@@ -96,12 +97,12 @@ export default function AdminCabangDashboard() {
     datasets: [{
       label: 'Pembayaran',
       data: data.charts.rekap_pembayaran.map(r => r.total),
-      borderColor: '#10b981',
-      backgroundColor: 'rgba(16,185,129,0.1)',
+      borderColor: BRAND,
+      backgroundColor: 'rgba(14,97,135,0.1)',
       fill: true,
       tension: 0.4,
       pointRadius: 4,
-      pointBackgroundColor: '#10b981',
+      pointBackgroundColor: BRAND,
     }],
   }
 
@@ -110,7 +111,7 @@ export default function AdminCabangDashboard() {
     datasets: [{
       label: 'Pengeluaran',
       data: data.charts.rekap_pengeluaran.map(r => r.total),
-      backgroundColor: '#f97316',
+      backgroundColor: BRAND,
       borderRadius: 6,
       barThickness: 28,
     }],
@@ -176,7 +177,7 @@ export default function AdminCabangDashboard() {
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       {/* Header */}
       <div className="mb-6 flex items-center gap-3 animate-fade-up">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-[#0E6187]/20">
           <LayoutDashboard size={20} className="text-white" />
         </div>
         <div>
@@ -188,10 +189,10 @@ export default function AdminCabangDashboard() {
       {/* Stats Cards */}
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { icon: <Users size={20} className="text-blue-600" />, bg: 'bg-blue-50', label: 'Total Pendaftar', value: data.stats.total_pendaftar, color: 'text-slate-800' },
-          { icon: <CheckCircle size={20} className="text-emerald-600" />, bg: 'bg-emerald-50', label: 'Disetujui', value: data.stats.pendaftar_disetujui, color: 'text-emerald-700' },
-          { icon: <Clock size={20} className="text-amber-600" />, bg: 'bg-amber-50', label: 'Pending', value: data.stats.pendaftar_pending, color: 'text-amber-700' },
-          { icon: <UserX size={20} className="text-red-600" />, bg: 'bg-red-50', label: 'Ditolak', value: data.stats.pendaftar_ditolak, color: 'text-red-700' },
+          { icon: <Users size={20} className="text-[#0E6187]" />, bg: 'bg-[#0E6187]/10', label: 'Total Pendaftar', value: data.stats.total_pendaftar, color: 'text-slate-800' },
+          { icon: <CheckCircle size={20} className="text-[#0E6187]" />, bg: 'bg-[#0E6187]/10', label: 'Disetujui', value: data.stats.pendaftar_disetujui, color: 'text-slate-800' },
+          { icon: <Clock size={20} className="text-[#0E6187]" />, bg: 'bg-[#0E6187]/10', label: 'Pending', value: data.stats.pendaftar_pending, color: 'text-slate-800' },
+          { icon: <UserX size={20} className="text-[#0E6187]" />, bg: 'bg-[#0E6187]/10', label: 'Ditolak', value: data.stats.pendaftar_ditolak, color: 'text-slate-800' },
         ].map((s, i) => (
           <div key={i} className={`animate-fade-up ${['', 'delay-100', 'delay-200', 'delay-300', 'delay-400'][i] || ''} rounded-lg border border-slate-200 bg-white p-4 shadow-sm`}>
             <div className="flex items-center gap-3">
@@ -209,28 +210,28 @@ export default function AdminCabangDashboard() {
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div className="animate-fade-up delay-150 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50"><Activity size={20} className="text-indigo-600" /></div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187]/10"><Activity size={20} className="text-[#0E6187]" /></div>
             <div>
               <p className="text-xs font-medium text-slate-500">Siswa Aktif</p>
-              <p className="text-xl font-bold text-indigo-700">{data.stats.total_siswa_aktif}</p>
+              <p className="text-xl font-bold text-slate-800">{data.stats.total_siswa_aktif}</p>
             </div>
           </div>
         </div>
         <div className="animate-fade-up delay-250 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-rose-50"><Wallet size={20} className="text-rose-600" /></div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187]/10"><Wallet size={20} className="text-[#0E6187]" /></div>
             <div>
               <p className="text-xs font-medium text-slate-500">Pengeluaran Bulan Ini</p>
-              <p className="text-xl font-bold text-rose-700">Rp {fmt(data.stats.total_pengeluaran_bulan_ini)}</p>
+              <p className="text-xl font-bold text-slate-800">Rp {fmt(data.stats.total_pengeluaran_bulan_ini)}</p>
             </div>
           </div>
         </div>
         <div className="animate-fade-up delay-350 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-50"><AlertCircle size={20} className="text-red-600" /></div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187]/10"><AlertCircle size={20} className="text-[#0E6187]" /></div>
             <div>
-              <p className="text-xs font-medium text-red-600">Outstanding</p>
-              <p className="text-xl font-bold text-red-700">Rp {fmt(data.stats.total_outstanding)}</p>
+              <p className="text-xs font-medium text-slate-500">Outstanding</p>
+              <p className="text-xl font-bold text-slate-800">Rp {fmt(data.stats.total_outstanding)}</p>
             </div>
           </div>
         </div>
@@ -241,7 +242,7 @@ export default function AdminCabangDashboard() {
         {/* Bar: Pendaftar per bulan */}
         <div className="animate-fade-up delay-200 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
-            <TrendingUp size={18} className="text-blue-600" />
+            <TrendingUp size={18} className="text-[#0E6187]" />
             <h3 className="text-sm font-semibold text-slate-800">Pendaftar per Bulan</h3>
           </div>
           <div className="h-56">
@@ -252,7 +253,7 @@ export default function AdminCabangDashboard() {
         {/* Line: Pembayaran per bulan */}
         <div className="animate-fade-up delay-300 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
-            <DollarSign size={18} className="text-emerald-600" />
+            <DollarSign size={18} className="text-[#0E6187]" />
             <h3 className="text-sm font-semibold text-slate-800">Pembayaran per Bulan</h3>
           </div>
           <div className="h-56">
@@ -266,7 +267,7 @@ export default function AdminCabangDashboard() {
         {/* Bar: Pengeluaran per bulan */}
         <div className="animate-fade-up delay-250 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
-            <Wallet size={18} className="text-orange-600" />
+            <Wallet size={18} className="text-[#0E6187]" />
             <h3 className="text-sm font-semibold text-slate-800">Pengeluaran per Bulan</h3>
           </div>
           <div className="h-56">
@@ -277,7 +278,7 @@ export default function AdminCabangDashboard() {
         {/* Doughnut: Pengeluaran per kategori */}
         <div className="animate-fade-up delay-350 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
-            <Layers size={18} className="text-purple-600" />
+            <Layers size={18} className="text-[#0E6187]" />
             <h3 className="text-sm font-semibold text-slate-800">Pengeluaran per Kategori</h3>
           </div>
           <div className="h-56">
@@ -302,20 +303,20 @@ export default function AdminCabangDashboard() {
               <span className="text-sm font-bold text-slate-800">Rp {fmt(data.stats.total_tagihan)}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-xs text-emerald-600">Terkumpul</span>
-              <span className="text-sm font-bold text-emerald-700">Rp {fmt(data.stats.total_terkumpul)}</span>
+              <span className="text-xs text-slate-500">Terkumpul</span>
+              <span className="text-sm font-bold text-slate-700">Rp {fmt(data.stats.total_terkumpul)}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-xs text-red-600">Outstanding</span>
-              <span className="text-sm font-bold text-red-600">Rp {fmt(data.stats.total_outstanding)}</span>
+              <span className="text-xs text-slate-500">Outstanding</span>
+              <span className="text-sm font-bold text-slate-600">Rp {fmt(data.stats.total_outstanding)}</span>
             </div>
             <div className="pt-2 border-t border-slate-100">
               <div className="flex justify-between items-center mb-1">
                 <span className="text-xs text-slate-500">Persentase Terkumpul</span>
-                <span className="text-xs font-bold text-emerald-600">{persentaseTagihan}%</span>
+                <span className="text-xs font-bold text-[#0E6187]">{persentaseTagihan}%</span>
               </div>
               <div className="w-full bg-slate-100 rounded-full h-2">
-                <div className="bg-emerald-500 h-2 rounded-full transition-all duration-500" style={{ width: `${Math.min(persentaseTagihan, 100)}%` }} />
+                <div className="bg-[#0E6187] h-2 rounded-full transition-all duration-500" style={{ width: `${Math.min(persentaseTagihan, 100)}%` }} />
               </div>
             </div>
           </div>
@@ -333,7 +334,7 @@ export default function AdminCabangDashboard() {
                 {data.batches.slice(0, 5).map(b => (
                   <div key={b.id} className="flex justify-between items-center p-2 rounded-lg bg-slate-50">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <div className="w-2 h-2 rounded-full bg-[#0E6187]" />
                       <span className="text-xs font-medium text-slate-700">{b.nama_batch}</span>
                     </div>
                     <span className="text-xs font-semibold text-slate-600">{b.siswas_count} siswa</span>
@@ -387,7 +388,7 @@ export default function AdminCabangDashboard() {
                       <p className="text-xs font-medium text-slate-700 truncate">{p.pendaftar}</p>
                       <p className="text-[10px] text-slate-400">{p.batch}</p>
                     </div>
-                    <span className="text-xs font-bold text-emerald-600 whitespace-nowrap">Rp {fmt(p.jumlah)}</span>
+                    <span className="text-xs font-bold text-slate-700 whitespace-nowrap">Rp {fmt(p.jumlah)}</span>
                   </div>
                 ))}
               </div>
