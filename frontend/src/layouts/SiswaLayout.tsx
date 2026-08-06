@@ -1,4 +1,5 @@
 import { Outlet } from 'react-router-dom'
+import ThemeToggle from '../components/ThemeToggle'
 
 export default function SiswaLayout() {
   return (
@@ -6,6 +7,7 @@ export default function SiswaLayout() {
       <main>
         <Outlet />
       </main>
+      <ThemeToggle floating />
     </div>
   )
 }

@@ -5,6 +5,16 @@
     <link rel="icon" type="image/png" href="/logo-sm.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sistem Informasi Manajemen Mendunia</title>
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
     <meta name="description" content="SIM Mendunia adalah sistem informasi manajemen terpadu untuk mengelola data kandidat, keuangan, absensi, dan operasional program pendidikan Mendunia." />
     <meta name="keywords" content="SIM Mendunia, sistem informasi, manajemen, kandidat, pendidikan, Indonesia" />
     <meta name="robots" content="index, follow" />

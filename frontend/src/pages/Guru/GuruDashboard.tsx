@@ -370,7 +370,7 @@ export default function GuruDashboard() {
 
       <div className="px-4 pt-4 pb-4 space-y-4 max-w-lg mx-auto">
         {/* Hero Attendance Card */}
-        <div className="relative rounded-2xl bg-[#0069b0] p-6 overflow-hidden">
+        <div className="relative rounded-2xl bg-[#0069b0] p-6 overflow-hidden border-2 border-yellow-400">
           <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/[0.03]" />
           <div className="absolute -right-2 -bottom-10 w-24 h-24 rounded-full bg-[#0069b0]/[0.08]" />
 

@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { absensiKaryawanApi, agendaApi, kelasSenseiApi, APP_URL } from '../../services/api'
-import { Camera, MapPin, CheckCircle, X, Calendar,
-  Plus, Users, User,
-  ChevronRight, Briefcase, LogIn, LogOut,
+import { Camera, CheckCircle, X, Calendar,
+  Users, Bell,
+  ChevronRight, LogOut,
   QrCode, FileText, History, Clock, ClipboardList,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 import { Html5Qrcode } from 'html5-qrcode'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
+import ThemeToggle from '../../components/ThemeToggle'
 
 declare global {
   interface Window { FaceDetector?: any }
@@ -51,7 +52,7 @@ const fullDayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sa
 const monthNamesID = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 
 export default function KaryawanDashboard() {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const [time, setTime] = useState(formatTime())
   const [activeTab, setActiveTab] = useState('home')
 
@@ -534,41 +535,92 @@ export default function KaryawanDashboard() {
   const statusDotColor = () => {
     if (absenStatus === 'pulang') return 'bg-[#7C8AA5]'
     if (absenStatus === 'masuk') return 'bg-[#4ADE80]'
-    return 'bg-[#0069b0]'
+    return 'bg-white/90'
   }
+
+  const firstName = (user?.name || 'Karyawan').split(' ')[0]
+  const initials = (user?.name?.charAt(0) || 'K').toUpperCase()
+  const dateStr = new Date().toLocaleDateString('id-ID', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  })
+
+  function handleLogout() {
+    Swal.fire({
+      icon: 'question',
+      title: 'Yakin ingin logout?',
+      text: 'Anda akan keluar dari akun Kelas Mendunia.',
+      showCancelButton: true,
+      confirmButtonText: 'Logout',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#0E6187',
+    }).then(async result => {
+      if (result.isConfirmed) {
+        await logout()
+        window.location.href = '/login'
+      }
+    })
+  }
+
+  const quickMenuItems = [
+    { icon: QrCode, label: 'Scan QR', action: openQrScanner },
+    { icon: FileText, label: 'Izin/Sakit', href: '/pengajuan-izin' },
+    { icon: History, label: 'Riwayat', href: '/riwayat-absensi-karyawan' },
+    { icon: Clock, label: 'Lembur', href: '/lembur-karyawan' },
+    { icon: Calendar, label: 'Jadwal', href: '/jadwal-karyawan' },
+    ...(user?.role === 'GURU' || user?.jabatan === 'Guru' ? [{ icon: ClipboardList, label: 'Data Siswa', href: '/guru-data-siswa' }] : []),
+    ...(user?.jabatan === 'Guru' ? [{ icon: Users, label: 'Sensei' }] : []),
+  ]
 
   // --- Render ---
   return (
-    <div className="min-h-screen bg-[#F4F5F8] pb-24">
-      {/* Brand accent line */}
-      <div className="h-[3px] bg-gradient-to-r from-[#0069b0] via-[#0069b0] to-[#0069b0]" />
-
-      {/* Top Bar */}
-      <div className="bg-white px-5 py-3.5 border-b border-[#E5E7EF] flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#eef1f6] overflow-hidden flex items-center justify-center flex-none">
-            {user?.foto_profil && user.foto_profil.trim() ? (
-              <img src={`${APP_URL}/uploads/karyawan/${user.foto_profil}`} alt="" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-            ) : (
-              <User size={20} className="text-[#8B90A0]" />
-            )}
+    <div className="min-h-screen bg-[#f0f2f5] pb-24 lg:pb-8">
+      {/* ============ Top App Bar ============ */}
+      <header className="bg-[#0E6187] px-4 pb-16 pt-5 text-white animate-fade-in">
+        <div className="mx-auto max-w-lg">
+          <div className="flex items-center justify-between animate-fade-in delay-75">
+            <div className="flex items-center gap-2">
+              <img src="/logo-sm1.png" alt="Kelas Mendunia" className="h-8 w-auto" />
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                aria-label="Notifikasi"
+                className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20 active:scale-95"
+              >
+                <Bell size={18} />
+                <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-400 ring-2 ring-[#0E6187]" />
+              </button>
+              <a
+                href="/profil-karyawan"
+                className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-white/10 ring-2 ring-white/30 transition hover:ring-white/60 active:scale-95"
+              >
+                {user?.foto_profil && user.foto_profil.trim() ? (
+                  <img src={`${APP_URL}/uploads/karyawan/${user.foto_profil}`} alt="Profil" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-xs font-bold text-white">{initials}</span>
+                )}
+              </a>
+              <button
+                onClick={handleLogout}
+                aria-label="Logout"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20 active:scale-95"
+              >
+                <LogOut size={17} />
+              </button>
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-bold text-[#14182B] leading-tight">{user?.name || 'Karyawan'}</p>
-            <p className="text-[11px] text-[#8B90A0] font-medium">{user?.jabatan || 'Karyawan'}</p>
+          <div className="mt-6 animate-fade-up delay-100">
+            <p className="text-[13px] font-medium text-teal-100">Selamat datang kembali</p>
+            <h1 className="mt-0.5 text-2xl font-bold">Halo, {firstName}!</h1>
+            <p className="mt-1 text-[13px] text-teal-100">{dateStr}</p>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-[#F4F5F8] border border-[#E5E7EF]">
-          <Calendar size={12} className="text-[#8B90A0]" />
-          <span className="text-[11px] font-semibold text-[#4B5063]">{formatDateShort(new Date().toISOString())}</span>
-        </div>
-      </div>
+      </header>
 
-      <div className="px-4 pt-4 pb-4 space-y-4 max-w-lg mx-auto">
+      <div className="mx-auto -mt-10 max-w-lg space-y-4 px-4">
         {/* Hero Attendance Card */}
-        <div className="relative rounded-2xl bg-[#0069b0] p-6 overflow-hidden">
+        <section className="relative overflow-hidden rounded-2xl bg-[#0E6187] p-6 shadow-lg border-2 border-yellow-400 animate-fade-up delay-150">
           <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/[0.03]" />
-          <div className="absolute -right-2 -bottom-10 w-24 h-24 rounded-full bg-[#0069b0]/[0.08]" />
+          <div className="absolute -right-2 -bottom-10 w-24 h-24 rounded-full bg-white/[0.06]" />
 
           <div className="relative flex items-center justify-between mb-5">
             <div>
@@ -598,152 +650,152 @@ export default function KaryawanDashboard() {
               <span className="text-xs font-bold text-blue-300">Pulang {jamKeluar}</span>
             </div>
           )}
-        </div>
+        </section>
 
         {/* Jadwal Shift Hari Ini */}
-        <section className="bg-white rounded-xl border border-[#E5E7EF] p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Jadwal Shift Hari Ini</h3>
+        <section className="rounded-xl bg-white p-4 shadow-sm animate-fade-up delay-200">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-slate-800">Jadwal Shift Hari Ini</h2>
+            {jadwal.length > 0 && <span className="text-[11px] font-semibold text-[#0E6187]">{jadwal.length} shift</span>}
           </div>
           {jadwal.length > 0 ? (
-            <div className="space-y-3">
+            <div className="mt-3 space-y-2.5">
               {jadwal.slice(0, 2).map((s, i) => (
-                <div key={i} className="flex items-center gap-3 pl-3 border-l-2 border-[#0069b0]">
-                  <div className="flex-1 min-w-0 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-bold text-[#14182B]">{s.nama}</p>
-                      <p className="text-[11px] text-[#8B90A0] font-medium">Status aktif</p>
-                    </div>
-                    <p className="text-sm font-bold text-[#0069b0] tabular-nums">{s.jam_mulai}–{s.jam_selesai}</p>
+                <div key={i} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
+                  <div className="flex h-10 w-10 flex-none items-center justify-center rounded-lg bg-[#0E6187]/10">
+                    <Clock size={16} className="text-[#0E6187]" strokeWidth={1.8} />
                   </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-slate-700">{s.nama}</p>
+                    <p className="text-[11px] font-medium text-slate-400">Status aktif</p>
+                  </div>
+                  <p className="shrink-0 text-sm font-bold text-[#0E6187] tabular-nums">{s.jam_mulai}–{s.jam_selesai}</p>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-6">
-              <Calendar size={22} className="mx-auto text-[#D5D8E3] mb-2" strokeWidth={1.5} />
-              <p className="text-sm font-semibold text-[#4B5063]">Tidak ada jadwal shift hari ini</p>
-              <p className="text-xs text-[#8B90A0] mt-1">{formatDateLong()}</p>
+            <div className="mt-3 rounded-xl border border-dashed border-slate-200 p-6 text-center">
+              <Calendar size={22} className="mx-auto mb-2 text-slate-300" strokeWidth={1.5} />
+              <p className="text-sm font-semibold text-slate-500">Tidak ada jadwal shift hari ini</p>
+              <p className="mt-1 text-xs text-slate-400">{formatDateLong()}</p>
             </div>
           )}
         </section>
 
-        {/* Quick Actions */}
-        <section className="bg-white rounded-xl border border-[#E5E7EF] p-5">
-          <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase mb-4">Menu Cepat</h3>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { icon: QrCode, label: 'Scan QR', action: openQrScanner },
-              { icon: FileText, label: 'Izin/Sakit', href: '/pengajuan-izin' },
-              { icon: History, label: 'Riwayat', href: '/riwayat-absensi-karyawan' },
-              { icon: Clock, label: 'Lembur', href: '/lembur-karyawan' },
-              { icon: Calendar, label: 'Jadwal', href: '/jadwal-karyawan' },
-              ...(user?.role === 'GURU' || user?.jabatan === 'Guru' ? [{ icon: ClipboardList, label: 'Data Siswa', href: '/guru-data-siswa' }] : []),
-              ...(user?.jabatan === 'Guru' ? [{ icon: Users, label: 'Sensei' }] : []),
-            ].map((item, i) => (
-              <button key={i} onClick={() => {
-                const it = item as { href?: string; action?: () => void }
-                if (it.action) it.action()
-                else if (it.href) window.location.href = it.href
-              }} className="flex flex-col items-center gap-2 py-3 rounded-lg hover:bg-[#F4F5F8] transition-colors">
-                <div className="w-10 h-10 rounded-lg bg-[#0069b0]/[0.06] flex items-center justify-center">
-                  <item.icon size={17} className="text-[#0069b0]" strokeWidth={1.8} />
-                </div>
-                <span className="text-[10.5px] font-semibold text-[#4B5063] leading-tight">{item.label}</span>
-              </button>
-            ))}
+        {/* Menu Cepat */}
+        <section className="rounded-xl bg-white p-4 shadow-sm animate-fade-up delay-250">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-slate-800">Menu Cepat</h2>
+            <span className="text-[11px] text-slate-400">{quickMenuItems.length} menu</span>
+          </div>
+          <div className="-mx-4 mt-3 flex items-stretch gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+            {quickMenuItems.map((item, idx) => {
+              const Icon = item.icon
+              return (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    const it = item as { href?: string; action?: () => void }
+                    if (it.action) it.action()
+                    else if (it.href) window.location.href = it.href
+                  }}
+                  className="group flex w-[68px] shrink-0 flex-col items-center gap-1.5 transition-all duration-200 hover:-translate-y-1 active:scale-95"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0E6187]/10 text-[#0E6187] transition-all duration-200 group-hover:scale-105 group-hover:shadow-md">
+                    <Icon size={20} />
+                  </div>
+                  <span className="text-center text-[10px] font-medium leading-tight text-slate-600 group-hover:text-slate-900">{item.label}</span>
+                </button>
+              )
+            })}
           </div>
         </section>
 
         {/* Agenda Hari Ini */}
-        <section className="bg-white rounded-xl border border-[#E5E7EF] p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Agenda Hari Ini</h3>
-            <button className="flex items-center gap-1 text-xs font-bold text-[#0069b0] hover:text-[#004d7a] transition-colors">
-              <Plus size={13} /> Tambah
-            </button>
+        <section className="rounded-xl bg-white p-4 shadow-sm animate-fade-up delay-300">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-slate-800">Agenda Hari Ini</h2>
+            {agendaList.length > 0 && <span className="text-[11px] font-semibold text-[#0E6187]">{agendaList.length} agenda</span>}
           </div>
           {agendaList.length > 0 ? (
-            <div className="divide-y divide-[#F0F1F5]">
+            <div className="mt-3 divide-y divide-slate-100">
               {agendaList.slice(0, 3).map(a => (
                 <div key={a.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                  <div className="w-9 h-9 rounded-lg bg-[#0069b0]/[0.06] flex items-center justify-center flex-none">
-                    <Calendar size={15} className="text-[#0069b0]" strokeWidth={1.8} />
+                  <div className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-[#0E6187]/10">
+                    <Calendar size={15} className="text-[#0E6187]" strokeWidth={1.8} />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-[#14182B] truncate">{a.judul}</p>
-                    <p className="text-xs text-[#8B90A0] font-medium">{a.tanggal} · {a.waktu}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-slate-700">{a.judul}</p>
+                    <p className="text-xs font-medium text-slate-400">{a.tanggal} · {a.waktu}</p>
                   </div>
-                  <ChevronRight size={15} className="text-[#D5D8E3]" />
+                  <ChevronRight size={15} className="text-slate-300" />
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-6">
-              <p className="text-sm font-semibold text-[#4B5063]">Belum ada agenda hari ini</p>
-              <p className="text-xs text-[#8B90A0] mt-1">Ketuk "Tambah" untuk membuat agenda</p>
+            <div className="mt-3 rounded-xl border border-dashed border-slate-200 p-6 text-center">
+              <p className="text-sm font-semibold text-slate-500">Belum ada agenda hari ini</p>
+              <p className="mt-1 text-xs text-slate-400">Agenda yang dibuat akan tampil di sini</p>
             </div>
           )}
         </section>
 
         {/* Kelas Sensei — only for Guru */}
         {user?.jabatan === 'Guru' && (
-          <section className="bg-white rounded-xl border border-[#E5E7EF] p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Kelas Sensei</h3>
-              <button className="flex items-center gap-1 text-xs font-bold text-[#0069b0] hover:text-[#004d7a] transition-colors">
-                <Plus size={13} /> Tambah
-              </button>
+          <section className="rounded-xl bg-white p-4 shadow-sm animate-fade-up delay-350">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-slate-800">Kelas Sensei</h2>
+              {kelasList.length > 0 && <span className="text-[11px] font-semibold text-[#0E6187]">{kelasList.length} kelas</span>}
             </div>
             {kelasList.length > 0 ? (
-              <div className="divide-y divide-[#F0F1F5]">
+              <div className="mt-3 divide-y divide-slate-100">
                 {kelasList.slice(0, 3).map(k => (
                   <div key={k.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                    <div className="w-9 h-9 rounded-lg bg-[#0069b0]/[0.06] flex items-center justify-center flex-none">
-                      <Users size={15} className="text-[#0069b0]" strokeWidth={1.8} />
+                    <div className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-[#0E6187]/10">
+                      <Users size={15} className="text-[#0E6187]" strokeWidth={1.8} />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-[#14182B] truncate">{k.nama}</p>
-                      <p className="text-xs text-[#8B90A0] font-medium">{k.hari}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-700">{k.nama}</p>
+                      <p className="text-xs font-medium text-slate-400">{k.hari}</p>
                     </div>
-                    <ChevronRight size={15} className="text-[#D5D8E3]" />
+                    <ChevronRight size={15} className="text-slate-300" />
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-6">
-                <p className="text-sm font-semibold text-[#4B5063]">Belum ada kelas aktif</p>
-                <p className="text-xs text-[#8B90A0] mt-1">Tambahkan kelas baru untuk mulai absen</p>
+              <div className="mt-3 rounded-xl border border-dashed border-slate-200 p-6 text-center">
+                <p className="text-sm font-semibold text-slate-500">Belum ada kelas aktif</p>
+                <p className="mt-1 text-xs text-slate-400">Tambahkan kelas baru untuk mulai absen</p>
               </div>
             )}
           </section>
         )}
 
         {/* Riwayat Absensi */}
-        <section className="bg-white rounded-xl border border-[#E5E7EF] overflow-hidden">
+        <section className="overflow-hidden rounded-xl bg-white shadow-sm animate-fade-up delay-350">
           {/* Header */}
-          <div className="flex items-center justify-between px-5 pt-5 pb-3">
+          <div className="flex items-center justify-between px-4 pt-4 pb-3">
             <div>
-              <h3 className="text-[13px] font-bold text-[#14182B]">Riwayat Absensi</h3>
-              <p className="text-[11px] text-[#8B90A0] font-medium mt-0.5">
+              <h2 className="text-sm font-bold text-slate-800">Riwayat Absensi</h2>
+              <p className="mt-0.5 text-[11px] text-slate-400">
                 {monthNamesID[new Date().getMonth()]} {new Date().getFullYear()}
                 <span className="mx-1.5">·</span>
                 {riwayat.filter(r => r.status === 'hadir' && new Date(r.tanggal).getMonth() === new Date().getMonth()).length} Hari Hadir
               </p>
             </div>
-            <a href="/riwayat-absensi-karyawan" className="text-[#8B90A0] hover:text-[#14182B] transition-colors">
+            <a href="/riwayat-absensi-karyawan" className="text-slate-300 transition-colors hover:text-slate-500">
               <ChevronRight size={18} />
             </a>
           </div>
 
           {/* Filter Pills */}
-          <div className="px-5 pb-2 flex gap-1.5 overflow-x-auto scrollbar-none">
+          <div className="flex gap-1.5 overflow-x-auto px-4 pb-2 [scrollbar-width:none]">
             {['Semua', 'Karyawan', 'Sensei', 'Hadir', 'Terlambat', 'Alpa'].map(f => (
               <button key={f} onClick={() => setRiwayatFilter(f)}
-                className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors ${
+                className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-colors ${
                   riwayatFilter === f
-                    ? 'bg-[#0069b0] text-white'
-                    : 'bg-[#F4F5F8] text-[#6B7280] hover:bg-[#E5E7EF]'
+                    ? 'bg-[#0E6187] text-white'
+                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                 }`}>
                 {f}
               </button>
@@ -770,46 +822,46 @@ export default function KaryawanDashboard() {
                   const tgl = d.getDate()
                   const status = r.status === 'hadir' ? 'HADIR' : r.status === 'libur' ? 'LIBUR' : r.status === 'izin' ? 'IZIN' : r.status?.toUpperCase() || '—'
                   const statusStyle =
-                    status === 'HADIR' ? 'bg-[#DCFCE7] text-[#15803D]' :
-                    status === 'LIBUR' ? 'bg-[#F0F1F5] text-[#6B7280]' :
-                    status === 'IZIN' ? 'bg-[#FEF3C7] text-[#B45309]' :
-                    'bg-[#FEE2E2] text-[#B91C1C]'
+                    status === 'HADIR' ? 'bg-emerald-100 text-emerald-700' :
+                    status === 'LIBUR' ? 'bg-slate-100 text-slate-500' :
+                    status === 'IZIN' ? 'bg-amber-100 text-amber-700' :
+                    'bg-red-100 text-red-700'
                   return (
-                    <div key={r.id} className="flex items-start gap-3 px-5 py-3.5 border-t border-[#F0F1F5] first:border-t-0">
-                      <div className="flex flex-col items-center w-10 flex-none">
-                        <span className="text-[10px] font-bold text-[#8B90A0] tracking-wider">{dayAbbr[dayIdx]}</span>
-                        <span className="text-lg font-bold text-[#14182B] -mt-0.5">{tgl}</span>
+                    <div key={r.id} className="flex items-start gap-3 border-t border-slate-100 px-4 py-3.5 first:border-t-0">
+                      <div className="flex w-10 flex-none flex-col items-center">
+                        <span className="text-[10px] font-bold tracking-wider text-slate-400">{dayAbbr[dayIdx]}</span>
+                        <span className="-mt-0.5 text-lg font-bold text-slate-700">{tgl}</span>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 mb-0.5">
-                          <span className="text-[9px] font-bold text-[#6B7280] bg-[#F0F1F5] px-1.5 py-0.5 rounded-sm tracking-wide">{r.role || 'KARYAWAN'}</span>
-                          <span className="text-xs font-semibold text-[#14182B] truncate">{r.shift?.nama || 'Dateng Pagi'}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-0.5 flex items-center gap-1.5">
+                          <span className="rounded-sm bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold tracking-wide text-slate-500">{r.role || 'KARYAWAN'}</span>
+                          <span className="truncate text-xs font-semibold text-slate-700">{r.shift?.nama || 'Dateng Pagi'}</span>
                         </div>
-                        <p className="text-[11px] text-[#8B90A0] font-medium">{fullDayNames[dayIdx]}, {tgl} {monthNamesID[d.getMonth()]}</p>
-                        <div className="flex items-center gap-2 mt-1 tabular-nums">
-                          <span className="text-xs font-semibold text-[#14182B]">{r.jam_masuk ? r.jam_masuk.slice(0, 8) : '—'}</span>
-                          <span className="text-[10px] text-[#C5C8D4]">—</span>
-                          <span className="text-xs font-semibold text-[#14182B]">{r.jam_keluar ? r.jam_keluar.slice(0, 8) : '—'}</span>
+                        <p className="text-[11px] font-medium text-slate-400">{fullDayNames[dayIdx]}, {tgl} {monthNamesID[d.getMonth()]}</p>
+                        <div className="mt-1 flex items-center gap-2 tabular-nums">
+                          <span className="text-xs font-semibold text-slate-700">{r.jam_masuk ? r.jam_masuk.slice(0, 8) : '—'}</span>
+                          <span className="text-[10px] text-slate-300">—</span>
+                          <span className="text-xs font-semibold text-slate-700">{r.jam_keluar ? r.jam_keluar.slice(0, 8) : '—'}</span>
                         </div>
                       </div>
-                      <span className={`shrink-0 px-2 py-1 rounded-md text-[10px] font-bold self-center ${statusStyle}`}>{status}</span>
+                      <span className={`shrink-0 self-center rounded-md px-2 py-1 text-[10px] font-bold ${statusStyle}`}>{status}</span>
                     </div>
                   )
                 })}</div>
-              : <div className="text-center py-8 px-5">
-                  <p className="text-sm font-semibold text-[#4B5063]">Belum ada riwayat absensi</p>
+              : <div className="px-5 py-8 text-center">
+                  <p className="text-sm font-semibold text-slate-500">Belum ada riwayat absensi</p>
                 </div>
           })()}
         </section>
       </div>
 
-      {/* Camera Modal — Full Screen */}
+      {/* QR Scanner Modal */}
       {showQrScanner && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
               <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                <QrCode size={18} className="text-[#0069b0]" />
+                <QrCode size={18} className="text-[#0E6187]" />
                 Scan QR Absensi
               </h3>
               <button
@@ -823,7 +875,7 @@ export default function KaryawanDashboard() {
               <div className="aspect-square bg-black rounded-xl overflow-hidden relative flex items-center justify-center">
                 <div id="qr-scanner-dashboard" className="w-full h-full" />
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="w-48 h-48 border-2 border-[#0069b0] rounded-xl opacity-70" />
+                  <div className="w-48 h-48 border-2 border-[#0E6187] rounded-xl opacity-70" />
                 </div>
               </div>
               <p className="text-xs text-slate-400 text-center mt-3">
@@ -929,6 +981,8 @@ export default function KaryawanDashboard() {
         hasJadwal={jadwal.length > 0}
         onAbsenClick={() => absenStatus === 'pulang' ? null : startCamera(absenStatus === 'masuk' ? 'pulang' : 'masuk')}
       />
+
+      <ThemeToggle floating className="bottom-28" />
     </div>
   )
 }

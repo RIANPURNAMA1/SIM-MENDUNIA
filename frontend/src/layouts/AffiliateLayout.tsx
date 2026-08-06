@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Menu } from 'lucide-react'
 import AffiliateSidebar from '../components/AffiliateSidebar'
+import ThemeToggle from '../components/ThemeToggle'
 
 interface AffiliateLayoutProps {
   children: React.ReactNode
@@ -34,6 +35,8 @@ export default function AffiliateLayout({ children }: AffiliateLayoutProps) {
           {children}
         </main>
       </div>
+
+      <ThemeToggle floating />
     </div>
   )
 }

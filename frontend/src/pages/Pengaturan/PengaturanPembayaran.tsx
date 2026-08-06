@@ -165,7 +165,7 @@ export default function PengaturanPembayaran() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F0F2F5] px-4 py-6 sm:px-6 flex justify-center">
+    <div className="min-h-screen  px-4 py-6 sm:px-6 flex justify-center">
       <div className="w-full max-w-3xl space-y-4">
 
         {/* HEADER */}
