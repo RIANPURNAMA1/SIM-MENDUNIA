@@ -27,7 +27,7 @@
 
 body {
   margin: 0;
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Inter', sans-serif;
   background-color: #f5f7fa;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -412,6 +412,46 @@ html.dark .bg-white\/80 { background-color: rgba(15, 23, 42, 0.8); }
 html.dark .bg-white\/70 { background-color: rgba(15, 23, 42, 0.7); }
 html.dark .bg-white\/60 { background-color: rgba(15, 23, 42, 0.6); }
 
+/* ---- Translucent slate surfaces (table stripes, row hovers) ---- */
+html.dark .bg-slate-50\/50 { background-color: rgba(15, 23, 42, 0.5); }
+html.dark .hover\:bg-slate-50\/50:hover { background-color: rgba(30, 41, 59, 0.5); }
+
+/* ---- Quill editor (ReactQuill snow theme) dark ---- */
+html.dark .ql-toolbar.ql-snow,
+html.dark .ql-container.ql-snow {
+  border-color: #334155;
+  background-color: #1e293b;
+}
+html.dark .ql-snow .ql-editor {
+  background-color: #1e293b;
+  color: #e2e8f0;
+}
+html.dark .ql-snow .ql-editor.ql-blank::before { color: #64748b; }
+html.dark .ql-snow .ql-toolbar .ql-stroke { stroke: #cbd5e1; }
+html.dark .ql-snow .ql-toolbar .ql-fill { fill: #cbd5e1; }
+html.dark .ql-snow .ql-toolbar button:hover .ql-stroke,
+html.dark .ql-snow .ql-toolbar button.ql-active .ql-stroke { stroke: #0E6187; }
+html.dark .ql-snow .ql-toolbar button:hover .ql-fill,
+html.dark .ql-snow .ql-toolbar button.ql-active .ql-fill { fill: #0E6187; }
+html.dark .ql-snow .ql-picker { color: #cbd5e1; }
+html.dark .ql-snow .ql-picker-options {
+  background-color: #1e293b;
+  color: #e2e8f0;
+  border-color: #334155;
+}
+html.dark .ql-snow .ql-picker-item:hover { color: #0E6187; }
+html.dark .ql-snow .ql-tooltip {
+  background-color: #1e293b;
+  color: #e2e8f0;
+  border-color: #334155;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+}
+html.dark .ql-snow .ql-tooltip input[type=text] {
+  background-color: #0f172a;
+  color: #e2e8f0;
+  border: 1px solid #475569;
+}
+
 /* ---- Light gradient stops (kept vivid for saturated stops) ---- */
 html.dark .from-amber-50 { --tw-gradient-from: rgba(245, 158, 11, 0.18); }
 html.dark .from-red-50 { --tw-gradient-from: rgba(239, 68, 68, 0.18); }
@@ -435,4 +475,72 @@ html.dark .swal2-popup {
 html.dark .swal2-title,
 html.dark .swal2-html-container {
   color: #e2e8f0;
+}
+
+/* ================================================================
+   FORCE LIGHT — areas that must always stay light even in dark mode
+   (e.g. printable invoice). Scoped under .force-light so it only
+   overrides the retrofitted dark rules inside that subtree.
+   ================================================================ */
+html.dark .force-light,
+html.dark .force-light body {
+  color-scheme: light;
+}
+
+/* ---- Backgrounds ---- */
+html.dark .force-light .bg-white { background-color: #ffffff; }
+html.dark .force-light .bg-slate-50 { background-color: #f8fafc; }
+html.dark .force-light .bg-slate-100 { background-color: #f1f5f9; }
+html.dark .force-light .bg-slate-200 { background-color: #e2e8f0; }
+
+/* ---- Text: neutrals ---- */
+html.dark .force-light .text-black { color: #000000; }
+html.dark .force-light .text-white { color: #ffffff; }
+html.dark .force-light .text-slate-900 { color: #0f172a; }
+html.dark .force-light .text-slate-800 { color: #1e293b; }
+html.dark .force-light .text-slate-700 { color: #334155; }
+html.dark .force-light .text-slate-600 { color: #475569; }
+html.dark .force-light .text-slate-500 { color: #64748b; }
+html.dark .force-light .text-slate-400 { color: #94a3b8; }
+html.dark .force-light .text-slate-300 { color: #cbd5e1; }
+
+/* ---- Text: colored ---- */
+html.dark .force-light .text-blue-600 { color: #2563eb; }
+html.dark .force-light .text-blue-700 { color: #1d4ed8; }
+html.dark .force-light .text-sky-600 { color: #0284c7; }
+html.dark .force-light .text-cyan-600 { color: #0891b2; }
+html.dark .force-light .text-emerald-600 { color: #059669; }
+html.dark .force-light .text-emerald-700 { color: #047857; }
+html.dark .force-light .text-green-600 { color: #16a34a; }
+html.dark .force-light .text-teal-600 { color: #0d9488; }
+html.dark .force-light .text-red-500 { color: #ef4444; }
+html.dark .force-light .text-red-600 { color: #dc2626; }
+html.dark .force-light .text-red-700 { color: #b91c1c; }
+html.dark .force-light .text-amber-600 { color: #d97706; }
+html.dark .force-light .text-orange-600 { color: #ea580c; }
+
+/* ---- Borders ---- */
+html.dark .force-light .border-slate-100 { border-color: #f1f5f9; }
+html.dark .force-light .border-slate-200 { border-color: #e2e8f0; }
+html.dark .force-light .border-slate-300 { border-color: #cbd5e1; }
+html.dark .force-light .border-slate-400 { border-color: #94a3b8; }
+
+/* ---- Hover states ---- */
+html.dark .force-light .hover\:bg-slate-50:hover { background-color: #f1f5f9; }
+html.dark .force-light .hover\:bg-slate-100:hover { background-color: #f1f5f9; }
+html.dark .force-light .hover\:bg-slate-200:hover { background-color: #e2e8f0; }
+html.dark .force-light .hover\:text-slate-600:hover { color: #475569; }
+html.dark .force-light .hover\:text-slate-700:hover { color: #334155; }
+html.dark .force-light .hover\:text-slate-900:hover { color: #0f172a; }
+html.dark .force-light .hover\:border-slate-300:hover { border-color: #cbd5e1; }
+
+/* ---- Shadows (keep light-mode softness) ---- */
+html.dark .force-light .shadow-sm {
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+html.dark .force-light .shadow-md {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+html.dark .force-light .shadow-lg {
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 }

@@ -442,7 +442,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   key={item.label}
                   to={child.href}
                   onClick={handleNavClick}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${active ? "bg-white/15 text-white font-medium shadow-sm" : "text-gray-300 hover:bg-white/10 hover:text-white"}`}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm transition-all duration-200 ${active ? "bg-white/15 text-white font-medium shadow-sm" : "text-gray-300 hover:bg-white/10 hover:text-white"}`}
                 >
                   <Icon size={18} />
                   <span>{item.label}</span>
@@ -456,7 +456,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               <div key={group.label}>
                 <button
                   onClick={() => toggleGroup(group.label)}
-                  className={`flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${isOpen || groupActive ? "text-white bg-white/10 shadow-sm" : "text-gray-300 hover:bg-white/10 hover:text-white"}`}
+                  className={`flex items-center justify-between w-full px-3 py-2.5 rounded-sm text-sm transition-all duration-200 ${isOpen || groupActive ? "text-white bg-white/10 shadow-sm" : "text-gray-300 hover:bg-white/10 hover:text-white"}`}
                 >
                   <div className="flex items-center gap-3">
                     <Icon size={18} />
@@ -487,7 +487,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                           key={child.label}
                           to={child.href}
                           onClick={() => handleNavClick(child.label)}
-                          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 ${active ? "bg-white/15 text-white font-medium" : "text-gray-400 hover:bg-white/10 hover:text-white"}`}
+                          className={`flex items-center gap-3 px-3 py-2 rounded-sm text-sm transition-all duration-200 ${active ? "bg-white/15 text-white font-medium" : "text-gray-400 hover:bg-white/10 hover:text-white"}`}
                         >
                           <ChildIcon size={14} />
                           <span>{child.label}</span>

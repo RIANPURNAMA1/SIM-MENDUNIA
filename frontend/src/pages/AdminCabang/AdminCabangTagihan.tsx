@@ -10,7 +10,7 @@ function parseInput(v: string): number {
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import {
   FileText, Search, Receipt, CheckCircle, Clock, AlertCircle, RotateCcw,
-  DollarSign, X, Save, Bell, Eye, Check, Loader, XCircle, Users,
+  DollarSign, X, Save, Bell, Eye, Check, Loader, XCircle, SlidersHorizontal,
   ChevronLeft, ChevronRight, MoreHorizontal,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
@@ -131,6 +131,7 @@ export default function AdminCabangTagihan() {
   const [savingInline, setSavingInline] = useState(false)
   const [pendingPembayaran, setPendingPembayaran] = useState<any[]>([])
   const [showBatchDropdown, setShowBatchDropdown] = useState(false)
+  const [showFilter, setShowFilter] = useState(false)
   const [showPendingModal, setShowPendingModal] = useState(false)
   const [selectedPendingPendaftarId, setSelectedPendingPendaftarId] = useState<number | null>(null)
   const [verifyingId, setVerifyingId] = useState<number | null>(null)
@@ -835,60 +836,34 @@ export default function AdminCabangTagihan() {
             <p className="text-sm text-slate-500">Kelola tagihan pendaftaran cabang Anda</p>
           </div>
         </div>
-        <button
-          onClick={() => { setSelectedPendingPendaftarId(null); setShowPendingModal(true) }}
-          className="relative inline-flex items-center gap-2 rounded-md bg-white border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
-        >
-          <span>Verifikasi</span>
-          {pendingPembayaran.length > 0 && (
-            <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-              {new Set(pendingPembayaran.map((pp: any) => pp.pendaftar_id)).size}
-            </span>
-          )}
-        </button>
-      </div>
-
-      {/* Stats */}
-      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
-            <Receipt size={18} className="text-blue-600" />
-          </div>
-          <div>
-            <p className="text-xs text-slate-500">Total Tagihan</p>
-            <p className="text-2xl font-bold text-slate-800">Rp {fmt(stats.total)}</p>
-          </div>
-        </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50">
-            <CheckCircle size={18} className="text-emerald-600" />
-          </div>
-          <div>
-            <p className="text-xs text-emerald-600">Terkumpul</p>
-            <p className="text-2xl font-bold text-emerald-700">Rp {fmt(stats.paid)}</p>
-          </div>
-        </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-50">
-            <AlertCircle size={18} className="text-red-500" />
-          </div>
-          <div>
-            <p className="text-xs text-red-600">Outstanding</p>
-            <p className="text-2xl font-bold text-red-600">Rp {fmt(stats.outstanding)}</p>
-          </div>
-        </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50">
-            <Users size={18} className="text-amber-600" />
-          </div>
-          <div>
-            <p className="text-xs text-slate-500">Total Kandidat</p>
-            <p className="text-2xl font-bold text-slate-800">{stats.count}</p>
-          </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowFilter(!showFilter)}
+            className={`inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium shadow-sm transition ${
+              showFilter
+                ? 'border-[#0E6187] bg-[#0E6187] text-white hover:bg-[#0E6187]/90'
+                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            <SlidersHorizontal size={16} />
+            Filter
+          </button>
+          <button
+            onClick={() => { setSelectedPendingPendaftarId(null); setShowPendingModal(true) }}
+            className="relative inline-flex items-center gap-2 rounded-md bg-white border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+          >
+            <span>Verifikasi</span>
+            {pendingPembayaran.length > 0 && (
+              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                {new Set(pendingPembayaran.map((pp: any) => pp.pendaftar_id)).size}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
       {/* Filter */}
+      {showFilter && (
       <div className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
           <div className="relative sm:col-span-2 md:col-span-3 lg:col-span-2">
@@ -975,6 +950,7 @@ export default function AdminCabangTagihan() {
           </button>
         </div>
       </div>
+      )}
 
       {/* Program Tables */}
       {loading ? (

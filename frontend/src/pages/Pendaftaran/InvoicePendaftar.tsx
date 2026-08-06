@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Download, Printer, FileText, CheckCircle, Clock, XCircle, ShieldCheck, Loader } from 'lucide-react'
 import { toDataURL } from 'qrcode'
-import { pendaftarApi, companyProfileApi } from '../../services/api'
+import { pendaftarApi, adminCabangApi, companyProfileApi } from '../../services/api'
 import type { CompanyProfile } from '../../types'
 
 interface InvoiceData {
@@ -65,7 +65,9 @@ const statusBadge = (status: string) => {
   return <span className="font-semibold text-slate-700">{label}</span>
 }
 
-export default function InvoicePendaftar() {
+export default function InvoicePendaftar({ variant = 'all' }: { variant?: 'all' | 'cabang' }) {
+  const isCabang = variant === 'cabang'
+  const backPath = isCabang ? '/admin-cabang/kandidat' : '/pendaftar'
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const invoiceRef = useRef<HTMLDivElement>(null)
@@ -78,7 +80,7 @@ export default function InvoicePendaftar() {
   useEffect(() => {
     if (!id) return
     Promise.all([
-      pendaftarApi.invoice(Number(id)),
+      isCabang ? adminCabangApi.invoice(Number(id)) : pendaftarApi.invoice(Number(id)),
       companyProfileApi.get(),
     ])
       .then(([invoiceRes, companyRes]) => {
@@ -148,7 +150,7 @@ export default function InvoicePendaftar() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[400px] items-center justify-center p-6">
+      <div className="force-light flex min-h-[400px] items-center justify-center p-6">
         <div className="relative w-14 h-14 flex items-center justify-center">
           <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
           <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
@@ -159,12 +161,12 @@ export default function InvoicePendaftar() {
 
   if (!data) {
     return (
-      <div className="flex min-h-[400px] flex-col items-center justify-center p-6">
+      <div className="force-light flex min-h-[400px] flex-col items-center justify-center p-6">
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
           <FileText size={28} />
         </div>
         <p className="mt-4 text-sm font-medium text-slate-600">Data invoice tidak ditemukan</p>
-        <button onClick={() => navigate('/pendaftar')} className="mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium">
+        <button onClick={() => navigate(backPath)} className="mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium">
           Kembali ke Pendaftar
         </button>
       </div>
@@ -176,11 +178,11 @@ export default function InvoicePendaftar() {
   const formattedDate = tgl.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
 
   return (
-    <div className="min-h-screen bg-slate-50 px-3 py-4 sm:px-6 sm:py-5">
+    <div className="force-light min-h-screen bg-slate-50 px-3 py-4 sm:px-6 sm:py-5">
       {/* Toolbar */}
       <div className="no-print mb-4 flex flex-wrap items-center justify-between gap-3">
         <button
-          onClick={() => navigate('/pendaftar')}
+          onClick={() => navigate(backPath)}
           className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
         >
           <ArrowLeft size={16} />
