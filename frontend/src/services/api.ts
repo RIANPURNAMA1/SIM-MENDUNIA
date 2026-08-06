@@ -353,6 +353,8 @@ export const pendaftarApi = {
     api.post('/kandidat/bulk-delete', { ids }),
   bulkUpdateBatchKandidat: (ids: number[], batchId: number) =>
     api.post('/kandidat/bulk-update-batch', { ids, batch_id: batchId }),
+  bulkUpdateProductKandidat: (ids: number[], productId: number) =>
+    api.post('/kandidat/bulk-update-product', { ids, product_id: productId }),
   setLunas: (pendaftarId: number) => api.post(`/pembayaran-item/${pendaftarId}/set-lunas`),
   batalLunas: (pendaftarId: number) => api.post(`/pembayaran-item/${pendaftarId}/batal-lunas`),
   bayarInfo: (id: number) => api.get(`/pendaftaran/bayar/${id}`),

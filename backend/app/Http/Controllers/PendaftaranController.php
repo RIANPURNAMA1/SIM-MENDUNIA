@@ -2718,6 +2718,29 @@ class PendaftaranController extends Controller
         ]);
     }
 
+    public function bulkUpdateProductKandidat(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'required|integer|exists:pendaftar,id',
+            'product_id' => 'required|integer|exists:products,id',
+        ]);
+
+        $ids = $request->input('ids');
+        $productId = $request->input('product_id');
+        $updated = 0;
+
+        Pendaftar::whereIn('id', $ids)->each(function ($pendaftar) use ($productId, &$updated) {
+            $pendaftar->update(['product_id' => $productId]);
+            $updated++;
+        });
+
+        return response()->json([
+            'message' => "{$updated} kandidat berhasil diubah programnya",
+            'updated' => $updated,
+        ]);
+    }
+
     /**
      * Public endpoint: get pendaftar info + company profile for payment page
      */
