@@ -452,8 +452,6 @@ export default function SiswaPage() {
               <th className="border border-slate-600 px-3 py-2.5 text-center font-semibold">Lv3</th>
               <th className="border border-slate-600 px-3 py-2.5 text-center font-semibold">Lv4</th>
               <th className="border border-slate-600 px-3 py-2.5 font-semibold">Shift</th>
-              <th className="border border-slate-600 px-3 py-2.5 text-center font-semibold">L/P</th>
-              <th className="border border-slate-600 px-3 py-2.5 font-semibold">No. HP</th>
               <th className="border border-slate-600 px-3 py-2.5 text-center font-semibold">Status</th>
               <th className="border border-slate-600 px-3 py-2.5 text-center font-semibold w-24">Aksi</th>
             </tr>
@@ -462,12 +460,12 @@ export default function SiswaPage() {
             {loading ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <tr key={i}>
-                  <td colSpan={12} className="border border-slate-200 px-3 py-3"><div className="h-3 w-full rounded bg-slate-200/70" /></td>
+                  <td colSpan={10} className="border border-slate-200 px-3 py-3"><div className="h-3 w-full rounded bg-slate-200/70" /></td>
                 </tr>
               ))
             ) : data.length === 0 ? (
               <tr>
-                <td colSpan={12} className="border border-slate-200 px-4 py-10 text-center">
+                <td colSpan={10} className="border border-slate-200 px-4 py-10 text-center">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400"><GraduationCap size={24} /></div>
                   <p className="mt-3 text-sm font-medium text-slate-600">Belum ada data siswa</p>
                 </td>
@@ -541,12 +539,6 @@ export default function SiswaPage() {
                     );
                   })}
                   <td className="border border-slate-200 px-3 py-2.5 text-slate-500">{s.shift?.nama_shift || "-"}</td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-center">
-                    <span className={`font-semibold ${s.jenis_kelamin === "L" ? "text-blue-600" : s.jenis_kelamin === "P" ? "text-rose-600" : "text-slate-300"}`}>
-                      {s.jenis_kelamin || "-"}
-                    </span>
-                  </td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-slate-500">{s.no_hp || "-"}</td>
                   <td className="border border-slate-200 px-3 py-2.5 text-center">
                     <span className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-semibold ${s.status === "AKTIF" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
                       {s.status}

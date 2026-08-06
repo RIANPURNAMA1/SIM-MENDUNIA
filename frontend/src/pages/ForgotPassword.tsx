@@ -2,6 +2,14 @@ import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 
+const PASSWORD_REQUIREMENTS = [
+  { id: "length", label: "Minimal 8 karakter", test: (p: string) => p.length >= 8 },
+  { id: "lower", label: "Terdapat minimal satu huruf kecil", test: (p: string) => /[a-z]/.test(p) },
+  { id: "upper", label: "Terdapat minimal satu huruf besar", test: (p: string) => /[A-Z]/.test(p) },
+  { id: "number", label: "Terdapat minimal satu angka", test: (p: string) => /\d/.test(p) },
+  { id: "symbol", label: "Terdapat salah satu simbol: ! @ # $ % ^ & *", test: (p: string) => /[!@#$%^&*]/.test(p) },
+];
+
 export default function ForgotPassword() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -19,6 +27,12 @@ export default function ForgotPassword() {
 
     if (password !== passwordConfirmation) {
       setError("Konfirmasi password tidak cocok");
+      return;
+    }
+
+    const unmet = PASSWORD_REQUIREMENTS.filter((r) => !r.test(password));
+    if (unmet.length > 0) {
+      setError(`Password harus memenuhi semua ketentuan: ${unmet.map((r) => r.label).join("; ")}`);
       return;
     }
 
@@ -79,7 +93,7 @@ export default function ForgotPassword() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  minLength={6}
+                  minLength={8}
                   placeholder="Password Baru"
                   className="w-full h-[52px] px-4 text-[17px] bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:outline-none focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187] text-[#1c1e21] placeholder-[#8d949e]"
                 />
@@ -92,12 +106,32 @@ export default function ForgotPassword() {
                 </button>
               </div>
 
+              <div className="space-y-1.5 -mt-1">
+                {PASSWORD_REQUIREMENTS.map((r) => {
+                  const met = r.test(password);
+                  return (
+                    <div key={r.id} className="flex items-start gap-2 text-[13px]">
+                      <span
+                        className={`mt-0.5 flex-none h-4 w-4 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors ${
+                          met ? "bg-emerald-500 text-white" : "bg-[#dddfe2] text-[#8d949e]"
+                        }`}
+                      >
+                        {met ? "✓" : ""}
+                      </span>
+                      <span className={met ? "text-emerald-700 font-medium" : "text-[#606770]"}>
+                        {r.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
               <input
                 type="password"
                 value={passwordConfirmation}
                 onChange={(e) => setPasswordConfirmation(e.target.value)}
                 required
-                minLength={6}
+                minLength={8}
                 placeholder="Konfirmasi Password Baru"
                 className="w-full h-[52px] px-4 text-[17px] bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:outline-none focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187] text-[#1c1e21] placeholder-[#8d949e]"
               />

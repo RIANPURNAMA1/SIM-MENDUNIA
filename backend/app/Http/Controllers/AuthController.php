@@ -205,7 +205,9 @@ class AuthController extends Controller
     {
         $request->validate([
             'email' => 'required|email|exists:users,email',
-            'password' => 'required|min:6|confirmed',
+            'password' => ['required', 'confirmed', 'min:8', 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*]).+$/'],
+        ], [
+            'password.regex' => 'Password harus mengandung minimal satu huruf kecil, satu huruf besar, satu angka, dan satu simbol (! @ # $ % ^ & *)',
         ]);
 
         $user = User::where('email', $request->email)->first();

@@ -304,47 +304,6 @@ export default function DashboardAkademik() {
         </div>
       </div>
 
-      {/* Per Batch Penilaian */}
-      {rekap && rekap.per_batch.length > 0 && (
-        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0E6187]/10">
-              <Layers size={18} className="text-[#0E6187]" />
-            </div>
-            <div>
-              <h2 className="text-sm font-bold text-gray-800">Penilaian Per Batch</h2>
-              <p className="text-xs text-gray-400">Rata-rata nilai dan statistik per batch</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {rekap.per_batch.map((b) => (
-              <div key={b.batch_id} className="border border-gray-200 rounded-xl p-4 bg-gradient-to-br from-gray-50 to-white">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-gray-900">{b.nama_batch}</h3>
-                  <span className="text-xs bg-[#0E6187]/10 text-[#0E6187] px-2.5 py-0.5 rounded-full font-medium">
-                    {b.siswa_dinilai}/{b.total_siswa} siswa
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div>
-                    <p className="text-xs text-gray-500">Rata-rata</p>
-                    <p className="text-lg font-bold text-[#0E6187]">{b.rata_rata}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Penilaian</p>
-                    <p className="text-lg font-bold text-gray-800">{b.total_assessments}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Siswa</p>
-                    <p className="text-lg font-bold text-gray-800">{b.total_siswa}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Batch Terbaru + Absensi Hari Ini */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Batch Terbaru */}
