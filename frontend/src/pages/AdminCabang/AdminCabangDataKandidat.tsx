@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Users, Search, RotateCcw, Eye, Edit3, Receipt, Check, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Download, Plus, Loader2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import jsPDF from 'jspdf'
 import { adminCabangApi } from '../../services/api'
 
 interface Kandidat {
@@ -353,6 +354,97 @@ export default function AdminCabangDataKandidat() {
     URL.revokeObjectURL(url)
   }
 
+  function exportLoginPdf() {
+    const pdf = new jsPDF('l', 'mm', 'a4')
+    const pageW = pdf.internal.pageSize.getWidth()
+    const pageH = pdf.internal.pageSize.getHeight()
+    const brand: [number, number, number] = [14, 97, 135]
+    const margin = 12
+    const colWidths = [12, 44, 62, 74, 50]
+    const startX = margin
+    const tableW = colWidths.reduce((a, b) => a + b, 0)
+    const rowH = 8
+    const sanitize = (s: string) => s.replace(/[^\x00-\xFF]/g, '.')
+    const truncate = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '.' : s)
+    let y = 0
+
+    const drawHeader = () => {
+      pdf.setFillColor(...brand)
+      pdf.rect(0, 0, pageW, 16, 'F')
+      pdf.setTextColor(255, 255, 255)
+      pdf.setFont('helvetica', 'bold')
+      pdf.setFontSize(13)
+      pdf.text('DATA AKUN LOGIN KANDIDAT', margin, 10.5)
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(8)
+      pdf.text('mendunia.id', pageW - margin, 10.5, { align: 'right' })
+
+      y = 23
+      pdf.setTextColor(30, 41, 59)
+      pdf.setFontSize(9)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text(`Cetak : ${new Date().toLocaleString('id-ID')}`, pageW - margin, y, { align: 'right' })
+      y += 5
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(8)
+      pdf.setTextColor(100, 116, 139)
+      pdf.text(`Total ${filteredList.length} kandidat. Login di aplikasi menggunakan E-mail dan Password.`, margin, y)
+      y += 7
+
+      pdf.setFillColor(...brand)
+      pdf.setTextColor(255, 255, 255)
+      pdf.setFont('helvetica', 'bold')
+      pdf.setFontSize(8)
+      pdf.rect(startX, y, tableW, 8, 'F')
+      const headers = ['No', 'No. Registrasi', 'Nama Kandidat', 'E-mail', 'Batch']
+      let hx = startX
+      headers.forEach((h, i) => {
+        pdf.text(h, hx + 2, y + 5.5)
+        hx += colWidths[i]
+      })
+      y += 8
+    }
+
+    drawHeader()
+
+    filteredList.forEach((k, i) => {
+      if (y + rowH > pageH - 14) {
+        pdf.setFillColor(226, 232, 240)
+        pdf.rect(0, pageH - 14, pageW, 14, 'F')
+        pdf.setTextColor(71, 85, 105)
+        pdf.setFont('helvetica', 'normal')
+        pdf.setFontSize(7)
+        pdf.text(`Halaman ${pdf.getNumberOfPages()}`, pageW - margin, pageH - 8, { align: 'right' })
+        pdf.addPage()
+        drawHeader()
+      }
+      if (i % 2 === 1) {
+        pdf.setFillColor(248, 250, 252)
+        pdf.rect(startX, y, tableW, rowH, 'F')
+      }
+      pdf.setTextColor(30, 41, 59)
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(8)
+      const cells = [String(i + 1), k.no_registrasi, k.nama, k.email, k.batch_nama]
+      const limits = [11, 40, 60, 70, 46]
+      let x = startX
+      cells.forEach((t, c) => {
+        pdf.text(truncate(sanitize(t), limits[c]), x + 2, y + 5.5)
+        x += colWidths[c]
+      })
+      y += rowH
+    })
+
+    pdf.setFillColor(226, 232, 240)
+    pdf.rect(0, pageH - 14, pageW, 14, 'F')
+    pdf.setTextColor(71, 85, 105)
+    pdf.setFont('helvetica', 'normal')
+    pdf.setFontSize(7)
+    pdf.text(`Halaman ${pdf.getNumberOfPages()}`, pageW - margin, pageH - 8, { align: 'right' })
+
+    pdf.save(`akun-login-${new Date().toISOString().slice(0, 10)}.pdf`)
+  }
+
   function CellEdit({ field, type }: { field: EditableField; type?: 'text' | 'select' | 'number' | 'date' }) {
     const val = editForm[field] ?? ''
     if (type === 'select') {
@@ -488,6 +580,10 @@ export default function AdminCabangDataKandidat() {
               <button onClick={exportExcel} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
                 <Download size={14} className="text-slate-400" />
                 Export Excel
+              </button>
+              <button onClick={exportLoginPdf} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                <Download size={14} className="text-slate-400" />
+                Export Akun Login PDF
               </button>
             </div>
           </div>
