@@ -64,12 +64,12 @@ export default function GuruPage() {
 
   const fotoUrl = (guru: Guru) => {
     const foto = guru.user?.foto_profil;
-    if (foto) return `${APP_URL}/uploads/profil/${foto}`;
+    if (foto) return `${APP_URL}/uploads/foto_profil/${foto}`;
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(guru.nama)}&background=e5e7eb&color=6b7280&size=32`;
   };
 
   const userFotoUrl = (u: { name: string; foto_profil: string | null }) => {
-    if (u.foto_profil) return `${APP_URL}/uploads/profil/${u.foto_profil}`;
+    if (u.foto_profil) return `${APP_URL}/uploads/foto_profil/${u.foto_profil}`;
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=e5e7eb&color=6b7280&size=24`;
   };
 

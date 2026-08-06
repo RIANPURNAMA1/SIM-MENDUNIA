@@ -9,6 +9,7 @@ class BiayaKategori extends Model
     protected $fillable = [
         'nama', 'kode', 'urutan', 'deskripsi', 'parent_id',
         'trigger_type', 'trigger_value', 'due_type', 'due_value', 'reminder_setting',
+        'reminder_hour',
         'channel', 'template_pesan', 'template_email', 'subject_email',
     ];
 

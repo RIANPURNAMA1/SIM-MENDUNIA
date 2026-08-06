@@ -871,40 +871,40 @@ export default function Tagihan() {
 
       {/* Stats */}
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
-            <Receipt size={18} className="text-blue-600" />
+        <div className="flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+          <div className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-blue-50 sm:h-10 sm:w-10">
+            <Receipt size={16} className="text-blue-600" />
           </div>
-          <div>
-            <p className="text-xs text-slate-500">Total Tagihan</p>
-            <p className="text-2xl font-bold text-slate-800">Rp {fmt(stats.total)}</p>
-          </div>
-        </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50">
-            <CheckCircle size={18} className="text-emerald-600" />
-          </div>
-          <div>
-            <p className="text-xs text-emerald-600">Terkumpul</p>
-            <p className="text-2xl font-bold text-emerald-700">Rp {fmt(stats.paid)}</p>
+          <div className="min-w-0">
+            <p className="text-[10px] text-slate-500 sm:text-xs">Total Tagihan</p>
+            <p className="break-words text-base font-bold leading-tight text-slate-800 sm:text-xl lg:text-2xl">Rp {fmt(stats.total)}</p>
           </div>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-50">
-            <AlertCircle size={18} className="text-red-500" />
+        <div className="flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+          <div className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-emerald-50 sm:h-10 sm:w-10">
+            <CheckCircle size={16} className="text-emerald-600" />
           </div>
-          <div>
-            <p className="text-xs text-red-600">Outstanding</p>
-            <p className="text-2xl font-bold text-red-600">Rp {fmt(stats.outstanding)}</p>
+          <div className="min-w-0">
+            <p className="text-[10px] text-emerald-600 sm:text-xs">Terkumpul</p>
+            <p className="break-words text-base font-bold leading-tight text-emerald-700 sm:text-xl lg:text-2xl">Rp {fmt(stats.paid)}</p>
           </div>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50">
-            <Users size={18} className="text-amber-600" />
+        <div className="flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+          <div className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-red-50 sm:h-10 sm:w-10">
+            <AlertCircle size={16} className="text-red-500" />
           </div>
-          <div>
-            <p className="text-xs text-slate-500">Total Kandidat</p>
-            <p className="text-2xl font-bold text-slate-800">{stats.count}</p>
+          <div className="min-w-0">
+            <p className="text-[10px] text-red-600 sm:text-xs">Outstanding</p>
+            <p className="break-words text-base font-bold leading-tight text-red-600 sm:text-xl lg:text-2xl">Rp {fmt(stats.outstanding)}</p>
+          </div>
+        </div>
+        <div className="flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+          <div className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-amber-50 sm:h-10 sm:w-10">
+            <Users size={16} className="text-amber-600" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] text-slate-500 sm:text-xs">Total Kandidat</p>
+            <p className="break-words text-base font-bold leading-tight text-slate-800 sm:text-xl lg:text-2xl">{stats.count}</p>
           </div>
         </div>
       </div>

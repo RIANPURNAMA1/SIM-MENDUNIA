@@ -216,7 +216,39 @@ class SiswaDashboardController extends Controller
             $cursor->addDay();
         }
 
-        $riwayat = collect($liburEntries)->merge($riwayat)->sortByDesc('tanggal')->values();
+        // Generate ALFA untuk hari aktif (weekday, bukan hari libur) yang tidak ada absensi
+        $alfaEntries = [];
+        $kelasPeriods = \App\Models\KelasSensei::where('batch_id', $siswa->batch_id)
+            ->whereNotNull('tanggal_mulai')
+            ->whereNotNull('tanggal_selesai')
+            ->get(['tanggal_mulai', 'tanggal_selesai']);
+
+        $cursor = $start->copy();
+        while ($cursor->lte($end)) {
+            $dateStr = $cursor->toDateString();
+            $inClassPeriod = $kelasPeriods->contains(function ($k) use ($dateStr) {
+                $from = $k->tanggal_mulai instanceof \DateTimeInterface ? $k->tanggal_mulai->toDateString() : substr((string) $k->tanggal_mulai, 0, 10);
+                $to = $k->tanggal_selesai instanceof \DateTimeInterface ? $k->tanggal_selesai->toDateString() : substr((string) $k->tanggal_selesai, 0, 10);
+                return $dateStr >= $from && $dateStr <= $to;
+            });
+            if ($inClassPeriod
+                && !$cursor->isWeekend()
+                && !\App\Models\HariLibur::where('tanggal', $dateStr)->exists()
+                && !$existingDates->contains($dateStr)) {
+                $alfaEntries[] = [
+                    'id' => 'alfa-' . $dateStr,
+                    'siswa_id' => $siswa->id,
+                    'tanggal' => $dateStr,
+                    'jam_masuk' => null,
+                    'jam_keluar' => null,
+                    'status' => 'ALPA',
+                    'keterangan' => 'Tidak hadir tanpa keterangan',
+                ];
+            }
+            $cursor->addDay();
+        }
+
+        $riwayat = collect($liburEntries)->merge($alfaEntries)->merge($riwayat)->sortByDesc('tanggal')->values();
 
         // Kelas aktif untuk siswa ini
         $batchId = $siswa->batch_id;
