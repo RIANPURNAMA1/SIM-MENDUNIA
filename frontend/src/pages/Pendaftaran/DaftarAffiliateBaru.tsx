@@ -156,7 +156,7 @@ export default function DaftarAffiliateBaru() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-[#f0f2f5] flex items-center justify-center px-4">
+      <div className="force-light min-h-screen bg-[#f0f2f5] flex items-center justify-center px-4">
         <div className="bg-white rounded-lg shadow-[0_2px_4px_rgba(0,0,0,.1),0_8px_16px_rgba(0,0,0,.1)] p-8 max-w-md w-full text-center fade-in">
           <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle size={32} className="text-emerald-600" />
@@ -175,7 +175,7 @@ export default function DaftarAffiliateBaru() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f0f2f5] text-gray-800">
+    <div className="force-light min-h-screen bg-[#f0f2f5] text-gray-800">
       <nav className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 md:px-6 h-14 md:h-16 flex items-center justify-between">
           <a href="/" className="flex items-center gap-2">

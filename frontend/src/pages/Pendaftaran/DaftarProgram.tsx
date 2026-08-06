@@ -319,7 +319,7 @@ export default function DaftarProgram() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0E6187]">
+    <div className="force-light min-h-screen bg-[#0E6187]">
       <nav className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 md:px-6 h-14 md:h-16 flex items-center justify-between">
           <a href="/" className="flex items-center gap-2">

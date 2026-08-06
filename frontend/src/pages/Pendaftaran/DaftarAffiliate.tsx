@@ -252,7 +252,7 @@ const [showPassword, setShowPassword] = useState(false)
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0E6187] flex items-center justify-center">
+      <div className="force-light min-h-screen bg-[#0E6187] flex items-center justify-center">
         <div className="relative w-14 h-14 flex items-center justify-center">
           <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
           <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
@@ -263,7 +263,7 @@ const [showPassword, setShowPassword] = useState(false)
 
   if (error && !link) {
     return (
-      <div className="min-h-screen bg-[#0E6187] flex items-center justify-center px-4">
+      <div className="force-light min-h-screen bg-[#0E6187] flex items-center justify-center px-4">
         <div className="text-center bg-white p-8 rounded-xl max-w-sm w-full">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-2xl font-bold text-red-500">!</span>
@@ -279,7 +279,7 @@ const [showPassword, setShowPassword] = useState(false)
   }
 
   return (
-    <div className="min-h-screen bg-[#0E6187]">
+    <div className="force-light min-h-screen bg-[#0E6187]">
       <nav className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 md:px-6 h-14 md:h-16 flex items-center justify-between">
           <a href="/" className="flex items-center gap-2">
