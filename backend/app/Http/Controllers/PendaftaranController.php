@@ -2545,6 +2545,11 @@ class PendaftaranController extends Controller
         }
         $pendaftar->save();
 
+        // Jika batch berubah, sesuaikan kode cabang pada nomor registrasi
+        if (array_key_exists('batch_id', $data)) {
+            $this->syncNoRegistrasiWithBatch($pendaftar);
+        }
+
         // Update user if email/name changed
         if ($pendaftar->user_id) {
             $user = User::find($pendaftar->user_id);
@@ -2709,6 +2714,7 @@ class PendaftaranController extends Controller
             if ($pendaftar->siswa) {
                 $pendaftar->siswa->update(['batch_id' => $batchId]);
             }
+            $this->syncNoRegistrasiWithBatch($pendaftar);
             $updated++;
         });
 
@@ -3249,6 +3255,50 @@ class PendaftaranController extends Controller
         }
     }
 
+    private function syncNoRegistrasiWithBatch(Pendaftar $pendaftar): bool
+    {
+        if (!$pendaftar->batch_id) return false;
+
+        $batch = \App\Models\Batch::with('cabang')->find($pendaftar->batch_id);
+        $cabang = $batch?->cabang;
+        if (!$cabang || !$cabang->kode_cabang) return false;
+
+        $oldReg = $pendaftar->no_registrasi;
+        if (!$oldReg || !str_starts_with($oldReg, 'REG/')) return false;
+
+        $parts = explode('/', $oldReg);
+        $date = $parts[2] ?? now()->format('Ymd');
+        $seq = $parts[3] ?? null;
+
+        // Usahakan pertahankan tanggal & nomor urut, cukup ganti kode cabang
+        $target = null;
+        if ($seq) {
+            $candidate = "REG/{$cabang->kode_cabang}/{$date}/{$seq}";
+            $exists = Pendaftar::where('no_registrasi', $candidate)
+                ->where('id', '!=', $pendaftar->id)
+                ->exists();
+            if (!$exists) {
+                $target = $candidate;
+            }
+        }
+
+        if (!$target) {
+            $target = $this->generateNoRegistrasi($pendaftar->batch_id);
+        }
+
+        if ($target === $oldReg) return false;
+
+        DB::table('pendaftar')->where('id', $pendaftar->id)->update(['no_registrasi' => $target]);
+
+        if ($pendaftar->siswa) {
+            DB::table('siswas')->where('id', $pendaftar->siswa->id)->update(['no_registrasi' => $target]);
+        } else {
+            DB::table('siswas')->where('no_registrasi', $oldReg)->update(['no_registrasi' => $target]);
+        }
+
+        return true;
+    }
+
     private function generateNoRegistrasi(?int $batchId = null): string
     {
         $today = now()->format('Ymd');
@@ -3548,11 +3598,11 @@ class PendaftaranController extends Controller
     {
         $updatedPendaftar = 0;
         $updatedSiswa = 0;
+        $usedTargets = [];
 
         $records = DB::table('pendaftar')
             ->whereNotNull('no_registrasi')
             ->where('no_registrasi', 'like', 'REG/%')
-            ->whereRaw("no_registrasi NOT LIKE 'REG/%/%/%'")
             ->get();
 
         foreach ($records as $p) {
@@ -3563,17 +3613,42 @@ class PendaftaranController extends Controller
             if (!$cabang || !$cabang->kode_cabang) continue;
 
             $parts = explode('/', $p->no_registrasi);
-            if (count($parts) !== 3) continue;
+            $currentCode = $parts[1] ?? '';
+            if ($currentCode === $cabang->kode_cabang) continue;
 
-            $newReg = 'REG/' . $cabang->kode_cabang . '/' . $parts[1] . '/' . $parts[2];
+            // Usahakan pertahankan tanggal & nomor urut, cukup ganti kode cabang
+            $target = null;
+            $date = $parts[2] ?? null;
+            $seq = $parts[3] ?? null;
+            if ($date && $seq) {
+                $candidate = 'REG/' . $cabang->kode_cabang . '/' . $date . '/' . $seq;
+                $exists = in_array($candidate, $usedTargets, true)
+                    || DB::table('pendaftar')
+                        ->where('no_registrasi', $candidate)
+                        ->where('id', '!=', $p->id)
+                        ->exists();
+                if (!$exists) {
+                    $target = $candidate;
+                }
+            }
 
-            DB::table('pendaftar')->where('id', $p->id)->update(['no_registrasi' => $newReg]);
+            if (!$target) {
+                $prefix = 'REG/' . $cabang->kode_cabang . '/' . now()->format('Ymd');
+                $lastReg = DB::table('pendaftar')
+                    ->where('no_registrasi', 'like', "{$prefix}/%")
+                    ->orderByDesc('no_registrasi')
+                    ->value('no_registrasi');
+                $nextNum = $lastReg ? str_pad(((int) substr($lastReg, -4)) + 1, 4, '0', STR_PAD_LEFT) : '0001';
+                $target = "{$prefix}/{$nextNum}";
+            }
+
+            $usedTargets[] = $target;
+
+            DB::table('pendaftar')->where('id', $p->id)->update(['no_registrasi' => $target]);
             $updatedPendaftar++;
 
-            DB::table('siswas')->where('no_registrasi', $p->no_registrasi)->update(['no_registrasi' => $newReg]);
-            if (DB::table('siswas')->where('no_registrasi', $p->no_registrasi)->exists()) {
-                $updatedSiswa++;
-            }
+            DB::table('siswas')->where('no_registrasi', $p->no_registrasi)->update(['no_registrasi' => $target]);
+            $updatedSiswa++;
         }
 
         return response()->json([
