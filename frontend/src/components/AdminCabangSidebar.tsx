@@ -134,13 +134,10 @@ export default function AdminCabangSidebar({ isOpen, onClose }: SidebarProps) {
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0
       `}>
-        <div className="flex items-center justify-between gap-2 px-5 py-4 border-b border-white/10 bg-white/5">
+        <div className="flex items-center justify-center gap-2 px-5 py-4 ">
           <div className="flex items-center gap-2">
-            <img src="/logo-sm.png" alt="SIM Mendunia" className="h-8 w-auto" />
-            <div className="leading-tight">
-              <p className="text-[10px] text-gray-400 tracking-wide">Admin Cabang</p>
-              <p className="font-semibold text-white text-sm tracking-wide">SIM Mendunia</p>
-            </div>
+            <img src="/logo-sm1.png" alt="SIM Mendunia" className="h-10 w-auto" />
+            
           </div>
           <button
             onClick={onClose}
@@ -165,7 +162,7 @@ export default function AdminCabangSidebar({ isOpen, onClose }: SidebarProps) {
                   key={item.label}
                   to={child.href}
                   onClick={handleNavClick}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${active ? 'bg-white/15 text-white font-medium shadow-sm' : 'text-gray-300 hover:bg-white/10 hover:text-white'}`}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm transition-all duration-200 ${active ? 'bg-white/15 text-white font-medium shadow-sm' : 'text-gray-300 hover:bg-white/10 hover:text-white'}`}
                 >
                   <Icon size={18} />
                   <span>{item.label}</span>
@@ -179,7 +176,7 @@ export default function AdminCabangSidebar({ isOpen, onClose }: SidebarProps) {
               <div key={group.label}>
                 <button
                   onClick={() => toggleGroup(group.label)}
-                  className={`flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${isOpen || groupActive ? 'text-white bg-white/10 shadow-sm' : 'text-gray-300 hover:bg-white/10 hover:text-white'}`}
+                  className={`flex items-center justify-between w-full px-3 py-2.5 rounded-sm text-sm transition-all duration-200 ${isOpen || groupActive ? 'text-white bg-white/10 shadow-sm' : 'text-gray-300 hover:bg-white/10 hover:text-white'}`}
                 >
                   <div className="flex items-center gap-3">
                     <Icon size={18} />
@@ -197,7 +194,7 @@ export default function AdminCabangSidebar({ isOpen, onClose }: SidebarProps) {
                           key={child.label}
                           to={child.href}
                           onClick={handleNavClick}
-                          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 ${active ? 'bg-white/15 text-white font-medium' : 'text-gray-400 hover:bg-white/10 hover:text-white'}`}
+                          className={`flex items-center gap-3 px-3 py-2 rounded-sm text-sm transition-all duration-200 ${active ? 'bg-white/15 text-white font-medium' : 'text-gray-400 hover:bg-white/10 hover:text-white'}`}
                         >
                           <ChildIcon size={14} />
                           <span>{child.label}</span>
