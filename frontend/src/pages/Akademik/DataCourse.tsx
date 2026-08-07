@@ -31,6 +31,7 @@ interface CourseFile {
 interface Batch {
   id: number
   nama_batch: string
+  warna?: string | null
 }
 
 export default function DataCourse() {
@@ -55,6 +56,7 @@ export default function DataCourse() {
     sort: '0',
     status: 'aktif',
   })
+  const [showBatchDropdown, setShowBatchDropdown] = useState(false)
   const quillRef = useRef<any>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
@@ -326,7 +328,7 @@ export default function DataCourse() {
         )}
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-sm shadow-sm border border-slate-200 overflow-hidden">
         <div className="px-5 py-3.5 border-b border-slate-200 flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[200px] max-w-xs">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -370,23 +372,23 @@ export default function DataCourse() {
             <p className="text-slate-400">{search || filterLevel || filterBatch ? 'Kursus tidak ditemukan' : 'Belum ada kursus'}</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto rounded-sm border border-slate-200">
+            <table className="w-full border-collapse text-left text-sm text-black">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/50">
-                  <th className="text-left px-5 py-3 font-medium text-slate-500">Judul</th>
-                  <th className="text-left px-5 py-3 font-medium text-slate-500">Level</th>
-                  <th className="text-left px-5 py-3 font-medium text-slate-500">Batch</th>
-                  <th className="text-center px-5 py-3 font-medium text-slate-500">Pelajaran</th>
-                  <th className="text-center px-5 py-3 font-medium text-slate-500">File</th>
-                  <th className="text-center px-5 py-3 font-medium text-slate-500">Status</th>
-                  <th className="text-center px-5 py-3 font-medium text-slate-500">Aksi</th>
+                <tr className="bg-[#0e6187]">
+                  <th className="text-left border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white">Judul</th>
+                  <th className="text-left border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white">Level</th>
+                  <th className="text-left border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white">Batch</th>
+                  <th className="text-center border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white">Pelajaran</th>
+                  <th className="text-center border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white">File</th>
+                  <th className="text-center border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white">Status</th>
+                  <th className="text-center border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white">Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(course => (
-                  <tr key={course.id} className="border-b border-slate-100 hover:bg-slate-50/50">
-                    <td className="px-5 py-3">
+                  <tr key={course.id} className="bg-white transition hover:brightness-[0.97]">
+                    <td className="border border-slate-200 px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 overflow-hidden">
                           {course.image ? (
@@ -395,20 +397,25 @@ export default function DataCourse() {
                             <BookOpen size={16} className="text-slate-500" />
                           )}
                         </div>
-                        <span className="font-medium text-slate-700">{course.title}</span>
+                        <span className="font-medium text-black">{course.title}</span>
                       </div>
                     </td>
-                    <td className="px-5 py-3 text-slate-600">{course.level || '-'}</td>
-                    <td className="px-5 py-3 text-slate-600">
-                      {course.batch_id ? batches.find(b => b.id === course.batch_id)?.nama_batch || '-' : '-'}
+                    <td className="border border-slate-200 px-4 py-3 text-black">{course.level || '-'}</td>
+                    <td className="border border-slate-200 px-4 py-3 text-black">
+                      {course.batch_id ? (
+                        <span className="inline-flex items-center gap-2">
+                          <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: batches.find(b => b.id === course.batch_id)?.warna || '#3b82f6' }} />
+                          <span>{batches.find(b => b.id === course.batch_id)?.nama_batch || '-'}</span>
+                        </span>
+                      ) : '-'}
                     </td>
-                    <td className="px-5 py-3 text-center">
+                    <td className="border border-slate-200 px-4 py-3 text-center">
                       <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full text-xs font-medium">
                         <BookOpen size={12} />
                         {course.lessons_count}
                       </span>
                     </td>
-                    <td className="px-5 py-3 text-center">
+                    <td className="border border-slate-200 px-4 py-3 text-center">
                       {(course as any).files_count > 0 && (
                         <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 px-2.5 py-0.5 rounded-full text-xs font-medium">
                           <FileText size={12} />
@@ -416,7 +423,7 @@ export default function DataCourse() {
                         </span>
                       )}
                     </td>
-                    <td className="px-5 py-3 text-center">
+                    <td className="border border-slate-200 px-4 py-3 text-center">
                       <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full ${
                         course.status === 'aktif' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
                       }`}>
@@ -426,7 +433,7 @@ export default function DataCourse() {
                         {course.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
                       </span>
                     </td>
-                    <td className="px-5 py-3">
+                    <td className="border border-slate-200 px-4 py-3">
                       <div className="flex items-center justify-center gap-1">
                         {!isAdminCabang && (
                         <Link
@@ -531,23 +538,56 @@ export default function DataCourse() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Batch</label>
-                  <select
-                    value={form.batch_id}
-                    onChange={e => {
-                      const batchId = e.target.value
-                      setForm(prev => {
-                        const levels = batchLevels[Number(batchId)] || []
-                        const keepLevel = prev.level && levels.includes(prev.level) ? prev.level : ''
-                        return { ...prev, batch_id: batchId, level: batchId === prev.batch_id ? prev.level : keepLevel }
-                      })
-                    }}
-                    className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                  >
-                    <option value="">Semua Batch</option>
-                    {batches.map(b => (
-                      <option key={b.id} value={b.id}>{b.nama_batch}</option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowBatchDropdown(!showBatchDropdown)}
+                      className="flex w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-left focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    >
+                      {form.batch_id ? (
+                        <span className="flex items-center gap-2 truncate">
+                          <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: batches.find(b => String(b.id) === form.batch_id)?.warna || '#3b82f6' }} />
+                          <span className="truncate text-slate-700">{batches.find(b => String(b.id) === form.batch_id)?.nama_batch || 'Semua Batch'}</span>
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">Pilih Batch...</span>
+                      )}
+                      <svg className={`ml-auto h-4 w-4 shrink-0 text-slate-400 transition-transform ${showBatchDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                    {showBatchDropdown && (
+                      <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[200px] rounded-xl border border-slate-200 bg-white py-1 shadow-xl max-h-60 overflow-y-auto">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setForm(prev => ({ ...prev, batch_id: '', level: '' }))
+                            setShowBatchDropdown(false)
+                          }}
+                          className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${!form.batch_id ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}
+                        >
+                          <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: '#94a3b8' }} />
+                          <span className="truncate">Semua Batch</span>
+                        </button>
+                        {batches.map(b => (
+                          <button
+                            key={b.id}
+                            type="button"
+                            onClick={() => {
+                              setForm(prev => {
+                                const levels = batchLevels[b.id] || []
+                                const keepLevel = prev.level && levels.includes(prev.level) ? prev.level : ''
+                                return { ...prev, batch_id: String(b.id), level: String(b.id) === prev.batch_id ? prev.level : keepLevel }
+                              })
+                              setShowBatchDropdown(false)
+                            }}
+                            className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${String(b.id) === form.batch_id ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}
+                          >
+                            <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: b.warna || '#3b82f6' }} />
+                            <span className="truncate">{b.nama_batch}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">

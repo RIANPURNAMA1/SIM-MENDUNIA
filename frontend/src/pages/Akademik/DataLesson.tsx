@@ -6,6 +6,7 @@ import {
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
 import { lmsAdminApi } from '../../services/api'
+import { getYouTubeEmbedUrl } from '../../utils/youtube'
 import Swal from 'sweetalert2'
 
 interface Course {
@@ -350,11 +351,7 @@ export default function DataLesson() {
                 {form.video_url && (
                   <div className="mt-2 aspect-video bg-black rounded-lg overflow-hidden">
                     <iframe
-                      src={
-                        form.video_url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)
-                          ? `https://www.youtube.com/embed/${form.video_url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)?.[1]}`
-                          : form.video_url
-                      }
+                      src={getYouTubeEmbedUrl(form.video_url) || form.video_url}
                       className="w-full h-full"
                       allowFullScreen
                       title="Preview"

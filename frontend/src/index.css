@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-slate-50: #f8fafc;
   --color-slate-100: #f1f5f9;
@@ -533,6 +535,10 @@ html.dark .force-light .bg-gray-200 { background-color: #e5e7eb; }
 html.dark .force-light .bg-gray-300 { background-color: #d1d5db; }
 html.dark .force-light .bg-\[\#eef1f6\] { background-color: #eef1f6; }
 html.dark .force-light .bg-\[\#E8FAFF\] { background-color: #E8FAFF; }
+html.dark .force-light .bg-\[\#FFF9E5\] { background-color: #FFF9E5; }
+html.dark .force-light .bg-red-50 { background-color: #fef2f2; }
+html.dark .force-light .bg-green-50 { background-color: #f0fdf4; }
+html.dark .force-light .bg-yellow-100 { background-color: #fef9c3; }
 
 /* ---- Text: neutrals ---- */
 html.dark .force-light .text-black { color: #000000; }
@@ -565,6 +571,8 @@ html.dark .force-light .text-teal-600 { color: #0d9488; }
 html.dark .force-light .text-red-500 { color: #ef4444; }
 html.dark .force-light .text-red-600 { color: #dc2626; }
 html.dark .force-light .text-red-700 { color: #b91c1c; }
+html.dark .force-light .text-yellow-500 { color: #eab308; }
+html.dark .force-light .text-yellow-600 { color: #ca8a04; }
 html.dark .force-light .text-amber-600 { color: #d97706; }
 html.dark .force-light .text-orange-600 { color: #ea580c; }
 html.dark .force-light .text-\[\#0E6187\] { color: #0E6187; }
@@ -583,6 +591,9 @@ html.dark .force-light .border-gray-400 { border-color: #9ca3af; }
 html.dark .force-light .border-gray-500 { border-color: #6b7280; }
 html.dark .force-light .border-gray-600 { border-color: #4b5563; }
 html.dark .force-light .border-\[\#0E6187\] { border-color: #0E6187; }
+html.dark .force-light .border-yellow-100 { border-color: #fef9c3; }
+html.dark .force-light .border-red-100 { border-color: #fee2e2; }
+html.dark .force-light .border-green-200 { border-color: #bbf7d0; }
 
 /* ---- Hover states ---- */
 html.dark .force-light .hover\:bg-slate-50:hover { background-color: #f1f5f9; }

@@ -59,7 +59,6 @@ export default function KaryawanDashboard() {
   const [absenStatus, setAbsenStatus] = useState<'belum' | 'masuk' | 'pulang'>('belum')
   const [jamMasuk, setJamMasuk] = useState('')
   const [jamKeluar, setJamKeluar] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const coordsRef = useRef<{ latitude: number; longitude: number } | null>(null)
   const [gpsStatus, setGpsStatus] = useState<'idle' | 'loading' | 'error' | 'ok'>('idle')
 
@@ -465,7 +464,6 @@ export default function KaryawanDashboard() {
         captureTriggeredRef.current = false
         return
       }
-      setIsSubmitting(true)
       try {
         const formData = new FormData()
         formData.append('foto', blob, 'absen.jpg')
@@ -474,32 +472,47 @@ export default function KaryawanDashboard() {
           formData.append('longitude', String(coordsRef.current.longitude))
         }
 
+        const todayKey = new Date().toLocaleDateString('en-CA')
         if (cameraMode === 'masuk') {
-          await absensiKaryawanApi.masuk(formData as unknown as Record<string, unknown>)
+          const res = await absensiKaryawanApi.masuk(formData as unknown as Record<string, unknown>)
           setAbsenStatus('masuk')
           setJamMasuk(formatTime())
+          setRiwayat(prev => [
+            {
+              id: `today-${Date.now()}`,
+              tanggal: todayKey,
+              jam_masuk: res?.data?.data?.jam_masuk || formatTime(),
+              jam_keluar: null,
+              status: (res?.data?.data?.status || 'HADIR').toLowerCase(),
+              role: 'KARYAWAN',
+              shift: jadwal[0] ? { nama: jadwal[0].nama } : null,
+            },
+            ...prev.filter(r => r.tanggal !== todayKey),
+          ])
           stopCamera()
           Swal.fire({ icon: 'success', title: 'Absen Masuk Berhasil', timer: 2000, showConfirmButton: false })
         } else {
-          await absensiKaryawanApi.pulang(formData as unknown as Record<string, unknown>)
+          const res = await absensiKaryawanApi.pulang(formData as unknown as Record<string, unknown>)
           setAbsenStatus('pulang')
           setJamKeluar(formatTime())
+          setRiwayat(prev => prev.map(r =>
+            r.tanggal === todayKey ? { ...r, jam_keluar: res?.data?.data?.jam_keluar || formatTime() } : r
+          ))
           stopCamera()
           Swal.fire({ icon: 'success', title: 'Absen Pulang Berhasil', timer: 2000, showConfirmButton: false })
         }
-        loadData()
+        await loadData()
       } catch (e: any) {
         const msg = e?.response?.data?.message || (e instanceof Error ? e.message : 'Gagal melakukan absensi')
         stopCamera()
         Swal.fire({ icon: 'error', title: 'Absensi Gagal', text: msg })
         captureTriggeredRef.current = false
       } finally {
-        setIsSubmitting(false)
         submittingRef.current = false
         setProcessing(false)
       }
     }, 'image/jpeg', 0.8)
-  }, [cameraMode, stopCamera])
+  }, [cameraMode, stopCamera, jadwal])
 
   // Auto-capture: hitung mundur 3-2-1 saat wajah terdeteksi, lalu foto otomatis
   useEffect(() => {
@@ -573,7 +586,7 @@ export default function KaryawanDashboard() {
 
   // --- Render ---
   return (
-    <div className="min-h-screen bg-[#f0f2f5] pb-24 lg:pb-8">
+    <div className="min-h-screen bg-[#f0f2f5] pb-24">
       {/* ============ Top App Bar ============ */}
       <header className="bg-[#0E6187] px-4 pb-16 pt-5 text-white animate-fade-in">
         <div className="mx-auto max-w-lg">
@@ -936,23 +949,6 @@ export default function KaryawanDashboard() {
             </p>
           </div>
 
-          {/* Capture button (fallback manual) */}
-          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10">
-            <button onClick={capturePhoto} disabled={!faceDetected || isSubmitting || countdown !== null}
-              className={`w-20 h-20 rounded-full border-[4px] flex items-center justify-center transition-all shadow-xl ${
-                faceDetected && !isSubmitting && countdown === null
-                  ? 'border-[#4ADE80] hover:scale-105 active:scale-95 cursor-pointer bg-[#4ADE80]/20'
-                  : 'border-white/30 opacity-40 cursor-not-allowed'
-              }`}>
-              <div className={`w-16 h-16 rounded-full ${faceDetected ? 'bg-[#4ADE80]' : 'bg-white/30'}`} />
-            </button>
-            {!faceDetected && (
-              <p className="text-center text-[10px] text-white/50 mt-3 font-medium">Tunggu deteksi wajah</p>
-            )}
-            {countdown !== null && countdown > 0 && (
-              <p className="text-center text-[10px] text-[#4ADE80] mt-3 font-medium">Foto diambil otomatis...</p>
-            )}
-          </div>
           <canvas ref={canvasRef} className="hidden" />
 
           {/* Loading animasi saat proses ambil foto & kirim absensi */}

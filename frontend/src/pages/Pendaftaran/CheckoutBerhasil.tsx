@@ -158,7 +158,7 @@ export default function CheckoutBerhasil() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0E6187] flex items-center justify-center">
+      <div className="force-light min-h-screen bg-[#0E6187] flex items-center justify-center">
         <div className="relative w-14 h-14 flex items-center justify-center">
           <div className="absolute inset-0 rounded-full border-2 border-white/20 border-t-white animate-spin" />
         </div>
@@ -168,7 +168,7 @@ export default function CheckoutBerhasil() {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-[#0E6187] flex items-center justify-center px-4">
+      <div className="force-light min-h-screen bg-[#0E6187] flex items-center justify-center px-4">
         <div className="text-center bg-white p-8 rounded-xl max-w-sm w-full">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertTriangle size={28} className="text-red-500" />
@@ -204,7 +204,7 @@ export default function CheckoutBerhasil() {
   const paymentEnabled = data.payment_settings?.manual_payment_enabled ?? false;
 
   return (
-    <div className="min-h-screen bg-[#0E6187] py-12 px-4 font-sans flex flex-col items-center">
+    <div className="force-light min-h-screen bg-[#0E6187] py-12 px-4 font-sans flex flex-col items-center">
       <div className="w-full max-w-[460px] mx-auto">
         
         {/* --- BAGIAN 1: HEADER & COUNTDOWN --- */}
