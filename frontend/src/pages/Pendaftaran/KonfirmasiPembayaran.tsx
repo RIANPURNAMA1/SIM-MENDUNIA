@@ -213,7 +213,7 @@ export default function KonfirmasiPembayaran() {
   // --- SUCCESS SCREEN ---
   if (success) {
     return (
-      <div className="min-h-screen bg-[#0E6187] py-12 px-4 font-sans flex flex-col items-center">
+      <div className="force-light min-h-screen bg-[#0E6187] py-12 px-4 font-sans flex flex-col items-center">
         <div className="w-full max-w-[460px] mx-auto mt-6">
           <div className="bg-white rounded-2xl pt-10 pb-8 px-6 relative text-center shadow-sm">
             <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-12 h-12 bg-[#00C853] rounded-full border-[3px] border-[#0E6187] flex items-center justify-center shadow-sm">
@@ -259,7 +259,7 @@ export default function KonfirmasiPembayaran() {
   // --- LOADING SCREEN ---
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0E6187] flex items-center justify-center">
+      <div className="force-light min-h-screen bg-[#0E6187] flex items-center justify-center">
         <div className="relative w-14 h-14 flex items-center justify-center">
           <div className="absolute inset-0 rounded-full border-2 border-white/20 border-t-white animate-spin" />
         </div>
@@ -270,7 +270,7 @@ export default function KonfirmasiPembayaran() {
   // --- LOOKUP SCREEN (!data) ---
   if (!data) {
     return (
-      <div className="min-h-screen bg-[#0E6187] py-12 px-4 font-sans flex flex-col items-center">
+      <div className="force-light min-h-screen bg-[#0E6187] py-12 px-4 font-sans flex flex-col items-center">
         <div className="w-full max-w-[460px] mx-auto mt-6">
           <div className="bg-white rounded-2xl pt-10 pb-8 px-6 relative shadow-sm">
             <div className="text-center mb-6">
@@ -355,7 +355,7 @@ export default function KonfirmasiPembayaran() {
   const isProcessing = hasSubmittedPayment;
 
   return (
-    <div className="min-h-screen bg-[#0E6187] py-12 px-4 font-sans flex flex-col items-center">
+    <div className="force-light min-h-screen bg-[#0E6187] py-12 px-4 font-sans flex flex-col items-center">
       <div className="w-full max-w-[460px] mx-auto mt-6">
         {/* BAGIAN 1: HEADER */}
         <div className="bg-white rounded-t-2xl pt-8 pb-6 px-6 relative shadow-sm">

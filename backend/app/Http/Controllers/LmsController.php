@@ -227,7 +227,7 @@ class LmsController extends Controller
     public function adminCourses()
     {
         $courses = Course::withCount(['lessons', 'files'])->orderBy('sort')->get();
-        $batches = Batch::aktif()->orderBy('nama_batch')->get(['id', 'nama_batch']);
+        $batches = Batch::aktif()->orderBy('nama_batch')->get(['id', 'nama_batch', 'warna']);
         return response()->json(['courses' => $courses, 'batches' => $batches]);
     }
 

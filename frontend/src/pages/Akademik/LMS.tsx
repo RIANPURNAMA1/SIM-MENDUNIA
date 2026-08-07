@@ -174,6 +174,14 @@ export default function LMS() {
     return match?.[1] || null
   }
 
+  const getYouTubeEmbed = (url: string) => {
+    const videoId = getYouTubeId(url)
+    if (videoId) return `https://www.youtube.com/embed/${videoId}`
+    const listMatch = url.match(/(?:youtube\.com|youtu\.be)\/playlist\?(?:[^#]*&)?list=([a-zA-Z0-9_-]+)/)
+    if (listMatch) return `https://www.youtube.com/embed/videoseries?list=${listMatch[1]}`
+    return null
+  }
+
   const getProgressPercent = () => Math.round((completedLessonIds.length / Math.max(lessons.length, 1)) * 100)
 
   const bottomNav = [
@@ -233,9 +241,9 @@ export default function LMS() {
               {/* Video */}
               {selectedLesson.video_url && (
                 <div className="bg-black rounded-2xl overflow-hidden shadow-lg">
-                  {getYouTubeId(selectedLesson.video_url) ? (
+                  {getYouTubeEmbed(selectedLesson.video_url) ? (
                     <iframe
-                      src={`https://www.youtube.com/embed/${getYouTubeId(selectedLesson.video_url)}`}
+                      src={getYouTubeEmbed(selectedLesson.video_url)!}
                       className="w-full aspect-video" allowFullScreen title={selectedLesson.title} />
                   ) : (
                     <video controls className="w-full aspect-video">

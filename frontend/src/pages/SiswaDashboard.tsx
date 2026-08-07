@@ -377,7 +377,7 @@ export default function SiswaDashboard() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#f0f2f5] pb-24 lg:pb-8">
+    <div className="min-h-screen bg-[#f0f2f5] pb-24">
       {/* ============ Top App Bar ============ */}
       <header className="bg-[#0E6187] px-4 pb-16 pt-5 text-white animate-fade-in">
         <div className="mx-auto max-w-lg">
@@ -600,7 +600,7 @@ export default function SiswaDashboard() {
       </div>
 
       {/* ============ Bottom Nav Bar ============ */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden animate-fade-in delay-300">
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur animate-fade-in delay-300">
         <div className="mx-auto grid max-w-lg grid-cols-5">
           {bottomNav.map(nav => {
             const Icon = nav.icon

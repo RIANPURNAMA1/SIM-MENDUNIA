@@ -7,6 +7,7 @@ import {
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
 import { guruLmsApi, lmsAdminApi, APP_URL } from '../../services/api'
+import { getYouTubeEmbedUrl } from '../../utils/youtube'
 import Swal from 'sweetalert2'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
 
@@ -766,11 +767,7 @@ export default function GuruLMS() {
                   {lessonForm.video_url && (
                     <div className="mt-2 aspect-video bg-black rounded-lg overflow-hidden">
                       <iframe
-                        src={
-                          lessonForm.video_url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)
-                            ? `https://www.youtube.com/embed/${lessonForm.video_url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)?.[1]}`
-                            : lessonForm.video_url
-                        }
+                        src={getYouTubeEmbedUrl(lessonForm.video_url) || lessonForm.video_url}
                         className="w-full h-full" allowFullScreen title="Preview" />
                     </div>
                   )}

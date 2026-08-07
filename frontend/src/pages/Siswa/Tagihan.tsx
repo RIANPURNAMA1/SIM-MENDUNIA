@@ -11,8 +11,9 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import {
   FileText, Search, Receipt, CheckCircle, Clock, AlertCircle, RotateCcw,
-  DollarSign, X, Save, Bell, Eye, Check, Loader, XCircle, Users,
+  DollarSign, X, Save, Bell, Eye, Loader, XCircle, Users,
   ChevronLeft, ChevronRight, MoreHorizontal, LayoutDashboard,
+  BadgeCheck, RefreshCw, CheckCircle2, Ban, Banknote,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 import api, { pendaftarApi, batchApi, productApi, APP_URL } from '../../services/api'
@@ -110,6 +111,95 @@ interface CandidatePage {
   loading: boolean
 }
 
+const STATUS_MAP: Record<string, Record<string, string>> = {
+  waiting_payment: { status_pembayaran: 'unpaid', status_pendaftaran: 'pending' },
+  confirmed: { status_pembayaran: 'processing', status_pendaftaran: 'pending' },
+  proses: { status_pembayaran: 'processing', status_pendaftaran: 'disetujui' },
+  selesai: { status_pembayaran: 'verified', status_pendaftaran: 'disetujui' },
+  batal: { status_pembayaran: 'ditolak', status_pendaftaran: 'ditolak' },
+  refund: { status_pembayaran: 'refund', status_pendaftaran: 'ditolak' },
+}
+
+const STATUS_OPTIONS = [
+  { val: 'waiting_payment', label: 'Menunggu Pembayaran', icon: Clock, iconColor: 'text-slate-500', bg: 'bg-slate-50 hover:bg-slate-100 border-slate-200' },
+  { val: 'confirmed', label: 'Menunggu Verifikasi', icon: BadgeCheck, iconColor: 'text-amber-500', bg: 'bg-amber-50 hover:bg-amber-100 border-amber-200' },
+  { val: 'proses', label: 'Proses', icon: RefreshCw, iconColor: 'text-blue-500', bg: 'bg-blue-50 hover:bg-blue-100 border-blue-200' },
+  { val: 'selesai', label: 'Pembayaran dikonfirmasi', icon: CheckCircle2, iconColor: 'text-emerald-500', bg: 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200' },
+  { val: 'batal', label: 'Batal', icon: Ban, iconColor: 'text-red-500', bg: 'bg-red-50 hover:bg-red-100 border-red-200' },
+  { val: 'refund', label: 'Refund', icon: Banknote, iconColor: 'text-purple-500', bg: 'bg-purple-50 hover:bg-purple-100 border-purple-200' },
+]
+
+const STATUS_CONFIRM: Record<string, { title: string; text: string; confirmText: string; icon: 'warning' | 'info' | 'question' }> = {
+  waiting_payment: { title: 'Ubah ke Menunggu Pembayaran?', text: 'Status pembayaran akan diubah menjadi "Menunggu Pembayaran".', confirmText: 'Ya, Ubah', icon: 'info' },
+  confirmed: { title: 'Konfirmasi Pembayaran?', text: 'Bukti bayar akan ditandai sebagai "Menunggu Verifikasi".', confirmText: 'Ya, Verifikasi', icon: 'warning' },
+  proses: { title: 'Mulai Proses?', text: 'Pendaftaran akan diproses lebih lanjut.', confirmText: 'Ya, Proses', icon: 'question' },
+  selesai: { title: 'Konfirmasi Pembayaran?', text: 'Pembayaran akan ditandai sebagai "Pembayaran dikonfirmasi".', confirmText: 'Ya, Konfirmasi', icon: 'question' },
+  batal: { title: 'Batalkan Pendaftaran?', text: 'Pendaftaran akan dibatalkan. Tindakan ini tidak dapat dibatalkan.', confirmText: 'Ya, Batalkan', icon: 'warning' },
+  refund: { title: 'Proses Refund?', text: 'Pembayaran akan dikembalikan (refund). Pastikan sudah sesuai kebijakan.', confirmText: 'Ya, Refund', icon: 'warning' },
+}
+
+function combinedStatusLabel(p: any): string {
+  if (p?.status_pembayaran === 'refund') return 'Refund'
+  if (p?.status_pembayaran === 'verified') return 'Pembayaran dikonfirmasi'
+  if (p?.status_pendaftaran === 'ditolak' || p?.status_pembayaran === 'ditolak') return 'Batal'
+  if (p?.status_pembayaran === 'processing' && p?.status_pendaftaran === 'pending') return 'Menunggu Verifikasi'
+  if (p?.status_pembayaran === 'unpaid') return 'Menunggu Pembayaran'
+  return 'Proses'
+}
+
+function UbahStatusGrid({ pendaftarId, pendaftar, onChanged }: { pendaftarId: number; pendaftar: any; onChanged: () => void }) {
+  const current = combinedStatusLabel(pendaftar)
+  return (
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      {STATUS_OPTIONS.map(opt => {
+        const target = STATUS_MAP[opt.val]
+        const msg = STATUS_CONFIRM[opt.val]
+        const isActive = opt.label === current
+        const Icon = opt.icon
+        return (
+          <button
+            key={opt.val}
+            type="button"
+            disabled={isActive}
+            onClick={async () => {
+              const result = await Swal.fire({
+                icon: msg.icon,
+                title: msg.title,
+                text: msg.text,
+                showCancelButton: true,
+                confirmButtonColor: '#0E6187',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: msg.confirmText,
+                cancelButtonText: 'Batal',
+              })
+              if (!result.isConfirmed) return
+              try {
+                Swal.fire({
+                  title: 'Menyimpan...',
+                  text: 'Mohon tunggu, sedang memperbarui status.',
+                  allowOutsideClick: false,
+                  didOpen: () => Swal.showLoading(),
+                })
+                await pendaftarApi.updateStatus(pendaftarId, target)
+                Swal.close()
+                Swal.fire({ icon: 'success', title: 'Status diperbarui', timer: 1200, showConfirmButton: false })
+                onChanged()
+              } catch {
+                Swal.close()
+                Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal memperbarui status' })
+              }
+            }}
+            className={`flex items-center gap-2 rounded-sm border px-3 py-2.5 text-left text-sm font-medium transition ${opt.bg} ${isActive ? 'ring-2 ring-offset-1 ring-[#0E6187] opacity-100 cursor-default' : 'cursor-pointer'}`}
+          >
+            <Icon size={15} className={opt.iconColor} />
+            <span className="text-gray-700">{opt.label}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function Tagihan() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -134,9 +224,6 @@ export default function Tagihan() {
   const [showBatchDropdown, setShowBatchDropdown] = useState(false)
   const [showPendingModal, setShowPendingModal] = useState(false)
   const [selectedPendingPendaftarId, setSelectedPendingPendaftarId] = useState<number | null>(null)
-  const [verifyingId, setVerifyingId] = useState<number | null>(null)
-  const [rejectingId, setRejectingId] = useState<number | null>(null)
-  const [confirmRejectId, setConfirmRejectId] = useState<number | null>(null)
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const [collapsedBatches, setCollapsedBatches] = useState<Set<number>>(new Set())
   const [groupsMeta, setGroupsMeta] = useState<BatchGroupMeta[]>([])
@@ -430,33 +517,6 @@ export default function Tagihan() {
     }
     await fetchGroups(batchPage)
   }, [fetchGroups, batchPage])
-
-  async function handleVerifyPembayaran(id: number) {
-    setVerifyingId(id)
-    try {
-      await api.post(`/pendaftar/${id}/verify-payment`)
-      await refreshAll()
-      Swal.fire({ icon: 'success', title: 'Pembayaran diverifikasi', text: 'Status pembayaran telah diperbarui', timer: 1500, showConfirmButton: false, toast: true, position: 'top-end' })
-    } catch (err) {
-      Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal memverifikasi pembayaran', timer: 2000, showConfirmButton: false, toast: true, position: 'top-end' })
-    } finally {
-      setVerifyingId(null)
-    }
-  }
-
-  async function handleRejectPembayaran(pembayaranId: number) {
-    setRejectingId(pembayaranId)
-    setConfirmRejectId(null)
-    try {
-      await api.post(`/pendaftar/pembayaran/${pembayaranId}/reject-payment`)
-      await refreshAll()
-      Swal.fire({ icon: 'success', title: 'Pembayaran ditolak', text: 'Pembayaran berhasil ditolak', timer: 1500, showConfirmButton: false, toast: true, position: 'top-end' })
-    } catch (err) {
-      Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal menolak pembayaran', timer: 2000, showConfirmButton: false, toast: true, position: 'top-end' })
-    } finally {
-      setRejectingId(null)
-    }
-  }
 
   const renderBatchTable = (group: BatchGroup) => {
     const { batchId, batchName, kategoris: kats, kategoriColumns, items } = group
@@ -1245,25 +1305,11 @@ export default function Tagihan() {
                             <Eye size={12} /> Lihat Bukti
                           </a>
                         )}
-                        <button
-                          onClick={() => handleVerifyPembayaran(pp.pendaftar_id)}
-                          disabled={verifyingId === pp.pendaftar_id || rejectingId === pp.id}
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-[10px] font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
-                        >
-                          {verifyingId === pp.pendaftar_id ? (
-                            <><Loader size={12} className="animate-spin" /> Verifying</>
-                          ) : (
-                            <><Check size={12} /> Verifikasi</>
-                          )}
-                        </button>
-                        <button
-                          onClick={() => setConfirmRejectId(pp.id)}
-                          disabled={verifyingId === pp.pendaftar_id || rejectingId === pp.id}
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-[10px] font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
-                        >
-                          <XCircle size={12} /> Tolak
-                        </button>
                       </div>
+                    </div>
+                    <div className="mt-4">
+                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Ubah Status</p>
+                      <UbahStatusGrid pendaftarId={pp.pendaftar_id} pendaftar={pp.pendaftar} onChanged={refreshAll} />
                     </div>
                   </div>
                 ))}
@@ -1274,23 +1320,6 @@ export default function Tagihan() {
         )
       })()}
 
-      {confirmRejectId !== null && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => setConfirmRejectId(null)}>
-          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
-              <AlertCircle size={24} className="text-red-500" />
-            </div>
-            <h3 className="text-center text-sm font-bold text-slate-800">Tolak Pembayaran?</h3>
-            <p className="mt-2 text-center text-xs text-slate-500">Pembayaran ini akan ditolak dan dihapus. Tindakan ini tidak dapat dibatalkan.</p>
-            <div className="mt-5 flex gap-3">
-              <button onClick={() => setConfirmRejectId(null)} className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">Batal</button>
-              <button onClick={() => handleRejectPembayaran(confirmRejectId)} disabled={rejectingId === confirmRejectId} className="flex-1 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-50">
-                {rejectingId === confirmRejectId ? 'Menolak...' : 'Ya, Tolak'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
