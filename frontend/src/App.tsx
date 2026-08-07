@@ -79,6 +79,9 @@ import CheckoutBerhasil from './pages/Pendaftaran/CheckoutBerhasil'
 import KonfirmasiPembayaran from './pages/Pendaftaran/KonfirmasiPembayaran'
 import Verifikasi from './pages/Verifikasi'
 import SyaratKetentuan from './pages/SyaratKetentuan'
+import KebijakanPrivasi from './pages/KebijakanPrivasi'
+import CompanyLanding from './pages/CompanyLanding'
+import Blog from './pages/Blog'
 import KaryawanDashboard from './pages/Karyawan/KaryawanDashboard'
 import RiwayatAbsensiKaryawan from './pages/Karyawan/RiwayatAbsensiKaryawan'
 import PengajuanIzin from './pages/Karyawan/PengajuanIzin'
@@ -191,6 +194,7 @@ function AppRoutes() {
         element={isAuthenticated ? <Navigate to="/" replace /> : <Login />}
       />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/kebijakan-privasi" element={<KebijakanPrivasi />} />
       <Route path="/daftar/:kode" element={<DaftarAffiliate />} />
       <Route path="/daftar-affiliate" element={<DaftarAffiliateBaru />} />
       <Route path="/daftar-program" element={<DaftarProgram />} />
@@ -202,6 +206,8 @@ function AppRoutes() {
       <Route path="/syarat-ketentuan" element={<SyaratKetentuan />} />
       <Route path="/verifikasi" element={<Verifikasi />} />
       <Route path="/verifikasi/*" element={<Verifikasi />} />
+      <Route path="/blog" element={<Blog />} />
+      <Route path="/blog/:id" element={<Blog />} />
 
       <Route
         path="/affiliate-dashboard"
@@ -362,6 +368,16 @@ function AppRoutes() {
           <ProtectedRoute roleAllowed="ADMIN_CABANG">
             <AdminCabangLayout>
               <RekapBatch />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-cabang/batches"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <Batches />
             </AdminCabangLayout>
           </ProtectedRoute>
         }
@@ -722,6 +738,21 @@ function AppRoutes() {
               <RekapKehadiranSensei />
             </DashboardLayout>
           </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/"
+        element={
+          isAuthenticated ? (
+            <ProtectedRoute roleBlocked={['KARYAWAN', 'GURU', 'KANDIDAT', 'AFFILIATE', 'ADMIN_CABANG', 'ACCOUNTING']}>
+              <DashboardLayout>
+                <DashboardHome />
+              </DashboardLayout>
+            </ProtectedRoute>
+          ) : (
+            <CompanyLanding />
+          )
         }
       />
 

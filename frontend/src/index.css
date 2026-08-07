@@ -35,6 +35,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 108px;
+}
+
 ::selection {
   background-color: #0E6187;
   color: white;
@@ -100,6 +105,32 @@ body {
   animation: animatePopIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+@keyframes marquee-up {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+@keyframes marquee-down {
+  0% {
+    transform: translateY(-50%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.animate-marquee-up {
+  animation: marquee-up linear infinite;
+}
+
+.animate-marquee-down {
+  animation: marquee-down linear infinite;
+}
+
 .delay-75 { animation-delay: 75ms; }
 .delay-100 { animation-delay: 100ms; }
 .delay-150 { animation-delay: 150ms; }
@@ -132,6 +163,29 @@ body {
 @keyframes pulseDot {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
+}
+
+/* ---- Grid background for hero (light & dark variants) ---- */
+.bg-grid-light {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+.bg-grid-dark {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+/* ---- Globe spin ---- */
+@keyframes globeSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-globe-spin {
+  animation: globeSpin 40s linear infinite;
 }
 
 @media print {
@@ -424,6 +478,7 @@ html.dark .bg-white\/60 { background-color: rgba(15, 23, 42, 0.6); }
 
 /* ---- Translucent slate surfaces (table stripes, row hovers) ---- */
 html.dark .bg-slate-50\/50 { background-color: rgba(15, 23, 42, 0.5); }
+html.dark .bg-gray-50\/50 { background-color: rgba(15, 23, 42, 0.5); }
 html.dark .hover\:bg-slate-50\/50:hover { background-color: rgba(30, 41, 59, 0.5); }
 
 /* ---- Translucent tinted panels (edit form accordion boxes) ---- */
@@ -479,6 +534,8 @@ html.dark .from-emerald-50 { --tw-gradient-from: rgba(16, 185, 129, 0.18); }
 html.dark .from-gray-50 { --tw-gradient-from: #0f172a; }
 html.dark .from-slate-50 { --tw-gradient-from: #0f172a; }
 html.dark .from-gray-300 { --tw-gradient-from: #475569; }
+html.dark .from-\[\#f8f9fc\] { --tw-gradient-from: #1e293b; }
+html.dark .to-white { --tw-gradient-to: #1e293b; }
 html.dark .to-yellow-50 { --tw-gradient-to: rgba(250, 204, 21, 0.18); }
 html.dark .to-orange-50 { --tw-gradient-to: rgba(249, 115, 22, 0.18); }
 html.dark .to-blue-50 { --tw-gradient-to: rgba(59, 130, 246, 0.18); }
@@ -525,6 +582,11 @@ html.dark .force-light select option {
 
 /* ---- Backgrounds ---- */
 html.dark .force-light .bg-white { background-color: #ffffff; }
+html.dark .force-light .bg-white\/95 { background-color: rgba(255, 255, 255, 0.95); }
+html.dark .force-light .bg-white\/90 { background-color: rgba(255, 255, 255, 0.9); }
+html.dark .force-light .bg-white\/80 { background-color: rgba(255, 255, 255, 0.8); }
+html.dark .force-light .bg-white\/70 { background-color: rgba(255, 255, 255, 0.7); }
+html.dark .force-light .bg-white\/60 { background-color: rgba(255, 255, 255, 0.6); }
 html.dark .force-light .bg-slate-50 { background-color: #f8fafc; }
 html.dark .force-light .bg-slate-100 { background-color: #f1f5f9; }
 html.dark .force-light .bg-slate-200 { background-color: #e2e8f0; }

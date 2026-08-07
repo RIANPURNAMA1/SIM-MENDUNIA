@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Layers, Plus, Pencil, Trash2, RotateCcw, X, Building2, Ban, Filter, ChevronRight, LayoutDashboard } from "lucide-react";
-import { batchApi, cabangApi } from "../../services/api";
+import { batchApi, cabangApi, adminCabangApi } from "../../services/api";
 import ConfirmModal from "../../components/ConfirmModal";
 
 interface BatchItem {
@@ -35,6 +35,9 @@ interface ConfirmState {
 }
 
 export default function BatchesPage() {
+  const location = useLocation();
+  const isAdminCabang = location.pathname.startsWith("/admin-cabang");
+
   const [data, setData] = useState<BatchItem[]>([]);
   const [cabangList, setCabangList] = useState<CabangOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,8 +73,8 @@ export default function BatchesPage() {
       const params: Record<string, string | number> = { page: targetPage, per_page: perPage };
       if (filterCabang) params.cabang_id = filterCabang;
       const [batchRes, cabangRes] = await Promise.all([
-        batchApi.list(params),
-        cabangApi.list(),
+        isAdminCabang ? adminCabangApi.batches(params) : batchApi.list(params),
+        isAdminCabang ? adminCabangApi.myBranches() : cabangApi.list(),
       ]);
       setData(batchRes.data.data || []);
       const pg = batchRes.data.pagination;
@@ -80,7 +83,8 @@ export default function BatchesPage() {
         setLastPage(pg.last_page);
         setTotal(pg.total);
       }
-      setCabangList(cabangRes.data?.data || []);
+      const branches = cabangRes.data?.data || cabangRes.data || [];
+      setCabangList(Array.isArray(branches) ? branches : []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -88,7 +92,7 @@ export default function BatchesPage() {
     }
   };
 
-  useEffect(() => { fetchData(1); }, [filterCabang]);
+  useEffect(() => { fetchData(1); }, [filterCabang, isAdminCabang]);
 
   const openAdd = () => {
     setEditId(null);
@@ -120,7 +124,9 @@ export default function BatchesPage() {
     setSubmitting(true);
     try {
       if (editId) {
-        await batchApi.update(editId, { nama_batch: namaBatch.trim(), cabang_id: cabangId || null, kuota: kuota ? Number(kuota) : null, warna, link_grup: linkGrup.trim() || null });
+        const payload = { nama_batch: namaBatch.trim(), cabang_id: cabangId || null, kuota: kuota ? Number(kuota) : null, warna, link_grup: linkGrup.trim() || null };
+        if (isAdminCabang) await adminCabangApi.batchUpdate(editId, payload);
+        else await batchApi.update(editId, payload);
       } else if (isBulk) {
         const dari = Number(batchDari);
         const sampai = Number(batchSampai);
@@ -128,10 +134,13 @@ export default function BatchesPage() {
         for (let i = dari; i <= sampai; i++) {
           batches.push({ nama_batch: `${batchPrefix.trim()} ${i}`, cabang_id: cabangId || null, kuota: kuota ? Number(kuota) : null, warna, link_grup: linkGrup.trim() || null });
         }
-        await batchApi.bulkStore(batches);
+        if (isAdminCabang) await adminCabangApi.batchBulkStore(batches);
+        else await batchApi.bulkStore(batches);
       } else {
         if (!namaBatch.trim()) { setSubmitting(false); return; }
-        await batchApi.store({ nama_batch: namaBatch.trim(), cabang_id: cabangId || null, kuota: kuota ? Number(kuota) : null, warna, link_grup: linkGrup.trim() || null });
+        const payload = { nama_batch: namaBatch.trim(), cabang_id: cabangId || null, kuota: kuota ? Number(kuota) : null, warna, link_grup: linkGrup.trim() || null };
+        if (isAdminCabang) await adminCabangApi.batchStore(payload);
+        else await batchApi.store(payload);
       }
       setShowModal(false);
       setNamaBatch("");
@@ -175,7 +184,8 @@ export default function BatchesPage() {
       onConfirm: async () => {
         setConfirm(null)
         try {
-          await batchApi.destroy(item.id);
+          if (isAdminCabang) await adminCabangApi.batchDestroy(item.id);
+          else await batchApi.destroy(item.id);
           fetchData(page);
         } catch (err) {
           console.error(err);
@@ -196,7 +206,8 @@ export default function BatchesPage() {
       onConfirm: async () => {
         setConfirm(null)
         try {
-          await batchApi.toggleStatus(item.id);
+          if (isAdminCabang) await adminCabangApi.batchToggleStatus(item.id);
+          else await batchApi.toggleStatus(item.id);
           fetchData(page);
         } catch (err) {
           console.error(err);
@@ -217,7 +228,8 @@ export default function BatchesPage() {
       onConfirm: async () => {
         setConfirm(null)
         try {
-          await batchApi.togglePenuh(item.id);
+          if (isAdminCabang) await adminCabangApi.batchTogglePenuh(item.id);
+          else await batchApi.togglePenuh(item.id);
           fetchData(page);
         } catch (err) {
           console.error(err);
@@ -230,7 +242,7 @@ export default function BatchesPage() {
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       {/* Breadcrumb */}
       <nav className="mb-4 flex items-center gap-1.5 text-xs text-slate-500" aria-label="Breadcrumb">
-        <Link to="/" className="flex items-center gap-1 transition-colors hover:text-[#0E6187]">
+        <Link to={isAdminCabang ? "/admin-cabang" : "/"} className="flex items-center gap-1 transition-colors hover:text-[#0E6187]">
           <LayoutDashboard size={13} />
           <span>Beranda</span>
         </Link>

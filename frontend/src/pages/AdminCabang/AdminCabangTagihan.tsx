@@ -614,7 +614,6 @@ export default function AdminCabangTagihan() {
                       {kategoriColumns.map(col => {
                         const k = col.kategori
                         const relevant = hasKategori(p, k.id)
-                        const isUnpaid = p.status_pembayaran === 'unpaid'
                         if (!relevant) {
                           return (
                             <td key={k.id} className="border border-slate-200 px-4 py-3 text-right text-sm text-slate-300 min-w-[120px]">-</td>
@@ -629,11 +628,6 @@ export default function AdminCabangTagihan() {
                         const biayaKat = uniqueCodeOp === 'subtract' && katTotalTransfer > 0 ? katTotalTransfer : biayaKatRaw
                         const isLunas = biayaKatRaw > 0 && val >= biayaKatRaw
                         const isPartial = val > 0 && !isLunas
-                        if (isUnpaid) {
-                          return (
-                            <td key={k.id} className="border border-slate-200 px-4 py-3 text-right text-sm text-slate-300 min-w-[120px]">-</td>
-                          )
-                        }
                         return (
                           <td key={k.id} className="border border-slate-200 px-4 py-3 text-right whitespace-nowrap min-w-[120px]">
                             <input

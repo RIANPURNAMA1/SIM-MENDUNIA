@@ -522,6 +522,12 @@ Route::prefix('admin-cabang')->middleware(['auth:sanctum'])->group(function () {
     Route::get('/kandidat', [AdminCabangController::class, 'kandidat']);
     Route::get('/siswa', [AdminCabangController::class, 'siswa']);
     Route::get('/batches', [AdminCabangController::class, 'batches']);
+    Route::post('/batches', [AdminCabangController::class, 'batchStore']);
+    Route::post('/batches/bulk', [AdminCabangController::class, 'batchBulkStore']);
+    Route::put('/batches/{id}', [AdminCabangController::class, 'batchUpdate']);
+    Route::delete('/batches/{id}', [AdminCabangController::class, 'batchDestroy']);
+    Route::post('/batches/{id}/toggle-status', [AdminCabangController::class, 'batchToggleStatus']);
+    Route::post('/batches/{id}/toggle-penuh', [AdminCabangController::class, 'batchTogglePenuh']);
     Route::get('/pending-count', [AdminCabangController::class, 'pendingCount']);
     Route::get('/pending-pembayaran', [AdminCabangController::class, 'pendingPembayaran']);
     Route::get('/rekap-per-batch', [AdminCabangController::class, 'rekapPerBatch']);
