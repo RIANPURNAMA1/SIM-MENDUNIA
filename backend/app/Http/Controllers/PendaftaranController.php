@@ -113,6 +113,8 @@ class PendaftaranController extends Controller
         }
 
         $kupon = $this->applyCoupon($data['kode_kupon'] ?? null, $data['product_id'], $nominal);
+        $diskon = (float) ($kupon['diskon'] ?? 0);
+        $nominalSetelahDiskon = max(0, $nominal - $diskon);
 
         $user = User::create([
             'name' => $data['nama'],
@@ -170,11 +172,11 @@ class PendaftaranController extends Controller
         }
 
         $kodeUnik = 0;
-        $totalTransfer = $nominal;
+        $totalTransfer = $nominalSetelahDiskon;
         $paymentCode = 'PAY/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . now()->format('Ym');
         if ($kategori && $nominal > 0) {
             $kodeUnik = isset($data['kode_unik']) && $data['kode_unik'] !== '' ? (int) $data['kode_unik'] : \App\Models\PaymentSetting::generateUniqueCode();
-            $totalTransfer = \App\Models\PaymentSetting::calculateTotalTransfer($nominal, $kodeUnik);
+            $totalTransfer = \App\Models\PaymentSetting::calculateTotalTransfer($nominalSetelahDiskon, $kodeUnik);
             $paymentCode = 'PAY/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . now()->format('Ym');
 
             \App\Models\PembayaranItem::create([
@@ -242,6 +244,8 @@ class PendaftaranController extends Controller
         }
 
         $kupon = $this->applyCoupon($data['kode_kupon'] ?? null, $link->product_id, $nominal);
+        $diskon = (float) ($kupon['diskon'] ?? 0);
+        $nominalSetelahDiskon = max(0, $nominal - $diskon);
 
         $user = User::create([
             'name' => $data['nama'],
@@ -300,11 +304,11 @@ class PendaftaranController extends Controller
             $kategori = \App\Models\BiayaKategori::orderBy('urutan')->first();
         }
         $kodeUnik = 0;
-        $totalTransfer = $nominal;
+        $totalTransfer = $nominalSetelahDiskon;
         $paymentCode = 'PAY/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . now()->format('Ym');
         if ($kategori && $nominal > 0) {
             $kodeUnik = isset($data['kode_unik']) && $data['kode_unik'] !== '' ? (int) $data['kode_unik'] : \App\Models\PaymentSetting::generateUniqueCode();
-            $totalTransfer = \App\Models\PaymentSetting::calculateTotalTransfer($nominal, $kodeUnik);
+            $totalTransfer = \App\Models\PaymentSetting::calculateTotalTransfer($nominalSetelahDiskon, $kodeUnik);
             $paymentCode = 'PAY/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . now()->format('Ym');
 
             \App\Models\PembayaranItem::create([
@@ -2873,7 +2877,7 @@ class PendaftaranController extends Controller
         }
 
         $firstKategoriUsed = false;
-        $kategoriItemsEnriched = $kategoriItems->map(function ($item, $idx) use ($paidPerKategori, $reminderSettings, $batchDeadlines, $billingMap, $pendaftar, &$firstKategoriUsed, $kategoriItems) {
+        $kategoriItemsEnriched = $kategoriItems->map(function ($item, $idx) use ($paidPerKategori, $reminderSettings, $batchDeadlines, $billingMap, $pendaftar, &$firstKategoriUsed, $kategoriItems, $diskon) {
             $dibayar = (float) ($paidPerKategori[$item['id']] ?? 0);
 
             // Check trigger_type to decide if this item should be auto-billed
@@ -2940,7 +2944,8 @@ class PendaftaranController extends Controller
                 if ($pi) {
                     if ((!$pi->kode_unik || $pi->kode_unik == 0) && $item['harga'] > 0 && !$firstKategoriUsed) {
                         $ku = PaymentSetting::generateUniqueCode();
-                        $tt = PaymentSetting::calculateTotalTransfer((float) $item['harga'], $ku);
+                        $hargaTransfer = max(0, (float) $item['harga'] - $diskon);
+                        $tt = PaymentSetting::calculateTotalTransfer($hargaTransfer, $ku);
                         $pc = $pi->payment_code ?? ('PAY/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . now()->format('Ym'));
                         $pi->update(['kode_unik' => $ku, 'total_transfer' => $tt, 'payment_code' => $pc]);
                         $pi->refresh();
@@ -2952,7 +2957,8 @@ class PendaftaranController extends Controller
                 } else {
                     if (!$firstKategoriUsed && $item['harga'] > 0) {
                         $ku = PaymentSetting::generateUniqueCode();
-                        $tt = PaymentSetting::calculateTotalTransfer((float) $item['harga'], $ku);
+                        $hargaTransfer = max(0, (float) $item['harga'] - $diskon);
+                        $tt = PaymentSetting::calculateTotalTransfer($hargaTransfer, $ku);
                         $pc = 'PAY/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . now()->format('Ym');
                         PembayaranItem::create([
                             'pendaftar_id' => $pendaftar->id,
