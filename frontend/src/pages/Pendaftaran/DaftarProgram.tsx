@@ -371,8 +371,8 @@ export default function DaftarProgram() {
                 <span className="text-lg font-bold text-[#0E6187]">
                   {paymentSettings?.manual_payment_enabled && paymentSettings.unique_code_max > 0
                     ? fmt(paymentSettings.unique_code_operation === 'subtract'
-                      ? selectedTotal - previewKodeUnik
-                      : selectedTotal + previewKodeUnik)
+                      ? totalDisplay - previewKodeUnik
+                      : totalDisplay + previewKodeUnik)
                     : fmt(totalDisplay)
                   }
                 </span>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Link2, Eye, Users, CheckCircle, Clock, Copy, CheckCircle as CheckIcon, Wallet, Banknote, User, Table, LayoutDashboard, Plus, X, Package, ExternalLink, Info } from 'lucide-react'
+import { Link2, Eye, Users, Copy, CheckCircle as CheckIcon, Wallet, User, Table, LayoutDashboard, Plus, X, ExternalLink } from 'lucide-react'
 import { affiliateDashboardApi, affiliateLinkApi } from '../../services/api'
 
 interface Product {
@@ -112,21 +112,28 @@ export default function AffiliateDashboard() {
   return (
     <>
     <div className="px-3 py-3 sm:px-6 sm:py-4">
-      {/* Header */}
-      <div className="mb-4 flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
-            <Link2 size={20} />
+      {/* Header + Profile */}
+      <div className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#0E6187] text-white shrink-0">
+              <User size={22} />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-lg font-bold text-slate-800 truncate">{affiliate.name}</h1>
+              <p className="text-xs text-slate-500">{affiliate.email}</p>
+              {(affiliate.telepon || affiliate.alamat) && (
+                <p className="mt-0.5 text-[11px] text-slate-400 truncate">
+                  {[affiliate.telepon && `Telp: ${affiliate.telepon}`, affiliate.alamat && `Alamat: ${affiliate.alamat}`].filter(Boolean).join(' · ')}
+                </p>
+              )}
+            </div>
           </div>
-          <div>
-            <h1 className="text-lg font-bold text-slate-800">Dashboard Affiliate</h1>
-            <p className="text-sm text-slate-500">Pantau dan kelola link affiliate Anda</p>
-          </div>
+          <button onClick={openBuatLink}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:scale-[0.97] shrink-0">
+            <Plus size={16} /> Buat Link Baru
+          </button>
         </div>
-        <button onClick={openBuatLink}
-          className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:scale-[0.97]">
-          <Plus size={16} /> Buat Link Baru
-        </button>
       </div>
 
       {/* Tabs */}
@@ -150,66 +157,23 @@ export default function AffiliateDashboard() {
 
       {tab === 'dashboard' ? (
         <>
-          {/* Affiliate Profile */}
-          <div className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#0E6187] text-white shrink-0">
-                <User size={26} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h2 className="text-lg font-bold text-slate-800">{affiliate.name}</h2>
-                <p className="text-sm text-slate-500">{affiliate.email}</p>
-                {(affiliate.telepon || affiliate.alamat) && (
-                  <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-slate-400">
-                    {affiliate.telepon && <span>Telp: {affiliate.telepon}</span>}
-                    {affiliate.alamat && <span>Alamat: {affiliate.alamat}</span>}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Stat Cards */}
-          <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Stats strip */}
+          <div className="mb-4 grid grid-cols-2 divide-x divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white shadow-sm sm:grid-cols-3 lg:grid-cols-5 lg:divide-y-0">
             {[
-              { label: 'Total Link', value: stats.total_links, icon: Link2, color: 'text-blue-600 bg-blue-50', hint: 'Jumlah link affiliate yang Anda buat' },
-              { label: 'Total Views', value: stats.total_views, icon: Eye, color: 'text-purple-600 bg-purple-50', hint: 'Berapa kali link Anda dilihat' },
-              { label: 'Total Pendaftar', value: stats.total_pendaftar, icon: Users, color: 'text-emerald-600 bg-emerald-50', hint: 'Jumlah pendaftar melalui link Anda' },
-              { label: 'Pending', value: stats.pending, icon: Clock, color: 'text-amber-600 bg-amber-50', hint: 'Menunggu persetujuan admin' },
+              { label: 'Total Link', value: stats.total_links },
+              { label: 'Total Views', value: stats.total_views },
+              { label: 'Total Pendaftar', value: stats.total_pendaftar },
+              { label: 'Pending', value: stats.pending },
+              { label: 'Komisi Didapat', value: `Rp ${Number(stats.komisi_paid).toLocaleString('id-ID')}` },
             ].map(s => (
-              <div key={s.label} className="group relative rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md">
-                <div className="flex items-center gap-3">
-                  <div className={`rounded-lg p-2.5 ${s.color}`}>
-                    <s.icon size={20} />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-xs font-medium text-slate-500">{s.label}</p>
-                      <span className="relative" title={s.hint}>
-                        <Info size={11} className="text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity cursor-help" />
-                      </span>
-                    </div>
-                    <p className="text-xl font-bold text-slate-800">{s.value}</p>
-                  </div>
-                </div>
+              <div key={s.label} className="px-4 py-3.5">
+                <p className="text-[11px] font-medium text-slate-500">{s.label}</p>
+                <p className="mt-0.5 text-lg font-bold text-slate-800">{s.value}</p>
               </div>
             ))}
           </div>
 
-          {/* Komisi */}
-          <div className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg p-2.5 text-emerald-600 bg-emerald-50">
-                <Banknote size={20} />
-              </div>
-              <div>
-                <p className="text-xs font-medium text-slate-500">Komisi Didapat</p>
-                <p className="text-xl font-bold text-slate-800">Rp {Number(stats.komisi_paid).toLocaleString('id-ID')}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Links + Pendaftar */}
+          {/* Link Saya + Pendaftar */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5">
