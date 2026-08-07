@@ -72,7 +72,11 @@ class JadwalLevelController extends Controller
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
         ]);
 
-        JadwalLevel::updateOrCreate(
+        $isUpdate = JadwalLevel::where('batch_id', $request->batch_id)
+            ->where('level', $request->level)
+            ->exists();
+
+        $jadwal = JadwalLevel::updateOrCreate(
             ['batch_id' => $request->batch_id, 'level' => $request->level],
             [
                 'tanggal_mulai' => $request->tanggal_mulai,
@@ -84,6 +88,15 @@ class JadwalLevelController extends Controller
                 'rejection_reason' => null,
             ]
         );
+
+        $user = $request->user();
+        if ($user && $user->role === 'ADMIN_CABANG') {
+            try {
+                app(\App\Services\WhatsAppService::class)->sendJadwalLevelToAdmin($jadwal, $isUpdate);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Gagal kirim notifikasi jadwal level: ' . $e->getMessage());
+            }
+        }
 
         return response()->json([
             'status' => 'success',

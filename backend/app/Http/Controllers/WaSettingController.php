@@ -274,6 +274,7 @@ class WaSettingController extends Controller
             'wa_full_payment' => 'Tagihan lunas (WA)',
             'wa_reminder_pembayaran' => 'Pengingat pembayaran otomatis (WA)',
             'wa_registration_approved' => 'Pendaftaran disetujui (WA)',
+            'wa_jadwal_level' => 'Jadwal level diatur admin cabang (WA)',
             'email_pembayaran' => 'Notifikasi pembayaran ke admin (Email)',
             'email_pembayaran_admin_addresses' => 'Alamat email admin (pisahkan koma)',
             'email_reminder_pembayaran' => 'Pengingat pembayaran otomatis (Email)',

@@ -302,7 +302,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             return null;
           }
           return item;
-        }) as NavItem[])
+        })
+        .filter(Boolean) as NavItem[])
     : (navItems
         .map((item) => {
           if (item.label === "Affiliate & Pasukan" && "children" in item) {

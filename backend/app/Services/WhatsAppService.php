@@ -875,6 +875,55 @@ class WhatsAppService
     }
 
     /**
+     * Kirim notifikasi ke admin follow up saat admin cabang mengatur/mengedit jadwal level.
+     * Nomor tujuan memakai setting 'wa_pendaftaran_admin_phones', gating via toggle 'wa_jadwal_level'.
+     */
+    public function sendJadwalLevelToAdmin($jadwal, $isUpdate = false)
+    {
+        if (!\App\Models\NotificationSetting::isEnabled('wa_jadwal_level')) {
+            Log::info("Notifikasi wa_jadwal_level dinonaktifkan.");
+            return false;
+        }
+
+        $adminPhones = $this->getAdminPhones('wa_pendaftaran_admin_phones');
+        if (empty($adminPhones)) {
+            Log::warning('Tidak ada nomor admin follow up untuk notifikasi jadwal level.');
+            return false;
+        }
+
+        $batch = $jadwal->batch;
+        $batchNama = $batch?->nama_batch ?? '-';
+        $cabangNama = $batch?->cabang?->nama_cabang ?? '-';
+        $submittedBy = $jadwal->submittedBy?->name ?? '-';
+        $action = $isUpdate ? 'diperbarui' : 'diatur';
+        $mulai = $jadwal->tanggal_mulai?->format('d F Y') ?? '-';
+        $selesai = $jadwal->tanggal_selesai?->format('d F Y') ?? '-';
+        $waktu = now()->translatedFormat('d F Y H:i');
+
+        $message = "📅 *NOTIFIKASI JADWAL LEVEL*\n\n"
+            . "Halo Admin,\n\n"
+            . "Jadwal *Level {$jadwal->level}* untuk batch *{$batchNama}* ({$cabangNama}) telah {$action} oleh *{$submittedBy}*.\n\n"
+            . "📌 Level: Level {$jadwal->level}\n"
+            . "🎓 Batch: {$batchNama}\n"
+            . "🏢 Cabang: {$cabangNama}\n"
+            . "🗓️ Tanggal Mulai: {$mulai}\n"
+            . "🗓️ Tanggal Selesai: {$selesai}\n"
+            . "⏰ Waktu: {$waktu}\n"
+            . "📝 Status: Menunggu Approval\n\n"
+            . "Silakan cek dan lakukan approval di panel admin.\n\n"
+            . "- Sistem SIM Mendunia";
+
+        $results = [];
+        foreach ($adminPhones as $phone) {
+            $sent = $this->sendMessage($phone, $message);
+            $this->logNotification(null, 'jadwal_level', $phone, $message, $sent);
+            $results[] = $sent;
+        }
+
+        return in_array(true, $results);
+    }
+
+    /**
      * Format nomor HP ke format 62
      */
     private function formatPhoneNumber($number)

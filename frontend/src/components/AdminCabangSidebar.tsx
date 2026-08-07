@@ -47,6 +47,7 @@ const navItems: NavItem[] = [
       { label: 'Data Kandidat', icon: 'UserPlus', href: '/admin-cabang/kandidat' },
       { label: 'Pendaftaran', icon: 'ClipboardList', href: '/admin-cabang/pendaftar' },
       { label: 'Tagihan', icon: 'FileText', href: '/admin-cabang/tagihan' },
+      { label: 'Batch', icon: 'Layers', href: '/admin-cabang/batches' },
       { label: 'Kelas Kandidat', icon: 'GraduationCap', href: '/admin-cabang/siswa' },
       { label: 'Rekap Per Batch', icon: 'Layers', href: '/admin-cabang/rekap-per-batch' },
     ],
