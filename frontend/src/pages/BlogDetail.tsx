@@ -81,7 +81,7 @@ export default function BlogDetail() {
           {/* Hero */}
           <section className="bg-gradient-to-br from-[#0069b0] to-[#00508a] text-white">
             <div className="max-w-4xl mx-auto px-4 md:px-6 py-12 md:py-16">
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-2 mb-4">
                 <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-semibold bg-white/10 border border-white/20">
                   <Tag size={11} /> {post.category}
                 </span>

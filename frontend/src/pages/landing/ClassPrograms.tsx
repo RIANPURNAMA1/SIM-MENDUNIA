@@ -49,7 +49,7 @@ export default function ClassPrograms() {
             </p>
           </div>
         </Reveal>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {classPrograms.map((c, i) => (
             <Reveal key={c.title} direction="up" delay={i * 100}>
               <Parallax speed={c.speed}>
@@ -62,8 +62,8 @@ export default function ClassPrograms() {
                   >
                     <c.icon size={28} style={{ color: BRAND }} />
                   </div>
-                  <h3 className="text-sm font-semibold text-slate-900 mb-1.5">{c.title}</h3>
-                  <p className="text-xs text-slate-500 leading-relaxed">{c.desc}</p>
+                  <h3 className="text-base font-semibold text-slate-900 mb-1.5">{c.title}</h3>
+                  <p className="text-sm text-slate-500 leading-relaxed">{c.desc}</p>
                 </div>
               </Parallax>
             </Reveal>

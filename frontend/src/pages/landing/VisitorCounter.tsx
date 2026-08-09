@@ -52,7 +52,7 @@ export default function VisitorCounter() {
   if (total === null) return null;
 
   return (
-    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/10 border border-white/15 text-blue-100 text-xs mt-8 backdrop-blur-sm">
+    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-slate-800 border border-slate-700 text-slate-300 text-xs backdrop-blur-sm">
       <Eye className="w-4 h-4 text-[#f9b700]" />
       <span className="font-bold text-white">{formatNumber(total)}</span>
       <span>pengunjung telah melihat situs ini</span>

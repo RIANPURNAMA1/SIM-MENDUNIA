@@ -1,4 +1,5 @@
 import Reveal from "./Reveal";
+import VisitorCounter from "../pages/landing/VisitorCounter";
 
 function TiktokIcon({ size = 18, className }: { size?: number; className?: string }) {
   return (
@@ -87,9 +88,9 @@ export default function Footer({ phone = "0895 3916 85825" }: FooterProps) {
           <div className="border-t border-slate-800 mb-10" />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-            <div className="text-center md:text-left">
+            <div className="text-left">
               <h3 className="text-sm font-semibold text-white mb-4">Ikuti Sosial Media Kami</h3>
-              <div className="flex items-center justify-center md:justify-start gap-4">
+              <div className="flex items-center justify-start gap-4">
                 <a href="#" className="text-slate-400 hover:text-white transition-colors" aria-label="Instagram">
                   <InstagramIcon size={20} />
                 </a>
@@ -103,7 +104,7 @@ export default function Footer({ phone = "0895 3916 85825" }: FooterProps) {
                   <YoutubeIcon size={20} />
                 </a>
               </div>
-              <div className="flex items-center justify-center md:justify-start gap-6 mt-6">
+              <div className="flex items-center justify-start gap-6 mt-6">
                 <img
                   src="https://mendunia.id/wp-content/uploads/2025/08/LOGO-MENDUNIA-JEPANG_11zon-1024x1024.png"
                   alt="Logo Jepang"
@@ -119,7 +120,7 @@ export default function Footer({ phone = "0895 3916 85825" }: FooterProps) {
               </div>
             </div>
 
-            <div className="text-center md:text-left">
+            <div className="text-left">
               <h3 className="text-sm font-semibold text-white mb-4">Navigasi</h3>
               <div className="flex flex-col gap-2.5 text-sm">
                 <a href="#beranda" className="text-slate-400 hover:text-white transition-colors">Home</a>
@@ -130,7 +131,7 @@ export default function Footer({ phone = "0895 3916 85825" }: FooterProps) {
               </div>
             </div>
 
-            <div className="text-center md:text-left">
+            <div className="text-left">
               <h3 className="text-sm font-semibold text-white mb-4">Informasi</h3>
               <div className="flex flex-col gap-2.5 text-sm">
                 <a href="/testimoni" className="text-slate-400 hover:text-white transition-colors">Testimoni</a>
@@ -140,9 +141,13 @@ export default function Footer({ phone = "0895 3916 85825" }: FooterProps) {
             </div>
           </div>
 
-          <div className="pt-6 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="pt-6 border-t border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
             <p className="text-xs text-slate-500">Copyright © Mendunia.id</p>
             <p className="text-xs text-slate-600">PT Indonesia Sukses Mendunia</p>
+          </div>
+
+          <div className="flex justify-start pt-6">
+            <VisitorCounter />
           </div>
         </div>
       </Reveal>
