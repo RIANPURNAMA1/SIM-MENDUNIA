@@ -120,8 +120,14 @@ export default function Testimonials() {
             { items: [...testimonials.slice(5), ...testimonials.slice(0, 5)], direction: "up" as const, duration: 28 },
           ].map((col, i) => (
             <div key={i} className="flex-1 overflow-hidden relative h-[520px]">
-              <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-slate-50 via-slate-50/80 to-transparent z-10 pointer-events-none" />
-              <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-slate-50 via-slate-50/80 to-transparent z-10 pointer-events-none" />
+              <div
+                className="absolute inset-x-0 top-0 h-40 z-10 pointer-events-none"
+                style={{ background: "linear-gradient(to bottom, rgba(248,250,252,1) 0%, rgba(248,250,252,0.9) 45%, rgba(248,250,252,0) 100%)" }}
+              />
+              <div
+                className="absolute inset-x-0 bottom-0 h-40 z-10 pointer-events-none"
+                style={{ background: "linear-gradient(to top, rgba(248,250,252,1) 0%, rgba(248,250,252,0.9) 45%, rgba(248,250,252,0) 100%)" }}
+              />
               <div
                 className={col.direction === "up" ? "animate-marquee-up" : "animate-marquee-down"}
                 style={{ animationDuration: `${col.duration}s` }}
@@ -137,8 +143,14 @@ export default function Testimonials() {
         {/* Mobile */}
         <div className="md:hidden">
           <div className="flex-1 overflow-hidden relative h-[520px]">
-            <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-slate-50 via-slate-50/80 to-transparent z-10 pointer-events-none" />
-            <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-slate-50 via-slate-50/80 to-transparent z-10 pointer-events-none" />
+            <div
+              className="absolute inset-x-0 top-0 h-40 z-10 pointer-events-none"
+              style={{ background: "linear-gradient(to bottom, rgba(248,250,252,1) 0%, rgba(248,250,252,0.9) 45%, rgba(248,250,252,0) 100%)" }}
+            />
+            <div
+              className="absolute inset-x-0 bottom-0 h-40 z-10 pointer-events-none"
+              style={{ background: "linear-gradient(to top, rgba(248,250,252,1) 0%, rgba(248,250,252,0.9) 45%, rgba(248,250,252,0) 100%)" }}
+            />
             <div className="animate-marquee-up" style={{ animationDuration: "22s" }}>
               {[...testimonials, ...testimonials].map((t, idx) => (
                 <TestimonialCard key={idx} t={t} />
