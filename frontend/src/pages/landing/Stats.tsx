@@ -3,7 +3,7 @@ import Reveal from "../../components/Reveal";
 import Parallax from "../../components/Parallax";
 
 const stats = [
-  { value: "2000+", label: "Alumni Berhasil", target: 2000, suffix: "+", isPercent: false },
+  { value: "500+", label: "Alumni Berhasil", target: 500, suffix: "+", isPercent: false },
   { value: "95%", label: "Tingkat Kelulusan", target: 95, suffix: "%", isPercent: true },
   { value: "5", label: "Program Tersedia", target: 5, suffix: "", isPercent: false },
   { value: "4.9★", label: "Rating Peserta", target: 4.9, suffix: "★", isPercent: false },
