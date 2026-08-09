@@ -598,4 +598,20 @@ export const paymentSettingApi = {
 
 export const APP_URL = import.meta.env.VITE_APP_URL || 'http://localhost:8000'
 
+export const blogApi = {
+  list: (params?: Record<string, string>) => api.get('/blogs', { params }),
+  show: (slugOrId: string | number) => api.get(`/blogs/${slugOrId}`),
+  adminList: (params?: Record<string, string>) => api.get('/admin/blogs', { params }),
+  create: (data: FormData) => api.post('/admin/blogs', data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  update: (id: number, data: FormData) => api.post(`/admin/blogs/${id}`, data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  destroy: (id: number) => api.delete(`/admin/blogs/${id}`),
+  uploadImage: (data: FormData) => api.post('/admin/blogs/upload-image', data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+}
+
 export default api

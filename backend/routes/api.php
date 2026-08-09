@@ -50,6 +50,7 @@ use App\Http\Controllers\PengeluaranController;
 use App\Http\Controllers\LmsController;
 use App\Http\Controllers\Api\LoginLogController;
 use App\Http\Controllers\RaportController;
+use App\Http\Controllers\BlogController;
 
 // ========== API Auth (Sanctum) ==========
 Route::post('/auth/login',    [AuthController::class, 'loginApi']);
@@ -620,6 +621,19 @@ Route::middleware(['auth:sanctum'])->prefix('notification-templates')->group(fun
 
 // Public — batch deadlines untuk countdown frontend
 Route::get('/wa-settings/batch-deadlines-public', [\App\Http\Controllers\WaSettingController::class, 'batchDeadlinePublic']);
+
+// ========== Blog (public) ==========
+Route::get('/blogs', [BlogController::class, 'index']);
+Route::get('/blogs/{slugOrId}', [BlogController::class, 'show']);
+
+// ========== Blog (admin) ==========
+Route::middleware(['auth:sanctum'])->prefix('admin/blogs')->group(function () {
+    Route::get('/', [BlogController::class, 'adminIndex']);
+    Route::post('/', [BlogController::class, 'store']);
+    Route::post('/upload-image', [BlogController::class, 'uploadImage']);
+    Route::post('/{id}', [BlogController::class, 'update']);
+    Route::delete('/{id}', [BlogController::class, 'destroy']);
+});
 
 // ========== Payment Settings & Bank Accounts ==========
 Route::middleware(['auth:sanctum'])->prefix('payment-settings')->group(function () {

@@ -581,14 +581,27 @@ html.dark .force-light select option {
 }
 
 /* ---- Backgrounds ---- */
+html.dark .force-light.bg-white,
 html.dark .force-light .bg-white { background-color: #ffffff; }
+html.dark .force-light.bg-white\/95,
 html.dark .force-light .bg-white\/95 { background-color: rgba(255, 255, 255, 0.95); }
+html.dark .force-light.bg-white\/90,
 html.dark .force-light .bg-white\/90 { background-color: rgba(255, 255, 255, 0.9); }
+html.dark .force-light.bg-white\/80,
 html.dark .force-light .bg-white\/80 { background-color: rgba(255, 255, 255, 0.8); }
+html.dark .force-light.bg-white\/70,
 html.dark .force-light .bg-white\/70 { background-color: rgba(255, 255, 255, 0.7); }
+html.dark .force-light.bg-white\/60,
 html.dark .force-light .bg-white\/60 { background-color: rgba(255, 255, 255, 0.6); }
+html.dark .force-light.bg-white\/10,
+html.dark .force-light .bg-white\/10 { background-color: rgba(255, 255, 255, 0.1); }
+html.dark .force-light.bg-slate-50\/50,
+html.dark .force-light .bg-slate-50\/50 { background-color: rgba(248, 250, 252, 0.5); }
+html.dark .force-light.bg-slate-50,
 html.dark .force-light .bg-slate-50 { background-color: #f8fafc; }
+html.dark .force-light.bg-slate-100,
 html.dark .force-light .bg-slate-100 { background-color: #f1f5f9; }
+html.dark .force-light.bg-slate-200,
 html.dark .force-light .bg-slate-200 { background-color: #e2e8f0; }
 html.dark .force-light .bg-gray-50, html.dark .force-light .bg-\[\#f0f2f5\], html.dark .force-light .bg-\[\#F0F2F5\],
 html.dark .force-light .bg-\[\#f4f5f8\], html.dark .force-light .bg-\[\#F4F5F8\] { background-color: #f3f4f6; }
@@ -603,22 +616,39 @@ html.dark .force-light .bg-green-50 { background-color: #f0fdf4; }
 html.dark .force-light .bg-yellow-100 { background-color: #fef9c3; }
 
 /* ---- Text: neutrals ---- */
+html.dark .force-light.text-black,
 html.dark .force-light .text-black { color: #000000; }
+html.dark .force-light.text-white,
 html.dark .force-light .text-white { color: #ffffff; }
+html.dark .force-light.text-slate-900,
 html.dark .force-light .text-slate-900 { color: #0f172a; }
+html.dark .force-light.text-slate-800,
 html.dark .force-light .text-slate-800 { color: #1e293b; }
+html.dark .force-light.text-slate-700,
 html.dark .force-light .text-slate-700 { color: #334155; }
+html.dark .force-light.text-slate-600,
 html.dark .force-light .text-slate-600 { color: #475569; }
+html.dark .force-light.text-slate-500,
 html.dark .force-light .text-slate-500 { color: #64748b; }
+html.dark .force-light.text-slate-400,
 html.dark .force-light .text-slate-400 { color: #94a3b8; }
+html.dark .force-light.text-slate-300,
 html.dark .force-light .text-slate-300 { color: #cbd5e1; }
+html.dark .force-light.text-gray-900,
 html.dark .force-light .text-gray-900 { color: #111827; }
+html.dark .force-light.text-gray-800,
 html.dark .force-light .text-gray-800 { color: #1f2937; }
+html.dark .force-light.text-gray-700,
 html.dark .force-light .text-gray-700 { color: #374151; }
+html.dark .force-light.text-gray-600,
 html.dark .force-light .text-gray-600 { color: #4b5563; }
+html.dark .force-light.text-gray-500,
 html.dark .force-light .text-gray-500 { color: #6b7280; }
+html.dark .force-light.text-gray-400,
 html.dark .force-light .text-gray-400 { color: #9ca3af; }
+html.dark .force-light.text-gray-300,
 html.dark .force-light .text-gray-300 { color: #d1d5db; }
+html.dark .force-light.text-gray-200,
 html.dark .force-light .text-gray-200 { color: #e5e7eb; }
 
 /* ---- Text: colored ---- */
@@ -642,9 +672,13 @@ html.dark .force-light .text-\[\#1c1e21\] { color: #1c1e21; }
 html.dark .force-light .text-\[\#606770\] { color: #606770; }
 
 /* ---- Borders ---- */
+html.dark .force-light.border-slate-100,
 html.dark .force-light .border-slate-100 { border-color: #f1f5f9; }
+html.dark .force-light.border-slate-200,
 html.dark .force-light .border-slate-200 { border-color: #e2e8f0; }
+html.dark .force-light.border-slate-300,
 html.dark .force-light .border-slate-300 { border-color: #cbd5e1; }
+html.dark .force-light.border-slate-400,
 html.dark .force-light .border-slate-400 { border-color: #94a3b8; }
 html.dark .force-light .border-gray-100 { border-color: #f3f4f6; }
 html.dark .force-light .border-gray-200 { border-color: #e5e7eb; }
@@ -672,13 +706,73 @@ html.dark .force-light .hover\:text-gray-900:hover { color: #111827; }
 html.dark .force-light .hover\:border-slate-300:hover { border-color: #cbd5e1; }
 html.dark .force-light .hover\:border-gray-300:hover { border-color: #d1d5db; }
 
+/* ---- Gradient stops (light variants restored) ---- */
+html.dark .force-light.from-slate-50,
+html.dark .force-light .from-slate-50 { --tw-gradient-from: #f8fafc; }
+html.dark .force-light.from-gray-50,
+html.dark .force-light .from-gray-50 { --tw-gradient-from: #f9fafb; }
+html.dark .force-light.via-slate-50\/80,
+html.dark .force-light .via-slate-50\/80 { --tw-gradient-via: rgb(248 250 252 / 0.8); }
+html.dark .force-light.to-transparent,
+html.dark .force-light .to-transparent { --tw-gradient-to: transparent; }
+
 /* ---- Shadows (keep light-mode softness) ---- */
+html.dark .force-light.shadow-sm,
 html.dark .force-light .shadow-sm {
   box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 }
+html.dark .force-light.shadow-md,
 html.dark .force-light .shadow-md {
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
+html.dark .force-light.shadow-lg,
 html.dark .force-light .shadow-lg {
   box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 }
+
+/* ================================================================
+   BLOG CONTENT — rich text rendered from ReactQuill
+   ================================================================ */
+.blog-content h1,
+.blog-content h2,
+.blog-content h3,
+.blog-content h4 {
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.4;
+  margin: 1.6em 0 0.6em;
+}
+.blog-content h1 { font-size: 1.6rem; }
+.blog-content h2 { font-size: 1.4rem; }
+.blog-content h3 { font-size: 1.2rem; }
+.blog-content h4 { font-size: 1.05rem; }
+.blog-content h2:first-child,
+.blog-content h3:first-child,
+.blog-content h4:first-child { margin-top: 0; }
+.blog-content p { margin: 0 0 1em; }
+.blog-content ul { list-style: disc; padding-left: 1.5em; margin: 0 0 1em; }
+.blog-content ol { list-style: decimal; padding-left: 1.5em; margin: 0 0 1em; }
+.blog-content li { margin: 0.3em 0; }
+.blog-content a {
+  color: #0069b0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.blog-content a:hover { color: #00508a; }
+.blog-content blockquote {
+  border-left: 4px solid #0069b0;
+  background: #f1f5f9;
+  padding: 0.8em 1.2em;
+  margin: 0 0 1em;
+  border-radius: 0 0.5rem 0.5rem 0;
+  color: #475569;
+  font-style: italic;
+}
+.blog-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+  margin: 1em 0;
+}
+.blog-content strong { font-weight: 700; }
+.blog-content em { font-style: italic; }

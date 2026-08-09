@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             AbsensiSeeder::class,
             AssessmentLevelSeeder::class,
             NotificationTemplateSeeder::class,
+            BlogSeeder::class,
         ]);
       
     }
