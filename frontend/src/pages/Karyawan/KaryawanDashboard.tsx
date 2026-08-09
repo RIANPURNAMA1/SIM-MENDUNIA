@@ -51,6 +51,41 @@ const dayAbbr = ['MIN', 'SEN', 'SEL', 'RAB', 'KAM', 'JUM', 'SAB']
 const fullDayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
 const monthNamesID = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 
+// Kompres foto absen hingga mendekati target ukuran (10 KB) dengan menurunkan resolusi & kualitas JPEG
+function compressCanvasToTarget(video: HTMLVideoElement, targetBytes: number): Promise<Blob | null> {
+  const attempts = [
+    { width: 640, height: 360, quality: 0.7 },
+    { width: 480, height: 270, quality: 0.6 },
+    { width: 400, height: 225, quality: 0.5 },
+    { width: 360, height: 200, quality: 0.4 },
+    { width: 320, height: 180, quality: 0.35 },
+  ]
+  return new Promise((resolve) => {
+    const tmp = document.createElement('canvas')
+    let i = 0
+    const step = () => {
+      if (i >= attempts.length) {
+        resolve(null)
+        return
+      }
+      const a = attempts[i++]
+      tmp.width = a.width
+      tmp.height = a.height
+      const ctx = tmp.getContext('2d')
+      if (!ctx) {
+        resolve(null)
+        return
+      }
+      ctx.drawImage(video, 0, 0, a.width, a.height)
+      tmp.toBlob((b) => {
+        if (b && b.size <= targetBytes) resolve(b)
+        else step()
+      }, 'image/jpeg', a.quality)
+    }
+    step()
+  })
+}
+
 export default function KaryawanDashboard() {
   const { user, logout } = useAuth()
   const [time, setTime] = useState(formatTime())
@@ -457,20 +492,20 @@ export default function KaryawanDashboard() {
       return
     }
     ctx.drawImage(video, 0, 0)
-    canvas.toBlob(async (blob) => {
-      if (!blob) {
-        submittingRef.current = false
-        setProcessing(false)
-        captureTriggeredRef.current = false
-        return
-      }
+    const blob = await compressCanvasToTarget(video, 10 * 1024)
+    if (!blob) {
+      submittingRef.current = false
+      setProcessing(false)
+      captureTriggeredRef.current = false
+      return
+    }
       try {
-        const formData = new FormData()
-        formData.append('foto', blob, 'absen.jpg')
-        if (coordsRef.current) {
-          formData.append('latitude', String(coordsRef.current.latitude))
-          formData.append('longitude', String(coordsRef.current.longitude))
-        }
+      const formData = new FormData()
+      formData.append('foto', blob, 'absen.jpg')
+      if (coordsRef.current) {
+        formData.append('latitude', String(coordsRef.current.latitude))
+        formData.append('longitude', String(coordsRef.current.longitude))
+      }
 
         const todayKey = new Date().toLocaleDateString('en-CA')
         if (cameraMode === 'masuk') {
@@ -511,7 +546,6 @@ export default function KaryawanDashboard() {
         submittingRef.current = false
         setProcessing(false)
       }
-    }, 'image/jpeg', 0.8)
   }, [cameraMode, stopCamera, jadwal])
 
   // Auto-capture: hitung mundur 3-2-1 saat wajah terdeteksi, lalu foto otomatis
