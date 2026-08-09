@@ -51,6 +51,7 @@ use App\Http\Controllers\LmsController;
 use App\Http\Controllers\Api\LoginLogController;
 use App\Http\Controllers\RaportController;
 use App\Http\Controllers\BlogController;
+use App\Http\Controllers\VisitorController;
 
 // ========== API Auth (Sanctum) ==========
 Route::post('/auth/login',    [AuthController::class, 'loginApi']);
@@ -626,9 +627,20 @@ Route::get('/wa-settings/batch-deadlines-public', [\App\Http\Controllers\WaSetti
 Route::get('/blogs', [BlogController::class, 'index']);
 Route::get('/blogs/{slugOrId}', [BlogController::class, 'show']);
 
+// ========== Website Visitor Counter (public) ==========
+Route::get('/visitors', [VisitorController::class, 'stats']);
+Route::post('/visitors', [VisitorController::class, 'record']);
+
 // ========== Blog (admin) ==========
 Route::middleware(['auth:sanctum'])->prefix('admin/blogs')->group(function () {
     Route::get('/', [BlogController::class, 'adminIndex']);
+
+    // Category CRUD (BEFORE wildcard {id})
+    Route::get('/categories', [BlogController::class, 'categories']);
+    Route::post('/categories', [BlogController::class, 'storeCategory']);
+    Route::post('/categories/{id}', [BlogController::class, 'updateCategory']);
+    Route::delete('/categories/{id}', [BlogController::class, 'destroyCategory']);
+
     Route::post('/', [BlogController::class, 'store']);
     Route::post('/upload-image', [BlogController::class, 'uploadImage']);
     Route::post('/{id}', [BlogController::class, 'update']);

@@ -1,12 +1,18 @@
 import { ArrowRight, Sparkles } from "lucide-react";
 import Reveal from "../../components/Reveal";
+import Parallax from "../../components/Parallax";
+import ParallaxOrbs, { defaultOrbs } from "./ParallaxOrbs";
+import { useParallax } from "../../hooks/useParallax";
 
 const BRAND = "#0E6187";
 
 export default function CtaBanner({ waNumber }: { waNumber: string }) {
+  const modelRef = useParallax<HTMLImageElement>(0.14);
+
   return (
-    <section className="py-16 md:py-20">
-      <div className="max-w-6xl mx-auto px-4 md:px-6">
+    <section className="relative overflow-hidden py-16 md:py-20">
+      <ParallaxOrbs orbs={defaultOrbs} />
+      <div className="relative max-w-6xl mx-auto px-4 md:px-6">
         <Reveal direction="up" threshold={0.1}>
           <div
             className="relative rounded-3xl overflow-hidden border border-slate-200"
@@ -53,13 +59,16 @@ export default function CtaBanner({ waNumber }: { waNumber: string }) {
               </div>
 
               {/* Image side */}
-              <div className="relative h-96 md:h-[600px] bg-white">
+              <div className="relative h-96 md:h-[600px] bg-white overflow-hidden">
                 <img
+                  ref={modelRef}
                   src="/models2.png"
                   alt="Model Mendunia"
-                  className="absolute inset-0 h-full w-full object-cover object-top"
+                  className="absolute inset-x-0 -top-[6%] h-[112%] w-full object-cover object-top"
+                  style={{ willChange: "transform" }}
                   loading="lazy"
                 />
+                <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent md:from-white/15 pointer-events-none" />
               </div>
             </div>
           </div>

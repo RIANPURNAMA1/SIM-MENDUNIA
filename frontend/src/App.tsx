@@ -81,6 +81,11 @@ import Verifikasi from './pages/Verifikasi'
 import SyaratKetentuan from './pages/SyaratKetentuan'
 import KebijakanPrivasi from './pages/KebijakanPrivasi'
 import CompanyLanding from './pages/CompanyLanding'
+import AboutPage from './pages/landing/AboutPage'
+import ProgramPage from './pages/landing/ProgramPage'
+import TestimoniPage from './pages/landing/TestimoniPage'
+import FaqPage from './pages/landing/FaqPage'
+import ContactPage from './pages/landing/ContactPage'
 import ProgramDetailPage from './pages/landing/ProgramDetailPage'
 import Blog from './pages/Blog'
 import BlogDetail from './pages/BlogDetail'
@@ -211,6 +216,7 @@ function AppRoutes() {
       <Route path="/verifikasi/*" element={<Verifikasi />} />
       <Route path="/blog" element={<Blog />} />
       <Route path="/blog/:slug" element={<BlogDetail />} />
+      <Route path="/tentang" element={<AboutPage />} />
 
       <Route
         path="/affiliate-dashboard"
@@ -765,6 +771,10 @@ function AppRoutes() {
           <CompanyLanding />
         }
       />
+      <Route path="/program" element={<ProgramPage />} />
+      <Route path="/testimoni" element={<TestimoniPage />} />
+      <Route path="/faq" element={<FaqPage />} />
+      <Route path="/kontak" element={<ContactPage />} />
       <Route path="/program/:slug" element={<ProgramDetailPage />} />
 
       <Route

@@ -17,10 +17,16 @@ class Blog extends Model
         'category',
         'image',
         'read_time',
+        'views',
         'status',
     ];
 
-    protected $appends = ['image_url', 'date_formatted'];
+    protected $appends = ['image_url', 'date_formatted', 'views_formatted'];
+
+    public function categoryRelation()
+    {
+        return $this->belongsTo(BlogCategory::class, 'category', 'name');
+    }
 
     public function getImageUrlAttribute(): ?string
     {
@@ -33,6 +39,15 @@ class Blog extends Model
     public function getDateFormattedAttribute(): ?string
     {
         return $this->created_at?->translatedFormat('d F Y');
+    }
+
+    public function getViewsFormattedAttribute(): string
+    {
+        $views = (int) $this->views;
+        if ($views >= 1000) {
+            return number_format($views / 1000, 1) . 'rb';
+        }
+        return number_format($views);
     }
 
     public function getRouteKeyName(): string

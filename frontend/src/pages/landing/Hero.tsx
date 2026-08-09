@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from "react";
 import { ChevronRight, Phone, Users, Award, Globe } from "lucide-react";
+import VisitorCounter from "./VisitorCounter";
 
 const BRAND = "#0069b0";
 
@@ -127,6 +128,8 @@ export default function HeroSection({ waNumber }: { waNumber: string }) {
                 </div>
               ))}
             </div>
+
+            <VisitorCounter />
           </div>
 
           {/* Kanan: Globe - faster parallax */}

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Blog;
+use App\Models\BlogCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -54,6 +55,9 @@ class BlogController extends Controller
             return response()->json(['message' => 'Artikel tidak ditemukan'], 404);
         }
 
+        $blog->increment('views');
+        $blog->refresh();
+
         // Related posts (same category, exclude current)
         $related = Blog::where('status', 'publish')
             ->where('id', '!=', $blog->id)
@@ -90,7 +94,8 @@ class BlogController extends Controller
 
         if ($request->filled('search')) {
             $q = $request->input('search');
-            $query->where('title', 'like', "%{$q}%");
+            $query->where(fn($sub) => $sub->orWhere('title', 'like', "%{$q}%")
+                ->orWhere('category', 'like', "%{$q}%"));
         }
 
         if ($request->filled('status')) {
@@ -173,6 +178,72 @@ class BlogController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Artikel berhasil dihapus',
+        ]);
+    }
+
+    // ========== Category CRUD ==========
+
+    public function categories()
+    {
+        $categories = BlogCategory::query()
+            ->withCount('blogs')
+            ->orderBy('name')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $categories,
+        ]);
+    }
+
+    public function storeCategory(Request $request)
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:255|unique:blog_categories,name',
+        ]);
+
+        $category = BlogCategory::create($data);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Kategori berhasil dibuat',
+            'data' => $category,
+        ], 201);
+    }
+
+    public function updateCategory(Request $request, $id)
+    {
+        $category = BlogCategory::findOrFail($id);
+
+        $data = $request->validate([
+            'name' => 'required|string|max:255|unique:blog_categories,name,' . $id,
+        ]);
+
+        $oldName = $category->name;
+        $category->update($data);
+
+        if ($oldName !== $category->name) {
+            Blog::where('category', $oldName)->update(['category' => $category->name]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Kategori berhasil diperbarui',
+            'data' => $category->fresh(),
+        ]);
+    }
+
+    public function destroyCategory($id)
+    {
+        $category = BlogCategory::findOrFail($id);
+
+        Blog::where('category', $category->name)->update(['category' => null]);
+
+        $category->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Kategori berhasil dihapus',
         ]);
     }
 

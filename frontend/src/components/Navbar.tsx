@@ -13,12 +13,12 @@ export default function Navbar() {
   }, []);
 
   const links = [
-    { href: "#tentang", label: "Tentang" },
-    { href: "#program", label: "Program" },
-    { href: "#testimoni", label: "Testimoni" },
+    { href: "/tentang", label: "Tentang", to: "/tentang" },
+    { href: "/program", label: "Program", to: "/program" },
+    { href: "/testimoni", label: "Testimoni", to: "/testimoni" },
     { href: "#blog", label: "Blog", to: "/blog" },
-    { href: "#faq", label: "FAQ" },
-    { href: "#kontak", label: "Kontak" },
+    { href: "/faq", label: "FAQ", to: "/faq" },
+    { href: "/kontak", label: "Kontak", to: "/kontak" },
   ];
 
   return (
@@ -40,7 +40,7 @@ export default function Navbar() {
         <span className="inline-flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
           Konsultasikan dulu kebutuhanmu bersama tim kami.{" "}
-          <a href="#kontak" className="underline underline-offset-4 font-bold hover:text-white transition-colors">
+          <a href="/kontak" className="underline underline-offset-4 font-bold hover:text-white transition-colors">
             Hubungi Kami
           </a>
         </span>
@@ -89,7 +89,7 @@ export default function Navbar() {
             Masuk
           </Link>
           <a
-            href="#kontak"
+            href="/kontak"
             className={`inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-sm transition-all active:scale-95 ${
               scrolled
                 ? "bg-[#f9b700] hover:bg-[#e0a500] text-black shadow-sm hover:shadow-md"
@@ -171,7 +171,7 @@ export default function Navbar() {
               Masuk
             </Link>
             <a
-              href="#kontak"
+              href="/kontak"
               onClick={() => setMobileOpen(false)}
               className={`w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold rounded-sm transition-all active:scale-95 ${
                 scrolled
