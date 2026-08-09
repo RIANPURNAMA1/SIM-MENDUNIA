@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { Clock, Tag, ChevronRight, ChevronLeft, Calendar, ArrowLeft } from "lucide-react";
+import { Clock, Tag, ChevronRight, ChevronLeft, Calendar, ArrowLeft, Eye } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { blogApi } from "../services/api";
@@ -15,6 +15,8 @@ interface BlogPost {
   image: string | null;
   image_url: string | null;
   read_time: number | null;
+  views: number;
+  views_formatted: string | null;
   status: string;
   date_formatted: string | null;
 }
@@ -88,6 +90,9 @@ export default function BlogDetail() {
                 </span>
                 <span className="inline-flex items-center gap-1.5 text-xs text-white/70">
                   <Clock size={13} /> {post.read_time} menit baca
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-xs text-white/70">
+                  <Eye size={13} /> {post.views_formatted || post.views || 0} dibaca
                 </span>
               </div>
               <h1 className="text-2xl md:text-4xl font-bold tracking-tight leading-snug mb-4">

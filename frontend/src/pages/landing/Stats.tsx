@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Reveal from "../../components/Reveal";
+import Parallax from "../../components/Parallax";
 
 const stats = [
   { value: "2000+", label: "Alumni Berhasil", target: 2000, suffix: "+", isPercent: false },
@@ -80,17 +81,19 @@ export default function StatsCounter() {
   return (
     <section className="relative z-10 -mt-10 mb-6">
       <div className="max-w-6xl mx-auto px-4 md:px-6">
-        <Reveal direction="up" delay={100}>
-          <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
-            <div className="grid grid-cols-2 md:grid-cols-4 bg-white">
-              {stats.map((s, i) => (
-                <Reveal key={s.label} direction="up" delay={i * 120}>
-                  <StatItem s={s} />
-                </Reveal>
-              ))}
+        <Parallax speed={-0.06}>
+          <Reveal direction="up" delay={100}>
+            <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+              <div className="grid grid-cols-2 md:grid-cols-4 bg-white">
+                {stats.map((s, i) => (
+                  <Reveal key={s.label} direction="up" delay={i * 120}>
+                    <StatItem s={s} />
+                  </Reveal>
+                ))}
+              </div>
             </div>
-          </div>
-        </Reveal>
+          </Reveal>
+        </Parallax>
       </div>
     </section>
   );

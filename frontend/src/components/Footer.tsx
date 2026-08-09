@@ -123,16 +123,17 @@ export default function Footer({ phone = "0895 3916 85825" }: FooterProps) {
               <h3 className="text-sm font-semibold text-white mb-4">Navigasi</h3>
               <div className="flex flex-col gap-2.5 text-sm">
                 <a href="#beranda" className="text-slate-400 hover:text-white transition-colors">Home</a>
-                <a href="#program" className="text-slate-400 hover:text-white transition-colors">Program</a>
+                <a href="/program" className="text-slate-400 hover:text-white transition-colors">Program</a>
                 <a href="#pendaftaran" className="text-slate-400 hover:text-white transition-colors">Daftar</a>
-                <a href="#tentang" className="text-slate-400 hover:text-white transition-colors">Tentang Kami</a>
+                <a href="/tentang" className="text-slate-400 hover:text-white transition-colors">Tentang Kami</a>
+                <a href="/faq" className="text-slate-400 hover:text-white transition-colors">FAQ</a>
               </div>
             </div>
 
             <div className="text-center md:text-left">
               <h3 className="text-sm font-semibold text-white mb-4">Informasi</h3>
               <div className="flex flex-col gap-2.5 text-sm">
-                <a href="#testimoni" className="text-slate-400 hover:text-white transition-colors">Testimoni</a>
+                <a href="/testimoni" className="text-slate-400 hover:text-white transition-colors">Testimoni</a>
                 <p className="text-slate-400">Admin - Mendunia</p>
                 <p className="text-slate-400">WhatsApp : {phone}</p>
               </div>

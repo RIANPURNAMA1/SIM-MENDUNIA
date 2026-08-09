@@ -614,4 +614,16 @@ export const blogApi = {
   }),
 }
 
+export const blogCategoryApi = {
+  list: () => api.get('/admin/blogs/categories'),
+  create: (data: { name: string }) => api.post('/admin/blogs/categories', data),
+  update: (id: number, data: { name: string }) => api.post(`/admin/blogs/categories/${id}`, data),
+  destroy: (id: number) => api.delete(`/admin/blogs/categories/${id}`),
+}
+
+export const visitorApi = {
+  stats: () => api.get('/visitors'),
+  record: (visitorKey: string) => api.post('/visitors', { visitor_key: visitorKey }),
+}
+
 export default api

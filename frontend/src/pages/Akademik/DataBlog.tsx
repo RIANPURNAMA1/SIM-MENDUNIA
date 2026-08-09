@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { Newspaper, Plus, Edit3, Trash2, Search, X, Image as ImageIcon, Eye } from 'lucide-react'
+import { Newspaper, Plus, Edit3, Trash2, Search, X, Image as ImageIcon, Eye, FolderCog, Check, ChevronLeft, ChevronRight } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
-import { blogApi, APP_URL } from '../../services/api'
+import { blogApi, blogCategoryApi, APP_URL } from '../../services/api'
 import Swal from 'sweetalert2'
 
 interface BlogPost {
@@ -16,9 +16,18 @@ interface BlogPost {
   image: string | null
   image_url: string | null
   read_time: number | null
+  views: number
+  views_formatted: string | null
   status: string
   date_formatted: string | null
   created_at: string
+}
+
+interface BlogCategory {
+  id: number
+  name: string
+  slug: string
+  blogs_count?: number
 }
 
 export default function DataBlog() {
@@ -26,10 +35,18 @@ export default function DataBlog() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [page, setPage] = useState(1)
+  const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0, per_page: 20 })
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<BlogPost | null>(null)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+
+  const [categories, setCategories] = useState<BlogCategory[]>([])
+  const [showCatModal, setShowCatModal] = useState(false)
+  const [catName, setCatName] = useState('')
+  const [editingCat, setEditingCat] = useState<BlogCategory | null>(null)
+  const [catSaving, setCatSaving] = useState(false)
 
   const [form, setForm] = useState({
     title: '',
@@ -90,10 +107,23 @@ export default function DataBlog() {
     fetchPosts()
   }, [])
 
+  const fetchCategories = () => {
+    blogCategoryApi.list()
+      .then(res => setCategories(res.data.data || []))
+      .catch(() => setCategories([]))
+  }
+
+  useEffect(() => {
+    fetchCategories()
+  }, [])
+
   const fetchPosts = () => {
     setLoading(true)
-    blogApi.adminList({ search, status: filterStatus })
-      .then(res => setPosts(res.data.data || []))
+    blogApi.adminList({ search, status: filterStatus, page: String(page) })
+      .then(res => {
+        setPosts(res.data.data || [])
+        setPagination(res.data.pagination || { current_page: 1, last_page: 1, total: 0, per_page: 20 })
+      })
       .catch(() => setPosts([]))
       .finally(() => setLoading(false))
   }
@@ -101,7 +131,7 @@ export default function DataBlog() {
   useEffect(() => {
     const t = setTimeout(fetchPosts, 400)
     return () => clearTimeout(t)
-  }, [search, filterStatus])
+  }, [search, filterStatus, page])
 
   const openCreate = () => {
     setEditing(null)
@@ -178,13 +208,60 @@ export default function DataBlog() {
       }
     })
   }
+const filtered = posts
 
-  const filtered = posts.filter(p => {
-    const matchSearch = p.title.toLowerCase().includes(search.toLowerCase()) ||
-      (p.category || '').toLowerCase().includes(search.toLowerCase())
-    const matchStatus = !filterStatus || p.status === filterStatus
-    return matchSearch && matchStatus
-  })
+  const openCatModal = () => {
+    setEditingCat(null)
+    setCatName('')
+    setShowCatModal(true)
+  }
+
+  const saveCategory = async () => {
+    if (!catName.trim()) {
+      Swal.fire({ icon: 'warning', title: 'Nama kategori wajib diisi' })
+      return
+    }
+    setCatSaving(true)
+    try {
+      if (editingCat) {
+        await blogCategoryApi.update(editingCat.id, { name: catName.trim() })
+      } else {
+        await blogCategoryApi.create({ name: catName.trim() })
+      }
+      fetchCategories()
+      setShowCatModal(false)
+      Swal.fire({
+        icon: 'success',
+        title: editingCat ? 'Kategori diperbarui' : 'Kategori ditambahkan',
+        timer: 1200,
+        showConfirmButton: false,
+      })
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal menyimpan kategori' })
+    } finally {
+      setCatSaving(false)
+    }
+  }
+
+  const deleteCategory = (cat: BlogCategory) => {
+    Swal.fire({
+      title: 'Hapus kategori?',
+      text: `Kategori "${cat.name}" akan dihapus${cat.blogs_count ? ` (${cat.blogs_count} artikel menjadi tanpa kategori)` : ''}`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      confirmButtonText: 'Hapus',
+      cancelButtonText: 'Batal',
+    }).then(res => {
+      if (res.isConfirmed) {
+        blogCategoryApi.destroy(cat.id).then(() => {
+          fetchCategories()
+          fetchPosts()
+          Swal.fire({ icon: 'success', title: 'Dihapus', timer: 1200, showConfirmButton: false })
+        }).catch(() => Swal.fire({ icon: 'error', title: 'Gagal menghapus kategori' }))
+      }
+    })
+  }
 
   return (
     <div className="p-6">
@@ -198,13 +275,22 @@ export default function DataBlog() {
             <p className="text-xs text-slate-400">Kelola artikel blog website</p>
           </div>
         </div>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-2 bg-[#0E6187] hover:bg-[#0E6187]/90 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm"
-        >
-          <Plus size={18} />
-          Tambah Artikel
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={openCatModal}
+            className="flex items-center gap-2 border border-[#0E6187] text-[#0E6187] hover:bg-[#0E6187]/5 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors"
+          >
+            <FolderCog size={18} />
+            Kategori
+          </button>
+          <button
+            onClick={openCreate}
+            className="flex items-center gap-2 bg-[#0E6187] hover:bg-[#0E6187]/90 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm"
+          >
+            <Plus size={18} />
+            Tambah Artikel
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-sm shadow-sm border border-slate-200 overflow-hidden">
@@ -215,13 +301,13 @@ export default function DataBlog() {
               type="text"
               placeholder="Cari artikel..."
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={e => { setSearch(e.target.value); setPage(1) }}
               className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
             />
           </div>
           <select
             value={filterStatus}
-            onChange={e => setFilterStatus(e.target.value)}
+            onChange={e => { setFilterStatus(e.target.value); setPage(1) }}
             className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
           >
             <option value="">Semua Status</option>
@@ -240,7 +326,8 @@ export default function DataBlog() {
             <p className="text-slate-400">{search || filterStatus ? 'Artikel tidak ditemukan' : 'Belum ada artikel'}</p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-sm border border-slate-200">
+          <>
+            <div className="overflow-x-auto rounded-sm border border-slate-200">
             <table className="w-full border-collapse text-left text-sm text-black">
               <thead>
                 <tr className="bg-[#0e6187]">
@@ -275,7 +362,9 @@ export default function DataBlog() {
                       ) : '-'}
                     </td>
                     <td className="border border-slate-200 px-4 py-3 text-black">{post.date_formatted || '-'}</td>
-                    <td className="border border-slate-200 px-4 py-3 text-center text-black">{post.read_time || '-'} mnt</td>
+                    <td className="border border-slate-200 px-4 py-3 text-center text-black">
+                      {post.views_formatted || (post.views ?? 0)}
+                    </td>
                     <td className="border border-slate-200 px-4 py-3 text-center">
                       <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full ${
                         post.status === 'publish' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
@@ -315,6 +404,46 @@ export default function DataBlog() {
               </tbody>
             </table>
           </div>
+
+          {!loading && pagination.last_page > 1 && (
+            <div className="mt-3 flex items-center justify-between rounded-lg border border-slate-200 px-4 py-2 text-xs text-slate-500">
+              <span>
+                Menampilkan {((pagination.current_page - 1) * pagination.per_page) + 1}-{Math.min(pagination.current_page * pagination.per_page, pagination.total)} dari {pagination.total} artikel
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  disabled={page <= 1}
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  className="rounded border border-slate-300 p-1 text-slate-500 transition hover:bg-slate-100 disabled:opacity-30"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                {Array.from({ length: pagination.last_page }, (_, i) => i + 1)
+                  .filter((p) => Math.abs(p - page) <= 2 || p === 1 || p === pagination.last_page)
+                  .map((p, i, arr) => (
+                    <span key={p} className="inline-flex items-center">
+                      {i > 0 && arr[i - 1] !== p - 1 && <span className="px-1 text-slate-300">...</span>}
+                      <button
+                        onClick={() => setPage(p)}
+                        className={`min-w-[24px] rounded px-1.5 py-0.5 text-center text-xs font-medium transition ${
+                          p === page ? "bg-slate-800 text-white" : "text-slate-500 hover:bg-slate-100"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    </span>
+                  ))}
+                <button
+                  disabled={page >= pagination.last_page}
+                  onClick={() => setPage(p => Math.min(pagination.last_page, p + 1))}
+                  className="rounded border border-slate-300 p-1 text-slate-500 transition hover:bg-slate-100 disabled:opacity-30"
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+          )}
+          </>
         )}
       </div>
 
@@ -338,16 +467,29 @@ export default function DataBlog() {
                   placeholder="Masukkan judul artikel"
                 />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Kategori</label>
-                  <input
-                    type="text"
-                    value={form.category}
-                    onChange={e => setForm({ ...form, category: e.target.value })}
-                    className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                    placeholder="cth: Bahasa Jepang"
-                  />
+                  <div className="flex gap-2">
+                    <select
+                      value={form.category}
+                      onChange={e => setForm({ ...form, category: e.target.value })}
+                      className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    >
+                      <option value="">Tanpa Kategori</option>
+                      {categories.map(cat => (
+                        <option key={cat.id} value={cat.name}>{cat.name}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={openCatModal}
+                      title="Kelola Kategori"
+                      className="shrink-0 px-3 py-2.5 border border-slate-200 rounded-lg text-[#0E6187] hover:bg-slate-50 transition-colors"
+                    >
+                      <FolderCog size={18} />
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Durasi Baca (menit)</label>
@@ -360,17 +502,17 @@ export default function DataBlog() {
                     placeholder="cth: 5"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
-                  <select
-                    value={form.status}
-                    onChange={e => setForm({ ...form, status: e.target.value })}
-                    className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                  >
-                    <option value="publish">Publish</option>
-                    <option value="draft">Draft</option>
-                  </select>
-                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+                <select
+                  value={form.status}
+                  onChange={e => setForm({ ...form, status: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                >
+                  <option value="publish">Publish</option>
+                  <option value="draft">Draft</option>
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Ringkasan (Excerpt)</label>
@@ -462,6 +604,90 @@ export default function DataBlog() {
                 {saving && <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
                 {editing ? 'Simpan Perubahan' : 'Simpan Artikel'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCatModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-slate-800">
+                  {editingCat ? 'Edit Kategori' : 'Kelola Kategori'}
+                </h3>
+                <p className="text-xs text-slate-400">Atur kategori artikel blog</p>
+              </div>
+              <button onClick={() => setShowCatModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
+                <X size={20} className="text-slate-400" />
+              </button>
+            </div>
+            <div className="p-5 overflow-y-auto">
+              <div className="flex gap-2 mb-4">
+                <input
+                  type="text"
+                  value={catName}
+                  onChange={e => setCatName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && saveCategory()}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  placeholder={editingCat ? 'Nama kategori baru' : 'Nama kategori baru'}
+                />
+                <button
+                  onClick={saveCategory}
+                  disabled={catSaving}
+                  className="flex items-center gap-1.5 shrink-0 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#0E6187] hover:bg-[#0E6187]/90 transition-colors disabled:opacity-60"
+                >
+                  {catSaving ? (
+                    <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  ) : editingCat ? (
+                    <Check size={16} />
+                  ) : (
+                    <Plus size={16} />
+                  )}
+                  {editingCat ? 'Simpan' : 'Tambah'}
+                </button>
+              </div>
+              {editingCat && (
+                <button
+                  onClick={() => { setEditingCat(null); setCatName('') }}
+                  className="mb-3 text-xs text-slate-500 hover:text-slate-700 underline"
+                >
+                  Batalkan edit
+                </button>
+              )}
+              {categories.length === 0 ? (
+                <p className="text-center text-sm text-slate-400 py-6">Belum ada kategori</p>
+              ) : (
+                <div className="space-y-2">
+                  {categories.map(cat => (
+                    <div key={cat.id} className="flex items-center justify-between gap-2 px-3 py-2.5 border border-slate-200 rounded-lg">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-slate-700 truncate">{cat.name}</p>
+                        <p className="text-xs text-slate-400">
+                          {editingCat?.id === cat.id ? 'sedang diedit' : `${cat.blogs_count ?? 0} artikel`}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => { setEditingCat(cat); setCatName(cat.name) }}
+                          className="p-2 text-slate-500 hover:text-[#0E6187] hover:bg-slate-50 rounded-lg transition-colors"
+                          title="Edit"
+                        >
+                          <Edit3 size={16} />
+                        </button>
+                        <button
+                          onClick={() => deleteCategory(cat)}
+                          className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Hapus"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

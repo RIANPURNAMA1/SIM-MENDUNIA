@@ -122,14 +122,6 @@ const navItems: NavItem[] = [
     href: "/",
   },
   {
-    label: "Website",
-    icon: "Globe",
-    children: [
-      { label: "Lihat Website", icon: "Globe", href: "/landing" },
-      { label: "Data Blog", icon: "Newspaper", href: "/data-blog" },
-    ],
-  },
-  {
     label: "Manage Kandidat",
     icon: "UserPlus",
     children: [
@@ -139,13 +131,6 @@ const navItems: NavItem[] = [
       { label: "Kelas Kandidat", icon: "GraduationCap", href: "/siswa" },
       { label: "Rekap Per Batch", icon: "Layers", href: "/rekap-per-batch" },
       { label: "Riwayat Pembayaran", icon: "CreditCard", href: "/pembayaran" },
-    ],
-  },
-  {
-    label: "Matching Job",
-    icon: "Search",
-    children: [
-      { label: "Kandidat MJ", icon: "UserPlus", href: "/kandidat-mj" },
     ],
   },
   {
@@ -182,6 +167,14 @@ const navItems: NavItem[] = [
       { label: "Evaluasi Instruktur", icon: "ClipboardCheck", href: "/evaluasi-instruktur" },
       { label: "LMS", icon: "BookOpen", href: "/lms" },
       { label: "Raport Siswa", icon: "Notebook", href: "/raport" },
+    ],
+  },
+
+  {
+    label: "Matching Job",
+    icon: "Search",
+    children: [
+      { label: "Kandidat MJ", icon: "UserPlus", href: "/kandidat-mj" },
     ],
   },
 
@@ -243,6 +236,14 @@ const navItems: NavItem[] = [
         href: "/kategori-pengeluaran",
       },
       { label: "Data Pengeluaran", icon: "Wallet", href: "/pengeluaran" },
+    ],
+  },
+  {
+    label: "Website",
+    icon: "Globe",
+    children: [
+      { label: "Lihat Website", icon: "Globe", href: "/landing" },
+      { label: "Data Blog", icon: "Newspaper", href: "/data-blog" },
     ],
   },
   {

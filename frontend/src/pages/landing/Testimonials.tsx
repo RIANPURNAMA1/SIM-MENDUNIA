@@ -1,5 +1,6 @@
 import { MessageCircle, Star } from "lucide-react";
 import Reveal from "../../components/Reveal";
+import ParallaxOrbs, { defaultOrbs } from "./ParallaxOrbs";
 
 const BRAND = "#0E6187";
 
@@ -97,8 +98,11 @@ function TestimonialCard({ t }: { t: (typeof testimonials)[number] }) {
 
 export default function Testimonials() {
   return (
-    <section id="testimoni" className="py-16 md:py-20 bg-slate-50 border-y border-slate-200">
-      <div className="max-w-6xl mx-auto px-4 md:px-6">
+    <section id="testimoni" className="relative overflow-hidden py-16 md:py-20 bg-slate-50 border-y border-slate-200">
+      <ParallaxOrbs
+        orbs={defaultOrbs.map((o) => ({ ...o, opacity: 0.55 }))}
+      />
+      <div className="relative max-w-6xl mx-auto px-4 md:px-6">
         <Reveal direction="up">
           <div className="max-w-2xl mx-auto text-center mb-12">
             <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: BRAND }}>
