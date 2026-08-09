@@ -46,6 +46,8 @@ import {
   CalendarRange,
   CalendarOff,
   MapPinOff,
+  Globe,
+  Newspaper,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -109,6 +111,8 @@ const iconMap: Record<string, LucideIcon> = {
   CalendarOff,
   MapPinOff,
   LogIn,
+  Globe,
+  Newspaper,
 };
 
 const navItems: NavItem[] = [
@@ -116,6 +120,14 @@ const navItems: NavItem[] = [
     label: "Dashboard",
     icon: "LayoutDashboard",
     href: "/",
+  },
+  {
+    label: "Website",
+    icon: "Globe",
+    children: [
+      { label: "Lihat Website", icon: "Globe", href: "/landing" },
+      { label: "Data Blog", icon: "Newspaper", href: "/data-blog" },
+    ],
   },
   {
     label: "Manage Kandidat",

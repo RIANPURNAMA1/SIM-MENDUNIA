@@ -81,7 +81,9 @@ import Verifikasi from './pages/Verifikasi'
 import SyaratKetentuan from './pages/SyaratKetentuan'
 import KebijakanPrivasi from './pages/KebijakanPrivasi'
 import CompanyLanding from './pages/CompanyLanding'
+import ProgramDetailPage from './pages/landing/ProgramDetailPage'
 import Blog from './pages/Blog'
+import BlogDetail from './pages/BlogDetail'
 import KaryawanDashboard from './pages/Karyawan/KaryawanDashboard'
 import RiwayatAbsensiKaryawan from './pages/Karyawan/RiwayatAbsensiKaryawan'
 import PengajuanIzin from './pages/Karyawan/PengajuanIzin'
@@ -97,6 +99,7 @@ import Raport from './pages/Akademik/Raport'
 import SiswaNilai from './pages/Siswa/SiswaNilai'
 import DataCourse from './pages/Akademik/DataCourse'
 import DataLesson from './pages/Akademik/DataLesson'
+import DataBlog from './pages/Akademik/DataBlog'
 import DashboardManagement from './pages/Dashboard/DashboardManagement'
 import GuruDashboard from './pages/Guru/GuruDashboard'
 import GuruDataSiswa from './pages/Guru/GuruDataSiswa'
@@ -207,7 +210,7 @@ function AppRoutes() {
       <Route path="/verifikasi" element={<Verifikasi />} />
       <Route path="/verifikasi/*" element={<Verifikasi />} />
       <Route path="/blog" element={<Blog />} />
-      <Route path="/blog/:id" element={<Blog />} />
+      <Route path="/blog/:slug" element={<BlogDetail />} />
 
       <Route
         path="/affiliate-dashboard"
@@ -751,10 +754,18 @@ function AppRoutes() {
               </DashboardLayout>
             </ProtectedRoute>
           ) : (
-            <CompanyLanding />
+            <Navigate to="/landing" replace />
           )
         }
       />
+
+      <Route
+        path="/landing"
+        element={
+          <CompanyLanding />
+        }
+      />
+      <Route path="/program/:slug" element={<ProgramDetailPage />} />
 
       <Route
         path="/*"
@@ -799,6 +810,7 @@ function AppRoutes() {
                 <Route path="/raport" element={<Raport />} />
                 <Route path="/lms" element={<DataCourse />} />
                 <Route path="/lms/:courseId/lessons" element={<DataLesson />} />
+                <Route path="/data-blog" element={<DataBlog />} />
                 <Route path="/ai-chat" element={<AiChat />} />
                 <Route path="/log-login" element={<LogLogin />} />
                 <Route path="/pengaturan" element={<Pengaturan />} />

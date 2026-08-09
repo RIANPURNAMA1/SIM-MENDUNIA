@@ -1,87 +1,80 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Clock, Tag, ChevronRight, Search } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { blogApi } from "../services/api";
 
-const posts = [
-  {
-    id: 1,
-    title: "8 Cara Efektif Belajar Bahasa Jepang untuk Pemula",
-    excerpt:
-      "Menguasai bahasa Jepang tidak harus sulit. Simak strategi belajar yang terbukti membantu ribuan peserta kami lulus JFT A2 Basic.",
-    category: "Bahasa Jepang",
-    date: "5 Agustus 2026",
-    readTime: "6 menit",
-    accent: "from-[#0069b0]/15 to-[#0069b0]/5",
-  },
-  {
-    id: 2,
-    title: "Tips Lolos EPS-TOPIK untuk Program Kerja ke Korea",
-    excerpt:
-      "EPS-TOPIK adalah gerbang menuju bekerja di Korea Selatan. Kenali struktur ujian dan cara mempersiapkan diri dengan benar.",
-    category: "Bahasa Korea",
-    date: "28 Juli 2026",
-    readTime: "8 menit",
-    accent: "from-[#0069b0]/15 to-[#0069b0]/5",
-  },
-  {
-    id: 3,
-    title: "Berapa Lama Proses Berangkat Kerja ke Luar Negeri?",
-    excerpt:
-      "Dari pendaftaran hingga tiket pesawat, pelajari alur lengkap proses penempatan kerja ke Jepang dan Korea Selatan.",
-    category: "Info Karir",
-    date: "19 Juli 2026",
-    readTime: "5 menit",
-    accent: "from-[#0069b0]/15 to-[#0069b0]/5",
-  },
-  {
-    id: 4,
-    title: "Dana Talangan Keberangkatan: Solusi Biaya Tanpa Ribet",
-    excerpt:
-      "Tidak punya biaya penuh untuk berangkat? Kami memiliki skema dana talangan berprinsip syariah untuk meringankan bebanmu.",
-    category: "Info Karir",
-    date: "10 Juli 2026",
-    readTime: "4 menit",
-    accent: "from-[#0069b0]/15 to-[#0069b0]/5",
-  },
-  {
-    id: 5,
-    title: "Perbedaan JFT dan JLPT: Mana yang Tepat Untukmu?",
-    excerpt:
-      "JFT Basic dan JLPT adalah dua ujian bahasa Jepang yang sering tertukar. Pahami perbedaannya sebelum mendaftar.",
-    category: "Bahasa Jepang",
-    date: "2 Juli 2026",
-    readTime: "7 menit",
-    accent: "from-[#0069b0]/15 to-[#0069b0]/5",
-  },
-  {
-    id: 6,
-    title: "Hidup di Jepang: Persiapan Budaya Sebelum Berangkat",
-    excerpt:
-      "Selain bahasa, budaya kerja Jepang perlu dipelajari. Berikut hal-hal penting yang wajib kamu tahu sebelum terbang.",
-    category: "Tips",
-    date: "24 Juni 2026",
-    readTime: "6 menit",
-    accent: "from-[#0069b0]/15 to-[#0069b0]/5",
-  },
-];
-
-const categories = ["Semua", "Bahasa Jepang", "Bahasa Korea", "Info Karir", "Tips"];
+interface BlogPost {
+  id: number;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  content: string | null;
+  category: string | null;
+  image: string | null;
+  image_url: string | null;
+  read_time: number | null;
+  status: string;
+  date_formatted: string | null;
+}
 
 export default function Blog() {
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [categories, setCategories] = useState<string[]>(["Semua"]);
   const [activeCategory, setActiveCategory] = useState("Semua");
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const filtered = posts.filter((post) => {
-    const matchCategory = activeCategory === "Semua" || post.category === activeCategory;
-    const q = search.toLowerCase();
-    const matchSearch =
-      !q || post.title.toLowerCase().includes(q) || post.excerpt.toLowerCase().includes(q);
-    return matchCategory && matchSearch;
-  });
+  useEffect(() => {
+    setLoading(true);
+    blogApi
+      .list({ category: activeCategory, search })
+      .then((res) => {
+        setPosts(res.data.data || []);
+        setCategories(res.data.categories || ["Semua"]);
+      })
+      .catch(() => {
+        setPosts([]);
+      })
+      .finally(() => setLoading(false));
+  }, [activeCategory, search]);
 
   const featured = posts[0];
+
+  const Thumbnail = ({
+    post,
+    className,
+    iconSize = 20,
+  }: {
+    post: BlogPost;
+    className?: string;
+    iconSize?: number;
+  }) => {
+    if (post.image_url) {
+      return (
+        <div className={className}>
+          <img
+            src={post.image_url}
+            alt={post.title}
+            className="h-full w-full object-cover"
+          />
+        </div>
+      );
+    }
+    return (
+      <div
+        className={`${className} bg-gradient-to-br from-[#0069b0]/15 to-[#0069b0]/5 flex items-center justify-center`}
+      >
+        <div
+          className={`rounded-2xl bg-white/70 border border-slate-200 shadow-sm flex items-center justify-center`}
+          style={{ width: iconSize * 2, height: iconSize * 2 }}
+        >
+          <Clock size={iconSize} className="text-[#0069b0]" />
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="force-light min-h-screen bg-[#f5f7fa] text-slate-700">
@@ -136,22 +129,18 @@ export default function Blog() {
       </section>
 
       {/* Featured post */}
-      {filtered.length > 0 && activeCategory === "Semua" && !search && (
+      {!loading && featured && activeCategory === "Semua" && !search && (
         <section className="max-w-6xl mx-auto px-4 md:px-6 pt-10">
-          <Link to="/blog/1" className="group block rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm hover:shadow-lg transition-all duration-300">
+          <Link to={`/blog/${featured.slug}`} className="group block rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm hover:shadow-lg transition-all duration-300">
             <div className="grid md:grid-cols-2">
-              <div className={`min-h-[220px] md:min-h-full bg-gradient-to-br ${featured.accent} flex items-center justify-center`}>
-                <div className="w-20 h-20 rounded-2xl bg-white/70 border border-slate-200 shadow-sm flex items-center justify-center">
-                  <Clock size={32} className="text-[#0069b0]" />
-                </div>
-              </div>
+              <Thumbnail post={featured} className="min-h-[220px] md:min-h-full" iconSize={32} />
               <div className="p-6 md:p-8">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-semibold bg-[#0069b0]/10 text-[#0069b0]">
                     <Tag size={11} />
                     {featured.category}
                   </span>
-                  <span className="text-xs text-slate-400">{featured.date}</span>
+                  <span className="text-xs text-slate-400">{featured.date_formatted}</span>
                 </div>
                 <h2 className="text-xl md:text-2xl font-bold text-slate-900 mb-3 group-hover:text-[#0069b0] transition-colors">
                   {featured.title}
@@ -159,7 +148,7 @@ export default function Blog() {
                 <p className="text-sm text-slate-600 leading-relaxed mb-5">{featured.excerpt}</p>
                 <div className="flex items-center justify-between">
                   <span className="inline-flex items-center gap-1.5 text-xs text-slate-400">
-                    <Clock size={13} /> {featured.readTime} baca
+                    <Clock size={13} /> {featured.read_time} menit baca
                   </span>
                   <span className="inline-flex items-center gap-1 text-sm font-semibold text-[#0069b0]">
                     Baca Selengkapnya <ChevronRight size={15} className="transition-transform group-hover:translate-x-0.5" />
@@ -173,7 +162,20 @@ export default function Blog() {
 
       {/* Posts grid */}
       <section className="max-w-6xl mx-auto px-4 md:px-6 py-10 md:py-14">
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+                <div className="h-36 animate-pulse bg-slate-200" />
+                <div className="p-5 space-y-3">
+                  <div className="h-3 w-20 animate-pulse rounded bg-slate-200" />
+                  <div className="h-4 w-full animate-pulse rounded bg-slate-200" />
+                  <div className="h-4 w-2/3 animate-pulse rounded bg-slate-200" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : posts.length === 0 ? (
           <div className="py-16 text-center">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400 mb-4">
               <Search size={24} />
@@ -183,23 +185,19 @@ export default function Blog() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filtered.map((post) => (
+            {posts.map((post) => (
               <Link
                 key={post.id}
-                to={`/blog/${post.id}`}
+                to={`/blog/${post.slug}`}
                 className="group flex flex-col rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
               >
-                <div className={`h-36 bg-gradient-to-br ${post.accent} flex items-center justify-center`}>
-                  <div className="w-12 h-12 rounded-xl bg-white/70 border border-slate-200 shadow-sm flex items-center justify-center">
-                    <Clock size={20} className="text-[#0069b0]" />
-                  </div>
-                </div>
+                <Thumbnail post={post} className="h-36" iconSize={20} />
                 <div className="flex flex-col flex-1 p-5">
                   <div className="flex items-center gap-2 mb-2.5">
                     <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold bg-[#0069b0]/10 text-[#0069b0]">
                       {post.category}
                     </span>
-                    <span className="text-[11px] text-slate-400">{post.date}</span>
+                    <span className="text-[11px] text-slate-400">{post.date_formatted}</span>
                   </div>
                   <h3 className="text-sm font-bold text-slate-900 leading-snug mb-2 group-hover:text-[#0069b0] transition-colors line-clamp-2">
                     {post.title}
@@ -209,7 +207,7 @@ export default function Blog() {
                   </p>
                   <div className="flex items-center justify-between pt-3 border-t border-slate-100">
                     <span className="inline-flex items-center gap-1 text-[11px] text-slate-400">
-                      <Clock size={12} /> {post.readTime}
+                      <Clock size={12} /> {post.read_time} menit
                     </span>
                     <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-[#0069b0]">
                       Baca <ChevronRight size={13} className="transition-transform group-hover:translate-x-0.5" />
