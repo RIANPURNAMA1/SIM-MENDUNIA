@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { companyProfileApi } from "../services/api";
+import Seo, { SITE_URL } from "../components/Seo";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import HeroSection from "./landing/Hero";
@@ -55,6 +56,24 @@ export default function CompanyLanding() {
 
   return (
     <div className="force-light min-h-screen bg-white text-slate-700">
+      <Seo
+        title="Lembaga Pelatihan & Penempatan Kerja Jepang & Korea"
+        description="Mendunia membantu calon pekerja sukses kerja ke Jepang dan Korea Selatan melalui pelatihan bahasa, budaya, dan persiapan kerja yang profesional."
+        keywords="LPK Jepang Korea, pelatihan bahasa Jepang, program kerja Jepang Korea, EPS-TOPIK, JFT A2, LPK Mendunia, penempatan kerja luar negeri"
+        canonical={`${SITE_URL}/landing`}
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "EducationalOrganization",
+          name: "Mendunia",
+          legalName: "PT Indonesia Sukses Mendunia",
+          url: SITE_URL,
+          logo: `${SITE_URL}/logo-sm.png`,
+          email: profile.email || DEFAULT_PROFILE.email,
+          telephone: profile.phone || DEFAULT_PROFILE.phone,
+          address: { "@type": "PostalAddress", streetAddress: "Bumi Marhamah Blok C1", addressLocality: "Cianjur", addressRegion: "Jawa Barat", addressCountry: "ID" },
+          description: "Lembaga pelatihan bahasa untuk program kerja ke Jepang dan Korea Selatan.",
+        }}
+      />
       <Navbar />
 
       <HeroSection waNumber={waNumber} />

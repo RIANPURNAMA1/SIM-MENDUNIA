@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from "react";
 import { ChevronRight, Phone, Users, Award, Globe } from "lucide-react";
 import VisitorCounter from "./VisitorCounter";
+import Earth from "@/components/ui/globe";
 
 const BRAND = "#0069b0";
 
@@ -24,6 +25,8 @@ const txt = {
 export default function HeroSection({ waNumber }: { waNumber: string }) {
   const [offsetY, setOffsetY] = useState(0);
   const [mounted, setMounted] = useState(false);
+  const [shine, setShine] = useState(0);
+  const [shineProgram, setShineProgram] = useState(0);
   const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -90,8 +93,10 @@ export default function HeroSection({ waNumber }: { waNumber: string }) {
             >
               <a
                 href="#program"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-white text-blue-900 hover:bg-blue-50 font-bold text-sm rounded-sm active:scale-95 transition-all"
+                onMouseEnter={() => setShineProgram((s) => s + 1)}
+                className="btn-shine inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-white hover:bg-blue-50 text-blue-900 font-bold text-sm rounded-sm active:scale-95 transition-all"
               >
+                {shineProgram > 0 && <span key={shineProgram} className="btn-shine-streak btn-shine-streak-dark" />}
                 {txt.btnProgram}
                 <ChevronRight className="w-4 h-4" />
               </a>
@@ -99,8 +104,10 @@ export default function HeroSection({ waNumber }: { waNumber: string }) {
                 href={`https://wa.me/${waNumber}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-[#f9b700] hover:bg-[#e0a500] text-black font-bold text-sm rounded-sm active:scale-95 transition-all"
+                onMouseEnter={() => setShine((s) => s + 1)}
+                className="btn-shine inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-[#f9b700] hover:bg-[#fbbf0b] text-black font-bold text-sm rounded-sm active:scale-95 transition-all shadow-[0_4px_18px_rgba(249,183,0,0.35)] hover:shadow-[0_6px_26px_rgba(249,183,0,0.55)]"
               >
+                {shine > 0 && <span key={shine} className="btn-shine-streak" />}
                 <Phone className="w-4 h-4" />
                 {txt.btnKonsultasi}
               </a>
@@ -139,28 +146,23 @@ export default function HeroSection({ waNumber }: { waNumber: string }) {
             }`}
             style={{ transform: `translateY(${offsetY * -0.1}px)` }}
           >
-            <div className="relative w-72 h-72 sm:w-80 sm:h-80 md:w-96 md:h-96 lg:w-[28rem] lg:h-[28rem]">
+            <div className="relative w-80 h-80 sm:w-96 sm:h-96 md:w-[28rem] md:h-[28rem] lg:w-[34rem] lg:h-[34rem]">
 
-              {/* Globe */}
+{/* Globe */}
               <div className="w-full h-full rounded-full bg-gradient-to-br from-blue-800 via-blue-900 to-blue-950 flex items-center justify-center overflow-hidden shadow-2xl shadow-blue-900/50 relative">
 
-                {/* Grid lines */}
-                <svg width="100%" height="100%" viewBox="0 0 320 320" className="absolute inset-0 z-0 animate-globe-spin">
-                  <ellipse cx="160" cy="160" rx="60" ry="155" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1"/>
-                  <ellipse cx="160" cy="160" rx="120" ry="155" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1"/>
-                  <line x1="5" y1="110" x2="315" y2="110" stroke="rgba(255,255,255,0.05)" strokeWidth="1"/>
-                  <line x1="5" y1="160" x2="315" y2="160" stroke="rgba(255,255,255,0.08)" strokeWidth="1"/>
-                  <line x1="5" y1="210" x2="315" y2="210" stroke="rgba(255,255,255,0.05)" strokeWidth="1"/>
-                  <path d="M60 145 Q120 120 180 135 Q230 150 270 135" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" strokeDasharray="4,4"/>
-                  <path d="M80 180 Q140 158 200 168 Q240 175 280 160" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1" strokeDasharray="4,4"/>
-                </svg>
+                <Earth className="absolute inset-0 h-full w-full" />
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ background: "radial-gradient(circle at 50% 30%, transparent 55%, rgba(1,10,30,0.45) 96%)" }}
+                />
 
                 {/* Person photo (front) */}
                 <div className="absolute inset-0 flex items-end justify-center z-[3]">
                   <div className="w-full h-full">
                     <img
                       src="models.png"
-                      alt=""
+                      alt="Calon pekerja Mendunia berdiri di depan globe dunia untuk kerja di Jepang dan Korea Selatan"
                       width={400}
                       height={450}
                       loading="eager"
