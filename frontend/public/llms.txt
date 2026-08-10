@@ -1,7 +1,18 @@
-# SIM Mendunia
-> Sistem Informasi Manajemen terpadu untuk program pendidikan Mendunia.
+# Mendunia
+
+Mendunia.id — Lembaga Pelatihan Kerja (LPK) untuk program kerja ke Jepang dan Korea Selatan. Bekerja sama dengan PT Indonesia Sukses Mendunia.
 
 ## Docs
-- SIM Mendunia adalah aplikasi web manajemen pendidikan yang mencakup manajemen kandidat, keuangan, absensi, akademik, dan HR.
-- URL utama: https://sim.mendunia.id/
+- URL utama: https://sim.mendunia.id/landing
 - Teknologi: React + TypeScript (frontend), Laravel (backend)
+- Lokasi: Perumahan Bumi Marhamah Blok C1, Desa Sindangasih, Karang Tengah, Cianjur, Jawa Barat
+- Kontak: WhatsApp 0895 3916 85825, email admin@mendunia.id
+
+## Halaman
+- Beranda: https://sim.mendunia.id/landing
+- Program: https://sim.mendunia.id/program
+- Tentang Kami: https://sim.mendunia.id/tentang
+- Blog: https://sim.mendunia.id/blog
+- Testimoni: https://sim.mendunia.id/testimoni
+- FAQ: https://sim.mendunia.id/faq
+- Kontak: https://sim.mendunia.id/kontak

@@ -6,6 +6,7 @@ import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import Reveal from "../../components/Reveal";
 import WhatsAppButton from "./WhatsAppButton";
+import Seo, { SITE_URL } from "../../components/Seo";
 
 interface Profile {
   company_name: string;
@@ -101,6 +102,12 @@ export default function FaqPage() {
 
   return (
     <div className="force-light min-h-screen bg-white text-slate-700">
+      <Seo
+        title="FAQ — Pertanyaan Seputar Kerja Jepang & Korea"
+        description="Pertanyaan yang sering diajukan seputar program kerja Jepang dan Korea Selatan di Mendunia: dana talangan, durasi proses 10–12 bulan, garansi mengulang kelas, JFT A2 Basic, dan EPS-TOPIK."
+        keywords="FAQ Mendunia, pertanyaan LPK Jepang Korea, biaya kerja Jepang Korea, dana talangan keberangkatan, garansi lulus"
+        canonical={`${SITE_URL}/faq`}
+      />
       <Navbar />
 
       {/* ===== Hero ===== */}

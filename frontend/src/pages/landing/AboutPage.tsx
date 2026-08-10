@@ -18,6 +18,7 @@ import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import Reveal from "../../components/Reveal";
 import WhatsAppButton from "./WhatsAppButton";
+import Seo, { SITE_URL } from "../../components/Seo";
 
 interface Profile {
   company_name: string;
@@ -90,6 +91,28 @@ export default function AboutPage() {
 
   return (
     <div className="force-light min-h-screen bg-white text-slate-700">
+      <Seo
+        title="Tentang Kami — Mendunia.id"
+        description={`Kenali ${profile.pt_name} (Mendunia): lembaga pelatihan bahasa dan penempatan kerja ke Jepang dan Korea Selatan di Cianjur, Jawa Barat. Visi, misi, dan nilai-nilai kami.`}
+        keywords="tentang Mendunia, LPK Mendunia Cianjur, PT Indonesia Sukses Mendunia, profil lembaga pelatihan kerja Jepang Korea"
+        canonical={`${SITE_URL}/tentang`}
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "EducationalOrganization",
+          name: "Mendunia",
+          legalName: profile.pt_name,
+          url: SITE_URL,
+          telephone: profile.phone,
+          email: profile.email,
+          address: {
+            "@type": "PostalAddress",
+            streetAddress: "Perumahan Bumi Marhamah Blok C1, Desa Sindangasih, Karang Tengah",
+            addressLocality: "Cianjur",
+            addressRegion: "Jawa Barat",
+            addressCountry: "ID",
+          },
+        }}
+      />
       <Navbar />
 
       {/* ===== Hero ===== */}

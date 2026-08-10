@@ -39,6 +39,7 @@ interface KomisiTier {
 interface Batch {
   id: number
   nama_batch: string
+  warna?: string | null
 }
 
 interface BiayaKategori {
@@ -1025,11 +1026,23 @@ export default function DataProduct() {
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-1.5">Batch / Angkatan <span className="text-slate-400 font-normal">(opsional)</span></label>
-                      <select value={form.batch_id} onChange={e => setForm({ ...form, batch_id: e.target.value })}
-                        className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 outline-none transition focus:bg-white focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] appearance-none cursor-pointer">
-                        <option value="">Tanpa Batch</option>
-                        {batches.map(b => <option key={b.id} value={b.id}>{b.nama_batch}</option>)}
-                      </select>
+                      <div className="flex items-center gap-2">
+                        <select value={form.batch_id} onChange={e => setForm({ ...form, batch_id: e.target.value })}
+                          className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 outline-none transition focus:bg-white focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] appearance-none cursor-pointer">
+                          <option value="">Tanpa Batch</option>
+                          {batches.map(b => <option key={b.id} value={b.id}>{b.nama_batch}</option>)}
+                        </select>
+                        {(() => {
+                          const selected = batches.find(b => String(b.id) === form.batch_id)
+                          if (!selected) return null
+                          const warna = selected.warna || '#3b82f6'
+                          return (
+                            <span className="inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold text-white whitespace-nowrap shadow-sm" style={{ backgroundColor: warna }}>
+                              {selected.nama_batch}
+                            </span>
+                          )
+                        })()}
+                      </div>
                       <p className="text-[11px] text-slate-400 mt-1.5">Pilih batch agar pendaftar otomatis masuk batch ini</p>
                     </div>
 

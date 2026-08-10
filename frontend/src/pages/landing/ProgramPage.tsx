@@ -17,6 +17,7 @@ import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import Reveal from "../../components/Reveal";
 import WhatsAppButton from "./WhatsAppButton";
+import Seo, { SITE_URL } from "../../components/Seo";
 
 interface Profile {
   company_name: string;
@@ -54,6 +55,12 @@ export default function ProgramPage() {
 
   return (
     <div className="force-light min-h-screen bg-white text-slate-700">
+      <Seo
+        title="Program Kerja Jepang & Korea Selatan"
+        description="Program pelatihan bahasa dan penempatan kerja Mendunia: persiapan JFT A2 Basic untuk Jepang dan EPS-TOPIK untuk Korea Selatan, dengan kelas online, offline, bisnis, dan spesial."
+        keywords="program kerja Jepang, program kerja Korea Selatan, JFT A2 Basic, EPS-TOPIK, LPK Mendunia, kelas bahasa Jepang, kelas bahasa Korea"
+        canonical={`${SITE_URL}/program`}
+      />
       <Navbar />
 
       {/* ===== Hero ===== */}

@@ -4,6 +4,7 @@ import { Clock, Tag, ChevronRight, ChevronLeft, Calendar, ArrowLeft, Eye } from 
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { blogApi } from "../services/api";
+import Seo, { SITE_URL } from "../components/Seo";
 
 interface BlogPost {
   id: number;
@@ -78,6 +79,33 @@ export default function BlogDetail() {
         </div>
       ) : (
         <>
+          {/* SEO */}
+          <Seo
+            title={post.title}
+            description={post.excerpt || `${post.title} — Informasi lengkap dari Mendunia.id`}
+            keywords={`${post.category || "artikel"}, Mendunia, kerja Jepang Korea, LPK Mendunia`}
+            canonical={`${SITE_URL}/blog/${post.slug}`}
+            image={post.image_url || `https://sim.mendunia.id/logo1.png`}
+            type="article"
+            jsonLd={{
+              "@context": "https://schema.org",
+              "@type": "Article",
+              headline: post.title,
+              description: post.excerpt,
+              image: post.image_url,
+              datePublished: post.date_formatted,
+              author: {
+                "@type": "Organization",
+                name: "Mendunia",
+              },
+              publisher: {
+                "@type": "Organization",
+                name: "Mendunia",
+                logo: { "@type": "ImageObject", url: "https://sim.mendunia.id/logo1.png" },
+              },
+              mainEntityOfPage: `${SITE_URL}/blog/${post.slug}`,
+            }}
+          />
           {/* Hero */}
           <section className="bg-gradient-to-br from-[#0069b0] to-[#00508a] text-white">
             <div className="max-w-4xl mx-auto px-4 md:px-6 py-12 md:py-16">

@@ -6,6 +6,7 @@ import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import Reveal from "../../components/Reveal";
 import WhatsAppButton from "./WhatsAppButton";
+import Seo, { SITE_URL } from "../../components/Seo";
 
 interface Profile {
   company_name: string;
@@ -144,6 +145,12 @@ export default function TestimoniPage() {
 
   return (
     <div className="force-light min-h-screen bg-slate-50 text-slate-700">
+      <Seo
+        title="Testimoni Alumni Kerja Jepang & Korea"
+        description="Cerita sukses alumni Mendunia yang telah bekerja di Jepang dan Korea Selatan. Berasal dari Cianjur, Bogor, Bandung, Depok, dan sekitarnya."
+        keywords="testimoni alumni Mendunia, sukses kerja Jepang, sukses kerja Korea, alumni LPK Mendunia"
+        canonical={`${SITE_URL}/testimoni`}
+      />
       <Navbar />
 
       {/* ===== Hero ===== */}
