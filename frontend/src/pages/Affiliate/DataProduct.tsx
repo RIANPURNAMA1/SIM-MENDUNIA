@@ -1030,15 +1030,21 @@ export default function DataProduct() {
                         <select value={form.batch_id} onChange={e => setForm({ ...form, batch_id: e.target.value })}
                           className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 outline-none transition focus:bg-white focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] appearance-none cursor-pointer">
                           <option value="">Tanpa Batch</option>
-                          {batches.map(b => <option key={b.id} value={b.id}>{b.nama_batch}</option>)}
+                          {batches.map(b => (
+                            <option key={b.id} value={b.id}
+                              style={{ backgroundColor: b.warna || undefined }}>
+                              {b.nama_batch}
+                            </option>
+                          ))}
                         </select>
                         {(() => {
                           const selected = batches.find(b => String(b.id) === form.batch_id)
                           if (!selected) return null
                           const warna = selected.warna || '#3b82f6'
                           return (
-                            <span className="inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold text-white whitespace-nowrap shadow-sm" style={{ backgroundColor: warna }}>
-                              {selected.nama_batch}
+                            <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-1.5 border border-slate-200 bg-white whitespace-nowrap"
+                              style={{ borderColor: warna }}>
+                              <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: warna }} />
                             </span>
                           )
                         })()}
