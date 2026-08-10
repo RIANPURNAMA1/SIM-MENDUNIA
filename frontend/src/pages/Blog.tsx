@@ -89,7 +89,7 @@ export default function Blog() {
       <Navbar />
 
       {/* Hero */}
-      <section className="bg-gradient-to-br from-[#0069b0] to-[#00508a] text-white">
+      <section className="bg-[#0069b0] text-white">
         <div className="max-w-6xl mx-auto px-4 md:px-6 py-14 md:py-20 text-center">
           <p className="inline-flex items-center rounded-full px-4 py-1.5 bg-white/10 border border-white/20 text-xs font-semibold mb-4 backdrop-blur-sm">
             Wawasan & Tips dari Mendunia
