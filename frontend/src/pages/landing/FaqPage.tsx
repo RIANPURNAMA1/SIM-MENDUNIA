@@ -116,11 +116,10 @@ export default function FaqPage() {
           <img
             src="https://asset.kompas.com/crops/YHHRwSDTlCXRtGge51HzpC2ueR8=/0x0:632x421/1200x800/data/photo/2020/02/01/5e345e3395263.jpg"
             alt="Pertanyaan Seputar Program"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover object-top"
             loading="lazy"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#003d66]/95 via-[#00508a]/70 to-[#0069b0]/30" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20" />
+          <div className="absolute inset-0" style={{ backgroundColor: "rgba(0,105,176,0.65)" }} />
         </div>
         <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-20 md:py-32 lg:py-40">
           <Reveal direction="up">

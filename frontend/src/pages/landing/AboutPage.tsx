@@ -116,16 +116,15 @@ export default function AboutPage() {
       <Navbar />
 
       {/* ===== Hero ===== */}
-      <section className="relative text-white overflow-hidden">
+      <section className="relative text-white overflow-hidden bg-[#0069B0]">
         <div className="absolute inset-0">
-          <img
-            src="https://awsimages.detik.net.id/community/media/visual/2022/09/13/lanskap-gunung-fuji-yang-indahnya-engga-ada-obat-1_169.jpeg?w=600&q=90"
-            alt="Gunung Fuji"
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#003d66]/95 via-[#00508a]/70 to-[#0069b0]/30" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20" />
+        <img
+  src="https://awsimages.detik.net.id/community/media/visual/2022/09/13/lanskap-gunung-fuji-yang-indahnya-engga-ada-obat-1_169.jpeg?w=600&q=90"
+  alt="Gunung Fuji"
+  className="w-full h-full object-cover object-top"
+  loading="lazy"
+/>
+          <div className="absolute inset-0" style={{ backgroundColor: "rgba(0,105,176,0.65)" }} />
         </div>
         <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-20 md:py-32 lg:py-40">
           <Reveal direction="up">
