@@ -119,7 +119,7 @@ export default function FaqPage() {
             className="w-full h-full object-cover object-top"
             loading="lazy"
           />
-          <div className="absolute inset-0" style={{ backgroundColor: "rgba(0,105,176,0.65)" }} />
+          <div className="absolute inset-0" style={{ backgroundColor: "rgba(0, 106, 176, 0.94)" }}  />
         </div>
         <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-20 md:py-32 lg:py-40">
           <Reveal direction="up">
