@@ -2,10 +2,15 @@ import { useEffect } from "react";
 
 export const SITE_NAME = "Mendunia";
 export const SITE_URL = "https://sim.mendunia.id";
-export const DEFAULT_TITLE = "Mendunia — Pelatihan & Penempatan Kerja Jepang & Korea Selatan";
+export const DEFAULT_TITLE = "Mendunia — LPK Pelatihan & Penempatan Kerja Jepang dan Korea Selatan";
 
 const DEFAULT_DESC =
-  "Lembaga pelatihan bahasa dan penempatan kerja ke Jepang dan Korea Selatan. Program persiapan JFT A2 Basic, EPS-TOPIK, dan pendampingan sampai berangkat kerja.";
+  "Mendunia.id — Lembaga Pelatihan Kerja (LPK) terpercaya untuk program kerja ke Jepang dan Korea Selatan. Pelatihan bahasa & budaya (JFT A2 Basic, EPS-TOPIK), pendampingan sampai berangkat kerja.";
+
+const DEFAULT_KEYWORDS =
+  "Mendunia, Mendunia.id, LPK Mendunia, LPK Jepang Korea, pelatihan bahasa Jepang, program kerja Jepang Korea, EPS-TOPIK, JFT A2, penempatan kerja luar negeri";
+
+export const DEFAULT_IMG = `${SITE_URL}/logo1.png`;
 
 type JsonLdValue = Record<string, unknown> | Record<string, unknown>[];
 
@@ -40,12 +45,17 @@ function setJsonLd(data: JsonLdValue) {
   el.textContent = JSON.stringify(data);
 }
 
+function clearJsonLd() {
+  const el = document.getElementById("seo-jsonld");
+  if (el) el.remove();
+}
+
 export default function Seo({
   title,
   description = DEFAULT_DESC,
-  keywords,
+  keywords = DEFAULT_KEYWORDS,
   canonical,
-  image,
+  image = DEFAULT_IMG,
   type = "website",
   jsonLd,
 }: SeoProps) {
@@ -54,7 +64,7 @@ export default function Seo({
     document.title = pageTitle;
 
     setMeta("name", "description", description);
-    if (keywords) setMeta("name", "keywords", keywords);
+    setMeta("name", "keywords", keywords);
     if (canonical) {
       let link = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
       if (!link) {
@@ -64,21 +74,28 @@ export default function Seo({
       }
       link.setAttribute("href", canonical);
     }
-    const ogImage = image || `${SITE_URL}/logo-sm.png`;
 
     setMeta("property", "og:title", pageTitle);
-    setMeta("property", "og:description", description || DEFAULT_DESC);
+    setMeta("property", "og:description", description);
     setMeta("property", "og:type", type);
-    setMeta("property", "og:url", canonical || SITE_URL);
-    setMeta("property", "og:image", ogImage);
+    setMeta("property", "og:url", canonical || `${SITE_URL}/landing`);
+    setMeta("property", "og:image", image);
+    setMeta("property", "og:image:alt", "Mendunia — LPK Pelatihan dan Penempatan Kerja Jepang dan Korea Selatan");
+    setMeta("property", "og:site_name", SITE_NAME);
+    setMeta("property", "og:locale", "id_ID");
     setMeta("name", "twitter:card", "summary_large_image");
     setMeta("name", "twitter:title", pageTitle);
-    setMeta("name", "twitter:description", description || DEFAULT_DESC);
-    setMeta("name", "twitter:image", ogImage);
+    setMeta("name", "twitter:description", description);
+    setMeta("name", "twitter:image", image);
+    setMeta("name", "twitter:image:alt", "Mendunia — LPK Pelatihan dan Penempatan Kerja Jepang dan Korea Selatan");
 
     document.documentElement.lang = "id";
 
-    if (jsonLd) setJsonLd(jsonLd);
+    if (jsonLd) {
+      setJsonLd(jsonLd);
+    } else {
+      clearJsonLd();
+    }
   }, [title, description, keywords, canonical, image, type, jsonLd]);
 
   return null;

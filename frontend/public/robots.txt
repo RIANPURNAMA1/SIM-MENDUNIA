@@ -1,3 +1,21 @@
 User-agent: *
 Allow: /
+
+# Lindungi area privat (dashboard, admin, pembayaran)
+Disallow: /affiliate-dashboard
+Disallow: /affiliate-profile
+Disallow: /siswa-dashboard
+Disallow: /guru-dashboard
+Disallow: /guru-data-siswa
+Disallow: /guru-profil
+Disallow: /guru-lms
+Disallow: /dashboard-karyawan
+Disallow: /admin-cabang
+Disallow: /dashboard-*
+Disallow: /karyawan
+Disallow: /divisi
+Disallow: /bayar
+Disallow: /verifikasi
+Disallow: /konfirmasi-pembayaran
+
 Sitemap: https://sim.mendunia.id/sitemap.xml

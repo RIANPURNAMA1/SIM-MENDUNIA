@@ -6,6 +6,7 @@ import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import Reveal from "../../components/Reveal";
 import WhatsAppButton from "./WhatsAppButton";
+import Seo, { SITE_URL } from "../../components/Seo";
 
 interface Profile {
   company_name: string;
@@ -62,6 +63,31 @@ export default function ContactPage() {
 
   return (
     <div className="force-light min-h-screen bg-white text-slate-700">
+      <Seo
+        title="Kontak — Hubungi Mendunia.id"
+        description={`Hubungi Mendunia.id (${profile.pt_name}) di ${profile.address}. Konsultasi gratis via WhatsApp ${profile.phone}. Lembaga pelatihan kerja Jepang dan Korea Selatan.`}
+        keywords="kontak Mendunia, alamat LPK Mendunia, WhatsApp Mendunia, lokasi Mendunia Cianjur"
+        canonical={`${SITE_URL}/kontak`}
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "ContactPage",
+          name: "Kontak Mendunia",
+          url: `${SITE_URL}/kontak`,
+          mainEntity: {
+            "@type": "LocalBusiness",
+            name: profile.pt_name,
+            telephone: profile.phone,
+            email: profile.email,
+            address: {
+              "@type": "PostalAddress",
+              streetAddress: "Perumahan Bumi Marhamah Blok C1, Desa Sindangasih, Karang Tengah",
+              addressLocality: "Cianjur",
+              addressRegion: "Jawa Barat",
+              addressCountry: "ID",
+            },
+          },
+        }}
+      />
       <Navbar />
 
       {/* ===== Hero ===== */}

@@ -28,6 +28,7 @@ import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import WhatsAppButton from "./WhatsAppButton";
 import Reveal from "../../components/Reveal";
+import Seo, { SITE_URL } from "../../components/Seo";
 
 const BRAND = "#0E6187";
 const BRAND_DARK = "#0a4a68";
@@ -76,6 +77,13 @@ export default function ProgramDetailPage() {
 
   return (
     <div className="force-light min-h-screen bg-white text-slate-700">
+      <Seo
+        title={`Program ${program.title} — Mendunia.id`}
+        description={`Program ${program.title} di Mendunia.id untuk ${program.country}. ${program.tagline}`}
+        keywords="program kerja luar negeri, pelatihan bahasa Jepang, pelatihan bahasa Korea, program Mendunia"
+        canonical={`${SITE_URL}/program/${program.slug}`}
+        type="article"
+      />
       <Navbar />
 
       {/* Hero */}

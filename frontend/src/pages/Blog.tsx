@@ -4,6 +4,7 @@ import { Clock, Tag, ChevronRight, Search } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { blogApi } from "../services/api";
+import Seo, { SITE_URL } from "../components/Seo";
 
 interface BlogPost {
   id: number;
@@ -78,6 +79,12 @@ export default function Blog() {
 
   return (
     <div className="force-light min-h-screen bg-[#f5f7fa] text-slate-700">
+      <Seo
+        title="Blog — Tips Kerja Jepang & Korea Selatan"
+        description="Artikel dan tips dari Mendunia tentang bahasa Jepang, bahasa Korea, persiapan JFT A2 Basic, EPS-TOPIK, dan informasi bekerja di Jepang & Korea Selatan."
+        keywords="blog kerja Jepang, belajar bahasa Jepang pemula, EPS-TOPIK, tips kerja Korea, artikel Mendunia"
+        canonical={`${SITE_URL}/blog`}
+      />
       {/* Navbar */}
       <Navbar />
 
