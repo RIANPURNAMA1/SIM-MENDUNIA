@@ -359,7 +359,7 @@ export default function SiswaDashboard() {
 
   const quickActions = [
     { label: 'Dashboard', to: '/siswa-dashboard', icon: LayoutDashboard, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
-    { label: 'Data Diri', to: '/siswa-dashboard/matching-job', icon: ClipboardList, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
+    { label: 'Data Diri', to: '/siswa-dashboard/data-diri', icon: ClipboardList, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
     { label: 'Bayar', to: '/siswa-dashboard/pembayaran', icon: Wallet, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
     { label: 'Absensi', to: '/siswa-dashboard/absensi', icon: CalendarCheck, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
     { label: 'LMS', to: '/siswa-dashboard/lms', icon: BookOpen, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
@@ -477,11 +477,11 @@ export default function SiswaDashboard() {
                 Lengkapi data diri dan upload dokumen Anda untuk melanjutkan proses pendaftaran.
               </p>
             </div>
-            <Link
-              to="/siswa-dashboard/matching-job"
-              className="shrink-0 rounded-lg bg-amber-600 px-3.5 py-2 text-xs font-bold text-white transition-all hover:bg-amber-700 active:scale-95 shadow-sm">
-              Lengkapi
-            </Link>
+<Link
+          to="/siswa-dashboard/data-diri"
+          className="shrink-0 rounded-lg bg-amber-600 px-3.5 py-2 text-xs font-bold text-white transition-all hover:bg-amber-700 active:scale-95 shadow-sm">
+          Lengkapi
+        </Link>
           </div>
         )}
 
@@ -514,11 +514,11 @@ export default function SiswaDashboard() {
         {/* ============ Status Overview ============ */}
         <section className="rounded-xl bg-white p-4 shadow-sm animate-fade-up delay-250">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-slate-800">Status Pendaftaran</h2>
+            <h2 className="text-sm font-bold text-slate-800">Matching Job</h2>
             <Link
               to="/siswa-dashboard/matching-job"
               className="flex items-center gap-0.5 text-[11px] font-semibold text-[#0E6187] hover:underline">
-              Lengkapi <ChevronRight size={12} />
+              Lihat Progress <ChevronRight size={12} />
             </Link>
           </div>
           {pendaftar ? (

@@ -146,6 +146,15 @@ export default function Footer({ phone = "0895 3916 85825" }: FooterProps) {
             <p className="text-xs text-slate-600">PT Indonesia Sukses Mendunia</p>
           </div>
 
+          <div className="pt-4 flex flex-col sm:flex-row items-start sm:items-center gap-2">
+            <p className="text-[11px] text-slate-500">
+              Dengan mengunjungi situs ini, Anda menyetujui{" "}
+              <a href="/kebijakan-privasi" className="text-slate-400 hover:text-white underline underline-offset-2 transition-colors">Kebijakan Privasi</a>{" "}
+              &amp;{" "}
+              <a href="/syarat-ketentuan" className="text-slate-400 hover:text-white underline underline-offset-2 transition-colors">Syarat &amp; Ketentuan</a>
+            </p>
+          </div>
+
           <div className="flex justify-start pt-6">
             <VisitorCounter />
           </div>
