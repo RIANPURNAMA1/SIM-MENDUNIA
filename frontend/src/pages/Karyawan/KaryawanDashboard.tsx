@@ -11,10 +11,6 @@ import { Html5Qrcode } from 'html5-qrcode'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
 import ThemeToggle from '../../components/ThemeToggle'
 
-declare global {
-  interface Window { FaceDetector?: any }
-}
-
 const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des']
 
@@ -101,16 +97,8 @@ export default function KaryawanDashboard() {
   const [cameraMode, setCameraMode] = useState<'masuk' | 'pulang'>('masuk')
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const overlayCanvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
-  const faceDetectorRef = useRef<any>(null)
-  const detectionFrameRef = useRef<number>(0)
-  const [faceDetected, setFaceDetected] = useState(false)
-  const [countdown, setCountdown] = useState<number | null>(null)
   const [processing, setProcessing] = useState(false)
-  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const countdownValueRef = useRef(3)
-  const captureTriggeredRef = useRef(false)
   const submittingRef = useRef(false)
 
   const [showQrScanner, setShowQrScanner] = useState(false)
@@ -169,14 +157,6 @@ export default function KaryawanDashboard() {
   // --- Camera ---
   const startCamera = useCallback(async (mode: 'masuk' | 'pulang') => {
     setCameraMode(mode)
-    setFaceDetected(false)
-    setCountdown(null)
-    countdownValueRef.current = 3
-    captureTriggeredRef.current = false
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current)
-      countdownIntervalRef.current = null
-    }
 
     // Minta izin GPS
     coordsRef.current = null
@@ -200,15 +180,6 @@ export default function KaryawanDashboard() {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } } })
       streamRef.current = stream
       if (videoRef.current) videoRef.current.srcObject = stream
-
-      // Init face detection
-      if ('FaceDetector' in window) {
-        faceDetectorRef.current = new window.FaceDetector({ fastMode: false, maxDetectedFaces: 1 })
-        videoRef.current?.addEventListener('loadeddata', () => detectFaces())
-      } else {
-        // Fallback: canvas pixel analysis
-        videoRef.current?.addEventListener('loadeddata', () => detectFacesFallback())
-      }
     } catch {
       setShowCamera(false)
       Swal.fire({ icon: 'error', title: 'Kamera Tidak Tersedia', text: 'Pastikan izin kamera diberikan' })
@@ -216,16 +187,6 @@ export default function KaryawanDashboard() {
   }, [])
 
   const stopCamera = useCallback(() => {
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current)
-      countdownIntervalRef.current = null
-    }
-    countdownValueRef.current = 3
-    setCountdown(null)
-    captureTriggeredRef.current = false
-    if (detectionFrameRef.current) cancelAnimationFrame(detectionFrameRef.current)
-    faceDetectorRef.current = null
-    setFaceDetected(false)
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(t => t.stop())
       streamRef.current = null
@@ -306,176 +267,6 @@ export default function KaryawanDashboard() {
     }
   }, [showQrScanner])
 
-  const detectFaces = useCallback(async () => {
-    if (!faceDetectorRef.current || !videoRef.current) return
-    try {
-      const faces = await faceDetectorRef.current.detect(videoRef.current)
-      const detected = faces.length > 0
-      setFaceDetected(detected)
-
-      // Draw overlay
-      if (overlayCanvasRef.current && videoRef.current) {
-        const canvas = overlayCanvasRef.current
-        const video = videoRef.current
-        canvas.width = video.videoWidth
-        canvas.height = video.videoHeight
-        const ctx = canvas.getContext('2d')
-        if (ctx) {
-          ctx.clearRect(0, 0, canvas.width, canvas.height)
-          for (const face of faces) {
-            const box = face.boundingBox
-            ctx.strokeStyle = '#4ADE80'
-            ctx.lineWidth = 3
-            ctx.strokeRect(box.x, box.y, box.width, box.height)
-            ctx.fillStyle = 'rgba(74, 222, 128, 0.1)'
-            ctx.fillRect(box.x, box.y, box.width, box.height)
-          }
-        }
-      }
-    } catch {}
-    detectionFrameRef.current = requestAnimationFrame(detectFaces)
-  }, [])
-
-  // Fallback: canvas pixel analysis when FaceDetector API not available
-  // Specifically detects FACE only (not body/hands) by checking:
-  // 1. Skin-tone region in upper-center of frame
-  // 2. Dark horizontal bands (eyes) in upper portion
-  // 3. Face-like aspect ratio (taller than wide)
-  // 4. Skin region not too large (body = too much skin)
-  const detectFacesFallback = useCallback(async () => {
-    const video = videoRef.current
-    if (!video || video.readyState < 2) {
-      detectionFrameRef.current = requestAnimationFrame(detectFacesFallback)
-      return
-    }
-    const tempCanvas = document.createElement('canvas')
-    const w = 320, h = 240
-    tempCanvas.width = w
-    tempCanvas.height = h
-    const ctx = tempCanvas.getContext('2d', { willReadFrequently: true })
-    if (!ctx) {
-      detectionFrameRef.current = requestAnimationFrame(detectFacesFallback)
-      return
-    }
-    ctx.drawImage(video, 0, 0, w, h)
-
-    // --- Step 1: Scan center-upper region for skin-tone ---
-    const scanX = Math.floor(w * 0.10), scanY = Math.floor(h * 0.02)
-    const scanW = Math.floor(w * 0.80), scanH = Math.floor(h * 0.80)
-    const imageData = ctx.getImageData(scanX, scanY, scanW, scanH)
-    const pixels = imageData.data
-
-    // Skin-tone mask: boolean per pixel
-    const skinMask: boolean[] = []
-    let skinCount = 0
-    for (let i = 0; i < pixels.length; i += 4) {
-      const r = pixels[i], g = pixels[i + 1], b = pixels[i + 2]
-      const isSkin = r > 95 && g > 40 && b > 20 && r > g && r > b && Math.abs(r - g) > 15 && r - b > 15
-      skinMask.push(isSkin)
-      if (isSkin) skinCount++
-    }
-    const totalPixels = skinMask.length
-    const skinRatio = skinCount / totalPixels
-
-    if (skinRatio < 0.05) {
-      setFaceDetected(false)
-      if (overlayCanvasRef.current) {
-        const oc = overlayCanvasRef.current; oc.width = video.videoWidth; oc.height = video.videoHeight
-        oc.getContext('2d')?.clearRect(0, 0, oc.width, oc.height)
-      }
-      detectionFrameRef.current = requestAnimationFrame(detectFacesFallback)
-      return
-    }
-
-    // --- Step 2: Find bounding box of skin region ---
-    let minRow = scanH, maxRow = 0, minCol = scanW, maxCol = 0
-    for (let row = 0; row < scanH; row++) {
-      for (let col = 0; col < scanW; col++) {
-        if (skinMask[row * scanW + col]) {
-          if (row < minRow) minRow = row
-          if (row > maxRow) maxRow = row
-          if (col < minCol) minCol = col
-          if (col > maxCol) maxCol = col
-        }
-      }
-    }
-    const bboxH = maxRow - minRow + 1
-    const bboxW = maxCol - minCol + 1
-    const bboxRatio = bboxH / bboxW // face: ~1.2–1.8 (taller than wide)
-
-    // Must be face-shaped: taller than wide, not too elongated
-    if (bboxRatio < 0.7 || bboxRatio > 4.0) {
-      setFaceDetected(false)
-      if (overlayCanvasRef.current) {
-        const oc = overlayCanvasRef.current; oc.width = video.videoWidth; oc.height = video.videoHeight
-        oc.getContext('2d')?.clearRect(0, 0, oc.width, oc.height)
-      }
-      detectionFrameRef.current = requestAnimationFrame(detectFacesFallback)
-      return
-    }
-
-    // --- Step 3: Skin fill ratio within bounding box (face = ~50-85%, body = >90%) ---
-    const bboxArea = bboxH * bboxW
-    const fillRatio = skinCount / bboxArea
-    if (fillRatio < 0.25 || fillRatio > 0.95) {
-      setFaceDetected(false)
-      if (overlayCanvasRef.current) {
-        const oc = overlayCanvasRef.current; oc.width = video.videoWidth; oc.height = video.videoHeight
-        oc.getContext('2d')?.clearRect(0, 0, oc.width, oc.height)
-      }
-      detectionFrameRef.current = requestAnimationFrame(detectFacesFallback)
-      return
-    }
-
-    // --- Step 4: Check for dark horizontal band (eyes) in upper 30-45% of bbox ---
-    const eyeStartRow = minRow + Math.floor(bboxH * 0.25)
-    const eyeEndRow = minRow + Math.floor(bboxH * 0.45)
-    let eyeDarkPixels = 0
-    let eyeTotalPixels = 0
-    for (let row = eyeStartRow; row <= eyeEndRow && row < scanH; row++) {
-      for (let col = minCol; col <= maxCol && col < scanW; col++) {
-        const idx = (row * scanW + col) * 4
-        const brightness = (pixels[idx] + pixels[idx + 1] + pixels[idx + 2]) / 3
-        eyeTotalPixels++
-        if (brightness < 100) eyeDarkPixels++ // dark pixel (eye area)
-      }
-    }
-    const eyeDarkRatio = eyeTotalPixels > 0 ? eyeDarkPixels / eyeTotalPixels : 0
-    // Eyes region should have some dark pixels (10-50% dark is face-like)
-    const hasEyes = eyeDarkRatio > 0.05 && eyeDarkRatio < 0.6
-
-    // --- Step 5: Check for lighter forehead (upper 25%) vs darker eye band ---
-    const foreheadEndRow = minRow + Math.floor(bboxH * 0.25)
-    let foreheadBrightness = 0
-    let foreheadCount = 0
-    for (let row = minRow; row <= foreheadEndRow && row < scanH; row++) {
-      for (let col = minCol; col <= maxCol && col < scanW; col++) {
-        if (skinMask[row * scanW + col]) {
-          const idx = (row * scanW + col) * 4
-          foreheadBrightness += (pixels[idx] + pixels[idx + 1] + pixels[idx + 2]) / 3
-          foreheadCount++
-        }
-      }
-    }
-    const avgForehead = foreheadCount > 0 ? foreheadBrightness / foreheadCount : 128
-    const hasForehead = avgForehead > 80 // forehead should be reasonably bright
-
-    // --- Final verdict: face detected if all checks pass ---
-    const detected = skinRatio > 0.05 && bboxRatio > 0.7 && bboxRatio < 4.0 && fillRatio > 0.25 && fillRatio < 0.95 && hasEyes && hasForehead
-    setFaceDetected(detected)
-
-    // Clear overlay
-    if (overlayCanvasRef.current) {
-      const oc = overlayCanvasRef.current
-      oc.width = video.videoWidth
-      oc.height = video.videoHeight
-      const octx = oc.getContext('2d')
-      if (octx) octx.clearRect(0, 0, oc.width, oc.height)
-    }
-
-    detectionFrameRef.current = requestAnimationFrame(detectFacesFallback)
-  }, [])
-
   const capturePhoto = useCallback(async () => {
     if (submittingRef.current) return
     if (!videoRef.current || !canvasRef.current) return
@@ -496,7 +287,6 @@ export default function KaryawanDashboard() {
     if (!blob) {
       submittingRef.current = false
       setProcessing(false)
-      captureTriggeredRef.current = false
       return
     }
       try {
@@ -541,37 +331,11 @@ export default function KaryawanDashboard() {
         const msg = e?.response?.data?.message || (e instanceof Error ? e.message : 'Gagal melakukan absensi')
         stopCamera()
         Swal.fire({ icon: 'error', title: 'Absensi Gagal', text: msg })
-        captureTriggeredRef.current = false
       } finally {
         submittingRef.current = false
         setProcessing(false)
       }
   }, [cameraMode, stopCamera, jadwal])
-
-  // Auto-capture: hitung mundur 3-2-1 saat wajah terdeteksi, lalu foto otomatis
-  useEffect(() => {
-    if (!showCamera || captureTriggeredRef.current) return
-    if (faceDetected) {
-      if (countdownIntervalRef.current) return
-      countdownValueRef.current = 3
-      setCountdown(3)
-      countdownIntervalRef.current = setInterval(() => {
-        countdownValueRef.current -= 1
-        setCountdown(countdownValueRef.current)
-        if (countdownValueRef.current <= 0) {
-          if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current)
-          countdownIntervalRef.current = null
-          captureTriggeredRef.current = true
-          setCountdown(null)
-          capturePhoto()
-        }
-      }, 1000)
-    } else {
-      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current)
-      countdownIntervalRef.current = null
-      setCountdown(null)
-    }
-  }, [faceDetected, showCamera, capturePhoto])
 
   const statusLabel = () => {
     if (absenStatus === 'pulang') return 'Selesai'
@@ -936,22 +700,11 @@ export default function KaryawanDashboard() {
       {showCamera && (
         <div className="fixed inset-0 z-50 bg-black flex flex-col">
           <video ref={videoRef} autoPlay playsInline muted className="flex-1 w-full h-full object-cover" style={{ transform: 'scaleX(-1)' }} />
-          <canvas ref={overlayCanvasRef} className="absolute inset-0 w-full h-full object-cover pointer-events-none z-[1]" style={{ transform: 'scaleX(-1)' }} />
 
-          {/* Dark overlay with transparent face guide hole */}
+          {/* Dark overlay with transparent photo guide */}
           <div className="absolute inset-0 z-[2] pointer-events-none">
-            <div className={`absolute left-1/2 top-[26%] -translate-x-1/2 -translate-y-1/2 w-[340px] h-[420px] rounded-[50%] border-[3px] transition-all duration-300 ${
-              faceDetected
-                ? 'border-[#4ADE80] shadow-[0_0_20px_rgba(74,222,128,0.5)]'
-                : 'border-white/60'
-            }`}>
-              {countdown !== null && countdown > 0 && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-28 h-28 rounded-full bg-black/70 border-4 border-[#4ADE80] flex items-center justify-center shadow-[0_0_30px_rgba(74,222,128,0.7)]">
-                    <span className="text-6xl font-black text-[#4ADE80] tabular-nums drop-shadow">{countdown}</span>
-                  </div>
-                </div>
-              )}
+            <div className="absolute left-1/2 top-[26%] -translate-x-1/2 -translate-y-1/2 w-[340px] h-[420px] rounded-[50%] border-[3px] border-white/60 shadow-[0_0_24px_rgba(0,0,0,0.45)]">
+              <div className="absolute inset-0 rounded-[50%] bg-white/[0.04]" />
             </div>
           </div>
 
@@ -964,26 +717,26 @@ export default function KaryawanDashboard() {
             Absen {cameraMode === 'masuk' ? 'Masuk' : 'Pulang'}
           </p>
 
-          {/* Face Detection Status */}
-          <div className="absolute top-5 right-5 z-10">
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${faceDetected ? 'bg-green-500/80' : 'bg-black/50'}`}>
-              <Camera size={14} className="text-white" />
-              <span className="text-xs font-bold text-white">{faceDetected ? 'Wajah Terdeteksi' : 'Posisikan Wajah'}</span>
-            </div>
-          </div>
-
-          {/* Instruction below face guide */}
+          {/* Instruction */}
           <div className="absolute z-10 left-1/2 -translate-x-1/2 text-center" style={{ top: 'calc(26% + 215px)' }}>
-            <p className={`text-xs font-semibold drop-shadow-lg transition-colors ${
-              countdown !== null && countdown > 0 ? 'text-[#4ADE80]' : faceDetected ? 'text-[#4ADE80]' : 'text-white/70'
-            }`}>
-              {countdown !== null && countdown > 0
-                ? `Foto otomatis dalam ${countdown}...`
-                : faceDetected ? 'Wajah terdeteksi — Siap absen!' : 'Posisikan wajah Anda di dalam lingkaran'}
+            <p className="text-xs font-semibold drop-shadow-lg text-white/70">
+              Posisikan wajah Anda di dalam lingkaran
             </p>
           </div>
 
           <canvas ref={canvasRef} className="hidden" />
+
+          {/* Capture button */}
+          <button
+            onClick={capturePhoto}
+            disabled={processing}
+            className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 disabled:opacity-50"
+          >
+            <span className="relative flex h-16 w-16 items-center justify-center rounded-full border-4 border-white bg-white/20 backdrop-blur-sm transition-transform active:scale-90">
+              <span className="h-12 w-12 rounded-full bg-white" />
+            </span>
+            <span className="text-[11px] font-bold text-white/80">Ambil Foto</span>
+          </button>
 
           {/* Loading animasi saat proses ambil foto & kirim absensi */}
           {processing && (
