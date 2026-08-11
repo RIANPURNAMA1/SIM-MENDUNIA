@@ -701,13 +701,6 @@ export default function KaryawanDashboard() {
         <div className="fixed inset-0 z-50 bg-black flex flex-col">
           <video ref={videoRef} autoPlay playsInline muted className="flex-1 w-full h-full object-cover" style={{ transform: 'scaleX(-1)' }} />
 
-          {/* Dark overlay with transparent photo guide */}
-          <div className="absolute inset-0 z-[2] pointer-events-none">
-            <div className="absolute left-1/2 top-[26%] -translate-x-1/2 -translate-y-1/2 w-[340px] h-[420px] rounded-[50%] border-[3px] border-white/60 shadow-[0_0_24px_rgba(0,0,0,0.45)]">
-              <div className="absolute inset-0 rounded-[50%] bg-white/[0.04]" />
-            </div>
-          </div>
-
           {/* Close button */}
           <button onClick={stopCamera} className="absolute top-5 left-5 w-9 h-9 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10">
             <X size={20} />
@@ -718,9 +711,9 @@ export default function KaryawanDashboard() {
           </p>
 
           {/* Instruction */}
-          <div className="absolute z-10 left-1/2 -translate-x-1/2 text-center" style={{ top: 'calc(26% + 215px)' }}>
+          <div className="absolute z-10 left-1/2 -translate-x-1/2 text-center" style={{ top: '26%' }}>
             <p className="text-xs font-semibold drop-shadow-lg text-white/70">
-              Posisikan wajah Anda di dalam lingkaran
+              Posisikan wajah Anda pada layar, lalu tekan tombol foto
             </p>
           </div>
 
