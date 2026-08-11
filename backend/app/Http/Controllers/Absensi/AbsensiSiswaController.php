@@ -147,7 +147,7 @@ class AbsensiSiswaController extends Controller
 
         $batchList = Batch::orderBy('nama_batch')
             ->when($request->filled('cabang_id'), fn ($q) => $q->where('cabang_id', $request->cabang_id))
-            ->get(['id', 'nama_batch']);
+            ->get(['id', 'nama_batch', 'warna']);
         $levels = [1, 2, 3, 4];
 
         $selectedKelasSensei = null;

@@ -8,7 +8,7 @@ export default function RekapSiswaPage() {
   const location = useLocation();
   const isAdminCabang = location.pathname.startsWith('/admin-cabang');
   const [rekap, setRekap] = useState<RekapSiswaItem[]>([]);
-  const [batchList, setBatchList] = useState<{ id: number; nama_batch: string }[]>([]);
+  const [batchList, setBatchList] = useState<{ id: number; nama_batch: string; warna: string | null }[]>([]);
   const [cabangList, setCabangList] = useState<{ id: number; nama_cabang: string }[]>([]);
   const [levels] = useState([1, 2, 3, 4]);
   const [loading, setLoading] = useState(false);
@@ -20,6 +20,7 @@ export default function RekapSiswaPage() {
   const [startDate, setStartDate] = useState(firstDay);
   const [endDate, setEndDate] = useState(lastDay);
   const [filterBatch, setFilterBatch] = useState("");
+  const [showBatchDropdown, setShowBatchDropdown] = useState(false);
   const [filterLevel, setFilterLevel] = useState("");
   const [filterCabang, setFilterCabang] = useState("");
   const [page, setPage] = useState(1);
@@ -138,12 +139,39 @@ export default function RekapSiswaPage() {
             </div>
             <div className="w-44">
               <label className="block text-xs font-medium text-gray-500 mb-1">Batch</label>
-              <select value={filterBatch} onChange={(e) => setFilterBatch(e.target.value)} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]">
-              <option value="">Semua Batch</option>
-              {batchList.map((b) => (
-                <option key={b.id} value={b.id}>{b.nama_batch}</option>
-              ))}
-            </select>
+              <div className="relative">
+                <button
+                  onClick={() => setShowBatchDropdown(!showBatchDropdown)}
+                  className="flex w-full items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-slate-700 outline-none transition focus:ring-2 focus:ring-[#0E6187]"
+                >
+                  {filterBatch ? (() => {
+                    const b = batchList.find(x => String(x.id) === filterBatch)
+                    return <>
+                      {b?.warna ? <span className="inline-block w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: b.warna }} /> : null}
+                      <span className="truncate">{b?.nama_batch || filterBatch}</span>
+                    </>
+                  })() : <span className="text-slate-500">Semua Batch</span>}
+                  <svg className="ml-auto h-4 w-4 shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                </button>
+                {showBatchDropdown && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowBatchDropdown(false)} />
+                    <div className="absolute top-full left-0 mt-1 z-50 rounded-md border border-slate-200 bg-white shadow-lg max-h-48 overflow-y-auto min-w-[180px]">
+                      <button onClick={() => { setFilterBatch(''); setShowBatchDropdown(false); setPage(1) }}
+                        className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition hover:bg-slate-50 ${!filterBatch ? 'bg-blue-50 font-semibold' : ''}`}>
+                        Semua Batch
+                      </button>
+                      {batchList.map(b => (
+                        <button key={b.id} onClick={() => { setFilterBatch(String(b.id)); setShowBatchDropdown(false); setPage(1) }}
+                          className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition hover:bg-slate-50 ${String(b.id) === filterBatch ? 'bg-blue-50 font-semibold' : ''}`}>
+                          {b.warna ? <span className="inline-block w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: b.warna }} /> : null}
+                          {b.nama_batch}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
           </div>
           <div className="w-28">
             <label className="block text-xs font-medium text-gray-500 mb-1">Level</label>
