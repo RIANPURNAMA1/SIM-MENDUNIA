@@ -301,7 +301,12 @@ export default function DataCourse() {
 
   const uniqueLevels = [...new Set(courses.map(c => c.level).filter(Boolean))] as string[]
 
-  const levelOptions = form.batch_id ? [...(batchLevels[Number(form.batch_id)] || [])] : []
+  const allBatchLevels: string[] = []
+  Object.values(batchLevels).forEach(arr => {
+    arr.forEach(l => { if (!allBatchLevels.includes(l)) allBatchLevels.push(l) })
+  })
+
+  const levelOptions = form.batch_id ? [...(batchLevels[Number(form.batch_id)] || [])] : [...allBatchLevels]
   if (editing && form.level && !levelOptions.includes(form.level)) levelOptions.push(form.level)
   levelOptions.sort((a, b) => Number(a) - Number(b))
 
@@ -521,15 +526,15 @@ export default function DataCourse() {
                   <select
                     value={form.level}
                     onChange={e => setForm({ ...form, level: e.target.value })}
-                    disabled={!form.batch_id || levelOptions.length === 0}
+                    disabled={levelOptions.length === 0}
                     className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
                   >
                     <option value="">
-                      {!form.batch_id
-                        ? 'Pilih Batch terlebih dahulu'
-                        : levelOptions.length === 0
-                          ? 'Belum ada jadwal level'
-                          : 'Pilih Level'}
+                      {levelOptions.length === 0
+                        ? 'Belum ada jadwal level'
+                        : form.batch_id
+                          ? 'Pilih Level'
+                          : 'Semua Batch - Pilih Level'}
                     </option>
                     {levelOptions.map(l => (
                       <option key={l} value={l}>Level {l}</option>
