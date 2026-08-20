@@ -308,6 +308,7 @@ export const affiliateLinkApi = {
   getByKode: (kode: string) => api.get(`/affiliate-link/${kode}`),
   listAffiliates: () => api.get('/affiliates/list'),
   detail: (id: number) => api.get(`/affiliates/${id}/detail`),
+  importAffiliates: (data: { nama: string; email: string }[]) => api.post('/affiliates/import', { data }),
   myStore: (data: { product_id: number; nama_link?: string }) => api.post('/affiliate/my-links', data),
   availableProducts: () => api.get('/affiliate/products-aktif'),
 }

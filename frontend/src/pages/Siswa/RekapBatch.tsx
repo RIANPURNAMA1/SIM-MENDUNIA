@@ -417,7 +417,7 @@ export default function RekapBatch() {
         <span className="font-medium text-slate-700">Rekap Per Batch</span>
       </nav>
 
-      <div className="mb-4 flex flex-col gap-4 rounded-lg bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between border border-slate-200">
+      <div className="mb-4 flex flex-col gap-4  p-4  sm:flex-row sm:items-center sm:justify-between ">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
             <Layers size={20} />

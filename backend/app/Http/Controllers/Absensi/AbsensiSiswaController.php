@@ -148,7 +148,16 @@ class AbsensiSiswaController extends Controller
         $batchList = Batch::orderBy('nama_batch')
             ->when($request->filled('cabang_id'), fn ($q) => $q->where('cabang_id', $request->cabang_id))
             ->get(['id', 'nama_batch', 'warna']);
-        $levels = [1, 2, 3, 4];
+
+        $levels = KelasSensei::where('status', 'aktif')
+            ->when($request->filled('cabang_id'), fn ($q) => $q->whereHas('batchRelasi', fn ($q2) => $q2->where('cabang_id', $request->cabang_id)))
+            ->when($request->filled('batch_id'), fn ($q) => $q->where('batch_id', $request->batch_id))
+            ->select('level')
+            ->distinct()
+            ->orderBy('level')
+            ->pluck('level')
+            ->map(fn ($l) => (int) $l)
+            ->values();
 
         $selectedKelasSensei = null;
         if ($request->filled('kelas_sensei_id')) {
@@ -200,11 +209,11 @@ class AbsensiSiswaController extends Controller
                 $query->where('batch_id', $request->batch_id);
             }
             if ($request->filled('level')) {
-                $query->where('level', $request->level);
+                $query->whereHas('absensi.kelasSensei', fn ($q) => $q->where('level', $request->level));
             }
         }
 
-        $rekap = $query->with(['kelasRelasi', 'absensi' => function ($q) use ($start_date, $end_date) {
+        $rekap = $query->with(['kelasRelasi', 'absensi.kelasSensei', 'absensi' => function ($q) use ($start_date, $end_date) {
             $q->whereBetween('tanggal', [$start_date, $end_date]);
         }])->get()->map(function ($siswa) use ($selectedNamaKelas) {
             $hadir = $siswa->absensi->where('status', 'HADIR')->count();
@@ -215,10 +224,12 @@ class AbsensiSiswaController extends Controller
 
             $totalHadir = $hadir + $terlambat;
             $total = $siswa->absensi->count();
+            $level = $siswa->absensi->map(fn ($a) => $a->kelasSensei?->level)->filter()->last() ?? $siswa->level;
 
             return [
                 'id' => $siswa->id,
                 'nama' => $siswa->nama,
+                'level' => $level,
                 'kelas' => $selectedNamaKelas ?? $siswa->kelasRelasi->nama_kelas ?? $siswa->kelas,
                 'batch' => $siswa->batchRelasi->nama_batch ?? '-',
                 'hadir' => $hadir,

@@ -10,7 +10,7 @@ export default function RekapSiswaPage() {
   const [rekap, setRekap] = useState<RekapSiswaItem[]>([]);
   const [batchList, setBatchList] = useState<{ id: number; nama_batch: string; warna: string | null }[]>([]);
   const [cabangList, setCabangList] = useState<{ id: number; nama_cabang: string }[]>([]);
-  const [levels] = useState([1, 2, 3, 4]);
+  const [levels, setLevels] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
 
   const today = new Date();
@@ -41,6 +41,7 @@ export default function RekapSiswaPage() {
       setRekap(res.data.rekap || []);
       setBatchList(res.data.batch_list || []);
       setCabangList(res.data.cabang_list || []);
+      setLevels(res.data.levels || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -55,6 +56,7 @@ export default function RekapSiswaPage() {
   const handleCabangChange = (val: string) => {
     setFilterCabang(val);
     setFilterBatch("");
+    setFilterLevel("");
     setPage(1);
     fetchData(val);
   };
@@ -209,6 +211,7 @@ export default function RekapSiswaPage() {
                 <th className="border border-slate-200 px-4 py-3 font-medium w-10">#</th>
                 <th className="border border-slate-200 px-4 py-3 font-medium">Nama</th>
                 <th className="border border-slate-200 px-4 py-3 font-medium">Batch</th>
+                <th className="border border-slate-200 px-4 py-3 text-center font-medium">Lv</th>
                 <th className="border border-slate-200 px-4 py-3 text-center font-medium text-emerald-700">HADIR</th>
                 <th className="border border-slate-200 px-4 py-3 text-center font-medium text-amber-700">TERLAMBAT</th>
                 <th className="border border-slate-200 px-4 py-3 text-center font-medium text-blue-700">IZIN</th>
@@ -221,14 +224,15 @@ export default function RekapSiswaPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={11} className="border border-slate-200 px-4 py-12 text-center text-sm text-slate-400">Memuat data...</td></tr>
+                <tr><td colSpan={12} className="border border-slate-200 px-4 py-12 text-center text-sm text-slate-400">Memuat data...</td></tr>
               ) : rekap.length === 0 ? (
-                <tr><td colSpan={11} className="border border-slate-200 px-4 py-12 text-center text-sm text-slate-400">Belum ada data rekap untuk periode ini</td></tr>
+                <tr><td colSpan={12} className="border border-slate-200 px-4 py-12 text-center text-sm text-slate-400">Belum ada data rekap untuk periode ini</td></tr>
               ) : pagedList.map((item, idx) => (
                 <tr key={item.id} className="hover:bg-slate-50">
                   <td className="border border-slate-200 px-4 py-3 text-sm text-slate-500">{(safePage - 1) * perPage + idx + 1}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm font-medium text-slate-800">{item.nama}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">{item.batch}</td>
+                  <td className="border border-slate-200 px-4 py-3 text-sm text-center text-slate-600">{item.level ?? '-'}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-center font-medium text-emerald-700">{item.hadir}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-center font-medium text-amber-700">{item.terlambat}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-center font-medium text-blue-700">{item.izin}</td>
@@ -243,7 +247,7 @@ export default function RekapSiswaPage() {
             {rekap.length > 0 && (
               <tfoot>
                 <tr className="font-semibold">
-                  <td colSpan={3} className="border border-slate-200 px-4 py-3 text-sm text-slate-800">Total</td>
+                  <td colSpan={4} className="border border-slate-200 px-4 py-3 text-sm text-slate-800">Total</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-center text-emerald-700">{totals.hadir}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-center text-amber-700">{totals.terlambat}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-center text-blue-700">{totals.izin}</td>

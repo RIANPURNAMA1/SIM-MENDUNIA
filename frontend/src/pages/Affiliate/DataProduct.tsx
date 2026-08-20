@@ -435,9 +435,11 @@ export default function DataProduct() {
       { value: 'previous_paid', label: 'Setelah Kategori Sebelumnya Lunas' },
       { value: 'manual', label: 'Manual oleh Admin' },
       { value: 'fixed_date', label: 'Pada Tanggal Tertentu' },
+      { value: 'schedule_start', label: 'Saat Jadwal Level Dimulai' },
     ]
     const DUE_OPTIONS = [
       { value: 'days_after_invoice', label: 'X Hari Setelah Invoice Dibuat' },
+      { value: 'days_after_schedule_start', label: 'X Hari Setelah Jadwal Level Dimulai' },
       { value: 'fixed_date', label: 'Tanggal Tertentu' },
       { value: 'manual', label: 'Manual' },
       { value: 'none', label: 'Tidak Memiliki Jatuh Tempo' },
@@ -513,13 +515,38 @@ export default function DataProduct() {
                       <label key={opt.value} className="flex items-center gap-2 cursor-pointer group">
                         <input type="radio" name={`trigger-${key}`} value={opt.value}
                           checked={item.trigger_type === opt.value}
-                          onChange={() => updateBilling('trigger_type', opt.value)}
+                          onChange={() => {
+                            updateBilling('trigger_type', opt.value);
+                            if (opt.value === 'schedule_start' && !item.trigger_value) {
+                              const m = item.name.match(/level\s*([1-4])/i);
+                              updateBilling('trigger_value', m ? m[1] : '1');
+                            }
+                          }}
                           className="w-3.5 h-3.5 text-amber-600 border-slate-300 focus:ring-amber-500" />
                         <span className="text-[11px] text-slate-600 group-hover:text-slate-800">{opt.label}</span>
                       </label>
                     ))}
                   </div>
                 </div>
+
+                {/* Level jadwal (untuk trigger/due berbasis jadwal level) */}
+                {(item.trigger_type === 'schedule_start' || item.due_type === 'days_after_schedule_start') && (
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1.5">Level Jadwal</label>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {[1, 2, 3, 4].map(lv => (
+                        <button key={lv} type="button"
+                          onClick={() => updateBilling('trigger_value', String(lv))}
+                          className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors ${
+                            item.trigger_value === String(lv)
+                              ? 'bg-amber-500 text-white shadow-sm'
+                              : 'bg-white border border-amber-300 text-amber-700 hover:bg-amber-100'
+                          }`}>Level {lv}</button>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1">Tagihan mengikuti jadwal level ini di setiap batch kandidat.</p>
+                  </div>
+                )}
 
                 {/* Due type */}
                 <div>
@@ -536,7 +563,7 @@ export default function DataProduct() {
                     ))}
                   </div>
                   {/* Conditional field */}
-                  {item.due_type === 'days_after_invoice' && (
+                  {(item.due_type === 'days_after_invoice' || item.due_type === 'days_after_schedule_start') && (
                     <div className="mt-2 ml-5">
                       <label className="block text-[10px] font-semibold text-slate-500 mb-1">Jumlah Hari</label>
                       <div className="flex gap-1.5 flex-wrap">

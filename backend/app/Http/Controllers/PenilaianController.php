@@ -357,31 +357,53 @@ class PenilaianController extends Controller
 
     public function apiMatrixIndex(Request $request)
     {
-        $levels = KelasSensei::select('level')->distinct()->orderBy('level')->pluck('level');
-
-        $level = $request->level;
-
-        $guruQuery = \App\Models\Guru::with('user')->where('status', 'AKTIF');
-        $gurus = $guruQuery->orderBy('nama')->get()->map(fn($g) => [
-            'id' => $g->user_id,
-            'name' => $g->nama,
-        ])->values();
-        $guruId = $request->guru_id;
+        $cabangId = $request->cabang_id;
         $batchId = $request->batch_id;
+        $guruId = $request->guru_id;
+        $level = $request->level;
         $kelasSenseiId = $request->kelas_sensei_id;
 
-        $batchList = \App\Models\Batch::orderBy('nama_batch')
-            ->get(['id', 'nama_batch']);
-
-        if ($level && $guruId) {
-            $batchIds = KelasSensei::where('level', $level)
-                ->where('user_id', $guruId)
-                ->whereNotNull('batch_id')
-                ->pluck('batch_id');
-            $batchList = \App\Models\Batch::whereIn('id', $batchIds)
-                ->orderBy('nama_batch')
-                ->get(['id', 'nama_batch']);
+        // Basis kelas yang masuk filter (cabang/batch/guru/level)
+        $ks = KelasSensei::query()->whereNotNull('batch_id');
+        if ($batchId) {
+            $ks->where('batch_id', $batchId);
+        } elseif ($cabangId) {
+            $ks->whereHas('batchRelasi', fn ($q) => $q->where('cabang_id', $cabangId));
         }
+        if ($guruId) {
+            $ks->where('user_id', $guruId);
+        }
+        if ($level) {
+            $ks->where('level', $level);
+        }
+
+        $levels = (clone $ks)->select('level')->distinct()->orderBy('level')->pluck('level');
+
+        $guruUserIds = (clone $ks)->select('user_id')->distinct()->pluck('user_id');
+        $gurus = User::whereIn('id', $guruUserIds)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        $batchQuery = Batch::orderBy('nama_batch');
+        if ($cabangId) {
+            $batchQuery->where('cabang_id', $cabangId);
+        }
+        if ($guruId || $level) {
+            $batchKs = KelasSensei::query()->whereNotNull('batch_id');
+            if ($cabangId) {
+                $batchKs->whereHas('batchRelasi', fn ($q) => $q->where('cabang_id', $cabangId));
+            }
+            if ($guruId) {
+                $batchKs->where('user_id', $guruId);
+            }
+            if ($level) {
+                $batchKs->where('level', $level);
+            }
+            $batchQuery->whereIn('id', $batchKs->pluck('batch_id'));
+        }
+        $batchList = $batchQuery->get(['id', 'nama_batch']);
+
+        $cabangs = \App\Models\Cabang::orderBy('nama_cabang')->get(['id', 'nama_cabang']);
 
         $kelas = null;
         if ($kelasSenseiId) {
@@ -468,9 +490,11 @@ class PenilaianController extends Controller
         return response()->json([
             'levels' => $levels,
             'gurus' => $gurus,
+            'cabangs' => $cabangs,
             'level' => $level,
             'guru_id' => $guruId,
             'batch_id' => $batchId,
+            'cabang_id' => $cabangId,
             'batch_list' => $batchList,
             'kelas' => $kelasaData,
             'students' => $students,

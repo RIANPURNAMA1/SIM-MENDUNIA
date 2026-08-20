@@ -16,6 +16,7 @@ use App\Models\Pembayaran;
 use App\Models\PembayaranItem;
 use App\Models\PaymentSetting;
 use App\Models\User;
+use App\Services\BillingScheduleService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
@@ -1789,6 +1790,16 @@ class PendaftaranController extends Controller
         ]);
     }
 
+    private static function batchLearningStarted($batchId): bool
+    {
+        if (!$batchId) return false;
+
+        return \App\Models\JadwalLevel::where('batch_id', $batchId)
+            ->where('status', '!=', 'ditolak')
+            ->whereDate('tanggal_mulai', '<=', now()->toDateString())
+            ->exists();
+    }
+
     public function kandidat(Request $request)
     {
         $query = Pendaftar::with(['product', 'batch.cabang', 'user', 'siswa', 'pembayaranItems.kategori'])
@@ -1837,6 +1848,8 @@ class PendaftaranController extends Controller
                 $statusKandidat = 'Calon Kandidat';
                 if ($siswa && $siswa->level_status && in_array('Keluar', $siswa->level_status)) {
                     $statusKandidat = 'Mengundurkan Diri';
+                } elseif (self::batchLearningStarted($p->batch_id)) {
+                    $statusKandidat = 'Proses Belajar';
                 } else {
                     $kategoriItems = $p->product?->kategori_items ?? [];
                     $pembayaranItems = $p->pembayaranItems ?? collect();
@@ -1933,7 +1946,12 @@ class PendaftaranController extends Controller
         }
 
         $totalKandidat = $pendaftar->count();
-        $kandidatAktif = $pendaftar->where('status_pendaftaran', 'disetujui')->count();
+        $kandidatAktif = collect($batches)->flatMap(fn($b) => $b['kandidat'] ?? [])
+            ->filter(fn($k) => !($k['is_cuti'] ?? false)
+                && ($k['status_kandidat'] ?? null) !== 'Mengundurkan Diri'
+                && ($k['status_kandidat'] ?? null) !== 'Lulus Pendidikan'
+                && ($k['status_akademik'] ?? 'AKTIF') !== 'NONAKTIF')
+            ->count();
 
         $cabangs = \App\Models\Cabang::orderBy('nama_cabang')
             ->get()
@@ -1946,7 +1964,7 @@ class PendaftaranController extends Controller
         return response()->json([
             'batches' => $batches,
             'allBatches' => $allBatches,
-            'totalBatch' => count($allBatches),
+            'totalBatch' => collect($batches)->where('id', '!=', 0)->count(),
             'totalKandidat' => $totalKandidat,
             'kandidatAktif' => $kandidatAktif,
             'cabangs' => $cabangs,
@@ -2912,6 +2930,9 @@ class PendaftaranController extends Controller
 
             if ($triggerType === 'fixed_date' && $triggerValue) {
                 $shouldCreate = now()->startOfDay()->gte(\Carbon\Carbon::parse($triggerValue)->startOfDay());
+            } elseif ($triggerType === 'schedule_start') {
+                $scheduleStart = BillingScheduleService::scheduleStart($pendaftar, $billing);
+                $shouldCreate = $scheduleStart ? now()->startOfDay()->gte($scheduleStart->startOfDay()) : false;
             } elseif ($triggerType === 'previous_paid') {
                 $prevItem = $kategoriItems[$idx - 1] ?? null;
                 if ($prevItem) {
@@ -2945,6 +2966,12 @@ class PendaftaranController extends Controller
                     if ($dueType === 'days_after_invoice' && $dueValue) {
                         $jatuh_tempo_hari = (int) $dueValue;
                         $dueAt = $baseDate->copy()->addDays($jatuh_tempo_hari)->timezone('Asia/Jakarta')->toIso8601String();
+                    } elseif ($dueType === 'days_after_schedule_start' && $dueValue) {
+                        $scheduleStart = BillingScheduleService::scheduleStart($pendaftar, $billing);
+                        if ($scheduleStart) {
+                            $jatuh_tempo_hari = (int) $dueValue;
+                            $dueAt = $scheduleStart->copy()->addDays($jatuh_tempo_hari)->setTime(23, 59, 59)->timezone('Asia/Jakarta')->toIso8601String();
+                        }
                     } elseif ($dueType === 'fixed_date' && $dueValue) {
                         $dueAt = \Carbon\Carbon::parse($dueValue)->setTime(23, 59, 59)->timezone('Asia/Jakarta')->toIso8601String();
                         $jatuh_tempo_hari = $pendaftar->tanggal_persetujuan

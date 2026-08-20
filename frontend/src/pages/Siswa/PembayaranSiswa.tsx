@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
-  CreditCard, CheckCircle, Clock, Upload, X, FileText, ChevronRight, Building2, Copy,
+  CreditCard, CheckCircle, Clock, Upload, X, FileText, Building2, Copy,
   ChevronLeft, Wallet, LayoutDashboard, CalendarCheck, BookOpen, User,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
@@ -177,6 +177,21 @@ export default function PembayaranSiswa() {
     walkProductTree(productKategoriItems)
   }
 
+  const childToParent = new Map<string, string>()
+  if (productKategoriItems) {
+    const walkChildren = (items: any[], parentName?: string) => {
+      for (const item of items) {
+        const name = (item.name || '').toLowerCase()
+        if (parentName && name) {
+          const parentKat = katByNameLower.get(parentName.toLowerCase())
+          childToParent.set(name, parentKat?.nama || parentName)
+        }
+        if (Array.isArray(item.children) && item.children.length > 0) walkChildren(item.children, item.name)
+      }
+    }
+    walkChildren(productKategoriItems)
+  }
+
   const getAllChildIds = (parentId: number, visited = new Set<number>()): number[] => {
     if (visited.has(parentId)) return []
     visited.add(parentId)
@@ -328,6 +343,16 @@ export default function PembayaranSiswa() {
   }) || null
 
   const hasPendingPayment = riwayat.some(r => r.status === 'pending')
+
+  const riwayatGroups = (() => {
+    const map = new Map<string, typeof riwayat>()
+    for (const r of riwayat) {
+      const key = r.bukti_pembayaran || `manual-${r.id}`
+      if (!map.has(key)) map.set(key, [])
+      map.get(key)!.push(r)
+    }
+    return Array.from(map.entries()).map(([bukti, items]) => ({ bukti, items }))
+  })()
 
   function openModal() {
     if (hasPendingPayment) {
@@ -603,46 +628,78 @@ export default function PembayaranSiswa() {
                 <div className="px-4 py-3 border-b border-gray-100">
                   <h2 className="text-[15px] sm:text-[16px] font-bold text-gray-900">Aktivitas Pembayaran</h2>
                 </div>
-                <div className="flex flex-col">
-                  {riwayat.map((r, i) => (
-                    <div key={r.id} className="px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0">
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-600">
-                          <FileText size={18} className="sm:hidden" />
-                          <FileText size={20} className="hidden sm:block" />
+                <div className="flex flex-col divide-y divide-gray-50">
+                  {riwayatGroups.map((group, gi) => {
+                      const aggRows = (() => {
+                        const map = new Map<string, { nama: string; jumlah: number; status: string; created_at: string }>()
+                        for (const r of group.items) {
+                          const nama = r.kategori?.nama
+                          const parentName = nama ? childToParent.get(nama.toLowerCase()) : null
+                          const key = parentName || nama || 'Lainnya'
+                          const existing = map.get(key)
+                          if (existing) {
+                            existing.jumlah += Number(r.jumlah)
+                          } else {
+                            map.set(key, { nama: key, jumlah: Number(r.jumlah), status: r.status, created_at: r.created_at })
+                          }
+                        }
+                        return Array.from(map.values())
+                      })()
+                      return (
+                    <div key={gi} className="px-4 py-3">
+                      {group.bukti ? (
+                        <a
+                          href={`${APP_URL}/storage/${group.bukti}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block mb-3 overflow-hidden rounded-xl border border-gray-100 relative group"
+                        >
+                          <img
+                            src={`${APP_URL}/storage/${group.bukti}`}
+                            alt="Bukti pembayaran"
+                            className="w-full h-32 sm:h-40 object-cover"
+                          />
+                          <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-lg bg-black/60 px-2.5 py-1 text-[11px] font-semibold text-white opacity-90 group-hover:opacity-100 transition-opacity">
+                            Lihat Bukti
+                          </span>
+                        </a>
+                      ) : (
+                        <div className="mb-3 flex items-center gap-2 rounded-xl border border-dashed border-gray-200 bg-gray-50 px-3 py-4">
+                          <FileText size={16} className="text-gray-400" />
+                          <span className="text-[12px] text-gray-500">Pembayaran manual tanpa bukti</span>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="text-[14px] sm:text-[15px] font-semibold text-gray-900 truncate">
-                              {r.kategori?.nama || 'Pembayaran ke-' + (riwayat.length - i)}
-                            </p>
-                            <span className="text-[13px] sm:text-[15px] font-bold text-gray-900 shrink-0">Rp {Number(r.jumlah).toLocaleString('id-ID')}</span>
+                      )}
+
+                      <div className="space-y-2.5">
+                        {aggRows.map(r => (
+                          <div key={r.nama} className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-[14px] sm:text-[15px] font-semibold text-gray-900 truncate">{r.nama}</p>
+                              <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 mt-0.5">
+                                <span className="text-[11px] sm:text-[12px] text-gray-500">
+                                  {new Date(r.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                                <span className="text-gray-300 text-[11px] sm:text-[12px]">•</span>
+                                <span className={`text-[11px] sm:text-[12px] font-semibold ${
+                                  r.status === 'verified' ? 'text-[#1C7A41]' : r.status === 'ditolak' ? 'text-red-600' : 'text-[#856404]'
+                                }`}>
+                                  {r.status === 'verified' ? 'Selesai' : r.status === 'ditolak' ? 'Ditolak' : 'Diproses'}
+                                </span>
+                              </div>
+                            </div>
+                            <span className="text-[13px] sm:text-[15px] font-bold text-gray-900 shrink-0">Rp {r.jumlah.toLocaleString('id-ID')}</span>
                           </div>
-                          <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 mt-0.5">
-                            <span className="text-[11px] sm:text-[12px] text-gray-500">
-                              {new Date(r.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                            <span className="text-gray-300 text-[11px] sm:text-[12px]">•</span>
-                            <span className={`text-[11px] sm:text-[12px] font-semibold ${
-                              r.status === 'verified' ? 'text-[#1C7A41]' : r.status === 'ditolak' ? 'text-red-600' : 'text-[#856404]'
-                            }`}>
-                              {r.status === 'verified' ? 'Selesai' : r.status === 'ditolak' ? 'Ditolak' : 'Diproses'}
-                            </span>
+                        ))}
+                        {aggRows.length > 1 && (
+                          <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-100">
+                            <span className="text-[12px] font-semibold text-gray-500">Total</span>
+                            <span className="text-[14px] font-bold text-gray-900">Rp {aggRows.reduce((s, r) => s + r.jumlah, 0).toLocaleString('id-ID')}</span>
                           </div>
-                          <a
-                            href={`${APP_URL}/storage/${r.bukti_pembayaran}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            onClick={e => e.stopPropagation()}
-                            className="inline-flex items-center gap-1 mt-1.5 text-[11px] sm:text-[12px] font-semibold text-[#0866FF] hover:underline"
-                          >
-                            Lihat Bukti <ChevronRight size={12} className="sm:hidden" />
-                            <ChevronRight size={14} className="hidden sm:block" />
-                          </a>
-                        </div>
+                        )}
                       </div>
                     </div>
-                  ))}
+                      )
+                    })}
                 </div>
               </div>
             )}

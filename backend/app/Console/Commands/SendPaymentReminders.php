@@ -85,6 +85,11 @@ class SendPaymentReminders extends Command
                 if ($triggerType === 'fixed_date' && $triggerValue) {
                     if (now()->startOfDay()->lt(\Carbon\Carbon::parse($triggerValue)->startOfDay())) continue;
                 }
+                // For schedule_start: skip until the level schedule has started
+                if ($triggerType === 'schedule_start') {
+                    $scheduleStart = \App\Services\BillingScheduleService::scheduleStart($p, $k);
+                    if (!$scheduleStart || now()->startOfDay()->lt($scheduleStart->startOfDay())) continue;
+                }
                 // For previous_paid: skip if no PembayaranItem exists yet (trigger hasn't fired)
                 if ($triggerType === 'previous_paid') {
                     $hasItem = \App\Models\PembayaranItem::where('pendaftar_id', $p->id)
@@ -119,10 +124,20 @@ class SendPaymentReminders extends Command
                         $subjectEmail = $k->subject_email;
                     }
 
-                    $setting = $reminderSettings[$katId] ?? null;
-                    if (!$setting) continue;
-                    $baseDate = ($p->tanggal_persetujuan ?? $p->created_at)->copy();
-                    $jatuhTempo = $baseDate->addDays($setting->jatuh_tempo_hari)->startOfDay();
+                    // Due from level schedule start date
+                    if (($k->due_type ?? null) === 'days_after_schedule_start' && $k->due_value) {
+                        $scheduleStart = \App\Services\BillingScheduleService::scheduleStart($p, $k);
+                        if ($scheduleStart) {
+                            $jatuhTempo = $scheduleStart->copy()->addDays((int) $k->due_value)->startOfDay();
+                        }
+                    }
+
+                    if (!$jatuhTempo) {
+                        $setting = $reminderSettings[$katId] ?? null;
+                        if (!$setting) continue;
+                        $baseDate = ($p->tanggal_persetujuan ?? $p->created_at)->copy();
+                        $jatuhTempo = $baseDate->addDays($setting->jatuh_tempo_hari)->startOfDay();
+                    }
                     if (!$reminderDays) {
                         $reminderDays = $setting->reminder_days ?? [7, 3, 1];
                     }
