@@ -4,7 +4,7 @@ function fmt(n: number) {
 
 import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { CreditCard, Search, RotateCcw, Eye, CheckCircle, Clock, XCircle, Wallet, FileText, Images, Plus, Filter, Camera, ChevronRight, LayoutDashboard } from 'lucide-react'
+import { CreditCard, Search, RotateCcw, Eye, CheckCircle, Clock, XCircle, Wallet, FileText, Images, Filter, Camera, ChevronRight, LayoutDashboard } from 'lucide-react'
 import { pembayaranApi, APP_URL } from '../../services/api'
 
 interface PaymentItem {
@@ -87,6 +87,22 @@ export default function Pembayaran() {
     verified: data.filter(p => p.status === 'verified').reduce((s, p) => s + Number(nominalTampil(p)), 0),
     pending: data.filter(p => p.status === 'pending').length,
   }), [data])
+
+  const groupedByPendaftar = useMemo(() => {
+    const map = new Map<string, PaymentItem[]>()
+    for (const p of filtered) {
+      const pid = p.pendaftar?.id ?? p.pendaftar_id
+      const key = `${pid}-${p.bukti_pembayaran || `manual-${p.id}`}`
+      if (!map.has(key)) map.set(key, [])
+      map.get(key)!.push(p)
+    }
+    return Array.from(map.entries()).map(([key, items]) => ({
+      id: key,
+      pendaftar: items[0].pendaftar,
+      items,
+      bukti: items.find(i => i.bukti_pembayaran)?.bukti_pembayaran ?? null,
+    }))
+  }, [filtered])
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
@@ -302,14 +318,14 @@ export default function Pembayaran() {
           ) : filtered.length === 0 ? (
             <div className="col-span-full text-center py-10 text-sm text-slate-400">Belum ada catatan</div>
           ) : (
-            filtered.map(p => (
-              <div key={p.id} className="border border-slate-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow bg-white">
-                {p.bukti_pembayaran ? (
+            groupedByPendaftar.map(group => (
+              <div key={group.id} className="border border-slate-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow bg-white">
+                {group.bukti ? (
                   <img
-                    src={`${APP_URL}/storage/${p.bukti_pembayaran}`}
+                    src={`${APP_URL}/storage/${group.bukti}`}
                     alt="Bukti pembayaran"
                     className="w-full h-40 object-cover cursor-pointer"
-                    onClick={() => setPreviewImg(`${APP_URL}/storage/${p.bukti_pembayaran}`)}
+                    onClick={() => setPreviewImg(`${APP_URL}/storage/${group.bukti}`)}
                   />
                 ) : (
                   <div className="h-40 bg-slate-100 flex items-center justify-center">
@@ -318,27 +334,28 @@ export default function Pembayaran() {
                 )}
                 <div className="p-3">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="inline-flex px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-semibold rounded">
-                      {p.kategori?.nama || '-'}
-                    </span>
-                    <span className="text-xs text-slate-400">
-                      {new Date(p.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </span>
-                  </div>
-                  <p className="text-sm font-bold text-slate-800 mt-1">Rp {fmt(nominalTampil(p))}</p>
-                  <p className="text-xs text-slate-500 mt-1 truncate">{p.pendaftar?.product?.nama || 'Tanpa keterangan'}</p>
-                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <div className="w-6 h-6 rounded-full bg-[#0E6187] flex items-center justify-center text-[10px] font-bold text-white shrink-0">
-                        {p.pendaftar?.nama?.charAt(0) || '?'}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs text-slate-600 truncate">{p.pendaftar?.nama}</p>
-                        <p className="text-[10px] text-slate-400 truncate">{p.pendaftar?.email}</p>
-                      </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-slate-800 truncate">{group.pendaftar?.nama || '-'}</p>
+                      <p className="text-[10px] text-slate-400 truncate">{group.pendaftar?.email || ''}</p>
                     </div>
                     <div className="shrink-0 ml-2">
-                      {statusBadge(p.status)}
+                      {statusBadge(group.items[0]?.status || 'pending')}
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-500 truncate">{group.pendaftar?.product?.nama || 'Tanpa keterangan'}</p>
+                  <div className="mt-2 pt-2 border-t border-slate-100 space-y-1.5">
+                    {group.items.map(item => (
+                      <div key={item.id} className="flex items-center justify-between gap-2 text-xs">
+                        <span className="text-slate-600 truncate">
+                          {item.kategori?.nama || '-'}
+                          <span className="text-slate-400"> · {new Date(item.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                        </span>
+                        <span className="font-semibold text-slate-800 whitespace-nowrap">Rp {fmt(nominalTampil(item))}</span>
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-100 text-xs font-bold text-slate-800">
+                      <span>Total</span>
+                      <span>Rp {fmt(group.items.reduce((s, item) => s + Number(nominalTampil(item)), 0))}</span>
                     </div>
                   </div>
                 </div>

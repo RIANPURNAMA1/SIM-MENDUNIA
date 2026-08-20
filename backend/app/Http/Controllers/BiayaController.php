@@ -218,6 +218,12 @@ class BiayaController extends Controller
                     if ($dueType === 'days_after_invoice' && $dueValue) {
                         $jatuh_tempo_hari = (int) $dueValue;
                         $dueAt = $baseDate->copy()->addDays($jatuh_tempo_hari)->timezone('Asia/Jakarta')->toIso8601String();
+                    } elseif ($dueType === 'days_after_schedule_start' && $dueValue) {
+                        $scheduleStart = \App\Services\BillingScheduleService::scheduleStart($pendaftar, $k);
+                        if ($scheduleStart) {
+                            $jatuh_tempo_hari = (int) $dueValue;
+                            $dueAt = $scheduleStart->copy()->addDays($jatuh_tempo_hari)->setTime(23, 59, 59)->timezone('Asia/Jakarta')->toIso8601String();
+                        }
                     } elseif ($dueType === 'fixed_date' && $dueValue) {
                         $dueAt = \Carbon\Carbon::parse($dueValue)->setTime(23, 59, 59)->timezone('Asia/Jakarta')->toIso8601String();
                         if ($pendaftar->tanggal_persetujuan) {
@@ -247,6 +253,15 @@ class BiayaController extends Controller
                         $dueAt = null;
                         $jatuh_tempo_hari = null;
                     }
+                }
+            }
+
+            // Trigger 'schedule_start': jatuh tempo hanya muncul jika jadwal level sudah diatur
+            if (($k->trigger_type ?? 'registration') === 'schedule_start') {
+                $scheduleStart = \App\Services\BillingScheduleService::scheduleStart($pendaftar, $k);
+                if (!$scheduleStart) {
+                    $dueAt = null;
+                    $jatuh_tempo_hari = null;
                 }
             }
 

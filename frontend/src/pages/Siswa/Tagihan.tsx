@@ -558,7 +558,7 @@ export default function Tagihan() {
                   <span className="ml-2 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-600">ada pengajuan</span>
                 )}
               </h3>
-              <p className="text-xs text-slate-500">{group.totalPendaftar} pendaftar</p>
+              <p className="text-xs text-slate-500">{group.totalPendaftar} kandidat</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -897,7 +897,7 @@ export default function Tagihan() {
       </nav>
 
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-4 rounded-lg bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between border border-slate-200">
+      <div className="mb-4 flex flex-col gap-4  p-4  sm:flex-row sm:items-center sm:justify-between ">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
             <Receipt size={20} />

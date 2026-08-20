@@ -543,7 +543,8 @@ export interface PenilaianItem {
 
 export interface RekapSiswaItem {
   id: number
-  nama: string
+nama: string
+  level?: number | null
   kelas: string
   batch: string
   hadir: number

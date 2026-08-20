@@ -86,6 +86,76 @@ class AffiliateLinkController extends Controller
         return response()->json(['message' => 'Link deleted']);
     }
 
+    public function importAffiliates(Request $request)
+    {
+        $rows = $request->input('data');
+
+        if (!is_array($rows) || count($rows) === 0) {
+            return response()->json(['message' => 'Data tidak boleh kosong'], 422);
+        }
+
+        $success = 0;
+        $failed = 0;
+        $errors = [];
+        $created = [];
+
+        foreach ($rows as $idx => $row) {
+            try {
+                $nama = trim($row['nama'] ?? '');
+                $email = trim($row['email'] ?? '');
+                if (!$nama || !$email) {
+                    $failed++;
+                    $errors[] = ['row' => $idx + 1, 'message' => 'Nama dan email wajib diisi'];
+                    continue;
+                }
+
+                if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+                    $failed++;
+                    $errors[] = ['row' => $idx + 1, 'message' => "Email '{$email}' format tidak valid"];
+                    continue;
+                }
+
+                if (User::where('email', $email)->exists()) {
+                    $failed++;
+                    $errors[] = ['row' => $idx + 1, 'message' => "Email {$email} sudah terdaftar"];
+                    continue;
+                }
+
+                $password = strtoupper(bin2hex(random_bytes(4)));
+                $hashedPassword = password_hash($password, PASSWORD_BCRYPT, ['cost' => 5]);
+
+                $user = User::create([
+                    'name' => $nama,
+                    'email' => $email,
+                    'password' => $hashedPassword,
+                    'password_plain' => $password,
+                    'role' => 'AFFILIATE',
+                    'status' => 'AKTIF',
+                ]);
+
+                $created[] = [
+                    'nama' => $nama,
+                    'email' => $email,
+                    'password' => $password,
+                ];
+
+                $success++;
+            } catch (\Exception $e) {
+                \Log::error('importAffiliates row ' . ($idx + 1) . ': ' . $e->getMessage());
+                $failed++;
+                $errors[] = ['row' => $idx + 1, 'message' => $e->getMessage()];
+            }
+        }
+
+        return response()->json([
+            'message' => "Import selesai: {$success} berhasil, {$failed} gagal",
+            'success' => $success,
+            'failed' => $failed,
+            'created' => $created,
+            'errors' => $errors,
+        ], $failed > 0 ? 207 : 201);
+    }
+
     public function listAffiliates()
     {
         $affiliates = User::where('role', 'AFFILIATE')

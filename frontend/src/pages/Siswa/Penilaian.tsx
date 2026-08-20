@@ -13,6 +13,11 @@ interface BatchItem {
   nama_batch: string;
 }
 
+interface CabangItem {
+  id: number;
+  nama_cabang: string;
+}
+
 interface Student {
   id: number;
   nama: string;
@@ -74,10 +79,12 @@ export default function PenilaianPage() {
   const [levels, setLevels] = useState<string[]>([]);
   const [gurus, setGurus] = useState<Guru[]>([]);
   const [batchList, setBatchList] = useState<BatchItem[]>([]);
+  const [cabangs, setCabangs] = useState<CabangItem[]>([]);
 
-  const [filterLevel, setFilterLevel] = useState("");
-  const [filterGuru, setFilterGuru] = useState("");
+  const [filterCabang, setFilterCabang] = useState("");
   const [filterBatch, setFilterBatch] = useState("");
+  const [filterGuru, setFilterGuru] = useState("");
+  const [filterLevel, setFilterLevel] = useState("");
 
   const [kelas, setKelas] = useState<{
     id: number; nama_kelas: string; level: string; batch_nama: string;
@@ -106,9 +113,10 @@ export default function PenilaianPage() {
       if (overrideParams) {
         Object.assign(params, overrideParams);
       } else {
-        if (filterLevel) params.level = filterLevel;
-        if (filterGuru) params.guru_id = filterGuru;
+        if (filterCabang) params.cabang_id = filterCabang;
         if (filterBatch) params.batch_id = filterBatch;
+        if (filterGuru) params.guru_id = filterGuru;
+        if (filterLevel) params.level = filterLevel;
         if (weekStart) params.week = weekStart;
       }
       const res = isAdminCabang ? await adminCabangApi.penilaian(params) : await penilaianApi.matrix(params);
@@ -116,6 +124,7 @@ export default function PenilaianPage() {
       setLevels(d.levels || []);
       setGurus(d.gurus || []);
       setBatchList(d.batch_list || []);
+      setCabangs(d.cabangs || []);
       setKelas(d.kelas || null);
       setStudents(d.students || []);
       setCategories(d.categories || []);
@@ -135,31 +144,21 @@ export default function PenilaianPage() {
     fetchMatrix({});
   }, []);
 
-  const handleLevelChange = (val: string) => {
-    setFilterLevel(val);
-    setFilterGuru("");
-    setFilterBatch("");
-    setBatchList([]);
+  const resetResult = () => {
     setKelas(null);
     setStudents([]);
     setDays([]);
-    if (val) {
-      fetchMatrix({ level: val });
-    } else {
-      fetchMatrix({});
-    }
   };
 
-  const handleGuruChange = (val: string) => {
-    setFilterGuru(val);
+  const handleCabangChange = (val: string) => {
+    setFilterCabang(val);
     setFilterBatch("");
-    setKelas(null);
-    setStudents([]);
-    setDays([]);
-    if (val && filterLevel) {
-      fetchMatrix({ level: filterLevel, guru_id: val });
-    } else if (filterLevel) {
-      fetchMatrix({ level: filterLevel });
+    setFilterGuru("");
+    setFilterLevel("");
+    setBatchList([]);
+    resetResult();
+    if (val) {
+      fetchMatrix({ cabang_id: val });
     } else {
       fetchMatrix({});
     }
@@ -167,21 +166,43 @@ export default function PenilaianPage() {
 
   const handleBatchChange = (val: string) => {
     setFilterBatch(val);
-    setKelas(null);
-    setStudents([]);
-    setDays([]);
+    setFilterGuru("");
+    setFilterLevel("");
+    resetResult();
     const params: Record<string, string> = {};
-    if (filterLevel) params.level = filterLevel;
-    if (filterGuru) params.guru_id = filterGuru;
+    if (filterCabang) params.cabang_id = filterCabang;
     if (val) params.batch_id = val;
+    fetchMatrix(params);
+  };
+
+  const handleGuruChange = (val: string) => {
+    setFilterGuru(val);
+    setFilterLevel("");
+    resetResult();
+    const params: Record<string, string> = {};
+    if (filterCabang) params.cabang_id = filterCabang;
+    if (filterBatch) params.batch_id = filterBatch;
+    if (val) params.guru_id = val;
+    fetchMatrix(params);
+  };
+
+  const handleLevelChange = (val: string) => {
+    setFilterLevel(val);
+    resetResult();
+    const params: Record<string, string> = {};
+    if (filterCabang) params.cabang_id = filterCabang;
+    if (filterBatch) params.batch_id = filterBatch;
+    if (filterGuru) params.guru_id = filterGuru;
+    if (val) params.level = val;
     fetchMatrix(params);
   };
 
   const navigateWeek = (target: string) => {
     const params: Record<string, string> = { week: target };
-    if (filterLevel) params.level = filterLevel;
-    if (filterGuru) params.guru_id = filterGuru;
+    if (filterCabang) params.cabang_id = filterCabang;
     if (filterBatch) params.batch_id = filterBatch;
+    if (filterGuru) params.guru_id = filterGuru;
+    if (filterLevel) params.level = filterLevel;
     fetchMatrix(params);
   };
 
@@ -237,22 +258,12 @@ export default function PenilaianPage() {
       <div className="mb-4 rounded-lg p-4 shadow-sm">
         <div className="flex flex-wrap items-end gap-3">
           <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1">Level</label>
-            <select value={filterLevel} onChange={(e) => handleLevelChange(e.target.value)}
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Cabang</label>
+            <select value={filterCabang} onChange={(e) => handleCabangChange(e.target.value)}
               className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-              <option value="">Semua Level</option>
-              {levels.map((l) => (
-                <option key={l} value={l}>Level {l}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1">Guru</label>
-            <select value={filterGuru} onChange={(e) => handleGuruChange(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-              <option value="">Semua Guru</option>
-              {gurus.map((g) => (
-                <option key={g.id} value={g.id}>{g.name}</option>
+              <option value="">Pilih Cabang</option>
+              {cabangs.map((c) => (
+                <option key={c.id} value={c.id}>{c.nama_cabang}</option>
               ))}
             </select>
           </div>
@@ -267,9 +278,29 @@ export default function PenilaianPage() {
             </select>
           </div>
           <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Sensei</label>
+            <select value={filterGuru} onChange={(e) => handleGuruChange(e.target.value)}
+              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+              <option value="">Pilih Sensei</option>
+              {gurus.map((g) => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Level</label>
+            <select value={filterLevel} onChange={(e) => handleLevelChange(e.target.value)}
+              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+              <option value="">Pilih Level</option>
+              {levels.map((l) => (
+                <option key={l} value={l}>Level {l}</option>
+              ))}
+            </select>
+          </div>
+          <div>
             <label className="block text-xs font-semibold text-slate-500 mb-1">&nbsp;</label>
             <button onClick={() => {
-              setFilterLevel(""); setFilterGuru(""); setFilterBatch("");
+              setFilterCabang(""); setFilterBatch(""); setFilterGuru(""); setFilterLevel("");
               setBatchList([]); setKelas(null); setStudents([]); setDays([]);
               fetchMatrix({});
             }}
@@ -381,7 +412,7 @@ export default function PenilaianPage() {
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
             <Notebook size={24} />
           </div>
-          <p className="mt-3 text-sm text-slate-500">Pilih Level, Guru, dan Kelas untuk melihat rekap penilaian.</p>
+          <p className="mt-3 text-sm text-slate-500">Pilih Cabang, Batch, Sensei, dan Level untuk melihat rekap penilaian.</p>
         </div>
       )}
 

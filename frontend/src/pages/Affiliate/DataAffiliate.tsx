@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Link2, Plus, Trash2, Copy, CheckCircle, X, ExternalLink, Users, User, UserCheck, UserPlus, Eye, ChevronDown, ChevronRight, MapPin, Landmark, RefreshCw } from 'lucide-react'
+import { Link2, Plus, Trash2, Copy, CheckCircle, X, ExternalLink, Users, User, UserCheck, UserPlus, Eye, ChevronDown, ChevronRight, MapPin, Landmark, RefreshCw, Upload, FileSpreadsheet, Loader2 } from 'lucide-react'
+import * as XLSX from 'xlsx'
 import { affiliateLinkApi, productApi } from '../../services/api'
 import api from '../../services/api'
 
@@ -103,6 +104,11 @@ export default function DataAffiliate() {
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [expandedLinks, setExpandedLinks] = useState<Record<number, boolean>>({})
   const [syncing, setSyncing] = useState(false)
+  const [showImport, setShowImport] = useState(false)
+  const [importRows, setImportRows] = useState<{ nama: string; email: string }[]>([])
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState<{ success: number; failed: number; created: { nama: string; email: string; password: string }[]; errors: { row: number; message: string }[] } | null>(null)
 
   useEffect(() => {
     fetchData()
@@ -180,6 +186,50 @@ export default function DataAffiliate() {
       .finally(() => setSyncing(false))
   }
 
+  function handleImportFile(file: File) {
+    setImportFile(file)
+    setImportResult(null)
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      try {
+        const wb = XLSX.read(e.target?.result, { type: 'array' })
+        const ws = wb.Sheets[wb.SheetNames[0]]
+        const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: '' })
+        const rows = json.map(r => {
+          const norm: Record<string, unknown> = {}
+          Object.entries(r).forEach(([k, v]) => { norm[k.toLowerCase().replace(/[^a-z]/g, '')] = v })
+          const nama = String(norm['nama'] || norm['name'] || norm['namalengkap'] || '').trim()
+          const email = String(norm['email'] || '').trim()
+          return { nama, email }
+        }).filter(r => r.nama || r.email)
+        setImportRows(rows)
+        if (rows.length === 0) alert('Tidak ada baris data yang terbaca. Pastikan kolom berisi Nama dan Email.')
+      } catch {
+        alert('Gagal membaca file Excel. Pastikan format file .xlsx/.xls.')
+      }
+    }
+    reader.readAsArrayBuffer(file)
+  }
+
+  function openImport() {
+    setImportRows([])
+    setImportFile(null)
+    setImportResult(null)
+    setShowImport(true)
+  }
+
+  function handleImportSubmit() {
+    if (importRows.length === 0) return
+    setImporting(true)
+    affiliateLinkApi.importAffiliates(importRows)
+      .then(res => {
+        setImportResult(res.data)
+        fetchData()
+      })
+      .catch(err => alert('Gagal import: ' + (err.response?.data?.message || err.message)))
+      .finally(() => setImporting(false))
+  }
+
   const statusBadge = (status: boolean) => {
     return (
       <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium shadow-sm ${status ? 'border-emerald-200 bg-white text-emerald-700' : 'border-slate-200 bg-white text-slate-500'}`}>
@@ -224,6 +274,10 @@ export default function DataAffiliate() {
           <button onClick={openCreate}
             className="inline-flex items-center justify-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1">
             <Plus size={16} /> Generate Link
+          </button>
+          <button onClick={openImport}
+            className="inline-flex items-center justify-center gap-2 rounded-md border border-blue-300 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 shadow-sm transition hover:bg-blue-100">
+            <Upload size={16} /> Import Excel
           </button>
           <button onClick={handleSyncKomisi} disabled={syncing}
             className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50">
@@ -430,6 +484,110 @@ export default function DataAffiliate() {
                 <button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition hover:bg-blue-700">Generate</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Import Excel Modal */}
+      {showImport && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-4" onClick={() => setShowImport(false)}>
+          <div className="w-full max-w-2xl rounded-t-xl bg-white p-5 shadow-xl sm:rounded-xl sm:p-6" onClick={e => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileSpreadsheet size={20} className="text-emerald-600" />
+                <h2 className="text-lg font-bold text-gray-800">Import Data Affiliate</h2>
+              </div>
+              <button onClick={() => setShowImport(false)} className="rounded-lg p-1 hover:bg-slate-100"><X size={20} /></button>
+            </div>
+
+            {/* File upload */}
+            <div className="mb-4">
+              <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center transition hover:border-emerald-400 hover:bg-emerald-50/40">
+                <input type="file" accept=".xlsx,.xls,.csv" className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleImportFile(f) }} />
+                <Upload size={24} className="text-emerald-500" />
+                <p className="text-sm font-medium text-slate-700">
+                  {importFile ? importFile.name : 'Pilih file Excel (kolom Nama & Email)'}
+                </p>
+                <p className="text-[11px] text-slate-400">Format: Nama | Email — akun role Affiliate dibuat otomatis dengan password acak</p>
+              </label>
+            </div>
+
+            {/* Preview */}
+            {importRows.length > 0 && (
+              <div className="mb-4 max-h-56 overflow-y-auto rounded-lg border border-slate-200">
+                <table className="w-full text-left text-sm text-slate-700">
+                  <thead className="sticky top-0 bg-slate-50 text-xs text-slate-500">
+                    <tr>
+                      <th className="border-b border-slate-200 px-3 py-2 font-medium">#</th>
+                      <th className="border-b border-slate-200 px-3 py-2 font-medium">Nama</th>
+                      <th className="border-b border-slate-200 px-3 py-2 font-medium">Email</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {importRows.map((r, i) => (
+                      <tr key={i} className={i % 2 ? 'bg-white' : 'bg-slate-50/50'}>
+                        <td className="border-b border-slate-100 px-3 py-1.5 text-slate-400">{i + 1}</td>
+                        <td className="border-b border-slate-100 px-3 py-1.5 font-medium text-slate-800">{r.nama}</td>
+                        <td className="border-b border-slate-100 px-3 py-1.5 text-slate-600">{r.email}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Result */}
+            {importResult && (
+              <div className="mb-4 rounded-lg border border-slate-200">
+                <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
+                  {importResult.failed === 0
+                    ? <CheckCircle size={16} className="text-emerald-500" />
+                    : <X size={16} className="text-red-500" />}
+                  <p className="text-sm font-semibold text-slate-800">
+                    {importResult.success} berhasil, {importResult.failed} gagal
+                  </p>
+                </div>
+                {importResult.created.length > 0 && (
+                  <div className="max-h-40 overflow-y-auto">
+                    <table className="w-full text-left text-sm text-slate-700">
+                      <thead className="sticky top-0 bg-slate-50 text-xs text-slate-500">
+                        <tr>
+                          <th className="border-b border-slate-100 px-4 py-2 font-medium">Nama</th>
+                          <th className="border-b border-slate-100 px-4 py-2 font-medium">Email</th>
+                          <th className="border-b border-slate-100 px-4 py-2 font-medium">Password</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importResult.created.map((c, i) => (
+                          <tr key={i}>
+                            <td className="border-b border-slate-100 px-4 py-1.5 font-medium text-slate-800">{c.nama}</td>
+                            <td className="border-b border-slate-100 px-4 py-1.5 text-slate-600">{c.email}</td>
+                            <td className="border-b border-slate-100 px-4 py-1.5"><code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-700">{c.password}</code></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                {importResult.errors.length > 0 && (
+                  <div className="max-h-32 overflow-y-auto px-4 py-2">
+                    {importResult.errors.map((err, i) => (
+                      <p key={i} className="py-0.5 text-xs text-red-600">Baris {err.row}: {err.message}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button type="button" onClick={() => setShowImport(false)} className="rounded-lg px-4 py-2 text-sm text-slate-600 transition hover:bg-slate-100">Tutup</button>
+              <button type="button" onClick={handleImportSubmit} disabled={importRows.length === 0 || importing}
+                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-50">
+                {importing && <Loader2 size={14} className="animate-spin" />}
+                Import {importRows.length > 0 ? `(${importRows.length})` : ''}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -767,6 +767,16 @@ class AdminCabangController extends Controller
         ]);
     }
 
+    private static function batchLearningStarted($batchId): bool
+    {
+        if (!$batchId) return false;
+
+        return \App\Models\JadwalLevel::where('batch_id', $batchId)
+            ->where('status', '!=', 'ditolak')
+            ->whereDate('tanggal_mulai', '<=', now()->toDateString())
+            ->exists();
+    }
+
     public function kandidat(Request $request)
     {
         $batchIds = $this->getBranchBatchIds();
@@ -813,6 +823,8 @@ class AdminCabangController extends Controller
                 $statusKandidat = 'Calon Kandidat';
                 if ($siswa && $siswa->level_status && in_array('Keluar', $siswa->level_status)) {
                     $statusKandidat = 'Mengundurkan Diri';
+                } elseif (self::batchLearningStarted($p->batch_id)) {
+                    $statusKandidat = 'Proses Belajar';
                 } else {
                     $kategoriItems = $p->product?->kategori_items ?? [];
                     $pembayaranItems = $p->pembayaranItems ?? collect();
@@ -929,9 +941,14 @@ class AdminCabangController extends Controller
         return response()->json([
             'batches' => $batches,
             'allBatches' => $allBatches,
-            'totalBatch' => count($allBatches),
+            'totalBatch' => collect($batches)->where('id', '!=', 0)->count(),
             'totalKandidat' => $pendaftar->count(),
-            'kandidatAktif' => $pendaftar->where('status_pendaftaran', 'disetujui')->count(),
+            'kandidatAktif' => collect($batches)->flatMap(fn($b) => $b['kandidat'] ?? [])
+                ->filter(fn($k) => !($k['is_cuti'] ?? false)
+                    && ($k['status_kandidat'] ?? null) !== 'Mengundurkan Diri'
+                    && ($k['status_kandidat'] ?? null) !== 'Lulus Pendidikan'
+                    && ($k['status_akademik'] ?? 'AKTIF') !== 'NONAKTIF')
+                ->count(),
             'cabangs' => $cabangs,
             'batchOptions' => $batchOptions,
         ]);
@@ -1540,7 +1557,16 @@ class AdminCabangController extends Controller
             ->orderBy('nama_batch')
             ->get(['id', 'nama_batch', 'warna']);
 
-        $levels = [1, 2, 3, 4];
+        $levels = KelasSensei::whereIn('batch_id', $batchIds)
+            ->where('status', 'aktif')
+            ->when($request->filled('cabang_id'), fn ($q) => $q->whereHas('batchRelasi', fn ($q2) => $q2->where('cabang_id', $request->cabang_id)))
+            ->when($request->filled('batch_id'), fn ($q) => $q->where('batch_id', $request->batch_id))
+            ->select('level')
+            ->distinct()
+            ->orderBy('level')
+            ->pluck('level')
+            ->map(fn ($l) => (int) $l)
+            ->values();
 
         $selectedKelasSensei = null;
         if ($request->filled('kelas_sensei_id')) {
@@ -1579,11 +1605,11 @@ class AdminCabangController extends Controller
                 $query->where('batch_id', $request->batch_id);
             }
             if ($request->filled('level')) {
-                $query->where('level', $request->level);
+                $query->whereHas('absensi.kelasSensei', fn ($q) => $q->where('level', $request->level));
             }
         }
 
-        $rekap = $query->with(['kelasRelasi', 'absensi' => function ($q) use ($start_date, $end_date) {
+        $rekap = $query->with(['kelasRelasi', 'absensi.kelasSensei', 'absensi' => function ($q) use ($start_date, $end_date) {
             $q->whereBetween('tanggal', [$start_date, $end_date]);
         }])->get()->map(function ($siswa) use ($selectedNamaKelas) {
             $hadir = $siswa->absensi->where('status', 'HADIR')->count();
@@ -1593,10 +1619,12 @@ class AdminCabangController extends Controller
             $alpa = $siswa->absensi->where('status', 'ALPA')->count();
             $totalHadir = $hadir + $terlambat;
             $total = $siswa->absensi->count();
+            $level = $siswa->absensi->map(fn ($a) => $a->kelasSensei?->level)->filter()->last() ?? $siswa->level;
 
             return [
                 'id' => $siswa->id,
                 'nama' => $siswa->nama,
+                'level' => $level,
                 'kelas' => $selectedNamaKelas ?? $siswa->kelasRelasi->nama_kelas ?? $siswa->kelas,
                 'batch' => $siswa->batchRelasi->nama_batch ?? '-',
                 'hadir' => $hadir,
@@ -1632,31 +1660,55 @@ class AdminCabangController extends Controller
             ->orderBy('level')
             ->pluck('level');
 
-        $guruUserIds = KelasSensei::whereIn('batch_id', $batchIds)
-            ->select('user_id')
-            ->distinct()
-            ->pluck('user_id');
+        $cabangId = $request->cabang_id;
+        $guruId = $request->guru_id;
+        $batchId = $request->batch_id;
+        $level = $request->level;
+        $kelasSenseiId = $request->kelas_sensei_id;
 
+        // Basis kelas yang masuk filter (cabang/batch/guru/level)
+        $ks = KelasSensei::query()->whereIn('batch_id', $batchIds)->whereNotNull('batch_id');
+        if ($batchId) {
+            $ks->where('batch_id', $batchId);
+        } elseif ($cabangId) {
+            $ks->whereHas('batchRelasi', fn ($q) => $q->where('cabang_id', $cabangId));
+        }
+        if ($guruId) {
+            $ks->where('user_id', $guruId);
+        }
+        if ($level) {
+            $ks->where('level', $level);
+        }
+
+        $levels = (clone $ks)->select('level')->distinct()->orderBy('level')->pluck('level');
+
+        $guruUserIds = (clone $ks)->select('user_id')->distinct()->pluck('user_id');
         $gurus = User::whereIn('id', $guruUserIds)
             ->orderBy('name')
             ->get(['id', 'name']);
 
-        $level = $request->level;
-        $guruId = $request->guru_id;
-        $batchId = $request->batch_id;
-        $kelasSenseiId = $request->kelas_sensei_id;
-
-        $batchList = collect();
-        if ($level && $guruId) {
-            $filteredBatchIds = KelasSensei::whereIn('batch_id', $batchIds)
-                ->where('level', $level)
-                ->where('user_id', $guruId)
-                ->whereNotNull('batch_id')
-                ->pluck('batch_id');
-            $batchList = Batch::whereIn('id', $filteredBatchIds)
-                ->orderBy('nama_batch')
-                ->get(['id', 'nama_batch']);
+        $batchQuery = Batch::whereIn('id', $batchIds)->orderBy('nama_batch');
+        if ($cabangId) {
+            $batchQuery->where('cabang_id', $cabangId);
         }
+        if ($guruId || $level) {
+            $batchKs = KelasSensei::query()->whereIn('batch_id', $batchIds)->whereNotNull('batch_id');
+            if ($cabangId) {
+                $batchKs->whereHas('batchRelasi', fn ($q) => $q->where('cabang_id', $cabangId));
+            }
+            if ($guruId) {
+                $batchKs->where('user_id', $guruId);
+            }
+            if ($level) {
+                $batchKs->where('level', $level);
+            }
+            $batchQuery->whereIn('id', $batchKs->pluck('batch_id'));
+        }
+        $batchList = $batchQuery->get(['id', 'nama_batch']);
+
+        $cabangs = \App\Models\Cabang::whereIn('id', $this->getBranchIds())
+            ->orderBy('nama_cabang')
+            ->get(['id', 'nama_cabang']);
 
         $kelas = null;
         if ($kelasSenseiId) {
@@ -1729,18 +1781,20 @@ class AdminCabangController extends Controller
             'success' => true,
             'levels' => $levels,
             'gurus' => $gurus,
+            'cabangs' => $cabangs,
             'level' => $level,
-            'guruId' => $guruId,
-            'batchId' => $batchId,
-            'batchList' => $batchList,
+            'guru_id' => $guruId,
+            'batch_id' => $batchId,
+            'cabang_id' => $cabangId,
+            'batch_list' => $batchList,
             'kelas' => $kelas,
             'students' => $students,
             'categories' => $categories,
             'days' => $days,
-            'assessmentCheck' => $assessmentCheck,
-            'weekStart' => $weekStart->toDateString(),
-            'prevWeek' => $prevWeek,
-            'nextWeek' => $nextWeek,
+            'assessment_check' => $assessmentCheck,
+            'week_start' => $weekStart->toDateString(),
+            'prev_week' => $prevWeek,
+            'next_week' => $nextWeek,
         ]);
     }
 

@@ -418,6 +418,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/pembayaran-item/{pendaftarId}/set-lunas', [BiayaController::class, 'setLunas']);
     Route::post('/pembayaran-item/{pendaftarId}/batal-lunas', [BiayaController::class, 'setBatalLunas']);
     Route::get('/affiliate-dashboard', [AffiliateDashboardController::class, 'index']);
+    Route::post('/affiliates/import', [AffiliateLinkController::class, 'importAffiliates']);
     Route::post('/affiliate/my-links', [AffiliateLinkController::class, 'myLinks']);
     Route::get('/affiliate/my-links', [AffiliateLinkController::class, 'myLinksIndex']);
     Route::get('/affiliate/products-aktif', [AffiliateLinkController::class, 'availableProducts']);

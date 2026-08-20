@@ -726,6 +726,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
     const counts: Record<string, number> = {
       'Calon Kandidat': 0,
       'Kandidat Aktif': 0,
+      'Proses Belajar': 0,
       'Mengundurkan Diri': 0,
       'Lulus Pendidikan': 0,
     }
@@ -737,8 +738,13 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
       if (k.status_akademik === 'NONAKTIF') nonaktif++
       if (k.is_cuti) cuti++
     }
-    const prosesBelajar = kandidatList.filter(k => !k.is_cuti && k.status_kandidat !== 'Mengundurkan Diri').length
-    return { ...counts, ProsesBelajar: prosesBelajar, Nonaktif: nonaktif, Cuti: cuti } as Record<string, number>
+    const kandidatActive = kandidatList.filter(k =>
+      !k.is_cuti &&
+      k.status_kandidat !== 'Mengundurkan Diri' &&
+      k.status_kandidat !== 'Lulus Pendidikan' &&
+      k.status_akademik !== 'NONAKTIF'
+    ).length
+    return { ...counts, KandidatActive: kandidatActive, Nonaktif: nonaktif, Cuti: cuti } as Record<string, number>
   }, [kandidatList])
 
   const totalPages = Math.max(1, Math.ceil(filteredList.length / perPage))
@@ -826,7 +832,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
         ukuran_baju: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
         status_pernikahan: ['Belum Nikah', 'Nikah', 'Cerai'],
         pendidikan_terakhir: ['SD/Sederajat', 'SMP/Sederajat', 'SMA/Sederajat', 'D1-D3', 'S1', 'S2'],
-        status_kandidat: ['Calon Kandidat', 'Kandidat Aktif', 'Mengundurkan Diri', 'Lulus Pendidikan'],
+        status_kandidat: ['Calon Kandidat', 'Kandidat Aktif', 'Proses Belajar', 'Mengundurkan Diri', 'Lulus Pendidikan'],
       }
       return (
         <select className={selectCls} value={val} onChange={e => updateField(field, e.target.value)}>
@@ -1365,8 +1371,9 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
         {[
           { label: 'Total Batch', value: totalBatch },
           { label: 'Total Kandidat', value: totalKandidat },
+          { label: 'Kandidat Active', value: statusCounts.KandidatActive },
           { label: 'Calon Kandidat', value: statusCounts['Calon Kandidat'] },
-          { label: 'Proses Belajar', value: statusCounts.ProsesBelajar },
+          { label: 'Proses Belajar', value: statusCounts['Proses Belajar'] },
           { label: 'Mengundurkan Diri', value: statusCounts['Mengundurkan Diri'] },
           { label: 'Lulus Pendidikan', value: statusCounts['Lulus Pendidikan'] },
           { label: 'Cuti', value: statusCounts.Cuti },
@@ -1762,11 +1769,12 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                             ) : (() => {
                               const sk = k.status_kandidat || 'Calon Kandidat'
                               const skMap: Record<string, { bg: string; border: string; text: string; dot: string }> = {
-                                'Calon Kandidat': { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', dot: 'bg-blue-500' },
-                                'Kandidat Aktif': { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' },
-                                'Mengundurkan Diri': { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-600', dot: 'bg-red-500' },
-                                'Lulus Pendidikan': { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' },
-                              }
+                                  'Calon Kandidat': { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', dot: 'bg-blue-500' },
+                                  'Kandidat Aktif': { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+                                  'Proses Belajar': { bg: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-700', dot: 'bg-indigo-500' },
+                                  'Mengundurkan Diri': { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-600', dot: 'bg-red-500' },
+                                  'Lulus Pendidikan': { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+                                }
                               const skStyle = skMap[sk] || skMap['Calon Kandidat']
                               return (
                                 <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${skStyle.bg} ${skStyle.border} ${skStyle.text}`}>
@@ -1863,7 +1871,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                                     )}
                                     <div className="my-1 border-t border-slate-100" />
                                     <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Status Kandidat</p>
-                                    {['Calon Kandidat', 'Kandidat Aktif', 'Mengundurkan Diri', 'Lulus Pendidikan'].map((st) => (
+                                    {['Calon Kandidat', 'Kandidat Aktif', 'Proses Belajar', 'Mengundurkan Diri', 'Lulus Pendidikan'].map((st) => (
                                       <button key={st} onClick={() => {
                                         setOpenActionId(null)
                                         Swal.fire({
@@ -2131,6 +2139,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                   const skMap: Record<string, { bg: string; border: string; text: string; dot: string }> = {
                     'Calon Kandidat': { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', dot: 'bg-blue-500' },
                     'Kandidat Aktif': { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+                    'Proses Belajar': { bg: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-700', dot: 'bg-indigo-500' },
                     'Mengundurkan Diri': { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-600', dot: 'bg-red-500' },
                     'Lulus Pendidikan': { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' },
                   }
