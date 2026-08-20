@@ -10,6 +10,7 @@ interface Item {
   email: string
   no_registrasi: string
   status: string
+  status_kandidat: string | null
   komisi_status: string
   komisi_jumlah: number
 }
@@ -18,6 +19,8 @@ interface Batch {
   batch_id: number
   batch_nama: string
   total: number
+  total_komisi: number
+  total_komisi_paid: number
   items: Item[]
 }
 
@@ -103,8 +106,13 @@ function CabangCard({ cabang }: { cabang: Cabang }) {
         <div className="divide-y divide-slate-100">
           {cabang.batches.map(batch => (
             <div key={batch.batch_id} className="p-4">
-              <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Batch {batch.batch_nama} &middot; {batch.total} kandidat
+              <h4 className="mb-3 flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <span>Batch {batch.batch_nama} &middot; {batch.total} kandidat</span>
+                {batch.total_komisi > 0 && (
+                  <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold normal-case tracking-normal text-emerald-700">
+                    Komisi: Rp {batch.total_komisi.toLocaleString('id-ID')}
+                  </span>
+                )}
               </h4>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[800px] border-collapse text-left text-sm text-slate-700">
@@ -114,6 +122,7 @@ function CabangCard({ cabang }: { cabang: Cabang }) {
                       <th className="border border-slate-200 px-3 py-2 font-medium">Nama Kandidat</th>
                       <th className="border border-slate-200 px-3 py-2 font-medium hidden sm:table-cell">Email</th>
                       <th className="border border-slate-200 px-3 py-2 font-medium">Pasukan</th>
+                      <th className="border border-slate-200 px-3 py-2 text-center font-medium">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -126,6 +135,22 @@ function CabangCard({ cabang }: { cabang: Cabang }) {
                         </td>
                         <td className="border border-slate-200 px-3 py-2 text-sm text-slate-600 hidden sm:table-cell">{item.email}</td>
                         <td className="border border-slate-200 px-3 py-2 text-sm text-slate-600">{item.pasukan}</td>
+                        <td className="border border-slate-200 px-3 py-2 text-center">
+                          {item.status_kandidat === 'Mengundurkan Diri' ? (
+                            <span className="inline-flex rounded-full bg-red-50 px-2.5 py-0.5 text-[10px] font-semibold text-red-700">
+                              Mengundurkan Diri
+                            </span>
+                          ) : (
+                            <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
+                              item.status === 'disetujui' ? 'bg-emerald-50 text-emerald-700' :
+                              item.status === 'ditolak' ? 'bg-red-50 text-red-700' :
+                              'bg-amber-50 text-amber-700'
+                            }`}>
+                              {item.status === 'disetujui' ? 'Disetujui' :
+                               item.status === 'ditolak' ? 'Ditolak' : 'Pending'}
+                            </span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

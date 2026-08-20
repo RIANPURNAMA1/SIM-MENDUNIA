@@ -12,6 +12,7 @@ const statusBadge = (s: string) => {
   const map: Record<string, string> = {
     pending: 'Pending', disetujui: 'Disetujui', ditolak: 'Ditolak',
     unpaid: 'Belum Bayar', processing: 'Proses', verified: 'Terverifikasi',
+    ditangguhkan: 'Ditangguhkan',
   }
   return map[s] || s
 }
@@ -201,7 +202,7 @@ export default function PendaftarDetail() {
                 proses: { status_pembayaran: 'processing', status_pendaftaran: 'disetujui' },
                 selesai: { status_pembayaran: 'verified', status_pendaftaran: 'disetujui' },
                 batal: { status_pembayaran: 'ditolak', status_pendaftaran: 'ditolak' },
-                refund: { status_pembayaran: 'refund', status_pendaftaran: 'ditolak' },
+                ditangguhkan: { status_pembayaran: 'ditangguhkan', status_pendaftaran: 'pending' },
               }
               const confirmMessages: Record<string, { icon: any; title: string; text: string; confirmText: string }> = {
                 waiting_payment: { icon: 'question', title: 'Atur ke Menunggu Pembayaran?', text: 'Status pendaftar akan diubah menjadi menunggu pembayaran.', confirmText: 'Ya, Atur' },
@@ -209,7 +210,7 @@ export default function PendaftarDetail() {
                 proses: { icon: 'question', title: 'Proses Pendaftar?', text: 'Pendaftar akan diproses. Status pendaftaran disetujui.', confirmText: 'Ya, Proses' },
                 selesai: { icon: 'question', title: 'Selesaikan?', text: 'Pendaftar akan ditandai selesai (lunas).', confirmText: 'Ya, Selesai' },
                 batal: { icon: 'warning', title: 'Batalkan Pendaftar?', text: 'Pendaftar akan dibatalkan. Tindakan ini dapat dibatalkan.', confirmText: 'Ya, Batalkan' },
-                refund: { icon: 'warning', title: 'Refund?', text: 'Status diubah menjadi refund.', confirmText: 'Ya, Refund' },
+                ditangguhkan: { icon: 'warning', title: 'Tangguhkan Pendaftar?', text: 'Pendaftar akan ditangguhkan (uang belum masuk).', confirmText: 'Ya, Tangguhkan' },
               }
               const target = statusMap[val]
               if (!target) return
@@ -242,7 +243,7 @@ export default function PendaftarDetail() {
             <option value="proses">Proses</option>
             <option value="selesai">Selesai</option>
             <option value="batal">Batal</option>
-            <option value="refund">Refund</option>
+            <option value="ditangguhkan">Ditangguhkan</option>
           </select>
         </div>
       </div>

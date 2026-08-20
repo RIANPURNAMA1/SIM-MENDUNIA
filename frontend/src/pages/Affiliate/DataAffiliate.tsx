@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link2, Plus, Trash2, Copy, CheckCircle, X, ExternalLink, Users, User, UserCheck, UserPlus, Eye, ChevronDown, ChevronRight, MapPin, Landmark } from 'lucide-react'
+import { Link2, Plus, Trash2, Copy, CheckCircle, X, ExternalLink, Users, User, UserCheck, UserPlus, Eye, ChevronDown, ChevronRight, MapPin, Landmark, RefreshCw } from 'lucide-react'
 import { affiliateLinkApi, productApi } from '../../services/api'
 import api from '../../services/api'
 
@@ -102,6 +102,7 @@ export default function DataAffiliate() {
   const [detailAffiliate, setDetailAffiliate] = useState<AffiliateDetail | null>(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [expandedLinks, setExpandedLinks] = useState<Record<number, boolean>>({})
+  const [syncing, setSyncing] = useState(false)
 
   useEffect(() => {
     fetchData()
@@ -167,6 +168,18 @@ export default function DataAffiliate() {
 
   const linkBase = `${window.location.origin}/daftar/`
 
+  function handleSyncKomisi() {
+    if (!confirm('Hitung ulang komisi affiliate untuk semua kandidat yang sudah lunas?')) return
+    setSyncing(true)
+    api.post('/recalculate-all-komisi')
+      .then(res => {
+        alert(res.data?.message || 'Sync berhasil')
+        fetchData()
+      })
+      .catch(() => alert('Gagal sync komisi'))
+      .finally(() => setSyncing(false))
+  }
+
   const statusBadge = (status: boolean) => {
     return (
       <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium shadow-sm ${status ? 'border-emerald-200 bg-white text-emerald-700' : 'border-slate-200 bg-white text-slate-500'}`}>
@@ -211,6 +224,10 @@ export default function DataAffiliate() {
           <button onClick={openCreate}
             className="inline-flex items-center justify-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1">
             <Plus size={16} /> Generate Link
+          </button>
+          <button onClick={handleSyncKomisi} disabled={syncing}
+            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50">
+            <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} /> Sync Komisi
           </button>
         </div>
       </div>
@@ -420,7 +437,7 @@ export default function DataAffiliate() {
       {/* Detail Modal */}
       {detailAffiliate && (
         <div className="fixed inset-0 z-50 flex bg-black/40 sm:items-center sm:justify-center sm:p-4" onClick={() => setDetailAffiliate(null)}>
-          <div className="h-full w-full overflow-y-auto bg-white sm:h-auto sm:max-w-6xl sm:rounded-xl sm:shadow-xl" onClick={e => e.stopPropagation()}>
+          <div className="h-full w-full overflow-y-auto bg-white sm:max-h-[calc(100vh-2rem)] sm:max-w-6xl sm:overflow-y-auto sm:rounded-xl sm:shadow-xl" onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 sm:px-5 sm:py-4">
               <div className="flex items-center gap-3">

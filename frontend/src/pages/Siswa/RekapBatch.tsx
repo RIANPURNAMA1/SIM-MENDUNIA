@@ -71,6 +71,8 @@ export default function RekapBatch() {
   const isAdminCabang = location.pathname.startsWith('/admin-cabang')
   const [data, setData] = useState<BatchRekap[]>([])
   const [loading, setLoading] = useState(true)
+  const [filterCabang, setFilterCabang] = useState('')
+  const [cabangList, setCabangList] = useState<{ id: number; nama_cabang: string }[]>([])
   const [filterBatch, setFilterBatch] = useState('')
   const [showBatchDropdown, setShowBatchDropdown] = useState(false)
   const [dateFrom, setDateFrom] = useState('')
@@ -82,12 +84,15 @@ export default function RekapBatch() {
   const [batchPages, setBatchPages] = useState<Record<number, number>>({})
   const batchPerPage = 10
 
-  useEffect(() => {
+  const fetchData = (cabangId?: string) => {
+    setLoading(true)
     const endpoint = isAdminCabang ? '/admin-cabang/rekap-per-batch' : '/rekap-per-batch'
     const kategoriEndpoint = isAdminCabang ? adminCabangApi.biayaKategori() : api.get('/biaya-kategori-flat')
+    const params: Record<string, string> = {}
+    if (cabangId) params.cabang_id = cabangId
 
     Promise.all([
-      api.get(endpoint),
+      api.get(endpoint, { params }),
       kategoriEndpoint,
       api.get('/products'),
       api.get('/payment-settings'),
@@ -97,8 +102,11 @@ export default function RekapBatch() {
       setKategoris(katRes.data || [])
       setProducts(prodRes.data || [])
       setUniqueCodeOp(settingsRes.data?.unique_code_operation?.value ?? 'add')
+      if (res.data.cabang_list) setCabangList(res.data.cabang_list)
     }).catch(() => {}).finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(() => { fetchData() }, [])
 
   const filteredBatches = useMemo(() => {
     return data
@@ -423,6 +431,19 @@ export default function RekapBatch() {
 
       <div className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+          {!isAdminCabang && (
+          <select
+            value={filterCabang}
+            onChange={(e) => { setFilterCabang(e.target.value); setFilterBatch(''); setCollapsedBatches(new Set()); fetchData(e.target.value); }}
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="">Semua Cabang</option>
+            {cabangList.map(c => (
+              <option key={c.id} value={String(c.id)}>{c.nama_cabang}</option>
+            ))}
+          </select>
+          )}
+
           <div className="relative">
             <button onClick={() => setShowBatchDropdown(!showBatchDropdown)}
               className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
@@ -461,7 +482,7 @@ export default function RekapBatch() {
               className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
           </div>
           <button
-            onClick={() => { setFilterBatch(''); setDateFrom(''); setDateTo(''); setCollapsedBatches(new Set()) }}
+            onClick={() => { setFilterCabang(''); setFilterBatch(''); setDateFrom(''); setDateTo(''); setCollapsedBatches(new Set()); fetchData(); }}
             className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
           >
             <RotateCcw size={16} />

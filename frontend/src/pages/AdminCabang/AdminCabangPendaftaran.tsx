@@ -95,7 +95,7 @@ export default function AdminCabangPendaftaran() {
   }
 
   function combinedStatus(p: PendaftarItem) {
-    if (p.status_pembayaran === 'refund') return { bg: 'bg-purple-100 text-purple-700 border-purple-200', label: 'Refund' }
+    if (p.status_pembayaran === 'ditangguhkan') return { bg: 'bg-orange-100 text-orange-700 border-orange-200', label: 'Ditangguhkan' }
     if (p.status_pembayaran === 'verified') return { bg: 'bg-emerald-100 text-emerald-700 border-emerald-200', label: 'Selesai' }
     if (p.status_pendaftaran === 'ditolak' || p.status_pembayaran === 'ditolak') return { bg: 'bg-red-100 text-red-700 border-red-200', label: 'Batal' }
     if (p.status_pembayaran === 'processing' && p.status_pendaftaran === 'pending') return { bg: 'bg-amber-100 text-amber-700 border-amber-200', label: 'Pembayaran di Konfirmasi' }
@@ -248,8 +248,8 @@ export default function AdminCabangPendaftaran() {
     total: data.length,
     proses: data.filter(p => p.status_pembayaran === 'unpaid' || p.status_pembayaran === 'processing').length,
     selesai: data.filter(p => p.status_pembayaran === 'verified').length,
-    batal: data.filter(p => p.status_pendaftaran === 'ditolak' && p.status_pembayaran !== 'refund').length,
-    refund: data.filter(p => p.status_pembayaran === 'refund').length,
+    batal: data.filter(p => p.status_pendaftaran === 'ditolak' && p.status_pembayaran !== 'ditangguhkan').length,
+    ditangguhkan: data.filter(p => p.status_pembayaran === 'ditangguhkan').length,
   }), [data])
 
   if (loading) {
@@ -285,7 +285,7 @@ export default function AdminCabangPendaftaran() {
           { label: 'Proses', value: stats.proses },
           { label: 'Selesai', value: stats.selesai },
           { label: 'Batal', value: stats.batal },
-          { label: 'Refund', value: stats.refund },
+          { label: 'Ditangguhkan', value: stats.ditangguhkan },
         ].map(s => (
           <div key={s.label} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
             <p className="text-xs text-slate-500 font-medium">{s.label}</p>
@@ -313,7 +313,7 @@ export default function AdminCabangPendaftaran() {
             <option value="proses">Proses</option>
             <option value="selesai">Selesai</option>
             <option value="batal">Batal</option>
-            <option value="refund">Refund</option>
+            <option value="ditangguhkan">Ditangguhkan</option>
           </select>
           <input type="date" value={filterDateFrom} onChange={e => { setFilterDateFrom(e.target.value); table.setPageIndex(0) }}
             className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />

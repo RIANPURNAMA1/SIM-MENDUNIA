@@ -19,6 +19,7 @@ const LEVEL_BADGE: Record<string, string> = {
 };
 
 export default function SiswaPage() {
+  const isCabang = window.location.pathname.startsWith('/admin-cabang');
   const [data, setData] = useState<Siswa[]>([]);
   const [kelasList, setKelasList] = useState<{ id: number; nama_kelas: string }[]>([]);
   const [batchList, setBatchList] = useState<{ id: number; nama_batch: string; warna: string | null }[]>([]);
@@ -28,6 +29,8 @@ export default function SiswaPage() {
   const [page, setPage] = useState(1);
 
   const [editingLevel, setEditingLevel] = useState<{ siswaId: number; level: number } | null>(null);
+  const [filterCabang, setFilterCabang] = useState("");
+  const [cabangList, setCabangList] = useState<{ id: number; nama_cabang: string }[]>([]);
   const [filterBatch, setFilterBatch] = useState("");
   const [showBatchDropdown, setShowBatchDropdown] = useState(false);
   const [filterStatus, setFilterStatus] = useState("");
@@ -69,17 +72,18 @@ export default function SiswaPage() {
     setLoading(true);
     try {
       const params: Record<string, string | number | undefined> = {};
+      if (filterCabang) params.cabang_id = filterCabang;
       if (filterBatch) params.batch_id = filterBatch;
       if (filterStatus) params.status = filterStatus;
       if (filterStatusKandidat) params.status_kandidat = filterStatusKandidat;
       if (filterSearch) params.search = filterSearch;
       params.page = page;
       params.per_page = 25;
-      const isCabang = window.location.pathname.startsWith('/admin-cabang');
       const res = isCabang ? await adminCabangApi.siswa(params) : await siswaApi.list(params);
       setData(res.data.data || []);
       setKelasList(res.data.kelas_list || []);
       setBatchList(res.data.batch_list || []);
+      setCabangList(res.data.cabang_list || []);
       setShifts(res.data.shifts || []);
       setPagination(res.data.pagination || null);
     } catch (err) {
@@ -87,11 +91,11 @@ export default function SiswaPage() {
     } finally {
       setLoading(false);
     }
-  }, [filterBatch, filterStatus, filterStatusKandidat, filterSearch, page]);
+  }, [filterCabang, filterBatch, filterStatus, filterStatusKandidat, filterSearch, page]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  useEffect(() => { setPage(1); }, [filterBatch, filterStatus, filterStatusKandidat, filterSearch]);
+  useEffect(() => { setPage(1); }, [filterCabang, filterBatch, filterStatus, filterStatusKandidat, filterSearch]);
 
   const toggleSelect = (id: number) => {
     setSelectedIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev]);
@@ -107,7 +111,7 @@ export default function SiswaPage() {
   };
 
   const resetFilter = () => {
-    setFilterBatch(""); setFilterStatus(""); setFilterStatusKandidat(""); setFilterSearch(""); setPage(1);
+    setFilterCabang(""); setFilterBatch(""); setFilterStatus(""); setFilterStatusKandidat(""); setFilterSearch(""); setPage(1);
   };
 
   const fotoUrl = (s: Siswa) => {
@@ -373,6 +377,19 @@ export default function SiswaPage() {
       {/* Filter */}
       <div className="mb-4 rounded-lg p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+          {!isCabang && (
+          <select
+            value={filterCabang}
+            onChange={(e) => { setFilterCabang(e.target.value); setFilterBatch(''); setPage(1); }}
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="">Semua Cabang</option>
+            {cabangList.map(c => (
+              <option key={c.id} value={String(c.id)}>{c.nama_cabang}</option>
+            ))}
+          </select>
+          )}
+
           <div className="relative">
             <button onClick={() => setShowBatchDropdown(!showBatchDropdown)}
               className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">

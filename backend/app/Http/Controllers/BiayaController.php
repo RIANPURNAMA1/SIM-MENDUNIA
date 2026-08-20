@@ -352,6 +352,13 @@ class BiayaController extends Controller
             }
         }
 
+        if ($pendaftar->status_pembayaran !== 'verified') {
+            $pendaftar->update(['status_pembayaran' => 'verified']);
+        }
+
+        // Trigger affiliate commission check
+        \App\Http\Controllers\PendaftaranController::cekDanCatatKomisiAffiliate($pendaftar->fresh());
+
         return response()->json([
             'status' => 'success',
             'message' => "{$saved} kategori berhasil di-set lunas",

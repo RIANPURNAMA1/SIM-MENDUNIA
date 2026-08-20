@@ -26,16 +26,17 @@ export default function RekapSiswaPage() {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
 
-  const fetchData = async () => {
+  const fetchData = async (cabangOverride?: string) => {
     setLoading(true);
     try {
+      const cabangVal = cabangOverride !== undefined ? cabangOverride : filterCabang;
       const params: Record<string, string | number | undefined> = {
         start_date: startDate,
         end_date: endDate,
       };
       if (filterBatch) params.batch_id = filterBatch;
       if (filterLevel) params.level = filterLevel;
-      if (filterCabang) params.cabang_id = filterCabang;
+      if (cabangVal) params.cabang_id = cabangVal;
       const res = isAdminCabang ? await adminCabangApi.rekapSiswa(params) : await absensiSiswaApi.rekap(params);
       setRekap(res.data.rekap || []);
       setBatchList(res.data.batch_list || []);
@@ -55,7 +56,7 @@ export default function RekapSiswaPage() {
     setFilterCabang(val);
     setFilterBatch("");
     setPage(1);
-    fetchData();
+    fetchData(val);
   };
 
   const handleFilter = () => {
@@ -70,6 +71,7 @@ export default function RekapSiswaPage() {
     setFilterLevel("");
     setFilterCabang("");
     setPage(1);
+    fetchData("");
   };
 
   const totals = rekap.reduce(

@@ -366,6 +366,9 @@ export interface KelasSenseiInfo {
   sensei: string
   batch_id: number | null
   batch_nama: string
+  batch_cabang_id: number | null
+  batch_cabang_nama: string | null
+  batch_warna: string | null
 }
 
 export interface RekapJadwalShiftDayShift {
