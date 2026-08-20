@@ -797,7 +797,7 @@ class PendaftaranController extends Controller
             \Log::error('Gagal kirim email approve: ' . $e->getMessage());
         }
 
-        $this->cekDanCatatKomisiAffiliate($pendaftar->fresh());
+        self::cekDanCatatKomisiAffiliate($pendaftar->fresh());
 
         return response()->json(['message' => 'Pendaftar disetujui']);
     }
@@ -853,7 +853,7 @@ class PendaftaranController extends Controller
             );
         }
 
-        $this->cekDanCatatKomisiAffiliate($pendaftar->fresh());
+        self::cekDanCatatKomisiAffiliate($pendaftar->fresh());
 
         // Kirim notifikasi WA ke kandidat
         try {
@@ -896,7 +896,7 @@ class PendaftaranController extends Controller
         $pendaftar = \App\Models\Pendaftar::findOrFail($id);
 
         $data = $request->validate([
-            'status_pembayaran' => 'nullable|string|in:unpaid,pending,processing,verified,ditolak,refund',
+            'status_pembayaran' => 'nullable|string|in:unpaid,pending,processing,verified,ditolak,refund,ditangguhkan',
             'status_pendaftaran' => 'nullable|string|in:pending,disetujui,ditolak',
         ]);
 
@@ -991,11 +991,11 @@ class PendaftaranController extends Controller
 
             $this->normalizeKodeUnik($pendaftar->fresh());
 
-            $this->cekDanCatatKomisiAffiliate($pendaftar->fresh());
+            self::cekDanCatatKomisiAffiliate($pendaftar->fresh());
         }
 
-        // When setting to ditolak/refund, also update Pembayaran records
-        if (isset($data['status_pembayaran']) && in_array($data['status_pembayaran'], ['ditolak', 'refund'])) {
+        // When setting to ditolak/refund/ditangguhkan, also update Pembayaran records
+        if (isset($data['status_pembayaran']) && in_array($data['status_pembayaran'], ['ditolak', 'refund', 'ditangguhkan'])) {
             \App\Models\Pembayaran::where('pendaftar_id', $pendaftar->id)
                 ->whereIn('status', ['pending', 'processing'])
                 ->update(['status' => $data['status_pembayaran']]);
@@ -1038,6 +1038,7 @@ class PendaftaranController extends Controller
         $info = match (true) {
             $sp === 'verified' => ['label' => 'Pembayaran Dikonfirmasi', 'subject' => 'Pembayaran Berhasil', 'bg' => '#F0FDF4', 'color' => '#16A34A', 'border' => '#BBF7D0', 'template' => 'payment_verified', 'wa_template' => 'payment_verified_wa'],
             $sp === 'ditolak' && $sr === 'ditolak' => ['label' => 'Ditolak', 'subject' => 'Pendaftaran Ditolak', 'bg' => '#FEF2F2', 'color' => '#DC2626', 'border' => '#FECACA', 'template' => 'status_rejected', 'wa_template' => 'status_rejected_wa'],
+            $sp === 'ditangguhkan' => ['label' => 'Ditangguhkan', 'subject' => 'Pendaftaran Ditangguhkan', 'bg' => '#FFF7ED', 'color' => '#EA580C', 'border' => '#FED7AA', 'template' => 'payment_rejected', 'wa_template' => 'payment_rejected_wa'],
             $sr === 'disetujui' => ['label' => 'Disetujui', 'subject' => 'Pendaftaran Disetujui', 'bg' => '#F0FDF4', 'color' => '#16A34A', 'border' => '#BBF7D0', 'template' => 'status_approved', 'wa_template' => 'status_approved_wa'],
             $sr === 'pending' && $sp === 'processing' => ['label' => 'Menunggu Verifikasi', 'subject' => 'Status Pendaftaran Diubah', 'bg' => '#FFFBEB', 'color' => '#D97706', 'border' => '#FDE68A', 'template' => 'status_pending', 'wa_template' => 'status_pending_wa'],
             $sp === 'unpaid' => ['label' => 'Menunggu Pembayaran', 'subject' => 'Menunggu Pembayaran', 'bg' => '#FFFBEB', 'color' => '#D97706', 'border' => '#FDE68A', 'template' => 'payment_unpaid', 'wa_template' => 'payment_unpaid_wa'],
@@ -1679,7 +1680,7 @@ class PendaftaranController extends Controller
         $pendaftar->status_pembayaran = $totalDibayar >= $tagihan ? 'verified' : 'processing';
         $pendaftar->save();
 
-        $this->cekDanCatatKomisiAffiliate($pendaftar->fresh());
+        self::cekDanCatatKomisiAffiliate($pendaftar->fresh());
 
         // Kirim notifikasi WA ke kandidat (manual = langsung verified)
         try {
@@ -1952,9 +1953,13 @@ class PendaftaranController extends Controller
         ]);
     }
 
-    public function rekapPerBatch()
+    public function rekapPerBatch(Request $request)
     {
-        $batches = \App\Models\Batch::aktif()->orderByDesc('id')->get();
+        $batchQuery = \App\Models\Batch::aktif()->orderByDesc('id');
+        if ($request->filled('cabang_id')) {
+            $batchQuery->where('cabang_id', $request->cabang_id);
+        }
+        $batches = $batchQuery->get();
         $allKategoris = BiayaKategori::orderBy('urutan')->get();
 
         $result = [];
@@ -2106,6 +2111,7 @@ class PendaftaranController extends Controller
             'grand_total_biaya' => $grandBiaya,
             'grand_total_dibayar' => $grandDibayar,
             'grand_total_sisa' => $grandBiaya - $grandDibayar,
+            'cabang_list' => \App\Models\Cabang::orderBy('nama_cabang')->get(['id', 'nama_cabang']),
         ]);
     }
 
@@ -2594,7 +2600,25 @@ class PendaftaranController extends Controller
                 }
 
                 // Hapus komisi affiliate untuk kandidat yang mengundurkan diri
-                \App\Models\KomisiAffiliate::where('pendaftar_id', $pendaftar->id)->delete();
+                // then recalculate for remaining pendaftars from same affiliate+batch
+                $deletedKomisi = \App\Models\KomisiAffiliate::where('affiliate_link_id', $pendaftar->affiliate_link_id)
+                    ->whereHas('pendaftar', fn($q) => $q->where('batch_id', $pendaftar->batch_id))
+                    ->delete();
+                if ($deletedKomisi > 0 && $pendaftar->affiliate_link_id) {
+                    $remainingPendaftars = Pendaftar::where('affiliate_link_id', $pendaftar->affiliate_link_id)
+                        ->where('batch_id', $pendaftar->batch_id)
+                        ->where('id', '!=', $pendaftar->id)
+                        ->where('status_pendaftaran', '!=', 'rejected')
+                        ->where(function ($q) {
+                            $q->where('status_pembayaran', 'verified')
+                              ->orWhereHas('pembayaranItems');
+                        })
+                        ->with('product')
+                        ->get();
+                    foreach ($remainingPendaftars as $rp) {
+                        self::cekDanCatatKomisiAffiliate($rp);
+                    }
+                }
             } elseif (isset($data['status_kandidat']) && $data['status_kandidat'] !== 'Mengundurkan Diri') {
                 // When changing away from Mengundurkan Diri, restore Active status where it was Keluar
                 $levelStatus = $siswa->level_status ?? [];
@@ -3079,7 +3103,7 @@ class PendaftaranController extends Controller
         return $this->bayarInfo($pendaftar->id);
     }
 
-    private function cekDanCatatKomisiAffiliate($pendaftar)
+    public static function cekDanCatatKomisiAffiliate($pendaftar)
     {
         if (!$pendaftar->affiliate_link_id) return;
 
@@ -3122,16 +3146,20 @@ class PendaftaranController extends Controller
         foreach ($parentMap as $parentId => $info) {
             if ($info['children_count'] === 0) continue;
 
-            // Check if komisi already exists for this affiliate+batch+parent category
-            $existingForAffiliate = KomisiAffiliate::whereHas('affiliateLink', function ($q) use ($pendaftar) {
-                    $q->where('affiliate_id', $pendaftar->affiliateLink->affiliate_id);
-                })
+            // Check if komisi already exists for this affiliate_link + batch + kategori (flat per affiliate, not per pendaftar)
+            $existingKomisi = KomisiAffiliate::where('affiliate_link_id', $pendaftar->affiliate_link_id)
                 ->where('kategori_id', $parentId)
-                ->whereHas('pendaftar', function ($q) use ($pendaftar) {
-                    $q->where('batch_id', $pendaftar->batch_id);
-                })
+                ->whereHas('pendaftar', fn($q) => $q->where('batch_id', $pendaftar->batch_id))
                 ->first();
-            if ($existingForAffiliate) continue;
+            if ($existingKomisi) {
+                // Jika komisi existing ter-link ke pendaftar yang mengundurkan diri, hapus supaya bisa dihitung ulang
+                $linkedPendaftar = \App\Models\Pendaftar::with('siswa')->find($existingKomisi->pendaftar_id);
+                if ($linkedPendaftar && $linkedPendaftar->siswa && $linkedPendaftar->siswa->status_kandidat === 'Mengundurkan Diri') {
+                    $existingKomisi->delete();
+                } else {
+                    continue;
+                }
+            }
 
             // Check all children are fully paid (aggregate across parent + children)
             $allIds = array_merge([$parentId], $info['children_ids']);
@@ -3156,7 +3184,10 @@ class PendaftaranController extends Controller
                 ->where('status_pendaftaran', '!=', 'rejected')
                 ->where(function ($q) {
                     $q->whereDoesntHave('siswa')
-                      ->orWhereHas('siswa', fn($q) => $q->where('status_kandidat', '!=', 'Mengundurkan Diri'));
+                      ->orWhereHas('siswa', fn($q) => $q->where(function ($inner) {
+                          $inner->whereNull('status_kandidat')
+                                ->orWhere('status_kandidat', '!=', 'Mengundurkan Diri');
+                      }));
                 })
                 ->get();
 
@@ -3333,6 +3364,7 @@ class PendaftaranController extends Controller
         $pendaftars = \App\Models\Pendaftar::with([
             'batch.cabang',
             'affiliateLink.affiliate',
+            'siswa',
         ])
             ->whereNotNull('affiliate_link_id')
             ->orderBy('created_at', 'desc')
@@ -3344,10 +3376,21 @@ class PendaftaranController extends Controller
                 $batches = $items->groupBy(fn($p) => $p->batch_id ?? 0)
                     ->map(function ($items2, $batchId) {
                         $batch = $items2->first()->batch;
+
+                        $batchKomisi = \App\Models\KomisiAffiliate::whereHas('pendaftar', function ($q) use ($batchId) {
+                            if ((int) $batchId > 0) {
+                                $q->where('batch_id', (int) $batchId);
+                            } else {
+                                $q->whereNull('batch_id');
+                            }
+                        })->get();
+
                         return [
                             'batch_id' => $batch?->id,
                             'batch_nama' => $batch?->nama_batch ?? 'Tanpa Batch',
                             'total' => $items2->count(),
+                            'total_komisi' => (float) $batchKomisi->sum('jumlah'),
+                            'total_komisi_paid' => (float) $batchKomisi->whereIn('status', ['paid', 'cair'])->sum('jumlah'),
                             'items' => $items2->map(function ($p) {
                                 $komisi = \App\Models\KomisiAffiliate::where('pendaftar_id', $p->id)
                                     ->where('affiliate_link_id', $p->affiliate_link_id)
@@ -3360,6 +3403,7 @@ class PendaftaranController extends Controller
                                     'email' => $p->email,
                                     'no_registrasi' => $p->no_registrasi,
                                     'status' => $p->status_pendaftaran,
+                                    'status_kandidat' => $p->siswa?->status_kandidat,
                                     'komisi_status' => $komisi?->status ?? '-',
                                     'komisi_jumlah' => $komisi?->jumlah ?? 0,
                                     'cair' => $komisi ? $komisi->status === 'cair' : false,
@@ -3432,9 +3476,40 @@ class PendaftaranController extends Controller
             ->map(function ($batchItems, $batchId) {
                 $batch = $batchItems->first()->pendaftar?->batch;
                 $affiliates = $batchItems->groupBy(fn($k) => $k->affiliateLink?->affiliate_id ?: 0)
-                    ->map(function ($affItems, $affiliateId) {
+                    ->map(function ($affItems, $affiliateId) use ($batchId) {
                         $first = $affItems->first();
                         $affiliate = $first?->affiliateLink?->affiliate;
+
+                        // Semua pendaftar yang diajak affiliate ini pada batch ini
+                        $pendaftarList = \App\Models\Pendaftar::with(['product.biayaKategoris'])
+                            ->whereHas('affiliateLink', fn($q) => $q->where('affiliate_id', $affiliateId))
+                            ->where(function ($q) use ($batchId) {
+                                if ((int) $batchId > 0) {
+                                    $q->where('batch_id', (int) $batchId);
+                                } else {
+                                    $q->whereNull('batch_id');
+                                }
+                            })
+                            ->where('status_pendaftaran', '!=', 'ditolak')
+                            ->orderBy('created_at', 'desc')
+                            ->get();
+
+                        $pendaftar = $pendaftarList->map(function ($p) use ($affItems) {
+                            $komisiItem = $affItems->first(fn($k) => $k->pendaftar_id === $p->id);
+                            return [
+                                'id' => $p->id,
+                                'nama' => $p->nama,
+                                'email' => $p->email,
+                                'telepon' => $p->telepon,
+                                'product' => $p->product?->nama,
+                                'kategori' => $komisiItem?->kategori?->nama ?? $p->product?->biayaKategoris->first()?->nama,
+                                'komisi_status' => $komisiItem?->status,
+                                'komisi_jumlah' => (float) ($komisiItem?->jumlah ?? 0),
+                                'status_pendaftaran' => $p->status_pendaftaran,
+                                'created_at' => $p->created_at,
+                            ];
+                        })->values();
+
                         return [
                             'affiliate_id' => (int) $affiliateId,
                             'affiliate_nama' => $affiliate?->name ?? 'Unknown',
@@ -3460,6 +3535,7 @@ class PendaftaranController extends Controller
                                     ] : null,
                                 'kategori' => $k->kategori?->nama,
                             ])->values(),
+                            'pendaftar' => $pendaftar,
                         ];
                     })->values();
 
@@ -3479,16 +3555,21 @@ class PendaftaranController extends Controller
 
     public function recalculateAllKomisi()
     {
+        // Hapus semua komisi pending (belum dibayar) supaya bisa dihitung ulang dari awal
+        KomisiAffiliate::where('status', 'pending')->delete();
+
         $pendaftars = \App\Models\Pendaftar::whereNotNull('affiliate_link_id')
-            ->where('status_pembayaran', 'verified')
+            ->where('status_pendaftaran', '!=', 'rejected')
+            ->where(function ($q) {
+                $q->where('status_pembayaran', 'verified')
+                  ->orWhereHas('pembayaranItems');
+            })
             ->with('product')
             ->get();
 
         $count = 0;
         foreach ($pendaftars as $p) {
-            $existing = \App\Models\KomisiAffiliate::where('pendaftar_id', $p->id)->count();
-            if ($existing > 0) continue;
-            $this->cekDanCatatKomisiAffiliate($p);
+            self::cekDanCatatKomisiAffiliate($p);
             $count++;
         }
 

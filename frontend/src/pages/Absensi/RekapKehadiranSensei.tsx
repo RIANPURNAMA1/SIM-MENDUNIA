@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { BarChart3, Search, RotateCcw, X, Table, Calendar, Clock, Camera, ChevronDown } from "lucide-react";
-import { rekapKehadiranSenseiApi, batchApi, cabangApi, APP_URL } from "../../services/api";
-import type { RekapKehadiranSenseiDay, KelasSenseiInfo, Karyawan, Cabang } from "../../types";
+import { rekapKehadiranSenseiApi, APP_URL } from "../../services/api";
+import type { RekapKehadiranSenseiDay, KelasSenseiInfo, Karyawan } from "../../types";
 
 const MONTHS_IND = [
   "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -22,9 +22,12 @@ const STATUS_OPTIONS = [
 interface BatchOption {
   id: number;
   nama_batch: string;
-  cabang_id: number | null;
   warna: string | null;
-  cabang: { id: number; nama_cabang: string } | null;
+}
+
+interface CabangOption {
+  id: number;
+  nama_cabang: string;
 }
 
 export default function RekapKehadiranSenseiPage() {
@@ -40,8 +43,9 @@ export default function RekapKehadiranSenseiPage() {
   const [filterBatch, setFilterBatch] = useState("");
   const [filterLevel, setFilterLevel] = useState("");
   const [filterCabang, setFilterCabang] = useState("");
+  const [filterKelas, setFilterKelas] = useState("");
   const [batchList, setBatchList] = useState<BatchOption[]>([]);
-  const [cabangList, setCabangList] = useState<Cabang[]>([]);
+  const [cabangList, setCabangList] = useState<CabangOption[]>([]);
   const [viewMode, setViewMode] = useState<"calendar" | "table">("calendar");
   const [tableData, setTableData] = useState<any[]>([]);
   const [tableLoading, setTableLoading] = useState(false);
@@ -66,12 +70,6 @@ export default function RekapKehadiranSenseiPage() {
       .then((res) => setSenseiList(res.data.data || []))
       .catch(console.error)
       .finally(() => setSenseiLoading(false));
-    batchApi.list()
-      .then((res) => setBatchList(res.data?.data || res.data || []))
-      .catch(console.error);
-    cabangApi.list()
-      .then((res) => setCabangList(res.data?.data || []))
-      .catch(console.error);
   }, []);
 
   const fetchData = useCallback(async () => {
@@ -81,6 +79,8 @@ export default function RekapKehadiranSenseiPage() {
       const res = await rekapKehadiranSenseiApi.getRekap(selectedUserId, { bulan, tahun });
       setRekapData(res.data.data || {});
       setKelasList(res.data.kelas_list || []);
+      setBatchList(res.data.batch_list || []);
+      setCabangList(res.data.cabang_list || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -90,12 +90,20 @@ export default function RekapKehadiranSenseiPage() {
 
   useEffect(() => {
     if (selectedUserId) {
+      setFilterBatch("");
+      setFilterLevel("");
+      setFilterCabang("");
+      setFilterKelas("");
       fetchData();
     } else {
       setKelasList([]);
       setRekapData({});
+      setBatchList([]);
+      setCabangList([]);
       setFilterBatch("");
       setFilterLevel("");
+      setFilterCabang("");
+      setFilterKelas("");
     }
   }, [selectedUserId, bulan, tahun, fetchData]);
 
@@ -189,25 +197,42 @@ export default function RekapKehadiranSenseiPage() {
   };
 
   const batchOptions = filterCabang
-    ? batchList.filter((b) => b.cabang_id !== null && String(b.cabang_id) === filterCabang)
+    ? batchList.filter((b) => {
+        const kelasWithBatch = kelasList.find((k) => String(k.batch_id) === String(b.id));
+        return kelasWithBatch && String(kelasWithBatch.batch_cabang_id) === filterCabang;
+      })
     : batchList;
 
   const handleCabangChange = (val: string) => {
     setFilterCabang(val);
     setFilterBatch("");
+    setFilterLevel("");
+    setFilterKelas("");
   };
 
-  const levelOptions = Array.from(new Set(kelasList.map((k) => k.level))).sort();
+  const levelOptions = Array.from(new Set(
+    kelasList
+      .filter((k) => !filterBatch || String(k.batch_id) === filterBatch)
+      .map((k) => k.level)
+  )).sort();
+
+  const kelasOptions = kelasList.filter((k) => {
+    if (filterBatch && String(k.batch_id) !== filterBatch) return false;
+    if (filterLevel && k.level !== filterLevel) return false;
+    return true;
+  });
 
   const filteredKelasList = kelasList.filter((k) => {
     if (filterBatch && String(k.batch_id) !== filterBatch) return false;
     if (filterLevel && k.level !== filterLevel) return false;
+    if (filterKelas && String(k.id) !== filterKelas) return false;
     return true;
   });
 
   const filteredTableData = tableData.filter((r) => {
     if (filterBatch && String(r.batch_id) !== filterBatch) return false;
     if (filterLevel && String(r.level) !== filterLevel) return false;
+    if (filterKelas && String(r.id) !== filterKelas) return false;
     if (selectedUserId && r.sensei_id !== selectedUserId) return false;
     return true;
   });
@@ -309,12 +334,24 @@ export default function RekapKehadiranSenseiPage() {
           {levelOptions.length > 0 && (
             <select
               value={filterLevel}
-              onChange={(e) => setFilterLevel(e.target.value)}
+              onChange={(e) => { setFilterLevel(e.target.value); setFilterKelas(""); }}
               className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             >
               <option value="">Semua Level</option>
               {levelOptions.map((l) => (
                 <option key={l} value={l}>Level {l}</option>
+              ))}
+            </select>
+          )}
+          {kelasOptions.length > 0 && (
+            <select
+              value={filterKelas}
+              onChange={(e) => setFilterKelas(e.target.value)}
+              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="">Semua Kelas</option>
+              {kelasOptions.map((k) => (
+                <option key={k.id} value={k.id}>{k.nama_kelas}</option>
               ))}
             </select>
           )}
@@ -334,8 +371,11 @@ export default function RekapKehadiranSenseiPage() {
               setFilterBatch("");
               setFilterLevel("");
               setFilterCabang("");
+              setFilterKelas("");
               setRekapData({});
               setKelasList([]);
+              setBatchList([]);
+              setCabangList([]);
             }}
             className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
           >
@@ -435,7 +475,7 @@ export default function RekapKehadiranSenseiPage() {
                 )}
               </div>
               <div className="mt-0.5 text-[10px] text-slate-400">
-                Level {k.level} · {batchInfo?.cabang?.nama_cabang || "Tanpa Cabang"}
+                Level {k.level} · {k.batch_cabang_nama || "Tanpa Cabang"}
               </div>
               <div className="mt-1.5 flex items-center justify-between text-[10px]">
                 <span className="text-slate-500">
@@ -753,7 +793,6 @@ function BatchSelect({ options, value, onChange }: {
           <span className="flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: selected.warna || "#0E6187" }} />
             <span className="max-w-[160px] truncate">{selected.nama_batch}</span>
-            <span className="text-slate-400">· {selected.cabang?.nama_cabang || "Tanpa Cabang"}</span>
           </span>
         ) : (
           "Semua Batch"
@@ -776,7 +815,6 @@ function BatchSelect({ options, value, onChange }: {
             >
               <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: b.warna || "#0E6187" }} />
               <span className="min-w-0 flex-1 truncate">{b.nama_batch}</span>
-              <span className="shrink-0 text-[10px] font-medium text-slate-400">{b.cabang?.nama_cabang || "Tanpa Cabang"}</span>
             </button>
           ))}
         </div>

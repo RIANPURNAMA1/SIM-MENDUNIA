@@ -737,7 +737,8 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
       if (k.status_akademik === 'NONAKTIF') nonaktif++
       if (k.is_cuti) cuti++
     }
-    return { ...counts, Nonaktif: nonaktif, Cuti: cuti } as Record<string, number>
+    const prosesBelajar = kandidatList.filter(k => !k.is_cuti && k.status_kandidat !== 'Mengundurkan Diri').length
+    return { ...counts, ProsesBelajar: prosesBelajar, Nonaktif: nonaktif, Cuti: cuti } as Record<string, number>
   }, [kandidatList])
 
   const totalPages = Math.max(1, Math.ceil(filteredList.length / perPage))
@@ -1365,7 +1366,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
           { label: 'Total Batch', value: totalBatch },
           { label: 'Total Kandidat', value: totalKandidat },
           { label: 'Calon Kandidat', value: statusCounts['Calon Kandidat'] },
-          { label: 'Kandidat Aktif', value: statusCounts['Kandidat Aktif'] },
+          { label: 'Proses Belajar', value: statusCounts.ProsesBelajar },
           { label: 'Mengundurkan Diri', value: statusCounts['Mengundurkan Diri'] },
           { label: 'Lulus Pendidikan', value: statusCounts['Lulus Pendidikan'] },
           { label: 'Cuti', value: statusCounts.Cuti },

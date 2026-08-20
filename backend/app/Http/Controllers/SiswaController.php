@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AssessmentCategory;
+use App\Models\Cabang;
 use App\Models\Kelas;
 use App\Models\KelasSensei;
 use App\Models\Siswa;
@@ -60,6 +61,12 @@ class SiswaController extends Controller
         if ($request->filled('status_kandidat')) $query->where('status_kandidat', $request->status_kandidat);
         if ($request->filled('search')) $query->where('nama', 'like', '%' . $request->search . '%');
 
+        if ($request->filled('cabang_id')) {
+            $query->whereHas('batchRelasi', function ($q) use ($request) {
+                $q->where('cabang_id', $request->cabang_id);
+            });
+        }
+
         $perPage = $request->per_page ?? 25;
         $siswaPaginator = $query->with(['shift', 'kelasRelasi', 'batchRelasi'])->latest()->paginate($perPage);
         $siswa = $siswaPaginator->getCollection();
@@ -92,11 +99,17 @@ class SiswaController extends Controller
             $s->level_status = $levels;
         });
 
+        $batchQuery = \App\Models\Batch::aktif();
+        if ($request->filled('cabang_id')) {
+            $batchQuery->where('cabang_id', $request->cabang_id);
+        }
+
         return response()->json([
             'success' => true,
             'data' => $siswa,
             'kelas_list' => Kelas::aktif()->get(),
-            'batch_list' => \App\Models\Batch::aktif()->get(),
+            'batch_list' => $batchQuery->get(),
+            'cabang_list' => Cabang::orderBy('nama_cabang')->get(['id', 'nama_cabang']),
             'shifts' => Shift::aktif()->get(),
             'pagination' => [
                 'current_page' => $siswaPaginator->currentPage(),

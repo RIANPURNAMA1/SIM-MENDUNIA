@@ -117,7 +117,7 @@ const STATUS_MAP: Record<string, Record<string, string>> = {
   proses: { status_pembayaran: 'processing', status_pendaftaran: 'disetujui' },
   selesai: { status_pembayaran: 'verified', status_pendaftaran: 'disetujui' },
   batal: { status_pembayaran: 'ditolak', status_pendaftaran: 'ditolak' },
-  refund: { status_pembayaran: 'refund', status_pendaftaran: 'ditolak' },
+  ditangguhkan: { status_pembayaran: 'ditangguhkan', status_pendaftaran: 'pending' },
 }
 
 const STATUS_OPTIONS = [
@@ -126,7 +126,7 @@ const STATUS_OPTIONS = [
   { val: 'proses', label: 'Proses', icon: RefreshCw, iconColor: 'text-blue-500', bg: 'bg-blue-50 hover:bg-blue-100 border-blue-200' },
   { val: 'selesai', label: 'Pembayaran dikonfirmasi', icon: CheckCircle2, iconColor: 'text-emerald-500', bg: 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200' },
   { val: 'batal', label: 'Batal', icon: Ban, iconColor: 'text-red-500', bg: 'bg-red-50 hover:bg-red-100 border-red-200' },
-  { val: 'refund', label: 'Refund', icon: Banknote, iconColor: 'text-purple-500', bg: 'bg-purple-50 hover:bg-purple-100 border-purple-200' },
+  { val: 'ditangguhkan', label: 'Ditangguhkan', icon: Banknote, iconColor: 'text-orange-500', bg: 'bg-orange-50 hover:bg-orange-100 border-orange-200' },
 ]
 
 const STATUS_CONFIRM: Record<string, { title: string; text: string; confirmText: string; icon: 'warning' | 'info' | 'question' }> = {
@@ -135,11 +135,11 @@ const STATUS_CONFIRM: Record<string, { title: string; text: string; confirmText:
   proses: { title: 'Mulai Proses?', text: 'Pendaftaran akan diproses lebih lanjut.', confirmText: 'Ya, Proses', icon: 'question' },
   selesai: { title: 'Konfirmasi Pembayaran?', text: 'Pembayaran akan ditandai sebagai "Pembayaran dikonfirmasi".', confirmText: 'Ya, Konfirmasi', icon: 'question' },
   batal: { title: 'Batalkan Pendaftaran?', text: 'Pendaftaran akan dibatalkan. Tindakan ini tidak dapat dibatalkan.', confirmText: 'Ya, Batalkan', icon: 'warning' },
-  refund: { title: 'Proses Refund?', text: 'Pembayaran akan dikembalikan (refund). Pastikan sudah sesuai kebijakan.', confirmText: 'Ya, Refund', icon: 'warning' },
+  ditangguhkan: { title: 'Tangguhkan Pendaftaran?', text: 'Pendaftaran akan ditangguhkan (uang belum masuk).', confirmText: 'Ya, Tangguhkan', icon: 'warning' },
 }
 
 function combinedStatusLabel(p: any): string {
-  if (p?.status_pembayaran === 'refund') return 'Refund'
+  if (p?.status_pembayaran === 'ditangguhkan') return 'Ditangguhkan'
   if (p?.status_pembayaran === 'verified') return 'Pembayaran dikonfirmasi'
   if (p?.status_pendaftaran === 'ditolak' || p?.status_pembayaran === 'ditolak') return 'Batal'
   if (p?.status_pembayaran === 'processing' && p?.status_pendaftaran === 'pending') return 'Menunggu Verifikasi'

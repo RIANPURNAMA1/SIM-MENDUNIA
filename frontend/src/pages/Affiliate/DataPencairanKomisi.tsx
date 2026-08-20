@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Wallet, ChevronDown, ChevronRight, CheckCircle, Clock, Banknote, Search, RotateCcw, CheckSquare, Square, Loader2 } from 'lucide-react'
+import { Wallet, ChevronDown, ChevronRight, Search, RotateCcw, CheckSquare, Square, Loader2 } from 'lucide-react'
 import api from '../../services/api'
 import Swal from 'sweetalert2'
 
@@ -10,6 +10,19 @@ interface KomisiItem {
   created_at: string
   pendaftar: { nama: string; email: string; telepon: string; product: string } | null
   kategori: string | null
+}
+
+interface PendaftarDetail {
+  id: number
+  nama: string
+  email: string
+  telepon: string | null
+  product: string | null
+  kategori: string | null
+  komisi_status: string | null
+  komisi_jumlah: number
+  status_pendaftaran: string
+  created_at: string
 }
 
 interface AffiliateGroup {
@@ -25,6 +38,8 @@ interface AffiliateGroup {
   total_paid: number
   total_cair: number
   items: KomisiItem[]
+  pendaftar: PendaftarDetail[]
+  batch_id?: number
 }
 
 interface BatchGroup {
@@ -39,24 +54,6 @@ interface BatchGroup {
 
 function fmt(n: number) {
   return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
-}
-
-function statusBadge(status: string) {
-  if (status === 'paid') return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-      <CheckCircle size={10} /> Paid
-    </span>
-  )
-  if (status === 'cair') return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-      <Banknote size={10} /> Cair
-    </span>
-  )
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
-      <Clock size={10} /> Pending
-    </span>
-  )
 }
 
 export default function DataPencairanKomisi() {
@@ -74,7 +71,7 @@ export default function DataPencairanKomisi() {
   }, [])
 
   const allRows = data.flatMap(batch =>
-    batch.affiliates.map(aff => ({ ...aff, batch_nama: batch.batch_nama }))
+    batch.affiliates.map(aff => ({ ...aff, batch_id: batch.batch_id, batch_nama: batch.batch_nama }))
   )
 
   const filtered = allRows.filter(aff =>
@@ -192,10 +189,11 @@ export default function DataPencairanKomisi() {
             </thead>
             <tbody>
               {filtered.map((aff, idx) => {
-                const open = expandedAffiliate === aff.affiliate_id
+                const affKey = `${aff.batch_id}-${aff.affiliate_id}`
+                const open = expandedAffiliate === affKey
                 return (
                   <>
-                    <tr key={aff.affiliate_id} className="bg-white transition hover:bg-slate-50">
+                    <tr key={affKey} className="bg-white transition hover:bg-slate-50">
                       <td className="border border-slate-200 px-4 py-3 text-xs text-slate-500">{idx + 1}</td>
                       <td className="border border-slate-200 px-3 py-3 text-center">
                         {loadingBayar === aff.affiliate_id ? (
@@ -240,14 +238,14 @@ export default function DataPencairanKomisi() {
                         </div>
                       </td>
                       <td className="border border-slate-200 px-4 py-3 text-center">
-                        <button onClick={() => setExpandedAffiliate(open ? null : aff.affiliate_id)}
+                        <button onClick={() => setExpandedAffiliate(open ? null : affKey)}
                           className="inline-flex items-center justify-center rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
                           {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                         </button>
                       </td>
                     </tr>
                     {open && (
-                      <tr key={`detail-${aff.affiliate_id}`}>
+                      <tr key={`detail-${affKey}`}>
                         <td colSpan={9} className="border border-slate-200 bg-slate-50/50 p-0">
                           <div className="p-4">
                             <div className="mb-3 flex flex-wrap gap-4 text-xs text-slate-500">
@@ -264,41 +262,32 @@ export default function DataPencairanKomisi() {
                                     <th className="border border-slate-200 px-3 py-2 font-medium">Email</th>
                                     <th className="border border-slate-200 px-3 py-2 font-medium">No. HP</th>
                                     <th className="border border-slate-200 px-3 py-2 font-medium">Program</th>
-                                    <th className="border border-slate-200 px-3 py-2 font-medium">Kategori</th>
-                                    <th className="border border-slate-200 px-3 py-2 text-center font-medium">Status</th>
                                     <th className="border border-slate-200 px-3 py-2 font-medium">Tanggal</th>
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {aff.items.map(item => (
+                                  {aff.pendaftar && aff.pendaftar.length > 0 ? aff.pendaftar.map(item => (
                                     <tr key={item.id} className="bg-white transition hover:bg-slate-50">
                                       <td className="border border-slate-200 px-3 py-2 text-sm font-medium text-slate-800">
-                                        {item.pendaftar?.nama || '-'}
+                                        {item.nama || '-'}
                                       </td>
                                       <td className="border border-slate-200 px-3 py-2 text-xs text-slate-600">
-                                        {item.pendaftar?.email || '-'}
+                                        {item.email || '-'}
                                       </td>
                                       <td className="border border-slate-200 px-3 py-2 text-xs text-slate-600">
-                                        {item.pendaftar?.telepon || '-'}
+                                        {item.telepon || '-'}
                                       </td>
                                       <td className="border border-slate-200 px-3 py-2 text-xs text-slate-600">
-                                        {item.pendaftar?.product || '-'}
-                                      </td>
-                                      <td className="border border-slate-200 px-3 py-2 text-xs text-slate-600">
-                                        {item.kategori || '-'}
-                                      </td>
-                                      <td className="border border-slate-200 px-3 py-2 text-center">
-                                        {statusBadge(item.status)}
+                                        {item.product || '-'}
                                       </td>
                                       <td className="border border-slate-200 px-3 py-2 text-xs text-slate-600 whitespace-nowrap">
                                         {new Date(item.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
                                       </td>
                                     </tr>
-                                  ))}
-                                  {aff.items.length === 0 && (
+                                  )) : (
                                     <tr>
-                                      <td colSpan={7} className="border border-slate-200 px-3 py-6 text-center text-xs text-slate-400">
-                                        Belum ada item komisi
+                                      <td colSpan={5} className="border border-slate-200 px-3 py-6 text-center text-xs text-slate-400">
+                                        Belum ada kandidat
                                       </td>
                                     </tr>
                                   )}

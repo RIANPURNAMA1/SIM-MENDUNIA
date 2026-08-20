@@ -44,7 +44,7 @@ class RekapKehadiranSenseiController extends Controller
 
         $user = User::findOrFail($userId);
 
-        $kelasList = KelasSensei::with('batchRelasi')->where('user_id', $userId)
+        $kelasList = KelasSensei::with('batchRelasi.cabang')->where('user_id', $userId)
             ->where('status', 'aktif')
             ->orderBy('nama_kelas', 'asc')
             ->get()
@@ -69,8 +69,16 @@ class RekapKehadiranSenseiController extends Controller
                     'sensei' => $kelas->user->name ?? '-',
                     'batch_id' => $kelas->batch_id,
                     'batch_nama' => $kelas->batchRelasi->nama_batch ?? '-',
+                    'batch_cabang_id' => $kelas->batchRelasi->cabang_id ?? null,
+                    'batch_cabang_nama' => $kelas->batchRelasi->cabang->nama_cabang ?? null,
+                    'batch_warna' => $kelas->batchRelasi->warna ?? null,
                 ];
             });
+
+        $uniqueBatches = $kelasList->filter(fn($k) => $k['batch_id'])->unique('batch_id')
+            ->map(fn($k) => ['id' => $k['batch_id'], 'nama_batch' => $k['batch_nama'], 'warna' => $k['batch_warna']])->values();
+        $uniqueCabangs = $kelasList->filter(fn($k) => $k['batch_cabang_id'])->unique('batch_cabang_id')
+            ->map(fn($k) => ['id' => $k['batch_cabang_id'], 'nama_cabang' => $k['batch_cabang_nama']])->values();
 
         $absensis = AbsensiSensei::where('user_id', $userId)
             ->whereMonth('tanggal', $bulan)
@@ -147,6 +155,8 @@ class RekapKehadiranSenseiController extends Controller
             'success' => true,
             'data' => $data,
             'kelas_list' => $kelasList,
+            'batch_list' => $uniqueBatches,
+            'cabang_list' => $uniqueCabangs,
         ]);
     }
 

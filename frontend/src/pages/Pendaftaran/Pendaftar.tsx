@@ -214,7 +214,7 @@ export default function Pendaftar() {
   }
 
   function combinedStatus(p: PendaftarItem) {
-    if (p.status_pembayaran === 'refund') return { bg: 'bg-purple-100 text-purple-700 border-purple-200', label: 'Refund' }
+    if (p.status_pembayaran === 'ditangguhkan') return { bg: 'bg-orange-100 text-orange-700 border-orange-200', label: 'Ditangguhkan' }
     if (p.status_pembayaran === 'verified') return { bg: 'bg-emerald-100 text-emerald-700 border-emerald-200', label: 'Pembayaran dikonfirmasi' }
     if (p.status_pendaftaran === 'ditolak' || p.status_pembayaran === 'ditolak') return { bg: 'bg-red-100 text-red-700 border-red-200', label: 'Batal' }
     if (p.status_pembayaran === 'processing' && p.status_pendaftaran === 'pending') return { bg: 'bg-amber-100 text-amber-700 border-amber-200', label: 'Menunggu Verifikasi' }
@@ -249,8 +249,8 @@ export default function Pendaftar() {
     pembayaranDiKonfirmasi: data.filter(p => p.status_pembayaran === 'processing' && p.status_pendaftaran === 'pending').length,
     proses: data.filter(p => p.status_pembayaran === 'processing' && p.status_pendaftaran === 'disetujui').length,
     selesai: data.filter(p => p.status_pembayaran === 'verified').length,
-    batal: data.filter(p => p.status_pendaftaran === 'ditolak' && p.status_pembayaran !== 'refund').length,
-    refund: data.filter(p => p.status_pembayaran === 'refund').length,
+    batal: data.filter(p => p.status_pendaftaran === 'ditolak' && p.status_pembayaran !== 'ditangguhkan').length,
+    ditangguhkan: data.filter(p => p.status_pembayaran === 'ditangguhkan').length,
     pendingVerifikasi: data.filter(p => p.status_pembayaran === 'processing').length,
   }), [data])
 
@@ -309,7 +309,7 @@ export default function Pendaftar() {
           { label: 'Proses', value: stats.proses },
           { label: 'Pembayaran dikonfirmasi', value: stats.selesai },
           { label: 'Batal', value: stats.batal },
-          { label: 'Refund', value: stats.refund },
+          { label: 'Ditangguhkan', value: stats.ditangguhkan },
         ].map(s => (
           <div key={s.label} className="rounded-sm border border-slate-200 bg-white p-3">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{s.label}</p>
@@ -355,8 +355,8 @@ export default function Pendaftar() {
               <option value="menunggu verifikasi">Menunggu Verifikasi</option>
               <option value="proses">Proses</option>
               <option value="pembayaran dikonfirmasi">Pembayaran dikonfirmasi</option>
-             <option value="batal">Batal</option>
-             <option value="refund">Refund</option>
+              <option value="batal">Batal</option>
+              <option value="ditangguhkan">Ditangguhkan</option>
            </select>
           <input type="date" value={filterDateFrom} onChange={e => { setFilterDateFrom(e.target.value); setPage(1) }}
             className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
@@ -982,7 +982,7 @@ export default function Pendaftar() {
                     { val: 'proses', label: 'Proses', icon: RefreshCw, iconColor: 'text-blue-500', bg: 'bg-blue-50 hover:bg-blue-100 border-blue-200' },
                     { val: 'selesai', label: 'Pembayaran dikonfirmasi', icon: CheckCircle2, iconColor: 'text-emerald-500', bg: 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200' },
                     { val: 'batal', label: 'Batal', icon: Ban, iconColor: 'text-red-500', bg: 'bg-red-50 hover:bg-red-100 border-red-200' },
-                    { val: 'refund', label: 'Refund', icon: Banknote, iconColor: 'text-purple-500', bg: 'bg-purple-50 hover:bg-purple-100 border-purple-200' },
+                    { val: 'ditangguhkan', label: 'Ditangguhkan', icon: Banknote, iconColor: 'text-orange-500', bg: 'bg-orange-50 hover:bg-orange-100 border-orange-200' },
                   ].map(opt => {
                     const statusMap: Record<string, Record<string, string>> = {
                       waiting_payment: { status_pembayaran: 'unpaid', status_pendaftaran: 'pending' },
@@ -990,7 +990,7 @@ export default function Pendaftar() {
                       proses: { status_pembayaran: 'processing', status_pendaftaran: 'disetujui' },
                       selesai: { status_pembayaran: 'verified', status_pendaftaran: 'disetujui' },
                       batal: { status_pembayaran: 'ditolak', status_pendaftaran: 'ditolak' },
-                      refund: { status_pembayaran: 'refund', status_pendaftaran: 'ditolak' },
+                      ditangguhkan: { status_pembayaran: 'ditangguhkan', status_pendaftaran: 'pending' },
                     }
                     const current = combinedStatus(detailModal)
                     const isActive = (
@@ -999,7 +999,7 @@ export default function Pendaftar() {
                       (opt.val === 'proses' && current.label === 'Proses') ||
                       (opt.val === 'selesai' && current.label === 'Pembayaran dikonfirmasi') ||
                       (opt.val === 'batal' && current.label === 'Batal') ||
-                      (opt.val === 'refund' && current.label === 'Refund')
+                      (opt.val === 'ditangguhkan' && current.label === 'Ditangguhkan')
                     )
                     const confirmMessages: Record<string, { title: string; text: string; confirmText: string; icon: 'warning' | 'info' | 'question' }> = {
                       waiting_payment: { title: 'Ubah ke Menunggu Pembayaran?', text: `Status pembayaran ${detailModal.nama} akan diubah menjadi "Menunggu Pembayaran".`, confirmText: 'Ya, Ubah', icon: 'info' },
@@ -1007,7 +1007,7 @@ export default function Pendaftar() {
                       proses: { title: 'Mulai Proses?', text: `Pendaftaran ${detailModal.nama} akan diproses lebih lanjut.`, confirmText: 'Ya, Proses', icon: 'question' },
                       selesai: { title: 'Konfirmasi Pembayaran?', text: `Pembayaran ${detailModal.nama} akan ditandai sebagai "Pembayaran dikonfirmasi".`, confirmText: 'Ya, Konfirmasi', icon: 'question' },
                       batal: { title: 'Batalkan Pendaftaran?', text: `Pendaftaran ${detailModal.nama} akan dibatalkan. Tindakan ini tidak dapat dibatalkan.`, confirmText: 'Ya, Batalkan', icon: 'warning' },
-                      refund: { title: 'Proses Refund?', text: `Pembayaran ${detailModal.nama} akan dikembalikan (refund). Pastikan sudah sesuai kebijakan.`, confirmText: 'Ya, Refund', icon: 'warning' },
+                      ditangguhkan: { title: 'Tangguhkan Pendaftaran?', text: `Pendaftaran ${detailModal.nama} akan ditangguhkan (uang belum masuk).`, confirmText: 'Ya, Tangguhkan', icon: 'warning' },
                     }
                     const Icon = opt.icon
                     return (
