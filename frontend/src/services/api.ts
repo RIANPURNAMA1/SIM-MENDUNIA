@@ -307,6 +307,7 @@ export const absensiKaryawanApi = {
 
 export const productApi = {
   list: () => api.get('/products'),
+  show: (id: number) => api.get(`/products/${id}`),
   getBySlug: (slug: string) => api.get(`/products/public/${slug}`),
   store: (data: Record<string, unknown>) => api.post('/products', data),
   update: (id: number, data: Record<string, unknown>) => api.put(`/products/${id}`, data),

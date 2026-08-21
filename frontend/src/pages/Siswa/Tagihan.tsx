@@ -939,7 +939,7 @@ export default function Tagihan() {
         ].map(stat => {
           const Icon = stat.icon
           return (
-            <div key={stat.label} className="flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+            <div key={stat.label} className="flex min-w-0 items-center gap-3 rounded-sm border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
               <div className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-[#0E6187]/10 sm:h-10 sm:w-10">
                 <Icon size={16} className="text-[#0E6187]" />
               </div>

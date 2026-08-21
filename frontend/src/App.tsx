@@ -64,6 +64,7 @@ import DataAffiliate from './pages/Affiliate/DataAffiliate'
 import ClosingPasukan from './pages/Affiliate/ClosingPasukan'
 import DataPencairanKomisi from './pages/Affiliate/DataPencairanKomisi'
 import DataProduct from './pages/Affiliate/DataProduct'
+import ProductForm from './pages/Affiliate/ProductForm'
 import DataCoupon from './pages/Affiliate/DataCoupon'
 import DataBiayaKategori from './pages/Affiliate/DataBiayaKategori'
 import DataNotifikasi from './pages/Affiliate/DataNotifikasi'
@@ -696,6 +697,26 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/data-product/tambah"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <ProductForm />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/data-product/edit/:id"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <ProductForm />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/data-coupon"
         element={
           <ProtectedRoute>
@@ -852,6 +873,8 @@ function AppRoutes() {
                 <Route path="/closing-pasukan" element={<ClosingPasukan />} />
                 <Route path="/pencairan-komisi" element={<DataPencairanKomisi />} />
                 <Route path="/data-product" element={<DataProduct />} />
+                <Route path="/data-product/tambah" element={<ProductForm />} />
+                <Route path="/data-product/edit/:id" element={<ProductForm />} />
                 <Route path="/data-coupon" element={<DataCoupon />} />
                 <Route path="/data-biaya-kategori" element={<DataBiayaKategori />} />
                 <Route path="/pembayaran-tagihan" element={<PembayaranTagihan />} />
