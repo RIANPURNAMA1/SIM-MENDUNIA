@@ -6,8 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class Pendaftar extends Model
-{
-    protected $table = 'pendaftar';
+{    protected $table = 'pendaftar';
 
     protected static function booted(): void
     {
@@ -88,5 +87,10 @@ class Pendaftar extends Model
     public function pembayaranItems()
     {
         return $this->hasMany(PembayaranItem::class);
+    }
+
+    public function kontrakTandaTangans()
+    {
+        return $this->hasMany(KontrakTandaTangan::class);
     }
 }

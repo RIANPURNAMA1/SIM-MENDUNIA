@@ -254,6 +254,8 @@ Route::prefix('siswa')->group(function () {
     Route::post('/evaluasi-guru', [SiswaDashboardController::class, 'storeStudentEvaluation'])->middleware('auth:sanctum');
     Route::get('/evaluasi-guru', [SiswaDashboardController::class, 'getStudentEvaluations'])->middleware('auth:sanctum');
     Route::post('/scan-qr', [AbsensiController::class, 'scanQrSiswa'])->middleware('auth:sanctum');
+    Route::get('/kontrak', [\App\Http\Controllers\KontrakController::class, 'siswaIndex'])->middleware('auth:sanctum');
+    Route::post('/kontrak/{id}/upload', [\App\Http\Controllers\KontrakController::class, 'uploadTandaTangan'])->middleware('auth:sanctum');
     Route::post('/{id}', [SiswaController::class, 'update']);
     Route::delete('/{id}', [SiswaController::class, 'destroy']);
     Route::post('/{id}/toggle-status', [SiswaController::class, 'toggleStatus']);
@@ -271,6 +273,13 @@ Route::prefix('batches')->group(function () {
     Route::delete('/{id}', [BatchController::class, 'destroy']);
     Route::post('/{id}/toggle-status', [BatchController::class, 'toggleStatus']);
     Route::post('/{id}/toggle-penuh', [BatchController::class, 'togglePenuh']);
+});
+
+// Kontrak Kandidat (upload per cabang)
+Route::prefix('kontrak')->middleware('auth:sanctum')->group(function () {
+    Route::get('/', [\App\Http\Controllers\KontrakController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\KontrakController::class, 'store']);
+    Route::delete('/{id}', [\App\Http\Controllers\KontrakController::class, 'destroy']);
 });
 
 // Raport Siswa

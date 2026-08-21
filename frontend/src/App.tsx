@@ -54,6 +54,9 @@ import ProfilSiswa from './pages/Siswa/ProfilSiswa'
 import Tagihan from './pages/Siswa/Tagihan'
 import RekapBatch from './pages/Siswa/RekapBatch'
 import Pembayaran from './pages/Siswa/Pembayaran'
+import KontrakKandidat from './pages/Pendaftaran/KontrakKandidat'
+import KontrakSiswa from './pages/Siswa/KontrakSiswa'
+import InvoiceSiswa from './pages/Siswa/InvoiceSiswa'
 import PembayaranTagihan from './pages/PembayaranTagihan'
 import MatchingJobForm from './pages/Siswa/MatchingJobForm'
 import ProgressKandidat from './pages/Siswa/ProgressKandidat'
@@ -262,9 +265,11 @@ function AppRoutes() {
         <Route path="data-diri" element={<MatchingJobForm />} />
         <Route path="absensi" element={<AbsensiSaya />} />
         <Route path="pembayaran" element={<PembayaranSiswa />} />
+        <Route path="pembayaran/invoice/:id" element={<InvoiceSiswa />} />
         <Route path="lms" element={<LMS />} />
         <Route path="nilai" element={<SiswaNilai />} />
         <Route path="matching-job" element={<ProgressKandidat />} />
+        <Route path="kontrak" element={<KontrakSiswa />} />
         <Route path="profil" element={<ProfilSiswa />} />
       </Route>
 
@@ -596,6 +601,16 @@ function AppRoutes() {
           <ProtectedRoute>
             <DashboardLayout>
               <RekapBatch />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/kontrak-kandidat"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <KontrakKandidat />
             </DashboardLayout>
           </ProtectedRoute>
         }

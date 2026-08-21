@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { DollarSign, Users, Search, RotateCcw, Eye, Edit3, Power, PowerOff, CalendarOff, Calendar, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronUp, ChevronDown, ChevronsUpDown, MoreHorizontal, FileText, Download, Upload, Trash2, ArrowRight, RefreshCw, KeyRound, ClipboardPaste, LayoutDashboard } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, flexRender, type ColumnDef, type SortingState } from '@tanstack/react-table'
-import api, { pendaftarApi, batchApi, productApi, adminCabangApi } from '../../services/api'
+import api, { pendaftarApi, batchApi, productApi, adminCabangApi, APP_URL } from '../../services/api'
 import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
 import Swal from 'sweetalert2'
@@ -48,6 +48,13 @@ interface Kandidat {
   user_id: number | null
   keterangan: string
   password_plain: string | null
+  kontrak?: {
+    id: number
+    judul: string
+    file_kontrak: string
+    file_kontrak_ttd: string | null
+    ttd_uploaded_at: string | null
+  } | null
 }
 
 interface BatchOption {
@@ -792,6 +799,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
     { id: 'no_hp', accessorKey: 'no_hp', header: 'No. Tlp', meta: { thClass: `${thBase}w-[110px] min-w-[110px]` } },
     { id: 'nama_ortu', accessorKey: 'nama_ortu', header: 'Nama Orang Tua/Wali', meta: { thClass: `${thBase}w-[140px] min-w-[140px]` } },
     { id: 'no_hp_ortu', accessorKey: 'no_hp_ortu', header: 'No. Tlp Orang Tua', meta: { thClass: `${thBase}w-[110px] min-w-[110px]` } },
+    { id: 'kontrak', header: 'Kontrak', enableSorting: false, meta: { thClass: `${thBase}text-center w-[150px] min-w-[150px]` } },
     { id: 'status_kandidat', accessorKey: 'status_kandidat', header: 'Status Kandidat', meta: { thClass: `${thBase}text-center w-[150px] min-w-[150px]` } },
     { id: 'keterangan', accessorKey: 'keterangan', header: 'Ket.', meta: { thClass: `${thBase}w-[140px] min-w-[140px]` } },
     { id: 'aksi', header: 'Aksi', enableSorting: false, meta: { thClass: 'sticky right-0 z-30 border border-slate-600 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-white bg-[#0e6187] shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] w-[60px] min-w-[60px]' } },
@@ -1763,6 +1771,33 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                           <td className="border border-slate-200 px-4 py-3 text-xs font-mono font-semibold text-black whitespace-nowrap">
                             {isEditing ? <CellEdit field="no_hp_ortu" /> : k.no_hp_ortu || <span className="text-gray-400">-</span>}
                           </td>
+                          <td className="border border-slate-200 px-4 py-3 text-center whitespace-nowrap">
+                            {k.kontrak ? (
+                              k.kontrak.file_kontrak_ttd ? (
+                                <a
+                                  href={`${APP_URL}/storage/${k.kontrak.file_kontrak_ttd}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  title={`Unduh kontrak ditandatangani${k.kontrak.ttd_uploaded_at ? ` (${new Date(k.kontrak.ttd_uploaded_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })})` : ''}`}
+                                  className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                                >
+                                  <Download size={11} /> Sudah TTD
+                                </a>
+                              ) : (
+                                <a
+                                  href={`${APP_URL}/storage/${k.kontrak.file_kontrak}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  title={`Lihat kontrak: ${k.kontrak.judul}`}
+                                  className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700 transition hover:bg-amber-100"
+                                >
+                                  <FileText size={11} /> Belum TTD
+                                </a>
+                              )
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </td>
                           <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
                             {isEditing ? (
                               <CellEdit field="status_kandidat" type="select" />
@@ -1792,8 +1827,8 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                                 {k.keterangan && k.keterangan !== '-' && String(k.keterangan) !== '0' ? <span className="truncate block" title={k.keterangan}>{k.keterangan}</span> : <span className="text-gray-400">-</span>}
                               </div>
                             )}
-                          </td>
-                          <td className={`sticky right-0 z-10 border border-slate-200 px-3 py-3 text-center shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] ${isEditing ? 'bg-blue-50/50' : 'bg-white'}`}>
+                           </td>
+                           <td className={`sticky right-0 z-10 border border-slate-200 px-3 py-3 text-center shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] ${isEditing ? 'bg-blue-50/50' : 'bg-white'}`}>
                             {isEditing ? (
                               <div className="flex justify-center gap-1">
                                 <button onClick={saveEdit} disabled={saving}

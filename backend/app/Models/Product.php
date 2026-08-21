@@ -100,11 +100,13 @@ class Product extends Model
                     'kode' => $name,
                     'nama' => $name,
                     'urutan' => 0,
+                    'parent_id' => $parentId,
                 ]);
             }
 
             // Sync billing settings from kategori_items
             $kategori->update([
+                'parent_id' => $parentId,
                 'trigger_type' => $item['trigger_type'] ?? 'registration',
                 'trigger_value' => $item['trigger_value'] ?? null,
                 'due_type' => $item['due_type'] ?? 'days_after_invoice',

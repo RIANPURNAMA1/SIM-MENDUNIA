@@ -158,6 +158,19 @@ export const pembayaranApi = {
     api.get('/pembayaran', { params }),
 }
 
+export const kontrakApi = {
+  list: (params?: Record<string, string | number | undefined>) =>
+    api.get('/kontrak', { params }),
+  store: (data: FormData) => api.post('/kontrak', data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  destroy: (id: number) => api.delete(`/kontrak/${id}`),
+  siswa: () => api.get('/siswa/kontrak'),
+  uploadTtd: (id: number, data: FormData) => api.post(`/siswa/kontrak/${id}/upload`, data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+}
+
 export const monitoringLokasiApi = {
   get: (params?: Record<string, string>) =>
     api.get('/monitoring-lokasi', { params }),

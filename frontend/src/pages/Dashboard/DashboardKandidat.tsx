@@ -1,15 +1,15 @@
 import { useEffect, useState, useMemo } from 'react'
-import { FileText, CreditCard, DollarSign, Handshake, Users, TrendingUp, Loader, BarChart3, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { FileText, CreditCard, DollarSign, Handshake, Users, TrendingUp, Loader, BarChart3, CheckCircle, XCircle, Clock, Layers, UserCheck, UserPlus, BookOpen, UserX, GraduationCap, PauseCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { pendaftarApi, pembayaranApi, affiliateLinkApi } from '../../services/api'
 import {
   Chart as ChartJS,
   CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title,
-  Filler, Tooltip, Legend,
+  Filler, Tooltip, Legend, ArcElement,
 } from 'chart.js'
-import { Line, Bar } from 'react-chartjs-2'
+import { Line, Bar, Doughnut } from 'react-chartjs-2'
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Filler, Tooltip, Legend)
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Filler, Tooltip, Legend, ArcElement)
 
 interface PendaftarItem {
   id: number
@@ -40,10 +40,17 @@ interface AffiliateLink {
   product: { nama: string; komisi: number } | null
 }
 
+interface KandidatItem {
+  status_kandidat: string
+  is_cuti: boolean
+  status_akademik: string
+}
+
 interface KandidatStats {
   totalKandidat: number
   kandidatAktif: number
   totalBatch: number
+  batches?: { id: number; kandidat: KandidatItem[] }[]
 }
 
 export default function DashboardKandidat() {
@@ -67,6 +74,7 @@ export default function DashboardKandidat() {
         totalKandidat: kandRes.data.totalKandidat,
         kandidatAktif: kandRes.data.kandidatAktif,
         totalBatch: kandRes.data.totalBatch,
+        batches: kandRes.data.batches || [],
       })
     }).catch(() => {}).finally(() => setLoading(false))
   }, [])
@@ -106,6 +114,50 @@ export default function DashboardKandidat() {
     .slice(0, 5)
 
   const affiliateAktif = affiliateLinks.filter(l => l.affiliate)
+
+  const allKandidat = useMemo(() => (kandidatStats?.batches || []).flatMap(b => b.kandidat || []), [kandidatStats])
+  const countStatus = (s: string) => allKandidat.filter(k => k.status_kandidat === s).length
+  const cutiCount = allKandidat.filter(k => k.is_cuti).length
+
+  const statusChartData = {
+    labels: ['Kandidat Aktif', 'Calon Kandidat', 'Proses Belajar', 'Mengundurkan Diri', 'Lulus Pendidikan', 'Cuti'],
+    datasets: [{
+      data: [
+        countStatus('Kandidat Aktif'),
+        countStatus('Calon Kandidat'),
+        countStatus('Proses Belajar'),
+        countStatus('Mengundurkan Diri'),
+        countStatus('Lulus Pendidikan'),
+        cutiCount,
+      ],
+      backgroundColor: ['#0E6187', '#14919c', '#7cc5d8', '#ef4444', '#10b981', '#f59e0b'],
+      borderColor: '#ffffff',
+      borderWidth: 2,
+      hoverOffset: 6,
+    }],
+  }
+
+  const statusChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '62%',
+    plugins: {
+      legend: {
+        position: 'bottom' as const,
+        labels: { usePointStyle: true, boxWidth: 8, padding: 14, font: { size: 11 } },
+      },
+      tooltip: {
+        backgroundColor: '#0E6187',
+        titleFont: { size: 12 },
+        bodyFont: { size: 11 },
+        padding: 10,
+        cornerRadius: 8,
+        callbacks: {
+          label: (ctx: any) => ` ${ctx.parsed} kandidat`,
+        },
+      },
+    },
+  }
 
   const monthlyData = useMemo(() => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
@@ -252,10 +304,12 @@ export default function DashboardKandidat() {
   }
 
   const breakdownStats = [
-    { label: 'Total Pendaftar', value: pendaftar.length, icon: Users, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/5' },
-    { label: 'Disetujui', value: pendaftar.filter(p => p.status_pendaftaran === 'disetujui').length, icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Pending', value: pendaftar.filter(p => p.status_pendaftaran === 'pending').length, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
-    { label: 'Ditolak', value: pendaftar.filter(p => p.status_pendaftaran === 'ditolak').length, icon: XCircle, color: 'text-red-600', bg: 'bg-red-50' },
+    { label: 'Menunggu Pembayaran', value: pendaftar.filter(p => p.status_pembayaran === 'unpaid').length, icon: Clock },
+    { label: 'Menunggu Verifikasi', value: pendaftar.filter(p => p.status_pembayaran === 'pending').length, icon: Clock },
+    { label: 'Proses', value: pendaftar.filter(p => p.status_pembayaran === 'processing').length, icon: Loader },
+    { label: 'Pembayaran Dikonfirmasi', value: pendaftar.filter(p => p.status_pembayaran === 'verified').length, icon: CheckCircle },
+    { label: 'Batal', value: pendaftar.filter(p => p.status_pembayaran === 'refund').length, icon: XCircle },
+    { label: 'Ditangguhkan', value: pendaftar.filter(p => p.status_pembayaran === 'ditangguhkan').length, icon: XCircle },
   ]
 
   if (loading) {
@@ -270,10 +324,10 @@ export default function DashboardKandidat() {
   }
 
   const stats = [
-    { label: 'Total Kandidat', value: kandidatStats?.totalKandidat ?? 0, icon: Users, color: 'bg-slate-800' },
-    { label: 'Pendaftar Baru (Bulan Ini)', value: pendaftarBaruBulanIni.length, icon: FileText, color: 'bg-amber-500' },
-    { label: 'Pembayaran Masuk', value: `Rp ${(totalPembayaranBulanIni).toLocaleString('id-ID')}`, icon: DollarSign, color: 'bg-emerald-500' },
-    { label: 'Affiliate Aktif', value: affiliateAktif.length, icon: Handshake, color: 'bg-violet-500' },
+    { label: 'Pendaftar Baru (Bulan Ini)', value: pendaftarBaruBulanIni.length, icon: FileText },
+    { label: 'Pembayaran Masuk', value: `Rp ${(totalPembayaranBulanIni).toLocaleString('id-ID')}`, icon: DollarSign },
+    { label: 'Affiliate Aktif', value: affiliateAktif.length, icon: Handshake },
+    { label: 'Pembayaran Terverifikasi', value: pendaftar.filter(p => p.status_pembayaran === 'verified').length, icon: CheckCircle },
   ]
 
   const statusBadge = (status: string) => {
@@ -312,20 +366,47 @@ export default function DashboardKandidat() {
         </div>
       </div>
 
+      {/* Summary Kandidat */}
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { label: 'Total Batch', value: kandidatStats?.totalBatch ?? 0, icon: Layers },
+          { label: 'Total Kandidat', value: kandidatStats?.totalKandidat ?? 0, icon: Users },
+          { label: 'Kandidat Aktif', value: kandidatStats?.kandidatAktif ?? 0, icon: UserCheck },
+          { label: 'Calon Kandidat', value: countStatus('Calon Kandidat'), icon: UserPlus },
+          { label: 'Proses Belajar', value: countStatus('Proses Belajar'), icon: BookOpen },
+          { label: 'Mengundurkan Diri', value: countStatus('Mengundurkan Diri'), icon: UserX },
+          { label: 'Lulus Pendidikan', value: countStatus('Lulus Pendidikan'), icon: GraduationCap },
+          { label: 'Cuti', value: cutiCount, icon: PauseCircle },
+        ].map((stat) => {
+          const Icon = stat.icon
+          return (
+            <div key={stat.label} className="flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+              <div className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-[#0E6187]/10 sm:h-10 sm:w-10">
+                <Icon size={16} className="text-[#0E6187]" />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-[10px] text-slate-500 sm:text-xs">{stat.label}</p>
+                <p className="break-words text-base font-bold leading-tight text-slate-800 sm:text-xl lg:text-2xl">{stat.value}</p>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {stats.map((stat, idx) => {
           const Icon = stat.icon
           return (
-            <div key={idx} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold text-slate-500">{stat.label}</span>
-                <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${stat.color}`}>
-                  <Icon size={15} className="text-white" />
-                </div>
+            <div key={idx} className="flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex h-10 w-10 flex-none items-center justify-center rounded-lg bg-[#0E6187]/10">
+                <Icon size={17} className="text-[#0E6187]" />
               </div>
-              <div className="text-2xl font-bold text-slate-800 truncate">{stat.value}</div>
-              <p className="mt-0.5 text-xs text-slate-400">Tahun 2026</p>
+              <div className="min-w-0">
+                <p className="truncate text-xs text-slate-500">{stat.label}</p>
+                <p className="break-words text-xl font-bold leading-tight text-slate-800 lg:text-2xl">{stat.value}</p>
+                <p className="mt-0.5 text-[11px] text-slate-400">Tahun 2026</p>
+              </div>
             </div>
           )
         })}
@@ -368,19 +449,74 @@ export default function DashboardKandidat() {
         </div>
       </div>
 
+      {/* Grafik Status Kandidat */}
+      <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0E6187]/5">
+              <Users size={18} className="text-[#0E6187]" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-slate-800">Status Kandidat</h2>
+              <p className="text-xs text-slate-400">Distribusi kandidat berdasarkan status</p>
+            </div>
+          </div>
+          <div className="h-72 sm:h-80">
+            <Doughnut data={statusChartData} options={statusChartOptions} />
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0E6187]/5">
+              <Layers size={18} className="text-[#0E6187]" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-slate-800">Rincian per Status</h2>
+              <p className="text-xs text-slate-400">Jumlah kandidat tiap status</p>
+            </div>
+          </div>
+          <div className="space-y-2.5">
+            {[
+              { label: 'Kandidat Aktif', value: countStatus('Kandidat Aktif'), color: 'bg-[#0E6187]' },
+              { label: 'Calon Kandidat', value: countStatus('Calon Kandidat'), color: 'bg-[#14919c]' },
+              { label: 'Proses Belajar', value: countStatus('Proses Belajar'), color: 'bg-[#7cc5d8]' },
+              { label: 'Mengundurkan Diri', value: countStatus('Mengundurkan Diri'), color: 'bg-red-500' },
+              { label: 'Lulus Pendidikan', value: countStatus('Lulus Pendidikan'), color: 'bg-emerald-500' },
+              { label: 'Cuti', value: cutiCount, color: 'bg-amber-500' },
+            ].map(row => {
+              const total = statusChartData.datasets[0].data.reduce((a: number, b: number) => a + b, 0) || 1
+              const pct = Math.round(row.value / total * 100)
+              return (
+                <div key={row.label}>
+                  <div className="mb-1 flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-2 text-slate-600">
+                      <span className={`inline-block h-2.5 w-2.5 rounded-full ${row.color}`} />
+                      {row.label}
+                    </span>
+                    <span className="font-semibold text-slate-700">{row.value} <span className="font-normal text-slate-400">({pct}%)</span></span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+                    <div className={`h-full rounded-full ${row.color}`} style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+
       {/* Breakdown Stats */}
-      <div className="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="mb-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {breakdownStats.map((s, i) => {
           const Icon = s.icon
           return (
-            <div key={i} className="flex items-center gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <div className={`flex h-11 w-11 items-center justify-center rounded-lg ${s.bg} shrink-0`}>
-                <Icon size={20} className={s.color} />
+            <div key={i} className="flex min-w-0 flex-col rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+              <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-[#0E6187]/10">
+                <Icon size={16} className="text-[#0E6187]" />
               </div>
-              <div>
-                <p className="text-xs text-slate-500">{s.label}</p>
-                <p className="text-xl font-bold text-slate-800">{s.value}</p>
-              </div>
+              <p className="truncate text-[11px] text-slate-500">{s.label}</p>
+              <p className="text-xl font-bold leading-tight text-slate-800">{s.value}</p>
             </div>
           )
         })}
@@ -509,26 +645,6 @@ export default function DashboardKandidat() {
               ))
             )}
           </div>
-        </div>
-      </div>
-
-      {/* Summary */}
-      <div className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-xs text-slate-500">Total Batch</p>
-          <p className="text-2xl font-bold text-slate-800">{kandidatStats?.totalBatch ?? 0}</p>
-        </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-xs text-slate-500">Total Kandidat</p>
-          <p className="text-2xl font-bold text-slate-800">{kandidatStats?.totalKandidat ?? 0}</p>
-        </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-xs text-slate-500">Kandidat Aktif</p>
-          <p className="text-2xl font-bold text-emerald-600">{kandidatStats?.kandidatAktif ?? 0}</p>
-        </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-xs text-slate-500">Pembayaran Terverifikasi</p>
-          <p className="text-2xl font-bold text-[#0E6187]">{pendaftar.filter(p => p.status_pembayaran === 'verified').length}</p>
         </div>
       </div>
     </div>
