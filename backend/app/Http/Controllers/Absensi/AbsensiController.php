@@ -2372,12 +2372,14 @@ class AbsensiController extends Controller
         $total = Absensi::where('tanggal', $today)->count();
         $hadir = Absensi::where('tanggal', $today)->where('status', 'HADIR')->count();
         $terlambat = Absensi::where('tanggal', $today)->where('status', 'TERLAMBAT')->count();
+        $izin = Absensi::where('tanggal', $today)->whereIn('status', ['IZIN', 'SAKIT', 'CUTI'])->count();
 
         return response()->json([
             'data' => [
                 'total' => $total,
                 'hadir' => $hadir,
                 'terlambat' => $terlambat,
+                'izin' => $izin,
             ],
         ]);
     }

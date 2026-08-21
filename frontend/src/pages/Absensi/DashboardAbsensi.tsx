@@ -36,14 +36,15 @@ function formatDateParam(d: Date) {
 }
 
 function formatLabel(tanggal: string) {
-  const d = new Date(tanggal)
-  return dayNames[d.getDay()].slice(0, 3)
+  const [y, m, d] = tanggal.split('-').map(Number)
+  return dayNames[new Date(y, m - 1, d).getDay()].slice(0, 3)
 }
 
 interface StatsHariIni {
   total: number
   hadir: number
   terlambat: number
+  izin?: number
 }
 
 interface RiwayatItem {
@@ -69,6 +70,7 @@ interface KaryawanItem {
   nama: string
   jenis_kelamin: string
   status: string
+  role?: string
 }
 
 export default function DashboardAbsensi() {
@@ -129,11 +131,20 @@ export default function DashboardAbsensi() {
     fetchKehadiran()
   }, [fetchKehadiran])
 
+  const karyawanAktif = karyawan.filter(k =>
+    (k.status || '').toUpperCase() === 'AKTIF' && (!k.role || k.role.toUpperCase() === 'KARYAWAN')
+  )
+  const totalKaryawan = karyawanAktif.length
+  const hadirCount = stats?.hadir ?? 0
+  const terlambatCount = stats?.terlambat ?? 0
+  const izinSakitCount = stats?.izin ?? 0
+  const belumAbsen = Math.max(0, totalKaryawan - hadirCount - terlambatCount - izinSakitCount)
+
   useEffect(() => {
     Promise.all([
       authApi.user(),
       absensiKaryawanApi.statsHariIni(),
-      karyawanApi.list({}),
+      karyawanApi.list({ per_page: 1000 }),
       izinApi.list({ status: 'PENDING', per_page: 3 }),
       absensiKaryawanApi.grafikMingguan(),
     ]).then(([authRes, statsRes, karRes, izinRes, grafRes]) => {
@@ -158,15 +169,15 @@ export default function DashboardAbsensi() {
 
     const hadir = stats?.hadir ?? 0
     const terlambat = stats?.terlambat ?? 0
-    const belumAbsen = Math.max(0, (stats?.total ?? 0) - hadir - terlambat)
-    const izinSakit = 0
+    const izin = stats?.izin ?? 0
+    const belumAbsenChart = Math.max(0, totalKaryawan - hadir - terlambat - izin)
 
     donutChartRef.current = new Chart(donutRef.current, {
       type: 'doughnut',
       data: {
         labels: ['Hadir', 'Terlambat', 'Belum Absen', 'Cuti / Izin / Sakit'],
         datasets: [{
-          data: [hadir, terlambat, belumAbsen, izinSakit],
+          data: [hadir, terlambat, belumAbsenChart, izin],
           backgroundColor: ['#3b82f6', '#f59e0b', '#ef4444', '#10b981'],
           borderWidth: 0,
         }],
@@ -182,7 +193,7 @@ export default function DashboardAbsensi() {
     return () => {
       if (donutChartRef.current) donutChartRef.current.destroy()
     }
-  }, [stats])
+  }, [stats, totalKaryawan])
 
   useEffect(() => {
     if (!waveRef.current || grafik.length === 0) return
@@ -281,17 +292,10 @@ export default function DashboardAbsensi() {
     }
   }, [grafik])
 
-  const totalKaryawan = karyawan.length
-  const lakiCount = karyawan.filter(k => k.jenis_kelamin?.toLowerCase() === 'laki-laki').length
-  const perempuanCount = karyawan.filter(k => k.jenis_kelamin?.toLowerCase() === 'perempuan').length
+  const lakiCount = karyawanAktif.filter(k => k.jenis_kelamin?.toLowerCase() === 'laki-laki').length
+  const perempuanCount = karyawanAktif.filter(k => k.jenis_kelamin?.toLowerCase() === 'perempuan').length
   const pctLaki = totalKaryawan ? Math.round((lakiCount / totalKaryawan) * 100) : 0
   const pctPerempuan = totalKaryawan ? Math.round((perempuanCount / totalKaryawan) * 100) : 0
-
-  const hadirCount = stats?.hadir ?? 0
-  const terlambatCount = stats?.terlambat ?? 0
-  const totalAbsen = stats?.total ?? 0
-  const belumAbsen = Math.max(0, totalAbsen - hadirCount - terlambatCount)
-  const izinSakitCount = 0
 
   if (loading) {
     return (
@@ -428,9 +432,10 @@ export default function DashboardAbsensi() {
                 ))}
               </div>
               <div className="mt-4 flex gap-2">
-                <button className="inline-flex items-center gap-1.5 rounded-lg bg-teal-500 px-4 py-2 text-xs font-medium text-white transition hover:bg-teal-600">
+                <Link to="/data-kehadiran"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-teal-500 px-4 py-2 text-xs font-medium text-white transition hover:bg-teal-600">
                   <Calendar size={14} /> Kalender Absensi
-                </button>
+                </Link>
                 <Link to="/data-kehadiran"
                   className="inline-flex items-center gap-1.5 rounded-lg border border-teal-500 px-4 py-2 text-xs font-medium text-teal-600 transition hover:bg-teal-50">
                   Lihat Semua

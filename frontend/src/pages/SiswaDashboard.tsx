@@ -4,6 +4,7 @@ import {
   User, CheckCircle, Clock, XCircle, CreditCard, Package, Check, Copy, AlertTriangle,
   ChevronDown, ChevronUp, Building2, Upload, Loader, MessageSquare, ChevronRight,
   LayoutDashboard, Wallet, CalendarCheck, BookOpen, Award, Briefcase, Bell, ClipboardList,
+  FileSignature,
   LogOut,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
@@ -365,6 +366,7 @@ export default function SiswaDashboard() {
     { label: 'LMS', to: '/siswa-dashboard/lms', icon: BookOpen, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
     { label: 'Nilai', to: '/siswa-dashboard/nilai', icon: Award, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
     { label: 'Matching Job', to: '/siswa-dashboard/matching-job', icon: Briefcase, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
+    { label: 'Kontrak', to: '/siswa-dashboard/kontrak', icon: FileSignature, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
     { label: 'Profil', to: '/siswa-dashboard/profil', icon: User, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
   ]
 

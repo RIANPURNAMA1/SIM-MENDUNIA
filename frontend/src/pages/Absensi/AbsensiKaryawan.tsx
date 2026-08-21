@@ -417,9 +417,10 @@ export default function AbsensiKaryawan() {
                 ))}
               </div>
               <div className="mt-4 flex gap-2">
-                <button className="inline-flex items-center gap-1.5 rounded-lg bg-teal-500 px-4 py-2 text-xs font-medium text-white transition hover:bg-teal-600">
+                <Link to="/data-kehadiran"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-teal-500 px-4 py-2 text-xs font-medium text-white transition hover:bg-teal-600">
                   <Calendar size={14} /> Kalender Absensi
-                </button>
+                </Link>
                 <Link to="/data-kehadiran"
                   className="inline-flex items-center gap-1.5 rounded-lg border border-teal-500 px-4 py-2 text-xs font-medium text-teal-600 transition hover:bg-teal-50">
                   Lihat Semua

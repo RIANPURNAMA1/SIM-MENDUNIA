@@ -47,4 +47,9 @@ class Cabang extends Model
     {
         return $this->hasMany(AbsensiSiswa::class);
     }
+
+    public function kontraks()
+    {
+        return $this->hasMany(Kontrak::class);
+    }
 }

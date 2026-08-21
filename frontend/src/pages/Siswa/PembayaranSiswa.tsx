@@ -497,16 +497,24 @@ export default function PembayaranSiswa() {
             <div className={`${fbCardClass} overflow-hidden`}>
               
               {/* STATUS BAR */}
-              <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100 bg-white">
-                <span className="text-[14px] sm:text-[15px] font-semibold text-gray-900">Status Akun</span>
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg text-[12px] sm:text-sm font-semibold ${
-                  pendaftar.status_pembayaran === 'verified' ? 'bg-[#E7F3EC] text-[#1C7A41]' : 'bg-[#FFF3CD] text-[#856404]'
-                }`}>
-                  <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
-                    pendaftar.status_pembayaran === 'verified' ? 'bg-[#1C7A41]' : 'bg-[#856404]'
-                  }`} />
-                  {pendaftar.status_pembayaran === 'verified' ? 'Terverifikasi' : 'Menunggu Verifikasi'}
-                </span>
+              <div className="px-4 py-3 flex items-center justify-between gap-2 border-b border-gray-100 bg-white">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-[14px] sm:text-[15px] font-semibold text-gray-900">Status Akun</span>
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg text-[12px] sm:text-sm font-semibold ${
+                    pendaftar.status_pembayaran === 'verified' ? 'bg-[#E7F3EC] text-[#1C7A41]' : 'bg-[#FFF3CD] text-[#856404]'
+                  }`}>
+                    <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
+                      pendaftar.status_pembayaran === 'verified' ? 'bg-[#1C7A41]' : 'bg-[#856404]'
+                    }`} />
+                    {pendaftar.status_pembayaran === 'verified' ? 'Terverifikasi' : 'Menunggu Verifikasi'}
+                  </span>
+                </div>
+                <Link
+                  to={`/siswa-dashboard/pembayaran/invoice/${pendaftar.id}`}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#0E6187] px-3 py-1.5 text-[12px] sm:text-[13px] font-semibold text-white transition hover:bg-[#0a4f6e] active:scale-95 shrink-0"
+                >
+                  <FileText size={13} /> Lihat Invoice
+                </Link>
               </div>
 
               {/* TAHAPAN PEMBAYARAN */}

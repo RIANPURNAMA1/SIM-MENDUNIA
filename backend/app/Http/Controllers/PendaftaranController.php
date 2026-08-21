@@ -1725,7 +1725,7 @@ class PendaftaranController extends Controller
             ->orderBy('created_at', 'asc')
             ->get();
 
-        $pembayaranItems = PembayaranItem::with('kategori')
+        $pembayaranItems = PembayaranItem::with('kategori.parent')
             ->where('pendaftar_id', $pendaftar->id)
             ->orderBy('created_at', 'asc')
             ->get();
@@ -1781,6 +1781,8 @@ class PendaftaranController extends Controller
                     'kategori_id' => $item->kategori_id,
                     'kategori_kode' => $item->kategori?->kode,
                     'kategori_nama' => $item->kategori?->nama,
+                    'parent_id' => $item->kategori?->parent_id,
+                    'parent_nama' => $item->kategori?->parent?->nama,
                     'jumlah' => (float) $item->jumlah,
                     'kode_unik' => $item->kode_unik,
                     'total_transfer' => $item->total_transfer,
@@ -1802,7 +1804,7 @@ class PendaftaranController extends Controller
 
     public function kandidat(Request $request)
     {
-        $query = Pendaftar::with(['product', 'batch.cabang', 'user', 'siswa', 'pembayaranItems.kategori'])
+        $query = Pendaftar::with(['product', 'batch.cabang.kontraks', 'kontrakTandaTangans', 'user', 'siswa', 'pembayaranItems.kategori'])
             ->where('status_pendaftaran', 'disetujui');
 
         if ($request->search) {
@@ -1921,6 +1923,18 @@ class PendaftaranController extends Controller
                 'level_status_keluar' => ($siswa && $siswa->status_kandidat === 'Mengundurkan Diri')
                     || ($siswa && $siswa->level_status && collect($siswa->level_status)->contains('Keluar')),
                 'password_plain' => $user?->password_plain ?? null,
+                'kontrak' => (function () use ($p) {
+                    $k = $p->batch?->cabang?->kontraks?->sortByDesc('created_at')->first();
+                    $ttd = $p->kontrakTandaTangans->first();
+                    if (!$k && !$ttd) return null;
+                    return [
+                        'id' => $k?->id,
+                        'judul' => $k?->judul,
+                        'file_kontrak' => $k?->file_kontrak,
+                        'file_kontrak_ttd' => $ttd?->file_ttd,
+                        'ttd_uploaded_at' => $ttd?->created_at,
+                    ];
+                })(),
             ];
         };
 

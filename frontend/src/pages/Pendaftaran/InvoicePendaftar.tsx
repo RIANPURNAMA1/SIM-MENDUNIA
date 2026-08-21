@@ -45,6 +45,8 @@ interface InvoiceData {
     kategori_id: number
     kategori_kode: string
     kategori_nama: string
+    parent_id: number | null
+    parent_nama: string | null
     jumlah: number
     kode_unik: number | null
     total_transfer: number | null
@@ -65,9 +67,10 @@ const statusBadge = (status: string) => {
   return <span className="font-semibold text-slate-700">{label}</span>
 }
 
-export default function InvoicePendaftar({ variant = 'all' }: { variant?: 'all' | 'cabang' }) {
+export default function InvoicePendaftar({ variant = 'all' }: { variant?: 'all' | 'cabang' | 'siswa' }) {
   const isCabang = variant === 'cabang'
-  const backPath = isCabang ? '/admin-cabang/kandidat' : '/pendaftar'
+  const isSiswa = variant === 'siswa'
+  const backPath = isSiswa ? '/siswa-dashboard/pembayaran' : isCabang ? '/admin-cabang/kandidat' : '/pendaftar'
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const invoiceRef = useRef<HTMLDivElement>(null)
@@ -167,13 +170,24 @@ export default function InvoicePendaftar({ variant = 'all' }: { variant?: 'all' 
         </div>
         <p className="mt-4 text-sm font-medium text-slate-600">Data invoice tidak ditemukan</p>
         <button onClick={() => navigate(backPath)} className="mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium">
-          Kembali ke Pendaftar
+          {isSiswa ? 'Kembali ke Pembayaran' : 'Kembali ke Pendaftar'}
         </button>
       </div>
     )
   }
 
   const { pendaftar, product, keuangan, riwayat_pembayaran, no_invoice, pembayaran_items } = data
+
+  const kategoriGroups = (() => {
+    const map = new Map<string, { nama: string; jumlah: number }>()
+    for (const item of pembayaran_items || []) {
+      const nama = item.parent_nama || item.kategori_nama || '-'
+      const existing = map.get(nama)
+      if (existing) existing.jumlah += Number(item.jumlah)
+      else map.set(nama, { nama, jumlah: Number(item.jumlah) })
+    }
+    return Array.from(map.values())
+  })()
   const tgl = new Date(pendaftar.created_at)
   const formattedDate = tgl.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
 
@@ -281,13 +295,13 @@ export default function InvoicePendaftar({ variant = 'all' }: { variant?: 'all' 
                     Rp {keuangan.harga_produk.toLocaleString('id-ID')}
                   </td>
                 </tr>
-                {pembayaran_items && pembayaran_items.map((item) => (
-                  <tr key={item.id} className="border-b border-slate-100 bg-white">
+                {kategoriGroups.map((g) => (
+                  <tr key={g.nama} className="border-b border-slate-100 bg-white">
                     <td className="px-4 py-3.5">
-                      <p className="font-semibold text-slate-800">{item.kategori_nama}</p>
+                      <p className="font-semibold text-slate-800">{g.nama}</p>
                     </td>
                     <td className="px-4 py-3.5 text-right font-semibold text-slate-800">
-                      Rp {item.jumlah.toLocaleString('id-ID')}
+                      Rp {g.jumlah.toLocaleString('id-ID')}
                     </td>
                   </tr>
                 ))}

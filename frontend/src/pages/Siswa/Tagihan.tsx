@@ -713,7 +713,7 @@ export default function Tagihan() {
                                 })
                               }}
                               onKeyDown={e => handleKeyDown(e, key, p, kats)}
-                              className={`w-full bg-transparent text-right text-sm outline-none transition ${isChanged ? 'font-semibold text-blue-700' : isLunas ? 'font-semibold text-emerald-700' : isPartial ? 'font-semibold text-orange-600' : 'text-slate-500'} placeholder:text-slate-300 focus:bg-blue-50 focus:rounded focus:px-1`}
+                              className={`w-full bg-transparent text-right text-sm outline-none transition ${isChanged ? 'font-semibold text-[#0E6187]' : isLunas ? 'font-semibold text-emerald-700' : isPartial ? 'font-semibold text-orange-600' : 'text-slate-500'} placeholder:text-slate-300 focus:bg-[#0E6187]/5 focus:rounded focus:px-1`}
                               placeholder="-"
                             />
                             {biayaKatRaw > 0 && (
@@ -931,42 +931,25 @@ export default function Tagihan() {
 
       {/* Stats */}
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-          <div className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-blue-50 sm:h-10 sm:w-10">
-            <Receipt size={16} className="text-blue-600" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[10px] text-slate-500 sm:text-xs">Total Tagihan</p>
-            <p className="break-words text-base font-bold leading-tight text-slate-800 sm:text-xl lg:text-2xl">Rp {fmt(stats.total)}</p>
-          </div>
-        </div>
-        <div className="flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-          <div className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-emerald-50 sm:h-10 sm:w-10">
-            <CheckCircle size={16} className="text-emerald-600" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[10px] text-emerald-600 sm:text-xs">Terkumpul</p>
-            <p className="break-words text-base font-bold leading-tight text-emerald-700 sm:text-xl lg:text-2xl">Rp {fmt(stats.paid)}</p>
-          </div>
-        </div>
-        <div className="flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-          <div className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-red-50 sm:h-10 sm:w-10">
-            <AlertCircle size={16} className="text-red-500" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[10px] text-red-600 sm:text-xs">Outstanding</p>
-            <p className="break-words text-base font-bold leading-tight text-red-600 sm:text-xl lg:text-2xl">Rp {fmt(stats.outstanding)}</p>
-          </div>
-        </div>
-        <div className="flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-          <div className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-amber-50 sm:h-10 sm:w-10">
-            <Users size={16} className="text-amber-600" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[10px] text-slate-500 sm:text-xs">Total Kandidat</p>
-            <p className="break-words text-base font-bold leading-tight text-slate-800 sm:text-xl lg:text-2xl">{stats.count}</p>
-          </div>
-        </div>
+        {[
+          { label: 'Total Tagihan', value: `Rp ${fmt(stats.total)}`, icon: Receipt },
+          { label: 'Terkumpul', value: `Rp ${fmt(stats.paid)}`, icon: CheckCircle },
+          { label: 'Outstanding', value: `Rp ${fmt(stats.outstanding)}`, icon: AlertCircle },
+          { label: 'Total Kandidat', value: stats.count, icon: Users },
+        ].map(stat => {
+          const Icon = stat.icon
+          return (
+            <div key={stat.label} className="flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+              <div className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-[#0E6187]/10 sm:h-10 sm:w-10">
+                <Icon size={16} className="text-[#0E6187]" />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-[10px] text-slate-500 sm:text-xs">{stat.label}</p>
+                <p className="break-words text-base font-bold leading-tight text-slate-800 sm:text-xl lg:text-2xl">{stat.value}</p>
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       {/* Filter */}
@@ -1136,21 +1119,26 @@ export default function Tagihan() {
 
       {/* Floating save bar */}
       {pendingCount > 0 && (
-        <div className="sticky bottom-4 z-40 mt-4 flex items-center justify-between rounded-xl border border-blue-200 bg-blue-50 px-5 py-3 shadow-lg">
-          <p className="text-xs text-blue-700">
-            <span className="font-bold">{pendingCount}</span> perubahan belum disimpan
-          </p>
-          <div className="flex gap-2">
+        <div className="sticky bottom-4 z-40 mt-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-lg sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0E6187]/10">
+              <AlertCircle size={17} className="text-[#0E6187]" />
+            </span>
+            <p className="text-sm text-slate-600">
+              <span className="font-bold text-[#0E6187]">{pendingCount}</span> perubahan belum disimpan
+            </p>
+          </div>
+          <div className="flex items-center justify-end gap-2">
             <button
               onClick={() => setPendingChanges({})}
-              className="rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
+              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
             >
               Batal
             </button>
             <button
               onClick={handleSaveInline}
               disabled={savingInline}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-md bg-[#0E6187] px-5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#0a4f6e] disabled:opacity-50"
             >
               <Save size={14} />
               {savingInline ? 'Menyimpan...' : 'Simpan'}

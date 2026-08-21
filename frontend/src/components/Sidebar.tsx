@@ -48,6 +48,7 @@ import {
   MapPinOff,
   Globe,
   Newspaper,
+  FileSignature,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -113,6 +114,7 @@ const iconMap: Record<string, LucideIcon> = {
   LogIn,
   Globe,
   Newspaper,
+  FileSignature,
 };
 
 const navItems: NavItem[] = [
@@ -131,6 +133,7 @@ const navItems: NavItem[] = [
       { label: "Kelas Kandidat", icon: "GraduationCap", href: "/siswa" },
       { label: "Rekap Per Batch", icon: "Layers", href: "/rekap-per-batch" },
       { label: "Riwayat Pembayaran", icon: "CreditCard", href: "/pembayaran" },
+      { label: "Kontrak Kandidat", icon: "FileSignature", href: "/kontrak-kandidat" },
     ],
   },
   {
