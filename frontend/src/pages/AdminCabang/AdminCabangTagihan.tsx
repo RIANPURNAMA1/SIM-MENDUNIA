@@ -2,19 +2,12 @@ function fmt(n: number) {
   return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
 }
 
-function parseInput(v: string): number {
-  const raw = v.replace(/\./g, '').replace(/\D/g, '')
-  return raw === '' ? 0 : Number(raw)
-}
-
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import {
   FileText, Search, Receipt, CheckCircle, Clock, AlertCircle, RotateCcw,
-  DollarSign, X, Save, Bell, Eye, Check, Loader, XCircle, SlidersHorizontal,
-  ChevronLeft, ChevronRight, MoreHorizontal,
+  Loader, SlidersHorizontal, ChevronLeft, ChevronRight, MoreHorizontal,
 } from 'lucide-react'
-import Swal from 'sweetalert2'
-import api, { adminCabangApi, productApi, APP_URL } from '../../services/api'
+import { adminCabangApi, productApi } from '../../services/api'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import InvoiceModal from '../../components/InvoiceModal'
 
 interface KategoriInfo {
@@ -49,14 +42,6 @@ interface TagihanItem {
   product: { id: number; nama: string; harga: number; kategori_items?: { name: string; harga: number; komisi: number; children: any[] }[] } | null
   batch: { id: number; nama_batch: string; warna: string | null } | null
   detail?: DetailItem[]
-}
-
-interface KategoriItem {
-  kategori_id: number
-  kode: string
-  nama: string
-  biaya: number
-  dibayar: number
 }
 
 interface BatchOption {
@@ -121,23 +106,8 @@ export default function AdminCabangTagihan() {
   const [batches, setBatches] = useState<BatchOption[]>([])
   const [products, setProducts] = useState<ProductOption[]>([])
   const [kategoris, setKategoris] = useState<KategoriInfo[]>([])
-  const [modalBayar, setModalBayar] = useState<{
-    pendaftar: TagihanItem
-    items: KategoriItem[]
-    originalItems: KategoriItem[]
-  } | null>(null)
-  const [saving, setSaving] = useState(false)
-  const [pendingChanges, setPendingChanges] = useState<Record<string, number>>({})
-  const [savingInline, setSavingInline] = useState(false)
-  const [pendingPembayaran, setPendingPembayaran] = useState<any[]>([])
   const [showBatchDropdown, setShowBatchDropdown] = useState(false)
   const [showFilter, setShowFilter] = useState(false)
-  const [showPendingModal, setShowPendingModal] = useState(false)
-  const [selectedPendingPendaftarId, setSelectedPendingPendaftarId] = useState<number | null>(null)
-  const [verifyingId, setVerifyingId] = useState<number | null>(null)
-  const [rejectingId, setRejectingId] = useState<number | null>(null)
-  const [confirmRejectId, setConfirmRejectId] = useState<number | null>(null)
-  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const [collapsedBatches, setCollapsedBatches] = useState<Set<number>>(new Set())
   const [groupsMeta, setGroupsMeta] = useState<BatchGroupMeta[]>([])
   const [candidates, setCandidates] = useState<Record<number, CandidatePage>>({})
@@ -145,31 +115,19 @@ export default function AdminCabangTagihan() {
   const [batchPage, setBatchPage] = useState(1)
   const [batchTotalPages, setBatchTotalPages] = useState(1)
   const [batchTotal, setBatchTotal] = useState(0)
-  const [uniqueCodeOp, setUniqueCodeOp] = useState<string>('add')
   const [openActionId, setOpenActionId] = useState<number | null>(null)
-  const [selectedLunasIds, setSelectedLunasIds] = useState<Set<number>>(new Set())
-  const [bulkLunasLoading, setBulkLunasLoading] = useState(false)
   const [invoiceId, setInvoiceId] = useState<number | null>(null)
   const actionRef = useRef<HTMLDivElement>(null)
   const batchPerPage = 5
   const candidatePerPage = 5
   const isFirstRender = useRef(true)
 
-  const pendingCount = Object.keys(pendingChanges).length
-
-  function fetchPendingPembayaran() {
-    adminCabangApi.pendingPembayaran().then(res => {
-      setPendingPembayaran(res.data.data || [])
-    }).catch(() => {})
-  }
-
   useEffect(() => {
     Promise.all([
       adminCabangApi.biayaKategori(),
       adminCabangApi.batches(),
       productApi.list(),
-      api.get('/payment-settings'),
-    ]).then(([katRes, batchRes, prodRes, settingsRes]) => {
+    ]).then(([katRes, batchRes, prodRes]) => {
       setKategoris((() => {
         const all = katRes.data || []
         const childrenOf = new Map<number | null, KategoriInfo[]>()
@@ -193,28 +151,8 @@ export default function AdminCabangTagihan() {
       })())
       setBatches(batchRes.data?.data || batchRes.data || [])
       setProducts(prodRes.data || [])
-      setUniqueCodeOp(settingsRes.data?.unique_code_operation?.value ?? 'add')
     }).catch(() => {})
     fetchGroups(1)
-    fetchPendingPembayaran()
-
-    const interval = setInterval(() => {
-      adminCabangApi.pendingPembayaran().then(res => {
-        const newPending = res.data.data || []
-        setPendingPembayaran(prev => {
-          if (JSON.stringify(prev) !== JSON.stringify(newPending)) {
-            return newPending
-          }
-          return prev
-        })
-        if (newPending.length === 0) {
-          setShowPendingModal(false)
-          setSelectedPendingPendaftarId(null)
-        }
-      }).catch(() => {})
-    }, 15000)
-
-    return () => clearInterval(interval)
   }, [])
 
   useEffect(() => {
@@ -336,8 +274,6 @@ export default function AdminCabangTagihan() {
   }, [batchTotalPages, batchPage])
 
   const getDibayar = (p: TagihanItem, kategoriId: number): number => {
-    const key = `${p.id}_${kategoriId}`
-    if (key in pendingChanges) return pendingChanges[key]
     const d = p.detail?.find(d => d.kategori_id === kategoriId)
     return d?.dibayar || 0
   }
@@ -365,7 +301,7 @@ export default function AdminCabangTagihan() {
     )
   }
 
-  const calcRow = (p: TagihanItem, kats: KategoriInfo[]) => {
+  const calcRow = (p: TagihanItem) => {
     const details = p.detail || []
     let tagihan = 0
     let dibayar = 0
@@ -384,83 +320,8 @@ export default function AdminCabangTagihan() {
     return { tagihan, dibayar, sisa }
   }
 
-  const handleSaveInline = async () => {
-    if (pendingCount === 0) return
-    setSavingInline(true)
-    try {
-      const grouped: Record<number, { kategori_id: number; jumlah: number }[]> = {}
-      for (const [key, val] of Object.entries(pendingChanges)) {
-        const [pid, kid] = key.split('_').map(Number)
-        if (!grouped[pid]) grouped[pid] = []
-        grouped[pid].push({ kategori_id: kid, jumlah: val })
-      }
-      await Promise.all(
-        Object.entries(grouped).map(([pid, items]) =>
-          adminCabangApi.savePembayaranItem(Number(pid), items)
-        )
-      )
-      setPendingChanges({})
-      await fetchGroups(batchPage)
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setSavingInline(false)
-    }
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent, key: string, p: TagihanItem, kats: KategoriInfo[]) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      const [, kid] = key.split('_').map(Number)
-      const visibleKats = kats.filter(k => hasKategori(p, k.id))
-      const katIndex = visibleKats.findIndex(k => k.id === kid)
-      if (katIndex < visibleKats.length - 1) {
-        const nextKey = `${p.id}_${visibleKats[katIndex + 1].id}`
-        inputRefs.current[nextKey]?.focus()
-      }
-    }
-  }
-
-  const refreshAll = useCallback(async () => {
-    const pendingRes = await adminCabangApi.pendingPembayaran()
-    const newPending = pendingRes.data.data || []
-    setPendingPembayaran(newPending)
-    if (newPending.length === 0) {
-      setShowPendingModal(false)
-      setSelectedPendingPendaftarId(null)
-    }
-    await fetchGroups(batchPage)
-  }, [fetchGroups, batchPage])
-
-  async function handleVerifyPembayaran(id: number) {
-    setVerifyingId(id)
-    try {
-      await adminCabangApi.verifyPayment(id)
-      await refreshAll()
-      Swal.fire({ icon: 'success', title: 'Pembayaran diverifikasi', text: 'Status pembayaran telah diperbarui', timer: 1500, showConfirmButton: false, toast: true, position: 'top-end' })
-    } catch (err) {
-      Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal memverifikasi pembayaran', timer: 2000, showConfirmButton: false, toast: true, position: 'top-end' })
-    } finally {
-      setVerifyingId(null)
-    }
-  }
-
-  async function handleRejectPembayaran(pembayaranId: number) {
-    setRejectingId(pembayaranId)
-    setConfirmRejectId(null)
-    try {
-      await adminCabangApi.rejectPayment(pembayaranId)
-      await refreshAll()
-      Swal.fire({ icon: 'success', title: 'Pembayaran ditolak', text: 'Pembayaran berhasil ditolak', timer: 1500, showConfirmButton: false, toast: true, position: 'top-end' })
-    } catch (err) {
-      Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal menolak pembayaran', timer: 2000, showConfirmButton: false, toast: true, position: 'top-end' })
-    } finally {
-      setRejectingId(null)
-    }
-  }
-
   const renderBatchTable = (group: BatchGroup) => {
-    const { batchId, batchName, kategoris: kats, kategoriColumns, items } = group
+    const { batchId, batchName, kategoriColumns, items } = group
     const isCollapsed = collapsedBatches.has(batchId)
     const groupTagihan = group.totalTagihan
     const groupDibayar = group.totalDibayar
@@ -514,41 +375,9 @@ export default function AdminCabangTagihan() {
 
         {!isCollapsed && (
           <div className="overflow-x-auto border-t border-slate-200">
-            {selectedLunasIds.size > 0 && (
-              <div className="flex items-center gap-3 border-b border-slate-200 bg-blue-50/50 px-4 py-2">
-                <span className="text-xs font-medium text-slate-600">{selectedLunasIds.size} pendaftar dipilih</span>
-                <button onClick={async () => {
-                  setBulkLunasLoading(true)
-                  try {
-                    await Promise.all([...selectedLunasIds].map(id => adminCabangApi.setLunas(id)))
-                    setSelectedLunasIds(new Set())
-                    await refreshAll()
-                    Swal.fire({ icon: 'success', title: 'Berhasil!', text: `${selectedLunasIds.size} pendaftar di-set lunas`, confirmButtonColor: '#0E6187', timer: 2000, timerProgressBar: true, showConfirmButton: false })
-                  } catch {
-                    Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal mengubah status pembayaran', confirmButtonColor: '#0E6187' })
-                  } finally {
-                    setBulkLunasLoading(false)
-                  }
-                }} disabled={bulkLunasLoading} className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50">
-                  {bulkLunasLoading ? 'Memproses...' : 'Set Lunas'}
-                </button>
-                <button onClick={() => setSelectedLunasIds(new Set())} className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50">
-                  Batal Pilih
-                </button>
-              </div>
-            )}
             <table className="w-full min-w-[900px] border-collapse text-left text-sm text-slate-700">
               <thead className="bg-[#0e6187]">
                   <tr>
-                    <th scope="col" className="border border-slate-600 px-3 py-3 text-center font-medium text-white w-[40px]">
-                      <input type="checkbox" checked={pagedItems.length > 0 && pagedItems.every(p => selectedLunasIds.has(p.id))} onChange={() => {
-                        if (pagedItems.every(p => selectedLunasIds.has(p.id))) {
-                          setSelectedLunasIds(prev => { const n = new Set(prev); pagedItems.forEach(p => n.delete(p.id)); return n })
-                        } else {
-                          setSelectedLunasIds(prev => { const n = new Set(prev); pagedItems.forEach(p => n.add(p.id)); return n })
-                        }
-                      }} className="h-4 w-4 rounded border-white/50 bg-white/20 text-white focus:ring-0 cursor-pointer" />
-                    </th>
                     <th scope="col" className="border border-slate-600 px-4 py-3 font-medium text-white w-[220px]">Pendaftar</th>
                   {kategoriColumns.map(col => {
                     const k = col.kategori
@@ -581,14 +410,9 @@ export default function AdminCabangTagihan() {
                   </tr>
                 )}
                 {!isLoading && pagedItems.map(p => {
-                  const { tagihan, dibayar, sisa } = calcRow(p, kats)
+                  const { tagihan, dibayar, sisa } = calcRow(p)
                   return (
-                    <tr key={p.id} className={`transition ${p.is_cuti ? 'bg-yellow-100 hover:bg-yellow-200/70' : p.status_kandidat === 'Mengundurkan Diri' ? 'bg-red-100 hover:bg-red-200/70' : 'bg-white hover:bg-slate-50'} ${selectedLunasIds.has(p.id) ? '!bg-blue-50/50' : ''}`}>
-                      <td className="border border-slate-200 px-3 py-3 text-center">
-                        <input type="checkbox" checked={selectedLunasIds.has(p.id)} onChange={() => {
-                          setSelectedLunasIds(prev => { const n = new Set(prev); if (n.has(p.id)) n.delete(p.id); else n.add(p.id); return n })
-                        }} className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
-                      </td>
+                    <tr key={p.id} className={`transition ${p.is_cuti ? 'bg-yellow-100 hover:bg-yellow-200/70' : p.status_kandidat === 'Mengundurkan Diri' ? 'bg-red-100 hover:bg-red-200/70' : 'bg-white hover:bg-slate-50'}`}>
                       <td className="border border-slate-200 px-4 py-3">
                         <div className="flex items-center gap-3">
                           <img
@@ -599,13 +423,6 @@ export default function AdminCabangTagihan() {
                           <div className="min-w-0">
                             <div className="text-sm font-semibold text-slate-800 truncate flex items-center gap-1">
                               {p.nama}
-                              {pendingPembayaran.some((pp: any) => pp.pendaftar_id === p.id) && (
-                                <button
-                                  onClick={() => { setSelectedPendingPendaftarId(p.id); setShowPendingModal(true) }}
-                                  title="Ada pembayaran menunggu verifikasi"
-                                  className="h-2 w-2 rounded-full bg-red-500 shrink-0"
-                                />
-                              )}
                             </div>
                             <div className="text-xs text-slate-500 truncate">{p.email}</div>
                           </div>
@@ -619,38 +436,19 @@ export default function AdminCabangTagihan() {
                             <td key={k.id} className="border border-slate-200 px-4 py-3 text-right text-sm text-slate-300 min-w-[120px]">-</td>
                           )
                         }
-                        const key = `${p.id}_${k.id}`
                         const val = getDibayar(p, k.id)
-                        const isChanged = key in pendingChanges
                         const katDetail = p.detail?.find((d: DetailItem) => d.kategori_id === k.id)
                         const biayaKatRaw = katDetail?.biaya || 0
-                        const katTotalTransfer = Number(katDetail?.total_transfer) || 0
-                        const biayaKat = uniqueCodeOp === 'subtract' && katTotalTransfer > 0 ? katTotalTransfer : biayaKatRaw
                         const isLunas = biayaKatRaw > 0 && val >= biayaKatRaw
-                        const isPartial = val > 0 && !isLunas
                         return (
                           <td key={k.id} className="border border-slate-200 px-4 py-3 text-right whitespace-nowrap min-w-[120px]">
-                            <input
-                              ref={el => { inputRefs.current[key] = el }}
-                              type="text"
-                              value={val > 0 ? val.toLocaleString('id-ID') : ''}
-                              title={val > 0 ? val.toLocaleString('id-ID') : ''}
-                              onChange={e => {
-                                const num = parseInput(e.target.value)
-                                setPendingChanges(prev => {
-                                  const next = { ...prev }
-                                  if (num === (p.detail?.find(d => d.kategori_id === k.id)?.dibayar || 0)) {
-                                    delete next[key]
-                                  } else {
-                                    next[key] = num
-                                  }
-                                  return next
-                                })
-                              }}
-                              onKeyDown={e => handleKeyDown(e, key, p, kats)}
-                              className={`w-full bg-transparent text-right text-sm outline-none transition ${isChanged ? 'font-semibold text-blue-700' : isLunas ? 'font-semibold text-emerald-700' : isPartial ? 'font-semibold text-orange-600' : 'text-slate-500'} placeholder:text-slate-300 focus:bg-blue-50 focus:rounded focus:px-1`}
-                              placeholder="-"
-                            />
+                            {val > 0 ? (
+                              <span className={`text-sm font-semibold ${isLunas ? 'text-emerald-700' : 'text-orange-600'}`}>
+                                {val.toLocaleString('id-ID')}
+                              </span>
+                            ) : (
+                              <span className="text-sm text-slate-300">-</span>
+                            )}
                             {biayaKatRaw > 0 && (
                               <div className="text-[10px] text-slate-400 mt-0.5">Rp {fmt(biayaKatRaw)}</div>
                             )}
@@ -687,54 +485,6 @@ export default function AdminCabangTagihan() {
                                 <FileText size={14} className="text-slate-400" />
                                 <span>Lihat Invoice</span>
                               </button>
-                              <div className="my-1 border-t border-slate-100" />
-                              <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Status</p>
-                              {(() => {
-                                const { tagihan, dibayar } = calcRow(p, kats)
-                                const isLunas = dibayar >= tagihan && tagihan > 0
-                                return (
-                                  <button
-                                    onClick={async () => {
-                                      setOpenActionId(null)
-                                      try {
-                                        if (isLunas) {
-                                          await adminCabangApi.batalLunas(p.id)
-                                        } else {
-                                          await adminCabangApi.setLunas(p.id)
-                                        }
-                                        refreshAll()
-                                      } catch (err) {
-                                        console.error(err)
-                                        Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal mengubah status pembayaran', confirmButtonColor: '#0E6187' })
-                                      }
-                                    }}
-                                    className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-                                  >
-                                    {isLunas
-                                      ? <XCircle size={14} className="text-red-400" />
-                                      : <CheckCircle size={14} className="text-emerald-400" />}
-                                    <span>{isLunas ? 'Batalkan Lunas' : 'Set Lunas'}</span>
-                                  </button>
-                                )
-                              })()}
-                              <div className="my-1 border-t border-slate-100" />
-                              <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Pembayaran</p>
-                              <button
-                                onClick={async () => {
-                                  setOpenActionId(null)
-                                  try {
-                                    const res = await adminCabangApi.pembayaranItem(p.id)
-                                    const items = res.data.items || []
-                                    setModalBayar({ pendaftar: p, items, originalItems: (items as KategoriItem[]).map(i => ({...i})) })
-                                  } catch (err) {
-                                    console.error(err)
-                                  }
-                                }}
-                                className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-                              >
-                                <DollarSign size={14} className="text-emerald-400" />
-                                <span>Input Pembayaran</span>
-                              </button>
                             </div>
                           )}
                         </div>
@@ -746,7 +496,7 @@ export default function AdminCabangTagihan() {
               {!isLoading && (
               <tfoot>
                 <tr className="bg-slate-50 font-semibold text-sm">
-                  <td className="border border-slate-200 px-4 py-3" colSpan={kategoriColumns.length + 1}>
+                  <td className="border border-slate-200 px-4 py-3" colSpan={kategoriColumns.length + 2}>
                     <span className="text-slate-500">Total {batchName}</span>
                   </td>
                   <td className="border border-slate-200 px-4 py-3 text-right text-slate-800">Rp {fmt(groupTagihan)}</td>
@@ -827,7 +577,7 @@ export default function AdminCabangTagihan() {
           </div>
           <div>
             <h1 className="text-lg font-semibold text-slate-800">Tagihan</h1>
-            <p className="text-sm text-slate-500">Kelola tagihan pendaftaran cabang Anda</p>
+            <p className="text-sm text-slate-500">Data tagihan pendaftaran cabang Anda</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -841,17 +591,6 @@ export default function AdminCabangTagihan() {
           >
             <SlidersHorizontal size={16} />
             Filter
-          </button>
-          <button
-            onClick={() => { setSelectedPendingPendaftarId(null); setShowPendingModal(true) }}
-            className="relative inline-flex items-center gap-2 rounded-md bg-white border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
-          >
-            <span>Verifikasi</span>
-            {pendingPembayaran.length > 0 && (
-              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-                {new Set(pendingPembayaran.map((pp: any) => pp.pendaftar_id)).size}
-              </span>
-            )}
           </button>
         </div>
       </div>
@@ -936,7 +675,7 @@ export default function AdminCabangTagihan() {
             <option value="verified">Lunas</option>
           </select>
           <button
-            onClick={() => { setSearch(''); setFilterStatus(''); setFilterBatch(''); setFilterProduct(''); setFilterDateFrom(''); setFilterDateTo(''); setPendingChanges({}); setCollapsedBatches(new Set()) }}
+            onClick={() => { setSearch(''); setFilterStatus(''); setFilterBatch(''); setFilterProduct(''); setFilterDateFrom(''); setFilterDateTo(''); setCollapsedBatches(new Set()) }}
             className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 w-full sm:w-auto"
           >
             <RotateCcw size={16} />
@@ -1017,224 +756,6 @@ export default function AdminCabangTagihan() {
             >
               <ChevronRight size={16} />
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Floating save bar */}
-      {pendingCount > 0 && (
-        <div className="sticky bottom-4 z-40 mt-4 flex items-center justify-between rounded-xl border border-blue-200 bg-blue-50 px-5 py-3 shadow-lg">
-          <p className="text-xs text-blue-700">
-            <span className="font-bold">{pendingCount}</span> perubahan belum disimpan
-          </p>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setPendingChanges({})}
-              className="rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
-            >
-              Batal
-            </button>
-            <button
-              onClick={handleSaveInline}
-              disabled={savingInline}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50"
-            >
-              <Save size={14} />
-              {savingInline ? 'Menyimpan...' : 'Simpan'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Bayar Manual */}
-      {modalBayar && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-6" onClick={() => setModalBayar(null)}>
-          <div className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-xl bg-white shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50">
-                  <DollarSign size={18} className="text-emerald-600" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-800">Input Pembayaran Manual</h3>
-                  <p className="text-xs text-slate-500">{modalBayar.pendaftar.nama}</p>
-                </div>
-              </div>
-              <button onClick={() => setModalBayar(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"><X size={17} /></button>
-            </div>
-            <div className="px-5 py-4 space-y-3">
-              {modalBayar.items.map((item, i) => (
-                <div key={item.kategori_id} className="flex items-center gap-3">
-                  <div className="flex-1">
-                    <label className="block text-xs font-medium text-slate-600">{item.nama}</label>
-                    <p className="text-[10px] text-slate-400">Biaya: Rp {fmt(item.biaya)}</p>
-                  </div>
-                  <div className="relative w-36">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-medium text-slate-400">Rp</span>
-                    <input
-                      type="text"
-                      value={item.dibayar ? Number(item.dibayar).toLocaleString('id-ID') : ''}
-                      onChange={e => {
-                        const raw = e.target.value.replace(/\./g, '')
-                        const newItems = [...modalBayar.items]
-                        newItems[i] = { ...newItems[i], dibayar: raw === '' ? 0 : Number(raw.replace(/\D/g, '')) }
-                        setModalBayar({ ...modalBayar, items: newItems })
-                      }}
-                      className="w-full rounded-md border border-slate-300 bg-white py-2 pl-8 pr-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                      placeholder="0"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="flex items-center justify-between border-t border-slate-200 px-5 py-3">
-              <p className="text-[11px] text-slate-400">Kosongi jika belum bayar</p>
-              <div className="flex gap-2">
-                <button onClick={() => setModalBayar(null)} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">Batal</button>
-                <button
-                  onClick={async () => {
-                    if (!modalBayar) return
-                    setSaving(true)
-                    try {
-                      const changed = modalBayar.items.filter((item, i) => {
-                        const orig = modalBayar.originalItems[i]
-                        return item.dibayar > 0 && item.dibayar !== orig?.dibayar
-                      })
-                      if (changed.length === 0) {
-                        setModalBayar(null)
-                        setSaving(false)
-                        return
-                      }
-                      for (const item of changed) {
-                        await adminCabangApi.bayarManual(modalBayar.pendaftar.id, {
-                          jumlah: item.dibayar,
-                          kategori_id: item.kategori_id,
-                        })
-                      }
-                      await fetchGroups(batchPage)
-                      setModalBayar(null)
-                    } catch (err: any) {
-                      const msg = err?.response?.data?.message || err?.message || 'Terjadi kesalahan'
-                      Swal.fire({ icon: 'error', title: 'Gagal', text: msg })
-                    } finally {
-                      setSaving(false)
-                    }
-                  }}
-                  disabled={saving}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-5 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
-                >
-                  {saving ? 'Menyimpan...' : 'Simpan Pembayaran'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Verifikasi */}
-      {showPendingModal && (() => {
-        const filteredPembayaran = selectedPendingPendaftarId
-          ? pendingPembayaran.filter((pp: any) => pp.pendaftar_id === selectedPendingPendaftarId)
-          : pendingPembayaran
-        const filteredNama = selectedPendingPendaftarId
-          ? filteredPembayaran[0]?.pendaftar?.nama || ''
-          : ''
-        return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-6" onClick={() => { setShowPendingModal(false); setSelectedPendingPendaftarId(null) }}>
-          <div className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-xl bg-white shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50">
-                  <Bell size={18} className="text-amber-600" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-800">Verifikasi Pembayaran</h3>
-                  <p className="text-xs text-slate-500">{filteredPembayaran.length} pembayaran menunggu verifikasi{filteredNama ? ` — ${filteredNama}` : ''}</p>
-                </div>
-              </div>
-              <button onClick={() => { setShowPendingModal(false); setSelectedPendingPendaftarId(null) }} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"><X size={17} /></button>
-            </div>
-            {filteredPembayaran.length === 0 ? (
-              <div className="px-5 py-10 text-center">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-500 mb-3">
-                  <CheckCircle size={24} />
-                </div>
-                <p className="text-sm font-medium text-slate-600">Tidak ada pembayaran yang perlu diverifikasi</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-slate-100">
-                {filteredPembayaran.map((pp: any) => (
-                  <div key={pp.id} className="px-5 py-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-slate-800">{pp.pendaftar?.nama}</p>
-                        <p className="text-xs text-slate-500">{pp.pendaftar?.email}</p>
-                        <div className="mt-2 flex items-center gap-2">
-                          <span className="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-                            {pp.kategori?.kode || 'Tagihan'}
-                          </span>
-                          <span className="text-xs font-bold text-slate-700">
-                            Rp {Number(pp.jumlah).toLocaleString('id-ID')}
-                          </span>
-                        </div>
-                        <p className="mt-1 text-[10px] text-slate-400">
-                          {new Date(pp.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                      </div>
-                      <div className="flex flex-col items-end gap-2 shrink-0">
-                        {pp.bukti_pembayaran && pp.bukti_pembayaran !== 'manual' && pp.bukti_pembayaran !== 'auto' && (
-                          <a
-                            href={`${APP_URL}/storage/${pp.bukti_pembayaran}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[10px] font-medium text-slate-600 transition hover:border-blue-200 hover:text-blue-600"
-                          >
-                            <Eye size={12} /> Lihat Bukti
-                          </a>
-                        )}
-                        <button
-                          onClick={() => handleVerifyPembayaran(pp.pendaftar_id)}
-                          disabled={verifyingId === pp.pendaftar_id || rejectingId === pp.id}
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-[10px] font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
-                        >
-                          {verifyingId === pp.pendaftar_id ? (
-                            <><Loader size={12} className="animate-spin" /> Verifying</>
-                          ) : (
-                            <><Check size={12} /> Verifikasi</>
-                          )}
-                        </button>
-                        <button
-                          onClick={() => setConfirmRejectId(pp.id)}
-                          disabled={verifyingId === pp.pendaftar_id || rejectingId === pp.id}
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-[10px] font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
-                        >
-                          <XCircle size={12} /> Tolak
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-        )
-      })()}
-
-      {confirmRejectId !== null && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => setConfirmRejectId(null)}>
-          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
-              <AlertCircle size={24} className="text-red-500" />
-            </div>
-            <h3 className="text-center text-sm font-bold text-slate-800">Tolak Pembayaran?</h3>
-            <p className="mt-2 text-center text-xs text-slate-500">Pembayaran ini akan ditolak dan dihapus. Tindakan ini tidak dapat dibatalkan.</p>
-            <div className="mt-5 flex gap-3">
-              <button onClick={() => setConfirmRejectId(null)} className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">Batal</button>
-              <button onClick={() => handleRejectPembayaran(confirmRejectId)} disabled={rejectingId === confirmRejectId} className="flex-1 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-50">
-                {rejectingId === confirmRejectId ? 'Menolak...' : 'Ya, Tolak'}
-              </button>
-            </div>
           </div>
         </div>
       )}

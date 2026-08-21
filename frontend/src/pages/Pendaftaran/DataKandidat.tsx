@@ -1355,7 +1355,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
       </nav>
 
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-4 rounded-sm p-4 sm:flex-row sm:items-center sm:justify-between border border-slate-200">
+      <div className="mb-4 flex flex-col gap-4  p-4 sm:flex-row sm:items-center sm:justify-between ">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
             <Users size={20} />
@@ -1394,7 +1394,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
       </div>
 
       {/* Filter */}
-      <div className="mb-4 rounded-sm  border border-slate-200 bg-white p-4 ">
+      <div className="mb-4 py-4 ">
         <div className="flex flex-wrap gap-3 items-center">
           <div className="relative w-full md:flex-1 md:w-auto">
             <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
