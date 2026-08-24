@@ -2053,12 +2053,15 @@ class PendaftaranController extends Controller
                 }
             }
 
+            $userNik = $user?->nik;
+            if ($userNik && str_contains($userNik, '@')) $userNik = null;
+
             return [
                 'id' => $p->id,
                 'nama' => $p->nama,
                 'email' => $p->email,
                 'telepon' => $p->telepon,
-                'nik' => $siswa?->nik ?? $user?->nik ?? '-',
+                'nik' => $siswa?->nik ?: $userNik ?: '-',
                 'no_registrasi' => $p->no_registrasi ?? $siswa?->no_registrasi ?? '-',
                 'batch_id' => $p->batch_id ?? $siswa?->batch_id,
                 'batch_nama' => $p->batch?->nama_batch ?? $siswa?->batchRelasi?->nama_batch ?? '-',
@@ -2383,7 +2386,7 @@ class PendaftaranController extends Controller
                 'email' => $data['email'],
                 'password' => Hash::make($password),
                 'password_plain' => $password,
-                'nik' => $data['nik'] ?? $data['email'],
+                'nik' => $data['nik'] ?? '',
                 'role' => 'KANDIDAT',
                 'status' => 'AKTIF',
                 'no_hp' => $data['no_hp'] ?? $data['telepon'] ?? null,
@@ -2561,7 +2564,7 @@ class PendaftaranController extends Controller
                     'email' => $email,
                     'password' => $hashedPassword,
                     'password_plain' => $password,
-                    'nik' => $nik ?: $email,
+                    'nik' => $nik ?: '',
                     'role' => 'KANDIDAT',
                     'status' => 'AKTIF',
                     'no_hp' => $telepon ?: null,

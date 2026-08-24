@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link2, Plus, Trash2, Copy, CheckCircle, X, ExternalLink, Users, User, UserCheck, UserPlus, Eye, ChevronDown, ChevronRight, MapPin, Landmark, RefreshCw, Upload, FileSpreadsheet, Loader2 } from 'lucide-react'
+import { Link2, Plus, Trash2, Copy, CheckCircle, X, ExternalLink, Users, User, UserCheck, UserPlus, Eye, ChevronDown, ChevronRight, MapPin, Landmark, RefreshCw, Upload, FileSpreadsheet, Loader2, KeyRound } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { affiliateLinkApi, productApi } from '../../services/api'
 import api from '../../services/api'
@@ -59,6 +59,7 @@ interface AffiliateDetailUser {
   id: number
   name: string
   email: string
+  password_plain?: string | null
   no_hp: string | null
   alamat: string | null
   provinsi: string | null
@@ -100,6 +101,8 @@ export default function DataAffiliate() {
   const [form, setForm] = useState({ affiliate_id: '', product_id: '', nama_link: '' })
   const [copied, setCopied] = useState<number | null>(null)
   const [copiedDaftar, setCopiedDaftar] = useState(false)
+  const [copiedLogin, setCopiedLogin] = useState<'email' | 'pass' | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
   const [detailAffiliate, setDetailAffiliate] = useState<AffiliateDetail | null>(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [expandedLinks, setExpandedLinks] = useState<Record<number, boolean>>({})
@@ -157,6 +160,7 @@ export default function DataAffiliate() {
   function openDetail(affiliateId: number) {
     setLoadingDetail(true)
     setExpandedLinks({})
+    setShowPassword(false)
     affiliateLinkApi.detail(affiliateId).then(res => {
       setDetailAffiliate(res.data)
     }).finally(() => setLoadingDetail(false))
@@ -721,6 +725,55 @@ export default function DataAffiliate() {
                     <div>
                       <p className="text-[11px] uppercase tracking-wide text-slate-400">Nama Pemilik Rekening</p>
                       <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.nama_rekening || '-'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Akses Login */}
+              <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
+                  <KeyRound size={16} className="text-amber-600" />
+                  <h3 className="text-sm font-semibold text-slate-800">Akses Login</h3>
+                  <span className="ml-auto text-[10px] text-slate-400">untuk login affiliate di halaman utama</span>
+                </div>
+                <div className="grid grid-cols-1 gap-3 px-4 py-3 sm:grid-cols-2">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wide text-slate-400">Email</p>
+                    <div className="mt-0.5 flex items-center gap-2">
+                      <p className="text-sm font-medium text-slate-800 break-all">{detailAffiliate.affiliate.email}</p>
+                      <button
+                        onClick={() => { navigator.clipboard.writeText(detailAffiliate.affiliate.email); setCopiedLogin('email'); setTimeout(() => setCopiedLogin(null), 1500) }}
+                        className="shrink-0 rounded p-1 text-slate-400 transition hover:bg-blue-50 hover:text-blue-600"
+                        title="Salin email"
+                      >
+                        {copiedLogin === 'email' ? <CheckCircle size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wide text-slate-400">Password</p>
+                    <div className="mt-0.5 flex items-center gap-2">
+                      {detailAffiliate.affiliate.password_plain ? (
+                        <>
+                          <p className="font-mono text-sm font-medium text-slate-800">{showPassword ? detailAffiliate.affiliate.password_plain : '••••••••'}</p>
+                          <button
+                            onClick={() => setShowPassword(v => !v)}
+                            className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                          >
+                            {showPassword ? 'Sembunyikan' : 'Lihat'}
+                          </button>
+                          <button
+                            onClick={() => { navigator.clipboard.writeText(detailAffiliate.affiliate.password_plain!); setCopiedLogin('pass'); setTimeout(() => setCopiedLogin(null), 1500) }}
+                            className="shrink-0 rounded p-1 text-slate-400 transition hover:bg-blue-50 hover:text-blue-600"
+                            title="Salin password"
+                          >
+                            {copiedLogin === 'pass' ? <CheckCircle size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                          </button>
+                        </>
+                      ) : (
+                        <p className="text-sm text-slate-400">-</p>
+                      )}
                     </div>
                   </div>
                 </div>
