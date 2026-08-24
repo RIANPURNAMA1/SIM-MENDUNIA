@@ -443,7 +443,6 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
     if (f.berat_badan !== '' && isNaN(Number(f.berat_badan))) e.berat_badan = 'Berat badan harus berupa angka.'
     if (f.nama_ortu.length > 255) e.nama_ortu = 'Nama orang tua maksimal 255 karakter.'
     if (f.no_hp_ortu.length > 20) e.no_hp_ortu = 'No. tlp orang tua maksimal 20 karakter.'
-    if (f.real_batch.length > 255) e.real_batch = 'Real batch maksimal 255 karakter.'
     if (f.keterangan.length > 500) e.keterangan = 'Keterangan maksimal 500 karakter.'
 
     return e
@@ -780,7 +779,6 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
     { id: 'nama', accessorKey: 'nama', header: 'Nama Kandidat', meta: { thClass: `${thBase}w-[180px] min-w-[180px]` } },
     { id: 'batch', accessorFn: k => k.batch_nama, header: 'Batch', meta: { thClass: `${thBase}w-[110px] min-w-[110px]` } },
     { id: 'cabang', accessorFn: k => k.cabang_nama, header: 'Cabang', meta: { thClass: `${thBase}w-[110px] min-w-[110px]` } },
-    { id: 'real_batch', accessorKey: 'real_batch', header: 'Real Batch', meta: { thClass: `${thBase}w-[90px] min-w-[90px]` } },
     { id: 'jk', accessorFn: k => k.jenis_kelamin, header: 'JK', meta: { thClass: `${thBase}text-center w-[36px] min-w-[36px]` } },
     { id: 'ttl', accessorFn: k => `${k.tempat_lahir} ${k.tanggal_lahir}`, header: 'Tempat, Tanggal Lahir', meta: { thClass: `${thBase}w-[170px] min-w-[170px]` } },
     { id: 'alamat', accessorKey: 'alamat', header: 'Alamat', meta: { thClass: `${thBase}w-[200px] min-w-[200px]` } },
@@ -861,7 +859,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
 
   function exportCSV() {
     const headers = [
-      'No', 'NIK', 'No. Registrasi', 'Nama Kandidat', 'Batch', 'Cabang', 'Real Batch',
+      'No', 'NIK', 'No. Registrasi', 'Nama Kandidat', 'Batch', 'Cabang',
       'Jenis Kelamin', 'Tempat Lahir', 'Tanggal Lahir', 'Alamat', 'Desa',
       'Kecamatan', 'Kab./Kota', 'Provinsi', 'Pendidikan Terakhir', 'Tahun Lulus',
       'Tinggi Badan', 'Berat Badan', 'Golongan Darah', 'Ukuran Baju',
@@ -869,7 +867,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
       'Status', 'Status Kandidat', 'Keterangan'
     ]
     const rows = filteredList.map((k, i) => [
-      i + 1, k.nik, k.no_registrasi, k.nama, k.batch_nama, k.cabang_nama, k.real_batch,
+      i + 1, k.nik, k.no_registrasi, k.nama, k.batch_nama, k.cabang_nama,
       k.jenis_kelamin, k.tempat_lahir, k.tanggal_lahir, k.alamat, k.desa,
       k.kecamatan, k.kabupaten, k.provinsi, k.pendidikan_terakhir, k.tahun_lulus,
       k.tinggi_badan, k.berat_badan, k.goldar, k.ukuran_baju,
@@ -889,7 +887,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
 
   function exportExcel() {
     const headers = [
-      'No', 'NIK', 'No. Registrasi', 'Nama Kandidat', 'Batch', 'Cabang', 'Real Batch',
+      'No', 'NIK', 'No. Registrasi', 'Nama Kandidat', 'Batch', 'Cabang',
       'Jenis Kelamin', 'Tempat Lahir', 'Tanggal Lahir', 'Alamat', 'Desa',
       'Kecamatan', 'Kab./Kota', 'Provinsi', 'Pendidikan Terakhir', 'Tahun Lulus',
       'Tinggi Badan', 'Berat Badan', 'Golongan Darah', 'Ukuran Baju',
@@ -897,7 +895,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
       'Status', 'Status Kandidat', 'Keterangan'
     ]
     const rows = filteredList.map((k, i) => [
-      i + 1, k.nik, k.no_registrasi, k.nama, k.batch_nama, k.cabang_nama, k.real_batch,
+      i + 1, k.nik, k.no_registrasi, k.nama, k.batch_nama, k.cabang_nama,
       k.jenis_kelamin, k.tempat_lahir, k.tanggal_lahir, k.alamat, k.desa,
       k.kecamatan, k.kabupaten, k.provinsi, k.pendidikan_terakhir, k.tahun_lulus,
       k.tinggi_badan, k.berat_badan, k.goldar, k.ukuran_baju,
@@ -1056,7 +1054,6 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
     { value: 'nama', label: 'Nama Kandidat' },
     { value: 'email', label: 'E-mail' },
     { value: 'telepon', label: 'No. Telepon' },
-    { value: 'real_batch', label: 'Real Batch' },
     { value: 'jenis_kelamin', label: 'Jenis Kelamin (L/P)' },
     { value: 'tempat_lahir', label: 'Tempat Lahir' },
     { value: 'tanggal_lahir', label: 'Tanggal Lahir' },
@@ -1085,7 +1082,6 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
       'nama': 'nama', 'nama lengkap': 'nama', 'nama kandidat': 'nama',
       'email': 'email', 'e-mail': 'email', 'alamat email': 'email',
       'no. handphone': 'no_hp', 'no hp': 'no_hp', 'no. hp': 'no_hp', 'handphone': 'no_hp', 'phone': 'no_hp', 'telepon': 'telepon', 'no. telepon': 'telepon', 'no telp': 'telepon', 'telp': 'telepon',
-      'real batch': 'real_batch', 'real_batch': 'real_batch',
       'jk': 'jenis_kelamin', 'jenis kelamin': 'jenis_kelamin', 'jenis_kelamin': 'jenis_kelamin', 'kelamin': 'jenis_kelamin', 'sex': 'jenis_kelamin',
       'tempat tanggal lahir': 'tempat_lahir', 'tempat lahir': 'tempat_lahir', 'tempat_lahir': 'tempat_lahir', 'tempat': 'tempat_lahir',
       'tanggal lahir': 'tanggal_lahir', 'tanggal_lahir': 'tanggal_lahir', 'tgl lahir': 'tanggal_lahir', 'tgl_lahir': 'tanggal_lahir', 'date of birth': 'tanggal_lahir', 'dob': 'tanggal_lahir',
@@ -1709,9 +1705,6 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                           <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black whitespace-nowrap">
                             {k.cabang_nama || <span className="text-gray-400">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black whitespace-nowrap">
-                            {isEditing ? <CellEdit field="real_batch" /> : k.real_batch || <span className="text-gray-400">-</span>}
-                          </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black text-center">
                             {isEditing ? <CellEdit field="jenis_kelamin" type="select" /> : (k.jenis_kelamin === 'L' ? 'L' : k.jenis_kelamin === 'P' ? 'P' : '-')}
                           </td>
@@ -2240,7 +2233,6 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                 <InfoItem label="No. Registrasi" value={detailKandidat.no_registrasi} mono />
                 <InfoItem label="Batch" value={detailKandidat.batch_nama} />
                 <InfoItem label="Cabang" value={detailKandidat.cabang_nama} />
-                <InfoItem label="Real Batch" value={detailKandidat.real_batch} />
                 <InfoItem label="Status Kandidat" value={detailKandidat.status_kandidat} />
                 <InfoItem label="Jenis Kelamin" value={detailKandidat.jenis_kelamin === 'L' ? 'Laki-laki' : detailKandidat.jenis_kelamin === 'P' ? 'Perempuan' : null} />
                 <InfoItem label="Tempat, Tanggal Lahir" value={detailKandidat.tempat_lahir !== '-' && detailKandidat.tanggal_lahir !== '-' ? `${detailKandidat.tempat_lahir}, ${detailKandidat.tanggal_lahir}` : null} />
@@ -2453,7 +2445,6 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                   </div>
                   <FormSelect label="Program" value={tambahForm.product_id} onChange={v => updateTambahField('product_id', v)}
                     options={productOptions.map(p => ({ value: String(p.id), label: p.nama }))} error={tambahErrors.product_id} />
-                  <FormField label="Real Batch" value={tambahForm.real_batch} onChange={v => updateTambahField('real_batch', v)} placeholder="Real batch (maks. 255)" maxLength={255} error={tambahErrors.real_batch} />
                   <div className="sm:col-span-2 lg:col-span-3">
                     <FormField label="Keterangan" value={tambahForm.keterangan} onChange={v => updateTambahField('keterangan', v)} placeholder="Keterangan tambahan (maks. 500)" maxLength={500} error={tambahErrors.keterangan} />
                   </div>
