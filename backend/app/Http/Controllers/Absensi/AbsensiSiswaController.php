@@ -208,9 +208,6 @@ class AbsensiSiswaController extends Controller
             if ($request->filled('batch_id')) {
                 $query->where('batch_id', $request->batch_id);
             }
-            if ($request->filled('level')) {
-                $query->whereHas('absensi.kelasSensei', fn ($q) => $q->where('level', $request->level));
-            }
         }
 
         $rekap = $query->with(['kelasRelasi', 'absensi.kelasSensei', 'absensi' => function ($q) use ($start_date, $end_date) {
@@ -242,6 +239,11 @@ class AbsensiSiswaController extends Controller
                 'persentase' => $total > 0 ? round(($totalHadir / $total) * 100, 1) : 0,
             ];
         })->toArray();
+
+        if ($request->filled('level')) {
+            $levelFilter = (int) $request->level;
+            $rekap = array_values(array_filter($rekap, fn ($r) => isset($r['level']) && (int) $r['level'] === $levelFilter));
+        }
 
         return compact('rekap', 'start_date', 'end_date');
     }
