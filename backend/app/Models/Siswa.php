@@ -62,6 +62,43 @@ class Siswa extends Model
         return $this->hasMany(AbsensiSiswa::class, 'siswa_id');
     }
 
+    /**
+     * Resolusi level siswa untuk rekap: absensi dalam rentang → kolom level →
+     * absensi kapan pun → level kelas aktif pada batch siswa.
+     */
+    public function levelRekap(?string $startDate = null, ?string $endDate = null): ?int
+    {
+        $level = $this->absensi()
+            ->when($startDate && $endDate, fn ($q) => $q->whereBetween('tanggal', [$startDate, $endDate]))
+            ->with('kelasSensei:id,level')
+            ->get()
+            ->map(fn ($a) => $a->kelasSensei?->level)
+            ->filter()
+            ->last();
+        if ($level !== null) return (int) $level;
+
+        if (!empty($this->level)) return (int) $this->level;
+
+        $level = $this->absensi()
+            ->with('kelasSensei:id,level')
+            ->get()
+            ->map(fn ($a) => $a->kelasSensei?->level)
+            ->filter()
+            ->last();
+        if ($level !== null) return (int) $level;
+
+        $aktifLevels = KelasSensei::where('batch_id', $this->batch_id)
+            ->where('status', 'aktif')
+            ->whereNotNull('level')
+            ->distinct()
+            ->pluck('level');
+        if ($aktifLevels->isNotEmpty()) {
+            return (int) $aktifLevels->max();
+        }
+
+        return null;
+    }
+
     public function shift()
     {
         return $this->belongsTo(Shift::class, 'shift_id');
