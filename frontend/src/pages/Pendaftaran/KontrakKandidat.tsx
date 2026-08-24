@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  FileText, Upload, Trash2, Eye, ChevronRight,
+  FileText, Upload, Trash2, Eye, ChevronRight, Download,
   LayoutDashboard, Loader2, FileSignature, Search,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
@@ -198,61 +198,89 @@ export default function KontrakKandidat() {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              <th className="px-4 py-3">No</th>
-              <th className="px-4 py-3">Tanggal</th>
-              <th className="px-4 py-3">Judul</th>
-              <th className="px-4 py-3">Cabang</th>
-              <th className="px-4 py-3">File Kontrak</th>
-              <th className="px-4 py-3">Diunggah Oleh</th>
-              <th className="px-4 py-3 text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={7} className="px-4 py-12 text-center"><Loader2 size={28} className="mx-auto animate-spin text-[#0E6187]" /></td></tr>
-            ) : items.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-6 py-10 text-center">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-                    <FileText size={24} />
-                  </div>
-                  <p className="mt-3 text-sm font-medium text-slate-600">Belum ada kontrak diunggah</p>
-                </td>
-              </tr>
-            ) : (
-              items.map((k, idx) => (
-                <tr key={k.id} className="border-b border-slate-100 transition hover:bg-slate-50">
-                  <td className="px-4 py-3 text-slate-500">{idx + 1}</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-slate-600">
-                    {new Date(k.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-slate-800">{k.judul}</p>
-                    {k.keterangan && <p className="text-xs text-slate-400">{k.keterangan}</p>}
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">{k.cabang_nama || '-'}</td>
-                  <td className="px-4 py-3">
-                    <a href={fileUrl(k.file_kontrak)} target="_blank" rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50">
-                      <Eye size={13} /> Lihat PDF
-                    </a>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-slate-500">{k.uploaded_by || '-'}</td>
-                  <td className="px-4 py-3 text-right">
-                    <button onClick={() => handleDelete(k)} title="Hapus"
-                      className="rounded-md border border-red-200 bg-red-50 p-1.5 text-red-500 transition hover:bg-red-100">
-                      <Trash2 size={14} />
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="overflow-x-auto rounded-sm border border-slate-200">
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="relative w-14 h-14 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
+              <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto max-h-[calc(100vh-420px)] overflow-y-auto">
+              <table className="w-full min-w-[900px] border-collapse text-left text-sm text-black">
+                <thead className="sticky top-0 z-20">
+                  <tr className="bg-[#0e6187]">
+                    <th className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white">No</th>
+                    <th className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white">Tanggal</th>
+                    <th className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white">Judul</th>
+                    <th className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white">Cabang</th>
+                    <th className="border border-slate-600 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-white">File Kontrak</th>
+                    <th className="border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white">Diunggah Oleh</th>
+                    <th className="border border-slate-600 px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-white">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.length > 0 ? (
+                    items.map((k, idx) => (
+                      <tr key={k.id} className="bg-white transition hover:brightness-[0.97] group">
+                        <td className="border border-slate-200 px-4 py-3 text-center text-xs font-normal text-black">{idx + 1}</td>
+                        <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black whitespace-nowrap">
+                          {new Date(k.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </td>
+                        <td className="border border-slate-200 px-4 py-3 max-w-[250px] overflow-hidden">
+                          <div className={`font-semibold truncate ${k.file_kontrak_ttd ? 'text-emerald-700' : 'text-black'}`} title={k.judul}>{k.judul}</div>
+                          {k.keterangan && (
+                            <span className="truncate block text-xs font-normal text-gray-500" title={k.keterangan}>{k.keterangan}</span>
+                          )}
+                        </td>
+                        <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black whitespace-nowrap">
+                          {k.cabang_nama || <span className="text-gray-400">-</span>}
+                        </td>
+                        <td className="border border-slate-200 px-4 py-3 text-center whitespace-nowrap">
+                          {k.file_kontrak_ttd ? (
+                            <a href={fileUrl(k.file_kontrak_ttd)} target="_blank" rel="noreferrer"
+                              title={k.ttd_uploaded_at ? `Ditandatangani ${new Date(k.ttd_uploaded_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}` : undefined}
+                              className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-100">
+                              <Download size={11} /> Sudah TTD
+                            </a>
+                          ) : (
+                            <a href={fileUrl(k.file_kontrak)} target="_blank" rel="noreferrer"
+                              className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700 transition hover:bg-amber-100">
+                              <Eye size={11} /> Lihat PDF
+                            </a>
+                          )}
+                        </td>
+                        <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black whitespace-nowrap">
+                          {k.uploaded_by || <span className="text-gray-400">-</span>}
+                        </td>
+                        <td className="border border-slate-200 px-4 py-3 text-right">
+                          <button onClick={() => handleDelete(k)} title="Hapus"
+                            className="rounded-md border border-red-200 bg-red-50 p-1.5 text-red-500 transition hover:bg-red-100">
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={7} className="border border-slate-200 px-6 py-10 text-center">
+                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                          <FileText size={24} />
+                        </div>
+                        <p className="mt-3 text-sm font-medium text-slate-600">Tidak ada kontrak ditemukan</p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="border-t border-slate-200 px-4 py-3 text-sm text-slate-500">
+              Menampilkan {items.length} kontrak
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
