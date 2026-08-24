@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('kontrak_tanda_tangans', function (Blueprint $table) {
             $table->id();
             $table->foreignId('kontrak_id')->constrained('kontraks')->cascadeOnDelete();
-            $table->foreignId('pendaftar_id')->constrained('pendaftars')->cascadeOnDelete();
+            $table->foreignId('pendaftar_id')->constrained('pendaftar')->cascadeOnDelete();
             $table->string('file_ttd');
             $table->timestamps();
             $table->unique(['kontrak_id', 'pendaftar_id']);
