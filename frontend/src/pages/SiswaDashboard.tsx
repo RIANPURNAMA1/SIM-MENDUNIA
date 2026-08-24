@@ -501,6 +501,27 @@ export default function SiswaDashboard() {
             {quickActions.map((qa, idx) => {
               const Icon = qa.icon
               const delays = ['delay-75', 'delay-100', 'delay-150', 'delay-200', 'delay-250', 'delay-300', 'delay-350', 'delay-400']
+              if (qa.label === 'Matching Job') {
+                return (
+                  <button
+                    key={qa.label}
+                    type="button"
+                    onClick={() => Swal.fire({
+                      icon: 'info',
+                      title: 'Segera Hadir',
+                      text: 'Fitur Matching Job sedang dalam pengembangan.',
+                      confirmButtonText: 'OK',
+                      confirmButtonColor: '#0E6187',
+                    })}
+                    className={`flex w-[68px] shrink-0 flex-col items-center gap-1.5 transition-all duration-200 hover:-translate-y-1 active:scale-95 group animate-pop-in ${delays[idx % delays.length]}`}
+                  >
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${qa.bg} ${qa.color} transition-all duration-200 group-hover:shadow-md group-hover:scale-105`}>
+                      <Icon size={20} />
+                    </div>
+                    <span className="text-center text-[10px] font-medium leading-tight text-slate-600 group-hover:text-slate-900">{qa.label}</span>
+                  </button>
+                )
+              }
               if (qa.label === 'LMS' && lmsLocked) {
                 return (
                   <div
