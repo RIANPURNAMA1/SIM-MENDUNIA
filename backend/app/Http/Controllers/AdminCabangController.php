@@ -1631,7 +1631,7 @@ class AdminCabangController extends Controller
             $alpa = $siswa->absensi->where('status', 'ALPA')->count();
             $totalHadir = $hadir + $terlambat;
             $total = $siswa->absensi->count();
-            $level = $siswa->absensi->map(fn ($a) => $a->kelasSensei?->level)->filter()->last() ?? $siswa->level;
+            $level = $siswa->levelRekap($start_date, $end_date);
 
             return [
                 'id' => $siswa->id,
