@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  FileText, Upload, Trash2, Download, Eye, ChevronRight,
+  FileText, Upload, Trash2, Eye, ChevronRight,
   LayoutDashboard, Loader2, FileSignature, Search,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
@@ -207,17 +207,16 @@ export default function KontrakKandidat() {
               <th className="px-4 py-3">Judul</th>
               <th className="px-4 py-3">Cabang</th>
               <th className="px-4 py-3">File Kontrak</th>
-              <th className="px-4 py-3">Ditandatangani</th>
               <th className="px-4 py-3">Diunggah Oleh</th>
               <th className="px-4 py-3 text-right">Aksi</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={8} className="px-4 py-12 text-center"><Loader2 size={28} className="mx-auto animate-spin text-[#0E6187]" /></td></tr>
+              <tr><td colSpan={7} className="px-4 py-12 text-center"><Loader2 size={28} className="mx-auto animate-spin text-[#0E6187]" /></td></tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-6 py-10 text-center">
+                <td colSpan={7} className="px-6 py-10 text-center">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
                     <FileText size={24} />
                   </div>
@@ -241,32 +240,6 @@ export default function KontrakKandidat() {
                       className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50">
                       <Eye size={13} /> Lihat PDF
                     </a>
-                  </td>
-                  <td className="px-4 py-3">
-                    {k.ttds && k.ttds.length > 0 ? (
-                      <div className="flex flex-col gap-1.5">
-                        <span className="w-fit inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-                          {k.ttds.length} Kandidat TTD
-                        </span>
-                        {k.ttds.map(t => (
-                          <div key={t.id} className="flex items-center justify-between gap-2 text-xs">
-                            <span className="truncate text-slate-600" title={t.no_registrasi ? `${t.pendaftar_nama} (${t.no_registrasi})` : t.pendaftar_nama || '-'}>
-                              {t.pendaftar_nama || '-'}
-                              <span className="ml-1 text-[10px] text-slate-400">
-                                {new Date(t.uploaded_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
-                              </span>
-                            </span>
-                            <a href={fileUrl(t.file_ttd)} target="_blank" rel="noreferrer"
-                              title="Unduh kontrak TTD kandidat"
-                              className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-emerald-700 transition hover:bg-emerald-50">
-                              <Download size={10} /> Unduh
-                            </a>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500">Belum ada</span>
-                    )}
                   </td>
                   <td className="px-4 py-3 text-xs text-slate-500">{k.uploaded_by || '-'}</td>
                   <td className="px-4 py-3 text-right">

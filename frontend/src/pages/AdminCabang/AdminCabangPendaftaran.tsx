@@ -94,6 +94,15 @@ export default function AdminCabangPendaftaran() {
     table.setPageIndex(0)
   }
 
+  function statusKey(p: PendaftarItem): string {
+    if (p.status_pembayaran === 'ditangguhkan') return 'ditangguhkan'
+    if (p.status_pembayaran === 'verified') return 'pembayaran_dikonfirmasi'
+    if (p.status_pendaftaran === 'ditolak' || p.status_pembayaran === 'ditolak') return 'batal'
+    if (p.status_pembayaran === 'processing' && p.status_pendaftaran === 'pending') return 'menunggu_verifikasi'
+    if (p.status_pembayaran === 'unpaid') return 'menunggu_pembayaran'
+    return 'proses'
+  }
+
   function combinedStatus(p: PendaftarItem) {
     if (p.status_pembayaran === 'ditangguhkan') return { bg: 'bg-orange-100 text-orange-700 border-orange-200', label: 'Ditangguhkan' }
     if (p.status_pembayaran === 'verified') return { bg: 'bg-emerald-100 text-emerald-700 border-emerald-200', label: 'Selesai' }
@@ -106,8 +115,7 @@ export default function AdminCabangPendaftaran() {
   const filtered = useMemo(() => {
     return data.filter(p => {
       const matchSearch = !search || p.nama.toLowerCase().includes(search.toLowerCase()) || p.email.toLowerCase().includes(search.toLowerCase())
-      const cs = combinedStatus(p).label.toLowerCase()
-      const matchStatus = !filterStatus || cs === filterStatus.toLowerCase()
+      const matchStatus = !filterStatus || statusKey(p) === filterStatus
       const matchBatch = !filterBatch || p.batch?.nama_batch === filterBatch
       const d = new Date(p.created_at)
       d.setHours(0, 0, 0, 0)
@@ -246,8 +254,10 @@ export default function AdminCabangPendaftaran() {
 
   const stats = useMemo(() => ({
     total: data.length,
-    proses: data.filter(p => p.status_pembayaran === 'unpaid' || p.status_pembayaran === 'processing').length,
-    selesai: data.filter(p => p.status_pembayaran === 'verified').length,
+    menungguPembayaran: data.filter(p => p.status_pembayaran === 'unpaid').length,
+    menungguVerifikasi: data.filter(p => p.status_pembayaran === 'processing' && p.status_pendaftaran === 'pending').length,
+    proses: data.filter(p => p.status_pembayaran === 'processing' && p.status_pendaftaran === 'disetujui').length,
+    pembayaranDikonfirmasi: data.filter(p => p.status_pembayaran === 'verified').length,
     batal: data.filter(p => p.status_pendaftaran === 'ditolak' && p.status_pembayaran !== 'ditangguhkan').length,
     ditangguhkan: data.filter(p => p.status_pembayaran === 'ditangguhkan').length,
   }), [data])
@@ -279,17 +289,19 @@ export default function AdminCabangPendaftaran() {
       </div>
 
       {/* Stats */}
-      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
         {[
           { label: 'Total', value: stats.total },
+          { label: 'Menunggu Pembayaran', value: stats.menungguPembayaran },
+          { label: 'Menunggu Verifikasi', value: stats.menungguVerifikasi },
           { label: 'Proses', value: stats.proses },
-          { label: 'Selesai', value: stats.selesai },
+          { label: 'Pembayaran dikonfirmasi', value: stats.pembayaranDikonfirmasi },
           { label: 'Batal', value: stats.batal },
           { label: 'Ditangguhkan', value: stats.ditangguhkan },
         ].map(s => (
           <div key={s.label} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-            <p className="text-xs text-slate-500 font-medium">{s.label}</p>
-            <p className="text-lg font-bold text-slate-800">{s.value}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{s.label}</p>
+            <p className="mt-0.5 text-xl font-bold text-slate-800">{s.value}</p>
           </div>
         ))}
       </div>
@@ -310,8 +322,10 @@ export default function AdminCabangPendaftaran() {
           <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); table.setPageIndex(0) }}
             className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
             <option value="">Semua Status</option>
+            <option value="menunggu_pembayaran">Menunggu Pembayaran</option>
+            <option value="menunggu_verifikasi">Menunggu Verifikasi</option>
             <option value="proses">Proses</option>
-            <option value="selesai">Selesai</option>
+            <option value="pembayaran_dikonfirmasi">Pembayaran Dikonfirmasi</option>
             <option value="batal">Batal</option>
             <option value="ditangguhkan">Ditangguhkan</option>
           </select>
