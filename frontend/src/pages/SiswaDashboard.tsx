@@ -6,6 +6,7 @@ import {
   LayoutDashboard, Wallet, CalendarCheck, BookOpen, Award, Briefcase, Bell, ClipboardList,
   FileSignature,
   LogOut,
+  Lock,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 import { useAuth } from '../contexts/AuthContext'
@@ -378,6 +379,9 @@ export default function SiswaDashboard() {
     { label: 'Profil', to: '/siswa-dashboard/profil', icon: User },
   ]
 
+  const batchId = siswa?.batch_id || pendaftar?.batch_id
+  const lmsLocked = !batchId || Object.keys(jadwalLevels).length === 0
+
   return (
     <div className="min-h-screen bg-[#f0f2f5] pb-24">
       {/* ============ Top App Bar ============ */}
@@ -497,6 +501,20 @@ export default function SiswaDashboard() {
             {quickActions.map((qa, idx) => {
               const Icon = qa.icon
               const delays = ['delay-75', 'delay-100', 'delay-150', 'delay-200', 'delay-250', 'delay-300', 'delay-350', 'delay-400']
+              if (qa.label === 'LMS' && lmsLocked) {
+                return (
+                  <div
+                    key={qa.label}
+                    title="Belum ada jadwal kelas"
+                    className="flex w-[68px] shrink-0 cursor-not-allowed flex-col items-center gap-1.5 opacity-50 group"
+                  >
+                    <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
+                      <Lock size={18} />
+                    </div>
+                    <span className="text-center text-[10px] font-medium leading-tight text-slate-400">{qa.label}</span>
+                  </div>
+                )
+              }
               return (
                 <Link
                   key={qa.label}
@@ -607,6 +625,21 @@ export default function SiswaDashboard() {
           {bottomNav.map(nav => {
             const Icon = nav.icon
             const isActive = nav.to === location.pathname
+            if (nav.label === 'LMS' && lmsLocked) {
+              return (
+                <div
+                  key={nav.label}
+                  title="Belum ada jadwal kelas"
+                  className="flex cursor-not-allowed flex-col items-center gap-1 py-2.5 text-slate-300"
+                >
+                  <div className="relative">
+                    <Lock size={20} />
+                    <BookOpen size={14} className="absolute -bottom-0.5 -right-1 rounded-full bg-white" />
+                  </div>
+                  <span className="text-[10px] font-medium">LMS</span>
+                </div>
+              )
+            }
             return (
               <Link
                 key={nav.label}

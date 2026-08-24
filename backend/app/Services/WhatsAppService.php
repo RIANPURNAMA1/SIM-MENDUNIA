@@ -593,6 +593,12 @@ class WhatsAppService
      */
     public function sendAbsensiNotification($user, $status, $absensi = null)
     {
+        // Hanya kirim ke role KARYAWAN
+        if ($user->role !== 'KARYAWAN') {
+            Log::info("Notifikasi {$status} dilewati untuk {$user->name} (role: {$user->role}, bukan KARYAWAN).");
+            return false;
+        }
+
         if (!$user->no_hp) {
             Log::warning('User ' . $user->name . ' tidak memiliki no_hp');
             return false;
