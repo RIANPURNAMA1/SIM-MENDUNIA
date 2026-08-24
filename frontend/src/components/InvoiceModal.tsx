@@ -33,6 +33,12 @@ interface InvoiceData {
     total_dibayar: number
     sisa: number
   }
+  rincian_tagihan?: Array<{
+    nama: string
+    kode: string | null
+    biaya: number
+    dibayar: number
+  }>
   riwayat_pembayaran: Array<{
     id: number
     jumlah: number
@@ -42,9 +48,11 @@ interface InvoiceData {
   }>
   pembayaran_items: Array<{
     id: number
-    kategori_id: number
-    kategori_kode: string
+    kategori_id: number | null
+    kategori_kode: string | null
     kategori_nama: string
+    parent_id?: number | null
+    parent_nama?: string | null
     jumlah: number
     kode_unik: number | null
     total_transfer: number | null
@@ -278,6 +286,19 @@ function InvoiceContent({
   invoiceRef: React.RefObject<HTMLDivElement | null>
 }) {
   const { pendaftar, product, keuangan, no_invoice, pembayaran_items } = data
+
+  const kategoriGroups = (() => {
+    const map = new Map<string, { nama: string; jumlah: number }>()
+    for (const item of pembayaran_items || []) {
+      if (!(Number(item.jumlah) > 0)) continue
+      const nama = item.parent_nama || item.kategori_nama || '-'
+      const existing = map.get(nama)
+      if (existing) existing.jumlah += Number(item.jumlah)
+      else map.set(nama, { nama, jumlah: Number(item.jumlah) })
+    }
+    return Array.from(map.values())
+  })()
+
   const tgl = new Date(pendaftar.created_at)
   const formattedDate = tgl.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
 
@@ -358,16 +379,42 @@ function InvoiceContent({
                   Rp {keuangan.harga_produk.toLocaleString('id-ID')}
                 </td>
               </tr>
-              {pembayaran_items && pembayaran_items.map((item) => (
-                <tr key={item.id} className="border-b border-slate-100 bg-white">
-                  <td className="px-4 py-3.5">
-                    <p className="font-semibold text-slate-800">{item.kategori_nama}</p>
-                  </td>
-                  <td className="px-4 py-3.5 text-right font-semibold text-slate-800">
-                    Rp {item.jumlah.toLocaleString('id-ID')}
-                  </td>
-                </tr>
-              ))}
+              {(data.rincian_tagihan && data.rincian_tagihan.length > 0
+                ? data.rincian_tagihan.map((row, i) => {
+                    const lunas = row.biaya > 0 && row.dibayar >= row.biaya
+                    const sebagian = !lunas && row.dibayar > 0
+                    return (
+                      <tr key={`${row.nama}-${i}`} className="border-b border-slate-100 bg-white">
+                        <td className="px-4 py-3.5">
+                          <p className="font-semibold text-slate-800">{row.nama}</p>
+                          <p
+                            className={`mt-0.5 text-[11px] ${
+                              lunas ? 'text-emerald-600' : sebagian ? 'text-amber-600' : 'text-slate-400'
+                            }`}
+                          >
+                            {lunas
+                              ? 'Lunas'
+                              : sebagian
+                                ? `Dibayar Rp ${row.dibayar.toLocaleString('id-ID')} dari Rp ${row.biaya.toLocaleString('id-ID')}`
+                                : 'Belum dibayar'}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3.5 text-right font-semibold text-slate-800">
+                          Rp {row.biaya.toLocaleString('id-ID')}
+                        </td>
+                      </tr>
+                    )
+                  })
+                : kategoriGroups.map((g) => (
+                    <tr key={g.nama} className="border-b border-slate-100 bg-white">
+                      <td className="px-4 py-3.5">
+                        <p className="font-semibold text-slate-800">{g.nama}</p>
+                      </td>
+                      <td className="px-4 py-3.5 text-right font-semibold text-slate-800">
+                        Rp {g.jumlah.toLocaleString('id-ID')}
+                      </td>
+                    </tr>
+                  )))}
               {keuangan.diskon > 0 && (
                 <tr className="border-b border-slate-100 bg-white">
                   <td className="px-4 py-3.5">

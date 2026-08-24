@@ -1719,7 +1719,7 @@ class PendaftaranController extends Controller
 
     public function invoice($id)
     {
-        $pendaftar = Pendaftar::with(['product', 'coupon', 'user'])->findOrFail($id);
+        $pendaftar = Pendaftar::with(['product.biayaKategoris', 'coupon', 'user'])->findOrFail($id);
 
         $riwayat = Pembayaran::where('pendaftar_id', $pendaftar->id)
             ->orderBy('created_at', 'asc')
@@ -1737,6 +1737,156 @@ class PendaftaranController extends Controller
         $sisa = max(0, $totalTagihan - $totalDibayar);
 
         $noInvoice = 'INV/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . $pendaftar->created_at->format('Ym');
+
+        // Kelompokkan item pembayaran per kategori induk (sub-kategori digabung ke kategori utamanya)
+        $rootNameFromTree = [];
+        if ($pendaftar->product && is_array($pendaftar->product->kategori_items)) {
+            $walkTree = function (array $nodes, ?string $rootName) use (&$walkTree, &$rootNameFromTree) {
+                foreach ($nodes as $node) {
+                    $name = trim((string) ($node['name'] ?? ''));
+                    if ($name === '') continue;
+                    $root = $rootName ?: $name;
+                    $rootNameFromTree[strtolower($name)] = $root;
+                    if (!empty($node['children']) && is_array($node['children'])) {
+                        $walkTree($node['children'], $root);
+                    }
+                }
+            };
+            $walkTree($pendaftar->product->kategori_items, null);
+        }
+
+        $resolveRootKategori = function ($kategori) {
+            $current = $kategori;
+            $guard = 0;
+            while ($current?->parent && $guard++ < 10) {
+                $current = $current->parent;
+            }
+            return $current;
+        };
+
+        $groupedItems = [];
+        foreach ($pembayaranItems as $item) {
+            $kategori = $item->kategori;
+            $root = $kategori ? $resolveRootKategori($kategori) : null;
+
+            if ($root) {
+                $key = 'k' . $root->id;
+                $nama = $root->nama;
+                $kode = $root->kode;
+            } elseif ($kategori && isset($rootNameFromTree[strtolower(trim((string) $kategori->nama))])) {
+                $nama = $rootNameFromTree[strtolower(trim((string) $kategori->nama))];
+                $key = 'n' . strtolower($nama);
+                $kode = null;
+            } else {
+                $nama = $kategori?->nama ?? 'Pembayaran';
+                $key = 'i' . $item->id;
+                $kode = $kategori?->kode;
+            }
+
+            if (!isset($groupedItems[$key])) {
+                $groupedItems[$key] = [
+                    'kategori_kode' => $kode,
+                    'kategori_nama' => $nama,
+                    'jumlah' => 0.0,
+                    'created_at' => $item->created_at,
+                ];
+            }
+            $groupedItems[$key]['jumlah'] += (float) $item->jumlah;
+        }
+
+        $pembayaranItemsGrouped = collect($groupedItems)
+            ->filter(function ($g) {
+                return $g['jumlah'] > 0;
+            })
+            ->values();
+
+        // Susun rincian tagihan lengkap dari struktur kategori produk (termasuk yang belum dibayar)
+        $dibayarPerKategori = [];
+        foreach ($pembayaranItems as $pi) {
+            if ($pi->kategori_id) {
+                $dibayarPerKategori[$pi->kategori_id] = ($dibayarPerKategori[$pi->kategori_id] ?? 0) + (float) $pi->jumlah;
+            }
+        }
+
+        $rincianTagihan = [];
+        $coveredKatIds = [];
+        if ($pendaftar->product && is_array($pendaftar->product->kategori_items)) {
+            $nameToKat = [];
+            $kodeToKat = [];
+            foreach ($pendaftar->product->biayaKategoris as $k) {
+                $nameToKat[strtolower(trim($k->nama))] = $k;
+                $kodeToKat[strtolower(trim($k->kode))] = $k;
+            }
+
+            $addRowForKat = function ($kat, array $extraKats) use (&$rincianTagihan, &$coveredKatIds, $dibayarPerKategori) {
+                if (!$kat || isset($coveredKatIds[$kat->id])) return;
+
+                $allKats = [$kat];
+                foreach ($extraKats as $ek) {
+                    if ($ek->id !== $kat->id) $allKats[] = $ek;
+                }
+
+                $biaya = 0.0;
+                $dibayar = 0.0;
+                foreach ($allKats as $k) {
+                    $biaya += (float) ($k->pivot->harga ?? 0);
+                    $dibayar += $dibayarPerKategori[$k->id] ?? 0;
+                    $coveredKatIds[$k->id] = true;
+                }
+
+                if ($biaya <= 0 && $dibayar <= 0) return;
+                $rincianTagihan[] = [
+                    'nama' => $kat->nama,
+                    'kode' => $kat->kode,
+                    'biaya' => $biaya,
+                    'dibayar' => round($dibayar, 2),
+                ];
+            };
+
+            $walkRows = function (array $nodes) use (&$walkRows, $addRowForKat, $nameToKat, $kodeToKat) {
+                foreach ($nodes as $node) {
+                    $name = trim((string) ($node['name'] ?? ''));
+                    if ($name === '') continue;
+                    $key = strtolower($name);
+                    $kat = $nameToKat[$key] ?? $kodeToKat[$key] ?? null;
+
+                    $children = (!empty($node['children']) && is_array($node['children'])) ? $node['children'] : [];
+
+                    if ($kat) {
+                        // Sub-kategori digabung ke baris kategori utamanya
+                        $descKats = [];
+                        $gather = function (array $list) use (&$gather, &$descKats, $nameToKat, $kodeToKat) {
+                            foreach ($list as $ch) {
+                                $ckey = strtolower(trim((string) ($ch['name'] ?? '')));
+                                $ck = $nameToKat[$ckey] ?? $kodeToKat[$ckey] ?? null;
+                                if ($ck) $descKats[$ck->id] = $ck;
+                                if (!empty($ch['children']) && is_array($ch['children'])) $gather($ch['children']);
+                            }
+                        };
+                        if (!empty($children)) $gather($children);
+                        $addRowForKat($kat, array_values($descKats));
+                    } elseif (!empty($children)) {
+                        $walkRows($children);
+                    }
+                }
+            };
+
+            $walkRows($pendaftar->product->kategori_items);
+        }
+
+        // Pembayaran dengan kategori di luar struktur produk tetap ditampilkan
+        foreach ($pembayaranItems as $item) {
+            $kat = $item->kategori;
+            if ($kat && isset($coveredKatIds[$kat->id])) continue;
+            $jumlah = (float) $item->jumlah;
+            if ($jumlah <= 0) continue;
+            $rincianTagihan[] = [
+                'nama' => $kat?->nama ?? 'Pembayaran',
+                'kode' => $kat?->kode,
+                'biaya' => $jumlah,
+                'dibayar' => $jumlah,
+            ];
+        }
 
         return response()->json([
             'no_invoice' => $noInvoice,
@@ -1766,6 +1916,7 @@ class PendaftaranController extends Controller
                 'total_dibayar' => $totalDibayar,
                 'sisa' => $sisa,
             ],
+            'rincian_tagihan' => collect($rincianTagihan)->values(),
             'riwayat_pembayaran' => $riwayat->map(function ($r) {
                 return [
                     'id' => $r->id,
@@ -1775,18 +1926,18 @@ class PendaftaranController extends Controller
                     'bukti_pembayaran' => $r->bukti_pembayaran,
                 ];
             }),
-            'pembayaran_items' => $pembayaranItems->map(function ($item) {
+            'pembayaran_items' => $pembayaranItemsGrouped->map(function ($g, $idx) {
                 return [
-                    'id' => $item->id,
-                    'kategori_id' => $item->kategori_id,
-                    'kategori_kode' => $item->kategori?->kode,
-                    'kategori_nama' => $item->kategori?->nama,
-                    'parent_id' => $item->kategori?->parent_id,
-                    'parent_nama' => $item->kategori?->parent?->nama,
-                    'jumlah' => (float) $item->jumlah,
-                    'kode_unik' => $item->kode_unik,
-                    'total_transfer' => $item->total_transfer,
-                    'created_at' => $item->created_at,
+                    'id' => $idx + 1,
+                    'kategori_id' => null,
+                    'kategori_kode' => $g['kategori_kode'],
+                    'kategori_nama' => $g['kategori_nama'],
+                    'parent_id' => null,
+                    'parent_nama' => null,
+                    'jumlah' => (float) $g['jumlah'],
+                    'kode_unik' => null,
+                    'total_transfer' => null,
+                    'created_at' => $g['created_at'],
                 ];
             }),
         ]);
