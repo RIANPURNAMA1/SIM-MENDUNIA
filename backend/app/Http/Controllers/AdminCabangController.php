@@ -1618,9 +1618,13 @@ class AdminCabangController extends Controller
             }
         }
 
+        $kelasByBatchLevel = KelasSensei::orderByDesc('tanggal_mulai')
+            ->get()
+            ->groupBy(fn ($k) => $k->batch_id.'-'.$k->level);
+
         $rekap = $query->with(['kelasRelasi', 'absensi.kelasSensei', 'absensi' => function ($q) use ($start_date, $end_date) {
             $q->whereBetween('tanggal', [$start_date, $end_date]);
-        }])->get()->map(function ($siswa) use ($selectedNamaKelas, $start_date, $end_date) {
+        }])->get()->map(function ($siswa) use ($selectedNamaKelas, $start_date, $end_date, $kelasByBatchLevel) {
             $hadir = $siswa->absensi->where('status', 'HADIR')->count();
             $terlambat = $siswa->absensi->where('status', 'TERLAMBAT')->count();
             $izin = $siswa->absensi->where('status', 'IZIN')->count();
@@ -1629,11 +1633,15 @@ class AdminCabangController extends Controller
             $totalHadir = $hadir + $terlambat;
             $total = $siswa->absensi->count();
             $level = $siswa->levelRekap($start_date, $end_date);
+            $kelas = $level !== null ? ($kelasByBatchLevel[$siswa->batch_id.'-'.$level][0] ?? null) : null;
 
             return [
                 'id' => $siswa->id,
                 'nama' => $siswa->nama,
                 'level' => $level,
+                'kelas_tanggal_mulai' => $kelas?->tanggal_mulai?->toDateString(),
+                'kelas_tanggal_selesai' => $kelas?->tanggal_selesai?->toDateString(),
+                'total_pertemuan' => $kelas ? $kelas->totalPertemuan() : null,
                 'kelas' => $selectedNamaKelas ?? $siswa->kelasRelasi->nama_kelas ?? $siswa->kelas,
                 'batch' => $siswa->batchRelasi->nama_batch ?? '-',
                 'hadir' => $hadir,

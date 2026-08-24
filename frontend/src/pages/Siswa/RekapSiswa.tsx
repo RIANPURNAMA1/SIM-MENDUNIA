@@ -4,6 +4,15 @@ import { BarChart3, Search, RotateCcw, Download, ChevronsLeft, ChevronLeft, Chev
 import { absensiSiswaApi, adminCabangApi, APP_URL } from "../../services/api";
 import type { RekapSiswaItem } from "../../types";
 
+const MONTHS_ID = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+function formatDateShort(iso?: string | null) {
+  if (!iso) return '-';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return `${d.getDate()} ${MONTHS_ID[d.getMonth()]} ${d.getFullYear()}`;
+}
+
 export default function RekapSiswaPage() {
   const location = useLocation();
   const isAdminCabang = location.pathname.startsWith('/admin-cabang');
@@ -212,6 +221,9 @@ export default function RekapSiswaPage() {
                 <th className="border border-slate-200 px-4 py-3 font-medium">Nama</th>
                 <th className="border border-slate-200 px-4 py-3 font-medium">Batch</th>
                 <th className="border border-slate-200 px-4 py-3 text-center font-medium">Lv</th>
+                <th className="border border-slate-200 px-4 py-3 font-medium">Tgl Mulai Kelas</th>
+                <th className="border border-slate-200 px-4 py-3 font-medium">Tgl Selesai Kelas</th>
+                <th className="border border-slate-200 px-4 py-3 text-center font-medium">Total Pertemuan</th>
                 <th className="border border-slate-200 px-4 py-3 text-center font-medium text-emerald-700">HADIR</th>
                 <th className="border border-slate-200 px-4 py-3 text-center font-medium text-amber-700">TERLAMBAT</th>
                 <th className="border border-slate-200 px-4 py-3 text-center font-medium text-blue-700">IZIN</th>
@@ -224,15 +236,17 @@ export default function RekapSiswaPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={12} className="border border-slate-200 px-4 py-12 text-center text-sm text-slate-400">Memuat data...</td></tr>
+                <tr><td colSpan={15} className="border border-slate-200 px-4 py-12 text-center text-sm text-slate-400">Memuat data...</td></tr>
               ) : rekap.length === 0 ? (
-                <tr><td colSpan={12} className="border border-slate-200 px-4 py-12 text-center text-sm text-slate-400">Belum ada data rekap untuk periode ini</td></tr>
-              ) : pagedList.map((item, idx) => (
+                <tr><td colSpan={15} className="border border-slate-200 px-4 py-12 text-center text-sm text-slate-400">Belum ada data rekap untuk periode ini</td></tr>              ) : pagedList.map((item, idx) => (
                 <tr key={item.id} className="hover:bg-slate-50">
                   <td className="border border-slate-200 px-4 py-3 text-sm text-slate-500">{(safePage - 1) * perPage + idx + 1}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm font-medium text-slate-800">{item.nama}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">{item.batch}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-center text-slate-600">{item.level ?? '-'}</td>
+                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">{formatDateShort(item.kelas_tanggal_mulai)}</td>
+                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">{formatDateShort(item.kelas_tanggal_selesai)}</td>
+                  <td className="border border-slate-200 px-4 py-3 text-sm text-center text-slate-600">{item.total_pertemuan ?? '-'}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-center font-medium text-emerald-700">{item.hadir}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-center font-medium text-amber-700">{item.terlambat}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-center font-medium text-blue-700">{item.izin}</td>
@@ -247,7 +261,7 @@ export default function RekapSiswaPage() {
             {rekap.length > 0 && (
               <tfoot>
                 <tr className="font-semibold">
-                  <td colSpan={4} className="border border-slate-200 px-4 py-3 text-sm text-slate-800">Total</td>
+                  <td colSpan={7} className="border border-slate-200 px-4 py-3 text-sm text-slate-800">Total</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-center text-emerald-700">{totals.hadir}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-center text-amber-700">{totals.terlambat}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-center text-blue-700">{totals.izin}</td>
