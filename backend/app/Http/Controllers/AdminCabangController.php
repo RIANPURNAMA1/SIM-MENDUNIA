@@ -667,6 +667,11 @@ class AdminCabangController extends Controller
             ->unique()
             ->flip();
 
+        $lastPayments = \App\Models\Pembayaran::whereIn('pendaftar_id', $all->pluck('id'))
+            ->selectRaw('pendaftar_id, MAX(created_at) as last_at')
+            ->groupBy('pendaftar_id')
+            ->pluck('last_at', 'pendaftar_id');
+
         $groupMap = [];
         foreach ($hydrated as $p) {
             $bid = $p['batch']['id'] ?? 0;
@@ -681,6 +686,7 @@ class AdminCabangController extends Controller
                     'total_sisa' => 0,
                     'kategori_ids' => [],
                     'has_pending' => false,
+                    'last_pembayaran' => null,
                 ];
             }
             $groupMap[$bid]['total_pendaftar']++;
@@ -701,6 +707,11 @@ class AdminCabangController extends Controller
             if (isset($pendingPids[$p['id']])) {
                 $groupMap[$bid]['has_pending'] = true;
             }
+
+            $pLast = $lastPayments[$p['id']] ?? null;
+            if ($pLast && (!$groupMap[$bid]['last_pembayaran'] || $pLast > $groupMap[$bid]['last_pembayaran'])) {
+                $groupMap[$bid]['last_pembayaran'] = (string) $pLast;
+            }
         }
 
         foreach ($groupMap as &$g) {
@@ -713,6 +724,14 @@ class AdminCabangController extends Controller
             ->sort(function ($a, $b) {
                 if ($a['has_pending'] !== $b['has_pending']) {
                     return $a['has_pending'] ? -1 : 1;
+                }
+                $aHas = !empty($a['last_pembayaran']);
+                $bHas = !empty($b['last_pembayaran']);
+                if ($aHas !== $bHas) {
+                    return $aHas ? -1 : 1;
+                }
+                if ($aHas) {
+                    return strcmp($b['last_pembayaran'], $a['last_pembayaran']);
                 }
                 return $b['batch_id'] <=> $a['batch_id'];
             })
@@ -742,8 +761,14 @@ class AdminCabangController extends Controller
         $batchIds = $this->getBranchBatchIds();
 
         $base = Pendaftar::with(['product.biayaKategoris', 'batch', 'siswa'])
-            ->whereIn('batch_id', $batchIds)
-            ->orderBy('created_at', 'desc');
+            ->addSelect(['last_pembayaran_at' => \App\Models\Pembayaran::select('created_at')
+                ->whereColumn('pendaftar_id', 'pendaftar.id')
+                ->orderByDesc('created_at')
+                ->limit(1)])
+            ->orderByDesc('last_pembayaran_at')
+            ->orderByDesc('created_at');
+
+        $base->whereIn('batch_id', $batchIds);
         $this->applyTagihanFilters($base, $request);
 
         if ((int) $batchId === 0) {
