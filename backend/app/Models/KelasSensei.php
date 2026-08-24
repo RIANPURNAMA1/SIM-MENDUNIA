@@ -59,4 +59,24 @@ class KelasSensei extends Model
             ->whereDate('tanggal_mulai', '<=', $today)
             ->whereDate('tanggal_selesai', '>=', $today);
     }
+
+    /**
+     * Jumlah pertemuan: hari kerja (Senin-Jumat) di luar hari libur
+     * antara tanggal mulai dan tanggal selesai.
+     */
+    public function totalPertemuan(): int
+    {
+        $tglMulai = \Carbon\Carbon::parse($this->tanggal_mulai);
+        $tglSelesai = \Carbon\Carbon::parse($this->tanggal_selesai);
+
+        return $tglMulai->copy()->diffInDaysFiltered(function (\Carbon\Carbon $date) {
+            if ($date->dayOfWeek === \Carbon\Carbon::SUNDAY || $date->dayOfWeek === \Carbon\Carbon::SATURDAY) {
+                return false;
+            }
+            if (HariLibur::apakahLibur($date->toDateString())) {
+                return false;
+            }
+            return true;
+        }, $tglSelesai->copy()->addSecond());
+    }
 }

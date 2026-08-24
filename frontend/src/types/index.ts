@@ -545,6 +545,9 @@ export interface RekapSiswaItem {
   id: number
 nama: string
   level?: number | null
+  kelas_tanggal_mulai?: string | null
+  kelas_tanggal_selesai?: string | null
+  total_pertemuan?: number | null
   kelas: string
   batch: string
   hadir: number
