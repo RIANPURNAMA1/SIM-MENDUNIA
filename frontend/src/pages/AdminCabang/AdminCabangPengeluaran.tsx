@@ -3,6 +3,7 @@ import {
   Wallet, Plus, Search, Trash2, X, Eye, Edit3, Filter, FileText, Camera, Upload, Image as ImageIcon, RotateCcw,
 } from 'lucide-react'
 import { pengeluaranApi, kategoriPengeluaranApi, adminCabangApi, APP_URL } from '../../services/api'
+import SearchableSelect from '../../components/SearchableSelect'
 
 interface Kategori {
   id: number
@@ -194,6 +195,14 @@ export default function AdminCabangPengeluaran() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!form.kategori_id) {
+      setError('Kategori wajib dipilih')
+      return
+    }
+    if (!form.tanggal || !form.nominal) {
+      setError('Tanggal dan nominal wajib diisi')
+      return
+    }
     setSaving(true)
     setError('')
     try {
@@ -466,17 +475,13 @@ export default function AdminCabangPengeluaran() {
                   <label className="block text-xs font-semibold text-gray-700 mb-1">
                     Kategori <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    required
+                  <SearchableSelect
                     value={form.kategori_id}
-                    onChange={e => setForm({ ...form, kategori_id: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                  >
-                    <option value="">Pilih Kategori</option>
-                    {kategoris.map(k => (
-                      <option key={k.id} value={k.id}>{k.nama} ({k.kode})</option>
-                    ))}
-                  </select>
+                    onChange={v => setForm({ ...form, kategori_id: v })}
+                    options={kategoris.map(k => ({ id: k.id, label: `${k.nama} (${k.kode})` }))}
+                    placeholder="Pilih Kategori"
+                    searchPlaceholder="Cari kategori..."
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1">
