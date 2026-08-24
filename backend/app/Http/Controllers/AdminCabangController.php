@@ -1623,7 +1623,7 @@ class AdminCabangController extends Controller
 
         $rekap = $query->with(['kelasRelasi', 'absensi.kelasSensei', 'absensi' => function ($q) use ($start_date, $end_date) {
             $q->whereBetween('tanggal', [$start_date, $end_date]);
-        }])->get()->map(function ($siswa) use ($selectedNamaKelas) {
+        }])->get()->map(function ($siswa) use ($selectedNamaKelas, $start_date, $end_date) {
             $hadir = $siswa->absensi->where('status', 'HADIR')->count();
             $terlambat = $siswa->absensi->where('status', 'TERLAMBAT')->count();
             $izin = $siswa->absensi->where('status', 'IZIN')->count();
