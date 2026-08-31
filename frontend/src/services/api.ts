@@ -613,6 +613,8 @@ export const paymentSettingApi = {
 
 export const APP_URL = import.meta.env.VITE_APP_URL || 'http://localhost:8000'
 
+export const MIRAIGO_URL = import.meta.env.VITE_MIRAIGO_URL || 'http://localhost:5173/dashboard'
+
 export const blogApi = {
   list: (params?: Record<string, string>) => api.get('/blogs', { params }),
   show: (slugOrId: string | number) => api.get(`/blogs/${slugOrId}`),

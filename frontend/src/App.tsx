@@ -60,6 +60,7 @@ import InvoiceSiswa from './pages/Siswa/InvoiceSiswa'
 import PembayaranTagihan from './pages/PembayaranTagihan'
 import MatchingJobForm from './pages/Siswa/MatchingJobForm'
 import ProgressKandidat from './pages/Siswa/ProgressKandidat'
+import MiraigoAccess from './pages/Siswa/MiraigoAccess'
 import DataAffiliate from './pages/Affiliate/DataAffiliate'
 import ClosingPasukan from './pages/Affiliate/ClosingPasukan'
 import DataPencairanKomisi from './pages/Affiliate/DataPencairanKomisi'
@@ -271,6 +272,7 @@ function AppRoutes() {
         <Route path="nilai" element={<SiswaNilai />} />
         <Route path="matching-job" element={<ProgressKandidat />} />
         <Route path="kontrak" element={<KontrakSiswa />} />
+        <Route path="miraigo" element={<MiraigoAccess />} />
         <Route path="profil" element={<ProfilSiswa />} />
       </Route>
 

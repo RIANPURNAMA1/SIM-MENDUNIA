@@ -7,6 +7,7 @@ import {
   FileSignature,
   LogOut,
   Lock,
+  ExternalLink,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 import { useAuth } from '../contexts/AuthContext'
@@ -368,6 +369,7 @@ export default function SiswaDashboard() {
     { label: 'Nilai', to: '/siswa-dashboard/nilai', icon: Award, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
     { label: 'Matching Job', to: '/siswa-dashboard/matching-job', icon: Briefcase, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
     { label: 'Kontrak', to: '/siswa-dashboard/kontrak', icon: FileSignature, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
+    { label: 'Akses Miraigo', to: '/siswa-dashboard/miraigo', icon: ExternalLink, color: 'text-[#0B5E42]', bg: 'bg-[#0B5E42]/10' },
     { label: 'Profil', to: '/siswa-dashboard/profil', icon: User, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
   ]
 

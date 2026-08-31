@@ -49,4 +49,10 @@ return [
         'base_url' => env('PENEMPATAN_BASE_URL', 'https://api.penempatan.mendunia.id'),
     ],
 
+    'miraigo' => [
+        'base_url' => env('MIRAIGO_BASE_URL', 'http://localhost:5173'),
+        'sso_secret' => env('MIRAIGO_SSO_SECRET', 'miraigo-sso-local-secret-change-me'),
+        'token_ttl' => (int) env('MIRAIGO_SSO_TTL', 60),
+    ],
+
 ];

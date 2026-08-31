@@ -723,3 +723,6 @@ Route::middleware(['auth:sanctum'])->prefix('penempatan')->group(function () {
     Route::get('/cabang', [\App\Http\Controllers\PenempatanKandidatController::class, 'cabangIndex']);
     Route::get('/dashboard', [\App\Http\Controllers\PenempatanKandidatController::class, 'dashboard']);
 });
+
+// ========== Integrasi SSO Sistem Miraigo ==========
+Route::middleware(['auth:sanctum'])->post('/miraigo/sso', [\App\Http\Controllers\MiraigoSsoController::class, 'sso']);
