@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   ClipboardList, ChevronLeft, ChevronRight, Save, Send, Upload, Plus, Trash2, Loader2,
@@ -262,6 +262,10 @@ const emptyPendidikan = (): Pendidikan => ({ nama_sekolah: '', jurusan: '', bula
 const emptyPengalaman = (): Pengalaman => ({ nama_perusahaan: '', alamat_perusahaan: '', posisi: '', bulan_masuk: '', tahun_masuk: '', bulan_keluar: '', tahun_keluar: '', masih_bekerja: false, deskripsi_pekerjaan: '' })
 const emptyKeluarga = (hubungan: string): Keluarga => ({ hubungan, nama: '', usia: '', pekerjaan: '', penghasilan: '' })
 
+const boolToStr = (v: any): string =>
+  v === 1 || v === true ? 'Ya' : v === 0 || v === false ? 'Tidak' : ''
+
+
 const dokumenList: { jenis: string; label: string; required: boolean; maxKB: number }[] = [
   { jenis: 'sertifikat_jft', label: 'Sertifikat JFT', required: false, maxKB: 500 },
   { jenis: 'pas_foto', label: 'Pas Foto', required: true, maxKB: 500 },
@@ -285,6 +289,8 @@ export default function MatchingJobForm() {
   const [activeStep, setActiveStep] = useState(0)
   const [statusFormulir, setStatusFormulir] = useState('draft')
   const [kandidatId, setKandidatId] = useState<number | null>(null)
+  const studentIdentity = useRef<{ email: string; nama: string }>({ email: '', nama: '' })
+  const hydratedRef = useRef(false)
   const [sending, setSending] = useState(false)
   const [pengalaman, setPengalaman] = useState<Pengalaman[]>([])
   const [sswSelected, setSswSelected] = useState<Set<string>>(new Set())
@@ -419,25 +425,11 @@ export default function MatchingJobForm() {
           tahunLulus: s.tahun_lulus || '',
         }))
 
-        const studentEmail = (u.email || '').trim()
-        const studentNama = (s.nama || u.name || '').trim()
-        const query = studentEmail || studentNama
-        if (query) {
-          api.get('/penempatan/kandidat', { params: { search: query, limit: 20 } })
-            .then(res2 => {
-              const list: any[] = Array.isArray(res2.data?.data) ? res2.data.data : []
-              const rec = list.find((k: any) =>
-                studentEmail && (k.email_kontak || '').toLowerCase() === studentEmail.toLowerCase()
-              ) || list.find((k: any) =>
-                studentNama && (k.nama_romaji || '').toLowerCase() === studentNama.toLowerCase()
-              )
-              if (rec?.id) {
-                setKandidatId(rec.id)
-                if (rec.status_formulir) setStatusFormulir(rec.status_formulir)
-              }
-            })
-            .catch(() => {})
+        studentIdentity.current = {
+          email: (u.email || '').trim(),
+          nama: (s.nama || u.name || '').trim(),
         }
+        syncStatus()
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -448,6 +440,177 @@ export default function MatchingJobForm() {
         setCabangList(list.map((c: any) => ({ id: c.id, nama_cabang: c.nama_cabang })))
       })
       .catch(() => {})
+  }, [])
+
+  const syncStatus = () => {
+    const { email, nama } = studentIdentity.current
+    const query = nama || email
+    if (!query) return
+    api.get('/penempatan/kandidat', { params: { search: query, limit: 20 } })
+      .then(res2 => {
+        const list: any[] = Array.isArray(res2.data?.data) ? res2.data.data : []
+        const rec = list.find((k: any) =>
+          email && (k.email_kontak || '').toLowerCase() === email.toLowerCase()
+        ) || list.find((k: any) =>
+          nama && (k.nama_romaji || '').toLowerCase() === nama.toLowerCase()
+        )
+        if (rec?.id) {
+          setKandidatId(rec.id)
+          if (rec.status_formulir) setStatusFormulir(rec.status_formulir)
+          if (!hydratedRef.current) {
+            hydratedRef.current = true
+            loadKandidatData(rec.id)
+          }
+        }
+      })
+      .catch(() => {})
+  }
+
+  const loadKandidatData = async (id: number) => {
+    try {
+      const res = await api.get(`/penempatan/kandidat/${id}`)
+      const v: any = res.data?.data
+      if (!v) return
+
+      setSswSelected(new Set(
+        Array.isArray(v.sertifikat_ssw)
+          ? v.sertifikat_ssw
+          : typeof v.sertifikat_ssw === 'string' && v.sertifikat_ssw
+            ? v.sertifikat_ssw.split(',').map((s: string) => s.trim()).filter(Boolean)
+            : []
+      ))
+
+      setForm(f => ({
+        ...f,
+        cabang: v.nama_cabang || f.cabang,
+        nik: v.nik || f.nik,
+        namaKatakana: v.nama_katakana || '',
+        namaRomaji: v.nama_romaji || f.namaRomaji,
+        tempatLahir: v.tempat_lahir || '',
+        tanggalLahir: v.tanggal_lahir || '',
+        umur: v.umur ?? '',
+        jenisKelamin: v.jenis_kelamin || '',
+        statusPernikahan: v.status_pernikahan || '',
+        agama: v.agama || '',
+        tinggiBadan: v.tinggi_badan ?? '',
+        beratBadan: v.berat_badan ?? '',
+        golonganDarah: v.golongan_darah || '',
+        tanganDominan: v.tangan_dominan || '',
+        ukuranBaju: v.ukuran_baju || '',
+        lingkarPinggang: v.lingkar_pinggang ?? '',
+        panjangTelapakKaki: v.panjang_telapak_kaki ?? '',
+        sim: v.sim_dimiliki || '',
+        noHp: v.nomor_hp || '',
+        email: v.email_kontak || v.email || f.email,
+        namaOrtu: v.kontak_ortu_nama || '',
+        noHpOrtu: v.kontak_ortu_hp || '',
+        alamatLengkap: v.alamat_lengkap || '',
+        pendidikanTerakhir: v.pendidikan_terakhir || '',
+        tahunLulus: v.tahun_lulus ?? '',
+        sudahVaksin: boolToStr(v.sudah_vaksin),
+        kondisiKesehatan: v.kondisi_kesehatan || '',
+        penglihatanKanan: v.penglihatan_kanan || '',
+        penglihatanKiri: v.penglihatan_kiri || '',
+        berkacamata: boolToStr(v.berkacamata),
+        lensaKontak: boolToStr(v.lensa_kontak),
+        butaWarna: boolToStr(v.buta_warna),
+        bertato: boolToStr(v.bertato),
+        merokok: boolToStr(v.merokok),
+        minumAlkohol: boolToStr(v.minum_alkohol),
+        riwayatPenyakit: v.riwayat_penyakit || '',
+        levelJlpt: v.level_jlpt || '',
+        levelJft: v.level_jft || '',
+        lamaBelajarJepang: v.lama_belajar_jepang || '',
+        levelBahasaJepang: v.level_bahasa_jepang || '',
+        idPrometric: v.id_prometric || '',
+        passwordPrometric: v.password_prometric || '',
+        penghasilanKeluarga: v.penghasilan_keluarga ?? '',
+        pernahKeJepang: boolToStr(v.pernah_ke_jepang),
+        keluargaDiJepang: boolToStr(v.keluarga_di_jepang),
+        kenalanDiJepang: boolToStr(v.kenalan_di_jepang),
+        tujuanKeJepang: v.tujuan_ke_jepang || '',
+        alasanKeJepang: v.alasan_ke_jepang || '',
+        citaCitaSetelahJepang: v.cita_cita_setelah_jepang || '',
+        rencanaPengirimanUang: v.rencana_pengiriman_uang ?? '',
+        kelebihanDiri: v.kelebihan_diri || '',
+        kekuranganDiri: v.kekurangan_diri || '',
+        hobi: v.hobi || '',
+        keahlian: v.keahlian || '',
+        bersediaShift: boolToStr(v.bersedia_shift),
+        bersediaLembur: boolToStr(v.bersedia_lembur),
+        bersediaHariLibur: boolToStr(v.bersedia_hari_libur),
+        lamaTinggalJepang: v.lama_tinggal_jepang || '',
+        lamaKerjaPerusahaan: v.lama_kerja_perusahaan || '',
+        rencanaPulang: v.rencana_pulang || '',
+        sumberBiaya: v.sumber_biaya || '',
+        biayaDisiapkan: v.biaya_disiapkan || '',
+      }))
+
+      if (Array.isArray(v.pendidikan)) {
+        const pd: Record<string, Pendidikan> = {
+          SD: emptyPendidikan(),
+          SMP: emptyPendidikan(),
+          'SMA/SMK': emptyPendidikan(),
+          'Perguruan Tinggi': emptyPendidikan(),
+        }
+        v.pendidikan.forEach((p: any) => {
+          if (pd[p.jenjang]) {
+            pd[p.jenjang] = {
+              nama_sekolah: p.nama_sekolah || '',
+              jurusan: p.jurusan || '',
+              bulan_masuk: p.bulan_masuk || '',
+              tahun_masuk: p.tahun_masuk ?? '',
+              bulan_lulus: p.bulan_lulus || '',
+              tahun_lulus: p.tahun_lulus ?? '',
+            }
+          }
+        })
+        setPendidikan(pd)
+      }
+
+      if (Array.isArray(v.pengalaman)) {
+        setPengalaman(v.pengalaman.map((p: any) => ({
+          nama_perusahaan: p.nama_perusahaan || '',
+          alamat_perusahaan: p.alamat_perusahaan || '',
+          posisi: p.posisi || '',
+          bulan_masuk: p.bulan_masuk || '',
+          tahun_masuk: p.tahun_masuk ?? '',
+          bulan_keluar: p.bulan_keluar || '',
+          tahun_keluar: p.tahun_keluar ?? '',
+          masih_bekerja: !!p.masih_bekerja,
+          deskripsi_pekerjaan: p.deskripsi_pekerjaan || '',
+        })))
+      }
+
+      if (Array.isArray(v.keluarga)) {
+        const by = (hub: string) => v.keluarga.filter((k: any) => k.hubungan === hub)
+        const toK = (k: any): Keluarga => ({
+          hubungan: k.hubungan || '',
+          nama: k.nama || '',
+          usia: k.usia ?? '',
+          pekerjaan: k.pekerjaan || '',
+          penghasilan: k.penghasilan || '',
+        })
+        setAyah(by('Ayah')[0] ? toK(by('Ayah')[0]) : emptyKeluarga('Ayah'))
+        setIbu(by('Ibu')[0] ? toK(by('Ibu')[0]) : emptyKeluarga('Ibu'))
+        setSuami(by('Suami').map(toK))
+        setIstri(by('Istri').map(toK))
+        setKakak(by('Kakak').map(toK))
+        setAdik(by('Adik').map(toK))
+      }
+    } catch {
+      // abaikan jika gagal mengambil detail
+    }
+  }
+
+  useEffect(() => {
+    const interval = setInterval(syncStatus, 10000)
+    const onFocus = () => syncStatus()
+    window.addEventListener('focus', onFocus)
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('focus', onFocus)
+    }
   }, [])
 
   const toggleSsw = (f: string) => {
@@ -505,6 +668,7 @@ export default function MatchingJobForm() {
 
     return {
       nama_romaji: form.namaRomaji || null,
+      nik: form.nik || null,
       nama_katakana: form.namaKatakana || null,
       email: form.email || null,
       cabang_id: cabangList.find(c => c.nama_cabang === form.cabang)?.id ?? null,

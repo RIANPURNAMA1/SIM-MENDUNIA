@@ -385,6 +385,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/kandidat/{id}', [PendaftaranController::class, 'updateKandidat']);
     Route::post('/kandidat/{id}/toggle-status', [PendaftaranController::class, 'toggleKandidatStatus']);
     Route::post('/kandidat/{id}/toggle-cuti', [PendaftaranController::class, 'toggleCuti']);
+    Route::post('/kandidat/{id}/merge-job', [PendaftaranController::class, 'mergeJob']);
 
     Route::prefix('pendaftar')->group(function () {
         Route::get('/', [PendaftaranController::class, 'index']);

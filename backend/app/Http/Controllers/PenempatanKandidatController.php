@@ -36,6 +36,9 @@ class PenempatanKandidatController extends Controller
             'cabang_id' => $request->input('cabang_id'),
             'bidang_ssw' => $request->input('bidang_ssw'),
             'jenjang' => $request->input('jenjang'),
+            'umur_min' => $request->input('umur_min'),
+            'umur_max' => $request->input('umur_max'),
+            'status_keberangkatan' => $request->input('status_keberangkatan'),
         ], fn($v) => $v !== null && $v !== '');
 
         $result = $this->proxyGetData('/api/integrasi/kandidat', $params);

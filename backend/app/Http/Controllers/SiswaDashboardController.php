@@ -232,6 +232,66 @@ class SiswaDashboardController extends Controller
             ]
         );
 
+        // 2b. Sinkronkan data diri ke tabel siswas & users agar tampil di /data-kandidat.
+        if (!empty($payload['jenis_kelamin'])) {
+            $payload['jenis_kelamin'] = match (mb_strtolower(trim($payload['jenis_kelamin']))) {
+                'laki-laki', 'laki laki', 'l', 'male' => 'L',
+                'perempuan', 'p', 'wanita', 'female' => 'P',
+                default => $payload['jenis_kelamin'],
+            };
+        }
+
+        $fieldMap = [
+            'nik' => 'nik',
+            'jenis_kelamin' => 'jenis_kelamin',
+            'tempat_lahir' => 'tempat_lahir',
+            'agama' => 'agama',
+            'alamat_lengkap' => 'alamat',
+            'pendidikan_terakhir' => 'pendidikan_terakhir',
+            'tinggi_badan' => 'tinggi_badan',
+            'berat_badan' => 'berat_badan',
+            'golongan_darah' => 'goldar',
+            'ukuran_baju' => 'ukuran_baju',
+            'status_pernikahan' => 'status_pernikahan',
+            'kontak_ortu_nama' => 'nama_ortu',
+            'kontak_ortu_hp' => 'no_hp_ortu',
+        ];
+
+        $siswa = Siswa::firstOrNew(['user_id' => $user->id]);
+        $dirty = false;
+        foreach ($fieldMap as $src => $dst) {
+            if (array_key_exists($src, $payload) && $payload[$src] !== null && $payload[$src] !== '') {
+                $siswa->$dst = $payload[$src];
+                $dirty = true;
+            }
+        }
+        if (!empty($payload['tanggal_lahir'])) {
+            try {
+                $parsed = \Carbon\Carbon::parse($payload['tanggal_lahir'])->format('Y-m-d');
+                $siswa->tanggal_lahir = $parsed;
+                $dirty = true;
+            } catch (\Throwable $e) {
+                // abaikan jika format tanggal tidak bisa di-parse.
+            }
+        }
+        if (!empty($payload['nomor_hp'])) {
+            $siswa->no_hp = $payload['nomor_hp'];
+            $dirty = true;
+        }
+        if (blank($siswa->nama)) {
+            $siswa->nama = $payload['nama_romaji'] ?? $user->name;
+            $dirty = true;
+        }
+        if ($dirty) {
+            $siswa->save();
+        }
+
+        // NIK juga ke tabel users sebagai fallback.
+        if (!empty($payload['nik'])) {
+            $user->nik = $payload['nik'];
+            $user->save();
+        }
+
         // Jika proxy gagal terhubung, tetap laporkan sukses lokal + peringatan.
         if ($proxyError) {
             return response()->json([
