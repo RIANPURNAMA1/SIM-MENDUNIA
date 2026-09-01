@@ -84,6 +84,11 @@ class Pendaftar extends Model
         return $this->hasOne(Siswa::class, 'user_id', 'user_id');
     }
 
+    public function matchingJobForm()
+    {
+        return $this->hasOne(MatchingJobForm::class, 'pendaftar_id', 'id');
+    }
+
     public function pembayaranItems()
     {
         return $this->hasMany(PembayaranItem::class);

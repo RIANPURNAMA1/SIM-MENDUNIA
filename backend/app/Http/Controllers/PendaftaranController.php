@@ -1979,7 +1979,7 @@ class PendaftaranController extends Controller
 
     public function kandidat(Request $request)
     {
-        $query = Pendaftar::with(['product', 'batch.cabang.kontraks', 'kontrakTandaTangans', 'user', 'siswa', 'pembayaranItems.kategori'])
+        $query = Pendaftar::with(['product', 'batch.cabang.kontraks', 'kontrakTandaTangans', 'user', 'siswa', 'pembayaranItems.kategori', 'matchingJobForm'])
             ->where('status_pendaftaran', 'disetujui');
 
         if ($request->search) {
@@ -2113,6 +2113,13 @@ class PendaftaranController extends Controller
                         'ttd_uploaded_at' => $ttd?->created_at,
                     ];
                 })(),
+                'matching_job' => $p->matchingJobForm ? [
+                    'id' => $p->matchingJobForm->id,
+                    'status_formulir' => $p->matchingJobForm->status_formulir,
+                    'updated_at' => $p->matchingJobForm->updated_at?->format('d M Y H:i'),
+                    'penempatan_kandidat_id' => $p->matchingJobForm->penempatan_kandidat_id,
+                    'data' => $p->matchingJobForm->data ?: [],
+                ] : null,
             ];
         };
 

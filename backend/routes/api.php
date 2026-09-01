@@ -246,6 +246,7 @@ Route::prefix('siswa')->group(function () {
     Route::post('/import', [SiswaController::class, 'import']);
     Route::post('/import-ai', [SiswaController::class, 'importAi']);
     Route::post('/profile', [SiswaDashboardController::class, 'updateProfile'])->middleware('auth:sanctum');
+    Route::post('/data-diri', [SiswaDashboardController::class, 'storeDataDiri'])->middleware('auth:sanctum');
     Route::get('/absensi-saya', [SiswaDashboardController::class, 'absensiSaya'])->middleware('auth:sanctum');
     Route::get('/siswa-batches', [SiswaDashboardController::class, 'siswaBatches'])->middleware('auth:sanctum');
     Route::get('/nilai-saya/{batchId}', [SiswaDashboardController::class, 'nilaiSaya'])->middleware('auth:sanctum');

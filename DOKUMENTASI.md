@@ -1205,3 +1205,6 @@ Dashboard: profit/loss = pendapatan (total pembayaran) - pengeluaran
 | `/admin-cabang/raport` | ADMIN_CABANG | Raport |
 | `/admin-cabang/evaluasi-instruktur` | ADMIN_CABANG | EvaluasiInstruktur |
 | `/admin-cabang/lms` | ADMIN_CABANG | DataCourse |
+
+
+coba agar terintegrasi datanya itu data matchng job itu terntergasri ke database sim mendunia 
