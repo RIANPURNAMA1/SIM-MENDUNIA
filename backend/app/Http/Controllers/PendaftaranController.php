@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Pendaftar;
 use App\Models\Siswa;
+use App\Models\MatchingJobForm;
 use App\Models\Product;
 use App\Models\AffiliateLink;
 use App\Models\KomisiAffiliate;
@@ -24,6 +25,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 class PendaftaranController extends Controller
 {
@@ -2167,6 +2169,167 @@ class PendaftaranController extends Controller
             'totalKandidat' => $totalKandidat,
             'kandidatAktif' => $kandidatAktif,
             'cabangs' => $cabangs,
+        ]);
+    }
+
+    /**
+     * POST /api/kandidat/{id}/merge-job — hubungkan kandidat SIM (Pendaftar) ke
+     * kandidat Sistem Penempatan (v2) dan salin data job matching-nya.
+     * Hanya berjalan bila kandidat SIM belum punya matching job terhubung.
+     */
+    public function mergeJob(Request $request, $id)
+    {
+        $pendaftar = Pendaftar::with(['siswa', 'user', 'matchingJobForm'])->find($id);
+
+        if (!$pendaftar) {
+            return response()->json(['success' => false, 'message' => 'Kandidat tidak ditemukan.'], 404);
+        }
+
+        // Merge hanya jika kosong.
+        if ($pendaftar->matchingJobForm && !empty($pendaftar->matchingJobForm->penempatan_kandidat_id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kandidat ini sudah terhubung ke data job matching. Hapus koneksi dulu untuk mengubah.',
+            ], 422);
+        }
+
+        $penempatanId = (int) $request->input('penempatan_kandidat_id');
+        if (!$penempatanId) {
+            return response()->json(['success' => false, 'message' => 'Parameter penempatan_kandidat_id wajib diisi.'], 422);
+        }
+
+        // Ambil detail kandidat dari Sistem Penempatan (v2).
+        $baseUrl = rtrim((string) config('services.penempatan.base_url'), '/');
+        $apiKey = (string) config('services.penempatan.api_key');
+        try {
+            $response = Http::timeout(30)
+                ->withHeaders(['x-api-key' => $apiKey])
+                ->get($baseUrl . "/api/integrasi/kandidat/{$penempatanId}");
+            if (!$response->successful()) {
+                return response()->json(['success' => false, 'message' => 'Gagal mengambil data kandidat dari Sistem Penempatan.'], 502);
+            }
+        } catch (\Exception $e) {
+            Log::error('mergeJob fetch penempatan failed: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Gagal terhubung ke Sistem Penempatan.'], 502);
+        }
+
+        $kandidat = $response->json('data');
+        if (!is_array($kandidat) || empty($kandidat['id'])) {
+            return response()->json(['success' => false, 'message' => 'Data kandidat dari Sistem Penempatan tidak valid.'], 502);
+        }
+
+        // Snapshot data untuk tampilan detail (sesuai key yang dibaca MatchingJobSection).
+        $snapKeys = [
+            'nama_romaji', 'nama_katakana', 'tempat_lahir', 'tanggal_lahir', 'umur',
+            'jenis_kelamin', 'status_pernikahan', 'jumlah_anak', 'agama', 'tinggi_badan',
+            'berat_badan', 'golongan_darah', 'nomor_hp', 'email_kontak', 'alamat_lengkap',
+            'pendidikan_terakhir', 'level_jlpt', 'level_jft', 'sertifikat_ssw',
+            'level_bahasa_jepang', 'status_formulir', 'status_progres', 'status_keberangkatan',
+            'nama_perusahaan', 'bidang_ssw', 'institusi', 'nama_cabang',
+        ];
+        $data = [];
+        foreach ($snapKeys as $key) {
+            if (array_key_exists($key, $kandidat) && $kandidat[$key] !== null && $kandidat[$key] !== '') {
+                $data[$key] = $kandidat[$key];
+            }
+        }
+        $data['email'] = $kandidat['email_kontak'] ?? null;
+        $data['pendidikan'] = $kandidat['pendidikan'] ?? [];
+        $data['pengalaman'] = $kandidat['pengalaman'] ?? [];
+        $data['keluarga'] = $kandidat['keluarga'] ?? [];
+
+        // Simpan tautan + snapshot ke tabel local matching_job_forms.
+        $form = MatchingJobForm::updateOrCreate(
+            ['pendaftar_id' => $pendaftar->id],
+            [
+                'user_id' => $pendaftar->user_id,
+                'penempatan_kandidat_id' => $penempatanId,
+                'status_formulir' => $kandidat['status_formulir'] ?? 'draft',
+                'nama' => $kandidat['nama_romaji'] ?? $pendaftar->nama,
+                'email' => $kandidat['email_kontak'] ?? $pendaftar->email,
+                'data' => $data,
+            ]
+        );
+
+        // Sinkronkan data diri ke tabel siswas & users agar ikut tampil di tabel /data-kandidat.
+        $mergePayload = [
+            'nik' => $kandidat['nik'] ?? null,
+            'jenis_kelamin' => $kandidat['jenis_kelamin'] ?? null,
+            'tempat_lahir' => $kandidat['tempat_lahir'] ?? null,
+            'alamat_lengkap' => $kandidat['alamat_lengkap'] ?? null,
+            'pendidikan_terakhir' => $kandidat['pendidikan_terakhir'] ?? null,
+            'tinggi_badan' => $kandidat['tinggi_badan'] ?? null,
+            'berat_badan' => $kandidat['berat_badan'] ?? null,
+            'golongan_darah' => $kandidat['golongan_darah'] ?? null,
+            'status_pernikahan' => $kandidat['status_pernikahan'] ?? null,
+            'nomor_hp' => $kandidat['nomor_hp'] ?? $pendaftar->telepon,
+            'tanggal_lahir' => $kandidat['tanggal_lahir'] ?? null,
+        ];
+
+        $fieldMap = [
+            'jenis_kelamin' => 'jenis_kelamin',
+            'tempat_lahir' => 'tempat_lahir',
+            'alamat_lengkap' => 'alamat',
+            'pendidikan_terakhir' => 'pendidikan_terakhir',
+            'tinggi_badan' => 'tinggi_badan',
+            'berat_badan' => 'berat_badan',
+            'golongan_darah' => 'goldar',
+            'status_pernikahan' => 'status_pernikahan',
+        ];
+
+        $siswa = $pendaftar->siswa ?? new Siswa();
+        if (blank($siswa->user_id)) $siswa->user_id = $pendaftar->user_id;
+        if (blank($siswa->nama)) $siswa->nama = $pendaftar->nama;
+        $dirty = false;
+
+        if (!empty($mergePayload['jenis_kelamin'])) {
+            $mergePayload['jenis_kelamin'] = match (mb_strtolower(trim($mergePayload['jenis_kelamin']))) {
+                'laki-laki', 'laki laki', 'l', 'male' => 'L',
+                'perempuan', 'p', 'wanita', 'female' => 'P',
+                default => $mergePayload['jenis_kelamin'],
+            };
+        }
+        if (!empty($mergePayload['nik'])) {
+            $siswa->nik = $mergePayload['nik'];
+            $dirty = true;
+        }
+        foreach ($fieldMap as $src => $dst) {
+            if (!empty($mergePayload[$src])) {
+                $siswa->$dst = $mergePayload[$src];
+                $dirty = true;
+            }
+        }
+        if (!empty($mergePayload['nomor_hp'])) {
+            $siswa->no_hp = $mergePayload['nomor_hp'];
+            $dirty = true;
+        }
+        if (!empty($mergePayload['tanggal_lahir'])) {
+            try {
+                $siswa->tanggal_lahir = \Carbon\Carbon::parse($mergePayload['tanggal_lahir'])->format('Y-m-d');
+                $dirty = true;
+            } catch (\Throwable $e) {
+                // abaikan format tanggal yang tidak valid
+            }
+        }
+        if ($dirty) {
+            $siswa->save();
+        }
+
+        if ($pendaftar->user && !empty($mergePayload['nik'])) {
+            $pendaftar->user->nik = $mergePayload['nik'];
+            $pendaftar->user->save();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data job matching dari Sistem Penempatan berhasil digabungkan.',
+            'matching_job' => $form ? [
+                'id' => $form->id,
+                'status_formulir' => $form->status_formulir,
+                'updated_at' => $form->updated_at?->format('d M Y H:i'),
+                'penempatan_kandidat_id' => $form->penempatan_kandidat_id,
+                'data' => $form->data ?: [],
+            ] : null,
         ]);
     }
 

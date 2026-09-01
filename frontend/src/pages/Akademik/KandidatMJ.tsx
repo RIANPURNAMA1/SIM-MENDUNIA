@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import {
-  Upload, Download, Sparkles, Filter, Trash2, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, User, Eye, X, RefreshCw, Loader2,
-  UserRound, Phone, Mail, MapPin, GraduationCap, Briefcase, HeartPulse, Users, FileText, BadgeCheck, Plane, Stethoscope, Languages, Goal,
+  Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, User, Eye, X, RefreshCw, Loader2,
+  UserRound, Phone, Mail, MapPin, GraduationCap, Briefcase, HeartPulse, Users, FileText, BadgeCheck, Plane, Stethoscope, Languages, Goal, SlidersHorizontal,
 } from 'lucide-react'
 import api from '../../services/api'
 
@@ -73,15 +73,54 @@ const STATUS_PROGRES_COLOR: Record<string, string> = {
   'belum diproses': 'bg-slate-100 text-slate-600',
 }
 
+const STATUS_FORMULIR_OPTIONS = [
+  { v: 'draft', l: 'Draft' },
+  { v: 'submitted', l: 'Terkirim' },
+  { v: 'reviewed', l: 'Direview' },
+  { v: 'approved', l: 'Disetujui' },
+  { v: 'rejected', l: 'Ditolak' },
+]
+
+const PROGRES_OPTIONS = [
+  'Job Matching', 'Pending', 'lamar ke perusahaan', 'Interview',
+  'Jadwalkan Interview Ulang', 'Lulus interview', 'Gagal Interview',
+  'Pemberkasan', 'Berangkat', 'Ditolak',
+]
+
+const SSE_OPTIONS = [
+  'Pengolahan Makanan', 'Pertanian', 'Gaishoku', 'Kaigo (perawat)',
+  'Building Cleaning', 'Restoran', 'Driver', 'Perhotelah', 'Perikanan',
+  'Perbaikan dan Perawatan Mobil', 'Konstruksi',
+]
+
+const JENJANG_OPTIONS = ['SD', 'SMP', 'SMA/SMK', 'Perguruan Tinggi']
+
+const KEBERANGKATAN_OPTIONS = [
+  { v: 'stay', l: 'Stay' },
+  { v: 'keluar', l: 'Keluar' },
+  { v: 'terbang', l: 'Terbang' },
+]
+
+const JENIS_KELAMIN_OPTIONS = ['Laki-laki', 'Perempuan']
+
+const FILTER_STYLE = 'rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+
 export default function KandidatMJ() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [cabangFilter, setCabangFilter] = useState('')
   const [progresFilter, setProgresFilter] = useState('')
-  const [screening, setScreening] = useState('Semua')
-  const [showScreening, setShowScreening] = useState(false)
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(10)
+  const [jenisKelaminFilter, setJenisKelaminFilter] = useState('')
+  const [jenjangFilter, setJenjangFilter] = useState('')
+  const [bidangFilter, setBidangFilter] = useState('')
+  const [statusKeberangkatanFilter, setStatusKeberangkatanFilter] = useState('')
+  const [umurMin, setUmurMin] = useState('')
+  const [umurMax, setUmurMax] = useState('')
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [cabangList, setCabangList] = useState<{ id: number; nama_cabang: string }[]>([])
 
   const [items, setItems] = useState<Kandidat[]>([])
   const [pagination, setPagination] = useState<Pagination | null>(null)
@@ -100,10 +139,16 @@ export default function KandidatMJ() {
         page: resetPage ? 1 : page,
         limit: perPage,
       }
-      if (search.trim()) params.search = search.trim()
+      if (debouncedSearch.trim()) params.search = debouncedSearch.trim()
       if (statusFilter) params.status = statusFilter
       if (cabangFilter) params.cabang_id = cabangFilter
       if (progresFilter) params.status_progres = progresFilter
+      if (jenisKelaminFilter) params.jenis_kelamin = jenisKelaminFilter
+      if (jenjangFilter) params.jenjang = jenjangFilter
+      if (bidangFilter) params.bidang_ssw = bidangFilter
+      if (statusKeberangkatanFilter) params.status_keberangkatan = statusKeberangkatanFilter
+      if (umurMin.trim()) params.umur_min = Number(umurMin)
+      if (umurMax.trim()) params.umur_max = Number(umurMax)
 
       const res = await api.get('/penempatan/kandidat', { params })
       const data = res.data
@@ -151,18 +196,6 @@ export default function KandidatMJ() {
   const from = totalItems === 0 ? 0 : (safePage - 1) * perPage + 1
   const to = Math.min(safePage * perPage, totalItems)
 
-  const cabangs = useMemo(() => {
-    const set = new Set<string>()
-    items.forEach(i => { if (i.nama_cabang) set.add(i.nama_cabang) })
-    return Array.from(set)
-  }, [items])
-
-  const statuses = useMemo(() => {
-    const set = new Set<string>()
-    items.forEach(i => { if (i.status_progres) set.add(i.status_progres) })
-    return Array.from(set)
-  }, [items])
-
   const pageNumbers = useMemo(() => {
     const pages: (number | '...')[] = []
     const add = (p: number) => { if (p >= 1 && p <= totalPages && !pages.includes(p)) pages.push(p) }
@@ -178,10 +211,44 @@ export default function KandidatMJ() {
 
   const setPageSafe = (p: number) => setPage(Math.max(1, Math.min(p, totalPages)))
 
+  const activeFilterCount =
+    Number(Boolean(statusFilter)) + Number(Boolean(progresFilter)) + Number(Boolean(cabangFilter)) +
+    Number(Boolean(jenisKelaminFilter)) + Number(Boolean(jenjangFilter)) + Number(Boolean(bidangFilter)) +
+    Number(Boolean(statusKeberangkatanFilter)) + Number(Boolean(umurMin)) + Number(Boolean(umurMax)) +
+    Number(Boolean(debouncedSearch))
+
+  const filterKey = `${debouncedSearch}|${statusFilter}|${progresFilter}|${cabangFilter}|${jenisKelaminFilter}|${jenjangFilter}|${bidangFilter}|${statusKeberangkatanFilter}|${umurMin}|${umurMax}`
+
+  // debounce pencarian
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 350)
+    return () => clearTimeout(t)
+  }, [search])
+
+  // ambil daftar cabang dari Sistem Penempatan untuk filter cabang (pakai id angka)
+  useEffect(() => {
+    api.get('/penempatan/cabang')
+      .then(res => {
+        const list = res.data?.data
+        if (Array.isArray(list)) {
+          setCabangList(
+            list
+              .map((c: any) => ({ id: Number(c.id), nama_cabang: c.nama_cabang || '' }))
+              .filter((c: any) => c.id && c.nama_cabang)
+          )
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  // reset ke halaman 1 saat filter berubah
+  useEffect(() => { setPage(1) }, [filterKey])
+
+  // fetch data saat page/perPage/filter berubah (auto-refresh seperti v2)
   useEffect(() => {
     fetchData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, perPage])
+  }, [page, perPage, filterKey])
 
   const applyFilters = () => {
     setPage(1)
@@ -190,9 +257,16 @@ export default function KandidatMJ() {
 
   const resetFilters = () => {
     setSearch('')
+    setDebouncedSearch('')
     setStatusFilter('')
     setCabangFilter('')
     setProgresFilter('')
+    setJenisKelaminFilter('')
+    setJenjangFilter('')
+    setBidangFilter('')
+    setStatusKeberangkatanFilter('')
+    setUmurMin('')
+    setUmurMax('')
     setPage(1)
     fetchData(true)
   }
@@ -227,57 +301,8 @@ export default function KandidatMJ() {
 
       <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 p-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <button className="inline-flex items-center gap-1.5 rounded-md bg-[#0E6187] px-3 py-2 text-xs font-medium text-white transition hover:bg-[#0a4a6a]">
-              <Upload size={14} />
-              Import
-            </button>
-            <button className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">
-              <Download size={14} />
-              Export
-            </button>
-            <button className="inline-flex items-center gap-1.5 rounded-md bg-amber-500 px-3 py-2 text-xs font-medium text-white transition hover:bg-amber-600">
-              <Sparkles size={14} />
-              Import AI
-            </button>
-            <button className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">
-              <Filter size={14} />
-              Filter
-            </button>
-            <div className="relative">
-              <button
-                onClick={() => setShowScreening(!showScreening)}
-                className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
-              >
-                <Search size={14} />
-                Screening {screening}
-                <ChevronsRight size={12} className="-rotate-90" />
-              </button>
-              {showScreening && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowScreening(false)} />
-                  <div className="absolute left-0 top-full z-50 mt-1 w-44 rounded-md border border-slate-200 bg-white py-1 shadow-lg">
-                    {['Semua', 'Direview'].map(opt => (
-                      <button
-                        key={opt}
-                        onClick={() => { setScreening(opt); setShowScreening(false) }}
-                        className={`block w-full px-3 py-2 text-left text-xs transition hover:bg-slate-50 ${screening === opt ? 'bg-blue-50 font-semibold text-[#0E6187]' : 'text-slate-700'}`}
-                      >
-                        {opt}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-            <button className="inline-flex items-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-600 transition hover:bg-red-100">
-              <Trash2 size={14} />
-              Data Dihapus
-            </button>
-          </div>
-
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <div className="relative flex-1 min-w-[200px]">
+            <div className="relative min-w-[200px] flex-1">
               <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 value={search}
@@ -290,27 +315,37 @@ export default function KandidatMJ() {
             <select
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500"
+              className={FILTER_STYLE}
             >
               <option value="">Semua Status Formulir</option>
-              {['Lengkap', 'Draft', 'Menunggu', 'Terverifikasi'].map(s => <option key={s} value={s}>{s}</option>)}
+              {STATUS_FORMULIR_OPTIONS.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
             </select>
             <select
               value={progresFilter}
               onChange={e => setProgresFilter(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500"
+              className={FILTER_STYLE}
             >
               <option value="">Semua Progres</option>
-              {statuses.map(s => <option key={s} value={s}>{s}</option>)}
+              {PROGRES_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
             <select
               value={cabangFilter}
               onChange={e => setCabangFilter(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500"
+              className={FILTER_STYLE}
             >
               <option value="">Semua Cabang</option>
-              {cabangs.map(c => <option key={c} value={c}>{c}</option>)}
+              {cabangList.map(c => <option key={c.id} value={String(c.id)}>{c.nama_cabang}</option>)}
             </select>
+            <button
+              onClick={() => setShowAdvanced(v => !v)}
+              className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+            >
+              <SlidersHorizontal size={13} />
+              Filter
+              {activeFilterCount > 0 && (
+                <span className="ml-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#0E6187] text-[10px] font-bold text-white">{activeFilterCount}</span>
+              )}
+            </button>
             <button
               onClick={applyFilters}
               className="inline-flex items-center gap-1.5 rounded-md bg-[#0E6187] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#0a4a6a]"
@@ -325,6 +360,47 @@ export default function KandidatMJ() {
               Reset
             </button>
           </div>
+
+          {showAdvanced && (
+            <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 sm:grid-cols-3 lg:grid-cols-6">
+              <div>
+                <label className="mb-1 block text-[11px] font-medium text-slate-500">Jenis Kelamin</label>
+                <select value={jenisKelaminFilter} onChange={e => setJenisKelaminFilter(e.target.value)} className={`${FILTER_STYLE} w-full`}>
+                  <option value="">Semua</option>
+                  {JENIS_KELAMIN_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-[11px] font-medium text-slate-500">Pendidikan Terakhir</label>
+                <select value={jenjangFilter} onChange={e => setJenjangFilter(e.target.value)} className={`${FILTER_STYLE} w-full`}>
+                  <option value="">Semua</option>
+                  {JENJANG_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-[11px] font-medium text-slate-500">Bidang SSW</label>
+                <select value={bidangFilter} onChange={e => setBidangFilter(e.target.value)} className={`${FILTER_STYLE} w-full`}>
+                  <option value="">Semua</option>
+                  {SSE_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-[11px] font-medium text-slate-500">Keberangkatan</label>
+                <select value={statusKeberangkatanFilter} onChange={e => setStatusKeberangkatanFilter(e.target.value)} className={`${FILTER_STYLE} w-full`}>
+                  <option value="">Semua</option>
+                  {KEBERANGKATAN_OPTIONS.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-[11px] font-medium text-slate-500">Umur Min</label>
+                <input type="number" value={umurMin} onChange={e => setUmurMin(e.target.value)} placeholder="18" className={`${FILTER_STYLE} w-full`} />
+              </div>
+              <div>
+                <label className="mb-1 block text-[11px] font-medium text-slate-500">Umur Max</label>
+                <input type="number" value={umurMax} onChange={e => setUmurMax(e.target.value)} placeholder="35" className={`${FILTER_STYLE} w-full`} />
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="border-b border-slate-200 px-4 py-2.5">
