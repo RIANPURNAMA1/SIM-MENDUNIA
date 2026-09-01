@@ -55,6 +55,13 @@ interface Kandidat {
     file_kontrak_ttd: string | null
     ttd_uploaded_at: string | null
   } | null
+  matching_job?: {
+    id: number
+    status_formulir: string
+    updated_at: string | null
+    penempatan_kandidat_id: number | null
+    data: Record<string, any>
+  } | null
 }
 
 interface BatchOption {
@@ -2258,6 +2265,32 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                   </div>
                 )}
               </div>
+
+              {/* Data Diri & Matching Job (dari form siswa) */}
+              {detailKandidat.matching_job && (
+                <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500">Data Diri &amp; Matching Job</h3>
+                    <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold"
+                      style={(() => {
+                        const s = detailKandidat.matching_job!.status_formulir
+                        const map: Record<string, { bg: string; border: string; text: string }> = {
+                          submitted: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-600' },
+                          approved: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-600' },
+                          reviewed: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-600' },
+                          rejected: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-500' },
+                          draft: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-600' },
+                        }
+                        const m = map[s] || map.draft
+                        return { backgroundColor: m.bg, borderColor: m.border, color: m.text }
+                      })()}>
+                      <span className="capitalize">{detailKandidat.matching_job.status_formulir}</span>
+                    </span>
+                  </div>
+
+                  <MatchingJobSection data={detailKandidat.matching_job.data} />
+                </div>
+              )}
             </div>
 
             {/* Footer */}
@@ -2931,12 +2964,141 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
 }
 
 function InfoItem({ label, value, mono }: { label: string; value: string | null | undefined; mono?: boolean }) {
+  const show = value !== null && value !== undefined && value !== '' && value !== '-'
   return (
     <div>
       <p className="text-xs font-medium text-slate-400">{label}</p>
-      <p className={`text-sm font-medium ${mono ? 'font-mono' : ''} ${value && value !== '-' ? 'text-slate-800' : 'text-slate-300'}`}>
-        {value && value !== '-' ? value : '-'}
+      <p className={`text-sm font-medium ${mono ? 'font-mono' : ''} ${show ? 'text-slate-800' : 'text-slate-300'}`}>
+        {show ? value : '-'}
       </p>
+    </div>
+  )
+}
+
+function MatchingJobSection({ data }: { data: Record<string, any> }) {
+  if (!data || Object.keys(data).length === 0) {
+    return <p className="text-xs text-slate-400">Belum ada data dari form Data Diri &amp; Matching Job.</p>
+  }
+
+  const fmtBool = (v: any) => (v === 1 ? 'Ya' : v === 0 ? 'Tidak' : v === null || v === undefined ? null : String(v))
+  const fmtArr = (v: any) => (Array.isArray(v) && v.length > 0 ? v.join(', ') : null)
+  const indent = 'text-xs text-slate-400'
+
+  const rows: Array<{ label: string; key: string; fmt?: (v: any) => string | null }> = [
+    { label: 'Nama (Romaji)', key: 'nama_romaji' },
+    { label: 'Nama (Katakana)', key: 'nama_katakana' },
+    { label: 'Email', key: 'email' },
+    { label: 'Tempat Lahir', key: 'tempat_lahir' },
+    { label: 'Tanggal Lahir', key: 'tanggal_lahir' },
+    { label: 'Umur', key: 'umur' },
+    { label: 'Jenis Kelamin', key: 'jenis_kelamin' },
+    { label: 'Status Pernikahan', key: 'status_pernikahan' },
+    { label: 'Agama', key: 'agama' },
+    { label: 'Tinggi Badan', key: 'tinggi_badan' },
+    { label: 'Berat Badan', key: 'berat_badan' },
+    { label: 'Golongan Darah', key: 'golongan_darah' },
+    { label: 'Tangan Dominan', key: 'tangan_dominan' },
+    { label: 'Ukuran Baju', key: 'ukuran_baju' },
+    { label: 'Lingkar Pinggang', key: 'lingkar_pinggang' },
+    { label: 'Panjang Telapak Kaki', key: 'panjang_telapak_kaki' },
+    { label: 'SIM', key: 'sim_dimiliki' },
+    { label: 'No. HP', key: 'nomor_hp' },
+    { label: 'Kontak Ortu (Nama)', key: 'kontak_ortu_nama' },
+    { label: 'Kontak Ortu (HP)', key: 'kontak_ortu_hp' },
+    { label: 'Alamat Lengkap', key: 'alamat_lengkap' },
+    { label: 'Pendidikan Terakhir', key: 'pendidikan_terakhir' },
+    { label: 'Sudah Vaksin', key: 'sudah_vaksin', fmt: fmtBool },
+    { label: 'Kondisi Kesehatan', key: 'kondisi_kesehatan' },
+    { label: 'Penglihatan Kanan', key: 'penglihatan_kanan' },
+    { label: 'Penglihatan Kiri', key: 'penglihatan_kiri' },
+    { label: 'Berkacamata', key: 'berkacamata', fmt: fmtBool },
+    { label: 'Lensa Kontak', key: 'lensa_kontak', fmt: fmtBool },
+    { label: 'Buta Warna', key: 'buta_warna', fmt: fmtBool },
+    { label: 'Bertato', key: 'bertato', fmt: fmtBool },
+    { label: 'Merokok', key: 'merokok', fmt: fmtBool },
+    { label: 'Minum Alkohol', key: 'minum_alkohol', fmt: fmtBool },
+    { label: 'Riwayat Penyakit', key: 'riwayat_penyakit' },
+    { label: 'Level JLPT', key: 'level_jlpt' },
+    { label: 'Level JFT', key: 'level_jft' },
+    { label: 'Lama Belajar Jepang', key: 'lama_belajar_jepang' },
+    { label: 'Level Bahasa Jepang', key: 'level_bahasa_jepang' },
+    { label: 'Sertifikat SSW', key: 'sertifikat_ssw', fmt: fmtArr },
+    { label: 'Penghasilan Keluarga', key: 'penghasilan_keluarga' },
+    { label: 'Pernah ke Jepang', key: 'pernah_ke_jepang', fmt: fmtBool },
+    { label: 'Keluarga di Jepang', key: 'keluarga_di_jepang', fmt: fmtBool },
+    { label: 'Kenalan di Jepang', key: 'kenalan_di_jepang', fmt: fmtBool },
+    { label: 'Tujuan ke Jepang', key: 'tujuan_ke_jepang' },
+    { label: 'Alasan ke Jepang', key: 'alasan_ke_jepang' },
+    { label: 'Cita-cita Setelah Jepang', key: 'cita_cita_setelah_jepang' },
+    { label: 'Rencana Pengiriman Uang', key: 'rencana_pengiriman_uang' },
+    { label: 'Kelebihan Diri', key: 'kelebihan_diri' },
+    { label: 'Kekurangan Diri', key: 'kekurangan_diri' },
+    { label: 'Hobi', key: 'hobi' },
+    { label: 'Keahlian', key: 'keahlian' },
+    { label: 'Bersedia Shift', key: 'bersedia_shift', fmt: fmtBool },
+    { label: 'Bersedia Lembur', key: 'bersedia_lembur', fmt: fmtBool },
+    { label: 'Bersedia Hari Libur', key: 'bersedia_hari_libur', fmt: fmtBool },
+    { label: 'Lama Tinggal Jepang', key: 'lama_tinggal_jepang' },
+    { label: 'Lama Kerja Perusahaan', key: 'lama_kerja_perusahaan' },
+    { label: 'Rencana Pulang', key: 'rencana_pulang' },
+    { label: 'Sumber Biaya', key: 'sumber_biaya' },
+    { label: 'Biaya Disiapkan', key: 'biaya_disiapkan' },
+  ]
+
+  const pendidikan: any[] = Array.isArray(data.pendidikan) ? data.pendidikan : []
+  const pengalaman: any[] = Array.isArray(data.pengalaman) ? data.pengalaman : []
+  const keluarga: any[] = Array.isArray(data.keluarga) ? data.keluarga : []
+
+  return (
+    <div className="space-y-4">
+      {rows.map(r => {
+        const raw = r.fmt ? r.fmt(data[r.key]) : (data[r.key] ?? null)
+        if (raw === null || raw === undefined || raw === '') return null
+        return (
+          <div key={r.key} className="flex">
+            <div className="w-44 shrink-0">
+              <p className={indent}>{r.label}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-800">{raw}</p>
+            </div>
+          </div>
+        )
+      })}
+
+      {pendidikan.length > 0 && (
+        <div>
+          <p className={`${indent} mb-1`}>Pendidikan</p>
+          {pendidikan.map((p, i) => (
+            <p key={i} className="text-sm font-medium text-slate-800">
+              {p.jenjang ? `${p.jenjang} — ` : ''}{p.nama_sekolah || '-'}{p.jurusan ? ` (${p.jurusan})` : ''}
+              {p.tahun_lulus ? `, lulus ${p.tahun_lulus}` : ''}
+            </p>
+          ))}
+        </div>
+      )}
+
+      {pengalaman.length > 0 && (
+        <div>
+          <p className={`${indent} mb-1`}>Pengalaman Kerja</p>
+          {pengalaman.map((p, i) => (
+            <p key={i} className="text-sm font-medium text-slate-800">
+              {p.nama_perusahaan || '-'}{p.posisi ? ` — ${p.posisi}` : ''}{p.tahun_masuk ? ` (${p.tahun_masuk}${p.tahun_keluar ? `–${p.tahun_keluar}` : ''})` : ''}
+            </p>
+          ))}
+        </div>
+      )}
+
+      {keluarga.length > 0 && (
+        <div>
+          <p className={`${indent} mb-1`}>Keluarga</p>
+          {keluarga.map((k, i) => (
+            <p key={i} className="text-sm font-medium text-slate-800">
+              {k.hubungan || 'Keluarga'}: {k.nama || '-'}{k.usia ? ` (${k.usia} th)` : ''}{k.pekerjaan ? `, ${k.pekerjaan}` : ''}
+            </p>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

@@ -5,12 +5,15 @@ namespace App\Http\Controllers;
 use App\Models\Batch;
 use App\Models\JadwalLevel;
 use App\Models\KelasSensei;
+use App\Models\MatchingJobForm;
 use App\Models\Pendaftar;
 use App\Models\Siswa;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class SiswaDashboardController extends Controller
 {
@@ -168,6 +171,89 @@ class SiswaDashboardController extends Controller
             'user' => $user,
             'siswa' => $siswa,
         ]);
+    }
+
+    /**
+     * POST /api/siswa/data-diri — simpan data matching job (Data Diri & Matching Job).
+     * Menyimpan salinan lokal (tabel matching_job_forms) dan meneruskan ke Sistem
+     * Penempatan agar data juga tampil di halaman admin /data-kandidat.
+     */
+    public function storeDataDiri(Request $request)
+    {
+        $user = Auth::guard('sanctum')->user();
+        $payload = $request->json()->all();
+
+        // IP pembatasan: hanya role siswa/kandidat yang boleh.
+        if (!in_array($user->role, ['SISWA', 'KANDIDAT'])) {
+            return response()->json(['success' => false, 'message' => 'Tidak diizinkan.'], 403);
+        }
+
+        $pendaftar = Pendaftar::where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        // 1. Teruskan ke Sistem Penempatan (proxy) untuk menjaga perilaku lama.
+        $proxy = new \App\Http\Controllers\PenempatanKandidatController();
+        $isUpdate = !empty($payload['penempatan_kandidat_id']);
+        $path = $isUpdate
+            ? "/api/integrasi/kandidat/{$payload['penempatan_kandidat_id']}"
+            : '/api/integrasi/kandidat';
+        $method = $isUpdate ? 'PUT' : 'POST';
+
+        $penempatanId = $isUpdate ? $payload['penempatan_kandidat_id'] : null;
+        $proxyBody = null;
+        $proxyError = null;
+        try {
+            $client = Http::timeout(30)->withHeaders([
+                'x-api-key' => (string) config('services.penempatan.api_key'),
+            ]);
+            $response = $method === 'PUT'
+                ? $client->put(rtrim((string) config('services.penempatan.base_url'), '/') . $path, $payload)
+                : $client->post(rtrim((string) config('services.penempatan.base_url'), '/') . $path, $payload);
+            $proxyBody = $response->json() ?: [];
+            $proxyStatus = $response->status();
+            $penempatanId = $proxyBody['data']['id'] ?? ($isUpdate ? $payload['penempatan_kandidat_id'] : null);
+        } catch (\Exception $e) {
+            Log::error('Siswa storeDataDiri penempatan failed: ' . $e->getMessage());
+            $proxyError = 'Gagal terhubung ke Sistem Penempatan.';
+        }
+
+        // 2. Simpan salinan lokal (selalu, agar tampil di /data-kandidat).
+        $data = collect($payload)->except(['penempatan_kandidat_id'])->all();
+        $form = MatchingJobForm::updateOrCreate(
+            ['user_id' => $user->id],
+            [
+                'pendaftar_id' => $pendaftar?->id,
+                'penempatan_kandidat_id' => $penempatanId,
+                'status_formulir' => $payload['status_formulir'] ?? 'draft',
+                'nama' => $payload['nama_romaji'] ?? $user->name,
+                'email' => $payload['email'] ?? $user->email,
+                'data' => $data,
+            ]
+        );
+
+        // Jika proxy gagal terhubung, tetap laporkan sukses lokal + peringatan.
+        if ($proxyError) {
+            return response()->json([
+                'success' => true,
+                'partial' => true,
+                'message' => 'Data tersimpan lokal, tetapi gagal terhubung ke Sistem Penempatan.',
+                'data' => [
+                    'id' => $penempatanId,
+                    'matching_job_form_id' => $form->id,
+                    'status_formulir' => $form->status_formulir,
+                ],
+            ], 200);
+        }
+
+        $responseData = $proxyBody ?: [];
+        $responseData['data'] = array_merge($proxyBody['data'] ?? [], [
+            'id' => $penempatanId,
+            'matching_job_form_id' => $form->id,
+            'status_formulir' => $form->status_formulir,
+        ]);
+
+        return response()->json(array_merge($responseData, ['success' => ($proxyStatus ?? 200) < 500]));
     }
 
     public function absensiSaya()

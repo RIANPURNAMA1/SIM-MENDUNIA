@@ -582,9 +582,8 @@ export default function MatchingJobForm() {
     }
     setSending(true)
     try {
-      const res = kandidatId
-        ? await api.put(`/penempatan/kandidat/${kandidatId}`, buildPayload(final))
-        : await api.post('/penempatan/kandidat', buildPayload(final))
+      const payload = { ...buildPayload(final), penempatan_kandidat_id: kandidatId ?? undefined }
+      const res = await api.post('/siswa/data-diri', payload)
       if (!res.data?.success) {
         Swal.fire({
           icon: 'error',
