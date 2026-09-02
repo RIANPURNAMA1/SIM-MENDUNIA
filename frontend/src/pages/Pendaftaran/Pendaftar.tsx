@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, FileText, Eye, Trash2, RotateCcw, CreditCard, X, Loader, AlertTriangle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Users, MoreHorizontal, BadgeCheck, Ban, RefreshCw, Clock, CheckCircle2, Banknote, Upload, Receipt, LayoutDashboard } from 'lucide-react'
 import { pendaftarApi, pendaftarApi as apiModule } from '../../services/api'
@@ -53,6 +53,8 @@ interface ConfirmModal {
 export default function Pendaftar() {
   const [data, setData] = useState<PendaftarItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [totalItems, setTotalItems] = useState(0)
+  const [serverStats, setServerStats] = useState<Record<string, number> | null>(null)
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('') 
   const [filterBatch, setFilterBatch] = useState('')
@@ -73,15 +75,58 @@ export default function Pendaftar() {
   const [batchOptions, setBatchOptions] = useState<{ id: number; nama_batch: string; warna: string | null }[]>([])
   const [showBatchDropdown, setShowBatchDropdown] = useState(false)
   const navigate = useNavigate()
+  const batchOptionsRef = useRef(batchOptions)
   const [kategoriItems, setKategoriItems] = useState<Record<number, { kategori_id: number; biaya: number; dibayar: number }[]>>({})
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(25)
   const [openActionId, setOpenActionId] = useState<number | null>(null)
   const actionRef = useRef<HTMLDivElement>(null)
 
+  const fetchData = useCallback(() => {
+    setLoading(true)
+    const params: Record<string, string> = { per_page: String(perPage), page: String(page) }
+    if (search) params.search = search
+    if (filterStatus) {
+      const statusMap: Record<string, { pembayaran?: string; pendaftaran?: string }> = {
+        'menunggu pembayaran': { pembayaran: 'unpaid' },
+        'menunggu verifikasi': { pembayaran: 'processing', pendaftaran: 'pending' },
+        'proses': { pembayaran: 'processing', pendaftaran: 'disetujui' },
+        'pembayaran dikonfirmasi': { pembayaran: 'verified' },
+        'batal': { pendaftaran: 'ditolak' },
+        'ditangguhkan': { pembayaran: 'ditangguhkan' },
+      }
+      const st = statusMap[filterStatus.toLowerCase()]
+      if (st?.pembayaran) params.status_pembayaran = st.pembayaran
+      if (st?.pendaftaran) params.status_pendaftaran = st.pendaftaran
+    }
+    if (filterBatch) {
+      const b = batchOptionsRef.current.find(x => x.nama_batch === filterBatch)
+      if (b) params.batch_id = String(b.id)
+    }
+    if (filterDateFrom) params.date_from = filterDateFrom
+    if (filterDateTo) params.date_to = filterDateTo
+
+    Promise.all([
+      pendaftarApi.list(params),
+      api.get('/biaya-kategori-flat'),
+      api.get('/batches'),
+    ]).then(([res, katRes, batchRes]) => {
+      const serverData = Array.isArray(res.data) ? res.data : (res.data?.data || [])
+      const pagination = res.data?.pagination
+      setData(serverData)
+      setTotalItems(pagination?.total ?? serverData.length)
+      setServerStats(res.data?.stats || null)
+      setKategoris(katRes.data || [])
+      const loadedBatches = batchRes.data?.data || batchRes.data || []
+      setBatchOptions(loadedBatches)
+      batchOptionsRef.current = loadedBatches
+      setLoading(false)
+    }).catch(() => setLoading(false))
+  }, [perPage, page, search, filterStatus, filterBatch, filterDateFrom, filterDateTo])
+
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [fetchData])
 
   useEffect(() => {
     function onFocus() {
@@ -96,7 +141,7 @@ export default function Pendaftar() {
       window.removeEventListener('focus', onFocus)
       document.removeEventListener('visibilitychange', onVisibility)
     }
-  }, [])
+  }, [fetchData])
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -107,20 +152,6 @@ export default function Pendaftar() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
-
-  function fetchData() {
-    setLoading(true)
-    Promise.all([
-      pendaftarApi.list({}),
-      api.get('/biaya-kategori-flat'),
-      api.get('/batches'),
-    ]).then(([res, katRes, batchRes]) => {
-      setData(res.data)
-      setKategoris(katRes.data || [])
-      setBatchOptions(batchRes.data?.data || batchRes.data || [])
-      setLoading(false)
-    }).catch(() => setLoading(false))
-  }
 
   function openBayar(p: PendaftarItem) {
     const daftarKat = [...kategoris].sort((a, b) => a.urutan - b.urutan)[0]
@@ -222,39 +253,37 @@ export default function Pendaftar() {
     return { bg: 'bg-blue-100 text-blue-700 border-blue-200', label: 'Proses' }
   }
 
-  const filtered = useMemo(() => {
-    return data.filter(p => {
-      const matchSearch = !search || p.nama.toLowerCase().includes(search.toLowerCase()) || p.email.toLowerCase().includes(search.toLowerCase())
-      const cs = combinedStatus(p).label.toLowerCase()
-      const matchStatus = !filterStatus || cs === filterStatus.toLowerCase()
-      const matchBatch = !filterBatch || p.batch?.nama_batch === filterBatch
-      const d = new Date(p.created_at)
-      d.setHours(0, 0, 0, 0)
-      const from = filterDateFrom ? new Date(filterDateFrom) : null
-      if (from) from.setHours(0, 0, 0, 0)
-      const to = filterDateTo ? new Date(filterDateTo) : null
-      if (to) to.setHours(23, 59, 59, 999)
-      const matchDate = (!from || d >= from) && (!to || d <= to)
-      return matchSearch && matchStatus && matchBatch && matchDate
-    })
-  }, [data, search, filterStatus, filterBatch, filterDateFrom, filterDateTo])
+  const filtered = useMemo(() => data, [data])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage))
+  const totalPages = Math.max(1, Math.ceil(totalItems / perPage))
   const safePage = Math.min(page, totalPages)
-  const pagedList = filtered.slice((safePage - 1) * perPage, safePage * perPage)
+  const pagedList = filtered
 
-  const stats = useMemo(() => ({
-    total: data.length,
-    menungguPembayaran: data.filter(p => p.status_pembayaran === 'unpaid').length,
-    pembayaranDiKonfirmasi: data.filter(p => p.status_pembayaran === 'processing' && p.status_pendaftaran === 'pending').length,
-    proses: data.filter(p => p.status_pembayaran === 'processing' && p.status_pendaftaran === 'disetujui').length,
-    selesai: data.filter(p => p.status_pembayaran === 'verified').length,
-    batal: data.filter(p => p.status_pendaftaran === 'ditolak' && p.status_pembayaran !== 'ditangguhkan').length,
-    ditangguhkan: data.filter(p => p.status_pembayaran === 'ditangguhkan').length,
-    pendingVerifikasi: data.filter(p => p.status_pembayaran === 'processing').length,
-  }), [data])
+  const stats = useMemo(() => {
+    const fallback = {
+      total: data.length,
+      menungguPembayaran: 0,
+      pembayaranDiKonfirmasi: 0,
+      proses: 0,
+      selesai: 0,
+      batal: 0,
+      ditangguhkan: 0,
+      pendingVerifikasi: 0,
+    }
+    return ({
+      ...fallback,
+      total: serverStats?.total ?? data.length,
+      menungguPembayaran: serverStats?.menungguPembayaran ?? 0,
+      pembayaranDiKonfirmasi: serverStats?.pembayaranDiKonfirmasi ?? 0,
+      proses: serverStats?.proses ?? 0,
+      selesai: serverStats?.selesai ?? 0,
+      batal: serverStats?.batal ?? 0,
+      ditangguhkan: serverStats?.ditangguhkan ?? 0,
+      pendingVerifikasi: serverStats?.pendingVerifikasi ?? 0,
+    })
+  }, [data, serverStats])
 
-  if (loading) {
+  if (loading && data.length === 0) {
     return (
       <div className="flex min-h-[400px] items-center justify-center p-6">
         <div className="relative w-14 h-14 flex items-center justify-center">
@@ -558,12 +587,12 @@ export default function Pendaftar() {
           </tbody>
         </table>
         <div className="border-t border-slate-200 px-4 py-3 text-sm text-slate-500">
-          Menampilkan {pagedList.length} dari {filtered.length} pendaftar
+          Menampilkan {pagedList.length} dari {totalItems} pendaftar
         </div>
       </div>
 
       {/* Pagination */}
-      {!loading && filtered.length > 0 && (
+      {!loading && totalItems > 0 && (
         <div className="mt-4 flex flex-col gap-3 rounded-sm border border-slate-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3 text-sm text-slate-500">
             <span>Per halaman</span>

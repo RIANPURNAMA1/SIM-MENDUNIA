@@ -43,7 +43,6 @@ export default function RekapKehadiranSenseiPage() {
   const [filterBatch, setFilterBatch] = useState("");
   const [filterLevel, setFilterLevel] = useState("");
   const [filterCabang, setFilterCabang] = useState("");
-  const [filterKelas, setFilterKelas] = useState("");
   const [batchList, setBatchList] = useState<BatchOption[]>([]);
   const [cabangList, setCabangList] = useState<CabangOption[]>([]);
   const [viewMode, setViewMode] = useState<"calendar" | "table">("calendar");
@@ -93,7 +92,6 @@ export default function RekapKehadiranSenseiPage() {
       setFilterBatch("");
       setFilterLevel("");
       setFilterCabang("");
-      setFilterKelas("");
       fetchData();
     } else {
       setKelasList([]);
@@ -103,7 +101,6 @@ export default function RekapKehadiranSenseiPage() {
       setFilterBatch("");
       setFilterLevel("");
       setFilterCabang("");
-      setFilterKelas("");
     }
   }, [selectedUserId, bulan, tahun, fetchData]);
 
@@ -207,7 +204,6 @@ export default function RekapKehadiranSenseiPage() {
     setFilterCabang(val);
     setFilterBatch("");
     setFilterLevel("");
-    setFilterKelas("");
   };
 
   const levelOptions = Array.from(new Set(
@@ -216,36 +212,29 @@ export default function RekapKehadiranSenseiPage() {
       .map((k) => k.level)
   )).sort();
 
-  const kelasOptions = kelasList.filter((k) => {
-    if (filterBatch && String(k.batch_id) !== filterBatch) return false;
-    if (filterLevel && k.level !== filterLevel) return false;
-    return true;
-  });
-
   const filteredKelasList = kelasList.filter((k) => {
     if (filterBatch && String(k.batch_id) !== filterBatch) return false;
     if (filterLevel && k.level !== filterLevel) return false;
-    if (filterKelas && String(k.id) !== filterKelas) return false;
     return true;
   });
 
   const filteredTableData = tableData.filter((r) => {
     if (filterBatch && String(r.batch_id) !== filterBatch) return false;
     if (filterLevel && String(r.level) !== filterLevel) return false;
-    if (filterKelas && String(r.id) !== filterKelas) return false;
     if (selectedUserId && r.sensei_id !== selectedUserId) return false;
     return true;
   });
 
   const getSummary = () => {
-    const s = { hadir: 0, terlambat: 0, alpa: 0, pulangAwal: 0, libur: 0, belumAbsen: 0 };
+    const s = { hadir: 0, terlambat: 0, alpa: 0, tidakAbsenPulang: 0, pulangAwal: 0, libur: 0, belumAbsen: 0 };
     const filteredNames = new Set(filteredKelasList.map((k) => k.nama_kelas));
     Object.values(rekapData).forEach((day) => {
       day.entries.forEach((e) => {
         if (filteredKelasList.length < kelasList.length && !filteredNames.has(e.kelas_nama)) return;
         if (e.status === "HADIR") s.hadir++;
         else if (e.status === "TERLAMBAT") s.terlambat++;
-        else if (e.status === "ALPA" || e.status === "TIDAK ABSEN PULANG") s.alpa++;
+        else if (e.status === "ALPA") s.alpa++;
+        else if (e.status === "TIDAK ABSEN PULANG") s.tidakAbsenPulang++;
         else if (e.status === "PULANG LEBIH AWAL") s.pulangAwal++;
         else if (e.status === "LIBUR") s.libur++;
         else s.belumAbsen++;
@@ -281,11 +270,11 @@ export default function RekapKehadiranSenseiPage() {
 
       {/* Filter */}
       <div className="mb-4 rounded-lg p-4 shadow-sm">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
           <select
             value={selectedUserId}
             onChange={(e) => setSelectedUserId(e.target.value ? Number(e.target.value) : "")}
-            className="min-w-[200px] rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="w-full min-w-[200px] rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:w-auto sm:flex-1"
           >
             <option value="">Pilih Sensei</option>
             {senseiList.map((k) => (
@@ -297,7 +286,7 @@ export default function RekapKehadiranSenseiPage() {
           <select
             value={bulan}
             onChange={(e) => setBulan(Number(e.target.value))}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:w-auto"
           >
             {MONTHS_IND.map((name, idx) => (
               <option key={idx} value={idx + 1}>{name}</option>
@@ -306,7 +295,7 @@ export default function RekapKehadiranSenseiPage() {
           <select
             value={tahun}
             onChange={(e) => setTahun(Number(e.target.value))}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:w-auto"
           >
             {Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i).map((y) => (
               <option key={y} value={y}>{y}</option>
@@ -316,7 +305,7 @@ export default function RekapKehadiranSenseiPage() {
             <select
               value={filterCabang}
               onChange={(e) => handleCabangChange(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:w-auto"
             >
               <option value="">Semua Cabang</option>
               {cabangList.map((c) => (
@@ -329,13 +318,14 @@ export default function RekapKehadiranSenseiPage() {
               options={batchOptions}
               value={filterBatch}
               onChange={(v) => setFilterBatch(v)}
+              className="w-full sm:w-auto"
             />
           )}
           {levelOptions.length > 0 && (
             <select
               value={filterLevel}
-              onChange={(e) => { setFilterLevel(e.target.value); setFilterKelas(""); }}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              onChange={(e) => setFilterLevel(e.target.value)}
+              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:w-auto"
             >
               <option value="">Semua Level</option>
               {levelOptions.map((l) => (
@@ -343,22 +333,10 @@ export default function RekapKehadiranSenseiPage() {
               ))}
             </select>
           )}
-          {kelasOptions.length > 0 && (
-            <select
-              value={filterKelas}
-              onChange={(e) => setFilterKelas(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="">Semua Kelas</option>
-              {kelasOptions.map((k) => (
-                <option key={k.id} value={k.id}>{k.nama_kelas}</option>
-              ))}
-            </select>
-          )}
           <button
             onClick={fetchData}
             disabled={!selectedUserId || loading}
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-slate-800 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-700 disabled:opacity-50"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-slate-800 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-700 disabled:opacity-50 sm:w-auto"
           >
             <Search size={16} />
             Tampilkan
@@ -371,13 +349,12 @@ export default function RekapKehadiranSenseiPage() {
               setFilterBatch("");
               setFilterLevel("");
               setFilterCabang("");
-              setFilterKelas("");
               setRekapData({});
               setKelasList([]);
               setBatchList([]);
               setCabangList([]);
             }}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 sm:w-auto"
           >
             <RotateCcw size={16} />
             Reset
@@ -493,10 +470,14 @@ export default function RekapKehadiranSenseiPage() {
 
       {/* Summary */}
       {!loading && Object.keys(rekapData).length > 0 && (
-        <div className="mb-4 grid grid-cols-3 gap-2 sm:grid-cols-5">
+        <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
           <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
             <span className="block text-lg font-bold text-emerald-600">{s.hadir}</span>
             <p className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">Hadir</p>
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
+            <span className="block text-lg font-bold text-purple-600">{s.tidakAbsenPulang}</span>
+            <p className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">Tidak Absen Pulang</p>
           </div>
           <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
             <span className="block text-lg font-bold text-amber-600">{s.terlambat}</span>
@@ -765,10 +746,11 @@ function statusColorClass(status: string): string {
   }
 }
 
-function BatchSelect({ options, value, onChange }: {
+function BatchSelect({ options, value, onChange, className = "" }: {
   options: BatchOption[];
   value: string;
   onChange: (v: string) => void;
+  className?: string;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -787,7 +769,7 @@ function BatchSelect({ options, value, onChange }: {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+        className={`inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${className}`}
       >
         {selected ? (
           <span className="flex items-center gap-1.5">

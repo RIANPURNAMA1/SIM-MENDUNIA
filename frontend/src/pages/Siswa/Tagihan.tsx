@@ -1043,7 +1043,7 @@ export default function Tagihan() {
       )}
 
       {/* Program Tables */}
-      {loading ? (
+      {loading && groupsMeta.length === 0 ? (
         <div className="flex items-center justify-center py-20">
           <div className="relative w-14 h-14 flex items-center justify-center">
             <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
