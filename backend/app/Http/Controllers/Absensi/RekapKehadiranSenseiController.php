@@ -226,11 +226,13 @@ class RekapKehadiranSenseiController extends Controller
 
     public function tableData(Request $request)
     {
+        $liburDates = \App\Models\HariLibur::pluck('tanggal')->flip();
+
         $kelasList = KelasSensei::with('batchRelasi', 'user')
             ->where('status', 'aktif')
             ->orderBy('created_at', 'desc')
             ->get()
-            ->map(function ($kelas) {
+            ->map(function ($kelas) use ($liburDates) {
                 $tglMulai = Carbon::parse($kelas->tanggal_mulai);
                 $tglSelesai = Carbon::parse($kelas->tanggal_selesai);
                 $totalPertemuan = $tglMulai->copy()->diffInDaysFiltered(function ($date) {
@@ -240,9 +242,15 @@ class RekapKehadiranSenseiController extends Controller
                 }, $tglSelesai->copy()->addSecond());
 
                 $absensi = AbsensiSensei::where('kelas_sensei_id', $kelas->id)->get();
-                $absenTerisi = $absensi->count();
-                $alpa = $absensi->whereIn('status', ['ALPA', 'TIDAK ABSEN PULANG'])->count();
-                $izin = $absensi->whereIn('status', ['LIBUR'])->count();
+                $harKerja = $absensi->filter(function ($a) use ($liburDates) {
+                    $d = Carbon::parse($a->tanggal);
+                    if ($d->isWeekend()) return false;
+                    if (isset($liburDates[$d->toDateString()])) return false;
+                    return true;
+                });
+                $absenTerisi = $harKerja->count();
+                $alpa = $harKerja->whereIn('status', ['ALPA', 'TIDAK ABSEN PULANG'])->count();
+                $izin = $harKerja->whereIn('status', ['LIBUR'])->count();
 
                 return [
                     'id' => $kelas->id,
