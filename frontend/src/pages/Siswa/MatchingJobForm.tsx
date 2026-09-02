@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   ClipboardList, ChevronLeft, ChevronRight, Save, Send, Upload, Plus, Trash2, Loader2,
-  LayoutDashboard, Wallet, CalendarCheck, BookOpen, User,
+  LayoutDashboard, Wallet, CalendarCheck, BookOpen, User, X,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 import api from '../../services/api'
@@ -285,7 +285,7 @@ const statusFormulirMeta: Record<string, { label: string; desc: string; cls: str
   rejected: { label: 'Ditolak', desc: 'Formulir ditolak oleh tim penempatan', cls: 'bg-red-100 text-red-700', dot: 'bg-red-500' },
 }
 
-export default function MatchingJobForm() {
+export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKandidatId?: number; onClose?: () => void } = {}) {
   const [activeStep, setActiveStep] = useState(0)
   const [statusFormulir, setStatusFormulir] = useState('draft')
   const [kandidatId, setKandidatId] = useState<number | null>(null)
@@ -382,57 +382,85 @@ export default function MatchingJobForm() {
     setForm(f => ({ ...f, [key]: e.target.value }))
 
   useEffect(() => {
-    api.get('/siswa-dashboard')
-      .then(res => {
-        const u: any = res.data?.user || {}
-        const s: any = res.data?.siswa || {}
-        const p: any = res.data?.pendaftar || {}
-        const batch: any = s.batch_relasi || p.batch_relasi || null
+    const fillFromIdentity = (u: any, s: any, p: any) => {
+      const batch: any = s.batch_relasi || p.batch_relasi || null
 
-        const mapGender = (v: string) => (v === 'L' ? 'Laki-laki' : v === 'P' ? 'Perempuan' : v || '')
-        const mapStatus = (v: string) =>
-          v === 'Belum Nikah' ? 'Belum Menikah' : v === 'Nikah' ? 'Menikah' : v || ''
-        const mapBaju = (v: string) => (v === 'XS' ? 'S' : v || '')
-        const mapPendidikan = (v: string) =>
-          v === 'SD/Sederajat' ? 'SD' : v === 'SMP/Sederajat' ? 'SMP' : v === 'SMA/Sederajat' ? 'SMA/SMK' : v === 'D1-D3' ? 'D3' : v || ''
+      const mapGender = (v: string) => (v === 'L' ? 'Laki-laki' : v === 'P' ? 'Perempuan' : v || '')
+      const mapStatus = (v: string) =>
+        v === 'Belum Nikah' ? 'Belum Menikah' : v === 'Nikah' ? 'Menikah' : v || ''
+      const mapBaju = (v: string) => (v === 'XS' ? 'S' : v || '')
+      const mapPendidikan = (v: string) =>
+        v === 'SD/Sederajat' ? 'SD' : v === 'SMP/Sederajat' ? 'SMP' : v === 'SMA/Sederajat' ? 'SMA/SMK' : v === 'D1-D3' ? 'D3' : v || ''
 
-        const tanggalLahir = s.tanggal_lahir || u.tanggal_lahir || ''
-        const umur = tanggalLahir
-          ? String(Math.max(0, Math.floor((Date.now() - new Date(tanggalLahir).getTime()) / (365.25 * 24 * 3600 * 1000))))
-          : ''
+      const tanggalLahir = s.tanggal_lahir || u.tanggal_lahir || ''
+      const umur = tanggalLahir
+        ? String(Math.max(0, Math.floor((Date.now() - new Date(tanggalLahir).getTime()) / (365.25 * 24 * 3600 * 1000))))
+        : ''
 
-        setForm(f => ({
-          ...f,
-          cabang: batch?.cabang?.nama_cabang || '',
-          nik: s.nik || u.nik || p.nik || '',
-          namaRomaji: s.nama || u.name || '',
-          tempatLahir: s.tempat_lahir || u.tempat_lahir || '',
-          tanggalLahir: tanggalLahir,
-          umur,
-          jenisKelamin: mapGender(s.jenis_kelamin || u.jenis_kelamin || ''),
-          statusPernikahan: mapStatus(s.status_pernikahan || ''),
-          agama: s.agama || u.agama || '',
-          tinggiBadan: s.tinggi_badan || '',
-          beratBadan: s.berat_badan || '',
-          golonganDarah: s.goldar || '',
-          ukuranBaju: mapBaju(s.ukuran_baju || ''),
-          noHp: s.no_hp || u.no_hp || p.telepon || '',
-          email: u.email || '',
-          namaOrtu: s.nama_ortu || '',
-          noHpOrtu: s.no_hp_ortu || '',
-          alamatLengkap: s.alamat || u.alamat || p.alamat || '',
-          pendidikanTerakhir: mapPendidikan(s.pendidikan_terakhir || u.pendidikan_terakhir || ''),
-          tahunLulus: s.tahun_lulus || '',
-        }))
+      setForm(f => ({
+        ...f,
+        cabang: batch?.cabang?.nama_cabang || '',
+        nik: s.nik || u.nik || p.nik || '',
+        namaRomaji: s.nama || u.name || '',
+        tempatLahir: s.tempat_lahir || u.tempat_lahir || '',
+        tanggalLahir: tanggalLahir,
+        umur,
+        jenisKelamin: mapGender(s.jenis_kelamin || u.jenis_kelamin || ''),
+        statusPernikahan: mapStatus(s.status_pernikahan || ''),
+        agama: s.agama || u.agama || '',
+        tinggiBadan: s.tinggi_badan || '',
+        beratBadan: s.berat_badan || '',
+        golonganDarah: s.goldar || '',
+        ukuranBaju: mapBaju(s.ukuran_baju || ''),
+        noHp: s.no_hp || u.no_hp || p.telepon || '',
+        email: u.email || '',
+        namaOrtu: s.nama_ortu || '',
+        noHpOrtu: s.no_hp_ortu || '',
+        alamatLengkap: s.alamat || u.alamat || p.alamat || '',
+        pendidikanTerakhir: mapPendidikan(s.pendidikan_terakhir || u.pendidikan_terakhir || ''),
+        tahunLulus: s.tahun_lulus || '',
+      }))
 
-        studentIdentity.current = {
-          email: (u.email || '').trim(),
-          nama: (s.nama || u.name || '').trim(),
-        }
-        syncStatus()
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
+      studentIdentity.current = {
+        email: (u.email || '').trim(),
+        nama: (s.nama || u.name || '').trim(),
+      }
+    }
+
+    if (adminKandidatId) {
+      api.get(`/kandidat/${adminKandidatId}/matching-job`)
+        .then(res => {
+          const d: any = res.data?.data || res.data || {}
+          const u: any = d.user || {}
+          const s: any = d.siswa || {}
+          const p: any = d.pendaftar || {}
+          const mj: any = d.matching_job || {}
+          fillFromIdentity(u, s, p)
+          if (mj?.penempatan_kandidat_id) {
+            setKandidatId(mj.penempatan_kandidat_id)
+            if (mj.status_formulir) setStatusFormulir(mj.status_formulir)
+            if (!hydratedRef.current && mj.data && Object.keys(mj.data).length > 0) {
+              hydratedRef.current = true
+              hydrateFromV2(mj.data)
+            }
+          } else {
+            syncStatus()
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false))
+    } else {
+      api.get('/siswa-dashboard')
+        .then(res => {
+          const u: any = res.data?.user || {}
+          const s: any = res.data?.siswa || {}
+          const p: any = res.data?.pendaftar || {}
+          fillFromIdentity(u, s, p)
+          syncStatus()
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false))
+    }
 
     api.get('/penempatan/cabang')
       .then(res => {
@@ -440,7 +468,7 @@ export default function MatchingJobForm() {
         setCabangList(list.map((c: any) => ({ id: c.id, nama_cabang: c.nama_cabang })))
       })
       .catch(() => {})
-  }, [])
+  }, [adminKandidatId])
 
   const syncStatus = () => {
     const { email, nama } = studentIdentity.current
@@ -466,11 +494,9 @@ export default function MatchingJobForm() {
       .catch(() => {})
   }
 
-  const loadKandidatData = async (id: number) => {
-    try {
-      const res = await api.get(`/penempatan/kandidat/${id}`)
-      const v: any = res.data?.data
-      if (!v) return
+  const hydrateFromV2 = (src: any) => {
+    const v: any = src
+    if (!v) return
 
       setSswSelected(new Set(
         Array.isArray(v.sertifikat_ssw)
@@ -597,7 +623,13 @@ export default function MatchingJobForm() {
         setIstri(by('Istri').map(toK))
         setKakak(by('Kakak').map(toK))
         setAdik(by('Adik').map(toK))
-      }
+    }
+  }
+
+  const loadKandidatData = async (id: number) => {
+    try {
+      const res = await api.get(`/penempatan/kandidat/${id}`)
+      hydrateFromV2(res.data?.data)
     } catch {
       // abaikan jika gagal mengambil detail
     }
@@ -747,7 +779,9 @@ export default function MatchingJobForm() {
     setSending(true)
     try {
       const payload = { ...buildPayload(final), penempatan_kandidat_id: kandidatId ?? undefined }
-      const res = await api.post('/siswa/data-diri', payload)
+      const res = adminKandidatId
+        ? await api.post(`/kandidat/${adminKandidatId}/matching-job`, payload)
+        : await api.post('/siswa/data-diri', payload)
       if (!res.data?.success) {
         Swal.fire({
           icon: 'error',
@@ -759,6 +793,7 @@ export default function MatchingJobForm() {
       }
 
       const savedId: number | undefined = kandidatId ?? res.data?.data?.id
+      if (savedId) setKandidatId(savedId)
       setStatusFormulir(res.data?.data?.status_formulir || (final ? 'submitted' : 'draft'))
       const uploads: { jenis: string; file: File }[] = []
 
@@ -831,8 +866,35 @@ export default function MatchingJobForm() {
   const currentStatus = statusFormulirMeta[statusFormulir] || statusFormulirMeta.draft
 
   return (
-    <div className="min-h-screen bg-[#f0f2f5] pb-24 lg:pb-8">
+    <div className={`min-h-screen bg-[#f0f2f5] ${adminKandidatId ? 'pb-8' : 'pb-24 lg:pb-8'}`}>
       {/* ============ Top App Bar ============ */}
+      {adminKandidatId ? (
+      <header className="border-b border-slate-200 bg-white px-4 pb-6 pt-5">
+        <div className="mx-auto max-w-3xl">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0E6187]/10">
+              <ClipboardList size={20} className="text-[#0E6187]" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-slate-800">Data Job Matching Kandidat</h1>
+              <p className="mt-0.5 text-xs text-slate-500">Lengkapi data job matching untuk kandidat ini (diisi admin)</p>
+            </div>
+          </div>
+          <div className="mt-4">
+            <div className="mb-1.5 flex items-center justify-between text-[11px] font-medium text-slate-500">
+              <span>Langkah {activeStep + 1} dari {steps.length}</span>
+              <span>{progressPct}%</span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+              <div
+                className="h-1.5 rounded-full bg-[#0E6187] transition-all duration-300"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      </header>
+      ) : (
       <header className="bg-[#0E6187] px-4 pb-9 pt-5 text-white">
         <div className="mx-auto max-w-lg">
           <div className="flex items-center justify-between">
@@ -871,9 +933,11 @@ export default function MatchingJobForm() {
           </div>
         </div>
       </header>
+      )}
 
-      <div className="mx-auto -mt-5 max-w-lg space-y-4 px-4">
+      <div className={`mx-auto space-y-4 px-4 ${adminKandidatId ? 'max-w-3xl pt-5' : '-mt-5 max-w-lg'}`}>
         {/* ============ Status Formulir ============ */}
+        {!adminKandidatId && (
         <div className="flex items-center justify-between gap-3 rounded-xl bg-white p-4 shadow-sm">
           <div>
             <p className="text-sm font-semibold text-slate-800">Status Formulir</p>
@@ -886,6 +950,7 @@ export default function MatchingJobForm() {
             {currentStatus.label}
           </span>
         </div>
+        )}
 
         {/* ============ Step Pills ============ */}
         <div className="-mx-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
@@ -920,7 +985,7 @@ export default function MatchingJobForm() {
         {activeStep === 0 && (
           <div className="space-y-6">
             <div>
-              <h2 className="mb-1 text-sm font-bold text-slate-800">DATA DIRI（個人情報）</h2>
+              <h2 className="mb-1 text-sm font-bold text-slate-800">{adminKandidatId ? '1. Data Diri' : 'DATA DIRI（個人情報）'}</h2>
               <p className="mb-4 text-xs text-slate-400">Informasi pribadi kandidat</p>
               <div className="grid gap-4 sm:grid-cols-3">
                 <Field label="Cabang Mendunia" required>
@@ -962,7 +1027,7 @@ export default function MatchingJobForm() {
             </div>
 
             <div>
-              <h2 className="mb-4 text-sm font-bold text-slate-800">📍 KONTAK &amp; ALAMAT</h2>
+              <h2 className="mb-4 text-sm font-bold text-slate-800">{adminKandidatId ? 'Kontak & Alamat' : '📍 KONTAK &amp; ALAMAT'}</h2>
               <div className="grid gap-4 sm:grid-cols-3">
                 <Field label="Nomor HP" required><input className={inputCls} placeholder="08xx-xxxx-xxxx" value={form.noHp} onChange={set('noHp')} /></Field>
                 <Field label="Email Kontak" required><input type="email" className={inputCls} placeholder="email@..." value={form.email} onChange={set('email')} /></Field>
@@ -980,7 +1045,7 @@ export default function MatchingJobForm() {
 
         {activeStep === 1 && (
           <div>
-            <h2 className="mb-4 text-sm font-bold text-slate-800">KONDISI FISIK &amp; KESEHATAN</h2>
+            <h2 className="mb-4 text-sm font-bold text-slate-800">{adminKandidatId ? '2. Kondisi Fisik & Kesehatan' : 'KONDISI FISIK &amp; KESEHATAN'}</h2>
             <div className="grid gap-4 sm:grid-cols-3">
               <YesNo label="Sudah Vaksin?" required value={form.sudahVaksin} onChange={v => setForm(f => ({ ...f, sudahVaksin: v }))} />
               <Field label="Kondisi Kesehatan Saat Ini" required>
@@ -1005,7 +1070,7 @@ export default function MatchingJobForm() {
 
         {activeStep === 2 && (
           <div>
-            <h2 className="mb-4 text-sm font-bold text-slate-800">PENDIDIKAN（学歴）</h2>
+            <h2 className="mb-4 text-sm font-bold text-slate-800">{adminKandidatId ? '3. Pendidikan' : 'PENDIDIKAN（学歴）'}</h2>
             <div className="mb-5 max-w-sm">
               <Field label="Pendidikan Terakhir" required>
                 <select className={inputCls} value={form.pendidikanTerakhir} onChange={set('pendidikanTerakhir')}><option value="">Pilih pendidikan terakhir...</option><option>SD</option><option>SMP</option><option>SMA/SMK</option><option>D3</option><option>S1</option></select>
@@ -1022,7 +1087,7 @@ export default function MatchingJobForm() {
 
         {activeStep === 3 && (
           <div>
-            <h2 className="mb-4 text-sm font-bold text-slate-800">PENGALAMAN KERJA（職歴）</h2>
+            <h2 className="mb-4 text-sm font-bold text-slate-800">{adminKandidatId ? '4. Pengalaman Kerja' : 'PENGALAMAN KERJA（職歴）'}</h2>
             <button
               onClick={() => setPengalaman(prev => [...prev, emptyPengalaman()])}
               className="mb-4 inline-flex items-center gap-1.5 rounded-md bg-[#0E6187] px-3 py-2 text-xs font-medium text-white transition hover:bg-[#0a4a6a]"
@@ -1046,7 +1111,7 @@ export default function MatchingJobForm() {
 
         {activeStep === 4 && (
           <div>
-            <h2 className="mb-4 text-sm font-bold text-slate-800">KEMAMPUAN &amp; SERTIFIKAT</h2>
+            <h2 className="mb-4 text-sm font-bold text-slate-800">{adminKandidatId ? '5. Kemampuan & Sertifikat' : 'KEMAMPUAN &amp; SERTIFIKAT'}</h2>
             <div className="grid gap-4 sm:grid-cols-3">
               <Field label="Level JLPT" required>
                 <select className={inputCls} value={form.levelJlpt} onChange={set('levelJlpt')}><option value="">Pilih level...</option><option>N5</option><option>N4</option><option>N3</option><option>N2</option><option>N1</option></select>
@@ -1089,7 +1154,7 @@ export default function MatchingJobForm() {
 
         {activeStep === 5 && (
           <div>
-            <h2 className="mb-4 text-sm font-bold text-slate-800">DATA KELUARGA（家族構成）</h2>
+            <h2 className="mb-4 text-sm font-bold text-slate-800">{adminKandidatId ? '6. Data Keluarga' : 'DATA KELUARGA（家族構成）'}</h2>
             <div className="mb-5 max-w-sm">
               <Field label="Penghasilan Keluarga / Bulan (Rp)" required>
                 <input type="number" className={inputCls} placeholder="5000000" value={form.penghasilanKeluarga} onChange={set('penghasilanKeluarga')} />
@@ -1108,7 +1173,7 @@ export default function MatchingJobForm() {
 
         {activeStep === 6 && (
           <div>
-            <h2 className="mb-4 text-sm font-bold text-slate-800">INFORMASI JEPANG</h2>
+            <h2 className="mb-4 text-sm font-bold text-slate-800">{adminKandidatId ? '7. Informasi Jepang' : 'INFORMASI JEPANG'}</h2>
             <div className="grid gap-4 sm:grid-cols-3">
               <YesNo label="Pernah ke Jepang?" required value={form.pernahKeJepang} onChange={v => setForm(f => ({ ...f, pernahKeJepang: v }))} />
               <YesNo label="Punya Keluarga di Jepang?" required value={form.keluargaDiJepang} onChange={v => setForm(f => ({ ...f, keluargaDiJepang: v }))} />
@@ -1119,7 +1184,7 @@ export default function MatchingJobForm() {
 
         {activeStep === 7 && (
           <div>
-            <h2 className="mb-4 text-sm font-bold text-slate-800">MOTIVASI, TUJUAN &amp; POIN PENDUKUNG</h2>
+            <h2 className="mb-4 text-sm font-bold text-slate-800">{adminKandidatId ? '8. Motivasi, Tujuan & Poin Pendukung' : 'MOTIVASI, TUJUAN &amp; POIN PENDUKUNG'}</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Tujuan ke Jepang" required><textarea className={`${inputCls} min-h-[70px]`} placeholder="Tuliskan tujuan Anda pergi ke Jepang..." value={form.tujuanKeJepang} onChange={set('tujuanKeJepang')} /></Field>
               <Field label="Alasan Ingin ke Jepang" required><textarea className={`${inputCls} min-h-[70px]`} placeholder="Alasan Anda..." value={form.alasanKeJepang} onChange={set('alasanKeJepang')} /></Field>
@@ -1153,7 +1218,7 @@ export default function MatchingJobForm() {
 
         {activeStep === 8 && (
           <div>
-            <h2 className="mb-2 text-sm font-bold text-slate-800">UPLOAD DOKUMEN PENDUKUNG</h2>
+            <h2 className="mb-2 text-sm font-bold text-slate-800">{adminKandidatId ? '9. Upload Dokumen Pendukung' : 'UPLOAD DOKUMEN PENDUKUNG'}</h2>
             <div className="mb-5 rounded-lg bg-amber-50 p-4 text-xs leading-relaxed text-amber-800">
               <p className="mb-1 font-semibold">Batas ukuran file:</p>
               <p>• Dokumen standar: Maks 500KB</p>
@@ -1277,6 +1342,7 @@ export default function MatchingJobForm() {
       </div>
 
       {/* ============ Bottom Nav Bar ============ */}
+      {!adminKandidatId && (
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden">
         <div className="mx-auto grid max-w-lg grid-cols-5">
           {bottomNav.map(nav => {
@@ -1297,6 +1363,7 @@ export default function MatchingJobForm() {
           })}
         </div>
       </nav>
+      )}
     </div>
   )
 }

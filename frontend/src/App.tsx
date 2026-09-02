@@ -45,6 +45,7 @@ import PengaturanWa from './pages/Pengaturan/PengaturanWa'
 import CompanyProfile from './pages/Pengaturan/CompanyProfile'
 import PengaturanPembayaran from './pages/Pengaturan/PengaturanPembayaran'
 import DataKandidat from './pages/Pendaftaran/DataKandidat'
+import AdminJobMatchingKandidat from './pages/Pendaftaran/AdminJobMatchingKandidat'
 import Pendaftar from './pages/Pendaftaran/Pendaftar'
 import InvoicePendaftar from './pages/Pendaftaran/InvoicePendaftar'
 import PendaftarDetail from './pages/Pendaftaran/PendaftarDetail'
@@ -867,6 +868,7 @@ function AppRoutes() {
                 <Route path="/pengaturan-wa" element={<PengaturanWa />} />
                 <Route path="/pengaturan-perusahaan" element={<CompanyProfile />} />
                 <Route path="/data-kandidat" element={<DataKandidat />} />
+                <Route path="/data-kandidat/job-matching/:id" element={<AdminJobMatchingKandidat />} />
                 <Route path="/pendaftar" element={<Pendaftar />} />
                 <Route path="/pendaftar/:id/invoice" element={<InvoicePendaftar />} />
                 <Route path="/data-matching-job" element={<DataMatchingJob />} />

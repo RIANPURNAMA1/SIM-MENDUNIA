@@ -369,6 +369,35 @@ class PendaftaranController extends Controller
             $pendaftars->where('product_id', $request->product_id);
         }
 
+        // Server-side pagination: hanya ambil data per halaman agar ringan.
+        $perPage = (int) $request->query('per_page', 0);
+        if ($perPage > 0) {
+            $paginator = $pendaftars->paginate($perPage)->withQueryString();
+
+            // Statistik ringkas (hitungan cepat via query, tanpa memuat semua baris).
+            $stats = [
+                'total' => Pendaftar::query()->count(),
+                'menungguPembayaran' => Pendaftar::where('status_pembayaran', 'unpaid')->count(),
+                'pembayaranDiKonfirmasi' => Pendaftar::where('status_pembayaran', 'processing')->where('status_pendaftaran', 'pending')->count(),
+                'proses' => Pendaftar::where('status_pembayaran', 'processing')->where('status_pendaftaran', 'disetujui')->count(),
+                'selesai' => Pendaftar::where('status_pembayaran', 'verified')->count(),
+                'batal' => Pendaftar::where('status_pendaftaran', 'ditolak')->where('status_pembayaran', '!=', 'ditangguhkan')->count(),
+                'ditangguhkan' => Pendaftar::where('status_pembayaran', 'ditangguhkan')->count(),
+                'pendingVerifikasi' => Pendaftar::where('status_pembayaran', 'processing')->count(),
+            ];
+
+            return response()->json([
+                'data' => $this->hydrateTagihanData(collect($paginator->items())),
+                'pagination' => [
+                    'current_page' => $paginator->currentPage(),
+                    'last_page' => $paginator->lastPage(),
+                    'per_page' => $paginator->perPage(),
+                    'total' => $paginator->total(),
+                ],
+                'stats' => $stats,
+            ]);
+        }
+
         $data = $pendaftars->get();
 
         return response()->json($this->hydrateTagihanData($data));
@@ -504,85 +533,126 @@ class PendaftaranController extends Controller
      */
     public function tagihanGroups(Request $request)
     {
-        $base = Pendaftar::with(['product.biayaKategoris', 'batch', 'siswa'])
-            ->orderBy('created_at', 'desc');
-        $this->applyTagihanFilters($base, $request);
+        $page = max(1, (int) $request->get('page', 1));
+        $perPage = min(50, max(1, (int) $request->get('per_page', 5)));
 
-        $all = $base->get();
-        $hydrated = $this->hydrateTagihanData($all);
+        $filteredQ = Pendaftar::query();
+        $this->applyTagihanFilters($filteredQ, $request);
+        $ids = $filteredQ->pluck('id');
 
-        // Statistik keseluruhan (semua hasil filter)
-        $total = 0;
-        $paid = 0;
-        foreach ($hydrated as $p) {
-            if (!empty($p['detail'])) {
-                foreach ($p['detail'] as $d) {
-                    $biaya = (float) $d['biaya'];
-                    if ($biaya <= 0) continue;
-                    $total += $biaya;
-                    $paid += (float) $d['dibayar'];
-                }
-            } else {
-                $total += (float) ($p['product']['harga'] ?? 0) - (float) ($p['diskon'] ?? 0);
-                $paid += (float) ($p['nominal'] ?? 0);
-            }
+        $stats = ['total' => 0, 'paid' => 0, 'outstanding' => 0, 'count' => 0];
+
+        if ($ids->isEmpty()) {
+            return response()->json([
+                'stats' => $stats,
+                'batches' => [],
+                'page' => $page,
+                'per_page' => $perPage,
+                'total_pages' => 1,
+                'total' => 0,
+            ]);
         }
-        $stats = [
-            'total' => $total,
-            'paid' => $paid,
-            'outstanding' => max(0, $total - $paid),
-            'count' => $all->count(),
-        ];
 
-        // Kelompokkan per batch
+        // Tagihan per pendaftar dihitung via agregasi SQL dari pivot product_biaya_kategori.
+        // Jika produk tidak punya pivot (detail kosong), fallback ke harga - diskon.
+        $tagihanInfo = DB::table('pendaftar as p')
+            ->join('products as prd', 'prd.id', '=', 'p.product_id')
+            ->leftJoin('product_biaya_kategori as pbk', 'pbk.product_id', '=', 'prd.id')
+            ->whereIn('p.id', $ids)
+            ->select('p.id', 'prd.harga', 'p.diskon')
+            ->selectRaw('COALESCE(SUM(pbk.harga), 0) as pivot_total')
+            ->selectRaw('COUNT(pbk.id) as pivot_count')
+            ->groupBy('p.id', 'prd.harga', 'p.diskon')
+            ->get()
+            ->mapWithKeys(function ($r) {
+                $isPivot = (int) $r->pivot_count > 0;
+                return [$r->id => [
+                    'is_pivot' => $isPivot,
+                    'tagihan' => $isPivot
+                        ? (float) $r->pivot_total
+                        : max(0, (float) $r->harga - (float) $r->diskon),
+                ]];
+            });
+
+        // Dibayar per pendaftar (hanya kategori yang dipakai di pivot produk pendaftar)
+        $dibayarById = DB::table('pembayaran_items as pi')
+            ->join('pendaftar as p', 'p.id', '=', 'pi.pendaftar_id')
+            ->join('product_biaya_kategori as pbk', function ($join) {
+                $join->on('pbk.product_id', '=', 'p.product_id')
+                    ->on('pbk.kategori_id', '=', 'pi.kategori_id');
+            })
+            ->whereIn('pi.pendaftar_id', $ids)
+            ->select('pi.pendaftar_id')
+            ->selectRaw('COALESCE(SUM(pi.jumlah), 0) as dibayar')
+            ->groupBy('pi.pendaftar_id')
+            ->pluck('dibayar', 'pendaftar_id');
+
+        // Baris minimal pendaftar untuk grouping (tanpa relasi berat)
+        $rows = Pendaftar::with('batch')
+            ->whereIn('id', $ids)
+            ->get(['id', 'batch_id', 'product_id', 'diskon', 'nominal', 'created_at']);
+
+        // Kategori yang dipakai per batch (hanya yang biayanya > 0)
+        $katRowsByBatch = DB::table('pendaftar as p')
+            ->join('products as prd', 'prd.id', '=', 'p.product_id')
+            ->join('product_biaya_kategori as pbk', 'pbk.product_id', '=', 'prd.id')
+            ->where('pbk.harga', '>', 0)
+            ->whereIn('p.id', $ids)
+            ->select('p.batch_id', 'pbk.kategori_id')
+            ->distinct()
+            ->get()
+            ->groupBy('batch_id');
+
+        $katByBatch = [];
+        foreach ($katRowsByBatch as $bid => $krows) {
+            $katByBatch[(int) $bid] = $krows->pluck('kategori_id')->unique()->values()->all();
+        }
+
         $pendingPids = \App\Models\Pembayaran::where('status', 'processing')
-            ->whereIn('pendaftar_id', $all->pluck('id'))
+            ->whereIn('pendaftar_id', $ids)
             ->pluck('pendaftar_id')
             ->unique()
             ->flip();
 
-        $lastPayments = \App\Models\Pembayaran::whereIn('pendaftar_id', $all->pluck('id'))
+        $lastPayments = \App\Models\Pembayaran::whereIn('pendaftar_id', $ids)
             ->selectRaw('pendaftar_id, MAX(created_at) as last_at')
             ->groupBy('pendaftar_id')
             ->pluck('last_at', 'pendaftar_id');
 
+        $total = 0;
+        $paid = 0;
         $groupMap = [];
-        foreach ($hydrated as $p) {
-            $bid = $p['batch']['id'] ?? 0;
+        foreach ($rows as $p) {
+            $info = $tagihanInfo[$p->id] ?? ['is_pivot' => false, 'tagihan' => 0];
+            $dibayar = $info['is_pivot']
+                ? (float) ($dibayarById[$p->id] ?? 0)
+                : (float) ($p->nominal ?? 0);
+            $total += $info['tagihan'];
+            $paid += $dibayar;
+
+            $bid = optional($p->batch)->id ?? 0;
             if (!isset($groupMap[$bid])) {
                 $groupMap[$bid] = [
                     'batch_id' => (int) $bid,
-                    'nama_batch' => $p['batch']['nama_batch'] ?? 'Tanpa Batch',
-                    'warna' => $p['batch']['warna'] ?? null,
+                    'nama_batch' => $p->batch->nama_batch ?? 'Tanpa Batch',
+                    'warna' => $p->batch->warna ?? null,
                     'total_pendaftar' => 0,
                     'total_tagihan' => 0,
                     'total_dibayar' => 0,
                     'total_sisa' => 0,
-                    'kategori_ids' => [],
+                    'kategori_ids' => $katByBatch[$bid] ?? [],
                     'has_pending' => false,
                     'last_pembayaran' => null,
                 ];
             }
             $groupMap[$bid]['total_pendaftar']++;
+            $groupMap[$bid]['total_tagihan'] += $info['tagihan'];
+            $groupMap[$bid]['total_dibayar'] += $dibayar;
 
-            if (!empty($p['detail'])) {
-                foreach ($p['detail'] as $d) {
-                    $biaya = (float) $d['biaya'];
-                    if ($biaya <= 0) continue;
-                    $groupMap[$bid]['total_tagihan'] += $biaya;
-                    $groupMap[$bid]['total_dibayar'] += (float) $d['dibayar'];
-                    $groupMap[$bid]['kategori_ids'][] = $d['kategori_id'];
-                }
-            } else {
-                $groupMap[$bid]['total_tagihan'] += (float) ($p['product']['harga'] ?? 0) - (float) ($p['diskon'] ?? 0);
-                $groupMap[$bid]['total_dibayar'] += (float) ($p['nominal'] ?? 0);
-            }
-
-            if (isset($pendingPids[$p['id']])) {
+            if (isset($pendingPids[$p->id])) {
                 $groupMap[$bid]['has_pending'] = true;
             }
-
-            $pLast = $lastPayments[$p['id']] ?? null;
+            $pLast = $lastPayments[$p->id] ?? null;
             if ($pLast && (!$groupMap[$bid]['last_pembayaran'] || $pLast > $groupMap[$bid]['last_pembayaran'])) {
                 $groupMap[$bid]['last_pembayaran'] = (string) $pLast;
             }
@@ -590,7 +660,6 @@ class PendaftaranController extends Controller
 
         foreach ($groupMap as &$g) {
             $g['total_sisa'] = max(0, $g['total_tagihan'] - $g['total_dibayar']);
-            $g['kategori_ids'] = array_values(array_unique($g['kategori_ids']));
         }
         unset($g);
 
@@ -612,14 +681,17 @@ class PendaftaranController extends Controller
             ->values();
 
         // Pagination batch
-        $page = max(1, (int) $request->get('page', 1));
-        $perPage = min(50, max(1, (int) $request->get('per_page', 5)));
         $totalBatches = $groups->count();
         $totalPages = max(1, (int) ceil($totalBatches / $perPage));
         $paged = $groups->slice(($page - 1) * $perPage, $perPage)->values();
 
         return response()->json([
-            'stats' => $stats,
+            'stats' => [
+                'total' => $total,
+                'paid' => $paid,
+                'outstanding' => max(0, $total - $paid),
+                'count' => $ids->count(),
+            ],
             'batches' => $paged,
             'page' => $page,
             'per_page' => $perPage,
@@ -2330,6 +2402,159 @@ class PendaftaranController extends Controller
                 'penempatan_kandidat_id' => $form->penempatan_kandidat_id,
                 'data' => $form->data ?: [],
             ] : null,
+        ]);
+    }
+
+    /**
+     * GET /api/kandidat/{id}/matching-job — data awal untuk form Data Job Matching
+     * saat diisi oleh admin (mirip endpoint /siswa-dashboard).
+     */
+    public function matchingJobForm(Request $request, $id)
+    {
+        $pendaftar = Pendaftar::with(['user', 'siswa', 'matchingJobForm'])->find($id);
+        if (!$pendaftar) {
+            return response()->json(['success' => false, 'message' => 'Kandidat tidak ditemukan.'], 404);
+        }
+
+        $mj = $pendaftar->matchingJobForm;
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'user' => $pendaftar->user,
+                'siswa' => $pendaftar->siswa,
+                'pendaftar' => $pendaftar,
+                'matching_job' => $mj ? [
+                    'id' => $mj->id,
+                    'penempatan_kandidat_id' => $mj->penempatan_kandidat_id,
+                    'status_formulir' => $mj->status_formulir,
+                    'data' => $mj->data ?: [],
+                ] : null,
+            ],
+        ]);
+    }
+
+    /**
+     * POST /api/kandidat/{id}/matching-job — simpan Data Job Matching oleh admin.
+     * Menyimpan salinan lokal (matching_job_forms), meneruskan ke Sistem Penempatan,
+     * dan menyinkronkan data diri ke siswas/users (sama seperti /siswa/data-diri).
+     */
+    public function saveMatchingJob(Request $request, $id)
+    {
+        $pendaftar = Pendaftar::with(['user', 'siswa'])->find($id);
+        if (!$pendaftar) {
+            return response()->json(['success' => false, 'message' => 'Kandidat tidak ditemukan.'], 404);
+        }
+
+        $user = $pendaftar->user;
+        $payload = $request->json()->all();
+
+        // 1. Teruskan ke Sistem Penempatan (proxy) bila memungkinkan.
+        $isUpdate = !empty($payload['penempatan_kandidat_id']);
+        $path = $isUpdate
+            ? "/api/integrasi/kandidat/{$payload['penempatan_kandidat_id']}"
+            : '/api/integrasi/kandidat';
+        $method = $isUpdate ? 'PUT' : 'POST';
+        $baseUrl = rtrim((string) config('services.penempatan.base_url'), '/');
+        $apiKey = (string) config('services.penempatan.api_key');
+
+        $penempatanId = $isUpdate ? $payload['penempatan_kandidat_id'] : null;
+        $proxyBody = null;
+        $proxyError = null;
+        $proxyStatus = 200;
+        try {
+            $client = Http::timeout(30)->withHeaders(['x-api-key' => $apiKey]);
+            $response = $method === 'PUT'
+                ? $client->put($baseUrl . $path, $payload)
+                : $client->post($baseUrl . $path, $payload);
+            $proxyBody = $response->json() ?: [];
+            $proxyStatus = $response->status();
+            $penempatanId = $proxyBody['data']['id'] ?? ($isUpdate ? $payload['penempatan_kandidat_id'] : null);
+        } catch (\Exception $e) {
+            Log::error('Admin saveMatchingJob penempatan failed: ' . $e->getMessage());
+            $proxyError = 'Gagal terhubung ke Sistem Penempatan.';
+        }
+
+        // 2. Simpan salinan lokal (selalu, agar tampil di /data-kandidat).
+        $data = collect($payload)->except(['penempatan_kandidat_id'])->all();
+        $form = MatchingJobForm::updateOrCreate(
+            ['pendaftar_id' => $pendaftar->id],
+            [
+                'user_id' => $pendaftar->user_id,
+                'penempatan_kandidat_id' => $penempatanId,
+                'status_formulir' => $payload['status_formulir'] ?? 'draft',
+                'nama' => $payload['nama_romaji'] ?? $pendaftar->nama,
+                'email' => $payload['email'] ?? $pendaftar->email,
+                'data' => $data,
+            ]
+        );
+
+        // 3. Sinkronkan data diri ke tabel siswas & users.
+        if (!empty($payload['jenis_kelamin'])) {
+            $payload['jenis_kelamin'] = match (mb_strtolower(trim($payload['jenis_kelamin']))) {
+                'laki-laki', 'laki laki', 'l', 'male' => 'L',
+                'perempuan', 'p', 'wanita', 'female' => 'P',
+                default => $payload['jenis_kelamin'],
+            };
+        }
+
+        $fieldMap = [
+            'nik' => 'nik',
+            'jenis_kelamin' => 'jenis_kelamin',
+            'tempat_lahir' => 'tempat_lahir',
+            'agama' => 'agama',
+            'alamat_lengkap' => 'alamat',
+            'pendidikan_terakhir' => 'pendidikan_terakhir',
+            'tinggi_badan' => 'tinggi_badan',
+            'berat_badan' => 'berat_badan',
+            'golongan_darah' => 'goldar',
+            'ukuran_baju' => 'ukuran_baju',
+            'status_pernikahan' => 'status_pernikahan',
+            'kontak_ortu_nama' => 'nama_ortu',
+            'kontak_ortu_hp' => 'no_hp_ortu',
+        ];
+
+        $siswa = $pendaftar->siswa ?? new Siswa();
+        if (blank($siswa->user_id)) $siswa->user_id = $pendaftar->user_id;
+        if (blank($siswa->nama)) $siswa->nama = $pendaftar->nama;
+        $dirty = false;
+        foreach ($fieldMap as $src => $dst) {
+            if (array_key_exists($src, $payload) && $payload[$src] !== null && $payload[$src] !== '') {
+                $siswa->$dst = $payload[$src];
+                $dirty = true;
+            }
+        }
+        if (!empty($payload['tanggal_lahir'])) {
+            try {
+                $siswa->tanggal_lahir = \Carbon\Carbon::parse($payload['tanggal_lahir'])->format('Y-m-d');
+                $dirty = true;
+            } catch (\Throwable $e) {
+                // abaikan format tanggal yang tidak valid
+            }
+        }
+        if (!empty($payload['nomor_hp'])) {
+            $siswa->no_hp = $payload['nomor_hp'];
+            $dirty = true;
+        }
+        if ($dirty) {
+            $siswa->save();
+        }
+
+        if ($user && !empty($payload['nik'])) {
+            $user->nik = $payload['nik'];
+            $user->save();
+        }
+
+        return response()->json([
+            'success' => true,
+            'partial' => (bool) $proxyError,
+            'message' => $proxyError
+                ? 'Data tersimpan lokal, tetapi gagal terhubung ke Sistem Penempatan.'
+                : 'Data job matching berhasil disimpan.',
+            'data' => [
+                'id' => $penempatanId,
+                'matching_job_form_id' => $form->id,
+                'status_formulir' => $form->status_formulir,
+            ],
         ]);
     }
 

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { DollarSign, Users, Search, RotateCcw, Eye, Edit3, Power, PowerOff, CalendarOff, Calendar, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronUp, ChevronDown, ChevronsUpDown, MoreHorizontal, FileText, Download, Upload, Trash2, ArrowRight, RefreshCw, KeyRound, ClipboardPaste, LayoutDashboard } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, flexRender, type ColumnDef, type SortingState } from '@tanstack/react-table'
 import api, { pendaftarApi, batchApi, productApi, adminCabangApi, APP_URL } from '../../services/api'
 import * as XLSX from 'xlsx'
@@ -109,6 +109,7 @@ const selectCls = "w-full min-w-[70px] px-1 py-0.5 border border-blue-400 rounde
 
 export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'cabang' } = {}) {
   const isCabang = variant === 'cabang'
+  const navigate = useNavigate()
   const batchColors = [
     { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', badge: 'bg-blue-100 text-blue-700 border-blue-200' },
     { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', badge: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
@@ -2277,19 +2278,19 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
 
       {/* Detail Modal — Simple & Wide */}
       {detailKandidat && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setDetailKandidat(null)}>
-          <div className="w-full max-w-5xl rounded-xl bg-white shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4" onClick={() => setDetailKandidat(null)}>
+          <div className="flex w-full max-w-5xl max-h-[calc(100vh-1rem)] flex-col rounded-xl bg-white shadow-2xl overflow-hidden sm:max-h-[calc(100vh-2rem)]" onClick={e => e.stopPropagation()}>
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-[#0E6187] flex items-center justify-center">
+            <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:items-center sm:px-6 sm:py-4">
+              <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
+                <div className="h-9 w-9 shrink-0 rounded-full bg-[#0E6187] flex items-center justify-center sm:h-10 sm:w-10">
                   <span className="text-sm font-bold text-white">{detailKandidat.nama?.charAt(0)?.toUpperCase()}</span>
                 </div>
-                <div>
-                  <h2 className="text-base font-bold text-slate-900">{detailKandidat.nama}</h2>
-                  <p className="text-xs text-slate-500">{detailKandidat.email}</p>
+                <div className="min-w-0">
+                  <h2 className="truncate text-sm font-bold text-slate-900 sm:text-base">{detailKandidat.nama}</h2>
+                  <p className="truncate text-xs text-slate-500">{detailKandidat.email}</p>
                 </div>
-                <span className="ml-2">{(() => {
+                <span className="sm:ml-2">{(() => {
                   const sk = detailKandidat.status_kandidat || 'Calon Kandidat'
                   const skMap: Record<string, { bg: string; border: string; text: string; dot: string }> = {
                     'Calon Kandidat': { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', dot: 'bg-blue-500' },
@@ -2307,26 +2308,26 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                   )
                 })()}</span>
                 {detailKandidat.status_akademik && (
-                  <span className={`ml-1 inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-medium ${detailKandidat.status_akademik === 'AKTIF' ? 'border-emerald-200 bg-emerald-50 text-emerald-600' : 'border-red-200 bg-red-50 text-red-500'}`}>
+                  <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-medium ${detailKandidat.status_akademik === 'AKTIF' ? 'border-emerald-200 bg-emerald-50 text-emerald-600' : 'border-red-200 bg-red-50 text-red-500'}`}>
                     {detailKandidat.status_akademik}
                   </span>
                 )}
                 {detailKandidat.is_cuti ? (
-                  <span className="ml-1 inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-600">
+                  <span className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-600">
                     CUTI{detailKandidat.cuti_sejak ? ` ${detailKandidat.cuti_sejak}` : ''}
                   </span>
                 ) : null}
               </div>
-              <button onClick={() => setDetailKandidat(null)} className="rounded-lg p-1.5 hover:bg-slate-100 transition"><X size={18} className="text-slate-400" /></button>
+              <button onClick={() => setDetailKandidat(null)} className="rounded-lg shrink-0 p-1.5 hover:bg-slate-100 transition"><X size={18} className="text-slate-400" /></button>
             </div>
 
             {/* Body — 3 Column Grid */}
-            <div className="px-6 py-5 max-h-[70vh] overflow-y-auto">
+            <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
               {/* Data Akun Kandidat */}
               {detailKandidat.password_plain ? (
                 <div className="mb-5 rounded-lg border border-amber-300 bg-amber-50 p-4">
                   <h3 className="text-xs font-bold uppercase tracking-wide text-amber-700 mb-2">Data Akun Kandidat (Email + Password untuk login)</h3>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+                  <div className="grid grid-cols-1 gap-y-1 text-sm sm:grid-cols-2 sm:gap-x-6 sm:gap-y-1">
                     <div className="flex gap-2">
                       <span className="font-semibold text-slate-700">No. Reg</span>
                       <span className="text-slate-500">:</span>
@@ -2355,7 +2356,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                   <p className="text-xs text-slate-400">Password tidak tersedia (akun dibuat sebelum fitur ini diaktifkan)</p>
                 </div>
               )}
-              <div className="grid grid-cols-3 gap-x-8 gap-y-3">
+              <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-3 lg:gap-x-8">
                 <InfoItem label="NIK" value={detailKandidat.nik} />
                 <InfoItem label="No. Registrasi" value={detailKandidat.no_registrasi} mono />
                 <InfoItem label="Batch" value={detailKandidat.batch_nama} />
@@ -2380,7 +2381,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                 <InfoItem label="Nama Orang Tua" value={detailKandidat.nama_ortu} />
                 <InfoItem label="No. HP Orang Tua" value={detailKandidat.no_hp_ortu} />
                 {detailKandidat.keterangan && detailKandidat.keterangan !== '-' && (
-                  <div className="col-span-3">
+                  <div className="col-span-1 sm:col-span-2 lg:col-span-3">
                     <InfoItem label="Keterangan" value={detailKandidat.keterangan} />
                   </div>
                 )}
@@ -2443,17 +2444,23 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
             </div>
 
             {/* Footer */}
-            <div className="flex items-center gap-3 border-t border-slate-200 px-6 py-3.5">
+            <div className="flex flex-wrap items-center gap-2 border-t border-slate-200 px-4 py-3 sm:gap-3 sm:px-6">
               <button onClick={() => { setDetailKandidat(null); startEdit(detailKandidat); }}
-                className="flex items-center gap-2 rounded-lg bg-[#0E6187] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1a3a5c]">
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0E6187] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1a3a5c] sm:w-auto">
                 <Edit3 size={14} /> Edit Data
               </button>
+              {!isCabang && (
+                <button onClick={() => navigate(`/data-kandidat/job-matching/${detailKandidat.id}`)}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#0E6187] bg-white px-4 py-2 text-sm font-semibold text-[#0E6187] transition hover:bg-[#e8f2f7] sm:w-auto">
+                  <ClipboardPaste size={14} /> Lengkapi Data Job Matching
+                </button>
+              )}
               <Link to={isCabang ? `/admin-cabang/pendaftar/${detailKandidat.id}/invoice` : `/pendaftar/${detailKandidat.id}/invoice`}
-                className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-auto">
                 <Receipt size={14} /> Lihat Invoice
               </Link>
               <button onClick={() => setDetailKandidat(null)}
-                className="ml-auto rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:ml-auto sm:w-auto">
                 Tutup
               </button>
             </div>
