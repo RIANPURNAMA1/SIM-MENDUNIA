@@ -31,4 +31,9 @@ class MatchingJobForm extends Model
     {
         return $this->belongsTo(Pendaftar::class);
     }
+
+    public function detail()
+    {
+        return $this->hasOne(MatchingJobDetail::class, 'matching_job_form_id');
+    }
 }

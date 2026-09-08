@@ -15,7 +15,7 @@ const menu = [
   { to: '/siswa-dashboard/matching-job', icon: Briefcase, label: 'Matching Job', locked: false },
   { to: '/siswa-dashboard/pembayaran', icon: CreditCard, label: 'Pembayaran', locked: false },
   { to: '/siswa-dashboard/absensi', icon: CalendarCheck, label: 'Absensi', locked: true },
-  { to: '/siswa-dashboard/lms', icon: BookOpen, label: 'LMS', locked: true },
+  { to: '/siswa-dashboard/lms', icon: BookOpen, label: 'Kelas Mendunia', locked: true },
   { to: '/siswa-dashboard/nilai', icon: Award, label: 'Nilai', locked: true },
   { to: '/siswa-dashboard/miraigo', icon: ExternalLink, label: 'Akses Miraigo', locked: false },
   { to: '/siswa-dashboard/profil', icon: User, label: 'Profil', locked: false },

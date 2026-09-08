@@ -48,6 +48,9 @@ use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\AdminCabangController;
 use App\Http\Controllers\PengeluaranController;
 use App\Http\Controllers\LmsController;
+use App\Http\Controllers\QuizController;
+use App\Http\Controllers\GuruQuizController;
+use App\Http\Controllers\AdminQuizController;
 use App\Http\Controllers\Api\LoginLogController;
 use App\Http\Controllers\RaportController;
 use App\Http\Controllers\BlogController;
@@ -436,6 +439,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/affiliate/my-links', [AffiliateLinkController::class, 'myLinksIndex']);
     Route::get('/affiliate/products-aktif', [AffiliateLinkController::class, 'availableProducts']);
     Route::get('/siswa-dashboard', [SiswaDashboardController::class, 'index']);
+    Route::get('/siswa-dashboard/quiz-leaderboard', [SiswaDashboardController::class, 'quizLeaderboardApi']);
     Route::get('/guru-dashboard', [GuruDashboardController::class, 'index']);
     Route::get('/guru/kelas-saya', [GuruDashboardController::class, 'kelasSaya']);
     Route::post('/guru/kelas-saya', [GuruDashboardController::class, 'storeKelas']);
@@ -479,12 +483,49 @@ Route::get('/guru/penilaian-rekap/{kelasId}', [GuruDashboardController::class, '
         Route::get('/courses', [LmsController::class, 'courses']);
         Route::get('/courses/{id}', [LmsController::class, 'courseDetail']);
         Route::get('/lessons/{id}', [LmsController::class, 'lessonDetail']);
+        Route::post('/lessons/{id}/video-progress', [LmsController::class, 'lessonVideoProgress']);
+        Route::post('/lessons/{id}/read-progress', [LmsController::class, 'lessonReadProgress']);
         Route::post('/lessons/{id}/complete', [LmsController::class, 'completeLesson']);
         Route::delete('/lessons/{id}/complete', [LmsController::class, 'uncompleteLesson']);
 
         // Student Assignments
         Route::get('/courses/{courseId}/assignments', [LmsController::class, 'courseAssignments']);
         Route::post('/assignments/{assignmentId}/submit', [LmsController::class, 'submitAssignment']);
+    });
+
+    // Quiz Kandidat
+    Route::prefix('quiz')->group(function () {
+        Route::get('/pakets', [QuizController::class, 'index']);
+        Route::get('/pakets/{id}', [QuizController::class, 'paketDetail']);
+        Route::post('/pakets/{id}/start', [QuizController::class, 'start']);
+        Route::get('/attempts/{id}', [QuizController::class, 'show']);
+        Route::post('/attempts/{id}/answer', [QuizController::class, 'answer']);
+        Route::post('/attempts/{id}/warn', [QuizController::class, 'warn']);
+        Route::post('/attempts/{id}/submit', [QuizController::class, 'submit']);
+        Route::post('/attempts/{id}/webcam', [QuizController::class, 'uploadWebcam']);
+    });
+
+    // Guru Quiz (paket soal + hasil)
+    Route::prefix('guru/quiz')->group(function () {
+        Route::get('/meta', [GuruQuizController::class, 'meta']);
+        Route::get('/pakets', [GuruQuizController::class, 'index']);
+        Route::post('/pakets', [GuruQuizController::class, 'store']);
+        Route::post('/pakets/{id}', [GuruQuizController::class, 'update']);
+        Route::delete('/pakets/{id}', [GuruQuizController::class, 'destroy']);
+        Route::post('/pakets/{id}/toggle', [GuruQuizController::class, 'toggle']);
+        Route::get('/pakets/{id}/questions', [GuruQuizController::class, 'questions']);
+        Route::post('/pakets/{id}/questions', [GuruQuizController::class, 'storeQuestion']);
+        Route::post('/questions/{id}', [GuruQuizController::class, 'updateQuestion']);
+        Route::delete('/questions/{id}', [GuruQuizController::class, 'deleteQuestion']);
+        Route::get('/leaderboard', [GuruQuizController::class, 'leaderboard']);
+        Route::get('/pakets/{id}/results', [GuruQuizController::class, 'results']);
+        Route::post('/pakets/{id}/reset-attempts', [GuruQuizController::class, 'resetAttempts']);
+        Route::get('/attempts/{id}', [GuruQuizController::class, 'attemptDetail']);
+        Route::post('/upload-cover', [GuruQuizController::class, 'uploadCover']);
+        Route::post('/upload-media', [GuruQuizController::class, 'uploadMedia']);
+        Route::post('/categories', [GuruQuizController::class, 'storeCategory']);
+        Route::post('/categories/{id}', [GuruQuizController::class, 'updateCategory']);
+        Route::delete('/categories/{id}', [GuruQuizController::class, 'destroyCategory']);
     });
 
     // LMS Admin
@@ -557,6 +598,32 @@ Route::prefix('admin-cabang')->middleware(['auth:sanctum'])->group(function () {
     Route::get('/penilaian', [AdminCabangController::class, 'penilaian']);
     Route::get('/evaluasi-instruktur', [AdminCabangController::class, 'evaluasiInstruktur']);
     Route::get('/lms', [AdminCabangController::class, 'lms']);
+
+    // Quiz
+    Route::prefix('quiz')->group(function () {
+        Route::get('/meta', [AdminQuizController::class, 'meta']);
+        Route::get('/pakets', [AdminQuizController::class, 'index']);
+        Route::post('/pakets', [AdminQuizController::class, 'store']);
+        Route::post('/pakets/{id}', [AdminQuizController::class, 'update']);
+        Route::delete('/pakets/{id}', [AdminQuizController::class, 'destroy']);
+        Route::post('/pakets/{id}/toggle', [AdminQuizController::class, 'toggle']);
+        Route::get('/pakets/{id}/questions', [AdminQuizController::class, 'questions']);
+        Route::post('/pakets/{id}/questions', [AdminQuizController::class, 'storeQuestion']);
+        Route::post('/questions/{id}', [AdminQuizController::class, 'updateQuestion']);
+        Route::delete('/questions/{id}', [AdminQuizController::class, 'deleteQuestion']);
+        Route::get('/pakets/{id}/materi', [AdminQuizController::class, 'materi']);
+        Route::post('/pakets/{id}/materi', [AdminQuizController::class, 'storeMateri']);
+        Route::post('/materi/{id}', [AdminQuizController::class, 'updateMateri']);
+        Route::delete('/materi/{id}', [AdminQuizController::class, 'deleteMateri']);
+        Route::get('/pakets/{id}/results', [AdminQuizController::class, 'results']);
+        Route::post('/pakets/{id}/reset-attempts', [AdminQuizController::class, 'resetAttempts']);
+        Route::get('/attempts/{id}', [AdminQuizController::class, 'attemptDetail']);
+        Route::post('/upload-cover', [AdminQuizController::class, 'uploadCover']);
+        Route::post('/upload-media', [AdminQuizController::class, 'uploadMedia']);
+        Route::post('/categories', [AdminQuizController::class, 'storeCategory']);
+        Route::post('/categories/{id}', [AdminQuizController::class, 'updateCategory']);
+        Route::delete('/categories/{id}', [AdminQuizController::class, 'destroyCategory']);
+    });
 
     // Reuse existing endpoints for payment operations
     Route::get('/pembayaran-item/{pendaftarId}', [BiayaController::class, 'pembayaranItemIndex']);

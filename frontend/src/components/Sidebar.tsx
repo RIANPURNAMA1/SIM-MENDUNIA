@@ -49,6 +49,7 @@ import {
   Globe,
   Newspaper,
   FileSignature,
+  HelpCircle,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -115,6 +116,7 @@ const iconMap: Record<string, LucideIcon> = {
   Globe,
   Newspaper,
   FileSignature,
+  HelpCircle,
 };
 
 const navItems: NavItem[] = [

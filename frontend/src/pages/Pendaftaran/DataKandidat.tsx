@@ -1990,7 +1990,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                                       <Edit3 size={14} className="text-slate-400" />
                                       <span>Edit Data</span>
                                     </button>
-                                    {!isCabang && !k.matching_job?.penempatan_kandidat_id && (
+                                    {!isCabang && (
                                     <button onClick={() => { setMergeModal({ kandidat: k }); setMergeQuery(''); setMergePage(1); setOpenActionId(null) }}
                                       className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
                                       <ClipboardPaste size={14} className="text-cyan-500" />

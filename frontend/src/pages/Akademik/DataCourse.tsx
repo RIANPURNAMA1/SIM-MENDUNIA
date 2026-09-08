@@ -1,9 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { BookOpen, Plus, Edit3, Trash2, Search, Layers, X, Image as ImageIcon, FileText, Download } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
+import {
+  BookOpen, Plus, Edit3, Trash2, Search, X, Image as ImageIcon, FileText,
+  Download, ListChecks, Eye, ChevronUp, ChevronDown, Camera, Clock, Repeat,
+  Award, Users, UserCheck, Pencil, Loader2, ArrowLeft, Video, UploadCloud, Mic, RotateCcw,
+} from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
-import { lmsAdminApi, adminCabangApi, jadwalLevelApi, APP_URL } from '../../services/api'
+import { lmsAdminApi, adminCabangApi, jadwalLevelApi, adminQuizApi, APP_URL } from '../../services/api'
+import { getYouTubeEmbedUrl } from '../../utils/youtube'
+import LessonMediaFields, { LessonSlideItem } from '../../components/LessonMediaFields'
 import Swal from 'sweetalert2'
 
 interface Course {
@@ -28,42 +34,199 @@ interface CourseFile {
   file_size: number | null
 }
 
-interface Batch {
+interface Batch { id: number; nama_batch: string; warna?: string | null }
+interface CourseOption { id: number; title: string }
+interface Category { id: number; name: string }
+
+interface QuizPaket {
   id: number
-  nama_batch: string
-  warna?: string | null
+  title: string
+  description: string | null
+  course_id: number | null
+  batch_id: number | null
+  level: string | null
+  category: string | null
+  time_limit_minutes: number
+  max_attempts: number
+  max_warnings: number
+  passing_score: number
+  shuffle_questions: boolean
+  status: string
+  questions_count: number
+  attempts_count: number
+  participants: number
+  best_score: number
+  guru_name: string
+  user_id: number | null
+  cover_image: string | null
+  cover_url: string | null
+  batch?: { id: number; nama_batch: string } | null
+  course?: { id: number; title: string } | null
 }
 
+interface Question {
+  id: number
+  question: string
+  question_type: string
+  rating_max: number | null
+  options: string[]
+  correct_index: number | null
+  points: number
+  sort: number
+  image_path: string | null
+  image_url: string | null
+  audio_path: string | null
+  audio_url: string | null
+  audio_max_plays: number | null
+}
+
+interface Participant {
+  siswa_id: number
+  nama: string
+  batch: string | null
+  level: number | string | null
+  attempts_count: number
+  best_score: number
+  attempts: AttemptRow[]
+}
+
+interface AttemptRow {
+  attempt_id: number
+  attempt_number: number
+  status: string
+  score: number | null
+  correct_count: number | null
+  total_count: number | null
+  warnings: number
+  auto_submitted: boolean
+  started_at: string | null
+  submitted_at: string | null
+  webcam_photo: string | null
+}
+
+interface DetailRow {
+  id: number
+  question: string
+  question_type: string
+  rating_max: number | null
+  options: string[]
+  correct_index: number | null
+  points: number
+  sort: number
+  selected_index: number | null
+  is_correct: boolean | null
+}
+
+interface LessonItem {
+  id: number
+  course_id: number | null
+  paket_id: number | null
+  title: string
+  content: string | null
+  video_url: string | null
+  file_path: string | null
+  file_name: string | null
+  file_size?: number | null
+  slides?: LessonSlideData[]
+  sort: number
+  status: string
+}
+
+interface LessonSlideData {
+  id: number
+  file_path: string
+  file_name: string
+  file_type: string | null
+  file_size?: number | null
+  sort?: number
+}
+
+type View = 'list' | 'quiz' | 'quiz-questions' | 'quiz-results' | 'quiz-materi'
+
+const inputCls = 'w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white'
+const labelCls = 'block text-sm font-medium text-slate-700 mb-1'
+const primaryBtn = 'inline-flex items-center gap-2 bg-[#0E6187] hover:bg-[#0E6187]/90 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm disabled:opacity-50'
+
+const emptyPaketForm = {
+  title: '', description: '', course_id: '', batch_id: '', level: '', category: '',
+  time_limit_minutes: '30', max_attempts: '3', max_warnings: '3',
+  passing_score: '0', shuffle_questions: true, status: 'nonaktif', user_id: '', cover_image: '',
+}
+const emptyQuestionForm = { question: '', question_type: 'choice', rating_max: '9', correct_index: '', points: '1', image_path: '', image_url: '', audio_path: '', audio_url: '', audio_max_plays: '2' }
+
 export default function DataCourse() {
-  const location = useLocation();
-  const isAdminCabang = location.pathname.startsWith('/admin-cabang');
+  const location = useLocation()
+  const isAdminCabang = location.pathname.startsWith('/admin-cabang')
+
   const [courses, setCourses] = useState<Course[]>([])
   const [batches, setBatches] = useState<Batch[]>([])
   const [batchLevels, setBatchLevels] = useState<Record<number, string[]>>({})
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [showModal, setShowModal] = useState(false)
-  const [editing, setEditing] = useState<Course | null>(null)
-  const [saving, setSaving] = useState(false)
   const [filterLevel, setFilterLevel] = useState('')
   const [filterBatch, setFilterBatch] = useState('')
 
-  const [form, setForm] = useState({
-    title: '',
-    description: '',
-    level: '',
-    batch_id: '',
-    sort: '0',
-    status: 'aktif',
-  })
-  const [showBatchDropdown, setShowBatchDropdown] = useState(false)
-  const quillRef = useRef<any>(null)
+  const [view, setView] = useState<View>('list')
+  const [activeCourse, setActiveCourse] = useState<Course | null>(null)
+
+  const [showCourseModal, setShowCourseModal] = useState(false)
+  const [editingCourse, setEditingCourse] = useState<Course | null>(null)
+  const [savingCourse, setSavingCourse] = useState(false)
+  const [courseForm, setCourseForm] = useState({ title: '', description: '', level: '', batch_id: '', sort: '0', status: 'aktif' })
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [uploading, setUploading] = useState(false)
+  const [uploadingImg, setUploadingImg] = useState(false)
+  const [showBatchDropdown, setShowBatchDropdown] = useState(false)
+  const quillRef = useRef<any>(null)
   const [courseFiles, setCourseFiles] = useState<CourseFile[]>([])
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [fileUploading, setFileUploading] = useState(false)
+
+  const [quizPakets, setQuizPakets] = useState<QuizPaket[]>([])
+  const [quizLoading, setQuizLoading] = useState(false)
+  const [quizCategories, setQuizCategories] = useState<Category[]>([])
+  const [quizSearch, setQuizSearch] = useState('')
+
+  const [showPaketModal, setShowPaketModal] = useState(false)
+  const [editingPaket, setEditingPaket] = useState<QuizPaket | null>(null)
+  const [paketForm, setPaketForm] = useState({ ...emptyPaketForm })
+  const [savingPaket, setSavingPaket] = useState(false)
+  const [coverPreview, setCoverPreview] = useState('')
+  const [uploadingCover, setUploadingCover] = useState(false)
+  const coverInputRef = useRef<HTMLInputElement>(null)
+
+  const [showCategoryModal, setShowCategoryModal] = useState(false)
+  const [categoryForm, setCategoryForm] = useState({ name: '' })
+  const [savingCategory, setSavingCategory] = useState(false)
+
+  const [activeQuizPaket, setActiveQuizPaket] = useState<QuizPaket | null>(null)
+  const [questions, setQuestions] = useState<Question[]>([])
+  const [qLoading, setQLoading] = useState(false)
+  const [showQuestionModal, setShowQuestionModal] = useState(false)
+  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null)
+  const [qForm, setQForm] = useState({ ...emptyQuestionForm })
+  const [qOptions, setQOptions] = useState<string[]>(['', ''])
+  const [savingQuestion, setSavingQuestion] = useState(false)
+
+  const [participants, setParticipants] = useState<Participant[]>([])
+  const [rLoading, setRLoading] = useState(false)
+  const [showDetailModal, setShowDetailModal] = useState(false)
+  const [detail, setDetail] = useState<{ attempt: any; questions: DetailRow[]; siswa: any } | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+
+  const [materiLessons, setMateriLessons] = useState<LessonItem[]>([])
+  const [materiLoading, setMateriLoading] = useState(false)
+  const [materiPaket, setMateriPaket] = useState<QuizPaket | null>(null)
+  const [showLessonModal, setShowLessonModal] = useState(false)
+  const [editingLesson, setEditingLesson] = useState<LessonItem | null>(null)
+  const [savingLesson, setSavingLesson] = useState(false)
+  const [lessonForm, setLessonForm] = useState({ title: '', content: '', video_url: '', sort: '0', status: 'aktif' })
+  const [lessonPdf, setLessonPdf] = useState<File | null>(null)
+  const [lessonPdfName, setLessonPdfName] = useState<string | null>(null)
+  const [lessonPdfSize, setLessonPdfSize] = useState<number | null>(null)
+  const [lessonSlides, setLessonSlides] = useState<LessonSlideItem[]>([])
+  const [removedSlideIds, setRemovedSlideIds] = useState<number[]>([])
+  const materiQuillRef = useRef<any>(null)
 
   const quillModules = {
     toolbar: {
@@ -82,7 +245,7 @@ export default function DataCourse() {
           input.onchange = async () => {
             const file = input.files?.[0]
             if (!file) return
-            setUploading(true)
+            setUploadingImg(true)
             try {
               const fd = new FormData()
               fd.append('file', file)
@@ -93,7 +256,7 @@ export default function DataCourse() {
             } catch {
               Swal.fire({ icon: 'error', title: 'Gagal upload gambar' })
             } finally {
-              setUploading(false)
+              setUploadingImg(false)
             }
           }
           input.click()
@@ -105,7 +268,7 @@ export default function DataCourse() {
           input.onchange = async () => {
             const file = input.files?.[0]
             if (!file) return
-            setUploading(true)
+            setUploadingImg(true)
             try {
               const fd = new FormData()
               fd.append('file', file)
@@ -117,7 +280,7 @@ export default function DataCourse() {
             } catch {
               Swal.fire({ icon: 'error', title: 'Gagal upload file' })
             } finally {
-              setUploading(false)
+              setUploadingImg(false)
             }
           }
           input.click()
@@ -125,15 +288,9 @@ export default function DataCourse() {
       },
     },
   }
+  const quillFormats = ['header', 'bold', 'italic', 'underline', 'strike', 'list', 'link', 'image', 'video']
 
-  const quillFormats = [
-    'header', 'bold', 'italic', 'underline', 'strike',
-    'list', 'link', 'image', 'video',
-  ]
-
-  useEffect(() => {
-    fetchCourses()
-  }, [])
+  useEffect(() => { fetchCourses(); fetchQuizMeta() }, [])
 
   const fetchCourses = () => {
     setLoading(true)
@@ -142,7 +299,6 @@ export default function DataCourse() {
       setCourses(res.data.courses || [])
       setBatches(res.data.batches || [])
     }).catch(() => {}).finally(() => setLoading(false))
-
     const levelPromise = isAdminCabang ? adminCabangApi.jadwalLevel() : jadwalLevelApi.list()
     levelPromise.then(res => {
       const map: Record<number, string[]> = {}
@@ -159,19 +315,237 @@ export default function DataCourse() {
     }).catch(() => {})
   }
 
-  const openCreate = () => {
-    setEditing(null)
-    setForm({ title: '', description: '', level: '', batch_id: '', sort: '0', status: 'aktif' })
+  const fetchQuizMeta = () => {
+    adminQuizApi.meta().then(res => {
+      setQuizCategories(res.data.categories || [])
+    }).catch(() => {})
+  }
+
+  const fetchQuizPakets = (courseId: number) => {
+    setQuizLoading(true)
+    adminQuizApi.pakets().then(res => {
+      const all = res.data.pakets || []
+      setQuizPakets(all.filter((p: QuizPaket) => p.course_id === courseId))
+    }).catch(() => setQuizPakets([])).finally(() => setQuizLoading(false))
+  }
+
+  const openCourseDetail = (course: Course) => {
+    setActiveCourse(course)
+    setView('quiz')
+    setQuizSearch('')
+    fetchQuizPakets(course.id)
+  }
+
+  const openQuizQuestions = (paket: QuizPaket) => {
+    setActiveQuizPaket(paket)
+    setView('quiz-questions')
+    setQLoading(true)
+    adminQuizApi.questions(paket.id).then(res => {
+      setQuestions(res.data.questions || [])
+    }).catch(() => setQuestions([])).finally(() => setQLoading(false))
+  }
+
+  const openQuizResults = (paket: QuizPaket) => {
+    setActiveQuizPaket(paket)
+    setView('quiz-results')
+    setRLoading(true)
+    adminQuizApi.results(paket.id).then(res => {
+      setParticipants(res.data.participants || [])
+    }).catch(() => setParticipants([])).finally(() => setRLoading(false))
+  }
+
+  const backToList = () => {
+    setView('list')
+    setActiveCourse(null)
+    setActiveQuizPaket(null)
+  }
+
+  const backToQuiz = () => {
+    setView('quiz')
+    setActiveQuizPaket(null)
+  }
+
+  // ==================== MATERI (per-paket) ====================
+  const fetchMateriLessons = (paketId: number) => {
+    setMateriLoading(true)
+    adminQuizApi.materi(paketId).then(res => {
+      setMateriLessons(res.data.lessons || [])
+    }).catch(() => setMateriLessons([])).finally(() => setMateriLoading(false))
+  }
+
+  const openMateri = (paket: QuizPaket) => {
+    setMateriPaket(paket)
+    setActiveQuizPaket(null)
+    setView('quiz-materi')
+    fetchMateriLessons(paket.id)
+  }
+
+  const backFromMateri = () => {
+    const cid = activeCourse?.id
+    setMateriPaket(null)
+    setView('quiz')
+    if (cid) fetchQuizPakets(cid)
+  }
+
+  const openCreateLesson = () => {
+    setEditingLesson(null)
+    setLessonForm({ title: '', content: '', video_url: '', sort: String(materiLessons.length + 1), status: 'aktif' })
+    setLessonPdf(null)
+    setLessonPdfName(null)
+    setLessonPdfSize(null)
+    setLessonSlides([])
+    setRemovedSlideIds([])
+    setShowLessonModal(true)
+  }
+
+  const openEditLesson = (lesson: LessonItem) => {
+    setEditingLesson(lesson)
+    setLessonForm({
+      title: lesson.title,
+      content: lesson.content || '',
+      video_url: lesson.video_url || '',
+      sort: lesson.sort.toString(),
+      status: lesson.status,
+    })
+    setLessonPdf(null)
+    setLessonPdfName(lesson.file_name || (lesson.file_path ? 'File materi' : null))
+    setLessonPdfSize(lesson.file_size || null)
+    setLessonSlides((lesson.slides || []).map(s => ({
+      key: `slide-${s.id}`,
+      id: s.id,
+      name: s.file_name,
+      size: s.file_size || undefined,
+      url: `${APP_URL}/storage/${s.file_path}`,
+    })))
+    setRemovedSlideIds([])
+    setShowLessonModal(true)
+  }
+
+  const handleSaveLesson = async () => {
+    if (!lessonForm.title.trim()) {
+      Swal.fire({ icon: 'warning', title: 'Judul pelajaran wajib diisi' })
+      return
+    }
+    if (!materiPaket) return
+    setSavingLesson(true)
+    try {
+      const fd = new FormData()
+      fd.append('title', lessonForm.title)
+      fd.append('content', lessonForm.content || '')
+      fd.append('video_url', lessonForm.video_url || '')
+      fd.append('sort', lessonForm.sort || '0')
+      fd.append('status', lessonForm.status)
+      if (lessonPdf) {
+        fd.append('file', lessonPdf)
+      } else if (editingLesson && lessonPdfName === null) {
+        fd.append('remove_file', '1')
+      }
+      const removedIds = removedSlideIds
+      lessonSlides.filter(s => s.file).forEach(s => {
+        fd.append('slides[]', s.file as File)
+      })
+      removedIds.forEach(id => fd.append('remove_slides[]', String(id)))
+      if (editingLesson) {
+        await adminQuizApi.updateMateri(editingLesson.id, fd)
+      } else {
+        await adminQuizApi.storeMateri(materiPaket.id, fd)
+      }
+      setShowLessonModal(false)
+      fetchMateriLessons(materiPaket.id)
+      Swal.fire({ icon: 'success', title: editingLesson ? 'Materi diperbarui' : 'Materi dibuat', timer: 1500, showConfirmButton: false })
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal menyimpan' })
+    } finally {
+      setSavingLesson(false)
+    }
+  }
+
+  const handleDeleteLesson = (lesson: LessonItem) => {
+    Swal.fire({
+      title: 'Hapus materi?',
+      text: `"${lesson.title}" akan dihapus`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      confirmButtonText: 'Hapus',
+      cancelButtonText: 'Batal',
+    }).then(res => {
+      if (res.isConfirmed) {
+        adminQuizApi.deleteMateri(lesson.id).then(() => {
+          if (materiPaket) fetchMateriLessons(materiPaket.id)
+          Swal.fire({ icon: 'success', title: 'Dihapus', timer: 1500, showConfirmButton: false })
+        }).catch(() => Swal.fire({ icon: 'error', title: 'Gagal menghapus' }))
+      }
+    })
+  }
+
+  const moveLesson = (index: number, direction: 'up' | 'down') => {
+    const newLessons = [...materiLessons]
+    const swapIndex = direction === 'up' ? index - 1 : index + 1
+    if (swapIndex < 0 || swapIndex >= newLessons.length) return
+    const temp = newLessons[index].sort
+    newLessons[index].sort = newLessons[swapIndex].sort
+    newLessons[swapIndex].sort = temp
+    const tempLesson = newLessons[index]
+    newLessons[index] = newLessons[swapIndex]
+    newLessons[swapIndex] = tempLesson
+    setMateriLessons(newLessons)
+    const makeFd = (id: number, sort: number) => {
+      const fd = new FormData()
+      fd.append('sort', String(sort))
+      return fd
+    }
+    Promise.all([
+      adminQuizApi.updateMateri(newLessons[index].id, makeFd(newLessons[index].id, newLessons[index].sort)),
+      adminQuizApi.updateMateri(newLessons[swapIndex].id, makeFd(newLessons[swapIndex].id, newLessons[swapIndex].sort)),
+    ]).catch(() => materiPaket && fetchMateriLessons(materiPaket.id))
+  }
+
+  const uploadMateriMedia = (type: 'image' | 'file') => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = type === 'image' ? 'image/*' : '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt'
+    input.onchange = async () => {
+      const file = input.files?.[0]
+      if (!file) return
+      setUploadingImg(true)
+      try {
+        const fd = new FormData()
+        fd.append('file', file)
+        const res = await lmsAdminApi.upload(fd)
+        const quill = materiQuillRef.current?.getEditor()
+        if (!quill) return
+        if (type === 'image') {
+          const range = quill.getSelection()
+          quill.insertEmbed(range?.index || 0, 'image', res.data.url)
+        } else {
+          const range = quill.getSelection(true)
+          quill.insertText(range?.index || 0, ` ${file.name} `, 'link', res.data.url)
+          quill.setSelection((range?.index || 0) + file.name.length + 2)
+        }
+      } catch {
+        Swal.fire({ icon: 'error', title: 'Gagal upload' })
+      } finally {
+        setUploadingImg(false)
+      }
+    }
+    input.click()
+  }
+
+  // ==================== COURSE CRUD ====================
+  const openCreateCourse = () => {
+    setEditingCourse(null)
+    setCourseForm({ title: '', description: '', level: '', batch_id: '', sort: '0', status: 'aktif' })
     setImageFile(null)
     setImagePreview(null)
     setCourseFiles([])
     setPendingFiles([])
-    setShowModal(true)
+    setShowCourseModal(true)
   }
 
-  const openEdit = (course: Course) => {
-    setEditing(course)
-    setForm({
+  const openEditCourse = (course: Course) => {
+    setEditingCourse(course)
+    setCourseForm({
       title: course.title,
       description: course.description || '',
       level: course.level || '',
@@ -182,19 +556,18 @@ export default function DataCourse() {
     setImageFile(null)
     setImagePreview(course.image ? `${APP_URL}/storage/${course.image}` : null)
     setCourseFiles([])
-    setShowModal(true)
-    lmsAdminApi.courseFiles(course.id).then(res => {
-      setCourseFiles(res.data.files || [])
-    }).catch(() => {})
+    setPendingFiles([])
+    setShowCourseModal(true)
+    lmsAdminApi.courseFiles(course.id).then(res => setCourseFiles(res.data.files || [])).catch(() => {})
   }
 
   const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !editing) return
+    if (!file || !editingCourse) return
     setFileUploading(true)
     try {
       const fd = new FormData()
-      fd.append('course_id', String(editing.id))
+      fd.append('course_id', String(editingCourse.id))
       fd.append('file', file)
       const res = await lmsAdminApi.storeCourseFile(fd)
       setCourseFiles(prev => [...prev, res.data.file])
@@ -209,13 +582,8 @@ export default function DataCourse() {
 
   const handleDeleteFile = (file: CourseFile) => {
     Swal.fire({
-      title: 'Hapus file?',
-      text: `"${file.file_name}" akan dihapus`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#dc2626',
-      confirmButtonText: 'Hapus',
-      cancelButtonText: 'Batal',
+      title: 'Hapus file?', text: `"${file.file_name}" akan dihapus`, icon: 'warning',
+      showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Hapus', cancelButtonText: 'Batal',
     }).then(res => {
       if (res.isConfirmed) {
         lmsAdminApi.deleteCourseFile(file.id).then(() => {
@@ -232,55 +600,48 @@ export default function DataCourse() {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
   }
 
-  const handleSave = async () => {
-    if (!form.title.trim()) {
-      Swal.fire({ icon: 'warning', title: 'Judul kursus wajib diisi' })
-      return
+  const saveCourse = async () => {
+    if (!courseForm.title.trim()) {
+      Swal.fire({ icon: 'warning', title: 'Judul kursus wajib diisi' }); return
     }
-    setSaving(true)
+    setSavingCourse(true)
     try {
       const fd = new FormData()
-      fd.append('title', form.title)
-      fd.append('description', form.description)
-      fd.append('level', form.level)
-      fd.append('batch_id', form.batch_id)
-      fd.append('sort', form.sort || '0')
-      fd.append('status', form.status)
+      fd.append('title', courseForm.title)
+      fd.append('description', courseForm.description)
+      fd.append('level', courseForm.level)
+      fd.append('batch_id', courseForm.batch_id)
+      fd.append('sort', courseForm.sort || '0')
+      fd.append('status', courseForm.status)
       if (imageFile) fd.append('image', imageFile)
-
-      if (editing) {
-        await lmsAdminApi.updateCourse(editing.id, fd)
+      if (editingCourse) {
+        await lmsAdminApi.updateCourse(editingCourse.id, fd)
       } else {
         const res = await lmsAdminApi.storeCourse(fd)
-        const newCourseId = res.data?.course?.id
-        if (newCourseId && pendingFiles.length > 0) {
+        const newId = res.data?.course?.id
+        if (newId && pendingFiles.length > 0) {
           for (const pf of pendingFiles) {
             const pfd = new FormData()
-            pfd.append('course_id', String(newCourseId))
+            pfd.append('course_id', String(newId))
             pfd.append('file', pf)
             await lmsAdminApi.storeCourseFile(pfd)
           }
         }
       }
-      setShowModal(false)
+      setShowCourseModal(false)
       fetchCourses()
-      Swal.fire({ icon: 'success', title: editing ? 'Kursus diperbarui' : 'Kursus dibuat', timer: 1500, showConfirmButton: false })
+      Swal.fire({ icon: 'success', title: editingCourse ? 'Kursus diperbarui' : 'Kursus dibuat', timer: 1500, showConfirmButton: false })
     } catch {
       Swal.fire({ icon: 'error', title: 'Gagal menyimpan kursus' })
     } finally {
-      setSaving(false)
+      setSavingCourse(false)
     }
   }
 
-  const handleDelete = (course: Course) => {
+  const deleteCourse = (course: Course) => {
     Swal.fire({
-      title: 'Hapus kursus?',
-      text: `"${course.title}" akan dihapus termasuk semua pelajaran di dalamnya`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#dc2626',
-      confirmButtonText: 'Hapus',
-      cancelButtonText: 'Batal',
+      title: 'Hapus kursus?', text: `"${course.title}" akan dihapus termasuk semua pelajaran di dalamnya`, icon: 'warning',
+      showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Hapus', cancelButtonText: 'Batal',
     }).then(res => {
       if (res.isConfirmed) {
         lmsAdminApi.deleteCourse(course.id).then(() => {
@@ -291,301 +652,896 @@ export default function DataCourse() {
     })
   }
 
-  const filtered = courses.filter(c => {
-    const matchSearch = c.title.toLowerCase().includes(search.toLowerCase()) ||
-      (c.level && c.level.toLowerCase().includes(search.toLowerCase()))
+  // ==================== QUIZ PAKET CRUD ====================
+  const openCreatePaket = () => {
+    setEditingPaket(null)
+    setPaketForm({ ...emptyPaketForm, course_id: activeCourse?.id?.toString() || '' })
+    setCoverPreview('')
+    setShowPaketModal(true)
+  }
+
+  const openEditPaket = (p: QuizPaket) => {
+    setEditingPaket(p)
+    setPaketForm({
+      title: p.title, description: p.description || '',
+      course_id: p.course_id?.toString() || activeCourse?.id?.toString() || '',
+      batch_id: p.batch_id?.toString() || '', level: p.level || '', category: p.category || '',
+      time_limit_minutes: p.time_limit_minutes.toString(), max_attempts: p.max_attempts.toString(),
+      max_warnings: p.max_warnings.toString(), passing_score: p.passing_score.toString(),
+      shuffle_questions: p.shuffle_questions, status: p.status, user_id: p.user_id?.toString() || '',
+      cover_image: p.cover_image || '',
+    })
+    setCoverPreview(p.cover_url || '')
+    setShowPaketModal(true)
+  }
+
+  const handleCoverSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      Swal.fire({ icon: 'warning', title: 'File harus berupa gambar' }); return
+    }
+    const fd = new FormData()
+    fd.append('cover', file)
+    setUploadingCover(true)
+    adminQuizApi.uploadCover(fd)
+      .then(res => { setPaketForm(prev => ({ ...prev, cover_image: res.data.cover_image })); setCoverPreview(res.data.url) })
+      .catch(() => Swal.fire({ icon: 'error', title: 'Gagal mengunggah cover' }))
+      .finally(() => setUploadingCover(false))
+    e.target.value = ''
+  }
+
+  const savePaket = async () => {
+    if (!paketForm.title.trim()) {
+      Swal.fire({ icon: 'warning', title: 'Judul paket wajib diisi' }); return
+    }
+    setSavingPaket(true)
+    try {
+      const data: Record<string, unknown> = {
+        title: paketForm.title, description: paketForm.description, cover_image: paketForm.cover_image || null,
+        course_id: paketForm.course_id ? Number(paketForm.course_id) : (activeCourse?.id || undefined),
+        batch_id: paketForm.batch_id ? Number(paketForm.batch_id) : undefined,
+        level: paketForm.level || undefined, category: paketForm.category || undefined,
+        time_limit_minutes: Number(paketForm.time_limit_minutes) || 30,
+        max_attempts: Number(paketForm.max_attempts) || 3,
+        max_warnings: Number(paketForm.max_warnings) || 3,
+        passing_score: Number(paketForm.passing_score) || 0,
+        shuffle_questions: paketForm.shuffle_questions, status: paketForm.status,
+        user_id: paketForm.user_id ? Number(paketForm.user_id) : undefined,
+      }
+      if (editingPaket) {
+        await adminQuizApi.updatePaket(editingPaket.id, data)
+      } else {
+        await adminQuizApi.storePaket(data)
+      }
+      setShowPaketModal(false)
+      if (activeCourse) fetchQuizPakets(activeCourse.id)
+      Swal.fire({ icon: 'success', title: editingPaket ? 'Paket diperbarui' : 'Paket dibuat', timer: 1500, showConfirmButton: false })
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal menyimpan paket' })
+    } finally {
+      setSavingPaket(false)
+    }
+  }
+
+  const deletePaket = (p: QuizPaket) => {
+    Swal.fire({
+      title: 'Hapus paket soal?', text: `"${p.title}" beserta semua soal & riwayat pengerjaan akan dihapus`, icon: 'warning',
+      showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Hapus', cancelButtonText: 'Batal',
+    }).then(res => {
+      if (res.isConfirmed) {
+        adminQuizApi.deletePaket(p.id).then(() => {
+          if (activeCourse) fetchQuizPakets(activeCourse.id)
+          Swal.fire({ icon: 'success', title: 'Dihapus', timer: 1500, showConfirmButton: false })
+        }).catch(() => Swal.fire({ icon: 'error', title: 'Gagal menghapus' }))
+      }
+    })
+  }
+
+  const togglePaket = (p: QuizPaket) => {
+    adminQuizApi.togglePaket(p.id).then(() => {
+      if (activeCourse) fetchQuizPakets(activeCourse.id)
+    }).catch(() => Swal.fire({ icon: 'error', title: 'Gagal mengubah status' }))
+  }
+
+  // ==================== CATEGORY CRUD ====================
+  const saveCategory = async () => {
+    if (!categoryForm.name.trim()) {
+      Swal.fire({ icon: 'warning', title: 'Nama kategori wajib diisi' }); return
+    }
+    setSavingCategory(true)
+    try {
+      await adminQuizApi.storeCategory({ name: categoryForm.name.trim() })
+      setCategoryForm({ name: '' })
+      fetchQuizMeta()
+      Swal.fire({ icon: 'success', title: 'Kategori ditambahkan', timer: 1200, showConfirmButton: false })
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal menambah kategori' })
+    } finally {
+      setSavingCategory(false)
+    }
+  }
+
+  const deleteCategory = (c: Category) => {
+    Swal.fire({
+      title: 'Hapus kategori?', text: `Kategori "${c.name}" akan dihapus dari daftar`, icon: 'warning',
+      showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Hapus', cancelButtonText: 'Batal',
+    }).then(res => {
+      if (res.isConfirmed) {
+        adminQuizApi.deleteCategory(c.id).then(() => {
+          fetchQuizMeta()
+          Swal.fire({ icon: 'success', title: 'Dihapus', timer: 1200, showConfirmButton: false })
+        }).catch(() => Swal.fire({ icon: 'error', title: 'Gagal menghapus' }))
+      }
+    })
+  }
+
+  // ==================== QUESTION CRUD ====================
+  const openCreateQuestion = () => {
+    setEditingQuestion(null)
+    setQForm({ ...emptyQuestionForm })
+    setQOptions(['', ''])
+    setShowQuestionModal(true)
+  }
+
+  const openEditQuestion = (q: Question) => {
+    setEditingQuestion(q)
+    setQForm({
+      question: q.question,
+      question_type: q.question_type === 'rating' ? 'rating' : 'choice',
+      rating_max: q.rating_max ? q.rating_max.toString() : '9',
+      correct_index: q.correct_index?.toString() ?? '',
+      points: q.points.toString(),
+      image_path: q.image_path || '', image_url: q.image_url || '',
+      audio_path: q.audio_path || '', audio_url: q.audio_url || '',
+      audio_max_plays: q.audio_max_plays != null ? q.audio_max_plays.toString() : '',
+    })
+    setQOptions(q.question_type === 'rating' ? Array.from({ length: q.rating_max || 9 }, (_, i) => String(i + 1)) : [...q.options])
+    setShowQuestionModal(true)
+  }
+
+  const saveQuestion = async () => {
+    if (!activeQuizPaket) return
+    if (!qForm.question.trim()) { Swal.fire({ icon: 'warning', title: 'Soal wajib diisi' }); return }
+    const isRating = qForm.question_type === 'rating'
+    let opts: string[]
+    if (isRating) {
+      const ratingMax = Math.min(10, Math.max(2, Number(qForm.rating_max) || 9))
+      opts = Array.from({ length: ratingMax }, (_, i) => String(i + 1))
+    } else {
+      opts = qOptions.map(o => o.trim()).filter(Boolean)
+      if (opts.length < 2) { Swal.fire({ icon: 'warning', title: 'Minimal 2 opsi jawaban' }); return }
+      if (new Set(opts).size !== opts.length) { Swal.fire({ icon: 'warning', title: 'Opsi jawaban tidak boleh ada yang sama' }); return }
+      if (qForm.correct_index === '' || Number(qForm.correct_index) >= opts.length) {
+        Swal.fire({ icon: 'warning', title: 'Pilih jawaban benar yang valid' }); return
+      }
+    }
+    setSavingQuestion(true)
+    try {
+      const data = {
+        question: qForm.question,
+        question_type: isRating ? 'rating' : 'choice',
+        rating_max: isRating ? Number(qForm.rating_max) || 9 : null,
+        options: opts,
+        correct_index: isRating ? null : Number(qForm.correct_index),
+        points: Number(qForm.points) || 1,
+        image_path: qForm.image_path || null,
+        audio_path: qForm.audio_path || null,
+        audio_max_plays: qForm.audio_path ? (Number(qForm.audio_max_plays) || null) : null,
+      }
+      if (editingQuestion) {
+        await adminQuizApi.updateQuestion(editingQuestion.id, data)
+      } else {
+        await adminQuizApi.storeQuestion(activeQuizPaket.id, data)
+      }
+      setShowQuestionModal(false)
+      openQuizQuestions(activeQuizPaket)
+      if (activeCourse) fetchQuizPakets(activeCourse.id)
+      Swal.fire({ icon: 'success', title: editingQuestion ? 'Soal diperbarui' : 'Soal ditambahkan', timer: 1200, showConfirmButton: false })
+    } catch (e: any) {
+      const msg = e?.response?.data?.message
+        || (e?.response?.data?.errors ? Object.values(e.response.data.errors)[0]?.[0] : null)
+        || 'Gagal menyimpan soal'
+      Swal.fire({ icon: 'error', title: 'Gagal menyimpan soal', text: msg })
+    } finally {
+      setSavingQuestion(false)
+    }
+  }
+
+  const [uploadingQMedia, setUploadingQMedia] = useState<'image' | 'audio' | null>(null)
+
+  const uploadQuestionMedia = (file: File | undefined, type: 'image' | 'audio') => {
+    if (!file) return
+    if (type === 'image' && !file.type.startsWith('image/')) {
+      Swal.fire({ icon: 'warning', title: 'File harus berupa gambar' }); return
+    }
+    if (type === 'audio' && !file.type.startsWith('audio/')) {
+      Swal.fire({ icon: 'warning', title: 'File harus berupa audio' }); return
+    }
+    const fd = new FormData()
+    fd.append('file', file)
+    setUploadingQMedia(type)
+    adminQuizApi.uploadMedia(fd)
+      .then(res => {
+        setQForm(prev => ({
+          ...prev,
+          [`${type}_path`]: res.data.path,
+          [`${type}_url`]: res.data.url,
+        }))
+      })
+      .catch(() => Swal.fire({ icon: 'error', title: 'Gagal mengunggah media' }))
+      .finally(() => setUploadingQMedia(null))
+  }
+
+  const deleteQuestion = (q: Question) => {
+    Swal.fire({
+      title: 'Hapus soal?', text: 'Soal ini akan dihapus dari paket', icon: 'warning',
+      showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Hapus', cancelButtonText: 'Batal',
+    }).then(res => {
+      if (res.isConfirmed && activeQuizPaket) {
+        adminQuizApi.deleteQuestion(q.id).then(() => {
+          openQuizQuestions(activeQuizPaket)
+          Swal.fire({ icon: 'success', title: 'Dihapus', timer: 1200, showConfirmButton: false })
+        }).catch(() => Swal.fire({ icon: 'error', title: 'Gagal menghapus' }))
+      }
+    })
+  }
+
+  const moveQuestion = (index: number, dir: 'up' | 'down') => {
+    const arr = [...questions]
+    const swapIndex = dir === 'up' ? index - 1 : index + 1
+    if (swapIndex < 0 || swapIndex >= arr.length) return
+    const temp = arr[index]
+    arr[index] = { ...arr[swapIndex], sort: arr[index].sort }
+    arr[swapIndex] = { ...temp, sort: arr[swapIndex].sort }
+    setQuestions(arr)
+    Promise.all([
+      adminQuizApi.updateQuestion(arr[index].id, { sort: arr[index].sort }),
+      adminQuizApi.updateQuestion(arr[swapIndex].id, { sort: arr[swapIndex].sort }),
+    ]).catch(() => {})
+  }
+
+  const openAttemptDetail = (attemptId: number) => {
+    setShowDetailModal(true)
+    setDetailLoading(true)
+    setDetail(null)
+    adminQuizApi.attemptDetail(attemptId).then(res => {
+      setDetail({ attempt: res.data.attempt, questions: res.data.questions || [], siswa: res.data.siswa })
+    }).catch(() => { setDetail(null); Swal.fire({ icon: 'error', title: 'Gagal memuat detail' }) })
+      .finally(() => setDetailLoading(false))
+  }
+
+  const resetAttempts = (siswaId?: number, nama?: string) => {
+    if (!activeQuizPaket) return
+    Swal.fire({
+      title: siswaId ? 'Reset percobaan kandidat?' : 'Reset semua percobaan?',
+      text: siswaId
+        ? `Hapus semua percobaan "${nama || 'kandidat'}" agar bisa mengerjakan quiz lagi?`
+        : 'Hapus semua percobaan paket ini agar kandidat bisa mengerjakan quiz dari awal?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      confirmButtonText: 'Ya, Reset',
+      cancelButtonText: 'Batal',
+    }).then(res => {
+      if (!res.isConfirmed) return
+      adminQuizApi.resetAttempts(activeQuizPaket.id, siswaId)
+        .then(r => {
+          Swal.fire({ icon: 'success', title: r.data?.message || 'Percobaan direset', timer: 1500, showConfirmButton: false })
+          openQuizResults(activeQuizPaket)
+        })
+        .catch(() => Swal.fire({ icon: 'error', title: 'Gagal mereset percobaan' }))
+    })
+  }
+
+  // ==================== FILTERS ====================
+  const filteredCourses = courses.filter(c => {
+    const matchSearch = c.title.toLowerCase().includes(search.toLowerCase()) || (c.level && c.level.toLowerCase().includes(search.toLowerCase()))
     const matchLevel = !filterLevel || c.level === filterLevel
     const matchBatch = !filterBatch || c.batch_id?.toString() === filterBatch
     return matchSearch && matchLevel && matchBatch
   })
 
+  const filteredQuizPakets = quizPakets.filter(p => !quizSearch || p.title.toLowerCase().includes(quizSearch.toLowerCase()))
+
   const uniqueLevels = [...new Set(courses.map(c => c.level).filter(Boolean))] as string[]
-
   const allBatchLevels: string[] = []
-  Object.values(batchLevels).forEach(arr => {
-    arr.forEach(l => { if (!allBatchLevels.includes(l)) allBatchLevels.push(l) })
-  })
-
-  const levelOptions = form.batch_id ? [...(batchLevels[Number(form.batch_id)] || [])] : [...allBatchLevels]
-  if (editing && form.level && !levelOptions.includes(form.level)) levelOptions.push(form.level)
+  Object.values(batchLevels).forEach(arr => arr.forEach(l => { if (!allBatchLevels.includes(l)) allBatchLevels.push(l) }))
+  const levelOptions = courseForm.batch_id ? [...(batchLevels[Number(courseForm.batch_id)] || [])] : [...allBatchLevels]
+  if (editingCourse && courseForm.level && !levelOptions.includes(courseForm.level)) levelOptions.push(courseForm.level)
   levelOptions.sort((a, b) => Number(a) - Number(b))
 
+  const fmtDate = (iso: string | null) => {
+    if (!iso) return '-'
+    return new Date(iso).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  }
+
+  // ==================== RENDER ====================
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#0E6187] flex items-center justify-center">
-            <BookOpen size={20} className="text-white" />
+      <div className="max-w-7xl mx-auto space-y-5">
+
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#0E6187] text-white shadow-sm">
+              <BookOpen size={22} />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-slate-800">Data Kursus LMS</h1>
+              <p className="text-sm text-slate-500">Kelola kursus, materi pembelajaran, dan quiz kandidat</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-slate-800">Data Kursus LMS</h1>
-            <p className="text-xs text-slate-400">Kelola kursus dan materi pembelajaran</p>
-          </div>
+          {view === 'list' && !isAdminCabang && (
+            <button onClick={openCreateCourse} className={primaryBtn}>
+              <Plus size={16} /> Buat Kursus
+            </button>
+          )}
+          {view === 'quiz' && activeCourse && (
+            <button onClick={openCreatePaket} className={primaryBtn}>
+              <Plus size={16} /> Buat Paket
+            </button>
+          )}
+          {view === 'quiz-materi' && (
+            <button onClick={openCreateLesson} className={primaryBtn}>
+              <Plus size={16} /> Tambah Materi
+            </button>
+          )}
         </div>
-        {!isAdminCabang && (
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-2 bg-[#0E6187] hover:bg-[#0E6187]/90 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm"
-        >
-          <Plus size={18} />
-          Tambah Kursus
-        </button>
+
+        {/* ==================== LIST VIEW ==================== */}
+        {view === 'list' && (
+          <>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari kursus..." className={`${inputCls} pl-9`} />
+              </div>
+              <select value={filterLevel} onChange={e => setFilterLevel(e.target.value)} className={`${inputCls} sm:w-44`}>
+                <option value="">Semua Level</option>
+                {uniqueLevels.map(l => <option key={l} value={l}>Level {l}</option>)}
+              </select>
+              <select value={filterBatch} onChange={e => setFilterBatch(e.target.value)} className={`${inputCls} sm:w-44`}>
+                <option value="">Semua Batch</option>
+                {batches.map(b => <option key={b.id} value={b.id}>{b.nama_batch}</option>)}
+              </select>
+            </div>
+
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-20 text-slate-400 text-sm gap-2">
+                <Loader2 size={24} className="animate-spin text-[#0E6187]" /> Memuat kursus...
+              </div>
+            ) : filteredCourses.length === 0 ? (
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-14 text-center">
+                <div className="w-14 h-14 mx-auto rounded-lg bg-[#0E6187]/10 flex items-center justify-center mb-3">
+                  <BookOpen size={28} className="text-[#0E6187]" />
+                </div>
+                <p className="text-slate-800 font-semibold">Belum ada kursus</p>
+                <p className="text-slate-500 text-sm mt-1">Buat kursus untuk materi pembelajaran kandidat</p>
+                {!isAdminCabang && (
+                  <button onClick={openCreateCourse} className={`${primaryBtn} mt-5`}>
+                    <Plus size={16} /> Buat Kursus
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-slate-200">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="w-10 px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">No</th>
+                        <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">Kursus</th>
+                        <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">File</th>
+                        <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Urutan</th>
+                        <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Status</th>
+                        <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Quiz</th>
+                        <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {filteredCourses.map((c, idx) => (
+                        <tr key={c.id} className="hover:bg-slate-50/60 transition-colors">
+                          <td className="px-4 py-3 text-sm text-slate-500">{idx + 1}</td>
+                          <td className="px-4 py-3">
+                            <div className="min-w-0">
+                              <p className="text-slate-800 font-semibold truncate max-w-xs">{c.title}</p>
+                              <p className="text-xs text-slate-400 mt-0.5">
+                                {[c.batch_id && batches.find(b => b.id === c.batch_id)?.nama_batch, c.level && `Level ${c.level}`].filter(Boolean).join(' · ') || 'Semua kandidat'}
+                              </p>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800">{c.lessons_count}</td>
+                          <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800">{(c as any).files_count || 0}</td>
+                          <td className="px-4 py-3 text-center text-sm font-semibold text-[#0E6187]">{c.sort}</td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full ${c.status === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
+                              {c.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <button onClick={() => openCourseDetail(c)}
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-[#0E6187] px-2.5 py-1.5 rounded-md hover:bg-[#0E6187]/90 transition-colors">
+                              <ListChecks size={13} /> Quiz
+                            </button>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center justify-center gap-1">
+                              {!isAdminCabang && (
+                                <>
+                                  <button onClick={() => openEditCourse(c)} className="p-1.5 rounded-md bg-slate-100 hover:bg-slate-200 transition-colors" title="Edit">
+                                    <Pencil size={13} className="text-slate-600" />
+                                  </button>
+                                  <button onClick={() => deleteCourse(c)} className="p-1.5 rounded-md bg-red-50 hover:bg-red-100 transition-colors" title="Hapus">
+                                    <Trash2 size={13} className="text-red-500" />
+                                  </button>
+                                </>
+                              )}
+                              {isAdminCabang && <span className="text-xs text-slate-300">—</span>}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </>
         )}
-      </div>
 
-      <div className="bg-white rounded-sm shadow-sm border border-slate-200 overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-slate-200 flex flex-wrap items-center gap-3">
-          <div className="relative flex-1 min-w-[200px] max-w-xs">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Cari kursus..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-            />
-          </div>
-          <select
-            value={filterLevel}
-            onChange={e => setFilterLevel(e.target.value)}
-            className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-          >
-            <option value="">Semua Level</option>
-            {uniqueLevels.map(l => (
-              <option key={l} value={l}>Level {l}</option>
-            ))}
-          </select>
-          <select
-            value={filterBatch}
-            onChange={e => setFilterBatch(e.target.value)}
-            className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-          >
-            <option value="">Semua Batch</option>
-            {batches.map(b => (
-              <option key={b.id} value={b.id}>{b.nama_batch}</option>
-            ))}
-          </select>
-        </div>
+        {/* ==================== QUIZ LIST VIEW ==================== */}
+        {view === 'quiz' && activeCourse && (
+          <>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button onClick={backToList} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#0E6187] transition-colors">
+                <ChevronUp size={15} className="-rotate-90" /> Kembali
+              </button>
+              <div className="relative flex-1">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input value={quizSearch} onChange={e => setQuizSearch(e.target.value)} placeholder="Cari paket soal..." className={`${inputCls} pl-9`} />
+              </div>
+            </div>
 
-        {loading ? (
-          <div className="p-12 flex justify-center">
-            <div className="w-8 h-8 border-4 border-slate-200 border-t-[#0E6187] rounded-full animate-spin" />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="p-12 text-center">
-            <BookOpen size={40} className="text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-400">{search || filterLevel || filterBatch ? 'Kursus tidak ditemukan' : 'Belum ada kursus'}</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto rounded-sm border border-slate-200">
-            <table className="w-full border-collapse text-left text-sm text-black">
-              <thead>
-                <tr className="bg-[#0e6187]">
-                  <th className="text-left border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white">Judul</th>
-                  <th className="text-left border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white">Level</th>
-                  <th className="text-left border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white">Batch</th>
-                  <th className="text-center border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white">Pelajaran</th>
-                  <th className="text-center border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white">File</th>
-                  <th className="text-center border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white">Status</th>
-                  <th className="text-center border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white">Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(course => (
-                  <tr key={course.id} className="bg-white transition hover:brightness-[0.97]">
-                    <td className="border border-slate-200 px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 overflow-hidden">
-                          {course.image ? (
-                            <img src={`${APP_URL}/storage/${course.image}`} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <BookOpen size={16} className="text-slate-500" />
-                          )}
-                        </div>
-                        <span className="font-medium text-black">{course.title}</span>
+            {quizLoading ? (
+              <div className="flex flex-col items-center justify-center py-20 text-slate-400 text-sm gap-2">
+                <Loader2 size={24} className="animate-spin text-[#0E6187]" /> Memuat paket soal...
+              </div>
+            ) : filteredQuizPakets.length === 0 ? (
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-14 text-center">
+                <div className="w-14 h-14 mx-auto rounded-lg bg-[#0E6187]/10 flex items-center justify-center mb-3">
+                  <ListChecks size={28} className="text-[#0E6187]" />
+                </div>
+                <p className="text-slate-800 font-semibold">Belum ada paket soal</p>
+                <p className="text-slate-500 text-sm mt-1">Buat paket soal MCQ untuk kursus "{activeCourse.title}"</p>
+                <button onClick={openCreatePaket} className={`${primaryBtn} mt-5`}>
+                  <Plus size={16} /> Buat Paket Soal
+                </button>
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-slate-200">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="w-10 px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">No</th>
+                        <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">Paket Soal</th>
+                        <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Soal</th>
+                        <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Dikerjakan</th>
+                        <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Peserta</th>
+                        <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Nilai Terbaik</th>
+                        <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Status</th>
+                        <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {filteredQuizPakets.map((p, idx) => (
+                        <tr key={p.id} className="hover:bg-slate-50/60 transition-colors">
+                          <td className="px-4 py-3 text-sm text-slate-500">{idx + 1}</td>
+                          <td className="px-4 py-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-slate-800 font-semibold truncate max-w-xs">{p.title}</p>
+                                {p.category && (
+                                  <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#0E6187]/[0.08] text-[#0E6187] shrink-0">{p.category}</span>
+                                )}
+                              </div>
+                              <p className="text-xs text-slate-400 mt-0.5">
+                                {[p.batch?.nama_batch, p.level && `Level ${p.level}`].filter(Boolean).join(' · ') || 'Semua kandidat'}
+                              </p>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800">{p.questions_count}</td>
+                          <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800">{p.attempts_count}</td>
+                          <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800">{p.participants}</td>
+                          <td className="px-4 py-3 text-center text-sm font-semibold text-[#0E6187]">{Number(p.best_score) || '-'}</td>
+                          <td className="px-4 py-3 text-center">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button onClick={() => togglePaket(p)}
+                                className={`relative w-10 h-[22px] rounded-full transition-colors shrink-0 ${p.status === 'aktif' ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                                title={p.status === 'aktif' ? 'Tutup paket' : 'Buka paket'}>
+                                <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${p.status === 'aktif' ? 'left-[20px]' : 'left-[2px]'}`} />
+                              </button>
+                              <span className={`text-[11px] font-semibold ${p.status === 'aktif' ? 'text-emerald-600' : 'text-slate-500'}`}>
+                                {p.status === 'aktif' ? 'Dibuka' : 'Ditutup'}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center justify-center gap-1">
+                      <button onClick={() => openMateri(p)}
+                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0E6187] bg-[#0E6187]/[0.08] px-2 py-1.5 rounded-md hover:bg-[#0E6187]/15 transition-colors">
+                                <BookOpen size={13} /> Materi
+                              </button>
+                              <button onClick={() => openQuizQuestions(p)}
+                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-[#0E6187] px-2 py-1.5 rounded-md hover:bg-[#0E6187]/90 transition-colors">
+                                <ListChecks size={13} /> Soal
+                              </button>
+                              <button onClick={() => openQuizResults(p)}
+                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0E6187] bg-[#0E6187]/[0.08] px-2 py-1.5 rounded-md hover:bg-[#0E6187]/15 transition-colors">
+                                <Eye size={13} /> Hasil
+                              </button>
+                              <div className="w-px h-4 bg-slate-200 mx-1"></div>
+                              <button onClick={() => openEditPaket(p)} className="p-1.5 rounded-md bg-slate-100 hover:bg-slate-200 transition-colors" title="Edit">
+                                <Pencil size={13} className="text-slate-600" />
+                              </button>
+                              <button onClick={() => deletePaket(p)} className="p-1.5 rounded-md bg-red-50 hover:bg-red-100 transition-colors" title="Hapus">
+                                <Trash2 size={13} className="text-red-500" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ==================== QUIZ MATERI VIEW ==================== */}
+        {view === 'quiz-materi' && materiPaket && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+              <button onClick={backFromMateri} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#0E6187] transition-colors">
+                <ArrowLeft size={15} /> Kembali
+              </button>
+              <div className="flex items-center justify-between mt-3">
+                <div className="min-w-0">
+                  <h2 className="text-lg font-bold text-slate-800 truncate">{materiPaket.title}</h2>
+                  <p className="text-sm text-slate-500 mt-0.5">{materiLessons.length} materi pelajaran</p>
+                </div>
+              </div>
+            </div>
+
+            {materiLoading ? (
+              <div className="flex flex-col items-center justify-center py-20 text-slate-400 text-sm gap-2">
+                <Loader2 size={24} className="animate-spin text-[#0E6187]" /> Memuat materi...
+              </div>
+            ) : materiLessons.length === 0 ? (
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-14 text-center">
+                <div className="w-14 h-14 mx-auto rounded-lg bg-[#0E6187]/10 flex items-center justify-center mb-3">
+                  <BookOpen size={28} className="text-[#0E6187]" />
+                </div>
+                <p className="text-slate-800 font-semibold">Belum ada materi</p>
+                <p className="text-slate-500 text-sm mt-1">Tambahkan materi/modul & video pembelajaran untuk kursus ini</p>
+                <button onClick={openCreateLesson} className={`${primaryBtn} mt-5`}>
+                  <Plus size={16} /> Tambah Materi
+                </button>
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+                <div className="divide-y divide-slate-100">
+                  {materiLessons.map((lesson, idx) => (
+                    <div key={lesson.id} className="flex items-center gap-3 px-5 py-4">
+                      <div className="flex flex-col">
+                        <button onClick={() => moveLesson(idx, 'up')} disabled={idx === 0}
+                          className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20">
+                          <ChevronUp size={14} />
+                        </button>
+                        <button onClick={() => moveLesson(idx, 'down')} disabled={idx === materiLessons.length - 1}
+                          className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20">
+                          <ChevronDown size={14} />
+                        </button>
                       </div>
-                    </td>
-                    <td className="border border-slate-200 px-4 py-3 text-black">{course.level || '-'}</td>
-                    <td className="border border-slate-200 px-4 py-3 text-black">
-                      {course.batch_id ? (
-                        <span className="inline-flex items-center gap-2">
-                          <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: batches.find(b => b.id === course.batch_id)?.warna || '#3b82f6' }} />
-                          <span>{batches.find(b => b.id === course.batch_id)?.nama_batch || '-'}</span>
-                        </span>
-                      ) : '-'}
-                    </td>
-                    <td className="border border-slate-200 px-4 py-3 text-center">
-                      <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full text-xs font-medium">
-                        <BookOpen size={12} />
-                        {course.lessons_count}
-                      </span>
-                    </td>
-                    <td className="border border-slate-200 px-4 py-3 text-center">
-                      {(course as any).files_count > 0 && (
-                        <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 px-2.5 py-0.5 rounded-full text-xs font-medium">
-                          <FileText size={12} />
-                          {(course as any).files_count}
-                        </span>
-                      )}
-                    </td>
-                    <td className="border border-slate-200 px-4 py-3 text-center">
-                      <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full ${
-                        course.status === 'aktif' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold text-white ${
+                        lesson.status === 'aktif' ? 'bg-[#0E6187]' : 'bg-slate-300'
                       }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                          course.status === 'aktif' ? 'bg-emerald-500' : 'bg-slate-400'
-                        }`} />
-                        {course.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
-                      </span>
-                    </td>
-                    <td className="border border-slate-200 px-4 py-3">
-                      <div className="flex items-center justify-center gap-1">
-                        {!isAdminCabang && (
-                        <Link
-                          to={`/lms/${course.id}/lessons`}
-                          className="p-2 rounded-lg text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                          title="Kelola Pelajaran"
-                        >
-                          <Layers size={16} />
-                        </Link>
-                        )}
-                        {!isAdminCabang && (
-                        <>
-                        <button
-                          onClick={() => openEdit(course)}
-                          className="p-2 rounded-lg text-slate-400 hover:bg-amber-50 hover:text-amber-600 transition-colors"
-                          title="Edit"
-                        >
-                          <Edit3 size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(course)}
-                          className="p-2 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
-                          title="Hapus"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                        </>
-                        )}
+                        {idx + 1}
                       </div>
-                    </td>
-                  </tr>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-800 truncate">{lesson.title}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          {lesson.video_url && (
+                            <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                              <Video size={10} /> Video
+                            </span>
+                          )}
+                          {lesson.content && (
+                            <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                              <FileText size={10} /> Materi
+                            </span>
+                          )}
+                          {lesson.file_name && (
+                            <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                              <FileText size={10} /> PDF
+                            </span>
+                          )}
+                          {!!lesson.slides?.length && (
+                            <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                              <ImageIcon size={10} /> {lesson.slides.length} Slide
+                            </span>
+                          )}
+                          <span className={`text-[10px] font-semibold ${lesson.status === 'aktif' ? 'text-emerald-500' : 'text-slate-400'}`}>
+                            {lesson.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
+                          </span>
+                        </div>
+                      </div>
+                      <button onClick={() => openEditLesson(lesson)}
+                        className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors" title="Edit">
+                        <Edit3 size={15} className="text-slate-600" />
+                      </button>
+                      <button onClick={() => handleDeleteLesson(lesson)}
+                        className="w-9 h-9 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 transition-colors" title="Hapus">
+                        <Trash2 size={15} className="text-red-500" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ==================== QUIZ QUESTIONS VIEW ==================== */}
+        {view === 'quiz-questions' && activeQuizPaket && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+              <button onClick={backToQuiz} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#0E6187] transition-colors">
+                <ArrowLeft size={15} /> Kembali
+              </button>
+              <div className="flex items-center justify-between mt-3">
+                <div className="min-w-0">
+                  <h2 className="text-lg font-bold text-slate-800 truncate">{activeQuizPaket.title}</h2>
+                  <p className="text-sm text-slate-500 mt-0.5">{questions.length} soal</p>
+                </div>
+                <button onClick={openCreateQuestion} className={primaryBtn}>
+                  <Plus size={16} /> Tambah Soal
+                </button>
+              </div>
+            </div>
+
+            {qLoading ? (
+              <div className="flex flex-col items-center justify-center py-16 text-slate-400 text-sm gap-2">
+                <Loader2 size={24} className="animate-spin text-[#0E6187]" /> Memuat soal...
+              </div>
+            ) : questions.length === 0 ? (
+              <div className="bg-white rounded-lg shadow-sm border border-dashed border-slate-300 p-14 text-center">
+                <BookOpen size={28} className="text-slate-300 mx-auto mb-2" />
+                <p className="text-slate-700 font-semibold">Belum ada soal</p>
+                <p className="text-slate-500 text-sm mt-1">Tambahkan minimal 1 soal untuk paket ini</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {questions.map((q, i) => (
+                  <div key={q.id} className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+                    <div className="flex items-start gap-3">
+                      <div className="flex flex-col items-center gap-1 mt-1">
+                        <button onClick={() => moveQuestion(i, 'up')} className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20" disabled={i === 0}>
+                          <ChevronUp size={16} />
+                        </button>
+                        <button onClick={() => moveQuestion(i, 'down')} className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20" disabled={i === questions.length - 1}>
+                          <ChevronDown size={16} />
+                        </button>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-sm font-bold text-slate-400 shrink-0 mt-0.5">#{i + 1}</span>
+                          <p className="text-[15px] font-semibold text-slate-800 leading-snug flex-1">{q.question}</p>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button onClick={() => openEditQuestion(q)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors" title="Edit">
+                              <Pencil size={14} className="text-slate-600" />
+                            </button>
+                            <button onClick={() => deleteQuestion(q)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 transition-colors" title="Hapus">
+                              <Trash2 size={14} className="text-red-500" />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="mt-3 space-y-2">
+                          {q.question_type === 'rating' ? (
+                            <div className="flex items-center gap-2.5 text-sm px-3.5 py-2 rounded-lg bg-violet-50 text-violet-700 font-semibold">
+                              <span className="px-2 py-0.5 rounded-full bg-violet-500 text-white text-[10px] font-bold shrink-0">SKALA</span>
+                              <span>Rating 1–{q.rating_max || q.options.length}</span>
+                              <span className="ml-auto text-[10px] font-bold text-violet-400 shrink-0">TANPA KUNCI</span>
+                            </div>
+                          ) : (q.options.map((opt, oi) => (
+                            <div key={oi} className={`flex items-center gap-2.5 text-sm px-3.5 py-2 rounded-lg ${oi === q.correct_index ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'bg-slate-50 text-slate-600'}`}>
+                              <span className={`w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold shrink-0 ${oi === q.correct_index ? 'bg-emerald-500 text-white' : 'bg-white border border-slate-200 text-slate-400'}`}>
+                                {String.fromCharCode(65 + oi)}
+                              </span>
+                              <span>{opt}</span>
+                              {oi === q.correct_index && <span className="ml-auto text-[10px] font-bold text-emerald-500 shrink-0">BENAR</span>}
+                            </div>
+                          )))}
+                        </div>
+                        <p className="text-xs text-slate-400 font-medium mt-3">Skor: {q.points} poin</p>
+                      </div>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ==================== QUIZ RESULTS VIEW ==================== */}
+        {view === 'quiz-results' && activeQuizPaket && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+              <button onClick={backToQuiz} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#0E6187] transition-colors">
+                <ArrowLeft size={15} /> Kembali
+              </button>
+              <div className="flex items-center gap-3 mt-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
+                  <Award size={20} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-lg font-bold text-slate-800 truncate">Hasil · {activeQuizPaket.title}</h2>
+                  <p className="text-sm text-slate-500 mt-0.5">{participants.length} peserta mengerjakan</p>
+                </div>
+                {participants.length > 0 && (
+                  <button onClick={() => resetAttempts()}
+                    className="inline-flex items-center gap-1.5 text-[11px] font-bold text-red-500 hover:text-red-600 border border-red-200 rounded-lg px-3 py-2 hover:bg-red-50 transition-colors shrink-0">
+                    <RotateCcw size={12} /> Reset Semua
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {rLoading ? (
+              <div className="flex flex-col items-center justify-center py-16 text-slate-400 text-sm gap-2">
+                <Loader2 size={24} className="animate-spin text-[#0E6187]" /> Memuat hasil...
+              </div>
+            ) : participants.length === 0 ? (
+              <div className="bg-white rounded-lg shadow-sm border border-dashed border-slate-300 p-14 text-center">
+                <Users size={28} className="text-slate-300 mx-auto mb-2" />
+                <p className="text-slate-700 font-semibold">Belum ada peserta</p>
+                <p className="text-slate-500 text-sm mt-1">Hasil akan muncul setelah kandidat mengerjakan quiz</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200">
+                        <th className="text-left px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide w-10">#</th>
+                        <th className="text-left px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Nama Kandidat</th>
+                        <th className="text-left px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Riwayat Percobaan</th>
+                        <th className="text-right px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Nilai Terbaik</th>
+                        <th className="text-right px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {participants.map((par, idx) => (
+                        <tr key={par.siswa_id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/60 transition-colors">
+                          <td className="px-4 py-3.5 text-xs text-slate-400 font-semibold">{idx + 1}</td>
+                          <td className="px-4 py-3.5">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-lg bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+                                <Users size={15} className="text-[#0E6187]" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-semibold text-slate-800 truncate">{par.nama}</p>
+                                <p className="text-xs text-slate-500">
+                                  {[par.batch && `Batch ${par.batch}`, par.level !== null && `Level ${par.level}`].filter(Boolean).join(' · ') || '-'}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <div className="flex flex-wrap gap-1.5">
+                              {par.attempts.map(a => (
+                                <button key={a.attempt_id} onClick={() => openAttemptDetail(a.attempt_id)}
+                                  title={`${fmtDate(a.started_at)} · ${a.warnings} peringatan`}
+                                  className="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 hover:bg-[#0E6187]/5 hover:border-[#0E6187]/30 transition-colors group">
+                                  <span className="text-[11px] font-bold text-slate-500">#{a.attempt_number}</span>
+                                  <span className={`text-xs font-semibold ${a.status === 'submitted' ? 'text-slate-700' : 'text-slate-400'}`}>
+                                    {a.status === 'submitted' ? (Number(a.score) || 0) + ' poin' : 'Belum selesai'}
+                                    {a.auto_submitted && <span className="ml-1 text-[9px] font-bold text-orange-500">AUTO</span>}
+                                  </span>
+                                  {a.webcam_photo && <Camera size={12} className="text-slate-400 shrink-0" />}
+                                </button>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3.5 text-right">
+                            <p className="text-lg font-bold text-[#0E6187]">{Number(par.best_score) || 0}</p>
+                            <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">poin</p>
+                          </td>
+                          <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                            <button onClick={() => resetAttempts(par.siswa_id, par.nama)}
+                              className="inline-flex items-center gap-1.5 text-[11px] font-bold text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg px-2.5 py-1.5 transition-colors">
+                              <RotateCcw size={12} /> Reset
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {showModal && (
+      {/* ==================== COURSE MODAL ==================== */}
+      {showCourseModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[8vh] pb-8 px-4 overflow-y-auto">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-              <h3 className="font-semibold text-slate-800">{editing ? 'Edit Kursus' : 'Tambah Kursus'}</h3>
-              <button onClick={() => setShowModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
+              <h3 className="font-semibold text-slate-800">{editingCourse ? 'Edit Kursus' : 'Tambah Kursus'}</h3>
+              <button onClick={() => setShowCourseModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
                 <X size={20} className="text-slate-400" />
               </button>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Judul Kursus <span className="text-red-500">*</span></label>
-                <input
-                  type="text"
-                  value={form.title}
-                  onChange={e => setForm({ ...form, title: e.target.value })}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                  placeholder="Masukkan judul kursus"
-                />
+                <label className={labelCls}>Judul Kursus <span className="text-red-500">*</span></label>
+                <input type="text" value={courseForm.title} onChange={e => setCourseForm({ ...courseForm, title: e.target.value })}
+                  className={inputCls} placeholder="Masukkan judul kursus" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Deskripsi</label>
+                <label className={labelCls}>Deskripsi</label>
                 <div className="relative">
-                  {uploading && (
+                  {uploadingImg && (
                     <div className="absolute inset-0 z-10 bg-white/70 flex items-center justify-center rounded-lg">
                       <div className="flex items-center gap-2 text-sm text-slate-500">
-                        <div className="w-4 h-4 border-2 border-slate-300 border-t-[#0E6187] rounded-full animate-spin" />
-                        Mengupload...
+                        <div className="w-4 h-4 border-2 border-slate-300 border-t-[#0E6187] rounded-full animate-spin" /> Mengupload...
                       </div>
                     </div>
                   )}
-                  <ReactQuill
-                    ref={quillRef}
-                    value={form.description}
-                    onChange={value => setForm({ ...form, description: value })}
-                    modules={quillModules}
-                    formats={quillFormats}
-                    theme="snow"
-                    placeholder="Deskripsi kursus"
-                    className="[&_.ql-editor]:min-h-[200px] [&_.ql-editor]:text-sm [&_.ql-container]:rounded-b-lg [&_.ql-toolbar]:rounded-t-lg [&_.ql-toolbar]:border-slate-200 [&_.ql-container]:border-slate-200"
-                  />
+                  <ReactQuill ref={quillRef} value={courseForm.description}
+                    onChange={value => setCourseForm({ ...courseForm, description: value })}
+                    modules={quillModules} formats={quillFormats} theme="snow" placeholder="Deskripsi kursus"
+                    className="[&_.ql-editor]:min-h-[200px] [&_.ql-editor]:text-sm [&_.ql-container]:rounded-b-lg [&_.ql-toolbar]:rounded-t-lg [&_.ql-toolbar]:border-slate-200 [&_.ql-container]:border-slate-200" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Level</label>
-                  <select
-                    value={form.level}
-                    onChange={e => setForm({ ...form, level: e.target.value })}
+                  <label className={labelCls}>Level</label>
+                  <select value={courseForm.level} onChange={e => setCourseForm({ ...courseForm, level: e.target.value })}
                     disabled={levelOptions.length === 0}
-                    className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
-                  >
-                    <option value="">
-                      {levelOptions.length === 0
-                        ? 'Belum ada jadwal level'
-                        : form.batch_id
-                          ? 'Pilih Level'
-                          : 'Semua Batch - Pilih Level'}
-                    </option>
-                    {levelOptions.map(l => (
-                      <option key={l} value={l}>Level {l}</option>
-                    ))}
+                    className={`${inputCls} disabled:bg-slate-50 disabled:text-slate-400`}>
+                    <option value="">{levelOptions.length === 0 ? 'Belum ada jadwal level' : courseForm.batch_id ? 'Pilih Level' : 'Semua Batch - Pilih Level'}</option>
+                    {levelOptions.map(l => <option key={l} value={l}>Level {l}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Batch</label>
+                  <label className={labelCls}>Batch</label>
                   <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setShowBatchDropdown(!showBatchDropdown)}
-                      className="flex w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-left focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                    >
-                      {form.batch_id ? (
+                    <button type="button" onClick={() => setShowBatchDropdown(!showBatchDropdown)}
+                      className="flex w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-left focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                      {courseForm.batch_id ? (
                         <span className="flex items-center gap-2 truncate">
-                          <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: batches.find(b => String(b.id) === form.batch_id)?.warna || '#3b82f6' }} />
-                          <span className="truncate text-slate-700">{batches.find(b => String(b.id) === form.batch_id)?.nama_batch || 'Semua Batch'}</span>
+                          <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: batches.find(b => String(b.id) === courseForm.batch_id)?.warna || '#3b82f6' }} />
+                          <span className="truncate text-slate-700">{batches.find(b => String(b.id) === courseForm.batch_id)?.nama_batch || 'Semua Batch'}</span>
                         </span>
-                      ) : (
-                        <span className="text-slate-400">Pilih Batch...</span>
-                      )}
+                      ) : <span className="text-slate-400">Pilih Batch...</span>}
                       <svg className={`ml-auto h-4 w-4 shrink-0 text-slate-400 transition-transform ${showBatchDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                     </button>
                     {showBatchDropdown && (
                       <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[200px] rounded-xl border border-slate-200 bg-white py-1 shadow-xl max-h-60 overflow-y-auto">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setForm(prev => ({ ...prev, batch_id: '', level: '' }))
-                            setShowBatchDropdown(false)
-                          }}
-                          className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${!form.batch_id ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}
-                        >
+                        <button type="button" onClick={() => { setCourseForm(prev => ({ ...prev, batch_id: '', level: '' })); setShowBatchDropdown(false) }}
+                          className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${!courseForm.batch_id ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}>
                           <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: '#94a3b8' }} />
                           <span className="truncate">Semua Batch</span>
                         </button>
                         {batches.map(b => (
-                          <button
-                            key={b.id}
-                            type="button"
-                            onClick={() => {
-                              setForm(prev => {
-                                const levels = batchLevels[b.id] || []
-                                const keepLevel = prev.level && levels.includes(prev.level) ? prev.level : ''
-                                return { ...prev, batch_id: String(b.id), level: String(b.id) === prev.batch_id ? prev.level : keepLevel }
-                              })
-                              setShowBatchDropdown(false)
-                            }}
-                            className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${String(b.id) === form.batch_id ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}
-                          >
+                          <button key={b.id} type="button"
+                            onClick={() => { setCourseForm(prev => { const levels = batchLevels[b.id] || []; const keepLevel = prev.level && levels.includes(prev.level) ? prev.level : ''; return { ...prev, batch_id: String(b.id), level: String(b.id) === prev.batch_id ? prev.level : keepLevel } }); setShowBatchDropdown(false) }}
+                            className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${String(b.id) === courseForm.batch_id ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}>
                             <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: b.warna || '#3b82f6' }} />
                             <span className="truncate">{b.nama_batch}</span>
                           </button>
@@ -597,103 +1553,63 @@ export default function DataCourse() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Urutan</label>
-                  <input
-                    type="number"
-                    value={form.sort}
-                    onChange={e => setForm({ ...form, sort: e.target.value })}
-                    className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                  />
+                  <label className={labelCls}>Urutan</label>
+                  <input type="number" value={courseForm.sort} onChange={e => setCourseForm({ ...courseForm, sort: e.target.value })} className={inputCls} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
-                  <select
-                    value={form.status}
-                    onChange={e => setForm({ ...form, status: e.target.value })}
-                    className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                  >
+                  <label className={labelCls}>Status</label>
+                  <select value={courseForm.status} onChange={e => setCourseForm({ ...courseForm, status: e.target.value })} className={inputCls}>
                     <option value="aktif">Aktif</option>
                     <option value="nonaktif">Nonaktif</option>
                   </select>
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Gambar</label>
+                <label className={labelCls}>Gambar</label>
                 <div className="flex items-center gap-3">
                   <label className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors">
-                    <ImageIcon size={16} />
-                    Pilih Gambar
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={e => {
-                        const file = e.target.files?.[0]
-                        if (file) {
-                          setImageFile(file)
-                          setImagePreview(URL.createObjectURL(file))
-                        }
-                      }}
-                    />
+                    <ImageIcon size={16} /> Pilih Gambar
+                    <input type="file" accept="image/*" className="hidden" onChange={e => {
+                      const file = e.target.files?.[0]
+                      if (file) { setImageFile(file); setImagePreview(URL.createObjectURL(file)) }
+                    }} />
                   </label>
                   {imagePreview && (
                     <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-slate-200">
                       <img src={imagePreview} alt="" className="w-full h-full object-cover" />
-                      <button
-                        onClick={() => { setImageFile(null); setImagePreview(null) }}
-                        className="absolute top-0.5 right-0.5 bg-black/50 rounded-full p-0.5"
-                      >
+                      <button onClick={() => { setImageFile(null); setImagePreview(null) }} className="absolute top-0.5 right-0.5 bg-black/50 rounded-full p-0.5">
                         <X size={10} className="text-white" />
                       </button>
                     </div>
                   )}
                 </div>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">File Materi <span className="text-[10px] text-slate-400 font-normal">(PDF, Word, Excel, PPT, Gambar)</span></label>
+                <label className={labelCls}>File Materi <span className="text-[10px] text-slate-400 font-normal">(PDF, Word, Excel, PPT, Gambar)</span></label>
                 <div className="space-y-2">
                   <label className="inline-flex items-center gap-2 px-4 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors">
-                    {fileUploading ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-slate-300 border-t-[#0E6187] rounded-full animate-spin" />
-                        Mengupload...
-                      </>
-                    ) : (
-                      <>
-                        <Plus size={16} />
-                        Tambah File
-                      </>
-                    )}
-                    <input
-                      type="file"
-                      accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png"
-                      className="hidden"
-                      multiple
-                      onChange={e => {
-                        const files = Array.from(e.target.files || [])
-                        if (editing) {
-                          files.forEach(file => {
-                            setFileUploading(true)
-                            const fd = new FormData()
-                            fd.append('course_id', String(editing.id))
-                            fd.append('file', file)
-                            lmsAdminApi.storeCourseFile(fd).then(res => {
-                              setCourseFiles(prev => [...prev, res.data.file])
-                              Swal.fire({ icon: 'success', title: 'File berhasil diupload', timer: 1500, showConfirmButton: false })
-                            }).catch(() => {
-                              Swal.fire({ icon: 'error', title: 'Gagal upload file' })
-                            }).finally(() => setFileUploading(false))
-                          })
-                        } else {
-                          setPendingFiles(prev => [...prev, ...files])
-                        }
-                        e.target.value = ''
-                      }}
-                      disabled={fileUploading}
-                    />
+                    {fileUploading ? (<><div className="w-4 h-4 border-2 border-slate-300 border-t-[#0E6187] rounded-full animate-spin" /> Mengupload...</>) : (<><Plus size={16} /> Tambah File</>)}
+                    <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png" className="hidden" multiple onChange={e => {
+                      const files = Array.from(e.target.files || [])
+                      if (editingCourse) {
+                        files.forEach(file => {
+                          setFileUploading(true)
+                          const fd = new FormData()
+                          fd.append('course_id', String(editingCourse.id))
+                          fd.append('file', file)
+                          lmsAdminApi.storeCourseFile(fd).then(res => {
+                            setCourseFiles(prev => [...prev, res.data.file])
+                            Swal.fire({ icon: 'success', title: 'File berhasil diupload', timer: 1500, showConfirmButton: false })
+                          }).catch(() => Swal.fire({ icon: 'error', title: 'Gagal upload file' }))
+                            .finally(() => setFileUploading(false))
+                        })
+                      } else {
+                        setPendingFiles(prev => [...prev, ...files])
+                      }
+                      e.target.value = ''
+                    }} disabled={fileUploading} />
                   </label>
-                  {editing ? (
+                  {editingCourse ? (
                     courseFiles.length > 0 && (
                       <div className="border border-slate-200 rounded-lg divide-y divide-slate-100">
                         {courseFiles.map(f => (
@@ -703,58 +1619,558 @@ export default function DataCourse() {
                               <p className="text-sm text-slate-700 truncate">{f.file_name}</p>
                               {f.file_size && <p className="text-xs text-slate-400">{formatFileSize(f.file_size)}</p>}
                             </div>
-                            <a
-                              href={`${APP_URL}/storage/${f.file_path}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-1.5 rounded-lg text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                              title="Download"
-                            >
-                              <Download size={15} />
-                            </a>
-                            <button
-                              onClick={() => handleDeleteFile(f)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
-                              title="Hapus"
-                            >
-                              <Trash2 size={15} />
-                            </button>
+                            <a href={`${APP_URL}/storage/${f.file_path}`} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-colors" title="Download"><Download size={15} /></a>
+                            <button onClick={() => handleDeleteFile(f)} className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors" title="Hapus"><Trash2 size={15} /></button>
                           </div>
                         ))}
                       </div>
                     )
-                  ) : (
-                    pendingFiles.length > 0 && (
-                      <div className="border border-slate-200 rounded-lg divide-y divide-slate-100">
-                        {pendingFiles.map((f, i) => (
-                          <div key={i} className="flex items-center gap-3 px-3 py-2.5">
-                            <FileText size={16} className="text-slate-400 shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-slate-700 truncate">{f.name}</p>
-                              <p className="text-xs text-slate-400">{formatFileSize(f.size)}</p>
-                            </div>
-                            <button
-                              onClick={() => setPendingFiles(prev => prev.filter((_, idx) => idx !== i))}
-                              className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
-                              title="Hapus"
-                            >
-                              <Trash2 size={15} />
-                            </button>
+                  ) : pendingFiles.length > 0 && (
+                    <div className="border border-slate-200 rounded-lg divide-y divide-slate-100">
+                      {pendingFiles.map((f, i) => (
+                        <div key={i} className="flex items-center gap-3 px-3 py-2.5">
+                          <FileText size={16} className="text-slate-400 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-slate-700 truncate">{f.name}</p>
+                            <p className="text-xs text-slate-400">{formatFileSize(f.size)}</p>
                           </div>
-                        ))}
-                      </div>
-                    )
+                          <button onClick={() => setPendingFiles(prev => prev.filter((_, idx) => idx !== i))} className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors" title="Hapus"><Trash2 size={15} /></button>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>
             </div>
             <div className="px-5 py-4 border-t border-slate-200 flex justify-end gap-3">
-              <button onClick={() => setShowModal(false)} className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
-                Batal
+              <button onClick={() => setShowCourseModal(false)} className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Batal</button>
+              <button onClick={saveCourse} disabled={savingCourse} className="px-4 py-2.5 bg-[#0E6187] text-white rounded-lg text-sm font-semibold hover:bg-[#0E6187]/90 disabled:opacity-50 transition-colors">
+                {savingCourse ? 'Menyimpan...' : editingCourse ? 'Simpan' : 'Buat Kursus'}
               </button>
-              <button onClick={handleSave} disabled={saving} className="px-4 py-2.5 bg-[#0E6187] text-white rounded-lg text-sm font-semibold hover:bg-[#0E6187]/90 disabled:opacity-50 transition-colors">
-                {saving ? 'Menyimpan...' : editing ? 'Simpan' : 'Buat Kursus'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== QUIZ PAKET MODAL ==================== */}
+      {showPaketModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[8vh] pb-8 px-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+              <h3 className="font-semibold text-slate-800">{editingPaket ? 'Edit Paket Soal' : 'Buat Paket Soal'}</h3>
+              <button onClick={() => setShowPaketModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
+                <X size={20} className="text-slate-400" />
               </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className={labelCls}>Judul Paket <span className="text-red-500">*</span></label>
+                <input type="text" value={paketForm.title} onChange={e => setPaketForm({ ...paketForm, title: e.target.value })}
+                  className={inputCls} placeholder="Contoh: Quiz Evaluasi Mingguan" />
+              </div>
+              <div>
+                <label className={labelCls}>Deskripsi</label>
+                <textarea value={paketForm.description} onChange={e => setPaketForm({ ...paketForm, description: e.target.value })}
+                  rows={2} placeholder="Petunjuk atau materi singkat..."
+                  className={`${inputCls} resize-none`} />
+              </div>
+              <div>
+                <label className={labelCls}>Cover Paket (opsional)</label>
+                <div className="flex items-center gap-3">
+                  <div className="w-28 h-20 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center shrink-0">
+                    {coverPreview ? <img src={coverPreview} alt="Cover" className="w-full h-full object-cover" /> : <BookOpen size={20} className="text-slate-300" />}
+                  </div>
+                  <div className="space-y-2">
+                    <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverSelect} />
+                    <button type="button" onClick={() => coverInputRef.current?.click()} disabled={uploadingCover}
+                      className="inline-flex items-center gap-1.5 text-sm font-medium text-[#0E6187] hover:bg-[#0E6187]/[0.06] px-3 py-2 rounded-lg border border-[#0E6187]/20 transition-colors disabled:opacity-50">
+                      {uploadingCover ? <><Loader2 size={14} className="animate-spin" /> Mengunggah...</> : <>{coverPreview ? 'Ganti Cover' : 'Pilih Gambar'}</>}
+                    </button>
+                    {coverPreview && (
+                      <button type="button" onClick={() => { setPaketForm({ ...paketForm, cover_image: '' }); setCoverPreview('') }}
+                        className="block text-xs text-red-400 hover:text-red-500">Hapus cover</button>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>Batch</label>
+                  <select value={paketForm.batch_id} onChange={e => setPaketForm({ ...paketForm, batch_id: e.target.value, level: '' })} className={inputCls}>
+                    <option value="">Semua batch</option>
+                    {batches.map(b => <option key={b.id} value={b.id}>{b.nama_batch}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Level</label>
+                  <select value={paketForm.level} onChange={e => setPaketForm({ ...paketForm, level: e.target.value })} className={inputCls}>
+                    <option value="">Semua level</option>
+                    {(paketForm.batch_id ? (batchLevels[Number(paketForm.batch_id)] || []) : []).map(lv => <option key={lv} value={lv}>Level {lv}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className={labelCls}>Kategori Paket</label>
+                <div className="flex items-center gap-2">
+                  <select value={paketForm.category} onChange={e => setPaketForm({ ...paketForm, category: e.target.value })} className={inputCls}>
+                    <option value="">Pilih kategori</option>
+                    {quizCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                  </select>
+                  <button type="button" onClick={() => setShowCategoryModal(true)}
+                    className="shrink-0 text-sm font-medium text-[#0E6187] px-3 py-2.5 rounded-lg border border-[#0E6187]/20 hover:bg-[#0E6187]/[0.06] transition-colors">
+                    + Kelola
+                  </button>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>Durasi (menit)</label>
+                  <input type="number" min={1} max={180} value={paketForm.time_limit_minutes}
+                    onChange={e => setPaketForm({ ...paketForm, time_limit_minutes: e.target.value })} className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Maks Percobaan</label>
+                  <input type="number" min={1} max={10} value={paketForm.max_attempts}
+                    onChange={e => setPaketForm({ ...paketForm, max_attempts: e.target.value })} className={inputCls} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>Maks Peringatan</label>
+                  <input type="number" min={1} max={10} value={paketForm.max_warnings}
+                    onChange={e => setPaketForm({ ...paketForm, max_warnings: e.target.value })} className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Nilai Lulus (0-100)</label>
+                  <input type="number" min={0} max={100} value={paketForm.passing_score}
+                    onChange={e => setPaketForm({ ...paketForm, passing_score: e.target.value })} className={inputCls} />
+                </div>
+              </div>
+              <div className="flex items-center justify-between bg-slate-50 rounded-lg px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-slate-700">Acak urutan soal</p>
+                  <p className="text-xs text-slate-400">Soal tampil beda urutan tiap percobaan</p>
+                </div>
+                <button onClick={() => setPaketForm({ ...paketForm, shuffle_questions: !paketForm.shuffle_questions })}
+                  className={`relative w-10 h-[22px] rounded-full transition-colors ${paketForm.shuffle_questions ? 'bg-[#0E6187]' : 'bg-slate-300'}`}>
+                  <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${paketForm.shuffle_questions ? 'left-[20px]' : 'left-[2px]'}`} />
+                </button>
+              </div>
+              <div className="flex items-center justify-between bg-slate-50 rounded-lg px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-slate-700">Buka paket sekarang</p>
+                  <p className="text-xs text-slate-400">Kandidat bisa langsung melihat & mulai quiz</p>
+                </div>
+                <button onClick={() => setPaketForm({ ...paketForm, status: paketForm.status === 'aktif' ? 'nonaktif' : 'aktif' })}
+                  className={`relative w-10 h-[22px] rounded-full transition-colors ${paketForm.status === 'aktif' ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+                  <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${paketForm.status === 'aktif' ? 'left-[20px]' : 'left-[2px]'}`} />
+                </button>
+              </div>
+            </div>
+            <div className="px-5 py-4 border-t border-slate-200 flex justify-end gap-3">
+              <button onClick={() => setShowPaketModal(false)} className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Batal</button>
+              <button onClick={savePaket} disabled={savingPaket} className="px-4 py-2.5 bg-[#0E6187] text-white rounded-lg text-sm font-semibold hover:bg-[#0E6187]/90 disabled:opacity-50 transition-colors">
+                {savingPaket ? 'Menyimpan...' : editingPaket ? 'Simpan Perubahan' : 'Buat Paket Soal'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== LESSON (MATERI) MODAL ==================== */}
+      {showLessonModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[6vh] pb-8 px-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-slate-800">{editingLesson ? 'Edit Materi' : 'Tambah Materi'}</h3>
+                <p className="text-xs text-slate-400">{activeCourse?.title}</p>
+              </div>
+              <button onClick={() => setShowLessonModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
+                <X size={20} className="text-slate-400" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className={labelCls}>Judul Materi <span className="text-red-500">*</span></label>
+                <input value={lessonForm.title} onChange={e => setLessonForm({ ...lessonForm, title: e.target.value })}
+                  placeholder="Judul pelajaran" className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>URL Video (YouTube)</label>
+                <div className="flex gap-2">
+                  <input value={lessonForm.video_url} onChange={e => setLessonForm({ ...lessonForm, video_url: e.target.value })}
+                    placeholder="https://youtube.com/..." className={inputCls} />
+                  {lessonForm.video_url && (
+                    <button onClick={() => setLessonForm({ ...lessonForm, video_url: '' })} className="shrink-0 px-3 flex items-center text-slate-400 hover:text-red-500 transition-colors" title="Hapus video">
+                      <X size={18} />
+                    </button>
+                  )}
+                </div>
+                {lessonForm.video_url && (
+                  <div className="mt-3">
+                    <p className="text-xs font-medium text-slate-500 mb-1.5 flex items-center gap-1"><Video size={12} /> Pratinjau video</p>
+                    <div className="rounded-lg overflow-hidden border border-slate-200 bg-black aspect-video">
+                      <iframe
+                        src={getYouTubeEmbedUrl(lessonForm.video_url) || lessonForm.video_url}
+                        className="w-full h-full"
+                        allowFullScreen
+                        title="Preview Video"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className={labelCls}>Konten Materi</label>
+                <ReactQuill ref={materiQuillRef} value={lessonForm.content}
+                  onChange={value => setLessonForm({ ...lessonForm, content: value })}
+                  modules={quillModules} formats={quillFormats} theme="snow" placeholder="Tulis materi pembelajaran di sini..."
+                  className="[&_.ql-editor]:min-h-[160px] [&_.ql-editor]:text-sm [&_.ql-container]:rounded-b-lg [&_.ql-toolbar]:rounded-t-lg [&_.ql-toolbar]:border-slate-200 [&_.ql-container]:border-slate-200" />
+              </div>
+              <div className="border-t border-slate-100 pt-4">
+                <LessonMediaFields
+                  pdfName={lessonPdfName}
+                  pdfSize={lessonPdfSize}
+                  slides={lessonSlides}
+                  uploading={savingLesson}
+                  onPdf={file => {
+                    setLessonPdf(file)
+                    setLessonPdfName(file ? file.name : null)
+                    setLessonPdfSize(file ? file.size : null)
+                  }}
+                  onRemovePdf={() => {
+                    setLessonPdf(null)
+                    setLessonPdfName(null)
+                    setLessonPdfSize(null)
+                  }}
+                  onSlidesChange={slides => {
+                    const removed = lessonSlides.filter(s => !slides.some(n => n.key === s.key))
+                    removed.forEach(s => { if (!s.id) URL.revokeObjectURL(s.url || '') })
+                    setRemovedSlideIds(prev => [...prev, ...removed.filter(s => s.id).map(s => s.id!)])
+                    setLessonSlides(slides)
+                  }}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>Urutan</label>
+                  <input type="number" min={1} value={lessonForm.sort} onChange={e => setLessonForm({ ...lessonForm, sort: e.target.value })} className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Status</label>
+                  <select value={lessonForm.status} onChange={e => setLessonForm({ ...lessonForm, status: e.target.value })} className={inputCls}>
+                    <option value="aktif">Aktif</option>
+                    <option value="nonaktif">Nonaktif</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="px-5 py-4 border-t border-slate-200 flex justify-end gap-3">
+              <button onClick={() => setShowLessonModal(false)} className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Batal</button>
+              <button onClick={handleSaveLesson} disabled={savingLesson} className="px-4 py-2.5 bg-[#0E6187] text-white rounded-lg text-sm font-semibold hover:bg-[#0E6187]/90 disabled:opacity-50 transition-colors">
+                {savingLesson ? 'Menyimpan...' : editingLesson ? 'Simpan Perubahan' : 'Tambah Materi'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== QUESTION MODAL ==================== */}
+      {showQuestionModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[8vh] pb-8 px-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-slate-800">{editingQuestion ? 'Edit Soal' : 'Tambah Soal'}</h3>
+                <p className="text-xs text-slate-400">{activeQuizPaket?.title}</p>
+              </div>
+              <button onClick={() => setShowQuestionModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
+                <X size={20} className="text-slate-400" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className={labelCls}>Pertanyaan <span className="text-red-500">*</span></label>
+                <textarea value={qForm.question} onChange={e => setQForm({ ...qForm, question: e.target.value })}
+                  rows={2} placeholder="Tulis pertanyaan..."
+                  className={`${inputCls} resize-none`} />
+              </div>
+              <div>
+                <label className={labelCls}>Media Soal <span className="text-slate-400 font-normal">(opsional)</span></label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className={`border border-slate-200 rounded-lg p-3 ${qForm.image_path ? 'bg-slate-50' : ''}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <ImageIcon size={14} className="text-slate-400" />
+                      <span className="text-xs font-semibold text-slate-600">Gambar Soal</span>
+                    </div>
+                    {qForm.image_url ? (
+                      <div className="relative">
+                        <img src={qForm.image_url} alt="Pra-preview"
+                          className="w-full h-28 object-contain bg-white border border-slate-200 rounded-md" />
+                        <button onClick={() => setQForm({ ...qForm, image_path: '', image_url: '' })}
+                          className="absolute top-1.5 right-1.5 p-1 bg-red-500 text-white rounded-full hover:bg-red-600" title="Hapus gambar">
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className={`flex flex-col items-center justify-center gap-1 h-28 border border-dashed border-slate-300 rounded-md cursor-pointer hover:bg-blue-50 hover:border-[#0E6187] transition-colors ${uploadingQMedia === 'image' ? 'opacity-50 pointer-events-none' : ''}`}>
+                        {uploadingQMedia === 'image' ? <Loader2 size={18} className="animate-spin text-[#0E6187]" /> : <UploadCloud size={18} className="text-slate-400" />}
+                        <span className="text-[11px] font-medium text-slate-500">{uploadingQMedia === 'image' ? 'Mengunggah...' : 'Pilih gambar'}</span>
+                        <input type="file" accept="image/*" className="hidden" disabled={!!uploadingQMedia}
+                          onChange={e => { uploadQuestionMedia(e.target.files?.[0], 'image'); e.target.value = '' }} />
+                      </label>
+                    )}
+                  </div>
+                  <div className={`border border-slate-200 rounded-lg p-3 ${qForm.audio_path ? 'bg-slate-50' : ''}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Mic size={14} className="text-slate-400" />
+                      <span className="text-xs font-semibold text-slate-600">Suara Soal</span>
+                    </div>
+                    {qForm.audio_url ? (
+                      <div className="space-y-2">
+                        <audio src={qForm.audio_url} controls className="w-full h-9" />
+                        <label className="text-[11px] font-medium text-slate-600 block mb-1 flex items-center gap-1">
+                          <Repeat size={11} /> Maksimal putar <span className="text-slate-400 font-normal">(kali mendengarkan)</span>
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input type="number" min={1} max={99} value={qForm.audio_max_plays}
+                            onChange={e => setQForm({ ...qForm, audio_max_plays: e.target.value })}
+                            className={`${inputCls} w-24`} />
+                          <button onClick={() => { setQForm({ ...qForm, audio_path: '', audio_url: '', audio_max_plays: '2' }) }}
+                            className="text-[11px] font-semibold text-red-500 hover:text-red-600 inline-flex items-center gap-1">
+                            <Trash2 size={11} /> Hapus
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <label className={`flex flex-col items-center justify-center gap-1 h-28 border border-dashed border-slate-300 rounded-md cursor-pointer hover:bg-blue-50 hover:border-[#0E6187] transition-colors ${uploadingQMedia === 'audio' ? 'opacity-50 pointer-events-none' : ''}`}>
+                        {uploadingQMedia === 'audio' ? <Loader2 size={18} className="animate-spin text-[#0E6187]" /> : <UploadCloud size={18} className="text-slate-400" />}
+                        <span className="text-[11px] font-medium text-slate-500">{uploadingQMedia === 'audio' ? 'Mengunggah...' : 'Pilih audio (MP3/WAV)'}</span>
+                        <input type="file" accept="audio/*" className="hidden" disabled={!!uploadingQMedia}
+                          onChange={e => { uploadQuestionMedia(e.target.files?.[0], 'audio'); e.target.value = '' }} />
+                      </label>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className={labelCls}>Tipe Jawaban</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <button type="button" onClick={() => setQForm({ ...qForm, question_type: 'choice' })}
+                    className={`flex items-center gap-2.5 border rounded-lg px-3.5 py-3 text-left transition-colors ${qForm.question_type !== 'rating' ? 'border-[#0E6187] bg-[#0E6187]/5 ring-1 ring-[#0E6187]/20' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+                    <span className={`w-9 h-9 flex items-center justify-center rounded-lg text-xs font-bold shrink-0 ${qForm.question_type !== 'rating' ? 'bg-[#0E6187] text-white' : 'bg-slate-100 text-slate-500'}`}>A/B/C</span>
+                    <span>
+                      <span className="block text-sm font-semibold text-slate-700">Pilihan Ganda</span>
+                      <span className="block text-xs text-slate-400 mt-0.5">Opsi A, B, C dengan kunci jawaban</span>
+                    </span>
+                  </button>
+                  <button type="button" onClick={() => setQForm({ ...qForm, question_type: 'rating' })}
+                    className={`flex items-center gap-2.5 border rounded-lg px-3.5 py-3 text-left transition-colors ${qForm.question_type === 'rating' ? 'border-violet-500 bg-violet-50 ring-1 ring-violet-500/20' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+                    <span className={`w-9 h-9 flex items-center justify-center rounded-lg text-xs font-bold shrink-0 ${qForm.question_type === 'rating' ? 'bg-violet-500 text-white' : 'bg-slate-100 text-slate-500'}`}>1-9</span>
+                    <span>
+                      <span className="block text-sm font-semibold text-slate-700">Skala Rating</span>
+                      <span className="block text-xs text-slate-400 mt-0.5">Penilaian bebas 1–{qForm.rating_max} (tanpa kunci)</span>
+                    </span>
+                  </button>
+                </div>
+              </div>
+              {qForm.question_type === 'rating' ? (
+                <div>
+                  <label className={labelCls}>Skala Penilaian <span className="text-red-500">*</span></label>
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <input type="number" min={2} max={10} value={qForm.rating_max}
+                      onChange={e => setQForm({ ...qForm, rating_max: e.target.value })}
+                      className={`${inputCls} max-w-[110px]`} />
+                    <div className="flex gap-1.5 flex-wrap">
+                      {Array.from({ length: Math.min(10, Math.max(2, Number(qForm.rating_max) || 9)) }, (_, i) => (
+                        <span key={i} className="w-8 h-8 flex items-center justify-center rounded-full bg-violet-50 border border-violet-200 text-sm font-bold text-violet-600">
+                          {i + 1}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-2">Kandidat memilih nilai 1 sampai {Math.min(10, Math.max(2, Number(qForm.rating_max) || 9))}. Jawaban bersifat penilaian bebas (tidak ada benar/salah), poin penuh diberikan jika diisi.</p>
+                </div>
+              ) : (
+                <div>
+                  <label className={labelCls}>Opsi Jawaban <span className="text-red-500">* (min 2)</span></label>
+                  <div className="space-y-2">
+                    {qOptions.map((opt, oi) => (
+                      <div key={oi} className="flex items-center gap-2">
+                        <button onClick={() => setQForm({ ...qForm, correct_index: String(oi) })}
+                          title="Tandai sebagai jawaban benar"
+                          className={`w-7 h-7 shrink-0 flex items-center justify-center rounded-full border-2 transition-colors ${qForm.correct_index === String(oi) ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-200 text-slate-400 hover:border-[#0E6187]'}`}>
+                          {String.fromCharCode(65 + oi)}
+                        </button>
+                        <input value={opt} onChange={e => { const arr = [...qOptions]; arr[oi] = e.target.value; setQOptions(arr) }}
+                          placeholder={`Opsi ${String.fromCharCode(65 + oi)}`} className={`${inputCls} flex-1`} />
+                        {qOptions.length > 2 && (
+                          <button onClick={() => setQOptions(qOptions.filter((_, idx) => idx !== oi))} className="p-1 text-red-400 hover:text-red-500 shrink-0">
+                            <X size={14} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {qOptions.length < 6 && (
+                    <button onClick={() => setQOptions([...qOptions, ''])} className="mt-2 flex items-center gap-1 text-sm font-medium text-[#0E6187]">
+                      <Plus size={12} /> Tambah opsi
+                    </button>
+                  )}
+                  <p className="text-xs text-slate-400 mt-2">Klik huruf <span className="font-bold text-emerald-500">A/B/C...</span> untuk menandai kunci jawaban.</p>
+                </div>
+              )}
+              <div>
+                <label className={labelCls}>Bobot Skor</label>
+                <input type="number" min={1} value={qForm.points} onChange={e => setQForm({ ...qForm, points: e.target.value })} className={inputCls} />
+              </div>
+            </div>
+            <div className="px-5 py-4 border-t border-slate-200 flex justify-end gap-3">
+              <button onClick={() => setShowQuestionModal(false)} className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Batal</button>
+              <button onClick={saveQuestion} disabled={savingQuestion} className="px-4 py-2.5 bg-[#0E6187] text-white rounded-lg text-sm font-semibold hover:bg-[#0E6187]/90 disabled:opacity-50 transition-colors">
+                {savingQuestion ? 'Menyimpan...' : editingQuestion ? 'Simpan Perubahan' : 'Tambah Soal'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== CATEGORY MODAL ==================== */}
+      {showCategoryModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => setShowCategoryModal(false)}>
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 sticky top-0 bg-white">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-800">Kelola Kategori Paket</h2>
+                <p className="text-sm text-slate-400">Tambahkan atau hapus kategori quiz</p>
+              </div>
+              <button onClick={() => setShowCategoryModal(false)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                <X size={20} className="text-slate-400" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="flex items-center gap-2">
+                <input value={categoryForm.name} onChange={e => setCategoryForm({ name: e.target.value })}
+                  onKeyDown={e => { if (e.key === 'Enter') saveCategory() }}
+                  placeholder="Nama kategori baru..." className={`${inputCls} flex-1`} />
+                <button onClick={saveCategory} disabled={savingCategory} className={primaryBtn}>
+                  {savingCategory ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />} Tambah
+                </button>
+              </div>
+              <div className="space-y-2">
+                {quizCategories.length === 0 ? (
+                  <p className="text-sm text-slate-400 text-center py-6">Belum ada kategori</p>
+                ) : quizCategories.map(c => (
+                  <div key={c.id} className="flex items-center justify-between bg-slate-50 rounded-lg px-4 py-2.5">
+                    <span className="text-sm font-medium text-slate-700">{c.name}</span>
+                    <button onClick={() => deleteCategory(c)} className="p-1.5 text-red-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Hapus">
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== ATTEMPT DETAIL MODAL ==================== */}
+      {showDetailModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[8vh] pb-8 px-4 overflow-y-auto" onClick={() => setShowDetailModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-slate-800">Detail Pengerjaan</h3>
+                <p className="text-xs text-slate-400">{detail?.siswa?.nama || 'Kandidat'} · Percobaan #{detail?.attempt?.attempt_number}</p>
+              </div>
+              <button onClick={() => setShowDetailModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
+                <X size={20} className="text-slate-400" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              {detailLoading || !detail ? (
+                <div className="text-center text-sm text-slate-400 py-12">Memuat detail...</div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-slate-50 rounded-lg p-3 text-center">
+                      <p className="text-lg font-bold text-slate-800">{Number(detail.attempt.score) || 0}</p>
+                      <p className="text-[10px] text-slate-500 font-medium">Skor</p>
+                    </div>
+                    <div className="bg-slate-50 rounded-lg p-3 text-center">
+                      <p className="text-lg font-bold text-slate-800">{detail.attempt.correct_count}/{detail.attempt.total_count}</p>
+                      <p className="text-[10px] text-slate-500 font-medium">Benar</p>
+                    </div>
+                    <div className="bg-slate-50 rounded-lg p-3 text-center">
+                      <p className="text-lg font-bold text-slate-800">{detail.attempt.warnings}</p>
+                      <p className="text-[10px] text-slate-500 font-medium">Peringatan</p>
+                    </div>
+                  </div>
+                  {detail.attempt.webcam_photo && (
+                    <div>
+                      <p className="text-sm font-medium text-slate-700 mb-2 flex items-center gap-1.5"><Camera size={12} /> Foto Pengerjaan</p>
+                      <img src={detail.attempt.webcam_photo} alt="Webcam" className="w-full rounded-lg border border-slate-200 max-h-52 object-cover" />
+                    </div>
+                  )}
+                  <div className="space-y-3">
+                    {detail.questions.map((q, i) => (
+                      <div key={q.id} className="border border-slate-200 rounded-lg p-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm font-bold text-slate-800 leading-snug">{i + 1}. {q.question}</p>
+                          <span className={`text-[10px] font-bold shrink-0 px-2 py-0.5 rounded-full ${q.is_correct === true ? 'bg-emerald-50 text-emerald-600' : q.is_correct === false ? 'bg-red-50 text-red-500' : 'bg-slate-100 text-slate-500'}`}>
+                            {q.is_correct === true ? 'BENAR' : q.is_correct === false ? 'SALAH' : 'TIDAK DIJAWAB'}
+                          </span>
+                        </div>
+                        {(q as any).image_url && (
+                          <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
+                            <img src={(q as any).image_url} alt="Soal" className="max-h-40 mx-auto object-contain rounded" />
+                          </div>
+                        )}
+                        {(q as any).audio_url && (
+                          <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
+                            <audio src={(q as any).audio_url} controls className="w-full h-9" />
+                          </div>
+                        )}
+                        <div className="mt-2 space-y-1.5">
+                          {q.question_type === 'rating' ? (
+                            <div>
+                              <div className="flex gap-1 flex-wrap">
+                                {q.options.map((opt, oi) => {
+                                  const isSelected = q.selected_index === oi
+                                  return (
+                                    <span key={oi} className={`w-8 h-8 flex items-center justify-center rounded-full text-[11px] font-bold border-2 ${isSelected ? 'border-violet-500 bg-violet-500 text-white' : 'border-slate-200 bg-slate-50 text-slate-400'}`}>
+                                      {opt}
+                                    </span>
+                                  )
+                                })}
+                              </div>
+                              <p className="text-xs text-slate-500 mt-1.5">
+                                Jawaban: <span className="font-bold text-violet-600">{q.selected_index !== null && q.selected_index !== undefined ? q.options[q.selected_index] : 'Tidak diisi'}</span>
+                                {q.is_correct === true && <span className="ml-2 text-[9.5px] font-bold text-violet-500">TERISI · POIN DIBERIKAN</span>}
+                              </p>
+                            </div>
+                          ) : (q.options.map((opt, oi) => {
+                            const isCorrect = q.correct_index === oi
+                            const isSelected = q.selected_index === oi
+                            return (
+                              <div key={oi}
+                                className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg font-medium ${isCorrect ? 'bg-emerald-50 text-emerald-700 font-bold' : isSelected ? 'bg-red-50 text-red-500 font-bold' : 'bg-slate-50 text-slate-600'}`}>
+                                <span className={`w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold shrink-0 ${isCorrect ? 'bg-emerald-500 text-white' : isSelected ? 'bg-red-500 text-white' : 'bg-slate-200 text-slate-400'}`}>
+                                  {String.fromCharCode(65 + oi)}
+                                </span>
+                                <span className="flex-1">{opt}</span>
+                                {isCorrect && <span className="text-[9px] font-bold shrink-0">KUNCI</span>}
+                                {isSelected && <span className="text-[9px] font-bold shrink-0">JAWABAN</span>}
+                              </div>
+                            )
+                          }))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

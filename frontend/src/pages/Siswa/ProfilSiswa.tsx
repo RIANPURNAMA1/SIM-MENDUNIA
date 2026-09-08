@@ -17,7 +17,7 @@ export default function ProfilSiswa() {
 
   const bottomNav = [
     { label: 'Dashboard', to: '/siswa-dashboard', icon: LayoutDashboard },
-    { label: 'LMS', to: '/siswa-dashboard/lms', icon: BookOpen },
+    { label: 'Kelas Mendunia', to: '/siswa-dashboard/lms', icon: BookOpen },
     { label: 'Absensi', to: '/siswa-dashboard/absensi', icon: CalendarCheck },
     { label: 'Pembayaran', to: '/siswa-dashboard/pembayaran', icon: Wallet },
     { label: 'Profil', to: '/siswa-dashboard/profil', icon: User },

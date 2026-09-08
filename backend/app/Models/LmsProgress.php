@@ -12,10 +12,18 @@ class LmsProgress extends Model
         'lesson_id',
         'siswa_id',
         'completed_at',
+        'video_duration_seconds',
+        'video_watched_seconds',
+        'video_percent',
+        'read_seconds',
     ];
 
     protected $casts = [
         'completed_at' => 'datetime',
+        'video_duration_seconds' => 'integer',
+        'video_watched_seconds' => 'integer',
+        'video_percent' => 'integer',
+        'read_seconds' => 'integer',
     ];
 
     public function lesson()

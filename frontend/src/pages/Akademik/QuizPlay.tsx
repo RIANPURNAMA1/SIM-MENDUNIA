@@ -1,0 +1,556 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Volume2, VolumeX } from 'lucide-react'
+import { quizApi } from '../../services/api'
+import Swal from 'sweetalert2'
+
+interface PlayQuestion {
+  id: number
+  question: string
+  question_type: string
+  rating_max: number | null
+  options: string[]
+  points: number
+  image_url?: string | null
+  audio_url?: string | null
+  audio_max_plays?: number | null
+  selected_index?: number | null
+}
+
+interface PlayAttempt {
+  id: number
+  attempt_number: number
+  status: string
+  started_at: string | null
+  submitted_at: string | null
+  score: number | null
+  passing_score: number
+  max_warnings: number
+}
+
+const fmtClock = (sec: number) => {
+  const m = Math.floor(sec / 60)
+  const s = sec % 60
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
+const shuffleArray = <T,>(arr: T[]): T[] => {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
+function QuestionAudio({ src, maxPlays, plays, onPlay }: {
+  src: string
+  maxPlays: number | null
+  plays: number
+  onPlay: () => void
+}) {
+  const locked = maxPlays !== null && plays >= maxPlays
+  const remaining = maxPlays !== null ? Math.max(0, maxPlays - plays) : null
+
+  return (
+    <div className="mt-4 rounded-lg border border-[#c9e2f0] bg-white p-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          {locked ? <VolumeX size={16} className="text-gray-400" /> : <Volume2 size={16} className="text-[#0E6187]" />}
+          <p className={`text-[11px] font-bold ${locked ? 'text-gray-400' : 'text-gray-700'}`}>
+            {locked ? 'Audio tidak tersedia lagi' : 'Putar soal audio'}
+          </p>
+        </div>
+        {remaining !== null && (
+          <span className={`shrink-0 rounded px-2 py-0.5 text-[10px] font-bold ${locked ? 'bg-gray-100 text-gray-400' : 'bg-[#0E6187]/10 text-[#0E6187]'}`}>
+            Sisa putar: {remaining}x
+          </span>
+        )}
+      </div>
+      {locked ? (
+        <div className="mt-2 rounded bg-gray-50 py-3 text-center text-[11px] font-semibold text-gray-400">
+          Anda sudah mendengarkan audio sebanyak {plays} kali
+        </div>
+      ) : (
+        <audio
+          key={src}
+          src={src}
+          controls
+          preload="auto"
+          className="mt-2 w-full h-9"
+          onPlay={onPlay}
+        />
+      )}
+    </div>
+  )
+}
+
+export default function QuizPlay() {
+  const { paketId, attemptId } = useParams()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const navTitle = (location.state as { title?: string } | null)?.title
+
+  const [attempt, setAttempt] = useState<PlayAttempt | null>(null)
+  const [questions, setQuestions] = useState<PlayQuestion[]>([])
+  const [selected, setSelected] = useState<Record<number, number | null>>({})
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [flagged, setFlagged] = useState<Set<number>>(new Set())
+  const [remaining, setRemaining] = useState(0)
+  const [warnBanner, setWarnBanner] = useState(false)
+  const [testTitle, setTestTitle] = useState('')
+  const [audioPlays, setAudioPlays] = useState<Record<number, number>>({})
+
+  const endTimeRef = useRef(0)
+  const streamRef = useRef<MediaStream | null>(null)
+  const cameraRef = useRef<HTMLVideoElement | null>(null)
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const snapshotRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const shuffledRef = useRef(false)
+
+  const stopTimers = useCallback(() => {
+    if (countdownRef.current) clearInterval(countdownRef.current)
+    if (snapshotRef.current) clearInterval(snapshotRef.current)
+    countdownRef.current = null
+    snapshotRef.current = null
+  }, [])
+
+  const stopStream = useCallback(() => {
+    streamRef.current?.getTracks().forEach(t => t.stop())
+    streamRef.current = null
+  }, [])
+
+  // ── Load attempt ──
+  const load = useCallback(() => {
+    if (!attemptId) return
+    setIsLoading(true)
+    quizApi.attempt(Number(attemptId)).then(res => {
+      const a = res.data.attempt
+      const data = res.data
+      if (a?.status === 'submitted' || a?.score !== undefined) {
+        navigate(`/siswa-dashboard/quiz/${paketId}`, { replace: true })
+        return
+      }
+      setAttempt(a)
+      setTestTitle(navTitle || res.data.paket?.title || res.data.test_name || 'Quiz')
+      const pre: Record<number, number | null> = {}
+      let qs: PlayQuestion[] = (data.questions || []).map((q: any) => {
+        if (q.selected_index !== undefined && q.selected_index !== null) pre[q.id] = q.selected_index
+        return {
+          id: q.id, question: q.question, question_type: q.question_type ?? 'choice', rating_max: q.rating_max ?? null,
+          options: q.options, points: q.points,
+          image_url: q.image_url ?? null, audio_url: q.audio_url ?? null,
+          audio_max_plays: q.audio_max_plays ?? null, selected_index: q.selected_index ?? null,
+        }
+      })
+      if (!shuffledRef.current) {
+        qs = qs.map(q => ({ ...q, options: q.question_type === 'rating' || (q.selected_index !== null && q.selected_index !== undefined) ? q.options : shuffleArray(q.options) }))
+        shuffledRef.current = true
+      }
+      setQuestions(qs)
+      setSelected(pre)
+
+      const endTime = Date.parse(a.started_at) + a.time_limit_seconds * 1000
+      endTimeRef.current = endTime
+      setRemaining(Math.max(0, Math.floor((endTime - Date.now()) / 1000)))
+    }).catch(() => {
+      Swal.fire({ icon: 'error', title: 'Gagal memuat percobaan' })
+      navigate(`/siswa-dashboard/quiz/${paketId}`, { replace: true })
+    }).finally(() => setIsLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attemptId, paketId, navigate])
+
+  useEffect(() => {
+    load()
+    const cleanup = stopTimers
+    return cleanup
+  }, [load, stopTimers])
+
+  // ── Camera stream for proctoring snapshots ──
+  const requestCamera = useCallback(async () => {
+    if (!navigator.mediaDevices?.getUserMedia) return
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 } }, audio: false })
+      stopStream()
+      streamRef.current = stream
+      if (cameraRef.current) {
+        cameraRef.current.srcObject = stream
+        cameraRef.current.play().catch(() => {})
+      }
+    } catch {
+      /* kamera tidak wajib di halaman play */
+    }
+  }, [stopStream])
+
+  useEffect(() => {
+    requestCamera()
+    return stopStream
+  }, [requestCamera, stopStream])
+
+  // ── Timer + snapshots ──
+  const submitNow = useCallback((reason: string) => {
+    if (!attemptId || isSubmitting) return
+    setIsSubmitting(true)
+    stopTimers()
+    quizApi.submit(Number(attemptId)).then(() => {
+      navigate(`/siswa-dashboard/quiz/${paketId}`, { replace: true })
+    }).catch(() => {
+      Swal.fire({ icon: 'error', title: 'Gagal mengumpulkan quiz', text: reason })
+      setIsSubmitting(false)
+      if (reason === 'waktu habis') setRemaining(0)
+    })
+  }, [attemptId, paketId, isSubmitting, stopTimers, navigate])
+
+  useEffect(() => {
+    if (!attempt) return
+    countdownRef.current = setInterval(() => {
+      const r = Math.max(0, Math.floor((endTimeRef.current - Date.now()) / 1000))
+      setRemaining(r)
+      if (r <= 0) {
+        stopTimers()
+        submitNow('waktu habis')
+      }
+    }, 1000)
+    snapshotRef.current = setInterval(captureSnapshot, 25000)
+    return stopTimers
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attempt, submitNow, stopTimers])
+
+  const captureSnapshot = () => {
+    const video = cameraRef.current
+    if (!video || video.videoWidth === 0 || !attemptId) return
+    const canvas = document.createElement('canvas')
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    canvas.getContext('2d')?.drawImage(video, 0, 0)
+    canvas.toBlob(blob => {
+      if (!blob) return
+      const fd = new FormData()
+      fd.append('photo', new File([blob], `snap-${Date.now()}.jpg`, { type: 'image/jpeg' }))
+      quizApi.uploadWebcam(Number(attemptId), fd).catch(() => {})
+    }, 'image/jpeg', 0.8)
+  }
+
+  // ── Warn on leaving page ──
+  const sendWarn = useCallback(() => {
+    if (!attemptId) return
+    quizApi.warn(Number(attemptId)).then(res => {
+      const d = res.data
+      if (d.auto_submitted || d.status === 'submitted') {
+        submitNow('keluar aplikasi')
+      } else {
+        setWarnBanner(true)
+      }
+    }).catch(() => {})
+  }, [attemptId, submitNow])
+
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') sendWarn()
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => document.removeEventListener('visibilitychange', onVis)
+  }, [sendWarn])
+
+  // ── Answer selection ──
+  const selectAnswer = (idx: number) => {
+    const q = questions[currentIndex]
+    if (!q || !attemptId || isSaving) return
+    setIsSaving(true)
+    const current = selected[q.id]
+    const next = current === idx ? null : idx
+    setSelected({ ...selected, [q.id]: next })
+    quizApi.answer(Number(attemptId), { question_id: q.id, selected_index: next === null ? -1 : next })
+      .then(() => setIsSaving(false))
+      .catch(() => {
+        setSelected({ ...selected, [q.id]: current })
+        setIsSaving(false)
+        Swal.fire({ icon: 'warning', title: 'Gagal menyimpan jawaban', text: 'Periksa koneksi Anda' })
+      })
+  }
+
+  const toggleFlag = (idx: number) => {
+    setFlagged(prev => {
+      const next = new Set(prev)
+      if (next.has(idx)) next.delete(idx)
+      else next.add(idx)
+      return next
+    })
+  }
+
+  const submitManually = () => {
+    Swal.fire({
+      title: 'Kumpulkan quiz?',
+      text: 'Jawaban yang sudah dipilih akan dinilai.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#2f6e2e',
+      confirmButtonText: 'Ya, Kumpulkan',
+      cancelButtonText: 'Periksa lagi',
+    }).then(res => {
+      if (res.isConfirmed) submitNow('manual')
+    })
+  }
+
+  // ── derived ──
+  const lowTime = remaining <= 60
+  const answeredCount = questions.filter(q => selected[q.id] !== undefined && selected[q.id] !== null).length
+  const currentQuestion = questions[currentIndex]
+
+  const sections = useMemo(() => {
+    if (!currentQuestion) return []
+    return [{ name: 'Quiz', total: questions.length, answered: answeredCount, startIndex: 0 }]
+  }, [questions, answeredCount, currentQuestion])
+
+  const currentSectionName = currentQuestion?.question ? 'Quiz' : ''
+  const sectionLocalIndex = currentIndex
+  const isLast = currentIndex === questions.length - 1
+
+  if (isLoading) {
+    return <div className="flex h-screen items-center justify-center bg-[#edf1f5] text-sm text-slate-500">Memuat soal...</div>
+  }
+  if (!attempt || !currentQuestion) {
+    return <div className="flex h-screen items-center justify-center bg-[#edf1f5] text-sm font-semibold text-red-500">Soal tidak ditemukan atau attempt tidak valid.</div>
+  }
+
+  return (
+    <div className="flex h-screen flex-col overflow-hidden bg-[#edf1f5]">
+      {/* ── Top Header (Dark) ── */}
+      <div className="relative bg-[#1f2022] px-4 py-2 md:px-6">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col leading-tight">
+            <p className="text-[13px] text-white">
+              <span className="font-normal text-gray-300">Question: </span>
+              <span className="font-bold">{sectionLocalIndex + 1}</span>
+            </p>
+            <p className="mt-1 text-[13px] font-normal text-gray-300">Section:</p>
+            <p className="max-w-[160px] truncate text-[13px] font-semibold text-white">{currentSectionName}</p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {streamRef.current && (
+              <video ref={cameraRef} muted playsInline autoPlay className="h-12 w-16 rounded-lg border border-white/20 object-cover bg-black" />
+            )}
+            <button
+              onClick={submitManually}
+              disabled={isSubmitting}
+              className="shrink-0 rounded bg-[#f0c885] px-3 py-1.5 text-xs font-bold text-gray-900 transition-colors hover:bg-[#e0b875] disabled:opacity-60 sm:px-4 sm:text-sm"
+            >
+              {isSubmitting ? 'Mengumpulkan...' : 'Finish Section'}
+            </button>
+          </div>
+        </div>
+
+        {/* Timer */}
+        <div className="mt-2 flex items-center justify-center gap-2 sm:absolute sm:left-1/2 sm:top-1/2 sm:mt-0 sm:-translate-x-1/2 sm:-translate-y-1/2">
+          <svg className="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+          <div className="flex items-baseline gap-2 sm:flex-col sm:gap-0">
+            <p className="text-[11px] tracking-wide text-white">Time Remaining</p>
+            <p className={`text-lg leading-tight font-bold ${lowTime ? 'text-red-400' : 'text-white'}`}>{fmtClock(remaining)}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Subheader (Green) ── */}
+      <div className="flex items-center justify-between border-b border-[#4d7a4c] bg-[#5e8b5d] px-4 py-1.5 md:px-6">
+        <p className="min-w-0 truncate text-[13px] text-white">
+          <span className="font-bold">Test: </span>
+          <span className="font-normal">{testTitle}</span>
+        </p>
+        <span className="shrink-0 text-[11px] font-semibold text-white/80">{answeredCount}/{questions.length} terjawab</span>
+      </div>
+
+      {/* ── Warning banner ── */}
+      {warnBanner && (
+        <div className="flex items-center gap-2 border-b border-orange-200 bg-orange-50 px-4 py-2">
+          <p className="flex-1 text-[11px] font-bold text-orange-600">Deteksi keluar aplikasi. Keluar lagi akan langsung mengumpulkan quiz otomatis.</p>
+          <button onClick={() => setWarnBanner(false)} className="text-xs font-bold text-orange-400 hover:text-orange-600">✕</button>
+        </div>
+      )}
+
+      {/* ── Mobile: question navigator ── */}
+      <div className="flex items-center gap-2 overflow-x-auto border-b border-gray-200 bg-white px-3 py-2 md:hidden">
+        <span className="shrink-0 text-[10px] font-semibold text-gray-400">Soal:</span>
+        {questions.map((q, idx) => {
+          const isActive = idx === currentIndex
+          const isAnswered = !!selected[q.id]
+          const isFlagged = flagged.has(idx)
+          return (
+            <button
+              key={q.id}
+              onClick={() => setCurrentIndex(idx)}
+              className={`relative flex h-9 min-w-9 shrink-0 items-center justify-center rounded-md px-1 text-xs font-bold transition-all hover:opacity-90 ${
+                isActive
+                  ? 'bg-[#5e8b5d] text-white'
+                  : isAnswered
+                    ? 'bg-[#474747] text-white'
+                    : 'border border-gray-200 bg-[#eef2f7] text-gray-700'
+              }`}
+            >
+              {idx + 1}
+              {isFlagged && <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-yellow-400" />}
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="flex flex-1 overflow-hidden">
+        {/* ── Left Sidebar Navigator (desktop) ── */}
+        <aside className="relative hidden md:block md:w-[130px] md:shrink-0 md:overflow-y-auto">
+          <div className="flex">
+            <div className="absolute inset-y-0 left-0 w-10 bg-white" />
+            <div className="relative z-10 mr-2 flex w-10 shrink-0 flex-col py-4">
+              {sections.map(section => {
+                const pct = section.total > 0 ? (section.answered / section.total) * 100 : 0
+                return (
+                  <div key={section.name} className="flex flex-col items-center px-2" style={{ flex: section.total }}>
+                    <p className={`mb-1 text-[12px] ${section.name === currentSectionName ? 'font-bold text-black' : 'font-medium text-gray-500'}`}>
+                      {section.name.substring(0, 2)}...
+                    </p>
+                    <div className="relative w-2.5 flex-1 overflow-hidden rounded-full bg-[#e2e4e8]">
+                      <div className="absolute bottom-0 left-0 w-full rounded-full bg-[#5e8b5d] transition-all duration-300" style={{ height: `${pct}%` }} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="flex flex-1 flex-col py-4 pl-1">
+              {questions.map((q, idx) => {
+                const isActive = idx === currentIndex
+                const isAnswered = !!selected[q.id]
+                const isFlagged = flagged.has(idx)
+                const bgColor = idx === currentIndex ? '#5e8b5d' : isAnswered ? '#474747' : '#5e8b5d'
+                return (
+                  <div key={q.id} className="flex items-center">
+                    <button
+                      onClick={() => setCurrentIndex(idx)}
+                      className="relative flex h-[28px] w-[56px] items-center justify-center rounded text-[13px] font-bold text-white transition-all hover:opacity-90"
+                      style={{ backgroundColor: bgColor }}
+                    >
+                      <span className="w-full text-center">{idx + 1}</span>
+                      {isFlagged && (
+                        <svg className="absolute right-[14px] top-1 h-[10px] w-[10px] fill-[#fde047] drop-shadow-sm" viewBox="0 0 24 24">
+                          <path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z" />
+                        </svg>
+                      )}
+                    </button>
+                    {isActive && (
+                      <svg className="h-[14px] w-[10px] shrink-0" viewBox="0 0 10 14" fill={bgColor}>
+                        <path d="M0 0L10 7L0 14z" />
+                      </svg>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </aside>
+
+        {/* ── Main Question Content ── */}
+        <div className="flex-1 overflow-y-auto bg-[#edf1f5] p-3 md:p-6">
+          <div className="mx-auto w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+            <div className="p-4 md:p-6">
+              <div className="mb-5 flex flex-col items-center md:mb-6">
+                <div className="w-full rounded bg-[#e2f2fa] p-4 md:p-6">
+                  {currentQuestion.image_url && (
+                    <div className="mb-4 flex justify-center">
+                      <img src={currentQuestion.image_url} alt="Soal"
+                        className="max-h-56 w-auto max-w-full rounded-lg border border-gray-200 bg-white object-contain" />
+                    </div>
+                  )}
+                  <p className="text-base font-medium text-gray-900 md:text-lg">{currentQuestion.question}</p>
+                  {currentQuestion.audio_url && (
+                    <QuestionAudio
+                      src={currentQuestion.audio_url}
+                      maxPlays={currentQuestion.audio_max_plays ?? null}
+                      plays={audioPlays[currentQuestion.id] ?? 0}
+                      onPlay={() => setAudioPlays(prev => ({ ...prev, [currentQuestion.id]: (prev[currentQuestion.id] ?? 0) + 1 }))}
+                    />
+                  )}
+                  {currentQuestion.points > 0 && (
+                    <p className="mt-2 text-[11px] font-semibold text-gray-400">{currentQuestion.points} poin</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2.5 md:gap-3">
+                {currentQuestion.question_type === 'rating' && (
+                  <p className="text-[11px] font-bold text-violet-600 uppercase tracking-wide">Skala penilaian 1–{currentQuestion.rating_max || currentQuestion.options.length} — pilih salah satu</p>
+                )}
+                {currentQuestion.options.map((opt, oi) => {
+                  const isSelected = selected[currentQuestion.id] === oi
+                  const badgeLabel = currentQuestion.question_type === 'rating' ? opt : String.fromCharCode(65 + oi)
+                  return (
+                    <button
+                      key={oi}
+                      onClick={() => selectAnswer(oi)}
+                      disabled={isSaving || lowTime && remaining <= 0}
+                      className={`flex w-full items-center gap-3 rounded border p-3 text-left transition-colors disabled:opacity-50 md:gap-4 ${
+                        isSelected ? (currentQuestion.question_type === 'rating' ? 'border-violet-500 bg-violet-50' : 'border-[#5e8b5d] bg-[#f2f8f2]') : 'border-gray-300 bg-white hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                        isSelected ? (currentQuestion.question_type === 'rating' ? 'bg-violet-500 text-white' : 'bg-[#5e8b5d] text-white') : 'bg-[#eef2f7] text-gray-600'
+                      }`}>
+                        {badgeLabel}
+                      </span>
+                      <span className="text-sm text-gray-800 md:text-base">{opt}</span>
+                      {isSelected && <span className={`ml-auto ${currentQuestion.question_type === 'rating' ? 'text-violet-500' : 'text-[#5e8b5d]'}`}>✓</span>}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Footer ── */}
+      <div className="flex items-center justify-between gap-2 bg-[#1f2022] px-3 py-2 md:px-6">
+        <button
+          onClick={() => toggleFlag(currentIndex)}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-[#405640] transition-colors hover:bg-[#4d664d] md:h-9 md:w-10"
+          aria-label="Flag"
+        >
+          <svg className={`h-4 w-4 ${flagged.has(currentIndex) ? 'fill-[#f0c885]' : 'fill-white'}`} viewBox="0 0 24 24">
+            <path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z" />
+          </svg>
+        </button>
+
+        <div className="flex flex-1 items-center justify-end gap-2 md:gap-3">
+          <button
+            onClick={() => setCurrentIndex(i => Math.max(0, i - 1))}
+            disabled={currentIndex === 0}
+            className="rounded bg-[#405640] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#4d664d] disabled:opacity-50 md:px-5"
+          >
+            &lt; Back
+          </button>
+
+          {!isLast ? (
+            <button
+              onClick={() => setCurrentIndex(i => Math.min(questions.length - 1, i + 1))}
+              className="rounded bg-[#5e8b5d] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#4d7a4c] md:px-5"
+            >
+              Next &gt;
+            </button>
+          ) : (
+            <button
+              onClick={submitManually}
+              disabled={isSubmitting}
+              className="rounded bg-[#5e8b5d] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#4d7a4c] disabled:opacity-60"
+            >
+              {isSubmitting ? 'Mengumpulkan...' : 'Finish'}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   ClipboardList, ChevronLeft, ChevronRight, Save, Send, Upload, Plus, Trash2, Loader2,
-  LayoutDashboard, Wallet, CalendarCheck, BookOpen, User, X,
+  LayoutDashboard, Wallet, CalendarCheck, BookOpen, User, X, ShieldCheck, CheckCircle2, Lock, AlertCircle,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 import api from '../../services/api'
@@ -29,20 +29,33 @@ const sswFields = [
 
 const inputCls = 'w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder:text-slate-400'
 
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+const API_WILAYAH = 'https://cdn.jsdelivr.net/gh/izzulabadi/api-wilayah-indonesia-2026@v1.0.4/api'
+
+interface Wilayah {
+  id: string
+  name: string
+}
+
+function Field({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: React.ReactNode }) {
   return (
     <div>
       <label className="mb-1 block text-xs font-semibold text-slate-600">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
-      {children}
+      <div className={error ? 'rounded-md ring-2 ring-red-300' : ''}>{children}</div>
+      {error && (
+        <p className="mt-1 flex items-center gap-1 text-[11px] font-medium text-red-500">
+          <AlertCircle size={12} />
+          {error}
+        </p>
+      )}
     </div>
   )
 }
 
-function YesNo({ label, required, value, onChange }: { label: string; required?: boolean; value: string; onChange: (v: string) => void }) {
+function YesNo({ label, required, value, onChange, error }: { label: string; required?: boolean; value: string; onChange: (v: string) => void; error?: string }) {
   return (
-    <Field label={label} required={required}>
+    <Field label={label} required={required} error={error}>
       <select className={inputCls} value={value} onChange={e => onChange(e.target.value)}>
         <option value="">Pilih...</option>
         <option value="Ya">Ya</option>
@@ -52,55 +65,71 @@ function YesNo({ label, required, value, onChange }: { label: string; required?:
   )
 }
 
-function MonthYear({ required, bulan, tahun, onBulan, onTahun }: { required?: boolean; bulan: string; tahun: string; onBulan: (v: string) => void; onTahun: (v: string) => void }) {
+function MonthYear({ required, bulan, tahun, onBulan, onTahun, error }: { required?: boolean; bulan: string; tahun: string; onBulan: (v: string) => void; onTahun: (v: string) => void; error?: string }) {
   return (
-    <div className="grid grid-cols-2 gap-2">
-      <select className={inputCls} value={bulan} onChange={e => onBulan(e.target.value)}>
-        <option value="">Bulan{required ? ' *' : ''}</option>
-        {months.map(m => <option key={m} value={m}>{m}</option>)}
-      </select>
-      <select className={inputCls} value={tahun} onChange={e => onTahun(e.target.value)}>
-        <option value="">Tahun{required ? ' *' : ''}</option>
-        {years.map(y => <option key={y} value={y}>{y}</option>)}
-      </select>
+    <div>
+      <div className={`grid grid-cols-2 gap-2 ${error ? '[&_select]:ring-2 [&_select]:ring-red-300 [&_select]:border-red-300' : ''}`}>
+        <select className={inputCls} value={bulan} onChange={e => onBulan(e.target.value)}>
+          <option value="">Bulan{required ? ' *' : ''}</option>
+          {months.map(m => <option key={m} value={m}>{m}</option>)}
+        </select>
+        <select className={inputCls} value={tahun} onChange={e => onTahun(e.target.value)}>
+          <option value="">Tahun{required ? ' *' : ''}</option>
+          {years.map(y => <option key={y} value={y}>{y}</option>)}
+        </select>
+      </div>
+      {error && (
+        <p className="mt-1 flex items-center gap-1 text-[11px] font-medium text-red-500">
+          <AlertCircle size={12} />
+          {error}
+        </p>
+      )}
     </div>
   )
 }
 
-function UploadRow({ label, required, note, file, onFileChange, maxKB }: { label: string; required?: boolean; note?: string; file: File | null; onFileChange: (f: File | null) => void; maxKB?: number }) {
+function UploadRow({ label, required, note, file, onFileChange, maxKB, error }: { label: string; required?: boolean; note?: string; file: File | null; onFileChange: (f: File | null) => void; maxKB?: number; error?: string }) {
   const limit = maxKB || 500
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50/60 p-3 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <p className="text-sm font-medium text-slate-700">
-          {label} {required && <span className="text-red-500">*</span>}
+    <div className={`rounded-lg border bg-slate-50/60 p-3 ${error ? 'border-red-300 ring-2 ring-red-300' : 'border-slate-200'}`}>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-medium text-slate-700">
+            {label} {required && <span className="text-red-500">*</span>}
+          </p>
+          {note && <p className="text-[11px] text-slate-400">{note}</p>}
+        </div>
+        <div className="flex items-center gap-2">
+          {file ? (
+            <span className="max-w-[180px] truncate text-xs text-slate-500">{file.name}</span>
+          ) : (
+            <span className="text-xs text-slate-400">Belum ada file</span>
+          )}
+          <label className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50">
+            <Upload size={13} />
+            Upload
+            <input
+              type="file"
+              className="hidden"
+              onChange={e => {
+                const f = e.target.files?.[0] || null
+                if (f && f.size > limit * 1024) {
+                  Swal.fire({ icon: 'warning', title: 'File terlalu besar', text: `Ukuran maks ${limit}KB untuk ${label}.`, confirmButtonColor: '#0E6187' })
+                  e.target.value = ''
+                  return
+                }
+                onFileChange(f)
+              }}
+            />
+          </label>
+        </div>
+      </div>
+      {error && (
+        <p className="mt-1.5 flex items-center gap-1 text-xs font-medium text-red-500">
+          <AlertCircle size={12} />
+          {error}
         </p>
-        {note && <p className="text-[11px] text-slate-400">{note}</p>}
-      </div>
-      <div className="flex items-center gap-2">
-        {file ? (
-          <span className="max-w-[180px] truncate text-xs text-slate-500">{file.name}</span>
-        ) : (
-          <span className="text-xs text-slate-400">Belum ada file</span>
-        )}
-        <label className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50">
-          <Upload size={13} />
-          Upload
-          <input
-            type="file"
-            className="hidden"
-            onChange={e => {
-              const f = e.target.files?.[0] || null
-              if (f && f.size > limit * 1024) {
-                Swal.fire({ icon: 'warning', title: 'File terlalu besar', text: `Ukuran maks ${limit}KB untuk ${label}.`, confirmButtonColor: '#0E6187' })
-                e.target.value = ''
-                return
-              }
-              onFileChange(f)
-            }}
-          />
-        </label>
-      </div>
+      )}
     </div>
   )
 }
@@ -115,12 +144,14 @@ interface Pengalaman {
   tahun_keluar: string
   masih_bekerja: boolean
   deskripsi_pekerjaan: string
+  alasan_keluar: string
 }
 
-function ExperienceCard({ value, onChange, onRemove }: { value: Pengalaman; onChange: (v: Pengalaman) => void; onRemove: () => void }) {
+function ExperienceCard({ value, onChange, onRemove, getError, paklaring, onPaklaring }: { value: Pengalaman; onChange: (v: Pengalaman) => void; onRemove: () => void; getError?: (k: string) => string | undefined; paklaring?: File | null; onPaklaring?: (f: File | null) => void }) {
   const set = (k: keyof Pengalaman) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     onChange({ ...value, [k]: e.target.value })
   const setBulan = (k: 'bulan_masuk' | 'tahun_masuk' | 'bulan_keluar' | 'tahun_keluar') => (v: string) => onChange({ ...value, [k]: v })
+  const err = (k: string) => (getError ? getError(k) : undefined)
   return (
     <div className="rounded-lg border border-slate-200 p-4">
       <div className="mb-3 flex items-center justify-between">
@@ -131,15 +162,25 @@ function ExperienceCard({ value, onChange, onRemove }: { value: Pengalaman; onCh
         </button>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Nama Perusahaan" required><input className={inputCls} placeholder="Nama perusahaan" value={value.nama_perusahaan} onChange={set('nama_perusahaan')} /></Field>
-        <Field label="Posisi / Jabatan" required><input className={inputCls} placeholder="Posisi" value={value.posisi} onChange={set('posisi')} /></Field>
-        <Field label="Periode Masuk" required><MonthYear required bulan={value.bulan_masuk} tahun={value.tahun_masuk} onBulan={setBulan('bulan_masuk')} onTahun={setBulan('tahun_masuk')} /></Field>
-        <Field label="Periode Keluar" required><MonthYear required bulan={value.bulan_keluar} tahun={value.tahun_keluar} onBulan={setBulan('bulan_keluar')} onTahun={setBulan('tahun_keluar')} /></Field>
+        <Field label="Nama Perusahaan" required error={err('nama_perusahaan')}><input className={inputCls} placeholder="Nama perusahaan" value={value.nama_perusahaan} onChange={set('nama_perusahaan')} /></Field>
+        <Field label="Posisi / Jabatan" required error={err('posisi')}><input className={inputCls} placeholder="Posisi" value={value.posisi} onChange={set('posisi')} /></Field>
+        <Field label="Periode Masuk" required><MonthYear required bulan={value.bulan_masuk} tahun={value.tahun_masuk} onBulan={setBulan('bulan_masuk')} onTahun={setBulan('tahun_masuk')} error={err('bulan_masuk') || err('tahun_masuk')} /></Field>
+        <Field label="Periode Keluar" required><MonthYear required bulan={value.bulan_keluar} tahun={value.tahun_keluar} onBulan={setBulan('bulan_keluar')} onTahun={setBulan('tahun_keluar')} error={err('bulan_keluar') || err('tahun_keluar')} /></Field>
         <div className="sm:col-span-2">
           <Field label="Deskripsi Pekerjaan">
             <textarea className={`${inputCls} min-h-[70px]`} placeholder="Tugas dan tanggung jawab..." value={value.deskripsi_pekerjaan} onChange={set('deskripsi_pekerjaan')} />
           </Field>
         </div>
+        <div className="sm:col-span-2">
+          <Field label="Alasan Keluar">
+            <textarea className={`${inputCls} min-h-[70px]`} placeholder="Alasan berhenti / keluar dari perusahaan..." value={value.alasan_keluar} onChange={set('alasan_keluar')} />
+          </Field>
+        </div>
+        {onPaklaring && (
+          <div className="sm:col-span-2">
+            <UploadRow label="Sertifikasi / Paklaring" note="Opsional — Maks 500KB" maxKB={500} file={paklaring || null} onFileChange={onPaklaring} />
+          </div>
+        )}
       </div>
     </div>
   )
@@ -153,17 +194,18 @@ interface Keluarga {
   penghasilan: string
 }
 
-function FamilyMemberCard({ title, hubungan, value, onChange, required }: { title: string; hubungan: string; value: Keluarga; onChange: (v: Keluarga) => void; required?: boolean }) {
+function FamilyMemberCard({ title, hubungan, value, onChange, required, getError }: { title: string; hubungan: string; value: Keluarga; onChange: (v: Keluarga) => void; required?: boolean; getError?: (k: string) => string | undefined }) {
   const set = (k: keyof Keluarga) => (e: React.ChangeEvent<HTMLInputElement>) =>
     onChange({ ...value, [k]: e.target.value })
+  const err = (k: string) => (getError ? getError(k) : undefined)
   return (
     <div className="rounded-lg border border-slate-200 p-4">
       <p className="mb-3 text-sm font-semibold text-slate-700">{title}</p>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Nama" required={required}><input className={inputCls} placeholder="Nama" value={value.nama} onChange={set('nama')} /></Field>
-        <Field label="Usia" required={required}><input className={inputCls} placeholder="Usia" value={value.usia} onChange={set('usia')} /></Field>
-        <Field label="Pekerjaan" required={required}><input className={inputCls} placeholder="Pekerjaan" value={value.pekerjaan} onChange={set('pekerjaan')} /></Field>
-        <Field label="Penghasilan/Bulan" required={required}>
+        <Field label="Nama" required={required} error={err('nama')}><input className={inputCls} placeholder="Nama" value={value.nama} onChange={set('nama')} /></Field>
+        <Field label="Usia" required={required} error={err('usia')}><input className={inputCls} placeholder="Usia" value={value.usia} onChange={set('usia')} /></Field>
+        <Field label="Pekerjaan" required={required} error={err('pekerjaan')}><input className={inputCls} placeholder="Pekerjaan" value={value.pekerjaan} onChange={set('pekerjaan')} /></Field>
+        <Field label="Penghasilan/Bulan" required={required} error={err('penghasilan')}>
           <div className="flex">
             <span className="inline-flex items-center rounded-l-md border border-r-0 border-slate-300 bg-slate-50 px-2.5 text-xs text-slate-500">Rp</span>
             <input className={`${inputCls} rounded-l-none`} placeholder="0" value={value.penghasilan} onChange={set('penghasilan')} />
@@ -232,15 +274,16 @@ interface Pendidikan {
   tahun_lulus: string
 }
 
-function EducationBlock({ title, value, onChange, required }: { title: string; value: Pendidikan; onChange: (v: Pendidikan) => void; required?: boolean }) {
+function EducationBlock({ title, value, onChange, required, getError, ijazah, onIjazah }: { title: string; value: Pendidikan; onChange: (v: Pendidikan) => void; required?: boolean; getError?: (k: string) => string | undefined; ijazah?: File | null; onIjazah?: (f: File | null) => void }) {
   const set = (k: keyof Pendidikan) => (e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...value, [k]: e.target.value })
   const setBulan = (k: 'bulan_masuk' | 'tahun_masuk' | 'bulan_lulus' | 'tahun_lulus') => (v: string) => onChange({ ...value, [k]: v })
+  const err = (k: string) => (getError ? getError(k) : undefined)
   return (
     <div className="rounded-lg border border-slate-200 p-4">
       <p className="mb-3 text-sm font-semibold text-slate-700">{title}</p>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <Field label="Nama Sekolah / Universitas" required={required}>
+          <Field label="Nama Sekolah / Universitas" required={required} error={err('nama_sekolah')}>
             <input className={inputCls} placeholder={title} value={value.nama_sekolah} onChange={set('nama_sekolah')} />
           </Field>
         </div>
@@ -251,15 +294,24 @@ function EducationBlock({ title, value, onChange, required }: { title: string; v
             </Field>
           </div>
         ) : null}
-        <Field label="Bulan & Tahun Masuk" required={required}><MonthYear required={required} bulan={value.bulan_masuk} tahun={value.tahun_masuk} onBulan={setBulan('bulan_masuk')} onTahun={setBulan('tahun_masuk')} /></Field>
-        <Field label="Bulan & Tahun Lulus" required={required}><MonthYear required={required} bulan={value.bulan_lulus} tahun={value.tahun_lulus} onBulan={setBulan('bulan_lulus')} onTahun={setBulan('tahun_lulus')} /></Field>
+        <Field label="Bulan & Tahun Masuk" required={required}>
+          <MonthYear required={required} bulan={value.bulan_masuk} tahun={value.tahun_masuk} onBulan={setBulan('bulan_masuk')} onTahun={setBulan('tahun_masuk')} error={err('bulan_masuk') || err('tahun_masuk')} />
+        </Field>
+        <Field label="Bulan & Tahun Lulus" required={required}>
+          <MonthYear required={required} bulan={value.bulan_lulus} tahun={value.tahun_lulus} onBulan={setBulan('bulan_lulus')} onTahun={setBulan('tahun_lulus')} error={err('bulan_lulus') || err('tahun_lulus')} />
+        </Field>
       </div>
+      {onIjazah && (
+        <div className="mt-3">
+          <UploadRow label={`Ijazah ${title}`} required={required} note="Maks 500KB" maxKB={500} file={ijazah || null} onFileChange={onIjazah} error={err('ijazah')} />
+        </div>
+      )}
     </div>
   )
 }
 
 const emptyPendidikan = (): Pendidikan => ({ nama_sekolah: '', jurusan: '', bulan_masuk: '', tahun_masuk: '', bulan_lulus: '', tahun_lulus: '' })
-const emptyPengalaman = (): Pengalaman => ({ nama_perusahaan: '', alamat_perusahaan: '', posisi: '', bulan_masuk: '', tahun_masuk: '', bulan_keluar: '', tahun_keluar: '', masih_bekerja: false, deskripsi_pekerjaan: '' })
+const emptyPengalaman = (): Pengalaman => ({ nama_perusahaan: '', alamat_perusahaan: '', posisi: '', bulan_masuk: '', tahun_masuk: '', bulan_keluar: '', tahun_keluar: '', masih_bekerja: false, deskripsi_pekerjaan: '', alasan_keluar: '' })
 const emptyKeluarga = (hubungan: string): Keluarga => ({ hubungan, nama: '', usia: '', pekerjaan: '', penghasilan: '' })
 
 const boolToStr = (v: any): string =>
@@ -277,25 +329,24 @@ const dokumenList: { jenis: string; label: string; required: boolean; maxKB: num
   { jenis: 'lainnya', label: 'Dokumen Lainnya', required: false, maxKB: 500 },
 ]
 
-const statusFormulirMeta: Record<string, { label: string; desc: string; cls: string; dot: string }> = {
-  draft: { label: 'Draft', desc: 'Formulir disimpan sebagai draft di Sistem Penempatan', cls: 'bg-amber-100 text-amber-700', dot: 'bg-amber-500' },
-  submitted: { label: 'Terkirim', desc: 'Formulir sudah dikirim ke Sistem Penempatan', cls: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' },
-  reviewed: { label: 'Direview', desc: 'Formulir sedang direview oleh tim penempatan', cls: 'bg-purple-100 text-purple-700', dot: 'bg-purple-500' },
-  approved: { label: 'Disetujui', desc: 'Formulir telah disetujui oleh tim penempatan', cls: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' },
-  rejected: { label: 'Ditolak', desc: 'Formulir ditolak oleh tim penempatan', cls: 'bg-red-100 text-red-700', dot: 'bg-red-500' },
-}
-
 export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKandidatId?: number; onClose?: () => void } = {}) {
   const [activeStep, setActiveStep] = useState(0)
-  const [statusFormulir, setStatusFormulir] = useState('draft')
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [, setStatusFormulir] = useState('draft')
   const [kandidatId, setKandidatId] = useState<number | null>(null)
   const studentIdentity = useRef<{ email: string; nama: string }>({ email: '', nama: '' })
   const hydratedRef = useRef(false)
   const [sending, setSending] = useState(false)
   const [pengalaman, setPengalaman] = useState<Pengalaman[]>([])
+  const [pengalamanPaklaring, setPengalamanPaklaring] = useState<Record<number, File | null>>({})
   const [sswSelected, setSswSelected] = useState<Set<string>>(new Set())
   const [sswCert, setSswCert] = useState<File[]>([])
   const [loading, setLoading] = useState(true)
+  const [provinsiList, setProvinsiList] = useState<Wilayah[]>([])
+  const [kabupatenList, setKabupatenList] = useState<Wilayah[]>([])
+  const [kecamatanList, setKecamatanList] = useState<Wilayah[]>([])
+  const [desaList, setDesaList] = useState<Wilayah[]>([])
+  const [wilayahLoading, setWilayahLoading] = useState({ provinsi: false, kabupaten: false, kecamatan: false, desa: false })
   const [dokumen, setDokumen] = useState<Record<string, File | null>>({})
   const [cabangList, setCabangList] = useState<{ id: number; nama_cabang: string }[]>([])
   const location = useLocation()
@@ -324,15 +375,21 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
     namaOrtu: '',
     noHpOrtu: '',
     alamatLengkap: '',
+    alamatProvinsi: '',
+    alamatKabupaten: '',
+    alamatKecamatan: '',
+    alamatDesa: '',
     pendidikanTerakhir: '',
     tahunLulus: '',
     sudahVaksin: '',
     kondisiKesehatan: '',
+    catatanKesehatan: '',
     penglihatanKanan: '',
     penglihatanKiri: '',
     berkacamata: '',
     lensaKontak: '',
     butaWarna: '',
+    jenisButaWarna: '',
     bertato: '',
     merokok: '',
     minumAlkohol: '',
@@ -371,6 +428,7 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
     'SMA/SMK': emptyPendidikan(),
     'Perguruan Tinggi': emptyPendidikan(),
   })
+  const [pendidikanIjazah, setPendidikanIjazah] = useState<Record<string, File | null>>({})
   const [ayah, setAyah] = useState<Keluarga>(emptyKeluarga('Ayah'))
   const [ibu, setIbu] = useState<Keluarga>(emptyKeluarga('Ibu'))
   const [suami, setSuami] = useState<Keluarga[]>([])
@@ -378,8 +436,288 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
   const [kakak, setKakak] = useState<Keluarga[]>([])
   const [adik, setAdik] = useState<Keluarga[]>([])
 
-  const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
-    setForm(f => ({ ...f, [key]: e.target.value }))
+  const hitungUmur = (tanggalLahir: string) => {
+    const birth = new Date(tanggalLahir)
+    if (!tanggalLahir || isNaN(birth.getTime())) return ''
+    return String(Math.max(0, Math.floor((Date.now() - birth.getTime()) / (365.25 * 24 * 3600 * 1000))))
+  }
+
+  const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const val = e.target.value
+    setForm(f => {
+      const next = { ...f, [key]: val }
+      if (key === 'tanggalLahir') next.umur = hitungUmur(val)
+      return next
+    })
+    setErrors(prev => { if (!prev[key]) return prev; const next = { ...prev }; delete next[key]; return next })
+  }
+
+  const fetchKabupaten = useCallback((provId: string) => {
+    setKabupatenList([])
+    setKecamatanList([])
+    setDesaList([])
+    if (!provId) return
+    setWilayahLoading(p => ({ ...p, kabupaten: true }))
+    fetch(`${API_WILAYAH}/regencies/${provId}.json`)
+      .then(r => r.json())
+      .then((data: Wilayah[]) => setKabupatenList(data))
+      .catch(() => {})
+      .finally(() => setWilayahLoading(p => ({ ...p, kabupaten: false })))
+  }, [])
+
+  const fetchKecamatan = useCallback((kabId: string) => {
+    setKecamatanList([])
+    setDesaList([])
+    if (!kabId) return
+    setWilayahLoading(p => ({ ...p, kecamatan: true }))
+    fetch(`${API_WILAYAH}/districts/${kabId}.json`)
+      .then(r => r.json())
+      .then((data: Wilayah[]) => setKecamatanList(data))
+      .catch(() => {})
+      .finally(() => setWilayahLoading(p => ({ ...p, kecamatan: false })))
+  }, [])
+
+  const fetchDesa = useCallback((kecId: string) => {
+    setDesaList([])
+    if (!kecId) return
+    setWilayahLoading(p => ({ ...p, desa: true }))
+    fetch(`${API_WILAYAH}/villages/${kecId}.json`)
+      .then(r => r.json())
+      .then((data: Wilayah[]) => setDesaList(data))
+      .catch(() => {})
+      .finally(() => setWilayahLoading(p => ({ ...p, desa: false })))
+  }, [])
+
+  useEffect(() => {
+    setWilayahLoading(p => ({ ...p, provinsi: true }))
+    fetch(`${API_WILAYAH}/provinces.json`)
+      .then(r => r.json())
+      .then((data: Wilayah[]) => setProvinsiList(data))
+      .catch(() => {})
+      .finally(() => setWilayahLoading(p => ({ ...p, provinsi: false })))
+  }, [])
+
+  useEffect(() => {
+    if (!provinsiList.length || !form.alamatProvinsi) return
+    const found = provinsiList.find(p => p.name.toLowerCase() === form.alamatProvinsi.toLowerCase())
+    if (found) fetchKabupaten(found.id)
+  }, [provinsiList, form.alamatProvinsi, fetchKabupaten])
+
+  useEffect(() => {
+    if (!kabupatenList.length || !form.alamatKabupaten) return
+    const found = kabupatenList.find(k => k.name.toLowerCase() === form.alamatKabupaten.toLowerCase())
+    if (found) fetchKecamatan(found.id)
+  }, [kabupatenList, form.alamatKabupaten, fetchKecamatan])
+
+  useEffect(() => {
+    if (!kecamatanList.length || !form.alamatKecamatan) return
+    const found = kecamatanList.find(k => k.name.toLowerCase() === form.alamatKecamatan.toLowerCase())
+    if (found) fetchDesa(found.id)
+  }, [kecamatanList, form.alamatKecamatan, fetchDesa])
+
+  const findIdByName = (list: Wilayah[], name: string) => {
+    if (!list.length || !name) return ''
+    return list.find(w => w.name.toLowerCase() === name.toLowerCase())?.id || ''
+  }
+
+  const clearErrors = (keys: string[]) => {
+    setErrors(prev => {
+      if (!keys.some(k => prev[k])) return prev
+      const next = { ...prev }
+      keys.forEach(k => { delete next[k] })
+      return next
+    })
+  }
+
+  const clearStepErrors = (step: number) => {
+    const keys = stepKeys[step] || []
+    setErrors(prev => {
+      const next = { ...prev }
+      let changed = false
+      keys.forEach(k => {
+        if (next[k]) { delete next[k]; changed = true }
+        else {
+          Object.keys(next).forEach(full => {
+            if (full.startsWith(k + '.')) { delete next[full]; changed = true }
+          })
+        }
+      })
+      return changed ? next : prev
+    })
+  }
+
+  const req = (errs: Record<string, string>, key: string, v: any, label: string, extra?: string) => {
+    if (v === '' || v === null || v === undefined || v === 'Pilih...') {
+      errs[key] = extra || `${label} wajib diisi.`
+    }
+  }
+
+  const validateStep = (step: number): Record<string, string> => {
+    const errs: Record<string, string> = {}
+    if (step === 0) {
+      req(errs, 'cabang', form.cabang, 'Cabang Mendunia')
+      req(errs, 'nik', form.nik, 'NIK')
+      if (form.nik && !/^\d{16}$/.test(form.nik)) errs.nik = 'NIK harus 16 digit angka.'
+      req(errs, 'namaKatakana', form.namaKatakana, 'Nama (Katakana)')
+      req(errs, 'namaRomaji', form.namaRomaji, 'Nama Lengkap')
+      req(errs, 'tempatLahir', form.tempatLahir, 'Tempat Lahir')
+      req(errs, 'tanggalLahir', form.tanggalLahir, 'Tanggal Lahir')
+      req(errs, 'umur', form.umur, 'Umur')
+      if (form.umur && (Number(form.umur) < 15 || Number(form.umur) > 60)) errs.umur = 'Umur harus antara 15–60 tahun.'
+      req(errs, 'jenisKelamin', form.jenisKelamin, 'Jenis Kelamin')
+      req(errs, 'statusPernikahan', form.statusPernikahan, 'Status Pernikahan')
+      req(errs, 'agama', form.agama, 'Agama')
+      req(errs, 'tinggiBadan', form.tinggiBadan, 'Tinggi Badan')
+      if (form.tinggiBadan && Number(form.tinggiBadan) <= 0) errs.tinggiBadan = 'Tinggi badan tidak valid.'
+      req(errs, 'beratBadan', form.beratBadan, 'Berat Badan')
+      if (form.beratBadan && Number(form.beratBadan) <= 0) errs.beratBadan = 'Berat badan tidak valid.'
+      req(errs, 'golonganDarah', form.golonganDarah, 'Golongan Darah')
+      req(errs, 'tanganDominan', form.tanganDominan, 'Tangan Dominan')
+      req(errs, 'ukuranBaju', form.ukuranBaju, 'Ukuran Baju')
+      req(errs, 'noHp', form.noHp, 'Nomor HP')
+      if (form.noHp && !/^[0-9+()\s-]{8,20}$/.test(form.noHp)) errs.noHp = 'Format nomor HP tidak valid.'
+      if (!form.email) errs.email = 'Email Kontak wajib diisi.'
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Format email tidak valid.'
+      req(errs, 'namaOrtu', form.namaOrtu, 'Nama Orang Tua / Wali')
+      req(errs, 'noHpOrtu', form.noHpOrtu, 'No. HP Orang Tua')
+      req(errs, 'alamatLengkap', form.alamatLengkap, 'Alamat Lengkap')
+    } else if (step === 1) {
+      req(errs, 'sudahVaksin', form.sudahVaksin, 'Sudah Vaksin')
+      req(errs, 'kondisiKesehatan', form.kondisiKesehatan, 'Kondisi Kesehatan')
+      if (form.kondisiKesehatan === 'Sehat dengan catatan' && !form.catatanKesehatan) errs.catatanKesehatan = 'Catatan kondisi kesehatan wajib diisi saat memilih "Sehat dengan catatan".'
+      req(errs, 'berkacamata', form.berkacamata, 'Berkacamata')
+      req(errs, 'lensaKontak', form.lensaKontak, 'Lensa Kontak')
+      req(errs, 'butaWarna', form.butaWarna, 'Buta Warna')
+      if (form.butaWarna === 'Ya') req(errs, 'jenisButaWarna', form.jenisButaWarna, 'Jenis Buta Warna')
+      req(errs, 'bertato', form.bertato, 'Bertato')
+      req(errs, 'merokok', form.merokok, 'Merokok')
+      req(errs, 'minumAlkohol', form.minumAlkohol, 'Minum Alkohol')
+      req(errs, 'riwayatPenyakit', form.riwayatPenyakit, 'Riwayat Penyakit / Cedera')
+    } else if (step === 2) {
+      req(errs, 'pendidikanTerakhir', form.pendidikanTerakhir, 'Pendidikan Terakhir')
+      ;(['SD', 'SMP'] as const).forEach(j => {
+        const b = pendidikan[j]
+        if (!b.nama_sekolah) errs[`${j}.nama_sekolah`] = `Nama sekolah ${j} wajib diisi.`
+        if (!b.bulan_masuk) errs[`${j}.bulan_masuk`] = `Bulan masuk ${j} wajib diisi.`
+        if (!b.tahun_masuk) errs[`${j}.tahun_masuk`] = `Tahun masuk ${j} wajib diisi.`
+        if (!b.bulan_lulus) errs[`${j}.bulan_lulus`] = `Bulan lulus ${j} wajib diisi.`
+        if (!b.tahun_lulus) errs[`${j}.tahun_lulus`] = `Tahun lulus ${j} wajib diisi.`
+        if (!pendidikanIjazah[j]) errs[`${j}.ijazah`] = `Ijazah ${j} wajib diupload.`
+      })
+    } else if (step === 3) {
+      pengalaman.forEach((p, i) => {
+        if (!p.nama_perusahaan) errs[`pengalaman.${i}.nama_perusahaan`] = `Nama perusahaan ke-${i + 1} wajib diisi.`
+        if (!p.posisi) errs[`pengalaman.${i}.posisi`] = `Posisi ke-${i + 1} wajib diisi.`
+        if (!p.bulan_masuk) errs[`pengalaman.${i}.bulan_masuk`] = `Bulan masuk ke-${i + 1} wajib diisi.`
+        if (!p.tahun_masuk) errs[`pengalaman.${i}.tahun_masuk`] = `Tahun masuk ke-${i + 1} wajib diisi.`
+        if (!p.masih_bekerja && !p.bulan_keluar) errs[`pengalaman.${i}.bulan_keluar`] = `Bulan keluar ke-${i + 1} wajib diisi.`
+        if (!p.masih_bekerja && !p.tahun_keluar) errs[`pengalaman.${i}.tahun_keluar`] = `Tahun keluar ke-${i + 1} wajib diisi.`
+      })
+    } else if (step === 4) {
+      req(errs, 'levelJlpt', form.levelJlpt, 'Level JLPT')
+      req(errs, 'lamaBelajarJepang', form.lamaBelajarJepang, 'Lama Belajar Bahasa Jepang')
+      req(errs, 'levelBahasaJepang', form.levelBahasaJepang, 'Level Bahasa Jepang')
+    } else if (step === 5) {
+      req(errs, 'penghasilanKeluarga', form.penghasilanKeluarga, 'Penghasilan Keluarga')
+      ;([['Ayah', ayah], ['Ibu', ibu]] as const).forEach(([label, m]) => {
+        if (!m.nama) errs[`${label}.nama`] = `Nama ${label} wajib diisi.`
+        if (!m.usia) errs[`${label}.usia`] = `Usia ${label} wajib diisi.`
+        if (!m.pekerjaan) errs[`${label}.pekerjaan`] = `Pekerjaan ${label} wajib diisi.`
+        if (!m.penghasilan) errs[`${label}.penghasilan`] = `Penghasilan ${label} wajib diisi.`
+      })
+    } else if (step === 6) {
+      req(errs, 'pernahKeJepang', form.pernahKeJepang, 'Pernah ke Jepang')
+      req(errs, 'keluargaDiJepang', form.keluargaDiJepang, 'Keluarga di Jepang')
+      req(errs, 'kenalanDiJepang', form.kenalanDiJepang, 'Kenalan di Jepang')
+    } else if (step === 7) {
+      req(errs, 'tujuanKeJepang', form.tujuanKeJepang, 'Tujuan ke Jepang')
+      req(errs, 'alasanKeJepang', form.alasanKeJepang, 'Alasan ke Jepang')
+      req(errs, 'citaCitaSetelahJepang', form.citaCitaSetelahJepang, 'Cita-cita Setelah Jepang')
+      req(errs, 'rencanaPengirimanUang', form.rencanaPengirimanUang, 'Rencana Pengiriman Uang')
+      req(errs, 'kelebihanDiri', form.kelebihanDiri, 'Kelebihan Diri')
+      req(errs, 'kekuranganDiri', form.kekuranganDiri, 'Kekurangan Diri')
+      req(errs, 'hobi', form.hobi, 'Hobi')
+      req(errs, 'keahlian', form.keahlian, 'Keahlian')
+      req(errs, 'bersediaShift', form.bersediaShift, 'Bersedia Shift')
+      req(errs, 'bersediaLembur', form.bersediaLembur, 'Bersedia Lembur')
+      req(errs, 'bersediaHariLibur', form.bersediaHariLibur, 'Bersedia Kerja Hari Libur')
+      req(errs, 'lamaTinggalJepang', form.lamaTinggalJepang, 'Lama Tinggal di Jepang')
+      req(errs, 'lamaKerjaPerusahaan', form.lamaKerjaPerusahaan, 'Lama Kerja di Perusahaan')
+      req(errs, 'rencanaPulang', form.rencanaPulang, 'Rencana Pulang')
+      req(errs, 'sumberBiaya', form.sumberBiaya, 'Sumber Biaya')
+      req(errs, 'biayaDisiapkan', form.biayaDisiapkan, 'Biaya Disiapkan')
+    } else if (step === 8) {
+      dokumenList.forEach(d => {
+        if (d.required && !dokumen[d.jenis]) errs[`dokumen.${d.jenis}`] = `${d.label} wajib diupload.`
+      })
+    }
+    return errs
+  }
+
+  const stepKeys: string[][] = [
+    ['cabang', 'nik', 'namaKatakana', 'namaRomaji', 'tempatLahir', 'tanggalLahir', 'umur', 'jenisKelamin', 'statusPernikahan', 'agama', 'tinggiBadan', 'beratBadan', 'golonganDarah', 'tanganDominan', 'ukuranBaju', 'noHp', 'email', 'namaOrtu', 'noHpOrtu', 'alamatLengkap'],
+    ['sudahVaksin', 'kondisiKesehatan', 'catatanKesehatan', 'berkacamata', 'lensaKontak', 'butaWarna', 'jenisButaWarna', 'bertato', 'merokok', 'minumAlkohol', 'riwayatPenyakit'],
+    ['pendidikanTerakhir', 'SD.nama_sekolah', 'SD.bulan_masuk', 'SD.tahun_masuk', 'SD.bulan_lulus', 'SD.tahun_lulus', 'SD.ijazah', 'SMP.nama_sekolah', 'SMP.bulan_masuk', 'SMP.tahun_masuk', 'SMP.bulan_lulus', 'SMP.tahun_lulus', 'SMP.ijazah'],
+    ['pengalaman'],
+    ['levelJlpt', 'lamaBelajarJepang', 'levelBahasaJepang'],
+    ['penghasilanKeluarga', 'Ayah.nama', 'Ayah.usia', 'Ayah.pekerjaan', 'Ayah.penghasilan', 'Ibu.nama', 'Ibu.usia', 'Ibu.pekerjaan', 'Ibu.penghasilan'],
+    ['pernahKeJepang', 'keluargaDiJepang', 'kenalanDiJepang'],
+    ['tujuanKeJepang', 'alasanKeJepang', 'citaCitaSetelahJepang', 'rencanaPengirimanUang', 'kelebihanDiri', 'kekuranganDiri', 'hobi', 'keahlian', 'bersediaShift', 'bersediaLembur', 'bersediaHariLibur', 'lamaTinggalJepang', 'lamaKerjaPerusahaan', 'rencanaPulang', 'sumberBiaya', 'biayaDisiapkan'],
+    dokumenList.map(d => `dokumen.${d.jenis}`),
+  ]
+
+  const handleNext = (target: number) => {
+    const errs = validateStep(activeStep)
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs)
+      const first = errs[Object.keys(errs)[0]]
+      Swal.fire({
+        icon: 'warning',
+        title: 'Data belum lengkap',
+        text: `${Object.keys(errs).length} isian wajib belum terisi. Lengkapi terlebih dahulu: ${first}`,
+        confirmButtonColor: '#0E6187',
+      })
+      document.getElementById('dataForm')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      return
+    }
+    setErrors({})
+    setActiveStep(Math.min(steps.length - 1, target))
+  }
+
+  const handleKirim = () => {
+    const errs: Record<string, string> = {}
+    for (let s = 0; s < steps.length; s++) Object.assign(errs, validateStep(s))
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs)
+      Swal.fire({
+        icon: 'warning',
+        title: 'Data belum lengkap',
+        text: `${Object.keys(errs).length} isian wajib belum terisi. Lengkapi seluruh langkah terlebih dahulu.`,
+        confirmButtonColor: '#0E6187',
+      })
+      document.getElementById('dataForm')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      return
+    }
+    kirim(true)
+  }
+
+  const goToStep = (i: number) => {
+    if (i > activeStep) {
+      const errs = validateStep(activeStep)
+      if (Object.keys(errs).length > 0) {
+        setErrors(errs)
+        Swal.fire({
+          icon: 'warning',
+          title: 'Data belum lengkap',
+          text: 'Lengkapi isian wajib terlebih dahulu sebelum beralih ke langkah berikutnya.',
+          confirmButtonColor: '#0E6187',
+        })
+        return
+      }
+    }
+    setErrors({})
+    setActiveStep(i)
+  }
 
   useEffect(() => {
     const fillFromIdentity = (u: any, s: any, p: any) => {
@@ -390,7 +728,7 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
         v === 'Belum Nikah' ? 'Belum Menikah' : v === 'Nikah' ? 'Menikah' : v || ''
       const mapBaju = (v: string) => (v === 'XS' ? 'S' : v || '')
       const mapPendidikan = (v: string) =>
-        v === 'SD/Sederajat' ? 'SD' : v === 'SMP/Sederajat' ? 'SMP' : v === 'SMA/Sederajat' ? 'SMA/SMK' : v === 'D1-D3' ? 'D3' : v || ''
+        v === 'SD/Sederajat' || v === 'SD' ? 'SD / Sederajat' : v === 'SMP/Sederajat' || v === 'SMP' ? 'SMP / Sederajat' : v === 'SMA/Sederajat' || v === 'SMA/SMK' ? 'SMA / SMK / MA / Sederajat' : v === 'D1-D3' || v === 'D3' ? 'Diploma I / II / III / IV (D1–D4)' : v === 'S1' ? 'Sarjana (S1)' : v || ''
 
       const tanggalLahir = s.tanggal_lahir || u.tanggal_lahir || ''
       const umur = tanggalLahir
@@ -417,6 +755,10 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
         namaOrtu: s.nama_ortu || '',
         noHpOrtu: s.no_hp_ortu || '',
         alamatLengkap: s.alamat || u.alamat || p.alamat || '',
+        alamatProvinsi: s.provinsi || p.provinsi || '',
+        alamatKabupaten: s.kabupaten || p.kabupaten || '',
+        alamatKecamatan: s.kecamatan || p.kecamatan || '',
+        alamatDesa: s.desa || p.desa || '',
         pendidikanTerakhir: mapPendidikan(s.pendidikan_terakhir || u.pendidikan_terakhir || ''),
         tahunLulus: s.tahun_lulus || '',
       }))
@@ -455,8 +797,16 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
           const u: any = res.data?.user || {}
           const s: any = res.data?.siswa || {}
           const p: any = res.data?.pendaftar || {}
+          const mj: any = res.data?.matching_job || null
           fillFromIdentity(u, s, p)
-          syncStatus()
+          if (mj?.penempatan_kandidat_id) setKandidatId(mj.penempatan_kandidat_id)
+          if (mj?.status_formulir) setStatusFormulir(mj.status_formulir)
+          if (!hydratedRef.current && mj?.data && Object.keys(mj.data).length > 0) {
+            hydratedRef.current = true
+            hydrateFromV2(mj.data)
+          } else {
+            syncStatus()
+          }
         })
         .catch(() => {})
         .finally(() => setLoading(false))
@@ -531,15 +881,21 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
         namaOrtu: v.kontak_ortu_nama || '',
         noHpOrtu: v.kontak_ortu_hp || '',
         alamatLengkap: v.alamat_lengkap || '',
+        alamatProvinsi: v.alamat_provinsi || '',
+        alamatKabupaten: v.alamat_kabupaten || '',
+        alamatKecamatan: v.alamat_kecamatan || '',
+        alamatDesa: v.alamat_desa || '',
         pendidikanTerakhir: v.pendidikan_terakhir || '',
         tahunLulus: v.tahun_lulus ?? '',
         sudahVaksin: boolToStr(v.sudah_vaksin),
         kondisiKesehatan: v.kondisi_kesehatan || '',
+        catatanKesehatan: v.catatan_kesehatan || '',
         penglihatanKanan: v.penglihatan_kanan || '',
         penglihatanKiri: v.penglihatan_kiri || '',
         berkacamata: boolToStr(v.berkacamata),
         lensaKontak: boolToStr(v.lensa_kontak),
         butaWarna: boolToStr(v.buta_warna),
+        jenisButaWarna: v.jenis_buta_warna || '',
         bertato: boolToStr(v.bertato),
         merokok: boolToStr(v.merokok),
         minumAlkohol: boolToStr(v.minum_alkohol),
@@ -605,6 +961,7 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
           tahun_keluar: p.tahun_keluar ?? '',
           masih_bekerja: !!p.masih_bekerja,
           deskripsi_pekerjaan: p.deskripsi_pekerjaan || '',
+          alasan_keluar: p.alasan_keluar || '',
         })))
       }
 
@@ -684,6 +1041,7 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
         tahun_masuk: v.tahun_masuk ? Number(v.tahun_masuk) : null,
         bulan_lulus: v.bulan_lulus || null,
         tahun_lulus: v.tahun_lulus ? Number(v.tahun_lulus) : null,
+        ijazah_file: pendidikanIjazah[jenjang]?.name || null,
       }))
 
     const pengalamanArr = pengalaman.map(p => ({
@@ -696,6 +1054,7 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
       tahun_keluar: p.tahun_keluar ? Number(p.tahun_keluar) : null,
       masih_bekerja: p.masih_bekerja,
       deskripsi_pekerjaan: p.deskripsi_pekerjaan || null,
+      alasan_keluar: p.alasan_keluar || null,
     }))
 
     return {
@@ -723,14 +1082,20 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
       kontak_ortu_nama: form.namaOrtu || null,
       kontak_ortu_hp: form.noHpOrtu || null,
       alamat_lengkap: form.alamatLengkap || null,
+      alamat_provinsi: form.alamatProvinsi || null,
+      alamat_kabupaten: form.alamatKabupaten || null,
+      alamat_kecamatan: form.alamatKecamatan || null,
+      alamat_desa: form.alamatDesa || null,
       pendidikan_terakhir: form.pendidikanTerakhir || null,
       sudah_vaksin: toBool(form.sudahVaksin),
       kondisi_kesehatan: form.kondisiKesehatan || null,
+      catatan_kesehatan: form.catatanKesehatan || null,
       penglihatan_kanan: form.penglihatanKanan || null,
       penglihatan_kiri: form.penglihatanKiri || null,
       berkacamata: toBool(form.berkacamata),
       lensa_kontak: toBool(form.lensaKontak),
       buta_warna: toBool(form.butaWarna),
+      jenis_buta_warna: form.jenisButaWarna || null,
       bertato: toBool(form.bertato),
       merokok: toBool(form.merokok),
       minum_alkohol: toBool(form.minumAlkohol),
@@ -772,7 +1137,7 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
 
   const kirim = async (final = false) => {
     if (!form.namaRomaji || !form.email) {
-      Swal.fire({ icon: 'warning', title: 'Data belum lengkap', text: 'Nama (Romaji) dan Email wajib diisi.', confirmButtonColor: '#0E6187' })
+      Swal.fire({ icon: 'warning', title: 'Data belum lengkap', text: 'Nama Lengkap dan Email wajib diisi.', confirmButtonColor: '#0E6187' })
       setActiveStep(0)
       return
     }
@@ -802,6 +1167,15 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
         if (f) uploads.push({ jenis: d.jenis, file: f })
       })
       sswCert.forEach((f, i) => uploads.push({ jenis: `ssw_${i + 1}`, file: f }))
+
+      ;(['SD', 'SMP', 'SMA/SMK', 'Perguruan Tinggi'] as const).forEach(lv => {
+        const f = pendidikanIjazah[lv]
+        if (f) uploads.push({ jenis: lv === 'SMA/SMK' ? 'ijazah_sma' : lv === 'Perguruan Tinggi' ? 'ijazah_pt' : `ijazah_${lv.toLowerCase()}`, file: f })
+      })
+
+      Object.entries(pengalamanPaklaring).forEach(([idx, f]) => {
+        if (f) uploads.push({ jenis: `paklaring_${Number(idx) + 1}`, file: f })
+      })
 
       let uploaded = 0
       const errors: string[] = []
@@ -845,7 +1219,7 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
 
   const bottomNav = [
     { label: 'Dashboard', to: '/siswa-dashboard', icon: LayoutDashboard },
-    { label: 'LMS', to: '/siswa-dashboard/lms', icon: BookOpen },
+    { label: 'Kelas Mendunia', to: '/siswa-dashboard/lms', icon: BookOpen },
     { label: 'Absensi', to: '/siswa-dashboard/absensi', icon: CalendarCheck },
     { label: 'Pembayaran', to: '/siswa-dashboard/pembayaran', icon: Wallet },
     { label: 'Profil', to: '/siswa-dashboard/profil', icon: User },
@@ -863,7 +1237,6 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
   }
 
   const progressPct = Math.round(((activeStep + 1) / steps.length) * 100)
-  const currentStatus = statusFormulirMeta[statusFormulir] || statusFormulirMeta.draft
 
   return (
     <div className={`min-h-screen bg-[#f0f2f5] ${adminKandidatId ? 'pb-8' : 'pb-24 lg:pb-8'}`}>
@@ -915,8 +1288,8 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
               <ClipboardList size={20} />
             </div>
             <div>
-              <h1 className="text-xl font-bold">Data Diri &amp; Matching Job</h1>
-              <p className="mt-0.5 text-[13px] text-teal-100">Lengkapi data untuk pekerjaan terbaik di Jepang</p>
+              <h1 className="text-xl font-bold">Data Diri</h1>
+              <p className="mt-0.5 text-[13px] text-teal-100">Lengkapi Data Diri Anda untuk persiapan kerja ke Jepang</p>
             </div>
           </div>
           <div className="mt-5">
@@ -936,19 +1309,52 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
       )}
 
       <div className={`mx-auto space-y-4 px-4 ${adminKandidatId ? 'max-w-3xl pt-5' : '-mt-5 max-w-lg'}`}>
-        {/* ============ Status Formulir ============ */}
+        {/* ============ Info Pengisian Data ============ */}
         {!adminKandidatId && (
-        <div className="flex items-center justify-between gap-3 rounded-xl bg-white p-4 shadow-sm">
-          <div>
-            <p className="text-sm font-semibold text-slate-800">Status Formulir</p>
-            <p className="mt-0.5 text-[11px] text-slate-400">
-              {currentStatus.desc}
+        <div className="overflow-hidden rounded-xl border border-[#0E6187]/15 bg-white shadow-sm">
+          <div className="flex items-center gap-3 border-b border-[#0E6187]/10 bg-gradient-to-r from-[#0E6187]/10 to-white px-4 py-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#0E6187] text-white">
+              <ShieldCheck size={18} />
+            </span>
+            <div>
+              <p className="text-sm font-bold text-[#0E6187]">Keterangan Pengisian Data</p>
+              <p className="text-[10px] text-slate-500">Panduan sebelum mengisi formulir</p>
+            </div>
+          </div>
+          <div className="space-y-2.5 px-4 py-3.5">
+            <div className="flex items-start gap-2.5">
+              <span className="mt-0.5 flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                <CheckCircle2 size={11} />
+              </span>
+              <p className="text-[11px] leading-relaxed text-slate-600">
+                Seluruh data Anda aman dan dilindungi, bersifat rahasia, serta hanya digunakan untuk
+                keperluan penempatan kerja di Jepang.
+              </p>
+            </div>
+            <div className="flex items-start gap-2.5">
+              <span className="mt-0.5 flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                <CheckCircle2 size={11} />
+              </span>
+              <p className="text-[11px] leading-relaxed text-slate-600">
+                Lengkapi seluruh data secara akurat agar proses verifikasi berjalan lancar dan
+                tidak menghambat keberangkatan Anda.
+              </p>
+            </div>
+            <div className="flex items-start gap-2.5">
+              <span className="mt-0.5 flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                <CheckCircle2 size={11} />
+              </span>
+              <p className="text-[11px] leading-relaxed text-slate-600">
+                Anda dapat menyimpan data sebagai draft dan melanjutkan pengisian kembali kapan saja.
+              </p>
+            </div>
+          </div>
+          <div className="bg-emerald-50/70 px-4 py-2">
+            <p className="flex items-center gap-1.5 text-[10px] font-medium text-emerald-700">
+              <Lock size={11} />
+              Informasi pribadi Anda terlindungi dan tidak akan disalahgunakan.
             </p>
           </div>
-          <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${currentStatus.cls}`}>
-            <span className={`h-1.5 w-1.5 rounded-full ${currentStatus.dot}`} />
-            {currentStatus.label}
-          </span>
         </div>
         )}
 
@@ -961,7 +1367,7 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
               return (
                 <button
                   key={s.label}
-                  onClick={() => setActiveStep(i)}
+                  onClick={() => goToStep(i)}
                   className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-xs font-medium transition ${
                     active ? 'bg-[#0E6187] text-white shadow-sm'
                       : done ? 'bg-white text-[#0E6187] shadow-sm hover:bg-[#0E6187]/5'
@@ -981,86 +1387,175 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
         </div>
 
         {/* ============ Form Card ============ */}
-        <div className="rounded-xl bg-white p-4 shadow-sm sm:p-6">
+        <div id="dataForm" className="rounded-xl bg-white p-4 shadow-sm sm:p-6">
         {activeStep === 0 && (
           <div className="space-y-6">
             <div>
               <h2 className="mb-1 text-sm font-bold text-slate-800">{adminKandidatId ? '1. Data Diri' : 'DATA DIRI（個人情報）'}</h2>
               <p className="mb-4 text-xs text-slate-400">Informasi pribadi kandidat</p>
               <div className="grid gap-4 sm:grid-cols-3">
-                <Field label="Cabang Mendunia" required>
+                <Field label="Cabang Mendunia" required error={errors.cabang}>
                   <select className={inputCls} value={form.cabang} onChange={set('cabang')}>
                     <option value="">Pilih cabang...</option>
                     {cabangList.map(c => <option key={c.id} value={c.nama_cabang}>{c.nama_cabang}</option>)}
                   </select>
                 </Field>
-                <Field label="NIK" required><input className={inputCls} placeholder="16 digit NIK" maxLength={16} value={form.nik} onChange={set('nik')} /></Field>
-                <Field label="Nama (Katakana)" required><input className={inputCls} placeholder="カタカナ" value={form.namaKatakana} onChange={set('namaKatakana')} /></Field>
-                <Field label="Nama (Romaji)" required><input className={inputCls} placeholder="Nama latin" value={form.namaRomaji} onChange={set('namaRomaji')} /></Field>
-                <Field label="Tempat Lahir" required><input className={inputCls} placeholder="Kota lahir" value={form.tempatLahir} onChange={set('tempatLahir')} /></Field>
-                <Field label="Tanggal Lahir" required><input type="date" className={inputCls} value={form.tanggalLahir} onChange={set('tanggalLahir')} /></Field>
-                <Field label="Umur" required><input type="number" className={inputCls} placeholder="25" value={form.umur} onChange={set('umur')} /></Field>
-                <Field label="Jenis Kelamin" required>
+                <Field label="NIK" required error={errors.nik}><input className={inputCls} placeholder="16 digit NIK" maxLength={16} value={form.nik} onChange={set('nik')} /></Field>
+                <Field label="Nama (Katakana)" required error={errors.namaKatakana}><input className={inputCls} placeholder="カタカナ" value={form.namaKatakana} onChange={set('namaKatakana')} /></Field>
+                <Field label="Nama Lengkap" required error={errors.namaRomaji}><input className={inputCls} placeholder="Nama lengkap sesuai KTP" value={form.namaRomaji} onChange={set('namaRomaji')} /></Field>
+                <Field label="Tempat Lahir (Sesuai KTP)" required error={errors.tempatLahir}><input className={inputCls} placeholder="Kota lahir sesuai KTP" value={form.tempatLahir} onChange={set('tempatLahir')} /></Field>
+                <Field label="Tanggal Lahir (Sesuai KTP)" required error={errors.tanggalLahir}><input type="date" className={inputCls} value={form.tanggalLahir} onChange={set('tanggalLahir')} /></Field>
+                <Field label="Umur" required error={errors.umur}><input type="number" className={inputCls} placeholder="25" value={form.umur} onChange={set('umur')} /></Field>
+                <Field label="Jenis Kelamin" required error={errors.jenisKelamin}>
                   <select className={inputCls} value={form.jenisKelamin} onChange={set('jenisKelamin')}><option value="">Pilih...</option><option>Laki-laki</option><option>Perempuan</option></select>
                 </Field>
-                <Field label="Status Pernikahan" required>
-                  <select className={inputCls} value={form.statusPernikahan} onChange={set('statusPernikahan')}><option value="">Pilih...</option><option>Belum Menikah</option><option>Menikah</option></select>
+                <Field label="Status Pernikahan" required error={errors.statusPernikahan}>
+                  <select className={inputCls} value={form.statusPernikahan} onChange={set('statusPernikahan')}><option value="">Pilih...</option><option>Belum Menikah</option><option>Menikah</option><option>Cerai Hidup</option><option>Cerai Mati</option></select>
                 </Field>
-                <Field label="Agama" required>
+                <Field label="Agama" required error={errors.agama}>
                   <select className={inputCls} value={form.agama} onChange={set('agama')}><option value="">Pilih...</option><option>Islam</option><option>Kristen</option><option>Katolik</option><option>Hindu</option><option>Buddha</option><option>Konghucu</option></select>
                 </Field>
-                <Field label="Tinggi Badan (cm)" required><input type="number" className={inputCls} placeholder="165" value={form.tinggiBadan} onChange={set('tinggiBadan')} /></Field>
-                <Field label="Berat Badan (kg)" required><input type="number" className={inputCls} placeholder="60" value={form.beratBadan} onChange={set('beratBadan')} /></Field>
-                <Field label="Golongan Darah" required>
+                <Field label="Tinggi Badan (cm)" required error={errors.tinggiBadan}><input type="number" className={inputCls} placeholder="165" value={form.tinggiBadan} onChange={set('tinggiBadan')} /></Field>
+                <Field label="Berat Badan (kg)" required error={errors.beratBadan}><input type="number" className={inputCls} placeholder="60" value={form.beratBadan} onChange={set('beratBadan')} /></Field>
+                <Field label="Golongan Darah" required error={errors.golonganDarah}>
                   <select className={inputCls} value={form.golonganDarah} onChange={set('golonganDarah')}><option value="">Pilih...</option><option>A</option><option>B</option><option>AB</option><option>O</option></select>
                 </Field>
-                <Field label="Tangan Dominan" required>
+                <Field label="Tangan Dominan" required error={errors.tanganDominan}>
                   <select className={inputCls} value={form.tanganDominan} onChange={set('tanganDominan')}><option value="">Pilih...</option><option>Kanan</option><option>Kiri</option></select>
                 </Field>
-                <Field label="Ukuran Baju" required>
+                <Field label="Ukuran Baju" required error={errors.ukuranBaju}>
                   <select className={inputCls} value={form.ukuranBaju} onChange={set('ukuranBaju')}><option value="">Pilih...</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option></select>
                 </Field>
                 <Field label="Lingkar Pinggang (cm)"><input type="number" className={inputCls} placeholder="80" value={form.lingkarPinggang} onChange={set('lingkarPinggang')} /></Field>
                 <Field label="Panjang Telapak Kaki (cm)"><input type="number" className={inputCls} placeholder="25.5" value={form.panjangTelapakKaki} onChange={set('panjangTelapakKaki')} /></Field>
-                <Field label="SIM yang Dimiliki"><input className={inputCls} placeholder="A, C" value={form.sim} onChange={set('sim')} /></Field>
+                <Field label="SIM yang Dimiliki">
+                  <select className={inputCls} value={form.sim} onChange={set('sim')}>
+                    <option value="">Pilih...</option>
+                    <option>SIM A</option>
+                    <option>SIM B1</option>
+                    <option>SIM B2</option>
+                    <option>SIM C</option>
+                    <option>SIM D</option>
+                    <option>SIM Internasional</option>
+                    <option>Tidak Punya SIM</option>
+                  </select>
+                </Field>
               </div>
             </div>
 
             <div>
               <h2 className="mb-4 text-sm font-bold text-slate-800">{adminKandidatId ? 'Kontak & Alamat' : '📍 KONTAK &amp; ALAMAT'}</h2>
               <div className="grid gap-4 sm:grid-cols-3">
-                <Field label="Nomor HP" required><input className={inputCls} placeholder="08xx-xxxx-xxxx" value={form.noHp} onChange={set('noHp')} /></Field>
-                <Field label="Email Kontak" required><input type="email" className={inputCls} placeholder="email@..." value={form.email} onChange={set('email')} /></Field>
-                <Field label="Nama Orang Tua / Wali" required><input className={inputCls} placeholder="Nama" value={form.namaOrtu} onChange={set('namaOrtu')} /></Field>
-                <Field label="No. HP Orang Tua" required><input className={inputCls} placeholder="08xx-xxxx-xxxx" value={form.noHpOrtu} onChange={set('noHpOrtu')} /></Field>
-                <div className="sm:col-span-3">
-                  <Field label="Alamat Lengkap" required>
-                    <textarea className={`${inputCls} min-h-[70px]`} placeholder="Jl. ..." value={form.alamatLengkap} onChange={set('alamatLengkap')} />
-                  </Field>
+                <Field label="Nomor HP" required error={errors.noHp}><input className={inputCls} placeholder="08xx-xxxx-xxxx" value={form.noHp} onChange={set('noHp')} /></Field>
+                <Field label="Email Kontak" required error={errors.email}><input type="email" className={inputCls} placeholder="email@..." value={form.email} onChange={set('email')} /></Field>
+                <Field label="Nama Orang Tua / Wali" required error={errors.namaOrtu}><input className={inputCls} placeholder="Nama" value={form.namaOrtu} onChange={set('namaOrtu')} /></Field>
+                <Field label="No. HP Orang Tua" required error={errors.noHpOrtu}><input className={inputCls} placeholder="08xx-xxxx-xxxx" value={form.noHpOrtu} onChange={set('noHpOrtu')} /></Field>
+              </div>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <Field label="Provinsi" error={errors.alamatProvinsi}>
+                  <select
+                    className={inputCls}
+                    value={findIdByName(provinsiList, form.alamatProvinsi)}
+                    disabled={wilayahLoading.provinsi}
+                    onChange={e => {
+                      const id = e.target.value
+                      const found = provinsiList.find(p => p.id === id)
+                      setForm(f => ({ ...f, alamatProvinsi: found?.name || '', alamatKabupaten: '', alamatKecamatan: '', alamatDesa: '' }))
+                    }}
+                  >
+                    <option value="">{wilayahLoading.provinsi ? 'Memuat...' : 'Pilih Provinsi'}</option>
+                    {provinsiList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </Field>
+                <Field label="Kabupaten / Kota" error={errors.alamatKabupaten}>
+                  <select
+                    className={inputCls}
+                    value={findIdByName(kabupatenList, form.alamatKabupaten)}
+                    disabled={!form.alamatProvinsi || wilayahLoading.kabupaten}
+                    onChange={e => {
+                      const id = e.target.value
+                      const found = kabupatenList.find(k => k.id === id)
+                      setForm(f => ({ ...f, alamatKabupaten: found?.name || '', alamatKecamatan: '', alamatDesa: '' }))
+                    }}
+                  >
+                    <option value="">{!form.alamatProvinsi ? 'Pilih Provinsi dulu' : wilayahLoading.kabupaten ? 'Memuat...' : 'Pilih Kabupaten/Kota'}</option>
+                    {kabupatenList.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
+                  </select>
+                </Field>
+                <Field label="Kecamatan" error={errors.alamatKecamatan}>
+                  <select
+                    className={inputCls}
+                    value={findIdByName(kecamatanList, form.alamatKecamatan)}
+                    disabled={!form.alamatKabupaten || wilayahLoading.kecamatan}
+                    onChange={e => {
+                      const id = e.target.value
+                      const found = kecamatanList.find(k => k.id === id)
+                      setForm(f => ({ ...f, alamatKecamatan: found?.name || '', alamatDesa: '' }))
+                    }}
+                  >
+                    <option value="">{!form.alamatKabupaten ? 'Pilih Kabupaten dulu' : wilayahLoading.kecamatan ? 'Memuat...' : 'Pilih Kecamatan'}</option>
+                    {kecamatanList.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
+                  </select>
+                </Field>
+                <Field label="Desa / Kelurahan" error={errors.alamatDesa}>
+                  <select
+                    className={inputCls}
+                    value={findIdByName(desaList, form.alamatDesa)}
+                    disabled={!form.alamatKecamatan || wilayahLoading.desa}
+                    onChange={e => {
+                      const id = e.target.value
+                      const found = desaList.find(d => d.id === id)
+                      setForm(f => ({ ...f, alamatDesa: found?.name || '' }))
+                    }}
+                  >
+                    <option value="">{!form.alamatKecamatan ? 'Pilih Kecamatan dulu' : wilayahLoading.desa ? 'Memuat...' : 'Pilih Desa/Kelurahan'}</option>
+                    {desaList.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                </Field>
+              </div>
+              <div className="mt-4">
+                <Field label="Alamat Lengkap (detail, RT/RW & no. rumah)" required error={errors.alamatLengkap}>
+                  <textarea className={`${inputCls} min-h-[70px]`} placeholder="Jl. ..., RT/RW ..." value={form.alamatLengkap} onChange={set('alamatLengkap')} />
+                </Field>
                 </div>
               </div>
             </div>
-          </div>
         )}
 
         {activeStep === 1 && (
           <div>
             <h2 className="mb-4 text-sm font-bold text-slate-800">{adminKandidatId ? '2. Kondisi Fisik & Kesehatan' : 'KONDISI FISIK &amp; KESEHATAN'}</h2>
             <div className="grid gap-4 sm:grid-cols-3">
-              <YesNo label="Sudah Vaksin?" required value={form.sudahVaksin} onChange={v => setForm(f => ({ ...f, sudahVaksin: v }))} />
-              <Field label="Kondisi Kesehatan Saat Ini" required>
-                <select className={inputCls} value={form.kondisiKesehatan} onChange={set('kondisiKesehatan')}><option value="">Pilih...</option><option>Sehat</option><option>Sehat dengan catatan</option></select>
+              <YesNo label="Sudah Vaksin?" required value={form.sudahVaksin} error={errors.sudahVaksin} onChange={v => { setForm(f => ({ ...f, sudahVaksin: v })); clearErrors(['sudahVaksin', 'kondisiKesehatan', 'berkacamata', 'lensaKontak', 'butaWarna', 'bertato', 'merokok', 'minumAlkohol', 'riwayatPenyakit']) }} />
+              <Field label="Kondisi Kesehatan Saat Ini" required error={errors.kondisiKesehatan}>
+                <select className={inputCls} value={form.kondisiKesehatan} onChange={e => { set('kondisiKesehatan')(e); clearErrors(['catatanKesehatan']) }}><option value="">Pilih...</option><option>Sehat</option><option>Sehat dengan catatan</option></select>
               </Field>
+              {form.kondisiKesehatan === 'Sehat dengan catatan' && (
+                <div className="sm:col-span-3">
+                  <Field label="Catatan Kondisi Kesehatan" required error={errors.catatanKesehatan}>
+                    <textarea className={`${inputCls} min-h-[70px]`} placeholder="Jelaskan catatan kondisi kesehatan Anda..." value={form.catatanKesehatan} onChange={set('catatanKesehatan')} />
+                  </Field>
+                </div>
+              )}
               <Field label="Penglihatan Kanan"><input className={inputCls} placeholder="Normal / Minus -2.5" value={form.penglihatanKanan} onChange={set('penglihatanKanan')} /></Field>
               <Field label="Penglihatan Kiri"><input className={inputCls} placeholder="Normal / Minus -1.5" value={form.penglihatanKiri} onChange={set('penglihatanKiri')} /></Field>
-              <YesNo label="Berkacamata?" required value={form.berkacamata} onChange={v => setForm(f => ({ ...f, berkacamata: v }))} />
-              <YesNo label="Menggunakan Lensa Kontak?" required value={form.lensaKontak} onChange={v => setForm(f => ({ ...f, lensaKontak: v }))} />
-              <YesNo label="Buta Warna?" required value={form.butaWarna} onChange={v => setForm(f => ({ ...f, butaWarna: v }))} />
-              <YesNo label="Bertato?" required value={form.bertato} onChange={v => setForm(f => ({ ...f, bertato: v }))} />
-              <YesNo label="Merokok?" required value={form.merokok} onChange={v => setForm(f => ({ ...f, merokok: v }))} />
-              <YesNo label="Minum Alkohol?" required value={form.minumAlkohol} onChange={v => setForm(f => ({ ...f, minumAlkohol: v }))} />
+              <YesNo label="Berkacamata?" required value={form.berkacamata} error={errors.berkacamata} onChange={v => setForm(f => ({ ...f, berkacamata: v }))} />
+              <YesNo label="Menggunakan Lensa Kontak?" required value={form.lensaKontak} error={errors.lensaKontak} onChange={v => setForm(f => ({ ...f, lensaKontak: v }))} />
+              <YesNo label="Buta Warna?" required value={form.butaWarna} error={errors.butaWarna} onChange={v => { setForm(f => ({ ...f, butaWarna: v, jenisButaWarna: '' })); clearErrors(['jenisButaWarna']) }} />
+              {form.butaWarna === 'Ya' && (
+                <Field label="Jenis Buta Warna" required error={errors.jenisButaWarna}>
+                  <select className={inputCls} value={form.jenisButaWarna} onChange={set('jenisButaWarna')}>
+                    <option value="">Pilih...</option>
+                    <option>Parsial</option>
+                    <option>Total</option>
+                  </select>
+                </Field>
+              )}
+              <YesNo label="Bertato?" required value={form.bertato} error={errors.bertato} onChange={v => setForm(f => ({ ...f, bertato: v }))} />
+              <YesNo label="Merokok?" required value={form.merokok} error={errors.merokok} onChange={v => setForm(f => ({ ...f, merokok: v }))} />
+              <YesNo label="Minum Alkohol?" required value={form.minumAlkohol} error={errors.minumAlkohol} onChange={v => setForm(f => ({ ...f, minumAlkohol: v }))} />
               <div className="sm:col-span-3">
-                <Field label="Riwayat Penyakit / Cedera" required>
+                <Field label="Riwayat Penyakit / Cedera" required error={errors.riwayatPenyakit}>
                   <textarea className={`${inputCls} min-h-[70px]`} placeholder="Cedera, patah tulang, penyakit kronis, dll. Isi 'Tidak ada' jika tidak ada." value={form.riwayatPenyakit} onChange={set('riwayatPenyakit')} />
                 </Field>
               </div>
@@ -1072,15 +1567,25 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
           <div>
             <h2 className="mb-4 text-sm font-bold text-slate-800">{adminKandidatId ? '3. Pendidikan' : 'PENDIDIKAN（学歴）'}</h2>
             <div className="mb-5 max-w-sm">
-              <Field label="Pendidikan Terakhir" required>
-                <select className={inputCls} value={form.pendidikanTerakhir} onChange={set('pendidikanTerakhir')}><option value="">Pilih pendidikan terakhir...</option><option>SD</option><option>SMP</option><option>SMA/SMK</option><option>D3</option><option>S1</option></select>
-              </Field>
+              <Field label="Pendidikan Terakhir" required error={errors.pendidikanTerakhir}>
+                  <select className={inputCls} value={form.pendidikanTerakhir} onChange={set('pendidikanTerakhir')}>
+                    <option value="">Pilih pendidikan terakhir...</option>
+                    <option>SD / Sederajat</option>
+                    <option>SMP / Sederajat</option>
+                    <option>SMA / SMK / MA / Sederajat</option>
+                    <option>Paket A / B / C</option>
+                    <option>Diploma I / II / III / IV (D1–D4)</option>
+                    <option>Sarjana (S1)</option>
+                    <option>Magister (S2)</option>
+                    <option>Doktor (S3)</option>
+                  </select>
+                </Field>
             </div>
             <div className="space-y-4">
-              <EducationBlock title="SD" required value={pendidikan.SD} onChange={v => setPendidikan(p => ({ ...p, SD: v }))} />
-              <EducationBlock title="SMP" required value={pendidikan.SMP} onChange={v => setPendidikan(p => ({ ...p, SMP: v }))} />
-              <EducationBlock title="SMA/SMK" value={pendidikan['SMA/SMK']} onChange={v => setPendidikan(p => ({ ...p, 'SMA/SMK': v }))} />
-              <EducationBlock title="Perguruan Tinggi" value={pendidikan['Perguruan Tinggi']} onChange={v => setPendidikan(p => ({ ...p, 'Perguruan Tinggi': v }))} />
+              <EducationBlock title="SD" required value={pendidikan.SD} onChange={v => { setPendidikan(p => ({ ...p, SD: v })); clearStepErrors(2) }} getError={k => errors[`SD.${k}`]} ijazah={pendidikanIjazah.SD} onIjazah={f => { setPendidikanIjazah(p => ({ ...p, SD: f })); clearStepErrors(2) }} />
+              <EducationBlock title="SMP" required value={pendidikan.SMP} onChange={v => { setPendidikan(p => ({ ...p, SMP: v })); clearStepErrors(2) }} getError={k => errors[`SMP.${k}`]} ijazah={pendidikanIjazah.SMP} onIjazah={f => { setPendidikanIjazah(p => ({ ...p, SMP: f })); clearStepErrors(2) }} />
+              <EducationBlock title="SMA/SMK" value={pendidikan['SMA/SMK']} onChange={v => setPendidikan(p => ({ ...p, 'SMA/SMK': v }))} ijazah={pendidikanIjazah['SMA/SMK']} onIjazah={f => setPendidikanIjazah(p => ({ ...p, 'SMA/SMK': f }))} />
+              <EducationBlock title="Perguruan Tinggi" value={pendidikan['Perguruan Tinggi']} onChange={v => setPendidikan(p => ({ ...p, 'Perguruan Tinggi': v }))} ijazah={pendidikanIjazah['Perguruan Tinggi']} onIjazah={f => setPendidikanIjazah(p => ({ ...p, 'Perguruan Tinggi': f }))} />
             </div>
           </div>
         )}
@@ -1102,7 +1607,7 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
             ) : (
               <div className="space-y-4">
                 {pengalaman.map((p, i) => (
-                  <ExperienceCard key={i} value={p} onChange={v => setPengalaman(prev => prev.map((x, xI) => xI === i ? v : x))} onRemove={() => setPengalaman(prev => prev.filter((_, xI) => xI !== i))} />
+                  <ExperienceCard key={i} value={p} onChange={v => { setPengalaman(prev => prev.map((x, xI) => xI === i ? v : x)); clearStepErrors(3) }} onRemove={() => setPengalaman(prev => prev.filter((_, xI) => xI !== i))} getError={k => errors[`pengalaman.${i}.${k}`]} paklaring={pengalamanPaklaring[i] || null} onPaklaring={f => { setPengalamanPaklaring(prev => ({ ...prev, [i]: f })); clearStepErrors(3) }} />
                 ))}
               </div>
             )}
@@ -1113,14 +1618,14 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
           <div>
             <h2 className="mb-4 text-sm font-bold text-slate-800">{adminKandidatId ? '5. Kemampuan & Sertifikat' : 'KEMAMPUAN &amp; SERTIFIKAT'}</h2>
             <div className="grid gap-4 sm:grid-cols-3">
-              <Field label="Level JLPT" required>
+              <Field label="Level JLPT" required error={errors.levelJlpt}>
                 <select className={inputCls} value={form.levelJlpt} onChange={set('levelJlpt')}><option value="">Pilih level...</option><option>N5</option><option>N4</option><option>N3</option><option>N2</option><option>N1</option></select>
               </Field>
               <Field label="Level JFT (opsional)">
                 <select className={inputCls} value={form.levelJft} onChange={set('levelJft')}><option value="">Pilih level...</option><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option></select>
               </Field>
-              <Field label="Lama Belajar Bahasa Jepang" required><input className={inputCls} placeholder="6 bulan, 1 tahun, dll." value={form.lamaBelajarJepang} onChange={set('lamaBelajarJepang')} /></Field>
-              <Field label="Level Bahasa Jepang" required>
+              <Field label="Lama Belajar Bahasa Jepang" required error={errors.lamaBelajarJepang}><input className={inputCls} placeholder="6 bulan, 1 tahun, dll." value={form.lamaBelajarJepang} onChange={set('lamaBelajarJepang')} /></Field>
+              <Field label="Level Bahasa Jepang" required error={errors.levelBahasaJepang}>
                 <select className={inputCls} value={form.levelBahasaJepang} onChange={set('levelBahasaJepang')}><option value="">Pilih...</option><option>Dasar</option><option>Menengah</option><option>Lancar</option></select>
               </Field>
               <Field label="ID Prometric (opsional)"><input className={inputCls} placeholder="ID Prometric" value={form.idPrometric} onChange={set('idPrometric')} /></Field>
@@ -1156,13 +1661,13 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
           <div>
             <h2 className="mb-4 text-sm font-bold text-slate-800">{adminKandidatId ? '6. Data Keluarga' : 'DATA KELUARGA（家族構成）'}</h2>
             <div className="mb-5 max-w-sm">
-              <Field label="Penghasilan Keluarga / Bulan (Rp)" required>
+              <Field label="Penghasilan Keluarga / Bulan (Rp)" required error={errors.penghasilanKeluarga}>
                 <input type="number" className={inputCls} placeholder="5000000" value={form.penghasilanKeluarga} onChange={set('penghasilanKeluarga')} />
               </Field>
             </div>
             <div className="space-y-4">
-              <FamilyMemberCard title="Ayah" hubungan="Ayah" required value={ayah} onChange={setAyah} />
-              <FamilyMemberCard title="Ibu" hubungan="Ibu" required value={ibu} onChange={setIbu} />
+              <FamilyMemberCard title="Ayah" hubungan="Ayah" required value={ayah} onChange={v => { setAyah(v); clearStepErrors(5) }} getError={k => errors[`Ayah.${k}`]} />
+              <FamilyMemberCard title="Ibu" hubungan="Ibu" required value={ibu} onChange={v => { setIbu(v); clearStepErrors(5) }} getError={k => errors[`Ibu.${k}`]} />
               <MultiFamily title="Suami" addLabel="Tambah Suami" values={suami} onChange={setSuami} />
               <MultiFamily title="Istri" addLabel="Tambah Istri" values={istri} onChange={setIstri} />
               <MultiFamily title="Kakak" addLabel="Tambah Kakak" values={kakak} onChange={setKakak} />
@@ -1175,9 +1680,9 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
           <div>
             <h2 className="mb-4 text-sm font-bold text-slate-800">{adminKandidatId ? '7. Informasi Jepang' : 'INFORMASI JEPANG'}</h2>
             <div className="grid gap-4 sm:grid-cols-3">
-              <YesNo label="Pernah ke Jepang?" required value={form.pernahKeJepang} onChange={v => setForm(f => ({ ...f, pernahKeJepang: v }))} />
-              <YesNo label="Punya Keluarga di Jepang?" required value={form.keluargaDiJepang} onChange={v => setForm(f => ({ ...f, keluargaDiJepang: v }))} />
-              <YesNo label="Punya Kenalan di Jepang?" required value={form.kenalanDiJepang} onChange={v => setForm(f => ({ ...f, kenalanDiJepang: v }))} />
+              <YesNo label="Pernah ke Jepang?" required value={form.pernahKeJepang} error={errors.pernahKeJepang} onChange={v => setForm(f => ({ ...f, pernahKeJepang: v }))} />
+              <YesNo label="Punya Keluarga di Jepang?" required value={form.keluargaDiJepang} error={errors.keluargaDiJepang} onChange={v => setForm(f => ({ ...f, keluargaDiJepang: v }))} />
+              <YesNo label="Punya Kenalan di Jepang?" required value={form.kenalanDiJepang} error={errors.kenalanDiJepang} onChange={v => setForm(f => ({ ...f, kenalanDiJepang: v }))} />
             </div>
           </div>
         )}
@@ -1186,30 +1691,30 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
           <div>
             <h2 className="mb-4 text-sm font-bold text-slate-800">{adminKandidatId ? '8. Motivasi, Tujuan & Poin Pendukung' : 'MOTIVASI, TUJUAN &amp; POIN PENDUKUNG'}</h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Tujuan ke Jepang" required><textarea className={`${inputCls} min-h-[70px]`} placeholder="Tuliskan tujuan Anda pergi ke Jepang..." value={form.tujuanKeJepang} onChange={set('tujuanKeJepang')} /></Field>
-              <Field label="Alasan Ingin ke Jepang" required><textarea className={`${inputCls} min-h-[70px]`} placeholder="Alasan Anda..." value={form.alasanKeJepang} onChange={set('alasanKeJepang')} /></Field>
-              <Field label="Cita-cita Setelah Pulang dari Jepang" required><textarea className={`${inputCls} min-h-[70px]`} placeholder="Cita-cita..." value={form.citaCitaSetelahJepang} onChange={set('citaCitaSetelahJepang')} /></Field>
-              <Field label="Rencana Pengiriman Uang/Bulan ke Indonesia (Rp)" required><input type="number" className={inputCls} placeholder="3000000" value={form.rencanaPengirimanUang} onChange={set('rencanaPengirimanUang')} /></Field>
-              <Field label="Kelebihan Diri" required><textarea className={`${inputCls} min-h-[70px]`} placeholder="Kelebihan Anda..." value={form.kelebihanDiri} onChange={set('kelebihanDiri')} /></Field>
-              <Field label="Kekurangan Diri" required><textarea className={`${inputCls} min-h-[70px]`} placeholder="Kekurangan Anda..." value={form.kekuranganDiri} onChange={set('kekuranganDiri')} /></Field>
-              <Field label="Hobi" required><textarea className={`${inputCls} min-h-[70px]`} placeholder="Hobi Anda..." value={form.hobi} onChange={set('hobi')} /></Field>
-              <Field label="Keahlian" required><textarea className={`${inputCls} min-h-[70px]`} placeholder="Keahlian Anda..." value={form.keahlian} onChange={set('keahlian')} /></Field>
-              <YesNo label="Bersedia Kerja Shift?" required value={form.bersediaShift} onChange={v => setForm(f => ({ ...f, bersediaShift: v }))} />
-              <YesNo label="Bersedia Lembur?" required value={form.bersediaLembur} onChange={v => setForm(f => ({ ...f, bersediaLembur: v }))} />
-              <YesNo label="Bersedia Kerja Hari Libur?" required value={form.bersediaHariLibur} onChange={v => setForm(f => ({ ...f, bersediaHariLibur: v }))} />
-              <Field label="Lama Ingin Tinggal di Jepang" required>
+              <Field label="Tujuan ke Jepang" required error={errors.tujuanKeJepang}><textarea className={`${inputCls} min-h-[70px]`} placeholder="Tuliskan tujuan Anda pergi ke Jepang..." value={form.tujuanKeJepang} onChange={set('tujuanKeJepang')} /></Field>
+              <Field label="Alasan Ingin ke Jepang" required error={errors.alasanKeJepang}><textarea className={`${inputCls} min-h-[70px]`} placeholder="Alasan Anda..." value={form.alasanKeJepang} onChange={set('alasanKeJepang')} /></Field>
+              <Field label="Cita-cita Setelah Pulang dari Jepang" required error={errors.citaCitaSetelahJepang}><textarea className={`${inputCls} min-h-[70px]`} placeholder="Cita-cita..." value={form.citaCitaSetelahJepang} onChange={set('citaCitaSetelahJepang')} /></Field>
+              <Field label="Rencana Pengiriman Uang/Bulan ke Indonesia (Rp)" required error={errors.rencanaPengirimanUang}><input type="number" className={inputCls} placeholder="3000000" value={form.rencanaPengirimanUang} onChange={set('rencanaPengirimanUang')} /></Field>
+              <Field label="Kelebihan Diri" required error={errors.kelebihanDiri}><textarea className={`${inputCls} min-h-[70px]`} placeholder="Kelebihan Anda..." value={form.kelebihanDiri} onChange={set('kelebihanDiri')} /></Field>
+              <Field label="Kekurangan Diri" required error={errors.kekuranganDiri}><textarea className={`${inputCls} min-h-[70px]`} placeholder="Kekurangan Anda..." value={form.kekuranganDiri} onChange={set('kekuranganDiri')} /></Field>
+              <Field label="Hobi" required error={errors.hobi}><textarea className={`${inputCls} min-h-[70px]`} placeholder="Hobi Anda..." value={form.hobi} onChange={set('hobi')} /></Field>
+              <Field label="Keahlian" required error={errors.keahlian}><textarea className={`${inputCls} min-h-[70px]`} placeholder="Keahlian Anda..." value={form.keahlian} onChange={set('keahlian')} /></Field>
+              <YesNo label="Bersedia Kerja Shift?" required value={form.bersediaShift} error={errors.bersediaShift} onChange={v => setForm(f => ({ ...f, bersediaShift: v }))} />
+              <YesNo label="Bersedia Lembur?" required value={form.bersediaLembur} error={errors.bersediaLembur} onChange={v => setForm(f => ({ ...f, bersediaLembur: v }))} />
+              <YesNo label="Bersedia Kerja Hari Libur?" required value={form.bersediaHariLibur} error={errors.bersediaHariLibur} onChange={v => setForm(f => ({ ...f, bersediaHariLibur: v }))} />
+              <Field label="Lama Ingin Tinggal di Jepang" required error={errors.lamaTinggalJepang}>
                 <select className={inputCls} value={form.lamaTinggalJepang} onChange={set('lamaTinggalJepang')}><option value="">Pilih...</option><option>2-3 tahun</option><option>3-5 tahun</option></select>
               </Field>
-              <Field label="Lama Ingin Bekerja di Perusahaan" required>
+              <Field label="Lama Ingin Bekerja di Perusahaan" required error={errors.lamaKerjaPerusahaan}>
                 <select className={inputCls} value={form.lamaKerjaPerusahaan} onChange={set('lamaKerjaPerusahaan')}><option value="">Pilih...</option><option>1-2 tahun</option><option>2-3 tahun</option><option>3-5 tahun</option></select>
               </Field>
-              <Field label="Rencana Pulang ke Indonesia (5 tahun)" required>
+              <Field label="Rencana Pulang ke Indonesia (5 tahun)" required error={errors.rencanaPulang}>
                 <select className={inputCls} value={form.rencanaPulang} onChange={set('rencanaPulang')}><option value="">Pilih...</option><option>1-2 kali</option><option>3-4 kali</option><option>Lainnya</option></select>
               </Field>
-              <Field label="Sumber Biaya Keberangkatan" required>
+              <Field label="Sumber Biaya Keberangkatan" required error={errors.sumberBiaya}>
                 <select className={inputCls} value={form.sumberBiaya} onChange={set('sumberBiaya')}><option value="">Pilih...</option><option>Dana Pribadi</option><option>Dana Talang LPK</option></select>
               </Field>
-              <Field label="Biaya yang Disiapkan" required>
+              <Field label="Biaya yang Disiapkan" required error={errors.biayaDisiapkan}>
                 <select className={inputCls} value={form.biayaDisiapkan} onChange={set('biayaDisiapkan')}><option value="">Pilih...</option><option>10-20 Juta</option><option>20-30 Juta</option><option>40-50 Juta</option><option>Lainnya</option></select>
               </Field>
             </div>
@@ -1235,7 +1740,8 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
                   note={`Maks ${d.maxKB >= 1000 ? `${Math.round(d.maxKB / 1000)}MB` : `${d.maxKB}KB`}`}
                   maxKB={d.maxKB}
                   file={dokumen[d.jenis] || null}
-                  onFileChange={f => setDokumen(prev => ({ ...prev, [d.jenis]: f }))}
+                  onFileChange={f => { setDokumen(prev => ({ ...prev, [d.jenis]: f })); clearStepErrors(8) }}
+                  error={errors[`dokumen.${d.jenis}`]}
                 />
               ))}
             </div>
@@ -1320,7 +1826,7 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
             </button>
             {activeStep < steps.length - 1 ? (
               <button
-                onClick={() => setActiveStep(s => Math.min(steps.length - 1, s + 1))}
+                onClick={() => handleNext(activeStep + 1)}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-[#0E6187] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0a4a6a]"
               >
                 Lanjut
@@ -1328,7 +1834,7 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
               </button>
             ) : (
               <button
-                onClick={() => kirim(true)}
+                onClick={() => handleKirim()}
                 disabled={sending}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
               >

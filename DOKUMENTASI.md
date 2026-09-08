@@ -1208,3 +1208,39 @@ Dashboard: profit/loss = pendapatan (total pembayaran) - pengeluaran
 
 
 coba agar terintegrasi datanya itu data matchng job itu terntergasri ke database sim mendunia 
+
+
+
+
+
+Revisi
+
+1. Nama Lms jadi kelas mendunia 
+2. Form Nama Katakana optional
+3. Cabang langsung di lock pas input data diri itu dan hilangan heading yang ada matching job
+4. hilagkan card status formulir draft itu dan tambahkan info yaitu keterangan data anda aman dan dilindungi lengkapi data untuk memperlancar proses dan tidak menghambat
+5. nama romanji jadi nama lengkap 
+6. input tempat tanggal lahir sesuai ktp
+7. Usia otomatis terisi berdasrkan input tanggal lahir
+8. status pernikahan komplit dropdown nya
+9. input punya sim jadi select datanya komlit
+10. alamat itu api wilayah 
+11. validasi input form harus terisis per step by step
+12. buta warna komplit ->
+13. pendidikan terakhir buat komplit
+14. pendidikan itu di akhiri dengan file ijazah 
+15. pengalaman kerja -> tambahin inputan alasan keluar dan parklaring sertifikasi 
+16. keahlian kmu min 1 maksimal 3 nah itu contoh misal keahlian memasak terus pas pilih itu ada inputannya lagi inputan memasak itu apa saja sertifikasi tidak apa ada input file 
+17.minat kmu di bidang ?
+18. keinginan bekerja di mana 
+19. biaya ada 5-10 juta
+20. di dana talang -> LPK nya hapus 
+
+
+non Form
+-menu akses cepat ubah  
+-video ucapaan selamat datang oleh kang bara 
+-ada alert untuk akses kelas pembelajaran hiragana katakana
+-kelas mendunia itu jadi gini flow nya jadi di sensei di tiap pertemuan berdasarkan jadwal level  itu harus sudah ada materi atau latihan soal terus ulangan mingguan ulangan harian nah gtu 
+
+

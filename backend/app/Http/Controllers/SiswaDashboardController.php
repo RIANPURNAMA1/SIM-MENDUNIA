@@ -7,6 +7,8 @@ use App\Models\JadwalLevel;
 use App\Models\KelasSensei;
 use App\Models\MatchingJobForm;
 use App\Models\Pendaftar;
+use App\Models\QuizAttempt;
+use App\Models\QuizPaket;
 use App\Models\Siswa;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -21,12 +23,20 @@ class SiswaDashboardController extends Controller
     {
         $user = Auth::guard('sanctum')->user();
 
-        $pendaftar = Pendaftar::with(['product'])
+        $pendaftar = Pendaftar::with(['product', 'matchingJobForm'])
             ->where('user_id', $user->id)
             ->orderBy('created_at', 'desc')
             ->first();
 
         $siswa = Siswa::where('user_id', $user->id)->first();
+
+        $matchingJob = $pendaftar?->matchingJobForm;
+        $matchingJobData = $matchingJob ? [
+            'id' => $matchingJob->id,
+            'penempatan_kandidat_id' => $matchingJob->penempatan_kandidat_id,
+            'status_formulir' => $matchingJob->status_formulir,
+            'data' => $matchingJob->data ?: [],
+        ] : null;
 
         // Auto-sync address from pendaftar to siswa if siswa doesn't have it
         if ($siswa && $pendaftar) {
@@ -67,10 +77,109 @@ class SiswaDashboardController extends Controller
             'pendaftar' => $pendaftar,
             'user' => $user,
             'siswa' => $siswa,
+            'matching_job' => $matchingJobData,
             'batches' => $batches,
             'has_class' => $hasClass,
             'jadwal_levels' => $jadwalLevels,
+            'quiz_leaderboard' => $this->quizLeaderboard($siswa?->id, $batchId),
         ]);
+    }
+
+    public function quizLeaderboardApi()
+    {
+        $user = Auth::guard('sanctum')->user();
+        $pendaftar = Pendaftar::with(['product'])
+            ->where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        $siswa = Siswa::where('user_id', $user->id)->first();
+        $batchId = $siswa?->batch_id ?: $pendaftar?->batch_id;
+
+        return response()->json([
+            'leaderboard' => $this->quizLeaderboard($siswa?->id, $batchId),
+        ]);
+    }
+
+    /**
+     * Leaderboard nilai tertinggi setiap paket soal yang aktif.
+     */
+    private function quizLeaderboard(?int $siswaId, ?int $batchId): array
+    {
+        $packets = QuizPaket::with('course:id,title')
+            ->where('status', 'aktif')
+            ->when($batchId, fn ($q) => $q->where(fn ($qq) => $qq->whereNull('batch_id')->orWhere('batch_id', $batchId)))
+            ->orderByDesc('id')
+            ->take(8)
+            ->get();
+
+        $result = [];
+        foreach ($packets as $paket) {
+            $bestRows = QuizAttempt::query()
+                ->where('quiz_paket_id', $paket->id)
+                ->where('status', 'submitted')
+                ->whereNotNull('score')
+                ->selectRaw('siswa_id, MAX(score) as best_score, MIN(COALESCE(submitted_at, started_at)) as first_best_at')
+                ->groupBy('siswa_id')
+                ->orderByDesc('best_score')
+                ->orderBy('first_best_at')
+                ->take(5)
+                ->get();
+
+            $siswaMap = collect();
+            if ($bestRows->isNotEmpty()) {
+                $siswaMap = Siswa::with('batchRelasi.cabang:id,nama_cabang')
+                    ->whereIn('id', $bestRows->pluck('siswa_id'))
+                    ->get(['id', 'nama', 'batch_id', 'level'])
+                    ->keyBy('id');
+            }
+
+            $entries = $bestRows->values()->map(function ($r, $i) use ($siswaMap) {
+                $s = $siswaMap->get($r->siswa_id);
+                return [
+                    'rank' => $i + 1,
+                    'siswa_id' => (int) $r->siswa_id,
+                    'nama' => $s?->nama ?? 'Tanpa nama',
+                    'batch' => $s?->batchRelasi?->nama_batch,
+                    'cabang' => $s?->batchRelasi?->cabang?->nama_cabang,
+                    'level' => $s?->level,
+                    'best_score' => (int) $r->best_score,
+                ];
+            });
+
+            $myBest = null;
+            $myRank = null;
+            if ($siswaId) {
+                $myBest = QuizAttempt::where('quiz_paket_id', $paket->id)
+                    ->where('siswa_id', $siswaId)
+                    ->where('status', 'submitted')
+                    ->whereNotNull('score')
+                    ->max('score');
+
+                if ($myBest !== null) {
+                    $myBest = (int) $myBest;
+                    $higher = QuizAttempt::where('quiz_paket_id', $paket->id)
+                        ->where('status', 'submitted')
+                        ->where('score', '>', $myBest)
+                        ->distinct()
+                        ->count('siswa_id');
+                    $myRank = $higher + 1;
+                }
+            }
+
+            $result[] = [
+                'paket_id' => (int) $paket->id,
+                'title' => $paket->title,
+                'course' => $paket->course?->title,
+                'level' => $paket->level,
+                'max_score' => (int) $paket->questions()->sum('points') ?: null,
+                'entries' => $entries,
+                'my_score' => $myBest,
+                'my_rank' => $myRank,
+            ];
+        }
+
+        return $result;
     }
 
     public function updateProfile(Request $request)
@@ -231,6 +340,9 @@ class SiswaDashboardController extends Controller
                 'data' => $data,
             ]
         );
+
+        // 2a. Simpan ke tabel relasional per-field (matching_job_details).
+        \App\Models\MatchingJobDetail::syncFromForm($form, $payload);
 
         // 2b. Sinkronkan data diri ke tabel siswas & users agar tampil di /data-kandidat.
         if (!empty($payload['jenis_kelamin'])) {
