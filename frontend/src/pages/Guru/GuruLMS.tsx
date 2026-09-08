@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   BookOpen, Plus, FileText, X, Image as ImageIcon, Download, Trash2,
   ChevronRight, ArrowLeft, Layers, Search, Video, GripVertical, Edit3,
-  ChevronUp, ChevronDown, Upload, FolderOpen, ListChecks, Eye, EyeOff
+  ChevronUp, ChevronDown, Upload, FolderOpen, ListChecks, Eye, EyeOff, Trophy, Users
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -10,6 +10,7 @@ import { guruLmsApi, lmsAdminApi, APP_URL } from '../../services/api'
 import { getYouTubeEmbedUrl } from '../../utils/youtube'
 import Swal from 'sweetalert2'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
+import GuruPaketSoal from './GuruPaketSoal'
 
 interface Course {
   id: number
@@ -52,7 +53,34 @@ interface Batch {
   nama_batch: string
 }
 
-type TabType = 'lessons' | 'files' | 'tugas'
+interface RankEntry {
+  rank: number
+  siswa_id: number
+  nama: string
+  batch: string | null
+  cabang: string | null
+  level: number | null
+  best_score: number
+}
+
+interface RankPaket {
+  paket_id: number
+  title: string
+  course: string | null
+  level: string | null
+  max_score: number | null
+  participants: number
+  entries: RankEntry[]
+}
+
+function rankStylesGuru(rank: number) {
+  if (rank === 1) return 'bg-amber-400 text-white'
+  if (rank === 2) return 'bg-slate-300 text-slate-700'
+  if (rank === 3) return 'bg-orange-300 text-white'
+  return 'bg-slate-100 text-slate-500'
+}
+
+type TabType = 'lessons' | 'files' | 'tugas' | 'quiz'
 
 export default function GuruLMS() {
   const [courses, setCourses] = useState<Course[]>([])
@@ -87,6 +115,24 @@ export default function GuruLMS() {
   const [lessonUploading, setLessonUploading] = useState(false)
 
   const [fileUploading, setFileUploading] = useState(false)
+
+  const [showRankModal, setShowRankModal] = useState(false)
+  const [rankData, setRankData] = useState<RankPaket[]>([])
+  const [rankLoading, setRankLoading] = useState(false)
+
+  const openRankModal = async () => {
+    setShowRankModal(true)
+    setRankLoading(true)
+    try {
+      const res = await guruLmsApi.leaderboard()
+      setRankData(res.data.leaderboard)
+    } catch {
+      setRankData([])
+      Swal.fire({ icon: 'error', title: 'Gagal memuat peringkat' })
+    } finally {
+      setRankLoading(false)
+    }
+  }
 
   const quillModules = {
     toolbar: {
@@ -563,6 +609,7 @@ export default function GuruLMS() {
               {([
                 { key: 'lessons' as TabType, label: 'Pelajaran', icon: ListChecks, count: courseLessons.length },
                 { key: 'files' as TabType, label: 'File Materi', icon: FolderOpen, count: courseFiles.length },
+                { key: 'quiz' as TabType, label: 'Quiz', icon: Trophy, count: undefined as number | undefined },
                 { key: 'tugas' as TabType, label: 'Tugas', icon: FileText, count: 0 },
               ]).map(tab => (
                 <button key={tab.key} onClick={() => setActiveTab(tab.key)}
@@ -573,9 +620,11 @@ export default function GuruLMS() {
                   }`}>
                   <tab.icon size={14} />
                   {tab.label}
-                  <span className={`ml-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                    activeTab === tab.key ? 'bg-[#0069b0]/10 text-[#0069b0]' : 'bg-gray-100 text-gray-400'
-                  }`}>{tab.count}</span>
+                  {tab.count !== undefined && (
+                    <span className={`ml-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                      activeTab === tab.key ? 'bg-[#0069b0]/10 text-[#0069b0]' : 'bg-gray-100 text-gray-400'
+                    }`}>{tab.count}</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -739,6 +788,11 @@ export default function GuruLMS() {
                 <ChevronRight size={16} className="text-gray-300" />
               </div>
             </a>
+          )}
+
+          {/* Quiz Tab - same quiz management as manager's LMS */}
+          {activeTab === 'quiz' && (
+            <GuruPaketSoal courseId={selectedCourse.id} embedded onBack={() => setActiveTab('lessons')} />
           )}
         </div>
 
@@ -1013,10 +1067,16 @@ export default function GuruLMS() {
                 <p className="text-[11px] text-gray-400 font-medium">Learning Management System</p>
               </div>
             </div>
-            <button onClick={openCreateCourse}
-              className="flex items-center gap-1.5 bg-[#0069b0] text-white px-4 py-2.5 rounded-lg text-[11px] font-bold hover:bg-[#004d7a] transition-colors shadow-sm">
-              <Plus size={14} /> Tambah Kursus
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={openRankModal}
+                className="flex items-center gap-1.5 border border-[#0069b0] text-[#0069b0] px-4 py-2.5 rounded-lg text-[11px] font-bold bg-white hover:bg-[#0069b0]/5 transition-colors shadow-sm">
+                <Trophy size={14} /> Rank
+              </button>
+              <button onClick={openCreateCourse}
+                className="flex items-center gap-1.5 bg-[#0069b0] text-white px-4 py-2.5 rounded-lg text-[11px] font-bold hover:bg-[#004d7a] transition-colors shadow-sm">
+                <Plus size={14} /> Tambah Kursus
+              </button>
+            </div>
           </div>
 
           {/* Stats */}
@@ -1226,6 +1286,87 @@ export default function GuruLMS() {
                 className="rounded-lg bg-[#0069b0] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#004d7a] transition disabled:opacity-50 flex items-center gap-1.5">
                 {savingCourse ? 'Menyimpan...' : editingCourse ? 'Simpan' : 'Buat Kursus'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== RANK MODAL ==================== */}
+      {showRankModal && (
+        <div className="fixed inset-0 z-[70] bg-black/50 flex items-center justify-center p-4" onClick={() => setShowRankModal(false)}>
+          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[85vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-lg bg-amber-400/10 flex items-center justify-center">
+                  <Trophy size={18} className="text-amber-500" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-gray-900">Rank Quiz</h2>
+                  <p className="text-[10px] text-gray-400 font-medium">Peringkat kandidat per quiz</p>
+                </div>
+              </div>
+              <button onClick={() => setShowRankModal(false)}
+                className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-5">
+              {rankLoading ? (
+                <div className="flex items-center justify-center py-10">
+                  <div className="w-6 h-6 border-2 border-[#0069b0] border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : rankData.length === 0 ? (
+                <div className="text-center py-10">
+                  <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
+                    <Trophy size={24} className="text-gray-300" />
+                  </div>
+                  <p className="text-sm font-semibold text-gray-500">Belum ada quiz</p>
+                  <p className="text-xs text-gray-400 mt-1">Belum ada quiz aktif untuk menampilkan peringkat</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {rankData.map(paket => (
+                    <div key={paket.paket_id} className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                      <div className="bg-gradient-to-r from-[#0E6187] to-[#1a3355] px-4 py-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-white truncate">{paket.title}</p>
+                            <p className="text-[9.5px] text-white/60 mt-0.5 flex items-center gap-1">
+                              <span className="truncate">{[paket.course, paket.level && `Level ${paket.level}`].filter(Boolean).join(' · ') || '-'}</span>
+                              {paket.max_score != null && <span className="shrink-0 font-semibold">· Max {paket.max_score} poin</span>}
+                            </p>
+                          </div>
+                          <span className="shrink-0 flex items-center gap-1 bg-white/15 text-white text-[9.5px] font-bold px-2 py-1 rounded-md">
+                            <Users size={12} /> {paket.participants}
+                          </span>
+                        </div>
+                      </div>
+
+                      {paket.entries.length === 0 ? (
+                        <p className="px-4 py-4 text-[11px] text-slate-400 text-center">Belum ada kandidat yang mengerjakan</p>
+                      ) : (
+                        <div className="divide-y divide-slate-100">
+                          {paket.entries.map(e => (
+                            <div key={e.siswa_id} className="flex items-center gap-3 px-4 py-2.5">
+                              <span className={`w-6 h-6 shrink-0 rounded-md flex items-center justify-center text-[10px] font-bold ${rankStylesGuru(e.rank)}`}>
+                                {e.rank}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-[11.5px] font-semibold text-slate-800 truncate">{e.nama}</p>
+                                <p className="text-[9.5px] text-slate-400">
+                                  {[e.cabang, e.batch, e.level != null && `Level ${e.level}`].filter(Boolean).join(' · ') || '-'}
+                                </p>
+                              </div>
+                              <span className="shrink-0 rounded-md bg-slate-800 px-2 py-0.5 text-[10px] font-bold text-white">{e.best_score}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

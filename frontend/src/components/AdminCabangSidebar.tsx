@@ -5,7 +5,7 @@ import { adminCabangApi } from '../services/api'
 import {
   LayoutDashboard, UserPlus, ClipboardList, FileText, Layers, GraduationCap,
   ChevronDown, LogOut, X, Receipt, MapPin, Wallet, BookOpen, Presentation,
-  Calendar, BarChart3, Notebook, ClipboardCheck,
+  Calendar, BarChart3, Notebook, ClipboardCheck, HelpCircle,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -31,7 +31,7 @@ interface SidebarProps {
 const iconMap: Record<string, LucideIcon> = {
   LayoutDashboard, UserPlus, ClipboardList, FileText, Layers, GraduationCap,
   ChevronDown, LogOut, X, Receipt, MapPin, Wallet, BookOpen, Presentation,
-  Calendar, BarChart3, Notebook, ClipboardCheck,
+  Calendar, BarChart3, Notebook, ClipboardCheck, HelpCircle,
 }
 
 const navItems: NavItem[] = [
@@ -60,7 +60,8 @@ const navItems: NavItem[] = [
       { label: 'Rekap Siswa', icon: 'BarChart3', href: '/admin-cabang/rekap-siswa' },
       { label: 'Penilaian Siswa', icon: 'Notebook', href: '/admin-cabang/penilaian' },
       { label: 'Evaluasi Instruktur', icon: 'ClipboardCheck', href: '/admin-cabang/evaluasi-instruktur' },
-      { label: 'LMS', icon: 'BookOpen', href: '/admin-cabang/lms' },
+      { label: 'Kelas Mendunia', icon: 'BookOpen', href: '/admin-cabang/lms' },
+      { label: 'Quiz / Paket Soal', icon: 'HelpCircle', href: '/admin-cabang/quiz' },
       { label: 'Raport Siswa', icon: 'Notebook', href: '/admin-cabang/raport' },
     ],
   },

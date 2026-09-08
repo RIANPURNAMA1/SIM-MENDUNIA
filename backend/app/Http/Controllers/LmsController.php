@@ -6,6 +6,7 @@ use App\Models\Batch;
 use App\Models\Course;
 use App\Models\CourseFile;
 use App\Models\Lesson;
+use App\Models\LessonSlide;
 use App\Models\LmsAssignment;
 use App\Models\LmsSubmission;
 use App\Models\LmsProgress;
@@ -16,10 +17,35 @@ use Illuminate\Support\Facades\Storage;
 
 class LmsController extends Controller
 {
+    private const VIDEO_PERCENT_DONE = 95;
+    private const MODUL_MIN_SECONDS = 30;
+
     private function getSiswa()
     {
         $user = Auth::guard('sanctum')->user();
         return Siswa::where('user_id', $user->id)->first();
+    }
+
+    private function progressPayload(Lesson $lesson, ?LmsProgress $progress)
+    {
+        $videoRequired = !empty($lesson->video_url);
+        $readRequired = !empty($lesson->content);
+        $videoPercent = (int) ($progress?->video_percent ?? 0);
+        $readSeconds = (int) ($progress?->read_seconds ?? 0);
+
+        return [
+            'lesson_id' => $lesson->id,
+            'video_required' => $videoRequired,
+            'read_required' => $readRequired,
+            'video_watched_seconds' => (int) ($progress?->video_watched_seconds ?? 0),
+            'video_duration_seconds' => (int) ($progress?->video_duration_seconds ?? 0),
+            'video_percent' => $videoPercent,
+            'read_seconds' => $readSeconds,
+            'video_green' => !$videoRequired || $videoPercent >= self::VIDEO_PERCENT_DONE,
+            'read_green' => !$readRequired || $readSeconds >= self::MODUL_MIN_SECONDS,
+            'video_green_percent' => self::VIDEO_PERCENT_DONE,
+            'modul_min_seconds' => self::MODUL_MIN_SECONDS,
+        ];
     }
 
     // ========== Student-facing ==========
@@ -62,18 +88,29 @@ class LmsController extends Controller
         }
 
         $course = Course::aktif()->with(['lessons' => function ($q) {
-            $q->aktif()->orderBy('sort');
+            $q->aktif()->orderBy('sort')->with('slides');
         }])->findOrFail($id);
 
-        $completedLessonIds = LmsProgress::where('siswa_id', $siswa->id)
+        $progresses = LmsProgress::where('siswa_id', $siswa->id)
             ->whereIn('lesson_id', $course->lessons->pluck('id'))
-            ->whereNotNull('completed_at')
-            ->pluck('lesson_id')
+            ->get()
+            ->keyBy('lesson_id');
+
+        $completedLessonIds = $progresses->filter(fn ($p) => $p->completed_at !== null)
+            ->keys()
             ->toArray();
+
+        $lessonProgress = $course->lessons->mapWithKeys(function ($l) use ($progresses) {
+            $p = $progresses->get($l->id);
+            $payload = $this->progressPayload($l, $p);
+            $payload['completed'] = $p && $p->completed_at !== null;
+            return [$l->id => $payload];
+        });
 
         return response()->json([
             'course' => $course,
             'completed_lesson_ids' => $completedLessonIds,
+            'lesson_progress' => $lessonProgress,
         ]);
     }
 
@@ -84,7 +121,7 @@ class LmsController extends Controller
             return response()->json(['message' => 'Siswa not found'], 404);
         }
 
-        $lesson = Lesson::aktif()->with('course')->findOrFail($id);
+        $lesson = Lesson::aktif()->with('course', 'slides')->findOrFail($id);
 
         $progress = LmsProgress::where('lesson_id', $lesson->id)
             ->where('siswa_id', $siswa->id)
@@ -92,8 +129,78 @@ class LmsController extends Controller
 
         return response()->json([
             'lesson' => $lesson,
+            'slides' => $lesson->slides->map(fn ($s) => [
+                'id' => $s->id,
+                'file_path' => $s->file_path,
+                'file_name' => $s->file_name,
+                'url' => asset('storage/' . $s->file_path),
+            ]),
             'completed' => $progress && $progress->completed_at !== null,
             'completed_at' => $progress?->completed_at,
+            'progress' => $this->progressPayload($lesson, $progress),
+        ]);
+    }
+
+    public function lessonVideoProgress(Request $request, $id)
+    {
+        $siswa = $this->getSiswa();
+        if (!$siswa) {
+            return response()->json(['message' => 'Siswa not found'], 404);
+        }
+
+        $lesson = Lesson::aktif()->findOrFail($id);
+
+        $data = $request->validate([
+            'current_time' => 'nullable|numeric|min:0',
+            'duration' => 'nullable|numeric|min:0',
+        ]);
+
+        $currentTime = max(0, (float) ($data['current_time'] ?? 0));
+        $duration = max(0, (float) ($data['duration'] ?? 0));
+
+        $progress = LmsProgress::firstOrNew([
+            'lesson_id' => $lesson->id,
+            'siswa_id' => $siswa->id,
+        ]);
+
+        $progress->video_duration_seconds = max((int) $progress->video_duration_seconds, (int) $duration);
+        $progress->video_watched_seconds = max((int) $progress->video_watched_seconds, (int) $currentTime);
+
+        $dur = (int) $progress->video_duration_seconds;
+        $watched = (int) $progress->video_watched_seconds;
+        $progress->video_percent = $dur > 0 ? (int) round(min(100, $watched * 100 / $dur)) : 0;
+        $progress->save();
+
+        return response()->json([
+            'message' => 'Video progress saved',
+            'progress' => $this->progressPayload($lesson, $progress),
+        ]);
+    }
+
+    public function lessonReadProgress(Request $request, $id)
+    {
+        $siswa = $this->getSiswa();
+        if (!$siswa) {
+            return response()->json(['message' => 'Siswa not found'], 404);
+        }
+
+        $lesson = Lesson::aktif()->findOrFail($id);
+
+        $data = $request->validate([
+            'seconds' => 'required|integer|min:1|max:120',
+        ]);
+
+        $progress = LmsProgress::firstOrNew([
+            'lesson_id' => $lesson->id,
+            'siswa_id' => $siswa->id,
+        ]);
+
+        $progress->read_seconds = (int) $progress->read_seconds + (int) $data['seconds'];
+        $progress->save();
+
+        return response()->json([
+            'message' => 'Read progress saved',
+            'progress' => $this->progressPayload($lesson, $progress),
         ]);
     }
 
@@ -110,6 +217,17 @@ class LmsController extends Controller
             'lesson_id' => $lesson->id,
             'siswa_id' => $siswa->id,
         ]);
+
+        $payload = $this->progressPayload($lesson, $progress);
+        if (!$payload['video_green'] || !$payload['read_green']) {
+            return response()->json([
+                'message' => 'Penyelesaian belum memenuhi syarat. Selesaikan video dan baca modul terlebih dahulu.',
+                'syarat' => [
+                    'video' => $payload['video_green'],
+                    'modul' => $payload['read_green'],
+                ],
+            ], 422);
+        }
 
         if (!$progress->completed_at) {
             $progress->completed_at = now();
@@ -224,6 +342,63 @@ class LmsController extends Controller
 
     // ========== Admin CRUD ==========
 
+    private function syncLessonSlides(Lesson $lesson, Request $request)
+    {
+        if ($request->has('remove_slides')) {
+            $removeIds = array_filter(array_map('intval', (array) $request->input('remove_slides')));
+            $removes = $lesson->slides()->whereIn('id', $removeIds)->get();
+            foreach ($removes as $slide) {
+                Storage::disk('public')->delete($slide->file_path);
+                $slide->delete();
+            }
+        }
+
+        if ($request->hasFile('slides')) {
+            $sort = $lesson->slides()->max('sort') ?? 0;
+            foreach ($request->file('slides') as $file) {
+                $sort++;
+                LessonSlide::create([
+                    'lesson_id' => $lesson->id,
+                    'file_path' => $file->store('lms/lesson-slides', 'public'),
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_type' => $file->getMimeType(),
+                    'file_size' => $file->getSize(),
+                    'sort' => $sort,
+                ]);
+            }
+        }
+    }
+
+    private function applyLessonFile(?Lesson $lesson, Request $request, array &$data)
+    {
+        if ($request->hasFile('file')) {
+            if ($lesson->file_path) {
+                Storage::disk('public')->delete($lesson->file_path);
+            }
+            $file = $request->file('file');
+            $data['file_path'] = $file->store('lms/lesson-files', 'public');
+            $data['file_name'] = $file->getClientOriginalName();
+            $data['file_type'] = $file->getMimeType();
+            $data['file_size'] = $file->getSize();
+        } elseif ($request->input('remove_file') === '1' && $lesson->file_path) {
+            Storage::disk('public')->delete($lesson->file_path);
+            $data['file_path'] = null;
+            $data['file_name'] = null;
+            $data['file_type'] = null;
+            $data['file_size'] = null;
+        }
+    }
+
+    private function destroyLessonFiles(Lesson $lesson)
+    {
+        if ($lesson->file_path) {
+            Storage::disk('public')->delete($lesson->file_path);
+        }
+        foreach ($lesson->slides()->get() as $slide) {
+            Storage::disk('public')->delete($slide->file_path);
+        }
+    }
+
     public function adminCourses()
     {
         $courses = Course::withCount(['lessons', 'files'])->orderBy('sort')->get();
@@ -289,7 +464,7 @@ class LmsController extends Controller
     public function adminLessons($courseId)
     {
         $course = Course::findOrFail($courseId);
-        $lessons = $course->lessons()->orderBy('sort')->get();
+        $lessons = $course->lessons()->with('slides')->orderBy('sort')->get();
         return response()->json(['course' => $course, 'lessons' => $lessons]);
     }
 
@@ -301,21 +476,19 @@ class LmsController extends Controller
             'content' => 'nullable|string',
             'video_url' => 'nullable|string|max:500',
             'file' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt|max:51200',
+            'slides' => 'nullable|array|max:30',
+            'slides.*' => 'file|image|mimes:jpg,jpeg,png,webp|max:10240',
             'sort' => 'nullable|integer|min:0',
             'status' => 'nullable|in:aktif,nonaktif',
         ]);
 
-        if ($request->hasFile('file')) {
-            $file = $request->file('file');
-            $data['file_path'] = $file->store('lms/lesson-files', 'public');
-            $data['file_name'] = $file->getClientOriginalName();
-            $data['file_type'] = $file->getMimeType();
-            $data['file_size'] = $file->getSize();
-        }
-
+        $this->applyLessonFile(null, $request, $data);
         unset($data['file']);
         $lesson = Lesson::create($data);
-        return response()->json(['lesson' => $lesson], 201);
+        if ($request->hasFile('slides')) {
+            $this->syncLessonSlides($lesson, $request);
+        }
+        return response()->json(['lesson' => $lesson->fresh()->load('slides')], 201);
     }
 
     public function updateLesson(Request $request, $id)
@@ -327,29 +500,29 @@ class LmsController extends Controller
             'content' => 'nullable|string',
             'video_url' => 'nullable|string|max:500',
             'file' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt|max:51200',
+            'slides' => 'nullable|array|max:30',
+            'slides.*' => 'file|image|mimes:jpg,jpeg,png,webp|max:10240',
+            'remove_slides' => 'nullable|array',
+            'remove_slides.*' => 'integer|exists:lms_lesson_slides,id',
+            'remove_file' => 'nullable|in:0,1',
             'sort' => 'nullable|integer|min:0',
             'status' => 'nullable|in:aktif,nonaktif',
         ]);
 
-        if ($request->hasFile('file')) {
-            if ($lesson->file_path) {
-                Storage::disk('public')->delete($lesson->file_path);
-            }
-            $file = $request->file('file');
-            $data['file_path'] = $file->store('lms/lesson-files', 'public');
-            $data['file_name'] = $file->getClientOriginalName();
-            $data['file_type'] = $file->getMimeType();
-            $data['file_size'] = $file->getSize();
-        }
-
+        $this->applyLessonFile($lesson, $request, $data);
         unset($data['file']);
+
+        $this->syncLessonSlides($lesson, $request);
+
         $lesson->update($data);
-        return response()->json(['lesson' => $lesson->fresh()]);
+        return response()->json(['lesson' => $lesson->fresh()->load('slides')]);
     }
 
     public function deleteLesson($id)
     {
-        Lesson::findOrFail($id)->delete();
+        $lesson = Lesson::findOrFail($id);
+        $this->destroyLessonFiles($lesson);
+        $lesson->delete();
         return response()->json(['message' => 'Lesson deleted']);
     }
 

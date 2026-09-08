@@ -107,6 +107,8 @@ import SiswaLayout from './layouts/SiswaLayout'
 import PembayaranSiswa from './pages/Siswa/PembayaranSiswa'
 import AbsensiSaya from './pages/Absensi/AbsensiSaya'
 import LMS from './pages/Akademik/LMS'
+import QuizKandidat from './pages/Akademik/QuizKandidat'
+import QuizPlay from './pages/Akademik/QuizPlay'
 import Raport from './pages/Akademik/Raport'
 import SiswaNilai from './pages/Siswa/SiswaNilai'
 import DataCourse from './pages/Akademik/DataCourse'
@@ -117,6 +119,7 @@ import GuruDashboard from './pages/Guru/GuruDashboard'
 import GuruDataSiswa from './pages/Guru/GuruDataSiswa'
 import GuruLMS from './pages/Guru/GuruLMS'
 import GuruLMSAssignment from './pages/Guru/GuruLMSAssignment'
+import GuruPaketSoal from './pages/Guru/GuruPaketSoal'
 import GuruProfil from './pages/Guru/GuruProfil'
 
 import GuruLayout from './layouts/GuruLayout'
@@ -127,7 +130,7 @@ import AdminCabangDataKandidat from './pages/AdminCabang/AdminCabangDataKandidat
 import AdminCabangPendaftaran from './pages/AdminCabang/AdminCabangPendaftaran'
 import AdminCabangPengeluaran from './pages/AdminCabang/AdminCabangPengeluaran'
 import AdminCabangKategoriPengeluaran from './pages/AdminCabang/AdminCabangKategoriPengeluaran'
-
+import AdminQuizPaketSoal from './pages/AdminCabang/AdminQuizPaketSoal'
 function ProtectedRoute({ children, roleAllowed, roleBlocked }: { children: React.ReactNode; roleAllowed?: string; roleBlocked?: string[] }) {
   const { user, isAuthenticated, isLoading } = useAuth()
 
@@ -270,6 +273,13 @@ function AppRoutes() {
         <Route path="pembayaran" element={<PembayaranSiswa />} />
         <Route path="pembayaran/invoice/:id" element={<InvoiceSiswa />} />
         <Route path="lms" element={<LMS />} />
+        <Route path="lms/:courseId" element={<LMS />} />
+        <Route path="lms/:courseId/materi/:lessonId" element={<LMS />} />
+        <Route path="lms/:courseId/quiz" element={<LMS />} />
+        <Route path="quiz" element={<QuizKandidat />} />
+        <Route path="quiz/:paketId" element={<QuizKandidat />} />
+        <Route path="quiz/:paketId/materi/:lessonId" element={<QuizKandidat />} />
+        <Route path="quiz/:paketId/play/:attemptId" element={<QuizPlay />} />
         <Route path="nilai" element={<SiswaNilai />} />
         <Route path="matching-job" element={<ProgressKandidat />} />
         <Route path="kontrak" element={<KontrakSiswa />} />
@@ -327,6 +337,17 @@ function AppRoutes() {
           <ProtectedRoute roleAllowed="GURU">
             <GuruLayout>
               <GuruLMSAssignment />
+            </GuruLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/guru-paket-soal"
+        element={
+          <ProtectedRoute roleAllowed="GURU">
+            <GuruLayout>
+              <GuruPaketSoal />
             </GuruLayout>
           </ProtectedRoute>
         }
@@ -499,6 +520,16 @@ function AppRoutes() {
           <ProtectedRoute roleAllowed="ADMIN_CABANG">
             <AdminCabangLayout>
               <DataCourse />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-cabang/quiz"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <AdminQuizPaketSoal />
             </AdminCabangLayout>
           </ProtectedRoute>
         }
@@ -859,6 +890,7 @@ function AppRoutes() {
                 <Route path="/evaluasi-instruktur" element={<EvaluasiInstruktur />} />
                 <Route path="/raport" element={<Raport />} />
                 <Route path="/lms" element={<DataCourse />} />
+                <Route path="/paket-soal" element={<AdminQuizPaketSoal />} />
                 <Route path="/lms/:courseId/lessons" element={<DataLesson />} />
                 <Route path="/data-blog" element={<DataBlog />} />
                 <Route path="/ai-chat" element={<AiChat />} />

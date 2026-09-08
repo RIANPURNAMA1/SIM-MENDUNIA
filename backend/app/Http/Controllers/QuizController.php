@@ -1,0 +1,564 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\QuizAnswer;
+use App\Models\QuizAttempt;
+use App\Models\QuizPaket;
+use App\Models\QuizQuestion;
+use App\Models\Siswa;
+use App\Models\Lesson;
+use App\Models\LmsProgress;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+
+class QuizController extends Controller
+{
+    private function courseLessonsForSiswa(QuizPaket $paket, ?Siswa $siswa)
+    {
+        if (!$siswa) {
+            return collect();
+        }
+        return Lesson::where('paket_id', $paket->id)
+            ->aktif()
+            ->orderBy('sort')
+            ->get();
+    }
+
+    private function paketUnlocked(QuizPaket $paket, ?Siswa $siswa): bool
+    {
+        $lessons = $this->courseLessonsForSiswa($paket, $siswa);
+        if ($lessons->count() === 0) {
+            return true;
+        }
+        $completed = LmsProgress::where('siswa_id', $siswa->id)
+            ->whereIn('lesson_id', $lessons->pluck('id'))
+            ->whereNotNull('completed_at')
+            ->count();
+        return $completed >= $lessons->count();
+    }
+
+    private function siswaUser()
+    {        $user = Auth::guard('sanctum')->user();
+        if (!$user) {
+            return null;
+        }
+        return Siswa::where('user_id', $user->id)->first();
+    }
+
+    private function paketVisible(QuizPaket $paket, ?Siswa $siswa)
+    {
+        if (!$siswa) {
+            return false;
+        }
+        if ($paket->batch_id && $paket->batch_id != $siswa->batch_id) {
+            return false;
+        }
+        if ($paket->level && $siswa->level !== null && (string) $paket->level !== (string) $siswa->level) {
+            return false;
+        }
+        return true;
+    }
+
+    private function ownAttempt($id, $siswaId)
+    {
+        $attempt = QuizAttempt::with('paket')
+            ->where('id', $id)
+            ->where('siswa_id', $siswaId)
+            ->firstOrFail();
+        return $attempt;
+    }
+
+    private function isExpired(QuizAttempt $attempt)
+    {
+        return $attempt->started_at->addSeconds((int) $attempt->time_limit_seconds)->addSeconds(5)->isPast();
+    }
+
+    private function finalize(QuizAttempt $attempt, bool $auto = false)
+    {
+        if ($attempt->status === 'submitted') {
+            return;
+        }
+
+        $answers = $attempt->answers()->get()->keyBy('quiz_question_id');
+        $correct = 0;
+        $pointsEarned = 0;
+        $totalPoints = 0;
+
+        foreach ($attempt->paket->questions as $q) {
+            $totalPoints += (int) $q->points;
+            $a = $answers->get($q->id);
+            $sel = $a?->selected_index;
+            $isRating = $q->question_type === 'rating';
+            if ($sel !== null && ($isRating || (int) $sel === (int) $q->correct_index)) {
+                $correct++;
+                $pointsEarned += (int) $q->points;
+                if ($a) {
+                    $a->is_correct = true;
+                    $a->save();
+                }
+            } elseif ($a) {
+                $a->is_correct = false;
+                $a->save();
+            }
+        }
+
+        $score = $totalPoints > 0 ? round($pointsEarned * 100 / $totalPoints) : 0;
+
+        $attempt->update([
+            'status' => 'submitted',
+            'submitted_at' => now(),
+            'score' => (int) $score,
+            'correct_count' => $correct,
+            'total_count' => $attempt->paket->questions->count(),
+            'auto_submitted' => $auto ? true : $attempt->auto_submitted,
+        ]);
+    }
+
+    private function expireIfTimeUp(QuizAttempt $attempt)
+    {
+        if ($attempt->status === 'in_progress' && $this->isExpired($attempt)) {
+            $this->finalize($attempt, true);
+        }
+    }
+
+    private function resultPayload(QuizAttempt $attempt)
+    {
+        $answered = $attempt->answers()->whereNotNull('selected_index')->count();
+        return [
+            'attempt_id' => $attempt->id,
+            'attempt_number' => $attempt->attempt_number,
+            'status' => $attempt->status,
+            'score' => $attempt->score,
+            'correct_count' => $attempt->correct_count,
+            'total_count' => $attempt->total_count,
+            'answered_count' => $answered,
+            'warnings' => $attempt->warnings,
+            'max_warnings' => (int) $attempt->paket->max_warnings,
+            'auto_submitted' => $attempt->auto_submitted,
+            'started_at' => $attempt->started_at?->toIso8601String(),
+            'submitted_at' => $attempt->submitted_at?->toIso8601String(),
+            'time_limit_seconds' => (int) $attempt->time_limit_seconds,
+            'passing_score' => (int) $attempt->paket->passing_score,
+        ];
+    }
+
+    // ========== Paket ==========
+
+    public function index()
+    {
+        $siswa = $this->siswaUser();
+        if (!$siswa) {
+            return response()->json(['pakets' => []]);
+        }
+
+        $query = QuizPaket::aktif()
+            ->withCount('questions')
+            ->with(['course:id,title', 'batch:id,nama_batch']);
+
+        $query->where(function ($q) use ($siswa) {
+            $q->whereNull('batch_id')->orWhere('batch_id', $siswa->batch_id);
+        });
+
+        if ($siswa->level !== null) {
+            $query->where(function ($q) use ($siswa) {
+                $q->whereNull('level')->orWhere('level', (string) $siswa->level);
+            });
+        }
+
+        $pakets = $query->orderByDesc('created_at')->get();
+
+        $result = $pakets->map(function ($p) use ($siswa) {
+            $attempts = QuizAttempt::where('quiz_paket_id', $p->id)
+                ->where('siswa_id', $siswa->id)
+                ->orderBy('attempt_number')
+                ->get();
+            $used = $attempts->count();
+            $best = $attempts->where('status', 'submitted')->max('score');
+
+            return [
+                'id' => $p->id,
+                'title' => $p->title,
+                'description' => $p->description,
+                'category' => $p->category,
+                'cover_url' => $p->cover_url,
+                'course_id' => $p->course_id,
+                'course_title' => optional($p->course)->title,
+                'batch_name' => optional($p->batch)->nama_batch,
+                'questions_count' => $p->questions_count,
+                'time_limit_minutes' => $p->time_limit_minutes,
+                'max_attempts' => $p->max_attempts,
+                'passing_score' => (int) $p->passing_score,
+                'attempts_used' => $used,
+                'best_score' => $best === null ? null : (int) $best,
+                'can_start' => $used < $p->max_attempts,
+                'is_unlocked' => $this->paketUnlocked($p, $siswa),
+            ];
+        });
+
+        return response()->json(['pakets' => $result]);
+    }
+
+    public function paketDetail($id)
+    {
+        $siswa = $this->siswaUser();
+        if (!$siswa) {
+            return response()->json(['paket' => null], 404);
+        }
+
+        $paket = QuizPaket::aktif()->withCount('questions')->findOrFail($id);
+        if (!$this->paketVisible($paket, $siswa)) {
+            return response()->json(['message' => 'Paket soal tidak tersedia'], 404);
+        }
+
+        $attempts = QuizAttempt::where('quiz_paket_id', $paket->id)
+            ->where('siswa_id', $siswa->id)
+            ->orderBy('attempt_number')
+            ->get()
+            ->map(fn ($a) => [
+                'attempt_id' => $a->id,
+                'attempt_number' => $a->attempt_number,
+                'status' => $a->status,
+                'score' => $a->score,
+                'correct_count' => $a->correct_count,
+                'total_count' => $a->total_count,
+                'warnings' => $a->warnings,
+                'auto_submitted' => $a->auto_submitted,
+                'started_at' => $a->started_at?->toIso8601String(),
+                'submitted_at' => $a->submitted_at?->toIso8601String(),
+            ]);
+
+        // Lesson prerequisites: if paket linked to a course, include its active
+        // lessons + the siswa's completion state + whether the quiz is unlocked.
+        $lessons = [];
+        $completedLessonIds = [];
+        $hasPrerequisiteCourse = false;
+
+        $courseLessons = $this->courseLessonsForSiswa($paket, $siswa);
+        if ($courseLessons->count() > 0) {
+            $hasPrerequisiteCourse = true;
+            $courseLessons->load('slides');
+            $progresses = LmsProgress::where('siswa_id', $siswa->id)
+                ->whereIn('lesson_id', $courseLessons->pluck('id'))
+                ->get()
+                ->keyBy('lesson_id');
+
+            $completedLessonIds = $progresses->filter(fn ($p) => $p->completed_at !== null)
+                ->keys()
+                ->map(fn ($id) => (int) $id)
+                ->values()
+                ->toArray();
+
+            $completedSet = array_fill_keys($completedLessonIds, true);
+
+            $lessons = $courseLessons->map(function ($l) use ($progresses, $completedSet) {
+                $p = $progresses->get($l->id);
+                return [
+                    'id' => $l->id,
+                    'title' => $l->title,
+                    'sort' => $l->sort,
+                    'video_url' => $l->video_url,
+                    'content' => $l->content,
+                    'has_video' => !empty($l->video_url),
+                    'has_content' => !empty($l->content),
+                    'file_name' => $l->file_name,
+                    'file_url' => $l->file_path ? asset('storage/' . $l->file_path) : null,
+                    'slides' => $l->slides->map(fn ($s) => [
+                        'id' => $s->id,
+                        'file_name' => $s->file_name,
+                        'url' => asset('storage/' . $s->file_path),
+                    ])->values(),
+                    'completed' => isset($completedSet[$l->id]),
+                ];
+            })->values()->toArray();
+        }
+
+        return response()->json([
+            'paket' => [
+                'id' => $paket->id,
+                'title' => $paket->title,
+                'description' => $paket->description,
+                'cover_url' => $paket->cover_url,
+                'course_id' => $paket->course_id,
+                'course_title' => optional($paket->course)->title,
+                'questions_count' => $paket->questions_count,
+                'time_limit_minutes' => $paket->time_limit_minutes,
+                'max_attempts' => $paket->max_attempts,
+                'passing_score' => (int) $paket->passing_score,
+                'max_warnings' => (int) $paket->max_warnings,
+                'has_prerequisite_course' => $hasPrerequisiteCourse,
+            ],
+            'lessons' => $lessons,
+            'completed_lesson_ids' => $completedLessonIds,
+            'is_unlocked' => $this->paketUnlocked($paket, $siswa),
+            'attempts' => $attempts,
+        ]);
+    }
+
+    public function start(Request $request, $id)
+    {
+        $siswa = $this->siswaUser();
+        if (!$siswa) {
+            return response()->json(['message' => 'Siswa tidak ditemukan'], 401);
+        }
+
+        $paket = QuizPaket::aktif()->findOrFail($id);
+        if (!$this->paketVisible($paket, $siswa)) {
+            return response()->json(['message' => 'Paket soal tidak tersedia'], 404);
+        }
+
+        if (!$this->paketUnlocked($paket, $siswa)) {
+            return response()->json(['message' => 'Selesaikan seluruh materi terlebih dahulu untuk membuka kuis ini'], 422);
+        }
+
+        $used = QuizAttempt::where('quiz_paket_id', $paket->id)
+            ->where('siswa_id', $siswa->id)
+            ->count();
+
+        $inProgress = QuizAttempt::where('quiz_paket_id', $paket->id)
+            ->where('siswa_id', $siswa->id)
+            ->where('status', 'in_progress')
+            ->first();
+
+        if ($inProgress) {
+            $this->expireIfTimeUp($inProgress);
+            $inProgress->refresh();
+            if ($inProgress->status === 'in_progress') {
+                return response()->json([
+                    'message' => 'Anda masih memiliki percobaan yang berjalan',
+                    'attempt_id' => $inProgress->id,
+                ], 422);
+            }
+        }
+
+        if ($used >= $paket->max_attempts) {
+            return response()->json(['message' => 'Batas percobaan telah tercapai'], 422);
+        }
+
+        $attempt = QuizAttempt::create([
+            'quiz_paket_id' => $paket->id,
+            'siswa_id' => $siswa->id,
+            'attempt_number' => $used + 1,
+            'started_at' => now(),
+            'time_limit_seconds' => $paket->time_limit_minutes * 60,
+            'status' => 'in_progress',
+        ]);
+
+        $questions = $paket->questions->map(fn ($q) => [
+            'id' => $q->id,
+            'question' => $q->question,
+            'options' => $q->options,
+            'points' => $q->points,
+            'image_url' => $q->image_url,
+            'audio_url' => $q->audio_url,
+            'audio_max_plays' => $q->audio_max_plays,
+        ]);
+
+        if ($paket->shuffle_questions) {
+            $questions = $questions->shuffle()->values();
+        }
+
+        return response()->json([
+            'attempt' => [
+                'id' => $attempt->id,
+                'attempt_number' => $attempt->attempt_number,
+                'started_at' => $attempt->started_at->toIso8601String(),
+                'time_limit_seconds' => (int) $attempt->time_limit_seconds,
+                'max_warnings' => (int) $paket->max_warnings,
+            ],
+            'questions' => $questions,
+        ], 201);
+    }
+
+    public function uploadWebcam(Request $request, $attemptId)
+    {
+        $siswa = $this->siswaUser();
+        if (!$siswa) {
+            return response()->json(['message' => 'Siswa tidak ditemukan'], 401);
+        }
+
+        $attempt = $this->ownAttempt($attemptId, $siswa->id);
+        if ($attempt->status !== 'in_progress') {
+            return response()->json(['message' => 'Percobaan sudah berakhir'], 422);
+        }
+
+        $this->expireIfTimeUp($attempt);
+        if ($attempt->status !== 'in_progress') {
+            return response()->json(['message' => 'Waktu quiz telah habis'], 422);
+        }
+
+        $data = $request->validate([
+            'photo' => 'required|image|mimes:jpg,jpeg,png,webp|max:3072',
+        ]);
+
+        if ($attempt->webcam_photo) {
+            Storage::disk('public')->delete($attempt->webcam_photo);
+        }
+
+        $path = $request->file('photo')->store('quiz/webcam', 'public');
+        $attempt->update(['webcam_photo' => $path]);
+
+        return response()->json([
+            'message' => 'Foto tersimpan',
+            'webcam_photo' => asset('storage/' . $path),
+        ]);
+    }
+
+    public function show($attemptId)
+    {
+        $siswa = $this->siswaUser();
+        if (!$siswa) {
+            return response()->json(['message' => 'Siswa tidak ditemukan'], 401);
+        }
+
+        $attempt = $this->ownAttempt($attemptId, $siswa->id);
+
+        if ($attempt->status === 'in_progress') {
+            $this->expireIfTimeUp($attempt);
+            $attempt->refresh();
+        }
+
+        if ($attempt->status === 'submitted') {
+            return response()->json([
+                'attempt' => $this->resultPayload($attempt),
+            ]);
+        }
+
+        $answers = $attempt->answers()->get()->keyBy('quiz_question_id');
+        $questions = $attempt->paket->questions->values();
+
+        $remaining = max(0, (int) $attempt->time_limit_seconds - (int) $attempt->started_at->diffInSeconds(now(), true));
+
+        return response()->json([
+            'attempt' => [
+                'id' => $attempt->id,
+                'attempt_number' => $attempt->attempt_number,
+                'started_at' => $attempt->started_at->toIso8601String(),
+                'time_limit_seconds' => (int) $attempt->time_limit_seconds,
+                'remaining_seconds' => $remaining,
+                'max_warnings' => (int) $attempt->paket->max_warnings,
+                'warnings' => $attempt->warnings,
+            ],
+            'questions' => $questions->map(function ($q) use ($answers) {
+                $a = $answers->get($q->id);
+                return [
+                    'id' => $q->id,
+                    'question' => $q->question,
+                    'question_type' => $q->question_type ?? 'choice',
+                    'rating_max' => $q->rating_max,
+                    'options' => $q->options,
+                    'points' => $q->points,
+                    'image_url' => $q->image_url,
+                    'audio_url' => $q->audio_url,
+                    'audio_max_plays' => $q->audio_max_plays,
+                    'selected_index' => $a?->selected_index,
+                ];
+            }),
+        ]);
+    }
+
+    public function answer(Request $request, $attemptId)
+    {
+        $siswa = $this->siswaUser();
+        if (!$siswa) {
+            return response()->json(['message' => 'Siswa tidak ditemukan'], 401);
+        }
+
+        $attempt = $this->ownAttempt($attemptId, $siswa->id);
+        if ($attempt->status !== 'in_progress') {
+            return response()->json(['message' => 'Percobaan sudah berakhir'], 422);
+        }
+
+        $this->expireIfTimeUp($attempt);
+        if ($attempt->status !== 'in_progress') {
+            return response()->json(['message' => 'Waktu quiz telah habis'], 422);
+        }
+
+        $data = $request->validate([
+            'question_id' => 'required|integer',
+            'selected_index' => 'required|integer|min:-1',
+        ]);
+
+        $question = QuizQuestion::where('quiz_paket_id', $attempt->quiz_paket_id)
+            ->find($data['question_id']);
+
+        if (!$question) {
+            return response()->json(['message' => 'Soal tidak ditemukan pada paket ini'], 422);
+        }
+
+        $index = (int) $data['selected_index'];
+        if ($index >= 0 && $index >= count($question->options)) {
+            return response()->json(['message' => 'Opsi tidak valid'], 422);
+        }
+
+        $savedIndex = $index >= 0 ? $index : null;
+
+        QuizAnswer::updateOrCreate(
+            ['quiz_attempt_id' => $attempt->id, 'quiz_question_id' => $question->id],
+            ['selected_index' => $savedIndex]
+        );
+
+        return response()->json([
+            'question_id' => $question->id,
+            'selected_index' => $savedIndex,
+        ]);
+    }
+
+    public function warn($attemptId)
+    {
+        $siswa = $this->siswaUser();
+        if (!$siswa) {
+            return response()->json(['message' => 'Siswa tidak ditemukan'], 401);
+        }
+
+        $attempt = $this->ownAttempt($attemptId, $siswa->id);
+        if ($attempt->status !== 'in_progress') {
+            return response()->json(['message' => 'Percobaan sudah berakhir'], 422);
+        }
+
+        $this->expireIfTimeUp($attempt);
+        if ($attempt->status !== 'in_progress') {
+            return response()->json(['message' => 'Waktu quiz telah habis'], 422);
+        }
+
+        $maxWarnings = (int) $attempt->paket->max_warnings;
+        $warnings = min($attempt->warnings + 1, $maxWarnings);
+        $auto = $warnings >= $maxWarnings;
+
+        $attempt->update(['warnings' => $warnings]);
+        $attempt->refresh();
+
+        if ($auto) {
+            $this->finalize($attempt, true);
+            $attempt->refresh();
+        }
+
+        return response()->json([
+            'warnings' => $attempt->warnings,
+            'max_warnings' => $maxWarnings,
+            'auto_submitted' => $attempt->status === 'submitted',
+            'status' => $attempt->status,
+        ]);
+    }
+
+    public function submit($attemptId)
+    {
+        $siswa = $this->siswaUser();
+        if (!$siswa) {
+            return response()->json(['message' => 'Siswa tidak ditemukan'], 401);
+        }
+
+        $attempt = $this->ownAttempt($attemptId, $siswa->id);
+
+        if ($attempt->status === 'in_progress') {
+            $auto = $this->isExpired($attempt);
+            $this->finalize($attempt, $auto);
+        }
+
+        return response()->json([
+            'attempt' => $this->resultPayload($attempt),
+            'message' => 'Quiz diselesaikan',
+        ]);
+    }
+}

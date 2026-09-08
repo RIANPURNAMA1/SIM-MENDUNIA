@@ -1,0 +1,591 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Batch;
+use App\Models\Course;
+use App\Models\KelasSensei;
+use App\Models\QuizAttempt;
+use App\Models\QuizCategory;
+use App\Models\QuizPaket;
+use App\Models\QuizQuestion;
+use App\Models\Siswa;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+
+class GuruQuizController extends Controller
+{
+    private function guruUser()
+    {
+        return Auth::guard('sanctum')->user();
+    }
+
+    private function ownPaket($id, $userId)
+    {
+        return QuizPaket::where('user_id', $userId)->findOrFail($id);
+    }
+
+    private function ownQuestion($id, $userId)
+    {
+        $question = QuizQuestion::with('paket')->findOrFail($id);
+        if ($question->paket->user_id !== $userId) {
+            abort(404);
+        }
+        return $question;
+    }
+
+    public function leaderboard()
+    {
+        $user = $this->guruUser();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $packets = QuizPaket::with('course:id,title')
+            ->where('user_id', $user->id)
+            ->where('status', 'aktif')
+            ->orderByDesc('id')
+            ->take(20)
+            ->get();
+
+        $result = [];
+        foreach ($packets as $paket) {
+            $bestRows = QuizAttempt::query()
+                ->where('quiz_paket_id', $paket->id)
+                ->where('status', 'submitted')
+                ->whereNotNull('score')
+                ->selectRaw('siswa_id, MAX(score) as best_score, MIN(COALESCE(submitted_at, started_at)) as first_best_at')
+                ->groupBy('siswa_id')
+                ->orderByDesc('best_score')
+                ->orderBy('first_best_at')
+                ->take(5)
+                ->get();
+
+            $siswaMap = collect();
+            if ($bestRows->isNotEmpty()) {
+                $siswaMap = Siswa::with('batchRelasi.cabang:id,nama_cabang')
+                    ->whereIn('id', $bestRows->pluck('siswa_id'))
+                    ->get(['id', 'nama', 'batch_id', 'level'])
+                    ->keyBy('id');
+            }
+
+            $entries = $bestRows->values()->map(function ($r, $i) use ($siswaMap) {
+                $s = $siswaMap->get($r->siswa_id);
+                return [
+                    'rank' => $i + 1,
+                    'siswa_id' => (int) $r->siswa_id,
+                    'nama' => $s?->nama ?? 'Tanpa nama',
+                    'batch' => $s?->batchRelasi?->nama_batch,
+                    'cabang' => $s?->batchRelasi?->cabang?->nama_cabang,
+                    'level' => $s?->level,
+                    'best_score' => (int) $r->best_score,
+                ];
+            });
+
+            $result[] = [
+                'paket_id' => (int) $paket->id,
+                'title' => $paket->title,
+                'course' => $paket->course?->title,
+                'level' => $paket->level,
+                'max_score' => (int) $paket->questions()->sum('points') ?: null,
+                'participants' => (int) QuizAttempt::where('quiz_paket_id', $paket->id)
+                    ->where('status', 'submitted')
+                    ->distinct()
+                    ->count('siswa_id'),
+                'entries' => $entries,
+            ];
+        }
+
+        return response()->json(['leaderboard' => $result]);
+    }
+
+    public function meta()
+    {
+        $user = $this->guruUser();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $kelasList = KelasSensei::where('user_id', $user->id)->get();
+        $batchIds = $kelasList->pluck('batch_id')->unique()->filter()->values();
+
+        $batches = Batch::whereIn('id', $batchIds)->get(['id', 'nama_batch']);
+
+        $batchLevels = [];
+        foreach ($kelasList as $k) {
+            if (!$k->batch_id || !$k->level) continue;
+            $batchId = $k->batch_id;
+            if (!isset($batchLevels[$batchId])) $batchLevels[$batchId] = [];
+            if (!in_array($k->level, $batchLevels[$batchId])) $batchLevels[$batchId][] = $k->level;
+        }
+
+        $courses = collect();
+        if ($batchIds->isNotEmpty()) {
+            $courses = Course::withCount(['lessons' => function ($q) {
+                $q->where('status', 'aktif');
+            }])
+                ->whereIn('batch_id', $batchIds)
+                ->orWhereNull('batch_id')
+                ->orderBy('sort')
+                ->get(['id', 'title', 'batch_id', 'level']);
+        }
+
+        return response()->json([
+            'batches' => $batches,
+            'batch_levels' => $batchLevels,
+            'courses' => $courses,
+            'categories' => QuizCategory::orderBy('name')->get(['id', 'name']),
+        ]);
+    }
+
+    public function index()
+    {
+        $user = $this->guruUser();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $pakets = QuizPaket::with(['batch:id,nama_batch', 'course:id,title'])
+            ->withCount(['questions', 'attempts'])
+            ->where('user_id', $user->id)
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function ($p) {
+                $p->participants = QuizAttempt::where('quiz_paket_id', $p->id)
+                    ->distinct('siswa_id')
+                    ->count('siswa_id');
+                $p->best_score = (int) QuizAttempt::where('quiz_paket_id', $p->id)
+                    ->where('status', 'submitted')
+                    ->max('score');
+                return $p;
+            });
+
+        return response()->json(['pakets' => $pakets]);
+    }
+
+    public function store(Request $request)
+    {
+        $user = $this->guruUser();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $data = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'cover_image' => 'nullable|string|max:255',
+            'course_id' => 'nullable|exists:lms_courses,id',
+            'batch_id' => 'nullable|exists:batches,id',
+            'level' => 'nullable|string|max:10',
+            'category' => 'nullable|string|max:50',
+            'time_limit_minutes' => 'required|integer|min:1|max:180',
+            'max_attempts' => 'required|integer|min:1|max:10',
+            'max_warnings' => 'required|integer|min:1|max:10',
+            'passing_score' => 'nullable|integer|min:0|max:100',
+            'shuffle_questions' => 'nullable|boolean',
+            'status' => 'nullable|in:aktif,nonaktif',
+        ]);
+
+        $data['user_id'] = $user->id;
+        $data['shuffle_questions'] = $request->boolean('shuffle_questions');
+        $data['passing_score'] = (int) ($data['passing_score'] ?? 0);
+        $data['cover_image'] = $data['cover_image'] ?? null;
+
+        $paket = QuizPaket::create($data);
+
+        return response()->json(['paket' => $paket->fresh()->load('batch:id,nama_batch', 'course:id,title')], 201);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $user = $this->guruUser();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $paket = $this->ownPaket($id, $user->id);
+
+        $data = $request->validate([
+            'title' => 'sometimes|string|max:255',
+            'description' => 'nullable|string',
+            'cover_image' => 'nullable|string|max:255',
+            'course_id' => 'nullable|exists:lms_courses,id',
+            'batch_id' => 'nullable|exists:batches,id',
+            'level' => 'nullable|string|max:10',
+            'category' => 'nullable|string|max:50',
+            'time_limit_minutes' => 'sometimes|integer|min:1|max:180',
+            'max_attempts' => 'sometimes|integer|min:1|max:10',
+            'max_warnings' => 'sometimes|integer|min:1|max:10',
+            'passing_score' => 'nullable|integer|min:0|max:100',
+            'shuffle_questions' => 'nullable|boolean',
+            'status' => 'nullable|in:aktif,nonaktif',
+        ]);
+
+        if ($request->has('shuffle_questions')) {
+            $data['shuffle_questions'] = $request->boolean('shuffle_questions');
+        }
+        if (array_key_exists('passing_score', $data)) {
+            $data['passing_score'] = (int) ($data['passing_score'] ?? 0);
+        }
+
+        $paket->update($data);
+
+        return response()->json(['paket' => $paket->fresh()->load('batch:id,nama_batch', 'course:id,title')]);
+    }
+
+    public function destroy($id)
+    {
+        $user = $this->guruUser();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $this->ownPaket($id, $user->id)->delete();
+
+        return response()->json(['message' => 'Paket soal dihapus']);
+    }
+
+    public function uploadCover(Request $request)
+    {
+        $request->validate([
+            'cover' => 'required|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
+        ]);
+
+        $path = $request->file('cover')->store('quiz/covers', 'public');
+
+        return response()->json([
+            'cover_image' => $path,
+            'url' => asset('storage/' . $path),
+        ]);
+    }
+
+    public function uploadMedia(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|max:10240',
+        ]);
+
+        $file = $request->file('file');
+        if ($file->isValid() && in_array($file->getMimeType(), ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/ogg', 'audio/mp4', 'audio/m4a', 'audio/x-m4a'])) {
+            $path = $file->store('quiz/media', 'public');
+        } else {
+            return response()->json(['message' => 'File harus berupa gambar atau audio'], 422);
+        }
+
+        return response()->json([
+            'path' => $path,
+            'url' => asset('storage/' . $path),
+        ], 201);
+    }
+
+    public function storeCategory(Request $request)
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:50',
+        ]);
+
+        $category = QuizCategory::firstOrCreate(
+            ['name' => trim($data['name'])],
+            ['name' => trim($data['name'])]
+        );
+
+        return response()->json(['category' => $category], $category->wasRecentlyCreated ? 201 : 200);
+    }
+
+    public function updateCategory(Request $request, $id)
+    {
+        $category = QuizCategory::findOrFail($id);
+
+        $data = $request->validate([
+            'name' => 'required|string|max:50',
+        ]);
+
+        $category->update(['name' => trim($data['name'])]);
+
+        return response()->json(['category' => $category]);
+    }
+
+    public function destroyCategory($id)
+    {
+        QuizCategory::findOrFail($id)->delete();
+
+        return response()->json(['message' => 'Kategori dihapus']);
+    }
+
+    public function toggle($id)
+    {
+        $user = $this->guruUser();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $paket = $this->ownPaket($id, $user->id);
+        $paket->status = $paket->status === 'aktif' ? 'nonaktif' : 'aktif';
+        $paket->save();
+
+        return response()->json(['paket' => $paket->fresh(), 'status' => $paket->status]);
+    }
+
+    public function questions($paketId)
+    {
+        $user = $this->guruUser();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $paket = $this->ownPaket($paketId, $user->id);
+
+        return response()->json([
+            'paket' => $paket->load('batch:id,nama_batch', 'course:id,title'),
+            'questions' => $paket->questions,
+        ]);
+    }
+
+    public function storeQuestion(Request $request, $paketId)
+    {
+        $user = $this->guruUser();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $this->ownPaket($paketId, $user->id);
+
+        $data = $request->validate([
+            'question' => 'required|string',
+            'question_type' => 'sometimes|string|in:choice,rating',
+            'rating_max' => 'nullable|integer|min:2|max:10',
+            'options' => 'sometimes|array',
+            'options.*' => 'required|string|distinct',
+            'correct_index' => 'nullable|integer|min:0',
+            'points' => 'nullable|integer|min:1',
+            'sort' => 'nullable|integer|min:0',
+            'image_path' => 'nullable|string',
+            'audio_path' => 'nullable|string',
+            'audio_max_plays' => 'nullable|integer|min:1|max:99',
+        ]);
+
+        $type = $data['question_type'] ?? 'choice';
+        $options = array_values($data['options'] ?? []);
+
+        if ($type === 'rating') {
+            $ratingMax = (int) ($data['rating_max'] ?? count($options) ?: 9);
+            $options = array_map('strval', range(1, $ratingMax));
+            $data['correct_index'] = null;
+            $data['rating_max'] = $ratingMax;
+        } else {
+            if (count($options) < 2 || count($options) > 6) {
+                return response()->json(['message' => 'Opsi jawaban minimal 2 dan maksimal 6'], 422);
+            }
+            if ((int) ($data['correct_index'] ?? -1) >= count($options)) {
+                return response()->json(['message' => 'correct_index melebihi jumlah opsi'], 422);
+            }
+            $data['rating_max'] = null;
+        }
+
+        $data['quiz_paket_id'] = $paketId;
+        $data['question_type'] = $type;
+        $data['options'] = $options;
+        $data['points'] = (int) ($data['points'] ?? 1);
+        $data['sort'] = (int) ($data['sort'] ?? $this->nextSort($paketId));
+
+        $question = QuizQuestion::create($data);
+
+        return response()->json(['question' => $question], 201);
+    }
+
+    private function nextSort($paketId)
+    {
+        return (int) QuizQuestion::where('quiz_paket_id', $paketId)->max('sort') + 1;
+    }
+
+    public function updateQuestion(Request $request, $id)
+    {
+        $user = $this->guruUser();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $question = $this->ownQuestion($id, $user->id);
+
+        $data = $request->validate([
+            'question' => 'sometimes|string',
+            'question_type' => 'sometimes|string|in:choice,rating',
+            'rating_max' => 'nullable|integer|min:2|max:10',
+            'options' => 'sometimes|array',
+            'options.*' => 'required|string|distinct',
+            'correct_index' => 'nullable|integer|min:0',
+            'points' => 'nullable|integer|min:1',
+            'sort' => 'nullable|integer|min:0',
+            'image_path' => 'nullable|string',
+            'audio_path' => 'nullable|string',
+            'audio_max_plays' => 'nullable|integer|min:1|max:99',
+        ]);
+
+        if (isset($data['question_type'])) {
+            $type = $data['question_type'];
+            if ($type === 'rating') {
+                $ratingMax = (int) ($data['rating_max'] ?? $question->rating_max ?? count($question->options ?? []));
+                $data['options'] = array_map('strval', range(1, $ratingMax));
+                $data['correct_index'] = null;
+                $data['rating_max'] = $ratingMax;
+            } else {
+                $data['rating_max'] = null;
+                if (isset($data['options'])) {
+                    $options = array_values($data['options']);
+                    if (count($options) < 2 || count($options) > 6) {
+                        return response()->json(['message' => 'Opsi jawaban minimal 2 dan maksimal 6'], 422);
+                    }
+                    if (isset($data['correct_index']) && $data['correct_index'] !== null && (int) $data['correct_index'] >= count($options)) {
+                        return response()->json(['message' => 'correct_index melebihi jumlah opsi'], 422);
+                    }
+                    $data['options'] = $options;
+                }
+            }
+        } elseif (isset($data['options'])) {
+            $options = array_values($data['options']);
+            if (count($options) < 2 || count($options) > 6) {
+                return response()->json(['message' => 'Opsi jawaban minimal 2 dan maksimal 6'], 422);
+            }
+            if (isset($data['correct_index']) && $data['correct_index'] !== null && (int) $data['correct_index'] >= count($options)) {
+                return response()->json(['message' => 'correct_index melebihi jumlah opsi'], 422);
+            }
+            $data['options'] = $options;
+        }
+
+        $question->update($data);
+
+        return response()->json(['question' => $question->fresh()]);
+    }
+
+    public function deleteQuestion($id)
+    {
+        $user = $this->guruUser();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $this->ownQuestion($id, $user->id)->delete();
+
+        return response()->json(['message' => 'Soal dihapus']);
+    }
+
+    public function results($paketId)
+    {
+        $user = $this->guruUser();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $paket = $this->ownPaket($paketId, $user->id);
+
+        $attempts = QuizAttempt::with('siswa:id,nama,batch,level')
+            ->where('quiz_paket_id', $paket->id)
+            ->orderByDesc('created_at')
+            ->get();
+
+        $participants = $attempts->groupBy('siswa_id')->map(function ($rows) {
+            $siswa = $rows->first()->siswa;
+            return [
+                'siswa_id' => (int) $rows->first()->siswa_id,
+                'nama' => $siswa?->nama ?? 'Tanpa nama',
+                'batch' => $siswa?->batch,
+                'level' => $siswa?->level,
+                'attempts_count' => $rows->count(),
+                'best_score' => (int) $rows->where('status', 'submitted')->max('score'),
+                'attempts' => $rows->map(function ($a) {
+                    return [
+                        'attempt_id' => $a->id,
+                        'attempt_number' => $a->attempt_number,
+                        'status' => $a->status,
+                        'score' => $a->score,
+                        'correct_count' => $a->correct_count,
+                        'total_count' => $a->total_count,
+                        'warnings' => $a->warnings,
+                        'auto_submitted' => $a->auto_submitted,
+                        'started_at' => $a->started_at?->toIso8601String(),
+                        'submitted_at' => $a->submitted_at?->toIso8601String(),
+                        'webcam_photo' => $a->webcam_photo ? asset('storage/' . $a->webcam_photo) : null,
+                    ];
+                }),
+            ];
+        })->values();
+
+        return response()->json([
+            'paket' => $paket->loadCount('questions'),
+            'participants' => $participants,
+        ]);
+    }
+
+    public function resetAttempts(Request $request, $paketId)
+    {
+        $user = $this->guruUser();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $paket = $this->ownPaket($paketId, $user->id);
+
+        $data = $request->validate([
+            'siswa_id' => 'nullable|integer',
+        ]);
+
+        $query = QuizAttempt::where('quiz_paket_id', $paket->id);
+        if (!empty($data['siswa_id'])) {
+            $query->where('siswa_id', (int) $data['siswa_id']);
+        }
+
+        $count = $query->count();
+        $siswaNames = $query->get()->map(fn ($a) => $a->siswa?->nama)->unique()->values();
+
+        $query->delete();
+
+        return response()->json([
+            'message' => "Berhasil mereset {$count} percobaan",
+            'deleted' => $count,
+            'siswa' => $siswaNames,
+        ]);
+    }
+
+    public function attemptDetail($attemptId)
+    {
+        $user = $this->guruUser();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $attempt = QuizAttempt::with(['paket.user', 'siswa:id,nama'])
+            ->where('id', $attemptId)
+            ->firstOrFail();
+
+        if ($attempt->paket->user_id !== $user->id) {
+            abort(404);
+        }
+
+        $answers = $attempt->answers->keyBy('quiz_question_id');
+        $rows = $attempt->paket->questions->map(function ($q) use ($answers) {
+            $a = $answers->get($q->id);
+            return [
+                'id' => $q->id,
+                'question' => $q->question,
+                'question_type' => $q->question_type ?? 'choice',
+                'rating_max' => $q->rating_max,
+                'options' => $q->options,
+                'correct_index' => $q->correct_index,
+                'points' => $q->points,
+                'sort' => $q->sort,
+                'image_url' => $q->image_url,
+                'audio_url' => $q->audio_url,
+                'audio_max_plays' => $q->audio_max_plays,
+                'selected_index' => $a?->selected_index,
+                'is_correct' => $a?->is_correct,
+            ];
+        });
+
+        return response()->json([
+            'attempt' => $attempt,
+            'questions' => $rows,
+            'siswa' => $attempt->siswa,
+        ]);
+    }
+}

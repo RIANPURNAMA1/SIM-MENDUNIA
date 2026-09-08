@@ -55,7 +55,10 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
         icon: Timer,
         iconColor: 'text-green-400',
       }))
-      const pendaftaranList = (pendaftarRes.data || []).map((p: any) => ({
+      const pendaftarArr = Array.isArray(pendaftarRes.data)
+        ? pendaftarRes.data
+        : (pendaftarRes.data?.data || pendaftarRes.data?.pendaftar || [])
+      const pendaftaranList = pendaftarArr.map((p: any) => ({
         id: `pendaftaran-${p.id}`,
         type: 'pendaftaran' as const,
         nama: p.nama || '-',

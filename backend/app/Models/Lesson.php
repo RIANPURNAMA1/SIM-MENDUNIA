@@ -10,6 +10,7 @@ class Lesson extends Model
 
     protected $fillable = [
         'course_id',
+        'paket_id',
         'title',
         'content',
         'video_url',
@@ -28,6 +29,16 @@ class Lesson extends Model
     public function course()
     {
         return $this->belongsTo(Course::class);
+    }
+
+    public function slides()
+    {
+        return $this->hasMany(LessonSlide::class, 'lesson_id')->orderBy('sort');
+    }
+
+    public function paket()
+    {
+        return $this->belongsTo(QuizPaket::class, 'paket_id');
     }
 
     public function progress()

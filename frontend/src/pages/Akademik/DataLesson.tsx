@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  BookOpen, Plus, Edit3, Trash2, ArrowLeft, Video, FileText, X, ChevronUp, ChevronDown
+  BookOpen, Plus, Edit3, Trash2, ArrowLeft, Video, FileText, ImageIcon, X, ChevronUp, ChevronDown
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
-import { lmsAdminApi } from '../../services/api'
+import { lmsAdminApi, APP_URL } from '../../services/api'
+import LessonMediaFields, { LessonSlideItem } from '../../components/LessonMediaFields'
 import { getYouTubeEmbedUrl } from '../../utils/youtube'
 import Swal from 'sweetalert2'
 
@@ -21,8 +22,21 @@ interface Lesson {
   title: string
   content: string | null
   video_url: string | null
+  file_path: string | null
+  file_name: string | null
+  file_size?: number | null
+  slides?: LessonSlideData[]
   sort: number
   status: string
+}
+
+interface LessonSlideData {
+  id: number
+  file_path: string
+  file_name: string
+  file_type: string | null
+  file_size?: number | null
+  sort?: number
 }
 
 export default function DataLesson() {
@@ -111,6 +125,11 @@ export default function DataLesson() {
     sort: '0',
     status: 'aktif',
   })
+  const [lessonPdf, setLessonPdf] = useState<File | null>(null)
+  const [lessonPdfName, setLessonPdfName] = useState<string | null>(null)
+  const [lessonPdfSize, setLessonPdfSize] = useState<number | null>(null)
+  const [lessonSlides, setLessonSlides] = useState<LessonSlideItem[]>([])
+  const [removedSlideIds, setRemovedSlideIds] = useState<number[]>([])
 
   useEffect(() => {
     if (courseId) fetchLessons()
@@ -127,6 +146,11 @@ export default function DataLesson() {
   const openCreate = () => {
     setEditing(null)
     setForm({ title: '', content: '', video_url: '', sort: String(lessons.length + 1), status: 'aktif' })
+    setLessonPdf(null)
+    setLessonPdfName(null)
+    setLessonPdfSize(null)
+    setLessonSlides([])
+    setRemovedSlideIds([])
     setShowModal(true)
   }
 
@@ -139,6 +163,17 @@ export default function DataLesson() {
       sort: lesson.sort.toString(),
       status: lesson.status,
     })
+    setLessonPdf(null)
+    setLessonPdfName(lesson.file_name || (lesson.file_path ? 'File materi' : null))
+    setLessonPdfSize(lesson.file_size || null)
+    setLessonSlides((lesson.slides || []).map(s => ({
+      key: `slide-${s.id}`,
+      id: s.id,
+      name: s.file_name,
+      size: s.file_size || undefined,
+      url: `${APP_URL}/storage/${s.file_path}`,
+    })))
+    setRemovedSlideIds([])
     setShowModal(true)
   }
 
@@ -149,11 +184,26 @@ export default function DataLesson() {
     }
     setSaving(true)
     try {
-      const payload = { ...form, course_id: Number(courseId) }
+      const fd = new FormData()
+      fd.append('title', form.title)
+      fd.append('content', form.content || '')
+      fd.append('video_url', form.video_url || '')
+      fd.append('sort', form.sort || '0')
+      fd.append('status', form.status)
+      fd.append('course_id', String(courseId))
+      if (lessonPdf) {
+        fd.append('file', lessonPdf)
+      } else if (editing && lessonPdfName === null) {
+        fd.append('remove_file', '1')
+      }
+      lessonSlides.filter(s => s.file).forEach(s => {
+        fd.append('slides[]', s.file as File)
+      })
+      removedSlideIds.forEach(id => fd.append('remove_slides[]', String(id)))
       if (editing) {
-        await lmsAdminApi.updateLesson(editing.id, payload)
+        await lmsAdminApi.updateLesson(editing.id, fd)
       } else {
-        await lmsAdminApi.storeLesson(payload)
+        await lmsAdminApi.storeLesson(fd)
       }
       setShowModal(false)
       fetchLessons()
@@ -199,9 +249,15 @@ export default function DataLesson() {
 
     setLessons(newLessons)
 
+    const makeSortFd = (sort: number) => {
+      const fd = new FormData()
+      fd.append('sort', String(sort))
+      return fd
+    }
+
     Promise.all([
-      lmsAdminApi.updateLesson(newLessons[index].id, { sort: newLessons[index].sort }),
-      lmsAdminApi.updateLesson(newLessons[swapIndex].id, { sort: newLessons[swapIndex].sort }),
+      lmsAdminApi.updateLesson(newLessons[index].id, makeSortFd(newLessons[index].sort)),
+      lmsAdminApi.updateLesson(newLessons[swapIndex].id, makeSortFd(newLessons[swapIndex].sort)),
     ]).catch(() => fetchLessons())
   }
 
@@ -289,6 +345,8 @@ export default function DataLesson() {
                   <div className="flex items-center gap-3 mt-0.5">
                     {lesson.video_url && <span className="text-xs text-slate-400 flex items-center gap-1"><Video size={11} /> Video</span>}
                     {lesson.content && <span className="text-xs text-slate-400 flex items-center gap-1"><FileText size={11} /> Materi</span>}
+                    {lesson.file_name && <span className="text-xs text-slate-400 flex items-center gap-1"><FileText size={11} /> PDF</span>}
+                    {!!lesson.slides?.length && <span className="text-xs text-slate-400 flex items-center gap-1"><ImageIcon size={11} /> {lesson.slides.length} Slide</span>}
                     <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
                       lesson.status === 'aktif' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
                     }`}>
@@ -381,6 +439,30 @@ export default function DataLesson() {
                     className="[&_.ql-editor]:min-h-[250px] [&_.ql-editor]:text-sm [&_.ql-container]:rounded-b-lg [&_.ql-toolbar]:rounded-t-lg [&_.ql-toolbar]:border-slate-200 [&_.ql-container]:border-slate-200"
                   />
                 </div>
+              </div>
+              <div className="border-t border-slate-100 pt-4">
+                <LessonMediaFields
+                  pdfName={lessonPdfName}
+                  pdfSize={lessonPdfSize}
+                  slides={lessonSlides}
+                  uploading={saving}
+                  onPdf={file => {
+                    setLessonPdf(file)
+                    setLessonPdfName(file ? file.name : null)
+                    setLessonPdfSize(file ? file.size : null)
+                  }}
+                  onRemovePdf={() => {
+                    setLessonPdf(null)
+                    setLessonPdfName(null)
+                    setLessonPdfSize(null)
+                  }}
+                  onSlidesChange={slides => {
+                    const removed = lessonSlides.filter(s => !slides.some(n => n.key === s.key))
+                    removed.forEach(s => { if (!s.id) URL.revokeObjectURL(s.url || '') })
+                    setRemovedSlideIds(prev => [...prev, ...removed.filter(s => s.id).map(s => s.id!)])
+                    setLessonSlides(slides)
+                  }}
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

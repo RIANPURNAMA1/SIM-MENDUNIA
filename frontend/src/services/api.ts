@@ -504,11 +504,25 @@ export const lmsApi = {
   lessonDetail: (id: number) => api.get(`/lms/lessons/${id}`),
   completeLesson: (id: number) => api.post(`/lms/lessons/${id}/complete`),
   uncompleteLesson: (id: number) => api.delete(`/lms/lessons/${id}/complete`),
+  videoProgress: (id: number, data: { current_time: number; duration: number }) => api.post(`/lms/lessons/${id}/video-progress`, data),
+  readProgress: (id: number, data: { seconds: number }) => api.post(`/lms/lessons/${id}/read-progress`, data),
   // Student Assignments
   courseAssignments: (courseId: number) => api.get(`/lms/courses/${courseId}/assignments`),
   submitAssignment: (assignmentId: number, data: FormData) => api.post(`/lms/assignments/${assignmentId}/submit`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   nilaiLms: () => api.get('/siswa/nilai-lms'),
   evaluations: () => api.get('/siswa/evaluations'),
+  quizLeaderboard: () => api.get('/siswa-dashboard/quiz-leaderboard'),
+}
+
+export const quizApi = {
+  pakets: () => api.get('/quiz/pakets'),
+  paket: (id: number) => api.get(`/quiz/pakets/${id}`),
+  start: (id: number) => api.post(`/quiz/pakets/${id}/start`),
+  attempt: (id: number) => api.get(`/quiz/attempts/${id}`),
+  answer: (id: number, data: { question_id: number; selected_index: number }) => api.post(`/quiz/attempts/${id}/answer`, data),
+  warn: (id: number) => api.post(`/quiz/attempts/${id}/warn`),
+  submit: (id: number) => api.post(`/quiz/attempts/${id}/submit`),
+  uploadWebcam: (id: number, fd: FormData) => api.post(`/quiz/attempts/${id}/webcam`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
 }
 
 export const lmsAdminApi = {
@@ -518,8 +532,8 @@ export const lmsAdminApi = {
   deleteCourse: (id: number) => api.delete(`/admin/lms/courses/${id}`),
   lessons: (courseId: number) => api.get(`/admin/lms/courses/${courseId}/lessons`),
   courseFiles: (courseId: number) => api.get(`/admin/lms/courses/${courseId}/files`),
-  storeLesson: (data: Record<string, unknown>) => api.post('/admin/lms/lessons', data),
-  updateLesson: (id: number, data: Record<string, unknown>) => api.post(`/admin/lms/lessons/${id}`, data),
+  storeLesson: (data: FormData) => api.post('/admin/lms/lessons', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  updateLesson: (id: number, data: FormData) => api.post(`/admin/lms/lessons/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   deleteLesson: (id: number) => api.delete(`/admin/lms/lessons/${id}`),
   upload: (data: FormData) => api.post('/admin/lms/upload', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   storeCourseFile: (data: FormData) => api.post('/admin/lms/files', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
@@ -599,6 +613,54 @@ export const guruLmsApi = {
   storeLesson: (data: FormData) => api.post('/guru/lms-lessons', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   updateLesson: (id: number, data: FormData) => api.post(`/guru/lms-lessons/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   deleteLesson: (id: number) => api.delete(`/guru/lms-lessons/${id}`),
+  leaderboard: () => api.get('/guru/quiz/leaderboard'),
+}
+
+export const guruQuizApi = {
+  meta: () => api.get('/guru/quiz/meta'),
+  pakets: () => api.get('/guru/quiz/pakets'),
+  storePaket: (data: Record<string, unknown>) => api.post('/guru/quiz/pakets', data),
+  updatePaket: (id: number, data: Record<string, unknown>) => api.post(`/guru/quiz/pakets/${id}`, data),
+  deletePaket: (id: number) => api.delete(`/guru/quiz/pakets/${id}`),
+  togglePaket: (id: number) => api.post(`/guru/quiz/pakets/${id}/toggle`),
+  questions: (paketId: number) => api.get(`/guru/quiz/pakets/${paketId}/questions`),
+  storeQuestion: (paketId: number, data: Record<string, unknown>) => api.post(`/guru/quiz/pakets/${paketId}/questions`, data),
+  updateQuestion: (id: number, data: Record<string, unknown>) => api.post(`/guru/quiz/questions/${id}`, data),
+  deleteQuestion: (id: number) => api.delete(`/guru/quiz/questions/${id}`),
+  results: (paketId: number) => api.get(`/guru/quiz/pakets/${paketId}/results`),
+  leaderboard: () => api.get('/guru/quiz/leaderboard'),
+  resetAttempts: (paketId: number, siswaId?: number) => api.post(`/guru/quiz/pakets/${paketId}/reset-attempts`, { siswa_id: siswaId }),
+  attemptDetail: (attemptId: number) => api.get(`/guru/quiz/attempts/${attemptId}`),
+  uploadCover: (fd: FormData) => api.post('/guru/quiz/upload-cover', fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  uploadMedia: (fd: FormData) => api.post('/guru/quiz/upload-media', fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  storeCategory: (data: Record<string, unknown>) => api.post('/guru/quiz/categories', data),
+  updateCategory: (id: number, data: Record<string, unknown>) => api.post(`/guru/quiz/categories/${id}`, data),
+  deleteCategory: (id: number) => api.delete(`/guru/quiz/categories/${id}`),
+}
+
+export const adminQuizApi = {
+  meta: () => api.get('/admin-cabang/quiz/meta'),
+  pakets: (params?: Record<string, string | number>) => api.get('/admin-cabang/quiz/pakets', { params }),
+  storePaket: (data: Record<string, unknown>) => api.post('/admin-cabang/quiz/pakets', data),
+  updatePaket: (id: number, data: Record<string, unknown>) => api.post(`/admin-cabang/quiz/pakets/${id}`, data),
+  deletePaket: (id: number) => api.delete(`/admin-cabang/quiz/pakets/${id}`),
+  togglePaket: (id: number) => api.post(`/admin-cabang/quiz/pakets/${id}/toggle`),
+  questions: (paketId: number) => api.get(`/admin-cabang/quiz/pakets/${paketId}/questions`),
+  storeQuestion: (paketId: number, data: Record<string, unknown>) => api.post(`/admin-cabang/quiz/pakets/${paketId}/questions`, data),
+  updateQuestion: (id: number, data: Record<string, unknown>) => api.post(`/admin-cabang/quiz/questions/${id}`, data),
+  deleteQuestion: (id: number) => api.delete(`/admin-cabang/quiz/questions/${id}`),
+  results: (paketId: number) => api.get(`/admin-cabang/quiz/pakets/${paketId}/results`),
+  resetAttempts: (paketId: number, siswaId?: number) => api.post(`/admin-cabang/quiz/pakets/${paketId}/reset-attempts`, { siswa_id: siswaId }),
+  attemptDetail: (attemptId: number) => api.get(`/admin-cabang/quiz/attempts/${attemptId}`),
+  materi: (paketId: number) => api.get(`/admin-cabang/quiz/pakets/${paketId}/materi`),
+  storeMateri: (paketId: number, data: FormData) => api.post(`/admin-cabang/quiz/pakets/${paketId}/materi`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  updateMateri: (id: number, data: FormData) => api.post(`/admin-cabang/quiz/materi/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  deleteMateri: (id: number) => api.delete(`/admin-cabang/quiz/materi/${id}`),
+  uploadCover: (fd: FormData) => api.post('/admin-cabang/quiz/upload-cover', fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  uploadMedia: (fd: FormData) => api.post('/admin-cabang/quiz/upload-media', fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  storeCategory: (data: Record<string, unknown>) => api.post('/admin-cabang/quiz/categories', data),
+  updateCategory: (id: number, data: Record<string, unknown>) => api.post(`/admin-cabang/quiz/categories/${id}`, data),
+  deleteCategory: (id: number) => api.delete(`/admin-cabang/quiz/categories/${id}`),
 }
 
 export const paymentSettingApi = {

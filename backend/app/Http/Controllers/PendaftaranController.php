@@ -2257,14 +2257,6 @@ class PendaftaranController extends Controller
             return response()->json(['success' => false, 'message' => 'Kandidat tidak ditemukan.'], 404);
         }
 
-        // Merge hanya jika kosong.
-        if ($pendaftar->matchingJobForm && !empty($pendaftar->matchingJobForm->penempatan_kandidat_id)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Kandidat ini sudah terhubung ke data job matching. Hapus koneksi dulu untuk mengubah.',
-            ], 422);
-        }
-
         $penempatanId = (int) $request->input('penempatan_kandidat_id');
         if (!$penempatanId) {
             return response()->json(['success' => false, 'message' => 'Parameter penempatan_kandidat_id wajib diisi.'], 422);
@@ -2290,22 +2282,20 @@ class PendaftaranController extends Controller
             return response()->json(['success' => false, 'message' => 'Data kandidat dari Sistem Penempatan tidak valid.'], 502);
         }
 
-        // Snapshot data untuk tampilan detail (sesuai key yang dibaca MatchingJobSection).
-        $snapKeys = [
-            'nama_romaji', 'nama_katakana', 'tempat_lahir', 'tanggal_lahir', 'umur',
-            'jenis_kelamin', 'status_pernikahan', 'jumlah_anak', 'agama', 'tinggi_badan',
-            'berat_badan', 'golongan_darah', 'nomor_hp', 'email_kontak', 'alamat_lengkap',
-            'pendidikan_terakhir', 'level_jlpt', 'level_jft', 'sertifikat_ssw',
-            'level_bahasa_jepang', 'status_formulir', 'status_progres', 'status_keberangkatan',
-            'nama_perusahaan', 'bidang_ssw', 'institusi', 'nama_cabang',
-        ];
+        // Snapshot LENGKAP data untuk tampilan detail (semua key yang dibaca MatchingJobSection,
+        // berasal dari kolom relasional matching_job_details + field penempatan tambahan).
+        $snapKeys = array_values(\App\Models\MatchingJobDetail::columnMap());
+        $snapKeys = array_unique(array_merge($snapKeys, [
+            'jumlah_anak', 'status_keberangkatan', 'nama_perusahaan', 'bidang_ssw',
+            'institusi', 'nama_cabang',
+        ]));
         $data = [];
         foreach ($snapKeys as $key) {
             if (array_key_exists($key, $kandidat) && $kandidat[$key] !== null && $kandidat[$key] !== '') {
                 $data[$key] = $kandidat[$key];
             }
         }
-        $data['email'] = $kandidat['email_kontak'] ?? null;
+        $data['email'] = $kandidat['email_kontak'] ?? ($kandidat['email'] ?? null);
         $data['pendidikan'] = $kandidat['pendidikan'] ?? [];
         $data['pengalaman'] = $kandidat['pengalaman'] ?? [];
         $data['keluarga'] = $kandidat['keluarga'] ?? [];
@@ -2322,6 +2312,9 @@ class PendaftaranController extends Controller
                 'data' => $data,
             ]
         );
+
+        // Sinkronkan ke tabel relasional per-field (matching_job_details).
+        \App\Models\MatchingJobDetail::syncFromForm($form, $data);
 
         // Sinkronkan data diri ke tabel siswas & users agar ikut tampil di tabel /data-kandidat.
         $mergePayload = [
@@ -2428,6 +2421,7 @@ class PendaftaranController extends Controller
                     'penempatan_kandidat_id' => $mj->penempatan_kandidat_id,
                     'status_formulir' => $mj->status_formulir,
                     'data' => $mj->data ?: [],
+                    'detail' => $mj->detail,
                 ] : null,
             ],
         ]);
@@ -2487,6 +2481,9 @@ class PendaftaranController extends Controller
                 'data' => $data,
             ]
         );
+
+        // 2b. Simpan ke tabel relasional per-field (matching_job_details).
+        \App\Models\MatchingJobDetail::syncFromForm($form, $payload);
 
         // 3. Sinkronkan data diri ke tabel siswas & users.
         if (!empty($payload['jenis_kelamin'])) {
