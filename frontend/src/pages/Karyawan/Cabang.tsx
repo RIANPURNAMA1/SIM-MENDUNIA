@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
-  MapPin, Plus, Edit3, Trash2, X, AlertTriangle, Hash, Search, Globe, Map, Crosshair, CheckCircle, QrCode, Download, Printer,
+  MapPin, Plus, Edit3, Trash2, X, AlertTriangle, Hash, Search, Globe, Map, Crosshair, CheckCircle, QrCode, Download, Printer, Link2, Unlink, RefreshCw,
 } from 'lucide-react'
 import { toCanvas } from 'qrcode'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
-import { cabangApi } from '../../services/api'
+import api, { cabangApi } from '../../services/api'
 import type { Cabang } from '../../types'
 
 interface CabangForm {
@@ -44,6 +44,11 @@ export default function CabangPage() {
   const [qrItem, setQrItem] = useState<Cabang | null>(null)
   const qrCanvasRef = useRef<HTMLCanvasElement>(null)
   const printContentRef = useRef<HTMLDivElement>(null)
+  const [syncItem, setSyncItem] = useState<Cabang | null>(null)
+  const [penempatanList, setPenempatanList] = useState<any[]>([])
+  const [penempatanLoading, setPenempatanLoading] = useState(false)
+  const [penempatanSearch, setPenempatanSearch] = useState('')
+  const [syncing, setSyncing] = useState(false)
 
   const showSuccess = useCallback((msg: string) => {
     setSuccessMessage(msg)
@@ -185,6 +190,69 @@ export default function CabangPage() {
     )
   }
 
+  const loadPenempatan = async () => {
+    setPenempatanLoading(true)
+    setPenempatanSearch('')
+    setPenempatanList([])
+    try {
+      const res = await api.get('/penempatan/cabang')
+      const list = Array.isArray(res.data?.data) ? res.data.data : []
+      setPenempatanList(list)
+    } catch {
+      setPenempatanList([])
+    } finally {
+      setPenempatanLoading(false)
+    }
+  }
+
+  const openSync = (item: Cabang) => {
+    setSyncItem(item)
+    loadPenempatan()
+  }
+
+  const handleSync = async (pc: any) => {
+    if (!syncItem) return
+    setSyncing(true)
+    try {
+      await cabangApi.syncPenempatan(syncItem.id, {
+        penempatan_cabang_id: pc.id,
+        penempatan_cabang_kode: pc.kode_cabang || pc.kode || pc.code || '',
+        penempatan_cabang_nama: pc.nama_cabang,
+      })
+      showSuccess(`Cabang ${syncItem.nama_cabang} tersinkron dengan ${pc.nama_cabang}`)
+      setSyncItem(null)
+      fetchData()
+    } catch (err: any) {
+      alert(err.response?.data?.message || err.message || 'Gagal sinkronisasi')
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  const handleUnlink = async (item: Cabang) => {
+    if (!confirm(`Putus koneksi cabang ${item.nama_cabang} dari Sistem Penempatan?`)) return
+    setSyncing(true)
+    try {
+      await cabangApi.syncPenempatan(item.id, { unlink: true })
+      showSuccess(`Koneksi cabang ${item.nama_cabang} diputus`)
+      setSyncItem(null)
+      fetchData()
+    } catch (err: any) {
+      alert(err.response?.data?.message || err.message || 'Gagal memutus koneksi')
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  const filteredPenempatan = penempatanList.filter((pc) => {
+    const q = penempatanSearch.toLowerCase().trim()
+    if (!q) return true
+    return (
+      (pc.nama_cabang || '').toLowerCase().includes(q) ||
+      (pc.kode_cabang || pc.kode || pc.code || '').toLowerCase().includes(q)
+    )
+  })
+
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       {/* Header */}
@@ -294,8 +362,20 @@ export default function CabangPage() {
                     </td>
                     <td className="border border-slate-200 px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <MapPin size={14} className="text-slate-300" />
-                        <span className="text-sm font-medium text-slate-800">{item.nama_cabang}</span>
+                        <MapPin size={14} className="text-slate-300 shrink-0" />
+                        <div className="min-w-0">
+                          <span className="text-sm font-medium text-slate-800 block truncate">{item.nama_cabang}</span>
+                          {item.penempatan_cabang_nama ? (
+                            <span className="inline-flex items-center gap-1 mt-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                              <Link2 size={10} />
+                              Penempatan: {item.penempatan_cabang_nama}{item.penempatan_cabang_kode ? ` (${item.penempatan_cabang_kode})` : ''}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 mt-1 text-[11px] font-medium text-slate-400 bg-slate-50 border border-slate-200 rounded-full px-2 py-0.5">
+                              Belum tersinkron
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="border border-slate-200 px-4 py-3 text-center">
@@ -312,6 +392,13 @@ export default function CabangPage() {
                     </td>
                     <td className="border border-slate-200 px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={() => openSync(item)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                          title="Sinkronkan dengan Sistem Penempatan"
+                        >
+                          <RefreshCw size={15} />
+                        </button>
                         <button
                           onClick={() => { setQrItem(item) }}
                           className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
@@ -612,6 +699,123 @@ export default function CabangPage() {
               >
                 {deleting ? 'Menghapus...' : 'Hapus'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sync Penempatan Modal */}
+      {syncItem && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center pt-8 sm:pt-12 p-3 sm:p-4"
+          onClick={() => setSyncItem(null)}
+        >
+          <div className="absolute inset-0 bg-black/40" />
+          <div
+            className="relative bg-white rounded-2xl w-full max-w-lg shadow-xl flex flex-col max-h-[85vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10 rounded-t-2xl">
+              <div>
+                <h5 className="font-bold text-gray-900 m-0 flex items-center gap-2">
+                  <RefreshCw size={16} className="text-emerald-600" />
+                  Sinkronkan Cabang
+                </h5>
+                <span className="text-[11px] text-slate-500 font-medium">
+                  {syncItem.kode_cabang ? `${syncItem.kode_cabang} · ` : ''}{syncItem.nama_cabang}
+                </span>
+              </div>
+              <button
+                onClick={() => setSyncItem(null)}
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-5 border-b border-gray-100 shrink-0">
+              <div className="relative">
+                <Search
+                  size={16}
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+                <input
+                  type="text"
+                  placeholder="Cari cabang Sistem Penempatan..."
+                  value={penempatanSearch}
+                  onChange={(e) => setPenempatanSearch(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+              <p className="text-[11px] text-slate-400 mt-2">
+                Pilih cabang Sistem Penempatan yang sama dengan <strong>{syncItem.nama_cabang}</strong> untuk dikaitkan.
+              </p>
+              {syncItem.penempatan_cabang_nama && (
+                <button
+                  onClick={() => handleUnlink(syncItem)}
+                  disabled={syncing}
+                  className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg px-3 py-1.5 transition-colors disabled:opacity-50"
+                >
+                  <Unlink size={12} /> Putus koneksi saat ini: {syncItem.penempatan_cabang_nama}
+                </button>
+              )}
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-3 space-y-2 min-h-[160px]">
+              {penempatanLoading ? (
+                <div className="flex flex-col items-center justify-center py-10 text-slate-400">
+                  <RefreshCw size={20} className="animate-spin text-emerald-600 mb-2" />
+                  <p className="text-xs font-medium">Memuat cabang Sistem Penempatan...</p>
+                </div>
+              ) : filteredPenempatan.length === 0 ? (
+                <div className="py-10 text-center">
+                  <Globe size={32} className="text-slate-300 mx-auto mb-2" />
+                  <p className="text-sm font-medium text-slate-500">
+                    {penempatanSearch ? 'Cabang tidak ditemukan' : 'Belum ada cabang di Sistem Penempatan'}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">Pastikan Sistem Penempatan dapat diakses.</p>
+                </div>
+              ) : (
+                filteredPenempatan.map((pc) => {
+                  const isLinked = syncItem.penempatan_cabang_id === pc.id
+                  return (
+                    <button
+                      key={pc.id}
+                      disabled={syncing}
+                      onClick={() => handleSync(pc)}
+                      className={`w-full text-left flex items-center gap-3 rounded-xl border px-3.5 py-3 transition-all ${
+                        isLinked
+                          ? 'border-emerald-300 bg-emerald-50'
+                          : 'border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/40'
+                      } disabled:opacity-60`}
+                    >
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                        isLinked ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {isLinked ? <CheckCircle size={17} /> : <MapPin size={17} />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-800 truncate">
+                          {pc.nama_cabang}
+                          {(pc.kode_cabang || pc.kode || pc.code) && (
+                            <span className="ml-2 text-[10px] font-mono font-bold text-slate-400">
+                              {pc.kode_cabang || pc.kode || pc.code}
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          {[pc.tipe || pc.status_pusat || pc.status, pc.radius ? `${pc.radius}m` : null].filter(Boolean).join(' · ') || 'Cabang Sistem Penempatan'}
+                        </p>
+                      </div>
+                      <span className={`shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full ${
+                        isLinked ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {isLinked ? 'Terhubung' : 'Hubungkan'}
+                      </span>
+                    </button>
+                  )
+                })
+              )}
             </div>
           </div>
         </div>

@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\MatchingJobForm;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -161,6 +163,43 @@ class PenempatanKandidatController extends Controller
 
         try {
             $file = $request->file('file');
+
+            // Simpan salinan lokal di SIM agar berkas tetap tersedia meski Sistem
+            // Penempatan tidak dapat dijangkau. Referensi disimpan di matching_job_forms.data.dokumen.
+            try {
+                $form = MatchingJobForm::where('penempatan_kandidat_id', $id)->first();
+                if ($form) {
+                    $folder = 'uploads/matching-job/' . ($form->pendaftar_id ?: 'unknown');
+                    $dir = public_path($folder);
+                    File::ensureDirectoryExists($dir);
+                    $safe = preg_replace('/[^a-zA-Z0-9._-]/', '_', $file->getClientOriginalName()) ?: 'file';
+                    $filename = $jenis . '_' . time() . '_' . $safe;
+                    File::copy($file->getRealPath(), $dir . '/' . $filename);
+                    $path = $folder . '/' . $filename;
+
+                    $data = $form->data ?: [];
+                    $existing = is_array($data['dokumen'] ?? null) ? $data['dokumen'] : [];
+                    foreach ($existing as $old) {
+                        if (($old['jenis'] ?? null) === $jenis && !empty($old['path']) && file_exists(public_path($old['path']))) {
+                            @unlink(public_path($old['path']));
+                        }
+                    }
+                    $data['dokumen'] = array_merge(
+                        array_values(array_filter($existing, fn($d) => ($d['jenis'] ?? null) !== $jenis)),
+                        [[
+                            'jenis' => $jenis,
+                            'nama_file' => $file->getClientOriginalName(),
+                            'path' => $path,
+                            'url' => asset($path),
+                            'uploaded_at' => now()->toDateTimeString(),
+                        ]]
+                    );
+                    $form->update(['data' => $data]);
+                }
+            } catch (\Exception $e) {
+                Log::error('uploadDokumen local save failed: ' . $e->getMessage());
+            }
+
             $response = Http::timeout(60)
                 ->withHeaders(['x-api-key' => $this->apiKey])
                 ->attach(

@@ -14,7 +14,10 @@ class Cabang extends Model
         'latitude',
         'longitude',
         'radius',
-        'alamat'
+        'alamat',
+        'penempatan_cabang_id',
+        'penempatan_cabang_kode',
+        'penempatan_cabang_nama',
     ];
 
     protected static function booted()

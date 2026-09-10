@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
-  ClipboardList, ChevronLeft, ChevronRight, Save, Send, Upload, Plus, Trash2, Loader2,
+  ClipboardList, ChevronLeft, ChevronRight, Save, Send, Upload, Plus, Trash2, Loader2, FileText,
   LayoutDashboard, Wallet, CalendarCheck, BookOpen, User, X, ShieldCheck, CheckCircle2, Lock, AlertCircle,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
@@ -26,6 +26,27 @@ const sswFields = [
   'Pengolahan Makanan', 'Pertanian', 'Peternakan', 'Gaishoku', 'Kaigo (perawat)', 'Building Cleaning',
   'Restoran', 'Driver', 'Perhotelan', 'Perikanan', 'Perbaikan dan Perawatan Mobil', 'Konstruksi',
 ]
+
+const keahlianOptions = [
+  'Bahasa Jepang', 'Bahasa Inggris', 'Bahasa Korea', 'Komputer / IT', 'Microsoft Office', 'Administrasi',
+  'Akuntansi / Keuangan', 'Desain Grafis', 'Digital Marketing', 'Fotografi / Videografi', 'Customer Service',
+  'Sales / Penjualan', 'Marketing', 'Memasak / Tata Boga', 'Tata Busana / Menjahit', 'Las', 'Mekanik',
+  'Teknik Listrik', 'Teknik Mesin', 'Operator Mesin', 'Pengelasan', 'Konstruksi / Bangunan', 'Pertanian',
+  'Peternakan', 'Perikanan', 'Mengemudi', 'Logistik / Pergudangan', 'Lainnya',
+]
+const tingkatKeahlianOptions = ['Pemula', 'Menengah', 'Mahir']
+
+function currentLearningLevel(jadwalLevels: Record<string, { tanggal_mulai: string; tanggal_selesai: string }>): number {
+  const today = new Date().toISOString().slice(0, 10)
+  let seen = 0
+  for (const lv of ['1', '2', '3', '4']) {
+    const j = jadwalLevels[lv]
+    if (!j) break
+    seen = Number(lv)
+    if (today >= j.tanggal_mulai && today <= j.tanggal_selesai) return seen
+  }
+  return seen
+}
 
 const inputCls = 'w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder:text-slate-400'
 
@@ -88,8 +109,40 @@ function MonthYear({ required, bulan, tahun, onBulan, onTahun, error }: { requir
   )
 }
 
-function UploadRow({ label, required, note, file, onFileChange, maxKB, error }: { label: string; required?: boolean; note?: string; file: File | null; onFileChange: (f: File | null) => void; maxKB?: number; error?: string }) {
+function FilePreview({ file }: { file: File | null }) {
+  const [url, setUrl] = useState<string | null>(null)
+  const isImg = !!file?.type?.startsWith('image/')
+  useEffect(() => {
+    if (!file || !isImg) {
+      setUrl(null)
+      return
+    }
+    const u = URL.createObjectURL(file)
+    setUrl(u)
+    return () => URL.revokeObjectURL(u)
+  }, [file, isImg])
+
+  if (!file) return null
+  return (
+    <div className="mt-3">
+      {isImg && url ? (
+        <div className="relative inline-block overflow-hidden rounded-md border border-slate-200 bg-white">
+          <img src={url} alt={`Preview ${file.name}`} className="h-24 w-32 object-contain" />
+        </div>
+      ) : (
+        <div className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-slate-500">
+          <FileText size={16} />
+          <span className="text-xs font-medium">{file.name}</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function UploadRow({ label, required, note, file, onFileChange, maxKB, error, saved }: { label: string; required?: boolean; note?: string; file: File | null; onFileChange: (f: File | null) => void; maxKB?: number; error?: string; saved?: { url?: string; nama_file?: string } | null }) {
   const limit = maxKB || 500
+  const savedFile = saved && !file ? saved : null
+  const savedIsImg = !!savedFile?.url && /\.(jpe?g|png|gif|webp|bmp)(\?|#|$)/i.test(savedFile.url)
   return (
     <div className={`rounded-lg border bg-slate-50/60 p-3 ${error ? 'border-red-300 ring-2 ring-red-300' : 'border-slate-200'}`}>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -102,6 +155,11 @@ function UploadRow({ label, required, note, file, onFileChange, maxKB, error }: 
         <div className="flex items-center gap-2">
           {file ? (
             <span className="max-w-[180px] truncate text-xs text-slate-500">{file.name}</span>
+          ) : savedFile ? (
+            <span className="flex max-w-[180px] items-center gap-1 truncate text-xs font-medium text-emerald-600">
+              <CheckCircle2 size={12} className="shrink-0" />
+              <span className="truncate">{savedFile.nama_file || 'Sudah diupload'}</span>
+            </span>
           ) : (
             <span className="text-xs text-slate-400">Belum ada file</span>
           )}
@@ -123,6 +181,24 @@ function UploadRow({ label, required, note, file, onFileChange, maxKB, error }: 
             />
           </label>
         </div>
+      </div>
+      <div className="mt-3">
+        {file ? (
+          <FilePreview file={file} />
+        ) : savedFile ? (
+          <div className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white p-1.5">
+            {savedIsImg ? (
+              <a href={savedFile.url} target="_blank" rel="noreferrer">
+                <img src={savedFile.url} alt={savedFile.nama_file} className="h-24 w-32 object-contain" />
+              </a>
+            ) : (
+              <a href={savedFile.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-2 py-2 text-slate-500 hover:text-[#0E6187]">
+                <FileText size={16} />
+                <span className="max-w-[160px] truncate text-xs font-medium">{savedFile.nama_file || 'Lihat file'}</span>
+              </a>
+            )}
+          </div>
+        ) : null}
       </div>
       {error && (
         <p className="mt-1.5 flex items-center gap-1 text-xs font-medium text-red-500">
@@ -147,7 +223,7 @@ interface Pengalaman {
   alasan_keluar: string
 }
 
-function ExperienceCard({ value, onChange, onRemove, getError, paklaring, onPaklaring }: { value: Pengalaman; onChange: (v: Pengalaman) => void; onRemove: () => void; getError?: (k: string) => string | undefined; paklaring?: File | null; onPaklaring?: (f: File | null) => void }) {
+function ExperienceCard({ value, onChange, onRemove, getError, paklaring, onPaklaring, savedPaklaring }: { value: Pengalaman; onChange: (v: Pengalaman) => void; onRemove: () => void; getError?: (k: string) => string | undefined; paklaring?: File | null; onPaklaring?: (f: File | null) => void; savedPaklaring?: { url: string; nama_file: string } | null }) {
   const set = (k: keyof Pengalaman) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     onChange({ ...value, [k]: e.target.value })
   const setBulan = (k: 'bulan_masuk' | 'tahun_masuk' | 'bulan_keluar' | 'tahun_keluar') => (v: string) => onChange({ ...value, [k]: v })
@@ -178,7 +254,7 @@ function ExperienceCard({ value, onChange, onRemove, getError, paklaring, onPakl
         </div>
         {onPaklaring && (
           <div className="sm:col-span-2">
-            <UploadRow label="Sertifikasi / Paklaring" note="Opsional — Maks 500KB" maxKB={500} file={paklaring || null} onFileChange={onPaklaring} />
+            <UploadRow label="Sertifikasi / Paklaring" note="Opsional — Maks 500KB" maxKB={500} file={paklaring || null} onFileChange={onPaklaring} saved={savedPaklaring} />
           </div>
         )}
       </div>
@@ -274,7 +350,15 @@ interface Pendidikan {
   tahun_lulus: string
 }
 
-function EducationBlock({ title, value, onChange, required, getError, ijazah, onIjazah }: { title: string; value: Pendidikan; onChange: (v: Pendidikan) => void; required?: boolean; getError?: (k: string) => string | undefined; ijazah?: File | null; onIjazah?: (f: File | null) => void }) {
+interface KeahlianDetail {
+  skill: string
+  tingkat: string
+  lama_pengalaman: string
+  deskripsi: string
+  sertifikat: File | null
+}
+
+function EducationBlock({ title, value, onChange, required, getError, ijazah, onIjazah, savedIjazah }: { title: string; value: Pendidikan; onChange: (v: Pendidikan) => void; required?: boolean; getError?: (k: string) => string | undefined; ijazah?: File | null; onIjazah?: (f: File | null) => void; savedIjazah?: { url: string; nama_file: string } | null }) {
   const set = (k: keyof Pendidikan) => (e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...value, [k]: e.target.value })
   const setBulan = (k: 'bulan_masuk' | 'tahun_masuk' | 'bulan_lulus' | 'tahun_lulus') => (v: string) => onChange({ ...value, [k]: v })
   const err = (k: string) => (getError ? getError(k) : undefined)
@@ -303,7 +387,7 @@ function EducationBlock({ title, value, onChange, required, getError, ijazah, on
       </div>
       {onIjazah && (
         <div className="mt-3">
-          <UploadRow label={`Ijazah ${title}`} required={required} note="Maks 500KB" maxKB={500} file={ijazah || null} onFileChange={onIjazah} error={err('ijazah')} />
+          <UploadRow label={`Ijazah ${title}`} required={required} note="Maks 500KB" maxKB={500} file={ijazah || null} onFileChange={onIjazah} error={err('ijazah')} saved={savedIjazah} />
         </div>
       )}
     </div>
@@ -318,15 +402,14 @@ const boolToStr = (v: any): string =>
   v === 1 || v === true ? 'Ya' : v === 0 || v === false ? 'Tidak' : ''
 
 
-const dokumenList: { jenis: string; label: string; required: boolean; maxKB: number }[] = [
-  { jenis: 'sertifikat_jft', label: 'Sertifikat JFT', required: false, maxKB: 500 },
+const dokumenList: { jenis: string; label: string; required: boolean; maxKB: number; level2?: boolean }[] = [
+  { jenis: 'sertifikat_jft', label: 'Sertifikat JFT', required: true, maxKB: 500, level2: true },
   { jenis: 'pas_foto', label: 'Pas Foto', required: true, maxKB: 500 },
   { jenis: 'foto_full_body', label: 'Foto Full Body', required: true, maxKB: 3000 },
   { jenis: 'kk', label: 'Kartu Keluarga (KK)', required: true, maxKB: 500 },
   { jenis: 'ktp', label: 'KTP', required: true, maxKB: 500 },
-  { jenis: 'ijazah', label: 'Ijazah', required: true, maxKB: 500 },
+  { jenis: 'ijazah', label: 'Ijazah', required: true, maxKB: 500, level2: true },
   { jenis: 'akte', label: 'Akte Kelahiran', required: true, maxKB: 500 },
-  { jenis: 'lainnya', label: 'Dokumen Lainnya', required: false, maxKB: 500 },
 ]
 
 export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKandidatId?: number; onClose?: () => void } = {}) {
@@ -341,6 +424,9 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
   const [pengalamanPaklaring, setPengalamanPaklaring] = useState<Record<number, File | null>>({})
   const [sswSelected, setSswSelected] = useState<Set<string>>(new Set())
   const [sswCert, setSswCert] = useState<File[]>([])
+  const [keahlian, setKeahlian] = useState<KeahlianDetail[]>([])
+  const [learningLevel, setLearningLevel] = useState(0)
+  const kemampuanEnabled = !!adminKandidatId || learningLevel >= 2
   const [loading, setLoading] = useState(true)
   const [provinsiList, setProvinsiList] = useState<Wilayah[]>([])
   const [kabupatenList, setKabupatenList] = useState<Wilayah[]>([])
@@ -348,7 +434,15 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
   const [desaList, setDesaList] = useState<Wilayah[]>([])
   const [wilayahLoading, setWilayahLoading] = useState({ provinsi: false, kabupaten: false, kecamatan: false, desa: false })
   const [dokumen, setDokumen] = useState<Record<string, File | null>>({})
-  const [cabangList, setCabangList] = useState<{ id: number; nama_cabang: string }[]>([])
+  const [cabangList, setCabangList] = useState<{
+    id: number
+    kode_cabang?: string
+    nama_cabang: string
+    penempatan_cabang_id?: number | null
+    penempatan_cabang_nama?: string | null
+    penempatan_cabang_kode?: string | null
+  }[]>([])
+  const [cabangLocked, setCabangLocked] = useState(false)
   const location = useLocation()
 
   const [form, setForm] = useState({
@@ -403,7 +497,11 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
     penghasilanKeluarga: '',
     pernahKeJepang: '',
     keluargaDiJepang: '',
+    hubunganKeluargaJepang: '',
+    statusKerabatJepang: '',
+    kontakKeluargaJepang: '',
     kenalanDiJepang: '',
+    detailKenalan: '',
     tujuanKeJepang: '',
     alasanKeJepang: '',
     citaCitaSetelahJepang: '',
@@ -429,6 +527,14 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
     'Perguruan Tinggi': emptyPendidikan(),
   })
   const [pendidikanIjazah, setPendidikanIjazah] = useState<Record<string, File | null>>({})
+  const [localDokumen, setLocalDokumen] = useState<Record<string, { url: string; nama_file: string }>>({})
+  const sswSaved = useMemo(() =>
+    Object.entries(localDokumen)
+      .filter(([k]) => /^ssw_\d+$/.test(k))
+      .sort(([a], [b]) => Number(a.match(/\d+/)?.[0] ?? 0) - Number(b.match(/\d+/)?.[0] ?? 0))
+      .map(([, v]) => v),
+    [localDokumen],
+  )
   const [ayah, setAyah] = useState<Keluarga>(emptyKeluarga('Ayah'))
   const [ibu, setIbu] = useState<Keluarga>(emptyKeluarga('Ibu'))
   const [suami, setSuami] = useState<Keluarga[]>([])
@@ -499,25 +605,31 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
 
   useEffect(() => {
     if (!provinsiList.length || !form.alamatProvinsi) return
-    const found = provinsiList.find(p => p.name.toLowerCase() === form.alamatProvinsi.toLowerCase())
+    const found = provinsiList.find(p => matchWilayahName(p.name, form.alamatProvinsi))
     if (found) fetchKabupaten(found.id)
   }, [provinsiList, form.alamatProvinsi, fetchKabupaten])
 
   useEffect(() => {
     if (!kabupatenList.length || !form.alamatKabupaten) return
-    const found = kabupatenList.find(k => k.name.toLowerCase() === form.alamatKabupaten.toLowerCase())
+    const found = kabupatenList.find(k => matchWilayahName(k.name, form.alamatKabupaten))
     if (found) fetchKecamatan(found.id)
   }, [kabupatenList, form.alamatKabupaten, fetchKecamatan])
 
   useEffect(() => {
     if (!kecamatanList.length || !form.alamatKecamatan) return
-    const found = kecamatanList.find(k => k.name.toLowerCase() === form.alamatKecamatan.toLowerCase())
+    const found = kecamatanList.find(k => matchWilayahName(k.name, form.alamatKecamatan))
     if (found) fetchDesa(found.id)
   }, [kecamatanList, form.alamatKecamatan, fetchDesa])
 
   const findIdByName = (list: Wilayah[], name: string) => {
     if (!list.length || !name) return ''
-    return list.find(w => w.name.toLowerCase() === name.toLowerCase())?.id || ''
+    return list.find(w => matchWilayahName(w.name, name))?.id || ''
+  }
+
+  const matchWilayahName = (a: string, b: string) => {
+    const x = a.toLowerCase().replace(/^(kabupaten|kota)\s+/i, '')
+    const y = b.toLowerCase().replace(/^(kabupaten|kota)\s+/i, '')
+    return x === y || x.includes(y) || y.includes(x)
   }
 
   const clearErrors = (keys: string[]) => {
@@ -558,7 +670,7 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
       req(errs, 'cabang', form.cabang, 'Cabang Mendunia')
       req(errs, 'nik', form.nik, 'NIK')
       if (form.nik && !/^\d{16}$/.test(form.nik)) errs.nik = 'NIK harus 16 digit angka.'
-      req(errs, 'namaKatakana', form.namaKatakana, 'Nama (Katakana)')
+      if (kemampuanEnabled) req(errs, 'namaKatakana', form.namaKatakana, 'Nama (Katakana)')
       req(errs, 'namaRomaji', form.namaRomaji, 'Nama Lengkap')
       req(errs, 'tempatLahir', form.tempatLahir, 'Tempat Lahir')
       req(errs, 'tanggalLahir', form.tanggalLahir, 'Tanggal Lahir')
@@ -602,7 +714,7 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
         if (!b.tahun_masuk) errs[`${j}.tahun_masuk`] = `Tahun masuk ${j} wajib diisi.`
         if (!b.bulan_lulus) errs[`${j}.bulan_lulus`] = `Bulan lulus ${j} wajib diisi.`
         if (!b.tahun_lulus) errs[`${j}.tahun_lulus`] = `Tahun lulus ${j} wajib diisi.`
-        if (!pendidikanIjazah[j]) errs[`${j}.ijazah`] = `Ijazah ${j} wajib diupload.`
+        if (!pendidikanIjazah[j] && !localDokumen[`ijazah_${j.toLowerCase()}`]) errs[`${j}.ijazah`] = `Ijazah ${j} wajib diupload.`
       })
     } else if (step === 3) {
       pengalaman.forEach((p, i) => {
@@ -614,9 +726,17 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
         if (!p.masih_bekerja && !p.tahun_keluar) errs[`pengalaman.${i}.tahun_keluar`] = `Tahun keluar ke-${i + 1} wajib diisi.`
       })
     } else if (step === 4) {
-      req(errs, 'levelJlpt', form.levelJlpt, 'Level JLPT')
-      req(errs, 'lamaBelajarJepang', form.lamaBelajarJepang, 'Lama Belajar Bahasa Jepang')
-      req(errs, 'levelBahasaJepang', form.levelBahasaJepang, 'Level Bahasa Jepang')
+      if (kemampuanEnabled) {
+        req(errs, 'levelJlpt', form.levelJlpt, 'Level JLPT')
+        req(errs, 'lamaBelajarJepang', form.lamaBelajarJepang, 'Lama Belajar Bahasa Jepang')
+        req(errs, 'levelBahasaJepang', form.levelBahasaJepang, 'Level Bahasa Jepang')
+      }
+      if (keahlian.length === 0) errs.keahlian = 'Pilih minimal 1 keahlian.'
+      keahlian.forEach(k => {
+        if (!k.tingkat) errs[`keahlian.${k.skill}.tingkat`] = 'Tingkat kemampuan wajib diisi.'
+        if (!k.lama_pengalaman) errs[`keahlian.${k.skill}.lama`] = 'Lama pengalaman wajib diisi.'
+        if (!k.deskripsi) errs[`keahlian.${k.skill}.deskripsi`] = 'Deskripsi keahlian wajib diisi.'
+      })
     } else if (step === 5) {
       req(errs, 'penghasilanKeluarga', form.penghasilanKeluarga, 'Penghasilan Keluarga')
       ;([['Ayah', ayah], ['Ibu', ibu]] as const).forEach(([label, m]) => {
@@ -648,8 +768,12 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
       req(errs, 'biayaDisiapkan', form.biayaDisiapkan, 'Biaya Disiapkan')
     } else if (step === 8) {
       dokumenList.forEach(d => {
-        if (d.required && !dokumen[d.jenis]) errs[`dokumen.${d.jenis}`] = `${d.label} wajib diupload.`
+        if (d.level2 && !kemampuanEnabled) return
+        if (d.required && !dokumen[d.jenis] && !localDokumen[d.jenis]) errs[`dokumen.${d.jenis}`] = `${d.label} wajib diupload.`
       })
+      if (kemampuanEnabled && sswCert.length === 0 && sswSaved.length === 0) {
+        errs['dokumen.ssw'] = 'Minimal 1 Sertifikat SSW wajib diupload.'
+      }
     }
     return errs
   }
@@ -659,7 +783,7 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
     ['sudahVaksin', 'kondisiKesehatan', 'catatanKesehatan', 'berkacamata', 'lensaKontak', 'butaWarna', 'jenisButaWarna', 'bertato', 'merokok', 'minumAlkohol', 'riwayatPenyakit'],
     ['pendidikanTerakhir', 'SD.nama_sekolah', 'SD.bulan_masuk', 'SD.tahun_masuk', 'SD.bulan_lulus', 'SD.tahun_lulus', 'SD.ijazah', 'SMP.nama_sekolah', 'SMP.bulan_masuk', 'SMP.tahun_masuk', 'SMP.bulan_lulus', 'SMP.tahun_lulus', 'SMP.ijazah'],
     ['pengalaman'],
-    ['levelJlpt', 'lamaBelajarJepang', 'levelBahasaJepang'],
+    ['levelJlpt', 'lamaBelajarJepang', 'levelBahasaJepang', 'keahlian'],
     ['penghasilanKeluarga', 'Ayah.nama', 'Ayah.usia', 'Ayah.pekerjaan', 'Ayah.penghasilan', 'Ibu.nama', 'Ibu.usia', 'Ibu.pekerjaan', 'Ibu.penghasilan'],
     ['pernahKeJepang', 'keluargaDiJepang', 'kenalanDiJepang'],
     ['tujuanKeJepang', 'alasanKeJepang', 'citaCitaSetelahJepang', 'rencanaPengirimanUang', 'kelebihanDiri', 'kekuranganDiri', 'hobi', 'keahlian', 'bersediaShift', 'bersediaLembur', 'bersediaHariLibur', 'lamaTinggalJepang', 'lamaKerjaPerusahaan', 'rencanaPulang', 'sumberBiaya', 'biayaDisiapkan'],
@@ -721,7 +845,7 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
 
   useEffect(() => {
     const fillFromIdentity = (u: any, s: any, p: any) => {
-      const batch: any = s.batch_relasi || p.batch_relasi || null
+      const batch: any = s.batch_relasi || p.batch || null
 
       const mapGender = (v: string) => (v === 'L' ? 'Laki-laki' : v === 'P' ? 'Perempuan' : v || '')
       const mapStatus = (v: string) =>
@@ -735,9 +859,12 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
         ? String(Math.max(0, Math.floor((Date.now() - new Date(tanggalLahir).getTime()) / (365.25 * 24 * 3600 * 1000))))
         : ''
 
+      const batchCabangNama = batch?.cabang?.nama_cabang || ''
+      setCabangLocked(!!batchCabangNama)
+
       setForm(f => ({
         ...f,
-        cabang: batch?.cabang?.nama_cabang || '',
+        cabang: batchCabangNama,
         nik: s.nik || u.nik || p.nik || '',
         namaRomaji: s.nama || u.name || '',
         tempatLahir: s.tempat_lahir || u.tempat_lahir || '',
@@ -799,6 +926,7 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
           const p: any = res.data?.pendaftar || {}
           const mj: any = res.data?.matching_job || null
           fillFromIdentity(u, s, p)
+          setLearningLevel(currentLearningLevel(res.data?.jadwal_levels || {}))
           if (mj?.penempatan_kandidat_id) setKandidatId(mj.penempatan_kandidat_id)
           if (mj?.status_formulir) setStatusFormulir(mj.status_formulir)
           if (!hydratedRef.current && mj?.data && Object.keys(mj.data).length > 0) {
@@ -812,10 +940,17 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
         .finally(() => setLoading(false))
     }
 
-    api.get('/penempatan/cabang')
+    api.get('/cabang')
       .then(res => {
         const list = Array.isArray(res.data?.data) ? res.data.data : []
-        setCabangList(list.map((c: any) => ({ id: c.id, nama_cabang: c.nama_cabang })))
+        setCabangList(list.map((c: any) => ({
+          id: c.id,
+          kode_cabang: c.kode_cabang || '',
+          nama_cabang: c.nama_cabang,
+          penempatan_cabang_id: c.penempatan_cabang_id ?? null,
+          penempatan_cabang_nama: c.penempatan_cabang_nama || null,
+          penempatan_cabang_kode: c.penempatan_cabang_kode || null,
+        })))
       })
       .catch(() => {})
   }, [adminKandidatId])
@@ -858,7 +993,7 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
 
       setForm(f => ({
         ...f,
-        cabang: v.nama_cabang || f.cabang,
+        cabang: v.cabang_sim_nama || v.nama_cabang || f.cabang,
         nik: v.nik || f.nik,
         namaKatakana: v.nama_katakana || '',
         namaRomaji: v.nama_romaji || f.namaRomaji,
@@ -880,11 +1015,11 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
         email: v.email_kontak || v.email || f.email,
         namaOrtu: v.kontak_ortu_nama || '',
         noHpOrtu: v.kontak_ortu_hp || '',
-        alamatLengkap: v.alamat_lengkap || '',
-        alamatProvinsi: v.alamat_provinsi || '',
-        alamatKabupaten: v.alamat_kabupaten || '',
-        alamatKecamatan: v.alamat_kecamatan || '',
-        alamatDesa: v.alamat_desa || '',
+        alamatLengkap: v.alamat_lengkap || f.alamatLengkap,
+        alamatProvinsi: v.alamat_provinsi || f.alamatProvinsi,
+        alamatKabupaten: v.alamat_kabupaten || f.alamatKabupaten,
+        alamatKecamatan: v.alamat_kecamatan || f.alamatKecamatan,
+        alamatDesa: v.alamat_desa || f.alamatDesa,
         pendidikanTerakhir: v.pendidikan_terakhir || '',
         tahunLulus: v.tahun_lulus ?? '',
         sudahVaksin: boolToStr(v.sudah_vaksin),
@@ -909,7 +1044,11 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
         penghasilanKeluarga: v.penghasilan_keluarga ?? '',
         pernahKeJepang: boolToStr(v.pernah_ke_jepang),
         keluargaDiJepang: boolToStr(v.keluarga_di_jepang),
+        hubunganKeluargaJepang: v.hubungan_keluarga_jepang || '',
+        statusKerabatJepang: v.status_kerabat_jepang || '',
+        kontakKeluargaJepang: v.kontak_keluarga_jepang || '',
         kenalanDiJepang: boolToStr(v.kenalan_di_jepang),
+        detailKenalan: v.detail_kenalan || '',
         tujuanKeJepang: v.tujuan_ke_jepang || '',
         alasanKeJepang: v.alasan_ke_jepang || '',
         citaCitaSetelahJepang: v.cita_cita_setelah_jepang || '',
@@ -981,6 +1120,26 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
         setKakak(by('Kakak').map(toK))
         setAdik(by('Adik').map(toK))
     }
+
+      if (Array.isArray(v.dokumen)) {
+        const map: Record<string, { url: string; nama_file: string }> = {}
+        v.dokumen.forEach((d: any) => {
+          if (d?.jenis && d?.url) {
+            map[d.jenis] = { url: d.url, nama_file: d.nama_file || '' }
+          }
+        })
+        setLocalDokumen(map)
+      }
+
+      if (Array.isArray(v.keahlian_dimiliki)) {
+        setKeahlian(v.keahlian_dimiliki.map((k: any) => ({
+          skill: k.keahlian || '',
+          tingkat: k.tingkat || '',
+          lama_pengalaman: k.lama_pengalaman ?? '',
+          deskripsi: k.deskripsi || '',
+          sertifikat: null,
+        })))
+      }
   }
 
   const loadKandidatData = async (id: number) => {
@@ -1009,6 +1168,30 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
       else next.add(f)
       return next
     })
+  }
+
+  const toggleKeahlian = (skill: string) => {
+    const exists = keahlian.some(k => k.skill === skill)
+    if (exists) {
+      setKeahlian(prev => prev.filter(k => k.skill !== skill))
+    } else {
+      if (keahlian.length >= 3) {
+        Swal.fire({ icon: 'warning', title: 'Maksimal 3 keahlian', text: 'Anda hanya dapat memilih maksimal 3 keahlian.', confirmButtonColor: '#0E6187' })
+        return
+      }
+      setKeahlian(prev => [...prev, { skill, tingkat: '', lama_pengalaman: '', deskripsi: '', sertifikat: null }])
+    }
+    clearStepErrors(4)
+  }
+
+  const setKeahlianField = (skill: string, key: 'tingkat' | 'lama_pengalaman' | 'deskripsi', val: string) => {
+    setKeahlian(prev => prev.map(k => k.skill === skill ? { ...k, [key]: val } : k))
+    clearStepErrors(4)
+  }
+
+  const setKeahlianSertifikat = (skill: string, f: File | null) => {
+    setKeahlian(prev => prev.map(k => k.skill === skill ? { ...k, sertifikat: f } : k))
+    clearStepErrors(4)
   }
 
   const toBool = (v: string) => (v === 'Ya' ? 1 : v === 'Tidak' ? 0 : null)
@@ -1057,12 +1240,16 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
       alasan_keluar: p.alasan_keluar || null,
     }))
 
+    const simCabang = cabangList.find(c => c.nama_cabang === form.cabang) || null
+
     return {
       nama_romaji: form.namaRomaji || null,
       nik: form.nik || null,
       nama_katakana: form.namaKatakana || null,
       email: form.email || null,
-      cabang_id: cabangList.find(c => c.nama_cabang === form.cabang)?.id ?? null,
+      cabang_id: simCabang?.penempatan_cabang_id || null,
+      nama_cabang: simCabang?.penempatan_cabang_nama || form.cabang || null,
+      cabang_sim_nama: form.cabang || null,
       tempat_lahir: form.tempatLahir || null,
       tanggal_lahir: form.tanggalLahir || null,
       umur: toNum(form.umur),
@@ -1110,7 +1297,11 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
       penghasilan_keluarga: toNum(form.penghasilanKeluarga),
       pernah_ke_jepang: toBool(form.pernahKeJepang),
       keluarga_di_jepang: toBool(form.keluargaDiJepang),
+      hubungan_keluarga_jepang: form.hubunganKeluargaJepang || null,
+      status_kerabat_jepang: form.statusKerabatJepang || null,
+      kontak_keluarga_jepang: form.kontakKeluargaJepang || null,
       kenalan_di_jepang: toBool(form.kenalanDiJepang),
+      detail_kenalan: form.detailKenalan || null,
       tujuan_ke_jepang: form.tujuanKeJepang || null,
       alasan_ke_jepang: form.alasanKeJepang || null,
       cita_cita_setelah_jepang: form.citaCitaSetelahJepang || null,
@@ -1129,6 +1320,13 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
       biaya_disiapkan: form.biayaDisiapkan || null,
       status_formulir: final ? 'submitted' : 'draft',
       status_progres: 'Pending',
+      keahlian_dimiliki: keahlian.map(k => ({
+        keahlian: k.skill,
+        tingkat: k.tingkat || null,
+        lama_pengalaman: k.lama_pengalaman ? Number(k.lama_pengalaman) : null,
+        deskripsi: k.deskripsi || null,
+        sertifikat_file: k.sertifikat?.name || null,
+      })),
       pendidikan: pendidikanArr,
       pengalaman: pengalamanArr,
       keluarga,
@@ -1163,10 +1361,11 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
       const uploads: { jenis: string; file: File }[] = []
 
       dokumenList.forEach(d => {
+        if (d.level2 && !kemampuanEnabled) return
         const f = dokumen[d.jenis]
         if (f) uploads.push({ jenis: d.jenis, file: f })
       })
-      sswCert.forEach((f, i) => uploads.push({ jenis: `ssw_${i + 1}`, file: f }))
+      if (kemampuanEnabled) sswCert.forEach((f, i) => uploads.push({ jenis: `ssw_${sswSaved.length + i + 1}`, file: f }))
 
       ;(['SD', 'SMP', 'SMA/SMK', 'Perguruan Tinggi'] as const).forEach(lv => {
         const f = pendidikanIjazah[lv]
@@ -1175,6 +1374,10 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
 
       Object.entries(pengalamanPaklaring).forEach(([idx, f]) => {
         if (f) uploads.push({ jenis: `paklaring_${Number(idx) + 1}`, file: f })
+      })
+
+      keahlian.forEach((k, i) => {
+        if (k.sertifikat) uploads.push({ jenis: `keahlian_sertifikat_${i + 1}`, file: k.sertifikat })
       })
 
       let uploaded = 0
@@ -1395,13 +1598,30 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
               <p className="mb-4 text-xs text-slate-400">Informasi pribadi kandidat</p>
               <div className="grid gap-4 sm:grid-cols-3">
                 <Field label="Cabang Mendunia" required error={errors.cabang}>
-                  <select className={inputCls} value={form.cabang} onChange={set('cabang')}>
-                    <option value="">Pilih cabang...</option>
-                    {cabangList.map(c => <option key={c.id} value={c.nama_cabang}>{c.nama_cabang}</option>)}
-                  </select>
+                  {cabangLocked ? (
+                    <input
+                      className={`${inputCls} bg-slate-100 text-slate-500 cursor-not-allowed`}
+                      value={(() => {
+                        const linked = cabangList.find(c => c.nama_cabang === form.cabang)
+                        return linked?.penempatan_cabang_nama ? `${form.cabang} (${linked.penempatan_cabang_nama})` : form.cabang
+                      })()}
+                      readOnly
+                      tabIndex={-1}
+                    />
+                  ) : (
+                    <select className={inputCls} value={form.cabang} onChange={set('cabang')}>
+                      <option value="">Pilih cabang...</option>
+                      {!cabangList.some(c => c.nama_cabang === form.cabang) && form.cabang && (
+                        <option value={form.cabang}>{form.cabang}</option>
+                      )}
+                      {cabangList.map(c => <option key={c.id} value={c.nama_cabang}>{c.nama_cabang}</option>)}
+                    </select>
+                  )}
                 </Field>
                 <Field label="NIK" required error={errors.nik}><input className={inputCls} placeholder="16 digit NIK" maxLength={16} value={form.nik} onChange={set('nik')} /></Field>
-                <Field label="Nama (Katakana)" required error={errors.namaKatakana}><input className={inputCls} placeholder="カタカナ" value={form.namaKatakana} onChange={set('namaKatakana')} /></Field>
+                {!adminKandidatId && learningLevel < 2 ? null : (
+                  <Field label="Nama (Katakana)" required error={errors.namaKatakana}><input className={inputCls} placeholder="カタカナ" value={form.namaKatakana} onChange={set('namaKatakana')} /></Field>
+                )}
                 <Field label="Nama Lengkap" required error={errors.namaRomaji}><input className={inputCls} placeholder="Nama lengkap sesuai KTP" value={form.namaRomaji} onChange={set('namaRomaji')} /></Field>
                 <Field label="Tempat Lahir (Sesuai KTP)" required error={errors.tempatLahir}><input className={inputCls} placeholder="Kota lahir sesuai KTP" value={form.tempatLahir} onChange={set('tempatLahir')} /></Field>
                 <Field label="Tanggal Lahir (Sesuai KTP)" required error={errors.tanggalLahir}><input type="date" className={inputCls} value={form.tanggalLahir} onChange={set('tanggalLahir')} /></Field>
@@ -1444,7 +1664,7 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
             </div>
 
             <div>
-              <h2 className="mb-4 text-sm font-bold text-slate-800">{adminKandidatId ? 'Kontak & Alamat' : '📍 KONTAK &amp; ALAMAT'}</h2>
+              <h2 className="mb-4 text-sm font-bold text-slate-800">{adminKandidatId ? 'Kontak & Alamat' : '📍 KONTAK & ALAMAT'}</h2>
               <div className="grid gap-4 sm:grid-cols-3">
                 <Field label="Nomor HP" required error={errors.noHp}><input className={inputCls} placeholder="08xx-xxxx-xxxx" value={form.noHp} onChange={set('noHp')} /></Field>
                 <Field label="Email Kontak" required error={errors.email}><input type="email" className={inputCls} placeholder="email@..." value={form.email} onChange={set('email')} /></Field>
@@ -1524,7 +1744,7 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
 
         {activeStep === 1 && (
           <div>
-            <h2 className="mb-4 text-sm font-bold text-slate-800">{adminKandidatId ? '2. Kondisi Fisik & Kesehatan' : 'KONDISI FISIK &amp; KESEHATAN'}</h2>
+            <h2 className="mb-4 text-sm font-bold text-slate-800">{adminKandidatId ? '2. Kondisi Fisik & Kesehatan' : 'KONDISI FISIK & KESEHATAN'}</h2>
             <div className="grid gap-4 sm:grid-cols-3">
               <YesNo label="Sudah Vaksin?" required value={form.sudahVaksin} error={errors.sudahVaksin} onChange={v => { setForm(f => ({ ...f, sudahVaksin: v })); clearErrors(['sudahVaksin', 'kondisiKesehatan', 'berkacamata', 'lensaKontak', 'butaWarna', 'bertato', 'merokok', 'minumAlkohol', 'riwayatPenyakit']) }} />
               <Field label="Kondisi Kesehatan Saat Ini" required error={errors.kondisiKesehatan}>
@@ -1582,10 +1802,10 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
                 </Field>
             </div>
             <div className="space-y-4">
-              <EducationBlock title="SD" required value={pendidikan.SD} onChange={v => { setPendidikan(p => ({ ...p, SD: v })); clearStepErrors(2) }} getError={k => errors[`SD.${k}`]} ijazah={pendidikanIjazah.SD} onIjazah={f => { setPendidikanIjazah(p => ({ ...p, SD: f })); clearStepErrors(2) }} />
-              <EducationBlock title="SMP" required value={pendidikan.SMP} onChange={v => { setPendidikan(p => ({ ...p, SMP: v })); clearStepErrors(2) }} getError={k => errors[`SMP.${k}`]} ijazah={pendidikanIjazah.SMP} onIjazah={f => { setPendidikanIjazah(p => ({ ...p, SMP: f })); clearStepErrors(2) }} />
-              <EducationBlock title="SMA/SMK" value={pendidikan['SMA/SMK']} onChange={v => setPendidikan(p => ({ ...p, 'SMA/SMK': v }))} ijazah={pendidikanIjazah['SMA/SMK']} onIjazah={f => setPendidikanIjazah(p => ({ ...p, 'SMA/SMK': f }))} />
-              <EducationBlock title="Perguruan Tinggi" value={pendidikan['Perguruan Tinggi']} onChange={v => setPendidikan(p => ({ ...p, 'Perguruan Tinggi': v }))} ijazah={pendidikanIjazah['Perguruan Tinggi']} onIjazah={f => setPendidikanIjazah(p => ({ ...p, 'Perguruan Tinggi': f }))} />
+              <EducationBlock title="SD" required value={pendidikan.SD} onChange={v => { setPendidikan(p => ({ ...p, SD: v })); clearStepErrors(2) }} getError={k => errors[`SD.${k}`]} ijazah={pendidikanIjazah.SD} onIjazah={f => { setPendidikanIjazah(p => ({ ...p, SD: f })); clearStepErrors(2) }} savedIjazah={localDokumen['ijazah_sd'] || null} />
+              <EducationBlock title="SMP" required value={pendidikan.SMP} onChange={v => { setPendidikan(p => ({ ...p, SMP: v })); clearStepErrors(2) }} getError={k => errors[`SMP.${k}`]} ijazah={pendidikanIjazah.SMP} onIjazah={f => { setPendidikanIjazah(p => ({ ...p, SMP: f })); clearStepErrors(2) }} savedIjazah={localDokumen['ijazah_smp'] || null} />
+              <EducationBlock title="SMA/SMK" value={pendidikan['SMA/SMK']} onChange={v => setPendidikan(p => ({ ...p, 'SMA/SMK': v }))} ijazah={pendidikanIjazah['SMA/SMK']} onIjazah={f => setPendidikanIjazah(p => ({ ...p, 'SMA/SMK': f }))} savedIjazah={localDokumen['ijazah_sma'] || null} />
+              <EducationBlock title="Perguruan Tinggi" value={pendidikan['Perguruan Tinggi']} onChange={v => setPendidikan(p => ({ ...p, 'Perguruan Tinggi': v }))} ijazah={pendidikanIjazah['Perguruan Tinggi']} onIjazah={f => setPendidikanIjazah(p => ({ ...p, 'Perguruan Tinggi': f }))} savedIjazah={localDokumen['ijazah_pt'] || null} />
             </div>
           </div>
         )}
@@ -1607,7 +1827,7 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
             ) : (
               <div className="space-y-4">
                 {pengalaman.map((p, i) => (
-                  <ExperienceCard key={i} value={p} onChange={v => { setPengalaman(prev => prev.map((x, xI) => xI === i ? v : x)); clearStepErrors(3) }} onRemove={() => setPengalaman(prev => prev.filter((_, xI) => xI !== i))} getError={k => errors[`pengalaman.${i}.${k}`]} paklaring={pengalamanPaklaring[i] || null} onPaklaring={f => { setPengalamanPaklaring(prev => ({ ...prev, [i]: f })); clearStepErrors(3) }} />
+                  <ExperienceCard key={i} value={p} onChange={v => { setPengalaman(prev => prev.map((x, xI) => xI === i ? v : x)); clearStepErrors(3) }} onRemove={() => setPengalaman(prev => prev.filter((_, xI) => xI !== i))} getError={k => errors[`pengalaman.${i}.${k}`]} paklaring={pengalamanPaklaring[i] || null} onPaklaring={f => { setPengalamanPaklaring(prev => ({ ...prev, [i]: f })); clearStepErrors(3) }} savedPaklaring={localDokumen[`paklaring_${i + 1}`] || null} />
                 ))}
               </div>
             )}
@@ -1616,7 +1836,9 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
 
         {activeStep === 4 && (
           <div>
-            <h2 className="mb-4 text-sm font-bold text-slate-800">{adminKandidatId ? '5. Kemampuan & Sertifikat' : 'KEMAMPUAN &amp; SERTIFIKAT'}</h2>
+            <h2 className="mb-4 text-sm font-bold text-slate-800">{adminKandidatId ? '5. Kemampuan & Sertifikat' : 'KEMAMPUAN & SERTIFIKAT'}</h2>
+            {kemampuanEnabled ? (
+              <>
             <div className="grid gap-4 sm:grid-cols-3">
               <Field label="Level JLPT" required error={errors.levelJlpt}>
                 <select className={inputCls} value={form.levelJlpt} onChange={set('levelJlpt')}><option value="">Pilih level...</option><option>N5</option><option>N4</option><option>N3</option><option>N2</option><option>N1</option></select>
@@ -1654,6 +1876,78 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
                 })}
               </div>
             </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-2 rounded-lg border border-[#0E6187]/20 bg-[#0E6187]/5 px-4 py-8 text-center">
+                <Lock className="text-[#0E6187]" size={20} />
+                <p className="text-sm font-semibold text-[#0E6187]">Kemampuan & Sertifikat terkunci</p>
+                <p className="text-xs text-slate-500">Bagian ini akan tersedia setelah Anda mencapai <b>Level 2</b> pembelajaran.</p>
+                <Link to="/siswa-dashboard" className="mt-1 text-xs font-semibold text-[#0E6187] underline">Lihat Progress Belajar Anda</Link>
+              </div>
+            )}
+
+            <div className="mt-6">
+              <p className="mb-1 text-xs font-semibold text-slate-600">Keahlian yang Dimiliki</p>
+              <p className="mb-2 text-[11px] text-slate-400">Pilih minimal 1 dan maksimal 3 keahlian. Setiap keahlian diisi detail beserta sertifikat (opsional).</p>
+              {errors.keahlian && (
+                <p className="mb-2 flex items-center gap-1 text-xs font-medium text-red-500">
+                  <AlertCircle size={12} />
+                  {errors.keahlian}
+                </p>
+              )}
+              <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                {keahlianOptions.map(opt => {
+                  const on = keahlian.some(k => k.skill === opt)
+                  return (
+                    <label
+                      key={opt}
+                      onClick={() => toggleKeahlian(opt)}
+                      className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium transition ${
+                        on ? 'border-[#0E6187] bg-[#0E6187]/5 text-[#0E6187]' : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                      }`}
+                    >
+                      <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] text-white ${on ? 'border-[#0E6187] bg-[#0E6187]' : 'border-slate-300 bg-white'}`}>
+                        {on && '✓'}
+                      </span>
+                      {opt}
+                      {keahlian.length === 3 && !on && <span className="ml-auto text-[9px] text-slate-300">max</span>}
+                    </label>
+                  )
+                })}
+              </div>
+
+              {keahlian.length > 0 && (
+                <div className="mt-4 space-y-3">
+                  {keahlian.map((k, i) => {
+                    const ke = (key: string) => errors[`keahlian.${k.skill}.${key}`]
+                    return (
+                      <div key={k.skill} className="rounded-lg border border-slate-200 p-4">
+                        <p className="mb-3 text-sm font-semibold text-slate-700">Detail Keahlian {k.skill}</p>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <Field label="Tingkat kemampuan" required error={ke('tingkat')}>
+                            <select className={inputCls} value={k.tingkat} onChange={e => setKeahlianField(k.skill, 'tingkat', e.target.value)}>
+                              <option value="">Pilih...</option>
+                              {tingkatKeahlianOptions.map(o => <option key={o}>{o}</option>)}
+                            </select>
+                          </Field>
+                          <Field label="Lama pengalaman" required error={ke('lama')}>
+                            <input type="number" min={0} className={inputCls} placeholder="mis. 3" value={k.lama_pengalaman} onChange={e => setKeahlianField(k.skill, 'lama_pengalaman', e.target.value)} />
+                          </Field>
+                          <div className="sm:col-span-2">
+                            <Field label="Deskripsi keahlian" required error={ke('deskripsi')}>
+                              <textarea className={`${inputCls} min-h-[70px]`} placeholder="Jelaskan kemampuan dan pengalaman Anda..." value={k.deskripsi} onChange={e => setKeahlianField(k.skill, 'deskripsi', e.target.value)} />
+                            </Field>
+                          </div>
+                          <div className="sm:col-span-2">
+                            <UploadRow label="Sertifikat Keahlian" note="Opsional — Maks 500KB" maxKB={500} file={k.sertifikat} onFileChange={f => setKeahlianSertifikat(k.skill, f)} saved={localDokumen[`keahlian_sertifikat_${i + 1}`] || null} />
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -1684,12 +1978,26 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
               <YesNo label="Punya Keluarga di Jepang?" required value={form.keluargaDiJepang} error={errors.keluargaDiJepang} onChange={v => setForm(f => ({ ...f, keluargaDiJepang: v }))} />
               <YesNo label="Punya Kenalan di Jepang?" required value={form.kenalanDiJepang} error={errors.kenalanDiJepang} onChange={v => setForm(f => ({ ...f, kenalanDiJepang: v }))} />
             </div>
+
+            {form.keluargaDiJepang === 'Ya' && (
+              <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                <Field label="Hubungan (opsional)" error={errors.hubunganKeluargaJepang}><input className={inputCls} placeholder="Kakak, Ayah, dll." value={form.hubunganKeluargaJepang} onChange={set('hubunganKeluargaJepang')} /></Field>
+                <Field label="Status Kerabat di Jepang (opsional)" error={errors.statusKerabatJepang}><input className={inputCls} placeholder="TG, Magang, dll." value={form.statusKerabatJepang} onChange={set('statusKerabatJepang')} /></Field>
+                <Field label="Kontak Keluarga di Jepang (opsional)" error={errors.kontakKeluargaJepang}><input className={inputCls} placeholder="No. HP / kontak keluarga" value={form.kontakKeluargaJepang} onChange={set('kontakKeluargaJepang')} /></Field>
+              </div>
+            )}
+
+            {form.kenalanDiJepang === 'Ya' && (
+              <div className="mt-4">
+                <Field label="Detail Kenalan (Nama, Alamat, Kontak)" error={errors.detailKenalan}><textarea className={`${inputCls} min-h-[70px]`} placeholder="Nama, alamat, dan kontak kenalan di Jepang..." value={form.detailKenalan} onChange={set('detailKenalan')} /></Field>
+              </div>
+            )}
           </div>
         )}
 
         {activeStep === 7 && (
           <div>
-            <h2 className="mb-4 text-sm font-bold text-slate-800">{adminKandidatId ? '8. Motivasi, Tujuan & Poin Pendukung' : 'MOTIVASI, TUJUAN &amp; POIN PENDUKUNG'}</h2>
+            <h2 className="mb-4 text-sm font-bold text-slate-800">{adminKandidatId ? '8. Motivasi, Tujuan & Poin Pendukung' : 'MOTIVASI, TUJUAN & POIN PENDUKUNG'}</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Tujuan ke Jepang" required error={errors.tujuanKeJepang}><textarea className={`${inputCls} min-h-[70px]`} placeholder="Tuliskan tujuan Anda pergi ke Jepang..." value={form.tujuanKeJepang} onChange={set('tujuanKeJepang')} /></Field>
               <Field label="Alasan Ingin ke Jepang" required error={errors.alasanKeJepang}><textarea className={`${inputCls} min-h-[70px]`} placeholder="Alasan Anda..." value={form.alasanKeJepang} onChange={set('alasanKeJepang')} /></Field>
@@ -1712,10 +2020,10 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
                 <select className={inputCls} value={form.rencanaPulang} onChange={set('rencanaPulang')}><option value="">Pilih...</option><option>1-2 kali</option><option>3-4 kali</option><option>Lainnya</option></select>
               </Field>
               <Field label="Sumber Biaya Keberangkatan" required error={errors.sumberBiaya}>
-                <select className={inputCls} value={form.sumberBiaya} onChange={set('sumberBiaya')}><option value="">Pilih...</option><option>Dana Pribadi</option><option>Dana Talang LPK</option></select>
+                <select className={inputCls} value={form.sumberBiaya} onChange={set('sumberBiaya')}><option value="">Pilih...</option><option>Dana Pribadi</option><option>Dana Talang</option></select>
               </Field>
               <Field label="Biaya yang Disiapkan" required error={errors.biayaDisiapkan}>
-                <select className={inputCls} value={form.biayaDisiapkan} onChange={set('biayaDisiapkan')}><option value="">Pilih...</option><option>10-20 Juta</option><option>20-30 Juta</option><option>40-50 Juta</option><option>Lainnya</option></select>
+                <select className={inputCls} value={form.biayaDisiapkan} onChange={set('biayaDisiapkan')}><option value="">Pilih...</option><option>5-10 Juta</option><option>10-20 Juta</option><option>20-30 Juta</option><option>40-50 Juta</option><option>Lainnya</option></select>
               </Field>
             </div>
           </div>
@@ -1732,7 +2040,7 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
               <p className="mt-1">Format: JPG, PNG, PDF, MP4. Dokumen dengan tanda * wajib diupload.</p>
             </div>
             <div className="space-y-3">
-              {dokumenList.map(d => (
+              {dokumenList.filter(d => !d.level2 || kemampuanEnabled).map(d => (
                 <UploadRow
                   key={d.jenis}
                   label={d.label}
@@ -1741,11 +2049,13 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
                   maxKB={d.maxKB}
                   file={dokumen[d.jenis] || null}
                   onFileChange={f => { setDokumen(prev => ({ ...prev, [d.jenis]: f })); clearStepErrors(8) }}
+                  saved={localDokumen[d.jenis] || null}
                   error={errors[`dokumen.${d.jenis}`]}
                 />
               ))}
             </div>
 
+            {kemampuanEnabled && (
             <div className="mt-6">
               <div className="mb-3 flex items-center justify-between">
                 <p className="text-xs font-semibold text-slate-600">Sertifikat SSW (Opsional)</p>
@@ -1758,6 +2068,17 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
                 </button>
               </div>
               <div className="space-y-3">
+                {sswSaved.map((sv, i) => (
+                  <div key={`ssw-saved-${i}`} className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-emerald-700">Sertifikat SSW (Sudah diupload)</p>
+                    </div>
+                    <a href={sv.url} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-[#0E6187] hover:underline">
+                      <FileText size={13} />
+                      <span className="max-w-[220px] truncate">{sv.nama_file || 'Lihat file'}</span>
+                    </a>
+                  </div>
+                ))}
                 {sswCert.map((file, i) => (
                   <div key={i} className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
                     <p className="mb-2 text-xs font-semibold text-slate-600">Sertifikat SSW #{i + 1}</p>
@@ -1796,13 +2117,14 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
                     </div>
                   </div>
                 ))}
-                {sswCert.length === 0 && (
+                {sswCert.length === 0 && sswSaved.length === 0 && (
                   <p className="rounded-lg border border-dashed border-slate-200 py-4 text-center text-xs text-slate-400">
                     Belum ada sertifikat SSW
                   </p>
                 )}
               </div>
             </div>
+            )}
           </div>
         )}
 

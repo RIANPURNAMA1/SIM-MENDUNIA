@@ -2174,6 +2174,19 @@ class PendaftaranController extends Controller
                 'cuti_sejak' => $siswa?->cuti_sejak,
                 'level_status_keluar' => ($siswa && $siswa->status_kandidat === 'Mengundurkan Diri')
                     || ($siswa && $siswa->level_status && collect($siswa->level_status)->contains('Keluar')),
+                'learning_level' => (function () use ($p) {
+                    $batchId = $p->batch_id;
+                    if (!$batchId) return 1;
+                    $today = now()->toDateString();
+                    $level = 1;
+                    foreach (\App\Models\JadwalLevel::where('batch_id', $batchId)->get() as $j) {
+                        $mulai = $j->tanggal_mulai->format('Y-m-d');
+                        $selesai = $j->tanggal_selesai->format('Y-m-d');
+                        if ($today >= $mulai) $level = max($level, (int) $j->level);
+                        if ($today >= $mulai && $today <= $selesai) return (int) $j->level;
+                    }
+                    return $level;
+                })(),
                 'password_plain' => $user?->password_plain ?? null,
                 'kontrak' => (function () use ($p) {
                     $k = $p->batch?->cabang?->kontraks?->sortByDesc('created_at')->first();
@@ -2404,7 +2417,7 @@ class PendaftaranController extends Controller
      */
     public function matchingJobForm(Request $request, $id)
     {
-        $pendaftar = Pendaftar::with(['user', 'siswa', 'matchingJobForm'])->find($id);
+        $pendaftar = Pendaftar::with(['user', 'siswa.batchRelasi.cabang', 'matchingJobForm', 'batch.cabang'])->find($id);
         if (!$pendaftar) {
             return response()->json(['success' => false, 'message' => 'Kandidat tidak ditemukan.'], 404);
         }
@@ -2469,7 +2482,12 @@ class PendaftaranController extends Controller
         }
 
         // 2. Simpan salinan lokal (selalu, agar tampil di /data-kandidat).
-        $data = collect($payload)->except(['penempatan_kandidat_id'])->all();
+        // Pertahankan data.dokumen (catatan file yg diupload) dari simpanan sebelumnya,
+        // agar upload dokumen tidak hilang saat admin menyimpan ulang form.
+        $existingForm = MatchingJobForm::where('pendaftar_id', $pendaftar->id)->first();
+        $existingDokumen = $existingForm ? ($existingForm->data['dokumen'] ?? []) : [];
+        $data = collect($payload)->except(['penempatan_kandidat_id', 'dokumen'])->all();
+        $data['dokumen'] = $existingDokumen;
         $form = MatchingJobForm::updateOrCreate(
             ['pendaftar_id' => $pendaftar->id],
             [

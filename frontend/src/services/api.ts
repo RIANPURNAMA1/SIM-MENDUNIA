@@ -56,6 +56,7 @@ export const cabangApi = {
   create: (data: Record<string, unknown>) => api.post('/cabang', data),
   update: (id: number, data: Record<string, unknown>) => api.put(`/cabang/${id}`, data),
   delete: (id: number) => api.delete(`/cabang/${id}`),
+  syncPenempatan: (id: number, data: Record<string, unknown>) => api.post(`/cabang/${id}/sync-penempatan`, data),
 }
 
 export const shiftApi = {

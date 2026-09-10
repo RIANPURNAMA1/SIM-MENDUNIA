@@ -52,6 +52,9 @@ export interface Cabang {
   longitude: number
   radius: number
   alamat: string | null
+  penempatan_cabang_id?: number | null
+  penempatan_cabang_kode?: string | null
+  penempatan_cabang_nama?: string | null
   created_at?: string
   updated_at?: string
 }
