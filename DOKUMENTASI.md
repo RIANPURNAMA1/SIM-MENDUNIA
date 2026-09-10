@@ -1241,7 +1241,7 @@ non Form
 -menu akses cepat ubah  
 -video ucapaan selamat datang oleh kang bara 
 -ada alert untuk akses kelas pembelajaran hiragana katakana
--kelas mendunia itu jadi gini flow nya jadi di sensei di tiap pertemuan berdasarkan jadwal level  itu harus sudah ada materi atau latihan soal terus ulangan mingguan ulangan harian nah gtu 
+-kelas mendunia itu jadi gini flow nya jadi di sensei di tiap pertemuan berdasarkan jadwal level  itu bisa input materi pejaran dan bukti pelajaran bentuk foto  latihan soal terus ulangan mingguan ulangan harian nah gtu jadi dari awal itu misal tanggal muai dan tanggal selesainya itu ada riwayatnya di kelas mendunia itu atau lms 
 
 
 

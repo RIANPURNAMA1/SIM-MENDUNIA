@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import {
   BookOpen, Plus, Edit3, Trash2, Search, X, Image as ImageIcon, FileText,
-  Download, ListChecks, Eye, ChevronUp, ChevronDown, Camera, Clock, Repeat,
+  ListChecks, Eye, ChevronUp, ChevronDown, Camera, Clock, Repeat,
   Award, Users, UserCheck, Pencil, Loader2, ArrowLeft, Video, UploadCloud, Mic, RotateCcw,
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
@@ -19,19 +19,19 @@ interface Course {
   level: string | null
   batch_id: number | null
   image: string | null
+  category_id: number | null
+  category: { id: number; name: string; sort: number } | null
   sort: number
   status: string
   lessons_count: number
   files_count: number
 }
 
-interface CourseFile {
+interface LmsCategory {
   id: number
-  course_id: number
-  file_name: string
-  file_path: string
-  file_type: string | null
-  file_size: number | null
+  name: string
+  sort: number
+  courses_count: number
 }
 
 interface Batch { id: number; nama_batch: string; warna?: string | null }
@@ -172,15 +172,17 @@ export default function DataCourse() {
   const [showCourseModal, setShowCourseModal] = useState(false)
   const [editingCourse, setEditingCourse] = useState<Course | null>(null)
   const [savingCourse, setSavingCourse] = useState(false)
-  const [courseForm, setCourseForm] = useState({ title: '', description: '', level: '', batch_id: '', sort: '0', status: 'aktif' })
+  const [courseForm, setCourseForm] = useState({ title: '', description: '', level: '', batch_id: '', category_id: '', sort: '0', status: 'aktif' })
+  const [categories, setCategories] = useState<LmsCategory[]>([])
+  const [showCourseCatModal, setShowCourseCatModal] = useState(false)
+  const [courseCatForm, setCourseCatForm] = useState({ name: '', sort: '0' })
+  const [editingCourseCat, setEditingCourseCat] = useState<LmsCategory | null>(null)
+  const [savingCourseCat, setSavingCourseCat] = useState(false)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [uploadingImg, setUploadingImg] = useState(false)
   const [showBatchDropdown, setShowBatchDropdown] = useState(false)
   const quillRef = useRef<any>(null)
-  const [courseFiles, setCourseFiles] = useState<CourseFile[]>([])
-  const [pendingFiles, setPendingFiles] = useState<File[]>([])
-  const [fileUploading, setFileUploading] = useState(false)
 
   const [quizPakets, setQuizPakets] = useState<QuizPaket[]>([])
   const [quizLoading, setQuizLoading] = useState(false)
@@ -290,7 +292,62 @@ export default function DataCourse() {
   }
   const quillFormats = ['header', 'bold', 'italic', 'underline', 'strike', 'list', 'link', 'image', 'video']
 
-  useEffect(() => { fetchCourses(); fetchQuizMeta() }, [])
+  useEffect(() => { fetchCourses(); fetchQuizMeta(); fetchCategories() }, [])
+
+  const fetchCategories = () => {
+    if (isAdminCabang) { setCategories([]); return }
+    lmsAdminApi.categories().then(res => {
+      setCategories(res.data.categories || [])
+    }).catch(() => setCategories([]))
+  }
+
+  const openCreateCourseCat = () => {
+    setEditingCourseCat(null)
+    setCourseCatForm({ name: '', sort: '0' })
+    setShowCourseCatModal(true)
+  }
+
+  const openEditCourseCat = (cat: LmsCategory) => {
+    setEditingCourseCat(cat)
+    setCourseCatForm({ name: cat.name, sort: cat.sort.toString() })
+    setShowCourseCatModal(true)
+  }
+
+  const saveCourseCat = async () => {
+    const name = courseCatForm.name.trim()
+    if (!name) {
+      Swal.fire({ icon: 'warning', title: 'Nama kategori wajib diisi' }); return
+    }
+    setSavingCourseCat(true)
+    try {
+      const data = { name, sort: Number(courseCatForm.sort) || 0 }
+      if (editingCourseCat) await lmsAdminApi.updateCategory(editingCourseCat.id, data)
+      else await lmsAdminApi.storeCategory(data)
+      setShowCourseCatModal(false)
+      fetchCategories()
+      fetchCourses()
+      Swal.fire({ icon: 'success', title: editingCourseCat ? 'Kategori diperbarui' : 'Kategori dibuat', timer: 1500, showConfirmButton: false })
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal menyimpan kategori' })
+    } finally {
+      setSavingCourseCat(false)
+    }
+  }
+
+  const deleteCourseCat = (cat: LmsCategory) => {
+    Swal.fire({
+      title: 'Hapus kategori?', text: `"${cat.name}" beserta kursus didalamnya akan dilepas dari kategori ini`, icon: 'warning',
+      showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Hapus', cancelButtonText: 'Batal',
+    }).then(res => {
+      if (res.isConfirmed) {
+        lmsAdminApi.deleteCategory(cat.id).then(() => {
+          fetchCategories()
+          fetchCourses()
+          Swal.fire({ icon: 'success', title: 'Dihapus', timer: 1500, showConfirmButton: false })
+        }).catch(() => Swal.fire({ icon: 'error', title: 'Gagal menghapus' }))
+      }
+    })
+  }
 
   const fetchCourses = () => {
     setLoading(true)
@@ -535,11 +592,9 @@ export default function DataCourse() {
   // ==================== COURSE CRUD ====================
   const openCreateCourse = () => {
     setEditingCourse(null)
-    setCourseForm({ title: '', description: '', level: '', batch_id: '', sort: '0', status: 'aktif' })
+    setCourseForm({ title: '', description: '', level: '', batch_id: '', category_id: '', sort: '0', status: 'aktif' })
     setImageFile(null)
     setImagePreview(null)
-    setCourseFiles([])
-    setPendingFiles([])
     setShowCourseModal(true)
   }
 
@@ -550,54 +605,13 @@ export default function DataCourse() {
       description: course.description || '',
       level: course.level || '',
       batch_id: course.batch_id?.toString() || '',
+      category_id: course.category_id?.toString() || '',
       sort: course.sort.toString(),
       status: course.status,
     })
     setImageFile(null)
     setImagePreview(course.image ? `${APP_URL}/storage/${course.image}` : null)
-    setCourseFiles([])
-    setPendingFiles([])
     setShowCourseModal(true)
-    lmsAdminApi.courseFiles(course.id).then(res => setCourseFiles(res.data.files || [])).catch(() => {})
-  }
-
-  const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || !editingCourse) return
-    setFileUploading(true)
-    try {
-      const fd = new FormData()
-      fd.append('course_id', String(editingCourse.id))
-      fd.append('file', file)
-      const res = await lmsAdminApi.storeCourseFile(fd)
-      setCourseFiles(prev => [...prev, res.data.file])
-      Swal.fire({ icon: 'success', title: 'File berhasil diupload', timer: 1500, showConfirmButton: false })
-    } catch {
-      Swal.fire({ icon: 'error', title: 'Gagal upload file' })
-    } finally {
-      setFileUploading(false)
-      e.target.value = ''
-    }
-  }
-
-  const handleDeleteFile = (file: CourseFile) => {
-    Swal.fire({
-      title: 'Hapus file?', text: `"${file.file_name}" akan dihapus`, icon: 'warning',
-      showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Hapus', cancelButtonText: 'Batal',
-    }).then(res => {
-      if (res.isConfirmed) {
-        lmsAdminApi.deleteCourseFile(file.id).then(() => {
-          setCourseFiles(prev => prev.filter(f => f.id !== file.id))
-          Swal.fire({ icon: 'success', title: 'File dihapus', timer: 1500, showConfirmButton: false })
-        }).catch(() => Swal.fire({ icon: 'error', title: 'Gagal menghapus file' }))
-      }
-    })
-  }
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' B'
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
   }
 
   const saveCourse = async () => {
@@ -611,22 +625,14 @@ export default function DataCourse() {
       fd.append('description', courseForm.description)
       fd.append('level', courseForm.level)
       fd.append('batch_id', courseForm.batch_id)
+      fd.append('category_id', courseForm.category_id)
       fd.append('sort', courseForm.sort || '0')
       fd.append('status', courseForm.status)
       if (imageFile) fd.append('image', imageFile)
       if (editingCourse) {
         await lmsAdminApi.updateCourse(editingCourse.id, fd)
       } else {
-        const res = await lmsAdminApi.storeCourse(fd)
-        const newId = res.data?.course?.id
-        if (newId && pendingFiles.length > 0) {
-          for (const pf of pendingFiles) {
-            const pfd = new FormData()
-            pfd.append('course_id', String(newId))
-            pfd.append('file', pf)
-            await lmsAdminApi.storeCourseFile(pfd)
-          }
-        }
+        await lmsAdminApi.storeCourse(fd)
       }
       setShowCourseModal(false)
       fetchCourses()
@@ -973,9 +979,14 @@ export default function DataCourse() {
             </div>
           </div>
           {view === 'list' && !isAdminCabang && (
-            <button onClick={openCreateCourse} className={primaryBtn}>
-              <Plus size={16} /> Buat Kursus
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={openCreateCourseCat} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:border-slate-300 text-[12px]">
+                Kelola Kategori
+              </button>
+              <button onClick={openCreateCourse} className={primaryBtn}>
+                <Plus size={16} /> Buat Kursus
+              </button>
+            </div>
           )}
           {view === 'quiz' && activeCourse && (
             <button onClick={openCreatePaket} className={primaryBtn}>
@@ -1046,9 +1057,16 @@ export default function DataCourse() {
                           <td className="px-4 py-3">
                             <div className="min-w-0">
                               <p className="text-slate-800 font-semibold truncate max-w-xs">{c.title}</p>
-                              <p className="text-xs text-slate-400 mt-0.5">
-                                {[c.batch_id && batches.find(b => b.id === c.batch_id)?.nama_batch, c.level && `Level ${c.level}`].filter(Boolean).join(' · ') || 'Semua kandidat'}
-                              </p>
+                              <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                {c.category && (
+                                  <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600">
+                                    {c.category.name}
+                                  </span>
+                                )}
+                                <p className="text-xs text-slate-400">
+                                  {[c.batch_id && batches.find(b => b.id === c.batch_id)?.nama_batch, c.level && `Level ${c.level}`].filter(Boolean).join(' · ') || 'Semua kandidat'}
+                                </p>
+                              </div>
                             </div>
                           </td>
                           <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800">{c.lessons_count}</td>
@@ -1062,7 +1080,7 @@ export default function DataCourse() {
                           <td className="px-4 py-3 text-center">
                             <button onClick={() => openCourseDetail(c)}
                               className="inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-[#0E6187] px-2.5 py-1.5 rounded-md hover:bg-[#0E6187]/90 transition-colors">
-                              <ListChecks size={13} /> Quiz
+                              <ListChecks size={13} /> Buka
                             </button>
                           </td>
                           <td className="px-4 py-3">
@@ -1476,6 +1494,62 @@ export default function DataCourse() {
         )}
       </div>
 
+      {/* ==================== COURSE CATEGORY MODAL ==================== */}
+      {showCourseCatModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[10vh] pb-8 px-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+              <h3 className="font-semibold text-slate-800">{editingCourseCat ? 'Edit Kategori' : 'Tambah Kategori'}</h3>
+              <button onClick={() => setShowCourseCatModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
+                <X size={20} className="text-slate-400" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className={labelCls}>Nama Kategori <span className="text-red-500">*</span></label>
+                <input type="text" value={courseCatForm.name} onChange={e => setCourseCatForm({ ...courseCatForm, name: e.target.value })}
+                  className={inputCls} placeholder="Contoh: Bimbingan, Psikotes, Bahasa Jepang..." />
+              </div>
+              <div>
+                <label className={labelCls}>Urutan</label>
+                <input type="number" value={courseCatForm.sort} onChange={e => setCourseCatForm({ ...courseCatForm, sort: e.target.value })}
+                  className={inputCls} />
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <button onClick={() => setShowCourseCatModal(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+                  Batal
+                </button>
+                <button onClick={saveCourseCat} disabled={savingCourseCat} className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[#0E6187] hover:bg-[#0E6187]/90 disabled:opacity-60 transition-colors">
+                  {savingCourseCat ? 'Menyimpan...' : 'Simpan'}
+                </button>
+              </div>
+              <div className="border-t border-slate-100 pt-4">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-2">Daftar Kategori</p>
+                <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                  {categories.length === 0 && (
+                    <p className="text-sm text-slate-400 text-center py-4">Belum ada kategori. Buat via form di atas.</p>
+                  )}
+                  {categories.map(cat => (
+                    <div key={cat.id} className="flex items-center gap-2 rounded-lg border border-slate-100 px-3 py-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-700 truncate">{cat.name}</p>
+                        <p className="text-[10px] text-slate-400">{cat.courses_count} kursus · Urutan {cat.sort}</p>
+                      </div>
+                      <button onClick={() => openEditCourseCat(cat)} className="p-1.5 rounded-md bg-slate-100 hover:bg-slate-200 transition-colors" title="Edit">
+                        <Pencil size={13} className="text-slate-600" />
+                      </button>
+                      <button onClick={() => deleteCourseCat(cat)} className="p-1.5 rounded-md bg-red-50 hover:bg-red-100 transition-colors" title="Hapus">
+                        <Trash2 size={13} className="text-red-500" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ==================== COURSE MODAL ==================== */}
       {showCourseModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[8vh] pb-8 px-4 overflow-y-auto">
@@ -1507,6 +1581,14 @@ export default function DataCourse() {
                     modules={quillModules} formats={quillFormats} theme="snow" placeholder="Deskripsi kursus"
                     className="[&_.ql-editor]:min-h-[200px] [&_.ql-editor]:text-sm [&_.ql-container]:rounded-b-lg [&_.ql-toolbar]:rounded-t-lg [&_.ql-toolbar]:border-slate-200 [&_.ql-container]:border-slate-200" />
                 </div>
+              </div>
+              <div>
+                <label className={labelCls}>Kategori</label>
+                <select value={courseForm.category_id} onChange={e => setCourseForm({ ...courseForm, category_id: e.target.value })}
+                  className={inputCls}>
+                  <option value="">Tanpa kategori</option>
+                  {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                </select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -1580,63 +1662,6 @@ export default function DataCourse() {
                       <button onClick={() => { setImageFile(null); setImagePreview(null) }} className="absolute top-0.5 right-0.5 bg-black/50 rounded-full p-0.5">
                         <X size={10} className="text-white" />
                       </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label className={labelCls}>File Materi <span className="text-[10px] text-slate-400 font-normal">(PDF, Word, Excel, PPT, Gambar)</span></label>
-                <div className="space-y-2">
-                  <label className="inline-flex items-center gap-2 px-4 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors">
-                    {fileUploading ? (<><div className="w-4 h-4 border-2 border-slate-300 border-t-[#0E6187] rounded-full animate-spin" /> Mengupload...</>) : (<><Plus size={16} /> Tambah File</>)}
-                    <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png" className="hidden" multiple onChange={e => {
-                      const files = Array.from(e.target.files || [])
-                      if (editingCourse) {
-                        files.forEach(file => {
-                          setFileUploading(true)
-                          const fd = new FormData()
-                          fd.append('course_id', String(editingCourse.id))
-                          fd.append('file', file)
-                          lmsAdminApi.storeCourseFile(fd).then(res => {
-                            setCourseFiles(prev => [...prev, res.data.file])
-                            Swal.fire({ icon: 'success', title: 'File berhasil diupload', timer: 1500, showConfirmButton: false })
-                          }).catch(() => Swal.fire({ icon: 'error', title: 'Gagal upload file' }))
-                            .finally(() => setFileUploading(false))
-                        })
-                      } else {
-                        setPendingFiles(prev => [...prev, ...files])
-                      }
-                      e.target.value = ''
-                    }} disabled={fileUploading} />
-                  </label>
-                  {editingCourse ? (
-                    courseFiles.length > 0 && (
-                      <div className="border border-slate-200 rounded-lg divide-y divide-slate-100">
-                        {courseFiles.map(f => (
-                          <div key={f.id} className="flex items-center gap-3 px-3 py-2.5">
-                            <FileText size={16} className="text-slate-400 shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-slate-700 truncate">{f.file_name}</p>
-                              {f.file_size && <p className="text-xs text-slate-400">{formatFileSize(f.file_size)}</p>}
-                            </div>
-                            <a href={`${APP_URL}/storage/${f.file_path}`} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-colors" title="Download"><Download size={15} /></a>
-                            <button onClick={() => handleDeleteFile(f)} className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors" title="Hapus"><Trash2 size={15} /></button>
-                          </div>
-                        ))}
-                      </div>
-                    )
-                  ) : pendingFiles.length > 0 && (
-                    <div className="border border-slate-200 rounded-lg divide-y divide-slate-100">
-                      {pendingFiles.map((f, i) => (
-                        <div key={i} className="flex items-center gap-3 px-3 py-2.5">
-                          <FileText size={16} className="text-slate-400 shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-slate-700 truncate">{f.name}</p>
-                            <p className="text-xs text-slate-400">{formatFileSize(f.size)}</p>
-                          </div>
-                          <button onClick={() => setPendingFiles(prev => prev.filter((_, idx) => idx !== i))} className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors" title="Hapus"><Trash2 size={15} /></button>
-                        </div>
-                      ))}
                     </div>
                   )}
                 </div>

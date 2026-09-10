@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   BookOpen, Play, PlayCircle, Check, CheckCircle, Circle, ChevronLeft, ChevronRight,
@@ -18,6 +18,7 @@ interface Course {
   description: string
   image: string | null
   level: string | null
+  category: { id: number; name: string } | null
   lessons_count: number
   sort: number
 }
@@ -136,6 +137,14 @@ export default function LMS() {
   const [rankLoading, setRankLoading] = useState(false)
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
+  const [activeCategory, setActiveCategory] = useState('all')
+  const courseCategories = useMemo(() =>
+    Array.from(new Set(courses.map(c => c.category?.name).filter((c): c is string => !!c))),
+    [courses]
+  )
+  const visibleCourses = activeCategory === 'all'
+    ? courses
+    : courses.filter(c => c.category?.name === activeCategory)
   const [view, setView] = useState<ViewType>('courses')
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
   const [lessons, setLessons] = useState<Lesson[]>([])
@@ -531,52 +540,73 @@ export default function LMS() {
     const readGreen = !selectedLesson.content || !!prog?.read_green
 
     return (
-      <div className="min-h-screen bg-[#f0f2f5] pb-24 lg:pb-8">
+      <div className="min-h-screen bg-[#f2f4f8] pb-32 lg:pb-8">
         {/* Sticky Header */}
-        <div className="bg-[#0E6187] text-white sticky top-0 z-30 shadow-sm">
-          <div className="max-w-lg lg:max-w-5xl mx-auto px-4 py-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 min-w-0">
-                <button onClick={goBack}
-                  className="flex items-center gap-1 text-[11px] font-bold text-white/60 hover:text-white transition-colors shrink-0">
-                  <ArrowLeft size={12} /> Kembali
-                </button>
-                <span className="text-white/30 text-[10px] hidden lg:inline">/</span>
-                <span className="text-[11px] font-medium text-white/60 truncate hidden lg:inline">{selectedCourse.title}</span>
-                <span className="text-white/30 text-[10px] hidden lg:inline">/</span>
-                <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-white/15 text-white text-[10px] font-bold shrink-0">
-                  {currentIdx + 1}
-                </span>
-                <h1 className="text-sm font-bold text-white truncate">{selectedLesson.title}</h1>
+        <header className="bg-white/85 backdrop-blur-xl sticky top-0 z-30 border-b border-slate-100">
+          <div className="max-w-lg lg:max-w-5xl mx-auto px-4 py-2.5">
+            <div className="flex items-center gap-3">
+              <button onClick={goBack}
+                className="flex items-center justify-center w-9 h-9 rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 active:scale-95 transition-all shrink-0">
+                <ArrowLeft size={16} />
+              </button>
+              <div className="flex-1 min-w-0">
+                <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400">Materi</p>
+                <h1 className="text-sm font-bold text-slate-900 truncate">{selectedLesson.title}</h1>
               </div>
-              <span className="text-[10px] font-bold text-white/60 shrink-0">{currentIdx + 1}/{total}</span>
+              <span className="flex items-center justify-center min-w-[3.2rem] px-2.5 py-1 rounded-md bg-[#0E6187]/10 text-[#0E6187] text-[10px] font-black shrink-0">
+                {currentIdx + 1}/{total}
+              </span>
             </div>
           </div>
-        </div>
+        </header>
 
-        <div className="max-w-lg lg:max-w-5xl mx-auto px-4 py-4 lg:py-6">
+        <div className="max-w-lg lg:max-w-5xl mx-auto px-4 pt-4 pb-4 lg:py-6">
+          {/* Hero */}
+          <div className="relative overflow-hidden rounded-md bg-gradient-to-br from-[#0E6187] via-[#12729f] to-[#0f2840] shadow-lg shadow-[#0E6187]/20 mb-4">
+            <div className="absolute -right-[3rem] -top-[3rem] w-44 h-44 rounded-full bg-white/5" />
+            <div className="absolute -right-[5rem] -bottom-[4rem] w-56 h-56 rounded-full bg-white/5" />
+            <div className="relative p-5">
+              {selectedCourse.category && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/15 backdrop-blur text-white text-[10px] font-bold mb-2.5">
+                  <BookOpen size={10} className="text-emerald-300" /> {selectedCourse.category.name}
+                </span>
+              )}
+              <h2 className="text-lg font-black text-white leading-snug">{selectedLesson.title}</h2>
+              <p className="text-[10px] text-white/60 mt-1 flex items-center gap-1.5">
+                <GraduationCap size={11} /> {selectedCourse.title}
+              </p>
+              <div className="mt-4">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] font-medium text-white/70">Progress kursus</span>
+                  <span className="text-[11px] font-black text-white">{getProgressPercent()}%</span>
+                </div>
+                <div className="h-2 bg-white/15 rounded-full overflow-hidden">
+                  <div className="h-full bg-emerald-300 rounded-full transition-all duration-700"
+                    style={{ width: `${getProgressPercent()}%` }} />
+                </div>
+                <p className="text-[9px] text-white/50 mt-1.5">{progress} dari {total} pelajaran selesai</p>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-4">
               {/* Materi Card */}
-              <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div className="bg-white rounded-md shadow-sm overflow-hidden">
+                <div className="px-5 pt-4 pb-3 border-b border-slate-100 flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+                    <div className="w-9 h-9 rounded-md bg-[#0E6187]/10 flex items-center justify-center shrink-0">
                       <BookOpen size={16} className="text-[#0E6187]" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Materi</p>
-                      <h2 className="text-sm font-bold text-gray-900 truncate">{selectedLesson.title}</h2>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.16em]">Materi</p>
+                      <h2 className="text-sm font-bold text-slate-900 truncate">{selectedLesson.title}</h2>
                     </div>
                   </div>
-                  {lessonDetail?.completed ? (
-                    <span className="shrink-0 flex items-center gap-1 text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2.5 py-1 rounded-full">
-                      <Check size={11} /> Selesai
-                    </span>
-                  ) : videoGreen && readGreen ? (
-                    <span className="shrink-0 flex items-center gap-1 text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2.5 py-1 rounded-full">
-                      <Check size={11} /> Activity hijau
+                  {lessonDetail?.completed || (videoGreen && readGreen) ? (
+                    <span className="shrink-0 flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">
+                      <Check size={11} /> {lessonDetail?.completed ? 'Selesai' : 'Activity hijau'}
                     </span>
                   ) : null}
                 </div>
@@ -631,8 +661,8 @@ export default function LMS() {
 
                 {selectedLesson.file_path && (
                   <a href={`${APP_URL}/storage/${selectedLesson.file_path}`} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-3 mx-5 mb-5 bg-[#0E6187]/5 border border-[#0E6187]/10 rounded-xl p-3 hover:bg-[#0E6187]/10 transition-colors group">
-                    <div className="w-9 h-9 rounded-lg bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+                    className="flex items-center gap-3 mx-5 mb-5 bg-[#0E6187]/5 border border-[#0E6187]/10 rounded-md p-3 hover:bg-[#0E6187]/10 transition-colors group">
+                    <div className="w-9 h-9 rounded-md bg-[#0E6187]/10 flex items-center justify-center shrink-0">
                       <FileText size={16} className="text-[#0E6187]" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -649,136 +679,135 @@ export default function LMS() {
               </div>
 
               {/* Completion Card */}
-              <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                <div className="px-5 py-3.5 bg-[#0E6187]/5 border-b border-gray-100">
-                  <p className="text-xs font-bold text-[#0E6187]">Selesaikan Materi Ini</p>
-                  <p className="text-[10px] text-gray-500 mt-0.5">
-                    Tonton video & baca modul sampai activity hijau, lalu tandai selesai untuk membuka quiz
-                  </p>
-                </div>
-                <div className="p-5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      lessonDetail?.completed ? 'bg-emerald-50' : 'bg-gray-50'
-                    }`}>
-                      {lessonDetail?.completed ? (
-                        <CheckCircle size={20} className="text-emerald-500" />
-                      ) : (
-                        <Circle size={20} className="text-gray-300" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-gray-900">
-                        {lessonDetail?.completed ? 'Selesai' : 'Tandai Selesai'}
-                      </p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">
-                        {lessonDetail?.completed
-                          ? `Diselesaikan ${new Date(lessonDetail.completed_at!).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`
-                          : 'Tandai pelajaran ini selesai setelah memahami materi'}
-                      </p>
-                    </div>
+              <div className="bg-white rounded-md shadow-sm p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className={`w-11 h-11 rounded-md flex items-center justify-center shrink-0 ${
+                    lessonDetail?.completed ? 'bg-emerald-50' : 'bg-[#0E6187]/10'
+                  }`}>
+                    {lessonDetail?.completed ? (
+                      <CheckCircle size={22} className="text-emerald-500" />
+                    ) : (
+                      <ClipboardList size={22} className="text-[#0E6187]" />
+                    )}
                   </div>
-                  <button
-                    onClick={() => toggleComplete(selectedLesson.id, !!lessonDetail?.completed)}
-                    disabled={completing || !lessonDetail || (!lessonDetail.completed && !(videoGreen && readGreen))}
-                    className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                      lessonDetail?.completed
-                        ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        : 'bg-[#0E6187] text-white hover:bg-[#0E6187]/90 shadow-lg shadow-[#0E6187]/20'
-                    } disabled:opacity-50`}>
-                    {completing ? 'Memproses...' : lessonDetail?.completed ? 'Batal Selesai' : 'Selesai'}
-                  </button>
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-slate-900">
+                      {lessonDetail?.completed ? 'Pelajaran selesai' : 'Tandai Selesai'}
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-0.5 leading-relaxed">
+                      {lessonDetail?.completed
+                        ? `Diselesaikan ${new Date(lessonDetail.completed_at!).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`
+                        : 'Tonton video & baca modul sampai activity hijau, lalu tandai selesai untuk membuka quiz'}
+                    </p>
+                  </div>
                 </div>
 
+                <button
+                  onClick={() => toggleComplete(selectedLesson.id, !!lessonDetail?.completed)}
+                  disabled={completing || !lessonDetail || (!lessonDetail.completed && !(videoGreen && readGreen))}
+                  className={`w-full flex items-center justify-center gap-2 rounded-md py-3.5 text-sm font-black transition-all active:scale-[0.98] ${
+                    lessonDetail?.completed
+                      ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      : 'bg-[#0E6187] text-white hover:bg-[#0E6187]/90 shadow-lg shadow-[#0E6187]/25 disabled:opacity-50 disabled:shadow-none'
+                  }`}>
+                  {completing ? 'Memproses...' : lessonDetail?.completed ? (
+                    <span className="flex items-center gap-2"><X size={15} /> Tandai Batal Selesai</span>
+                  ) : (
+                    <span className="flex items-center gap-2"><Check size={15} strokeWidth={3} /> Tandai Selesai</span>
+                  )}
+                </button>
+
                 {!lessonDetail?.completed && (
-                  <div className="mt-4 space-y-2 border-t border-gray-100 pt-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-gray-600">Syarat activity hijau</span>
-                      <span className={`text-[10px] font-bold ${videoGreen && readGreen ? 'text-emerald-500' : 'text-amber-500'}`}>
+                  <div className="mt-4 pt-4 border-t border-slate-100 space-y-2.5">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.14em]">Syarat activity hijau</span>
+                      <span className={`flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-md ${
+                        videoGreen && readGreen ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                      }`}>
+                        {videoGreen && readGreen ? <Check size={10} strokeWidth={3} /> : <AlertTriangle size={10} />}
                         {videoGreen && readGreen ? 'Terpenuhi' : 'Belum terpenuhi'}
                       </span>
                     </div>
-                    <div className={`flex items-center justify-between rounded-xl px-3 py-2.5 ${videoGreen ? 'bg-emerald-50' : 'bg-gray-50'}`}>
-                      <div className="flex items-center gap-2">
-                        {videoGreen ? <CheckCircle size={15} className="text-emerald-500" /> : <PlayCircle size={15} className="text-gray-400" />}
-                        <span className="text-[11px] font-semibold text-gray-700">Tonton video</span>
-                      </div>
-                      {videoGreen ? (
-                        <span className="text-[10px] font-bold text-emerald-500">Selesai</span>
-                      ) : (
-                        <span className="text-[10px] font-medium text-gray-400">
-                          {selectedLesson.video_url ? `${Math.round(prog?.video_percent || 0)}%` : 'Tidak ada video'}
+
+                    <div className={`rounded-md px-4 py-3 ${videoGreen ? 'bg-emerald-50/70' : 'bg-slate-50'}`}>
+                      <div className="flex items-center gap-2.5 mb-2">
+                        <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${videoGreen ? 'bg-emerald-500 text-white' : 'bg-white text-slate-400 shadow-sm'}`}>
+                          {videoGreen ? <Check size={14} strokeWidth={3} /> : <PlayCircle size={14} />}
+                        </div>
+                        <span className="flex-1 text-[11px] font-bold text-slate-700">Tonton video</span>
+                        <span className={`text-[10px] font-bold ${videoGreen ? 'text-emerald-600' : 'text-slate-400'}`}>
+                          {videoGreen ? 'Selesai' : selectedLesson.video_url ? `${Math.round(prog?.video_percent || 0)}%` : 'Tidak ada video'}
                         </span>
+                      </div>
+                      {selectedLesson.video_url && !videoGreen && (
+                        <div className="h-1.5 bg-slate-200/70 rounded-full overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-[#0E6187] to-sky-400 rounded-full transition-all"
+                            style={{ width: `${Math.round(prog?.video_percent || 0)}%` }} />
+                        </div>
                       )}
                     </div>
-                    <div className={`flex items-center justify-between rounded-xl px-3 py-2.5 ${readGreen ? 'bg-emerald-50' : 'bg-gray-50'}`}>
-                      <div className="flex items-center gap-2">
-                        {readGreen ? <CheckCircle size={15} className="text-emerald-500" /> : <BookOpen size={15} className="text-gray-400" />}
-                        <span className="text-[11px] font-semibold text-gray-700">Baca modul</span>
-                      </div>
-                      {readGreen ? (
-                        <span className="text-[10px] font-bold text-emerald-500">Selesai</span>
-                      ) : (
-                        <span className="text-[10px] font-medium text-gray-400">
-                          {selectedLesson.content ? `${Math.min(prog?.read_seconds || 0, 30)} / ${30} detik` : 'Tidak ada modul'}
+
+                    <div className={`rounded-md px-4 py-3 ${readGreen ? 'bg-emerald-50/70' : 'bg-slate-50'}`}>
+                      <div className="flex items-center gap-2.5 mb-2">
+                        <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${readGreen ? 'bg-emerald-500 text-white' : 'bg-white text-slate-400 shadow-sm'}`}>
+                          {readGreen ? <Check size={14} strokeWidth={3} /> : <BookOpen size={14} />}
+                        </div>
+                        <span className="flex-1 text-[11px] font-bold text-slate-700">Baca modul</span>
+                        <span className={`text-[10px] font-bold ${readGreen ? 'text-emerald-600' : 'text-slate-400'}`}>
+                          {readGreen ? 'Selesai' : selectedLesson.content ? `${Math.min(prog?.read_seconds || 0, 30)} / ${30} detik` : 'Tidak ada modul'}
                         </span>
+                      </div>
+                      {selectedLesson.content && !readGreen && (
+                        <div className="h-1.5 bg-slate-200/70 rounded-full overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-[#0E6187] to-sky-400 rounded-full transition-all"
+                            style={{ width: `${Math.min((prog?.read_seconds || 0) / 30, 1) * 100}%` }} />
+                        </div>
                       )}
                     </div>
                   </div>
                 )}
-                </div>
               </div>
 
               {/* Navigation */}
-              <div className="bg-white rounded-2xl border border-gray-200 p-4">
-                <div className="flex items-center justify-between">
+              <div className="bg-white rounded-md shadow-sm p-3 flex items-center gap-2">
+                <button
+                  onClick={() => { if (currentIdx > 0) openLesson(lessons[currentIdx - 1]) }}
+                  disabled={currentIdx === 0}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-md bg-slate-50 text-slate-600 text-xs font-bold hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed active:scale-[0.98] transition-all">
+                  <ChevronLeft size={15} /> Sebelumnya
+                </button>
+                <span className="shrink-0 text-[10px] font-black text-slate-300 px-1">{currentIdx + 1}/{total}</span>
+                {currentIdx === lessons.length - 1 && courseQuizzes.length > 0 ? (
                   <button
-                    onClick={() => { if (currentIdx > 0) openLesson(lessons[currentIdx - 1]) }}
-                    disabled={currentIdx === 0}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-50 disabled:opacity-25 disabled:cursor-not-allowed transition-colors">
-                    <ChevronLeft size={14} /> Sebelumnya
+                    onClick={() => selectedCourse?.id && navigate(`/siswa-dashboard/lms/${selectedCourse.id}/quiz`)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-md text-xs font-black bg-[#0E6187] text-white hover:bg-[#0E6187]/90 shadow-lg shadow-[#0E6187]/20 transition-colors">
+                    Mulai Quiz <ListChecks size={15} />
                   </button>
-                  <span className="text-[10px] font-bold text-gray-300">{currentIdx + 1} / {total}</span>
-                  {currentIdx === lessons.length - 1 && courseQuizzes.length > 0 ? (
-                    <button
-                      onClick={() => selectedCourse?.id && navigate(`/siswa-dashboard/lms/${selectedCourse.id}/quiz`)}
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-[#0E6187] text-white hover:bg-[#0E6187]/90 shadow-lg shadow-[#0E6187]/20 transition-colors">
-                      Mulai Quiz <ListChecks size={14} />
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => { if (currentIdx < lessons.length - 1) openLesson(lessons[currentIdx + 1]) }}
-                      disabled={currentIdx === lessons.length - 1}
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-50 disabled:opacity-25 disabled:cursor-not-allowed transition-colors">
-                      Selanjutnya <ChevronRight size={14} />
-                    </button>
-                  )}
-                </div>
+                ) : (
+                  <button
+                    onClick={() => { if (currentIdx < lessons.length - 1) openLesson(lessons[currentIdx + 1]) }}
+                    disabled={currentIdx === lessons.length - 1}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-md text-xs font-black bg-[#0E6187] text-white hover:bg-[#0E6187]/90 shadow-lg shadow-[#0E6187]/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+                    Selanjutnya <ChevronRight size={15} />
+                  </button>
+                )}
               </div>
             </div>
 
             {/* Sidebar */}
-            <div className="space-y-3">
-              {/* Progress */}
-              <div className="bg-white rounded-2xl border border-gray-200 p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Progress</span>
-                  <span className="text-xs font-black text-[#0E6187]">{getProgressPercent()}%</span>
+            <div className="space-y-4">
+              {/* Daftar Pelajaran */}
+              <div className="bg-white rounded-md shadow-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                  <h3 className="text-[11px] font-black text-slate-800 flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-md bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+                      <ListChecks size={13} className="text-[#0E6187]" />
+                    </span>
+                    Daftar Pelajaran
+                  </h3>
+                  <span className="text-[10px] font-bold text-slate-400">{progress}/{total} selesai</span>
                 </div>
-                <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                  <div className="bg-gradient-to-r from-[#0E6187] to-[#0E6187] h-full rounded-full transition-all duration-700"
-                    style={{ width: `${getProgressPercent()}%` }} />
-                </div>
-                <p className="text-[10px] text-gray-400 mt-1.5">{progress} dari {total} selesai</p>
-              </div>
-
-              {/* Lesson List */}
-              <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                <div className="px-4 py-2.5 border-b border-gray-100">
-                  <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Daftar Pelajaran</h3>
-                </div>
-                <div className="p-1.5 space-y-0.5 max-h-[50vh] overflow-y-auto">
+                <div className="p-2 space-y-1 max-h-[55vh] overflow-y-auto">
                   {lessons.map((lesson, idx) => {
                     const isActive = lesson.id === selectedLesson.id
                     const isCompleted = completedLessonIds.includes(lesson.id)
@@ -786,35 +815,33 @@ export default function LMS() {
                     const lessonGreen = (!lesson.video_url || lp?.video_green) && (!lesson.content || lp?.read_green)
                     return (
                       <button key={lesson.id} onClick={() => openLesson(lesson)}
-                        className={`w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] transition-all ${
-                          isActive
-                            ? 'bg-[#0E6187]/10 text-[#0E6187] font-bold'
-                            : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                        className={`w-full text-left flex items-center gap-2.5 px-3 py-2.5 rounded-md transition-all ${
+                          isActive ? 'bg-[#0E6187]/10' : 'hover:bg-slate-50'
                         }`}>
-                        <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 text-[9px] font-bold ${
+                        <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 text-[10px] font-black ${
                           isCompleted
                             ? 'bg-emerald-500 text-white'
                             : lessonGreen
                               ? 'bg-emerald-500/85 text-white'
                               : isActive
                                 ? 'bg-[#0E6187] text-white'
-                                : 'bg-gray-100 text-gray-400'
+                                : 'bg-slate-100 text-slate-400'
                         }`}>
-                          {isCompleted ? <CheckCircle size={10} /> : lessonGreen ? <Check size={10} strokeWidth={3} /> : idx + 1}
+                          {isCompleted ? <CheckCircle size={14} /> : lessonGreen ? <Check size={14} strokeWidth={3} /> : idx + 1}
                         </div>
-                        <span className="truncate flex-1">{lesson.title}</span>
+                        <span className={`truncate flex-1 text-[11px] font-semibold ${isActive ? 'text-[#0E6187]' : 'text-slate-600'}`}>{lesson.title}</span>
                         {!lesson.video_url && !lesson.content ? null : (
-                          <span className={`shrink-0 w-2 h-2 rounded-full ${lessonGreen ? 'bg-emerald-500' : 'bg-gray-200'}`} title={lessonGreen ? 'Activity hijau' : 'Activity belum hijau'} />
+                          <span className={`shrink-0 w-1.5 h-1.5 rounded-full ${lessonGreen ? 'bg-emerald-500' : 'bg-slate-200'}`} title={lessonGreen ? 'Activity hijau' : 'Activity belum hijau'} />
                         )}
                       </button>
                     )
                   })}
                 </div>
                 {courseQuizzes.length > 0 && (
-                  <div className="p-2 border-t border-gray-100">
+                  <div className="p-2 border-t border-slate-100">
                     <button
                       onClick={() => selectedCourse?.id && navigate(`/siswa-dashboard/lms/${selectedCourse.id}/quiz`)}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold bg-[#0E6187]/10 text-[#0E6187] hover:bg-[#0E6187]/20 transition-colors">
+                      className="w-full flex items-center justify-center gap-2 py-3 rounded-md text-xs font-black bg-[#0E6187]/10 text-[#0E6187] hover:bg-[#0E6187]/20 transition-colors">
                       <Play size={13} /> Lanjut mengerjakan Quiz
                     </button>
                   </div>
@@ -824,25 +851,35 @@ export default function LMS() {
           </div>
         </div>
 
-        {/* ============ Bottom Nav Bar ============ */}
-        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden">
-          <div className="mx-auto grid max-w-lg grid-cols-5">
-            {bottomNav.map(nav => {
-              const Icon = nav.icon
-              const isActive = nav.to === location.pathname
-              return (
-                <Link
-                  key={nav.label}
-                  to={nav.to}
-                  className={`flex flex-col items-center gap-1 py-2.5 transition ${
-                    isActive ? 'text-[#0E6187]' : 'text-slate-400'
-                  }`}
-                >
-                  <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
-                  <span className="text-[10px] font-medium">{nav.label}</span>
-                </Link>
-              )
-            })}
+        {/* ============ Mobile Bottom Action Bar ============ */}
+        <nav className="fixed inset-x-0 bottom-0 z-30 lg:hidden bg-white/95 backdrop-blur border-t border-slate-100 px-4 pt-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+          <div className="max-w-lg mx-auto flex items-center gap-2">
+            {currentIdx > 0 ? (
+              <button
+                onClick={() => openLesson(lessons[currentIdx - 1])}
+                className="flex items-center justify-center gap-1 px-3 py-3 rounded-md bg-slate-50 text-slate-600 text-[11px] font-bold hover:bg-slate-100 active:scale-95 transition-all shrink-0">
+                <ChevronLeft size={14} /> Sebelumnya
+              </button>
+            ) : (
+              <span className="flex items-center justify-center px-3 py-3 rounded-md bg-slate-50 text-slate-300 text-[11px] font-bold cursor-not-allowed shrink-0">
+                <ChevronLeft size={14} className="inline" /> Awal
+              </span>
+            )}
+            <span className="shrink-0 text-[10px] font-black text-slate-400 px-0.5">{currentIdx + 1}/{total}</span>
+            {currentIdx === lessons.length - 1 && courseQuizzes.length > 0 ? (
+              <button
+                onClick={() => selectedCourse?.id && navigate(`/siswa-dashboard/lms/${selectedCourse.id}/quiz`)}
+                className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-md text-[11px] font-black bg-[#0E6187] text-white hover:bg-[#0E6187]/90 shadow-lg shadow-[#0E6187]/25 active:scale-[0.98] transition-all">
+                Mulai Quiz <ListChecks size={14} />
+              </button>
+            ) : (
+              <button
+                onClick={() => { if (currentIdx < lessons.length - 1) openLesson(lessons[currentIdx + 1]) }}
+                disabled={currentIdx === lessons.length - 1}
+                className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-md text-[11px] font-black bg-[#0E6187] text-white hover:bg-[#0E6187]/90 shadow-lg shadow-[#0E6187]/25 disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none active:scale-[0.98] transition-all">
+                Selanjutnya <ChevronRight size={14} />
+              </button>
+            )}
           </div>
         </nav>
       </div>
@@ -1481,46 +1518,78 @@ export default function LMS() {
           </div>
         ) : (
           <>
+            {courseCategories.length > 0 && (
+              <div className="-mx-4 px-4 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setActiveCategory('all')}
+                    className={`shrink-0 rounded-full px-4 py-1.5 text-[11px] font-bold transition-all ${activeCategory === 'all' ? 'bg-[#0E6187] text-white shadow-md shadow-[#0E6187]/20' : 'bg-white text-slate-500 border border-gray-200 hover:border-gray-300'}`}
+                    type="button">Semua</button>
+                  {courseCategories.map(cat => (
+                    <button key={cat} onClick={() => setActiveCategory(cat)}
+                      className={`shrink-0 rounded-full px-4 py-1.5 text-[11px] font-bold transition-all ${activeCategory === cat ? 'bg-[#0E6187] text-white shadow-md shadow-[#0E6187]/20' : 'bg-white text-slate-500 border border-gray-200 hover:border-gray-300'}`}
+                      type="button">{cat}</button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-            <div className="grid grid-cols-1 gap-4">
-              {courses.map(course => (
+            {visibleCourses.length === 0 ? (
+              <div className="bg-white rounded-md shadow-sm border border-gray-200 p-10 text-center">
+                <div className="w-14 h-14 rounded-md bg-gray-50 flex items-center justify-center mx-auto mb-3">
+                  <BookOpen size={26} className="text-gray-300" />
+                </div>
+                <h3 className="text-sm font-bold text-gray-800">Tidak Ada Kursus di Kategori Ini</h3>
+                <p className="text-xs text-gray-400 mt-1">Pilih kategori lain untuk melihat kursusnya.</p>
+              </div>
+            ) : (
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+              {visibleCourses.map(course => (
                 <button key={course.id} onClick={() => handleCourseClick(course)}
-                  className="bg-white rounded-md shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg hover:shadow-gray-200/50 hover:border-gray-300 transition-all text-left group">
-                  <div className="h-36 bg-gradient-to-br from-[#0E6187] to-[#1a3355] flex items-center justify-center relative overflow-hidden">
+                  className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg hover:shadow-gray-200/50 hover:border-gray-300 transition-all text-left group">
+                  <div className="h-24 sm:h-28 lg:h-32 bg-gradient-to-br from-[#0E6187] to-[#1a3355] flex items-center justify-center relative overflow-hidden">
                     {course.image ? (
                       <img src={`${APP_URL}/storage/${course.image}`} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     ) : (
-                      <BookOpen size={40} className="text-white/15" />
+                      <BookOpen size={28} className="text-white/15" />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                    <div className="absolute top-3 right-3 flex items-center gap-1.5">
-                      {course.level && (
-                        <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-white/20 text-white backdrop-blur-sm">
+                    {course.category && (
+                      <div className="absolute top-2 left-2">
+                        <span className="inline-block rounded-full bg-[#0E6187] px-2 py-0.5 text-[8px] font-bold text-white shadow-md ring-1 ring-white/40">
+                          {course.category.name}
+                        </span>
+                      </div>
+                    )}
+                    {course.level && (
+                      <div className="absolute top-2 right-2 flex items-center gap-1.5">
+                        <span className="px-1.5 py-0.5 rounded-md text-[8px] font-bold bg-white/20 text-white backdrop-blur-sm">
                           Level {course.level}
                         </span>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="p-4">
-                    <h3 className="text-sm font-bold text-gray-900 group-hover:text-[#0E6187] transition-colors">
+                  <div className="p-3">
+                    <h3 className="text-[11px] sm:text-sm font-bold text-gray-900 leading-snug line-clamp-2 min-h-[2.6em] sm:min-h-0 group-hover:text-[#0E6187] transition-colors">
                       {course.title}
                     </h3>
                     {course.description && (
-                      <div className="text-[11px] text-gray-400 mt-1 line-clamp-2 leading-relaxed [&_*]:inline"
+                      <div className="text-[8px] sm:text-[11px] text-gray-400 mt-1 line-clamp-1 sm:line-clamp-2 leading-relaxed [&_*]:inline"
+                        title={course.description.replace(/<[^>]*>/g, ' ')}
                         dangerouslySetInnerHTML={{ __html: course.description }} />
                     )}
-                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                      <span className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
-                        <Play size={10} /> {course.lessons_count} Pelajaran
+                    <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-gray-100">
+                      <span className="flex items-center gap-1 text-[8px] sm:text-[10px] font-bold text-slate-400 whitespace-nowrap">
+                        <Play size={10} /> {course.lessons_count} Pel
                       </span>
-                      <span className="flex items-center gap-0.5 text-[10px] font-bold text-[#0E6187]">
-                        Buka <ChevronRight size={11} />
+                      <span className="flex items-center gap-0.5 text-[8px] sm:text-[10px] font-bold text-[#0E6187] whitespace-nowrap">
+                        Buka <ChevronRight size={10} />
                       </span>
                     </div>
                   </div>
                 </button>
               ))}
             </div>
+            )}
           </>
         )}
       </div>

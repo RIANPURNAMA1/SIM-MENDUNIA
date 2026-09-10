@@ -8,6 +8,7 @@ use App\Models\CourseFile;
 use App\Models\Lesson;
 use App\Models\LessonSlide;
 use App\Models\LmsAssignment;
+use App\Models\LmsCategory;
 use App\Models\LmsSubmission;
 use App\Models\LmsProgress;
 use App\Models\Siswa;
@@ -75,7 +76,7 @@ class LmsController extends Controller
             });
         }
 
-        $courses = $query->get();
+        $courses = $query->with('category')->get();
 
         return response()->json(['courses' => $courses]);
     }
@@ -401,7 +402,7 @@ class LmsController extends Controller
 
     public function adminCourses()
     {
-        $courses = Course::withCount(['lessons', 'files'])->orderBy('sort')->get();
+        $courses = Course::withCount(['lessons', 'files'])->with('category')->orderBy('sort')->get();
         $batches = Batch::aktif()->orderBy('nama_batch')->get(['id', 'nama_batch', 'warna']);
         return response()->json(['courses' => $courses, 'batches' => $batches]);
     }
@@ -412,6 +413,7 @@ class LmsController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'level' => 'nullable|string|max:50',
+            'category_id' => 'nullable|exists:lms_categories,id',
             'batch_id' => 'nullable|exists:batches,id',
             'sort' => 'nullable|integer|min:0',
             'status' => 'nullable|in:aktif,nonaktif',
@@ -434,6 +436,7 @@ class LmsController extends Controller
             'title' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
             'level' => 'nullable|string|max:50',
+            'category_id' => 'nullable|exists:lms_categories,id',
             'batch_id' => 'nullable|exists:batches,id',
             'sort' => 'nullable|integer|min:0',
             'status' => 'nullable|in:aktif,nonaktif',
@@ -459,6 +462,41 @@ class LmsController extends Controller
         }
         $course->delete();
         return response()->json(['message' => 'Course deleted']);
+    }
+
+    public function categories()
+    {
+        $categories = LmsCategory::withCount('courses')->orderBy('sort')->get();
+        return response()->json(['categories' => $categories]);
+    }
+
+    public function storeCategory(Request $request)
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:100',
+            'sort' => 'nullable|integer|min:0',
+        ]);
+        $data['sort'] = $data['sort'] ?? 0;
+        $category = LmsCategory::create($data);
+        return response()->json(['category' => $category], 201);
+    }
+
+    public function updateCategory(Request $request, $id)
+    {
+        $category = LmsCategory::findOrFail($id);
+        $data = $request->validate([
+            'name' => 'sometimes|string|max:100',
+            'sort' => 'nullable|integer|min:0',
+        ]);
+        $category->update($data);
+        return response()->json(['category' => $category->fresh()]);
+    }
+
+    public function destroyCategory($id)
+    {
+        $category = LmsCategory::findOrFail($id);
+        $category->delete();
+        return response()->json(['message' => 'Category deleted']);
     }
 
     public function adminLessons($courseId)
