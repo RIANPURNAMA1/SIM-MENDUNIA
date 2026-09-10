@@ -543,6 +543,10 @@ Route::get('/guru/penilaian-rekap/{kelasId}', [GuruDashboardController::class, '
         Route::post('/upload', [LmsController::class, 'upload']);
         Route::post('/files', [LmsController::class, 'storeCourseFile']);
         Route::delete('/files/{id}', [LmsController::class, 'deleteCourseFile']);
+        Route::get('/categories', [LmsController::class, 'categories']);
+        Route::post('/categories', [LmsController::class, 'storeCategory']);
+        Route::put('/categories/{id}', [LmsController::class, 'updateCategory']);
+        Route::delete('/categories/{id}', [LmsController::class, 'destroyCategory']);
     });
 });
 

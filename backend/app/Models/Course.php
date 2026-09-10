@@ -14,9 +14,15 @@ class Course extends Model
         'title',
         'description',
         'image',
+        'category_id',
         'sort',
         'status',
     ];
+
+    public function category()
+    {
+        return $this->belongsTo(LmsCategory::class, 'category_id');
+    }
 
     public function lessons()
     {

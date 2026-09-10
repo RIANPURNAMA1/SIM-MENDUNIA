@@ -539,6 +539,10 @@ export const lmsAdminApi = {
   upload: (data: FormData) => api.post('/admin/lms/upload', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   storeCourseFile: (data: FormData) => api.post('/admin/lms/files', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   deleteCourseFile: (id: number) => api.delete(`/admin/lms/files/${id}`),
+  categories: () => api.get('/admin/lms/categories'),
+  storeCategory: (data: { name: string; sort?: number }) => api.post('/admin/lms/categories', data),
+  updateCategory: (id: number, data: { name: string; sort?: number }) => api.put(`/admin/lms/categories/${id}`, data),
+  deleteCategory: (id: number) => api.delete(`/admin/lms/categories/${id}`),
 }
 
 export const assignmentApi = {
