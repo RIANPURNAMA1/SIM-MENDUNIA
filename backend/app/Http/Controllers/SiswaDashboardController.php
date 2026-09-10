@@ -23,12 +23,12 @@ class SiswaDashboardController extends Controller
     {
         $user = Auth::guard('sanctum')->user();
 
-        $pendaftar = Pendaftar::with(['product', 'matchingJobForm'])
+        $pendaftar = Pendaftar::with(['product', 'matchingJobForm', 'batch.cabang'])
             ->where('user_id', $user->id)
             ->orderBy('created_at', 'desc')
             ->first();
 
-        $siswa = Siswa::where('user_id', $user->id)->first();
+        $siswa = Siswa::with('batchRelasi.cabang')->where('user_id', $user->id)->first();
 
         $matchingJob = $pendaftar?->matchingJobForm;
         $matchingJobData = $matchingJob ? [
@@ -328,7 +328,12 @@ class SiswaDashboardController extends Controller
         }
 
         // 2. Simpan salinan lokal (selalu, agar tampil di /data-kandidat).
+        // Pertahankan data.dokumen (catatan file yg diupload) dari simpanan
+        // sebelumnya agar simpan ulang tidak menghapus referensi file ijazah dll.
+        $existingForm = MatchingJobForm::where('user_id', $user->id)->first();
+        $existingDokumen = $existingForm ? ($existingForm->data['dokumen'] ?? []) : [];
         $data = collect($payload)->except(['penempatan_kandidat_id'])->all();
+        $data['dokumen'] = $existingDokumen;
         $form = MatchingJobForm::updateOrCreate(
             ['user_id' => $user->id],
             [

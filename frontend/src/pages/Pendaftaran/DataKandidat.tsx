@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { DollarSign, Users, Search, RotateCcw, Eye, Edit3, Power, PowerOff, CalendarOff, Calendar, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronUp, ChevronDown, ChevronsUpDown, MoreHorizontal, FileText, Download, Upload, Trash2, ArrowRight, RefreshCw, KeyRound, ClipboardPaste, LayoutDashboard } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -45,6 +45,7 @@ interface Kandidat {
   is_cuti: boolean
   cuti_sejak: string | null
   level_status_keluar: boolean
+  learning_level?: number | null
   tanggalDaftar: string
   user_id: number | null
   keterangan: string
@@ -2409,7 +2410,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                     </span>
                   </div>
 
-                  <MatchingJobSection data={detailKandidat.matching_job.data} />
+                  <MatchingJobSection data={detailKandidat.matching_job.data} learningLevel={detailKandidat.learning_level} statusFormulir={detailKandidat.matching_job.status_formulir} />
 
                   {(detailDokumen.length > 0 || detailDokumenLoading) && (
                     <div className="mt-5 border-t border-slate-200 pt-4">
@@ -3263,130 +3264,234 @@ function docLabel(jenis: string | null | undefined): string {
   return jenis.replace(/_/g, ' ')
 }
 
-function MatchingJobSection({ data }: { data: Record<string, any> }) {
+function MatchingJobSection({ data, learningLevel, statusFormulir }: { data: Record<string, any>; learningLevel?: number | null; statusFormulir?: string }) {
   if (!data || Object.keys(data).length === 0) {
-    return <p className="text-xs text-slate-400">Belum ada data dari form Data Diri &amp; Matching Job.</p>
+    return <p className="text-xs text-slate-400">Belum ada data dari form Data Diri & Matching Job.</p>
   }
 
-  const fmtBool = (v: any) => (v === 1 ? 'Ya' : v === 0 ? 'Tidak' : v === null || v === undefined ? null : String(v))
-  const fmtArr = (v: any) => (Array.isArray(v) && v.length > 0 ? v.join(', ') : null)
-  const indent = 'text-xs text-slate-400'
+  const fmtYes = (v: any) => (v === 1 || v === '1' ? 'Ya' : v === 0 || v === '0' ? 'Tidak' : null)
+  const raw = (v: any) => (v === null || v === undefined || v === '' ? null : String(v))
+  const kemampuanAktif = (learningLevel ?? 1) >= 2
 
-  const rows: Array<{ label: string; key: string; fmt?: (v: any) => string | null }> = [
-    { label: 'Nama (Romaji)', key: 'nama_romaji' },
-    { label: 'Nama (Katakana)', key: 'nama_katakana' },
-    { label: 'Email', key: 'email' },
-    { label: 'Tempat Lahir', key: 'tempat_lahir' },
-    { label: 'Tanggal Lahir', key: 'tanggal_lahir' },
-    { label: 'Umur', key: 'umur' },
-    { label: 'Jenis Kelamin', key: 'jenis_kelamin' },
-    { label: 'Status Pernikahan', key: 'status_pernikahan' },
-    { label: 'Agama', key: 'agama' },
-    { label: 'Tinggi Badan', key: 'tinggi_badan' },
-    { label: 'Berat Badan', key: 'berat_badan' },
-    { label: 'Golongan Darah', key: 'golongan_darah' },
-    { label: 'Tangan Dominan', key: 'tangan_dominan' },
-    { label: 'Ukuran Baju', key: 'ukuran_baju' },
-    { label: 'Lingkar Pinggang', key: 'lingkar_pinggang' },
-    { label: 'Panjang Telapak Kaki', key: 'panjang_telapak_kaki' },
-    { label: 'SIM', key: 'sim_dimiliki' },
-    { label: 'No. HP', key: 'nomor_hp' },
-    { label: 'Kontak Ortu (Nama)', key: 'kontak_ortu_nama' },
-    { label: 'Kontak Ortu (HP)', key: 'kontak_ortu_hp' },
-    { label: 'Alamat Lengkap', key: 'alamat_lengkap' },
-    { label: 'Pendidikan Terakhir', key: 'pendidikan_terakhir' },
-    { label: 'Sudah Vaksin', key: 'sudah_vaksin', fmt: fmtBool },
-    { label: 'Kondisi Kesehatan', key: 'kondisi_kesehatan' },
-    { label: 'Penglihatan Kanan', key: 'penglihatan_kanan' },
-    { label: 'Penglihatan Kiri', key: 'penglihatan_kiri' },
-    { label: 'Berkacamata', key: 'berkacamata', fmt: fmtBool },
-    { label: 'Lensa Kontak', key: 'lensa_kontak', fmt: fmtBool },
-    { label: 'Buta Warna', key: 'buta_warna', fmt: fmtBool },
-    { label: 'Bertato', key: 'bertato', fmt: fmtBool },
-    { label: 'Merokok', key: 'merokok', fmt: fmtBool },
-    { label: 'Minum Alkohol', key: 'minum_alkohol', fmt: fmtBool },
-    { label: 'Riwayat Penyakit', key: 'riwayat_penyakit' },
-    { label: 'Level JLPT', key: 'level_jlpt' },
-    { label: 'Level JFT', key: 'level_jft' },
-    { label: 'Lama Belajar Jepang', key: 'lama_belajar_jepang' },
-    { label: 'Level Bahasa Jepang', key: 'level_bahasa_jepang' },
-    { label: 'Sertifikat SSW', key: 'sertifikat_ssw', fmt: fmtArr },
-    { label: 'Penghasilan Keluarga', key: 'penghasilan_keluarga' },
-    { label: 'Pernah ke Jepang', key: 'pernah_ke_jepang', fmt: fmtBool },
-    { label: 'Keluarga di Jepang', key: 'keluarga_di_jepang', fmt: fmtBool },
-    { label: 'Kenalan di Jepang', key: 'kenalan_di_jepang', fmt: fmtBool },
-    { label: 'Tujuan ke Jepang', key: 'tujuan_ke_jepang' },
-    { label: 'Alasan ke Jepang', key: 'alasan_ke_jepang' },
-    { label: 'Cita-cita Setelah Jepang', key: 'cita_cita_setelah_jepang' },
-    { label: 'Rencana Pengiriman Uang', key: 'rencana_pengiriman_uang' },
-    { label: 'Kelebihan Diri', key: 'kelebihan_diri' },
-    { label: 'Kekurangan Diri', key: 'kekurangan_diri' },
-    { label: 'Hobi', key: 'hobi' },
-    { label: 'Keahlian', key: 'keahlian' },
-    { label: 'Bersedia Shift', key: 'bersedia_shift', fmt: fmtBool },
-    { label: 'Bersedia Lembur', key: 'bersedia_lembur', fmt: fmtBool },
-    { label: 'Bersedia Hari Libur', key: 'bersedia_hari_libur', fmt: fmtBool },
-    { label: 'Lama Tinggal Jepang', key: 'lama_tinggal_jepang' },
-    { label: 'Lama Kerja Perusahaan', key: 'lama_kerja_perusahaan' },
-    { label: 'Rencana Pulang', key: 'rencana_pulang' },
-    { label: 'Sumber Biaya', key: 'sumber_biaya' },
-    { label: 'Biaya Disiapkan', key: 'biaya_disiapkan' },
-  ]
+  const Item = ({ label, value, className }: { label: string; value: any; className?: string }) => (
+    <div className={className}>
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+      <p className="mt-0.5 break-words text-sm font-medium text-slate-800">{raw(value) ?? '-'}</p>
+    </div>
+  )
+
+  const SectionCard = ({ title, right, children }: { title: string; right?: ReactNode; children: ReactNode }) => (
+    <div className="rounded-lg border border-slate-200 bg-white p-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{title}</p>
+        {right}
+      </div>
+      {children}
+    </div>
+  )
 
   const pendidikan: any[] = Array.isArray(data.pendidikan) ? data.pendidikan : []
   const pengalaman: any[] = Array.isArray(data.pengalaman) ? data.pengalaman : []
   const keluarga: any[] = Array.isArray(data.keluarga) ? data.keluarga : []
+  const keahlian: any[] = Array.isArray(data.keahlian_dimiliki) ? data.keahlian_dimiliki : []
+  const ssw: string[] = Array.isArray(data.sertifikat_ssw) ? data.sertifikat_ssw : []
+
+  const warnaStatus: Record<string, string> = {
+    pending: 'bg-amber-100 text-amber-700',
+    final: 'bg-emerald-100 text-emerald-700',
+    submitted: 'bg-sky-100 text-sky-700',
+    'locked': 'bg-slate-100 text-slate-600',
+  }
 
   return (
     <div className="space-y-4">
-      {rows.map(r => {
-        const raw = r.fmt ? r.fmt(data[r.key]) : (data[r.key] ?? null)
-        if (raw === null || raw === undefined || raw === '') return null
-        return (
-          <div key={r.key} className="flex">
-            <div className="w-44 shrink-0">
-              <p className={indent}>{r.label}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-slate-800">{raw}</p>
-            </div>
-          </div>
-        )
-      })}
-
-      {pendidikan.length > 0 && (
-        <div>
-          <p className={`${indent} mb-1`}>Pendidikan</p>
-          {pendidikan.map((p, i) => (
-            <p key={i} className="text-sm font-medium text-slate-800">
-              {p.jenjang ? `${p.jenjang} — ` : ''}{p.nama_sekolah || '-'}{p.jurusan ? ` (${p.jurusan})` : ''}
-              {p.tahun_lulus ? `, lulus ${p.tahun_lulus}` : ''}
-            </p>
-          ))}
+      <SectionCard
+        title="Data Pribadi & Kontak"
+        right={statusFormulir ? (
+          <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold capitalize ${warnaStatus[statusFormulir.toLowerCase()] ?? 'bg-slate-100 text-slate-600'}`}>
+            {statusFormulir}
+          </span>
+        ) : undefined}
+      >
+        <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+          <Item label="Nama (Romaji)" value={data.nama_romaji} />
+          <Item label="Nama (Katakana)" value={data.nama_katakana} />
+          <Item label="NIK" value={data.nik} />
+          <Item label="Tempat, Tanggal Lahir" value={[raw(data.tempat_lahir), raw(data.tanggal_lahir)].filter(Boolean).join(', ')} />
+          <Item label="Umur" value={data.umur} />
+          <Item label="Jenis Kelamin" value={data.jenis_kelamin} />
+          <Item label="Status Pernikahan" value={data.status_pernikahan} />
+          <Item label="Agama" value={data.agama} />
+          <Item label="Tinggi / Berat Badan" value={[raw(data.tinggi_badan), raw(data.berat_badan)].filter(Boolean).join(' / ')} />
+          <Item label="Golongan Darah" value={data.golongan_darah} />
+          <Item label="Tangan Dominan" value={data.tangan_dominan} />
+          <Item label="Ukuran Baju" value={data.ukuran_baju} />
+          <Item label="Lingkar Pinggang" value={data.lingkar_pinggang} />
+          <Item label="Panjang Telapak Kaki" value={data.panjang_telapak_kaki} />
+          <Item label="SIM yang Dimiliki" value={data.sim_dimiliki} />
+          <Item label="Cabang" value={data.nama_cabang || data.cabang_sim_nama} />
+          <Item label="No. HP" value={data.nomor_hp} />
+          <Item label="Email" value={data.email_kontak} />
+          <Item label="Kontak Ortu (Nama)" value={data.kontak_ortu_nama} />
+          <Item label="Kontak Ortu (HP)" value={data.kontak_ortu_hp} />
+          <Item label="Desa" value={data.alamat_desa} />
+          <Item label="Kecamatan" value={data.alamat_kecamatan} />
+          <Item label="Kabupaten" value={data.alamat_kabupaten} />
+          <Item label="Provinsi" value={data.alamat_provinsi} />
+          <Item label="Alamat Lengkap" value={data.alamat_lengkap} className="sm:col-span-2" />
         </div>
-      )}
+      </SectionCard>
+
+      <SectionCard title="Kesehatan">
+        <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+          <Item label="Sudah Vaksin" value={fmtYes(data.sudah_vaksin)} />
+          <Item label="Kondisi Kesehatan" value={data.kondisi_kesehatan} />
+          <Item label="Catatan Kesehatan" value={data.catatan_kesehatan} className="sm:col-span-2" />
+          <Item label="Penglihatan Kanan" value={data.penglihatan_kanan} />
+          <Item label="Penglihatan Kiri" value={data.penglihatan_kiri} />
+          <Item label="Berkacamata" value={fmtYes(data.berkacamata)} />
+          <Item label="Lensa Kontak" value={fmtYes(data.lensa_kontak)} />
+          <Item label="Buta Warna" value={fmtYes(data.buta_warna)} />
+          <Item label="Jenis Buta Warna" value={data.jenis_buta_warna} />
+          <Item label="Bertato" value={fmtYes(data.bertato)} />
+          <Item label="Merokok" value={fmtYes(data.merokok)} />
+          <Item label="Minum Alkohol" value={fmtYes(data.minum_alkohol)} />
+        </div>
+        {raw(data.riwayat_penyakit) && (
+          <div className="mt-3 border-t border-slate-100 pt-3">
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Riwayat Penyakit</p>
+            <p className="break-words text-sm text-slate-800">{data.riwayat_penyakit}</p>
+          </div>
+        )}
+      </SectionCard>
+
+      <SectionCard title="Pendidikan Terakhir">
+        <Item label="Pendidikan Terakhir" value={data.pendidikan_terakhir} />
+        {pendidikan.length > 0 && (
+          <div className="mt-3 grid gap-3 border-t border-slate-100 pt-3 sm:grid-cols-2 lg:grid-cols-3">
+            {pendidikan.map((p, i) => (
+              <div key={i} className="rounded-md border border-slate-100 bg-slate-50 p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{p.jenjang || 'Pendidikan'}</p>
+                <p className="mt-0.5 text-sm font-medium text-slate-800">{p.nama_sekolah || '-'}</p>
+                {(p.jurusan || p.tahun_lulus) && (
+                  <p className="text-xs text-slate-500">
+                    {[raw(p.jurusan), raw(p.tahun_lulus) ? `lulus ${p.tahun_lulus}` : null].filter(Boolean).join(' · ')}
+                  </p>
+                )}
+                {raw(p.deskripsi) && <p className="mt-1 text-xs text-slate-600">{p.deskripsi}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionCard>
 
       {pengalaman.length > 0 && (
-        <div>
-          <p className={`${indent} mb-1`}>Pengalaman Kerja</p>
-          {pengalaman.map((p, i) => (
-            <p key={i} className="text-sm font-medium text-slate-800">
-              {p.nama_perusahaan || '-'}{p.posisi ? ` — ${p.posisi}` : ''}{p.tahun_masuk ? ` (${p.tahun_masuk}${p.tahun_keluar ? `–${p.tahun_keluar}` : ''})` : ''}
-            </p>
-          ))}
-        </div>
+        <SectionCard title="Pengalaman Kerja">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {pengalaman.map((p, i) => (
+              <div key={i} className="rounded-md border border-slate-100 bg-slate-50 p-3">
+                <p className="text-sm font-medium text-slate-800">{p.nama_perusahaan || '-'}</p>
+                <p className="text-xs text-slate-500">{raw(p.posisi) || 'Posisi'}{raw(p.tahun_masuk) ? ` · ${p.tahun_masuk}${raw(p.tahun_keluar) ? ` – ${p.tahun_keluar}` : ''}` : ''}</p>
+                {raw(p.deskripsi) && <p className="mt-1 text-xs text-slate-600">{p.deskripsi}</p>}
+              </div>
+            ))}
+          </div>
+        </SectionCard>
       )}
 
-      {keluarga.length > 0 && (
-        <div>
-          <p className={`${indent} mb-1`}>Keluarga</p>
-          {keluarga.map((k, i) => (
-            <p key={i} className="text-sm font-medium text-slate-800">
-              {k.hubungan || 'Keluarga'}: {k.nama || '-'}{k.usia ? ` (${k.usia} th)` : ''}{k.pekerjaan ? `, ${k.pekerjaan}` : ''}
+      <SectionCard title="Kemampuan & Sertifikat">
+        {kemampuanAktif ? (
+          <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+            <Item label="Level JLPT" value={data.level_jlpt} />
+            <Item label="Level JFT" value={data.level_jft} />
+            <Item label="Lama Belajar Jepang" value={data.lama_belajar_jepang} />
+            <Item label="Level Bahasa Jepang" value={data.level_bahasa_jepang} />
+            <Item label="ID Prometric" value={data.id_prometric} />
+            <Item label="Password Prometric" value={data.password_prometric} />
+            {ssw.length > 0 && (
+              <Item label="Sertifikat SSW" value={ssw.join(', ')} className="sm:col-span-2 lg:col-span-3" />
+            )}
+          </div>
+        ) : (
+          <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3">
+            <p className="text-xs font-semibold text-amber-700">🔒 Kemampuan & Sertifikat (JLPT / JFT / SSW)</p>
+            <p className="mt-1 text-xs text-amber-600">
+              Belum tersedia — bagian ini terbuka setelah kandidat mencapai Level 2 pembelajaran.
             </p>
-          ))}
+          </div>
+        )}
+        <div className="mt-4">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Keahlian yang Dimiliki</p>
+          {keahlian.length === 0 ? (
+            <p className="text-sm text-slate-500">Tidak ada data keahlian.</p>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {keahlian.map((k, i) => (
+                <div key={i} className="rounded-md border border-slate-100 bg-slate-50 p-3">
+                  <p className="text-sm font-medium text-slate-800">{k.keahlian || '-'}</p>
+                  <p className="text-xs text-slate-500">
+                    {[raw(k.tingkat), raw(k.lama_pengalaman) ? `${k.lama_pengalaman} tahun` : null].filter(Boolean).join(' · ')}
+                  </p>
+                  {raw(k.deskripsi) && <p className="mt-1 text-xs text-slate-600">{k.deskripsi}</p>}
+                  {raw(k.sertifikat_file) && <p className="mt-1 text-xs text-slate-500">Sertifikat: {k.sertifikat_file}</p>}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </SectionCard>
+
+      <SectionCard title="Data Keluarga">
+        <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+          <Item label="Penghasilan Keluarga" value={data.penghasilan_keluarga} />
+        </div>
+        {keluarga.length > 0 && (
+          <div className="mt-3 grid gap-3 border-t border-slate-100 pt-3 sm:grid-cols-2">
+            {keluarga.map((k, i) => (
+              <div key={i} className="rounded-md border border-slate-100 bg-slate-50 p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{k.hubungan || 'Keluarga'}</p>
+                <p className="mt-0.5 text-sm font-medium text-slate-800">{k.nama || '-'}</p>
+                <p className="text-xs text-slate-500">
+                  {[raw(k.usia), raw(k.pekerjaan)].filter(Boolean).join(' · ')}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionCard>
+
+      <SectionCard title="Informasi Jepang">
+        <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+          <Item label="Pernah ke Jepang" value={fmtYes(data.pernah_ke_jepang)} />
+          <Item label="Keluarga di Jepang" value={fmtYes(data.keluarga_di_jepang)} />
+          <Item label="Kenalan di Jepang" value={fmtYes(data.kenalan_di_jepang)} />
+          {raw(data.hubungan_keluarga_jepang) && <Item label="Hubungan Keluarga Jepang" value={data.hubungan_keluarga_jepang} />}
+          {raw(data.status_kerabat_jepang) && <Item label="Status Kerabat Jepang" value={data.status_kerabat_jepang} />}
+          {raw(data.kontak_keluarga_jepang) && <Item label="Kontak Keluarga Jepang" value={data.kontak_keluarga_jepang} />}
+          {raw(data.detail_kenalan) && <Item label="Detail Kenalan" value={data.detail_kenalan} className="sm:col-span-2" />}
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Motivasi & Tujuan">
+        <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+          <Item label="Tujuan ke Jepang" value={data.tujuan_ke_jepang} />
+          <Item label="Alasan ke Jepang" value={data.alasan_ke_jepang} />
+          <Item label="Cita-cita Setelah Jepang" value={data.cita_cita_setelah_jepang} />
+          <Item label="Rencana Pengiriman Uang" value={data.rencana_pengiriman_uang} />
+          <Item label="Lama Tinggal di Jepang" value={data.lama_tinggal_jepang} />
+          <Item label="Lama Kerja di Perusahaan" value={data.lama_kerja_perusahaan} />
+          <Item label="Rencana Pulang" value={data.rencana_pulang} />
+          <Item label="Sumber Biaya" value={data.sumber_biaya} />
+          <Item label="Biaya yang Disiapkan" value={data.biaya_disiapkan} />
+          <Item label="Kelebihan Diri" value={data.kelebihan_diri} />
+          <Item label="Kekurangan Diri" value={data.kekurangan_diri} />
+          <Item label="Hobi" value={data.hobi} />
+          <Item label="Keahlian" value={data.keahlian} />
+          <Item label="Bersedia Shift" value={fmtYes(data.bersedia_shift)} />
+          <Item label="Bersedia Lembur" value={fmtYes(data.bersedia_lembur)} />
+          <Item label="Bersedia Bekerja Hari Libur" value={fmtYes(data.bersedia_hari_libur)} />
+        </div>
+      </SectionCard>
     </div>
   )
 }

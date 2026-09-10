@@ -172,4 +172,51 @@ class CabangController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * POST /api/cabang/{id}/sync-penempatan — tautkan cabang SIM ke cabang
+     * Sistem Penempatan v2. Kirim penempatan_cabang_id/nama/kode untuk mengaitkan,
+     * atau unlink=true (kosongkan kolom) untuk memutus koneksi.
+     */
+    public function syncPenempatan(Request $request, $id)
+    {
+        try {
+            $cabang = Cabang::findOrFail($id);
+
+            if ($request->boolean('unlink')) {
+                $cabang->penempatan_cabang_id = null;
+                $cabang->penempatan_cabang_kode = null;
+                $cabang->penempatan_cabang_nama = null;
+            } else {
+                $validated = $request->validate([
+                    'penempatan_cabang_id' => 'required|integer',
+                    'penempatan_cabang_kode' => 'nullable|string|max:20',
+                    'penempatan_cabang_nama' => 'required|string|max:255',
+                ]);
+                $cabang->penempatan_cabang_id = $validated['penempatan_cabang_id'];
+                $cabang->penempatan_cabang_kode = $validated['penempatan_cabang_kode'] ?? null;
+                $cabang->penempatan_cabang_nama = $validated['penempatan_cabang_nama'];
+            }
+
+            $cabang->save();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $request->boolean('unlink')
+                    ? 'Koneksi ke Sistem Penempatan diputus.'
+                    : 'Cabang berhasil disinkronkan dengan Sistem Penempatan.',
+                'data' => $cabang,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal sinkronisasi cabang: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }

@@ -76,20 +76,39 @@ class JadwalLevelController extends Controller
             ->where('level', $request->level)
             ->exists();
 
+        $user = $request->user();
+        $autoApprove = $user && in_array($user->role, ['MANAGER', 'HR', 'ADMIN'], true);
+
         $jadwal = JadwalLevel::updateOrCreate(
             ['batch_id' => $request->batch_id, 'level' => $request->level],
             [
                 'tanggal_mulai' => $request->tanggal_mulai,
                 'tanggal_selesai' => $request->tanggal_selesai,
-                'status' => 'menunggu',
-                'submitted_by' => $request->user()?->id,
-                'approved_by' => null,
-                'approved_at' => null,
+                'status' => $autoApprove ? 'disetujui' : 'menunggu',
+                'submitted_by' => $user?->id,
+                'approved_by' => $autoApprove ? $user?->id : null,
+                'approved_at' => $autoApprove ? now() : null,
                 'rejection_reason' => null,
             ]
         );
 
-        $user = $request->user();
+        // Disetujui langsung (role approver yang set sendiri) — sinkronkan ke kelas_sensei
+        if ($autoApprove) {
+            if ($request->level >= 1 && $request->level <= 4) {
+                KelasSensei::where('batch_id', $request->batch_id)
+                    ->where('level', $request->level)
+                    ->update([
+                        'tanggal_mulai' => $jadwal->tanggal_mulai,
+                        'tanggal_selesai' => $jadwal->tanggal_selesai,
+                    ]);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Jadwal level berhasil disimpan',
+            ]);
+        }
+
         if ($user && $user->role === 'ADMIN_CABANG') {
             try {
                 app(\App\Services\WhatsAppService::class)->sendJadwalLevelToAdmin($jadwal, $isUpdate);

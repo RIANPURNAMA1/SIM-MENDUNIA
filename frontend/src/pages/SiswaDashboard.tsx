@@ -1,5 +1,5 @@
-import { useState, useEffect, FormEvent } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useState, useEffect, useRef, FormEvent } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   User, CheckCircle, Clock, XCircle, CreditCard, Package, Check, Copy, AlertTriangle,
   ChevronDown, ChevronUp, ChevronLeft, Building2, Upload, Loader, MessageSquare, ChevronRight,
@@ -13,6 +13,18 @@ import {
 import Swal from 'sweetalert2'
 import { useAuth } from '../contexts/AuthContext'
 import api, { APP_URL } from '../services/api'
+
+function currentLearningLevel(jadwalLevels: Record<string, { tanggal_mulai: string; tanggal_selesai: string }>): number {
+  const today = new Date().toISOString().slice(0, 10)
+  let seen = 0
+  for (const lv of ['1', '2', '3', '4']) {
+    const j = jadwalLevels[lv]
+    if (!j) break
+    seen = Number(lv)
+    if (today >= j.tanggal_mulai && today <= j.tanggal_selesai) return seen
+  }
+  return seen
+}
 
 interface PendaftarData {
   id: number
@@ -177,8 +189,12 @@ function rankStyles(rank: number) {
 export default function SiswaDashboard() {
   const { user, logout } = useAuth()
   const location = useLocation()
+  const navigate = useNavigate()
+  const levelAlertShown = useRef(false)
+  const katakanaAlertShown = useRef(false)
   const [pendaftar, setPendaftar] = useState<PendaftarData | null>(null)
   const [siswa, setSiswa] = useState<SiswaData | null>(null)
+  const [matchingJob, setMatchingJob] = useState<{ data?: Record<string, any> } | null>(null)
   const [loading, setLoading] = useState(true)
   const [jadwalLevels, setJadwalLevels] = useState<Record<string, { tanggal_mulai: string; tanggal_selesai: string }>>({})
 
@@ -205,6 +221,7 @@ export default function SiswaDashboard() {
         const p = res.data.pendaftar
         setPendaftar(p)
         setSiswa(res.data.siswa)
+        setMatchingJob(res.data.matching_job || null)
         setJadwalLevels(res.data.jadwal_levels || {})
         setQuizLeaderboard(res.data.quiz_leaderboard || [])
         if (p && p.status_pembayaran === 'unpaid') {
@@ -217,6 +234,42 @@ export default function SiswaDashboard() {
       setEvaluations(res.data.evaluations || {})
     }).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    const lvl = currentLearningLevel(jadwalLevels)
+    if (lvl >= 2 && !matchingJob?.data?.nama_katakana && !katakanaAlertShown.current) {
+      katakanaAlertShown.current = true
+      Swal.fire({
+        icon: 'info',
+        title: 'Lengkapi Nama (Katakana) Kamu',
+        html: 'Kamu sekarang berada di <b>Level 2</b>. Tulis namamu dalam huruf <b>Katakana</b> (カタカナ) pada Data Dirimu.',
+        confirmButtonText: 'Isi Sekarang',
+        confirmButtonColor: '#0E6187',
+        showCancelButton: true,
+        cancelButtonText: 'Nanti',
+      }).then(r => {
+        if (r.isConfirmed) navigate('/siswa-dashboard/data-diri')
+      })
+    }
+  }, [jadwalLevels, matchingJob, navigate])
+
+  useEffect(() => {
+    const lvl = currentLearningLevel(jadwalLevels)
+    if (lvl >= 4 && !levelAlertShown.current) {
+      levelAlertShown.current = true
+      Swal.fire({
+        icon: 'info',
+        title: 'Lengkapi Data Diri Kamu Lagi',
+        html: 'Kamu sudah mencapai <b>Level 4</b>. Silakan lengkapi kembali formulir <b>Kemampuan &amp; Sertifikat</b> pada Data Dirimu.',
+        confirmButtonText: 'Isi Sekarang',
+        confirmButtonColor: '#0E6187',
+        showCancelButton: true,
+        cancelButtonText: 'Nanti',
+      }).then(r => {
+        if (r.isConfirmed) navigate('/siswa-dashboard/data-diri')
+      })
+    }
+  }, [jadwalLevels, navigate])
 
   useEffect(() => {
     if (!pendaftar || pendaftar.status_pembayaran === 'verified' || !showPaymentModal) return

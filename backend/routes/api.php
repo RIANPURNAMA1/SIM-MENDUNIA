@@ -119,6 +119,7 @@ Route::get('/cabang', [CabangController::class, 'apiList']);
 Route::post('/cabang', [CabangController::class, 'apiStore']);
 Route::put('/cabang/{id}', [CabangController::class, 'apiUpdate']);
 Route::delete('/cabang/{id}', [CabangController::class, 'apiDestroy']);
+Route::post('/cabang/{id}/sync-penempatan', [CabangController::class, 'syncPenempatan']);
 
 // CRUD Shift
 Route::get('/shift', [ShiftController::class, 'apiIndex']);

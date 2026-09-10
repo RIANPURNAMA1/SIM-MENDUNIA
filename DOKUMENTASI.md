@@ -1244,3 +1244,6 @@ non Form
 -kelas mendunia itu jadi gini flow nya jadi di sensei di tiap pertemuan berdasarkan jadwal level  itu harus sudah ada materi atau latihan soal terus ulangan mingguan ulangan harian nah gtu 
 
 
+
+
+fitur sensei buat gini mereka pengajuan penggajian dari absensi mereka di fitur dashboard guru nah gtu
