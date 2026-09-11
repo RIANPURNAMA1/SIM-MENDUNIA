@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   Plus, FileText, Download, Trash2, ArrowLeft, Clock, Users,
   CheckCircle2, XCircle, Send, ChevronRight, Upload, Calendar,
-  FileUp, ClipboardList, Hash, Star
+  FileUp, ClipboardList, Hash, Star, Eye
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -15,6 +15,7 @@ interface Course {
   id: number
   title: string
   batch_id: number | null
+  can_manage?: boolean
 }
 
 interface Siswa {
@@ -207,6 +208,8 @@ export default function GuruLMSAssignment() {
       </div>
     )
   }
+
+  const canManage = !!course?.can_manage
 
   // Submissions view
   if (selectedAssignment) {
@@ -505,10 +508,16 @@ export default function GuruLMSAssignment() {
               {course && <p className="text-[11px] text-[#8B90A0] font-medium">{course.title}</p>}
             </div>
           </div>
-          <button onClick={openCreate}
-            className="flex items-center gap-1 bg-[#0069b0] text-white px-3 py-2 rounded-lg text-[11px] font-bold hover:bg-[#004d7a] transition-colors">
-            <Plus size={14} /> Tambah
-          </button>
+          {canManage ? (
+            <button onClick={openCreate}
+              className="flex items-center gap-1 bg-[#0069b0] text-white px-3 py-2 rounded-lg text-[11px] font-bold hover:bg-[#004d7a] transition-colors">
+              <Plus size={14} /> Tambah
+            </button>
+          ) : (
+            <span className="flex items-center gap-1 text-[10px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1.5 rounded-lg">
+              <Eye size={12} /> Hanya Baca
+            </span>
+          )}
         </div>
       </div>
 
@@ -517,7 +526,7 @@ export default function GuruLMSAssignment() {
           <div className="bg-white rounded-xl border border-[#E5E7EF] p-8 text-center">
             <FileText size={32} className="text-[#C5C8D4] mx-auto mb-3" />
             <p className="text-xs font-semibold text-[#4B5063] mb-1">Belum ada tugas</p>
-            <p className="text-[11px] text-[#8B90A0]">Buat tugas pertama untuk course ini</p>
+            <p className="text-[11px] text-[#8B90A0]">{canManage ? 'Buat tugas pertama untuk course ini' : 'Tidak ada tugas untuk course ini'}</p>
           </div>
         ) : (
           assignments.map(a => (
@@ -560,14 +569,18 @@ export default function GuruLMSAssignment() {
                   className="flex-1 text-[10px] font-bold text-[#0069b0] bg-[#eef1f6] py-2 rounded-lg hover:bg-[#e2e6ef] transition-colors flex items-center justify-center gap-1">
                   <Users size={12} /> Lihat Submission
                 </button>
-                <button onClick={() => openEdit(a)}
-                  className="text-[10px] font-bold text-[#4B5063] bg-[#F4F5F8] px-3 py-2 rounded-lg hover:bg-[#eef1f6] transition-colors">
-                  Edit
-                </button>
-                <button onClick={() => handleDelete(a)}
-                  className="text-[10px] font-bold text-red-500 bg-red-50 px-3 py-2 rounded-lg hover:bg-red-100 transition-colors">
-                  <Trash2 size={12} />
-                </button>
+                {canManage && (
+                  <button onClick={() => openEdit(a)}
+                    className="text-[10px] font-bold text-[#4B5063] bg-[#F4F5F8] px-3 py-2 rounded-lg hover:bg-[#eef1f6] transition-colors">
+                    Edit
+                  </button>
+                )}
+                {canManage && (
+                  <button onClick={() => handleDelete(a)}
+                    className="text-[10px] font-bold text-red-500 bg-red-50 px-3 py-2 rounded-lg hover:bg-red-100 transition-colors">
+                    <Trash2 size={12} />
+                  </button>
+                )}
               </div>
             </div>
           ))

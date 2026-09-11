@@ -189,7 +189,7 @@ export default function GuruDashboard() {
       setShowModal(false)
       setForm({ batch_id: '', level: '', tanggal_mulai: '', tanggal_selesai: '', catatan: '' })
       fetchDashboard()
-      Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Kelas berhasil ditambahkan', timer: 2000, showConfirmButton: false })
+      Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Kelas & kursus LMS dibuat otomatis', timer: 2000, showConfirmButton: false })
     } catch {
       Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal menambahkan kelas' })
     } finally {
@@ -572,6 +572,7 @@ export default function GuruDashboard() {
               { icon: Clock, label: 'Lembur', href: '/lembur-karyawan' },
               { icon: BookOpen, label: 'Kelas Mendunia', href: '/guru-lms' },
               { icon: HelpCircle, label: 'Paket Soal', href: '/guru-paket-soal' },
+              { icon: History, label: 'Riwayat Pertemuan', href: '/guru-pertemuan' },
             ].map((item, i) => (
               <button key={i} onClick={() => item.href ? window.location.href = item.href : item.action?.()}
                 className="flex flex-col items-center gap-2 py-3 rounded-lg hover:bg-[#F4F5F8] transition-colors">

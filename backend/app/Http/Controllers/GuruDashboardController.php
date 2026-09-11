@@ -9,6 +9,7 @@ use App\Models\Cabang;
 use App\Models\Course;
 use App\Models\CourseFile;
 use App\Models\Lesson;
+use App\Models\LessonSlide;
 use Illuminate\Support\Facades\Storage;
 use App\Models\DailyAssessmentStatus;
 use App\Models\LmsAssignment;
@@ -94,6 +95,7 @@ class GuruDashboardController extends Controller
             ->map(function ($k) {
                 $k->tanggal_mulai_formatted = \Carbon\Carbon::parse($k->tanggal_mulai)->format('d M');
                 $k->tanggal_selesai_formatted = \Carbon\Carbon::parse($k->tanggal_selesai)->format('d M');
+                $k->total_pertemuan = $k->totalPertemuan();
                 return $k;
             });
 
@@ -149,16 +151,47 @@ class GuruDashboardController extends Controller
             return response()->json(['message' => 'Tanggal mulai dan selesai wajib diisi atau atur di Jadwal Level'], 422);
         }
 
-        $kelas = KelasSensei::create([
-            'user_id' => $user->id,
-            'batch_id' => $request->batch_id,
-            'nama_kelas' => $request->nama_kelas,
-            'level' => $request->level,
-            'tanggal_mulai' => $tanggalMulai,
-            'tanggal_selesai' => $tanggalSelesai,
-            'catatan' => $request->catatan,
-            'status' => 'aktif',
-        ]);
+        $kelas = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $user, $tanggalMulai, $tanggalSelesai) {
+            $kelas = KelasSensei::create([
+                'user_id' => $user->id,
+                'batch_id' => $request->batch_id,
+                'nama_kelas' => $request->nama_kelas,
+                'level' => $request->level,
+                'tanggal_mulai' => $tanggalMulai,
+                'tanggal_selesai' => $tanggalSelesai,
+                'catatan' => $request->catatan,
+                'status' => 'aktif',
+            ]);
+
+            $nextSort = (Course::where('user_id', $user->id)->max('sort') ?? 0) + 1;
+
+            $course = Course::create([
+                'user_id' => $user->id,
+                'batch_id' => $request->batch_id,
+                'kelas_sensei_id' => $kelas->id,
+                'title' => $request->nama_kelas,
+                'description' => $request->catatan,
+                'level' => $request->level,
+                'sort' => $nextSort,
+                'status' => 'aktif',
+            ]);
+
+            $dates = $kelas->daftarPertemuan();
+            $sort = 1;
+            foreach ($dates as $date) {
+                $label = Carbon::parse($date)->translatedFormat('d M Y');
+                Lesson::create([
+                    'course_id' => $course->id,
+                    'title' => "Pertemuan {$sort}",
+                    'content' => '<p><strong>Pertemuan ' . $sort . '</strong><br/>' . e($label) . '</p>',
+                    'sort' => $sort,
+                    'status' => 'aktif',
+                ]);
+                $sort++;
+            }
+
+            return $kelas;
+        });
 
         $kelas->load('batchRelasi');
         $kelas->tanggal_mulai_formatted = \Carbon\Carbon::parse($kelas->tanggal_mulai)->format('d M');
@@ -166,7 +199,7 @@ class GuruDashboardController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Kelas berhasil ditambahkan',
+            'message' => 'Kelas berhasil ditambahkan dan kursus LMS dibuat otomatis',
             'data' => $kelas,
         ]);
     }
@@ -425,6 +458,15 @@ class GuruDashboardController extends Controller
 
     // ========== Guru LMS ==========
 
+    private function courseOwnedByGuru($courseId, $user)
+    {
+        $course = Course::find($courseId);
+        if (!$course || (int) $course->user_id !== (int) $user->id) {
+            abort(403, 'Anda tidak memiliki akses untuk mengubah kursus ini');
+        }
+        return $course;
+    }
+
     public function lmsCourses()
     {
         $user = Auth::guard('sanctum')->user();
@@ -449,6 +491,11 @@ class GuruDashboardController extends Controller
                 ->orderBy('sort')
                 ->get();
         }
+
+        $courses->transform(function ($course) use ($user) {
+            $course->can_manage = (int) $course->user_id === (int) $user->id;
+            return $course;
+        });
 
         $batches = Batch::whereIn('id', $batchIds)->get(['id', 'nama_batch']);
 
@@ -496,20 +543,59 @@ class GuruDashboardController extends Controller
         }
 
         $data = $request->validate([
-            'title' => 'required|string|max:255',
+            'kelas_sensei_id' => 'required|exists:kelas_sensei,id',
+            'title' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'level' => 'nullable|string|max:50',
-            'batch_id' => 'required|exists:batches,id',
+            'batch_id' => 'nullable|exists:batches,id',
             'sort' => 'nullable|integer|min:0',
             'status' => 'nullable|in:aktif,nonaktif',
             'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
+        $kelas = null;
+        if (!empty($data['kelas_sensei_id'])) {
+            $kelas = KelasSensei::where('id', $data['kelas_sensei_id'])
+                ->where('user_id', $user->id)
+                ->first();
+            if (!$kelas) {
+                return response()->json(['message' => 'Kelas tidak ditemukan atau bukan milik Anda'], 422);
+            }
+        }
+
+        if (empty($data['level']) && $kelas) {
+            $data['level'] = $kelas->level;
+        }
+        if (empty($data['batch_id']) && $kelas) {
+            $data['batch_id'] = $kelas->batch_id;
+        }
+        if (empty($data['title'])) {
+            $data['title'] = $kelas && $kelas->nama_kelas ? $kelas->nama_kelas : 'Kursus LMS';
+        }
+
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('lms/courses', 'public');
         }
 
+        $data['user_id'] = $user->id;
+
         $course = Course::create($data);
+
+        if ($kelas) {
+            $dates = $kelas->daftarPertemuan();
+            $sort = 1;
+            foreach ($dates as $date) {
+                $label = \Carbon\Carbon::parse($date)->translatedFormat('d M Y');
+                Lesson::create([
+                    'course_id' => $course->id,
+                    'title' => "Pertemuan {$sort}",
+                    'content' => '<p><strong>Pertemuan ' . $sort . '</strong><br/>' . e($label) . '</p>',
+                    'sort' => $sort,
+                    'status' => 'aktif',
+                ]);
+                $sort++;
+            }
+        }
 
         return response()->json(['course' => $course->loadCount('lessons')->loadCount('files')], 201);
     }
@@ -521,7 +607,7 @@ class GuruDashboardController extends Controller
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
-        $course = Course::findOrFail($id);
+        $course = $this->courseOwnedByGuru($id, $user);
 
         $data = $request->validate([
             'title' => 'sometimes|string|max:255',
@@ -552,7 +638,7 @@ class GuruDashboardController extends Controller
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
-        $course = Course::findOrFail($id);
+        $course = $this->courseOwnedByGuru($id, $user);
         if ($course->image) {
             Storage::disk('public')->delete($course->image);
         }
@@ -585,6 +671,8 @@ class GuruDashboardController extends Controller
             'file' => 'required|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt,jpg,jpeg,png|max:51200',
         ]);
 
+        $this->courseOwnedByGuru($data['course_id'], $user);
+
         $file = $request->file('file');
         $path = $file->store('lms/course-files', 'public');
 
@@ -607,6 +695,7 @@ class GuruDashboardController extends Controller
         }
 
         $courseFile = CourseFile::findOrFail($id);
+        $this->courseOwnedByGuru($courseFile->course_id, $user);
         Storage::disk('public')->delete($courseFile->file_path);
         $courseFile->delete();
 
@@ -623,9 +712,44 @@ class GuruDashboardController extends Controller
         }
 
         $course = Course::withCount('lessons')->findOrFail($courseId);
-        $lessons = $course->lessons()->orderBy('sort')->get();
+        $course->can_manage = (int) $course->user_id === (int) $user->id;
+        $lessons = $course->lessons()->with('paket', 'slides')->orderBy('sort')->get();
+
+        $lessons->transform(function ($lesson) {
+            $lesson->slides->transform(function ($s) {
+                $s->url = asset('storage/' . $s->file_path);
+                return $s;
+            });
+            return $lesson;
+        });
 
         return response()->json(['course' => $course, 'lessons' => $lessons]);
+    }
+
+    public function guruLessonDetail($id)
+    {
+        $user = Auth::guard('sanctum')->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $lesson = Lesson::with([
+            'paket' => fn ($q) => $q->withCount('questions')->withCount('attempts'),
+            'slides',
+            'course',
+            'course.pakets' => fn ($q) => $q->withCount('questions')->withCount('attempts')->orderBy('id'),
+        ])->findOrFail($id);
+
+        if ($lesson->course) {
+            $lesson->course->can_manage = (int) $lesson->course->user_id === (int) $user->id;
+        }
+
+        $lesson->slides->transform(function ($s) {
+            $s->url = asset('storage/' . $s->file_path);
+            return $s;
+        });
+
+        return response()->json(['lesson' => $lesson]);
     }
 
     public function guruStoreLesson(Request $request)
@@ -640,10 +764,15 @@ class GuruDashboardController extends Controller
             'title' => 'required|string|max:255',
             'content' => 'nullable|string',
             'video_url' => 'nullable|string|max:500',
-            'file' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt|max:51200',
+            'file' => 'nullable|file|mimes:pdf|max:51200',
+            'slides' => 'nullable|array|max:30',
+            'slides.*' => 'file|image|mimes:jpg,jpeg,png,webp|max:10240',
+            'paket_id' => 'nullable|exists:quiz_pakets,id',
             'sort' => 'nullable|integer|min:0',
             'status' => 'nullable|in:aktif,nonaktif',
         ]);
+
+        $this->courseOwnedByGuru($data['course_id'], $user);
 
         if ($request->hasFile('file')) {
             $file = $request->file('file');
@@ -656,6 +785,16 @@ class GuruDashboardController extends Controller
         unset($data['file']);
         $lesson = Lesson::create($data);
 
+        if ($request->hasFile('slides')) {
+            $this->guruSyncLessonSlides($lesson, $request);
+        }
+
+        $lesson->load('slides');
+        $lesson->slides->transform(function ($s) {
+            $s->url = asset('storage/' . $s->file_path);
+            return $s;
+        });
+
         return response()->json(['lesson' => $lesson], 201);
     }
 
@@ -667,12 +806,19 @@ class GuruDashboardController extends Controller
         }
 
         $lesson = Lesson::findOrFail($id);
+        $this->courseOwnedByGuru($lesson->course_id, $user);
 
         $data = $request->validate([
             'title' => 'sometimes|string|max:255',
             'content' => 'nullable|string',
             'video_url' => 'nullable|string|max:500',
-            'file' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt|max:51200',
+            'file' => 'nullable|file|mimes:pdf|max:51200',
+            'slides' => 'nullable|array|max:30',
+            'slides.*' => 'file|image|mimes:jpg,jpeg,png,webp|max:10240',
+            'remove_slides' => 'nullable|array',
+            'remove_slides.*' => 'integer|exists:lms_lesson_slides,id',
+            'remove_file' => 'nullable|in:0,1',
+            'paket_id' => 'nullable|exists:quiz_pakets,id',
             'sort' => 'nullable|integer|min:0',
             'status' => 'nullable|in:aktif,nonaktif',
         ]);
@@ -686,12 +832,52 @@ class GuruDashboardController extends Controller
             $data['file_name'] = $file->getClientOriginalName();
             $data['file_type'] = $file->getMimeType();
             $data['file_size'] = $file->getSize();
+        } elseif ($request->input('remove_file') === '1' && $lesson->file_path) {
+            Storage::disk('public')->delete($lesson->file_path);
+            $data['file_path'] = null;
+            $data['file_name'] = null;
+            $data['file_type'] = null;
+            $data['file_size'] = null;
         }
 
         unset($data['file']);
+        $this->guruSyncLessonSlides($lesson, $request);
         $lesson->update($data);
 
+        $lesson->load('slides');
+        $lesson->slides->transform(function ($s) {
+            $s->url = asset('storage/' . $s->file_path);
+            return $s;
+        });
+
         return response()->json(['lesson' => $lesson->fresh()]);
+    }
+
+    private function guruSyncLessonSlides(Lesson $lesson, Request $request)
+    {
+        if ($request->has('remove_slides')) {
+            $removeIds = array_filter(array_map('intval', (array) $request->input('remove_slides')));
+            $removes = $lesson->slides()->whereIn('id', $removeIds)->get();
+            foreach ($removes as $slide) {
+                Storage::disk('public')->delete($slide->file_path);
+                $slide->delete();
+            }
+        }
+
+        if ($request->hasFile('slides')) {
+            $sort = $lesson->slides()->max('sort') ?? 0;
+            foreach ($request->file('slides') as $file) {
+                $sort++;
+                LessonSlide::create([
+                    'lesson_id' => $lesson->id,
+                    'file_path' => $file->store('lms/lesson-slides', 'public'),
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_type' => $file->getMimeType(),
+                    'file_size' => $file->getSize(),
+                    'sort' => $sort,
+                ]);
+            }
+        }
     }
 
     public function guruDeleteLesson($id)
@@ -701,7 +887,15 @@ class GuruDashboardController extends Controller
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
-        Lesson::findOrFail($id)->delete();
+        $lesson = Lesson::findOrFail($id);
+        $this->courseOwnedByGuru($lesson->course_id, $user);
+        if ($lesson->file_path) {
+            Storage::disk('public')->delete($lesson->file_path);
+        }
+        foreach ($lesson->slides()->get() as $slide) {
+            Storage::disk('public')->delete($slide->file_path);
+        }
+        $lesson->delete();
 
         return response()->json(['message' => 'Lesson deleted']);
     }
@@ -714,6 +908,7 @@ class GuruDashboardController extends Controller
         if (!$user) return response()->json(['message' => 'Unauthenticated'], 401);
 
         $course = Course::findOrFail($courseId);
+        $course->can_manage = (int) $course->user_id === (int) $user->id;
         $assignments = LmsAssignment::where('course_id', $courseId)
             ->withCount('submissions')
             ->orderBy('created_at', 'desc')
@@ -755,6 +950,8 @@ class GuruDashboardController extends Controller
             'file' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt,jpg,jpeg,png,zip,rar|max:51200',
         ]);
 
+        $this->courseOwnedByGuru($data['course_id'], $user);
+
         if ($request->hasFile('file')) {
             $data['file_path'] = $request->file('file')->store('lms/assignments', 'public');
             $data['file_name'] = $request->file('file')->getClientOriginalName();
@@ -770,6 +967,7 @@ class GuruDashboardController extends Controller
         if (!$user) return response()->json(['message' => 'Unauthenticated'], 401);
 
         $assignment = LmsAssignment::findOrFail($id);
+        $this->courseOwnedByGuru($assignment->course_id, $user);
 
         $data = $request->validate([
             'title' => 'sometimes|string|max:255',
@@ -798,6 +996,7 @@ class GuruDashboardController extends Controller
         if (!$user) return response()->json(['message' => 'Unauthenticated'], 401);
 
         $assignment = LmsAssignment::findOrFail($id);
+        $this->courseOwnedByGuru($assignment->course_id, $user);
         if ($assignment->file_path) {
             Storage::disk('public')->delete($assignment->file_path);
         }

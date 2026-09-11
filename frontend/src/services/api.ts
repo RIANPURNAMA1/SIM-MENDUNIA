@@ -499,7 +499,17 @@ export const guruKelasApi = {
   penilaianRekap: (kelasId: number, params?: { date_from?: string; date_to?: string }) => api.get(`/guru/penilaian-rekap/${kelasId}`, { params }),
 }
 
+export const pertemuanApi = {
+  detail: (kelasId: number) => api.get(`/guru/pertemuan/kelas/${kelasId}`),
+  store: (kelasId: number, data: FormData) =>
+    api.post(`/guru/pertemuan/kelas/${kelasId}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  ringkasan: () => api.get('/guru/pertemuan/ringkasan'),
+  adminKelas: () => api.get('/admin/pertemuan/kelas'),
+  adminCabangKelas: () => api.get('/admin-cabang/pertemuan/kelas'),
+}
+
 export const lmsApi = {
+  welcomeVideo: () => api.get('/lms/welcome'),
   courses: () => api.get('/lms/courses'),
   courseDetail: (id: number) => api.get(`/lms/courses/${id}`),
   lessonDetail: (id: number) => api.get(`/lms/lessons/${id}`),
@@ -507,6 +517,7 @@ export const lmsApi = {
   uncompleteLesson: (id: number) => api.delete(`/lms/lessons/${id}/complete`),
   videoProgress: (id: number, data: { current_time: number; duration: number }) => api.post(`/lms/lessons/${id}/video-progress`, data),
   readProgress: (id: number, data: { seconds: number }) => api.post(`/lms/lessons/${id}/read-progress`, data),
+  readComplete: (id: number) => api.post(`/lms/lessons/${id}/read-complete`),
   // Student Assignments
   courseAssignments: (courseId: number) => api.get(`/lms/courses/${courseId}/assignments`),
   submitAssignment: (assignmentId: number, data: FormData) => api.post(`/lms/assignments/${assignmentId}/submit`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
@@ -543,6 +554,10 @@ export const lmsAdminApi = {
   storeCategory: (data: { name: string; sort?: number }) => api.post('/admin/lms/categories', data),
   updateCategory: (id: number, data: { name: string; sort?: number }) => api.put(`/admin/lms/categories/${id}`, data),
   deleteCategory: (id: number) => api.delete(`/admin/lms/categories/${id}`),
+  welcomeInfo: () => api.get('/admin/lms/welcome'),
+  uploadWelcomeVideo: (fd: FormData) => api.post('/admin/lms/welcome-video', fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  saveWelcomeVideoUrl: (url: string) => api.post('/admin/lms/welcome-video-url', { url }),
+  deleteWelcomeVideo: () => api.delete('/admin/lms/welcome-video'),
 }
 
 export const assignmentApi = {
@@ -615,6 +630,7 @@ export const guruLmsApi = {
   storeCourseFile: (data: FormData) => api.post('/guru/lms-courses/files', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   deleteCourseFile: (id: number) => api.delete(`/guru/lms-courses/files/${id}`),
   lessons: (courseId: number) => api.get(`/guru/lms-courses/${courseId}/lessons`),
+  lessonDetail: (id: number) => api.get(`/guru/lms-lessons/${id}`),
   storeLesson: (data: FormData) => api.post('/guru/lms-lessons', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   updateLesson: (id: number, data: FormData) => api.post(`/guru/lms-lessons/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   deleteLesson: (id: number) => api.delete(`/guru/lms-lessons/${id}`),
@@ -650,6 +666,7 @@ export const adminQuizApi = {
   updatePaket: (id: number, data: Record<string, unknown>) => api.post(`/admin-cabang/quiz/pakets/${id}`, data),
   deletePaket: (id: number) => api.delete(`/admin-cabang/quiz/pakets/${id}`),
   togglePaket: (id: number) => api.post(`/admin-cabang/quiz/pakets/${id}/toggle`),
+  assignBank: (data: { course_id: number; paket_ids: number[] }) => api.post('/admin-cabang/quiz/assign-bank', data),
   questions: (paketId: number) => api.get(`/admin-cabang/quiz/pakets/${paketId}/questions`),
   storeQuestion: (paketId: number, data: Record<string, unknown>) => api.post(`/admin-cabang/quiz/pakets/${paketId}/questions`, data),
   updateQuestion: (id: number, data: Record<string, unknown>) => api.post(`/admin-cabang/quiz/questions/${id}`, data),

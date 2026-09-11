@@ -5,6 +5,7 @@ export interface SlideView {
   id: number
   name: string
   url: string
+  slides : any
 }
 
 export default function LessonSlidesViewer({ slides }: { slides: SlideView[] }) {

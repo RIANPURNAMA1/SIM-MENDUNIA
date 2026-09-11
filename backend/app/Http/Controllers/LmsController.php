@@ -11,6 +11,7 @@ use App\Models\LmsAssignment;
 use App\Models\LmsCategory;
 use App\Models\LmsSubmission;
 use App\Models\LmsProgress;
+use App\Models\LmsSetting;
 use App\Models\Siswa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -205,6 +206,29 @@ class LmsController extends Controller
         ]);
     }
 
+    public function lessonReadComplete(Request $request, $id)
+    {
+        $siswa = $this->getSiswa();
+        if (!$siswa) {
+            return response()->json(['message' => 'Siswa not found'], 404);
+        }
+
+        $lesson = Lesson::aktif()->findOrFail($id);
+
+        $progress = LmsProgress::firstOrNew([
+            'lesson_id' => $lesson->id,
+            'siswa_id' => $siswa->id,
+        ]);
+
+        $progress->read_seconds = max((int) $progress->read_seconds, self::MODUL_MIN_SECONDS);
+        $progress->save();
+
+        return response()->json([
+            'message' => 'Read progress marked as done',
+            'progress' => $this->progressPayload($lesson, $progress),
+        ]);
+    }
+
     public function completeLesson(Request $request, $id)
     {
         $siswa = $this->getSiswa();
@@ -220,15 +244,6 @@ class LmsController extends Controller
         ]);
 
         $payload = $this->progressPayload($lesson, $progress);
-        if (!$payload['video_green'] || !$payload['read_green']) {
-            return response()->json([
-                'message' => 'Penyelesaian belum memenuhi syarat. Selesaikan video dan baca modul terlebih dahulu.',
-                'syarat' => [
-                    'video' => $payload['video_green'],
-                    'modul' => $payload['read_green'],
-                ],
-            ], 422);
-        }
 
         if (!$progress->completed_at) {
             $progress->completed_at = now();
@@ -424,6 +439,8 @@ class LmsController extends Controller
             $data['image'] = $request->file('image')->store('lms/courses', 'public');
         }
 
+        $data['user_id'] = Auth::guard('sanctum')->id();
+
         $course = Course::create($data);
         return response()->json(['course' => $course->loadCount('lessons')], 201);
     }
@@ -612,5 +629,66 @@ class LmsController extends Controller
         Storage::disk('public')->delete($courseFile->file_path);
         $courseFile->delete();
         return response()->json(['message' => 'File deleted']);
+    }
+
+    // ========== Welcome Video Setting ==========
+
+    public function welcome()
+    {
+        $path = LmsSetting::getWelcomeVideo();
+        $url = LmsSetting::getWelcomeVideoUrl();
+        return response()->json([
+            'welcome_video' => empty($path) ? null : $path,
+            'welcome_video_url' => empty($url) ? null : $url,
+        ]);
+    }
+
+    public function updateWelcomeVideo(Request $request)
+    {
+        $data = $request->validate([
+            'file' => 'required|file|mimes:mp4,webm,mov,m4v|max:204800',
+        ]);
+
+        $old = LmsSetting::getWelcomeVideo();
+        if (!empty($old) && !filter_var($old, FILTER_VALIDATE_URL)) {
+            Storage::disk('public')->delete($old);
+        }
+
+        $file = $request->file('file');
+        $path = $file->store('lms/welcome', 'public');
+
+        LmsSetting::setValue('welcome_video', $path);
+        LmsSetting::setValue('welcome_video_url', null);
+
+        return response()->json(['welcome_video' => $path, 'welcome_video_url' => null]);
+    }
+
+    public function updateWelcomeVideoUrl(Request $request)
+    {
+        $data = $request->validate([
+            'url' => 'required|url|starts_with:https://,http://|max:2048',
+        ]);
+
+        $old = LmsSetting::getWelcomeVideo();
+        if (!empty($old) && !filter_var($old, FILTER_VALIDATE_URL)) {
+            Storage::disk('public')->delete($old);
+        }
+
+        LmsSetting::setValue('welcome_video', null);
+        LmsSetting::setValue('welcome_video_url', $data['url']);
+
+        return response()->json(['welcome_video' => null, 'welcome_video_url' => $data['url']]);
+    }
+
+    public function deleteWelcomeVideo()
+    {
+        $old = LmsSetting::getWelcomeVideo();
+        if (!empty($old) && !filter_var($old, FILTER_VALIDATE_URL)) {
+            Storage::disk('public')->delete($old);
+        }
+        LmsSetting::setValue('welcome_video', null);
+        LmsSetting::setValue('welcome_video_url', null);
+
+        return response()->json(['welcome_video' => null, 'welcome_video_url' => null]);
     }
 }

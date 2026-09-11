@@ -7,6 +7,7 @@ import {
   CalendarCheck, LayoutDashboard, Wallet, User, Trophy,
 } from 'lucide-react'
 import { lmsApi, quizApi, APP_URL } from '../../services/api'
+import { getYouTubeEmbedUrl } from '../../utils/youtube'
 import LessonSlidesViewer from '../../components/LessonSlidesViewer'
 import TrackedVideo from '../../components/TrackedVideo'
 import Swal from 'sweetalert2'
@@ -19,6 +20,7 @@ interface Course {
   image: string | null
   level: string | null
   category: { id: number; name: string } | null
+  kelas_sensei_id: number | null
   lessons_count: number
   sort: number
 }
@@ -137,6 +139,8 @@ export default function LMS() {
   const [rankLoading, setRankLoading] = useState(false)
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
+  const [welcomeVideo, setWelcomeVideo] = useState<string | null>(null)
+  const [welcomeVideoUrl, setWelcomeVideoUrl] = useState<string | null>(null)
   const [activeCategory, setActiveCategory] = useState('all')
   const courseCategories = useMemo(() =>
     Array.from(new Set(courses.map(c => c.category?.name).filter((c): c is string => !!c))),
@@ -170,6 +174,10 @@ export default function LMS() {
     lmsApi.courses().then(res => {
       setCourses(res.data.courses || [])
     }).catch(() => {}).finally(() => setLoading(false))
+    lmsApi.welcomeVideo().then(res => {
+      setWelcomeVideo(res.data.welcome_video || null)
+      setWelcomeVideoUrl(res.data.welcome_video_url || null)
+    }).catch(() => { setWelcomeVideo(null); setWelcomeVideoUrl(null) })
   }, [])
 
   useEffect(() => {
@@ -341,17 +349,12 @@ export default function LMS() {
   useEffect(() => {
     if (view !== 'lesson' || !selectedLesson) return
     const lessonId = selectedLesson.id
-    const lp = lessonDetail?.progress
-    const vg = !selectedLesson.video_url || !!lp?.video_green
-    const rg = !selectedLesson.content || !!lp?.read_green
-    if (vg && rg && !lessonDetail?.completed && autoCompletedRef.current !== lessonId) {
+    if (!lessonDetail?.completed && autoCompletedRef.current !== lessonId) {
       autoCompletedRef.current = lessonId
       lmsApi.completeLesson(lessonId).then(() => {
         setCompletedLessonIds(prev => prev.includes(lessonId) ? prev : [...prev, lessonId])
         setLessonDetail(prev => prev ? { ...prev, completed: true, completed_at: new Date().toISOString() } : prev)
-      }).catch(err => {
-        if (err?.response?.status === 422) autoCompletedRef.current = null
-      })
+      }).catch(() => {})
     }
   }, [view, selectedLesson, lessonDetail])
 
@@ -476,12 +479,11 @@ export default function LMS() {
           )}
 
           <button
-            disabled={!unlocked || attemptsMaxed}
             onClick={(e) => { e.stopPropagation(); navigate(`/siswa-dashboard/quiz/${q.id}`) }}
             className={`mt-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all ${
               unlocked && !attemptsMaxed
                 ? 'bg-[#0E6187] text-white hover:bg-[#0E6187]/90 shadow-lg shadow-[#0E6187]/20'
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-gray-100 text-gray-400'
             }`}>
             {!unlocked ? (
               <>
@@ -538,6 +540,12 @@ export default function LMS() {
     const prog = lessonDetail?.progress
     const videoGreen = !selectedLesson.video_url || !!prog?.video_green
     const readGreen = !selectedLesson.content || !!prog?.read_green
+
+    const markReadDone = () => {
+      lmsApi.readComplete(selectedLesson.id).then(res => {
+        if (res.data?.progress) applyProgress(selectedLesson.id, res.data.progress)
+      }).catch(() => {})
+    }
 
     return (
       <div className="min-h-screen bg-[#f2f4f8] pb-32 lg:pb-8">
@@ -697,14 +705,14 @@ export default function LMS() {
                     <p className="text-[10px] text-slate-400 mt-0.5 leading-relaxed">
                       {lessonDetail?.completed
                         ? `Diselesaikan ${new Date(lessonDetail.completed_at!).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`
-                        : 'Tonton video & baca modul sampai activity hijau, lalu tandai selesai untuk membuka quiz'}
+                        : 'Buka materi ini untuk menandai pelajaran selesai'}
                     </p>
                   </div>
                 </div>
 
                 <button
                   onClick={() => toggleComplete(selectedLesson.id, !!lessonDetail?.completed)}
-                  disabled={completing || !lessonDetail || (!lessonDetail.completed && !(videoGreen && readGreen))}
+                  disabled={completing || !lessonDetail}
                   className={`w-full flex items-center justify-center gap-2 rounded-md py-3.5 text-sm font-black transition-all active:scale-[0.98] ${
                     lessonDetail?.completed
                       ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -719,16 +727,6 @@ export default function LMS() {
 
                 {!lessonDetail?.completed && (
                   <div className="mt-4 pt-4 border-t border-slate-100 space-y-2.5">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.14em]">Syarat activity hijau</span>
-                      <span className={`flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-md ${
-                        videoGreen && readGreen ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
-                      }`}>
-                        {videoGreen && readGreen ? <Check size={10} strokeWidth={3} /> : <AlertTriangle size={10} />}
-                        {videoGreen && readGreen ? 'Terpenuhi' : 'Belum terpenuhi'}
-                      </span>
-                    </div>
-
                     <div className={`rounded-md px-4 py-3 ${videoGreen ? 'bg-emerald-50/70' : 'bg-slate-50'}`}>
                       <div className="flex items-center gap-2.5 mb-2">
                         <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${videoGreen ? 'bg-emerald-500 text-white' : 'bg-white text-slate-400 shadow-sm'}`}>
@@ -764,9 +762,32 @@ export default function LMS() {
                         </div>
                       )}
                     </div>
+                    {selectedLesson.content && !prog?.read_green && (
+                      <button onClick={markReadDone}
+                        className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-md bg-emerald-50 text-emerald-600 text-[11px] font-bold hover:bg-emerald-100 transition-colors">
+                        <Check size={13} strokeWidth={3} /> Sudah Baca Materi
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
+
+              {/* Quiz Pertemuan Ini */}
+              {currentIdx === 0 && courseQuizzes.length > 0 && (
+                <div className="bg-white rounded-md shadow-sm overflow-hidden">
+                  <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <h3 className="text-[11px] font-black text-slate-800 flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-md bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+                        <ListChecks size={13} className="text-[#0E6187]" />
+                      </span>
+                      Quiz Pertemuan Ini
+                    </h3>
+                  </div>
+                  <div className="p-5 space-y-3">
+                    {courseQuizzes.map(q => renderQuizCard(q))}
+                  </div>
+                </div>
+              )}
 
               {/* Navigation */}
               <div className="bg-white rounded-md shadow-sm p-3 flex items-center gap-2">
@@ -989,10 +1010,11 @@ export default function LMS() {
 
   // ==================== COURSE DETAIL VIEW ====================
   if (view === 'course-detail' && selectedCourse) {
-    const progress = completedLessonIds.length
-    const total = lessons.length
-    const percent = getProgressPercent()
-    const isComplete = percent === 100
+    const isQuizCourse = !selectedCourse.kelas_sensei_id
+    const progress = isQuizCourse ? courseQuizzes.filter(q => q.best_score !== null).length : completedLessonIds.length
+    const total = isQuizCourse ? courseQuizzes.length : lessons.length
+    const percent = Math.round((progress / Math.max(total, 1)) * 100)
+    const isComplete = percent === 100 && total > 0
 
     return (
       <>
@@ -1039,7 +1061,7 @@ export default function LMS() {
         <div className="max-w-lg mx-auto px-4 mt-4">
           <div className="flex gap-1 bg-gray-100 rounded-md p-1">
             {([
-              { key: 'lessons' as const, label: 'Pelajaran', icon: ListChecks, count: lessons.length },
+              { key: 'lessons' as const, label: 'Pelajaran', icon: ListChecks, count: isQuizCourse ? courseQuizzes.length : lessons.length },
               { key: 'assignments' as const, label: 'Tugas', icon: ClipboardList, count: assignments.length },
             ]).map(tab => (
               <button key={tab.key} onClick={() => setActiveTab(tab.key)}
@@ -1062,19 +1084,53 @@ export default function LMS() {
         <div className="max-w-lg mx-auto px-4 mt-3">
           {/* Lessons Tab */}
           {activeTab === 'lessons' && (
-            courseQuizzes.length > 0 ? (
-              <div className="space-y-3">
-                {courseQuizzes.map(q => renderQuizCard(q))}
-              </div>
+            isQuizCourse ? (
+            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="text-[11px] font-black text-gray-800 flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-md bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+                      <ListChecks size={13} className="text-[#0E6187]" />
+                    </span>
+                    Daftar Paket Soal
+                  </h3>
+                  <span className="text-[10px] font-bold text-gray-400">{courseQuizzes.length} paket soal</span>
+                </div>
+                <div className="p-4 space-y-3">
+                  {quizLoading ? (
+                    <div className="flex items-center justify-center gap-2 py-10 text-xs text-gray-400">
+                      <div className="w-4 h-4 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" /> Memuat paket soal...
+                    </div>
+                  ) : courseQuizzes.length === 0 ? (
+                    <div className="py-10 text-center">
+                      <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
+                        <ListChecks size={26} className="text-gray-300" />
+                      </div>
+                      <p className="text-sm font-semibold text-gray-500">Belum ada paket soal</p>
+                      <p className="text-xs text-gray-400 mt-1">Paket soal akan segera tersedia</p>
+                    </div>
+                  ) : (
+                    courseQuizzes.map(q => renderQuizCard(q))
+                  )}
+                </div>
+            </div>
             ) : (
-              <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="text-[11px] font-black text-gray-800 flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-md bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+                      <BookOpen size={13} className="text-[#0E6187]" />
+                    </span>
+                    Daftar Pertemuan
+                  </h3>
+                  <span className="text-[10px] font-bold text-gray-400">{progress}/{total} selesai</span>
+                </div>
                 {lessons.length === 0 ? (
                   <div className="p-12 text-center">
                     <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
                       <BookOpen size={28} className="text-gray-300" />
                     </div>
-                    <p className="text-sm font-semibold text-gray-500">Belum ada pelajaran</p>
-                    <p className="text-xs text-gray-400 mt-1">Pelajaran akan segera tersedia</p>
+                    <p className="text-sm font-semibold text-gray-500">Belum ada pertemuan</p>
+                    <p className="text-xs text-gray-400 mt-1">Pertemuan akan segera tersedia</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-100">
@@ -1503,6 +1559,50 @@ export default function LMS() {
           </div>
         </div>
       </header>
+
+      {/* Welcome Video */}
+      {(welcomeVideo || welcomeVideoUrl) && (
+        <div className="mx-auto mt-5 max-w-lg px-4">
+          <div className="overflow-hidden rounded-2xl bg-white shadow-lg shadow-slate-200/60 ring-1 ring-slate-100">
+            <div className="relative overflow-hidden bg-gradient-to-br from-[#0E6187] via-[#0b7ea8] to-[#0f2840] px-5 py-5">
+              <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+              <div className="pointer-events-none absolute -bottom-14 right-14 h-28 w-28 rounded-full bg-amber-300/20 blur-xl" />
+              <div className="pointer-events-none absolute -left-6 top-8 h-16 w-16 rounded-full border border-white/10" />
+              <div className="relative flex items-center gap-3.5">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-2xl shadow-inner ring-1 ring-white/30 backdrop-blur">
+                  👋
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h2 className="mt-1 text-base font-black leading-tight text-white">
+                    Selamat Datang, {user?.name?.split(' ')[0] || 'Siswa'}!
+                  </h2>
+                  <p className="mt-1 text-[10.5px] text-white/75 leading-snug">
+                    Sapa hangat sebelum kamu mulai belajar di Kelas Mendunia 🎓
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-b from-slate-50 to-white p-2">
+              {welcomeVideoUrl ? (
+                <iframe
+                  src={getYouTubeEmbedUrl(welcomeVideoUrl) || welcomeVideoUrl}
+                  allowFullScreen
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  className="w-full aspect-video rounded-xl bg-black"
+                  title="Video Selamat Datang"
+                />
+              ) : (
+                <video
+                  src={`${APP_URL}/storage/${welcomeVideo}`}
+                  controls
+                  playsInline
+                  className="w-full aspect-video rounded-xl bg-black"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Course Grid */}
       <div className="mx-auto mt-6 max-w-lg space-y-4 px-4 pt-2">

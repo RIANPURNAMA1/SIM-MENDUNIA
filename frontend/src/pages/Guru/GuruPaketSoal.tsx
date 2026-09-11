@@ -12,6 +12,9 @@ interface GuruPaketSoalProps {
   courseId?: number | null
   embedded?: boolean
   onBack?: () => void
+  hiddenHeader?: boolean
+  defaultBatchId?: number | string | null
+  defaultLevel?: string | null
 }
 
 interface Paket {
@@ -106,7 +109,7 @@ const emptyPaketForm = {
 
 const emptyQuestionForm = { question: '', question_type: 'choice', rating_max: '9', correct_index: '', points: '1', image_path: '', image_url: '', audio_path: '', audio_url: '', audio_max_plays: '2' }
 
-export default function GuruPaketSoal({ courseId, embedded, onBack }: GuruPaketSoalProps) {
+export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader, defaultBatchId, defaultLevel }: GuruPaketSoalProps) {
   const [pakets, setPakets] = useState<Paket[]>([])
   const [batches, setBatches] = useState<Batch[]>([])
   const [batchLevels, setBatchLevels] = useState<Record<number, string[]>>({})
@@ -175,6 +178,8 @@ export default function GuruPaketSoal({ courseId, embedded, onBack }: GuruPaketS
     setPaketForm({
       ...emptyPaketForm,
       course_id: courseId ? String(courseId) : '',
+      batch_id: defaultBatchId != null && String(defaultBatchId) !== '0' ? String(defaultBatchId) : '',
+      level: defaultLevel || '',
     })
     setCoverPreview('')
     setShowPaketModal(true)
@@ -526,33 +531,50 @@ export default function GuruPaketSoal({ courseId, embedded, onBack }: GuruPaketS
       {!embedded && <div className="h-[3px] bg-gradient-to-r from-[#0069b0] via-[#0069b0] to-[#0069b0]" />}
 
       {/* Top Bar */}
-      <div className={embedded ? 'bg-white rounded-xl border border-[#E5E7EF] shadow-sm px-4 py-3 mb-3' : 'bg-white px-5 py-3.5 border-b border-[#E5E7EF]'}>
-        <div className={embedded ? 'flex items-center justify-between gap-3' : 'flex items-center justify-between max-w-lg mx-auto'}>
-          {embedded && view === 'list' && onBack ? (
-            <button onClick={onBack}
-              className="flex items-center gap-1.5 text-xs font-semibold text-[#8B90A0] hover:text-[#14182B] transition-colors">
-              <ArrowLeft size={15} /> Kembali
-            </button>
-          ) : (
-            <button onClick={backToList} disabled={view === 'list'}
-              className="flex items-center gap-1.5 text-xs font-semibold text-[#8B90A0] hover:text-[#14182B] transition-colors disabled:opacity-40">
-              <ArrowLeft size={15} /> Kembali
-            </button>
-          )}
-          <div className="flex items-center gap-2">
-            <HelpCircle size={16} className="text-[#0069b0]" />
-            <h1 className="text-sm font-bold text-[#14182B]">Paket Soal / Quiz</h1>
+      {!hiddenHeader && (
+        <div className={embedded ? 'bg-white rounded-xl border border-[#E5E7EF] shadow-sm px-4 py-3 mb-3' : 'bg-white px-5 py-3.5 border-b border-[#E5E7EF]'}>
+          <div className={embedded ? 'flex items-center justify-between gap-3' : 'flex items-center justify-between max-w-lg mx-auto'}>
+            {embedded && view === 'list' && onBack ? (
+              <button onClick={onBack}
+                className="flex items-center gap-1.5 text-xs font-semibold text-[#8B90A0] hover:text-[#14182B] transition-colors">
+                <ArrowLeft size={15} /> Kembali
+              </button>
+            ) : (
+              <button onClick={backToList} disabled={view === 'list'}
+                className="flex items-center gap-1.5 text-xs font-semibold text-[#8B90A0] hover:text-[#14182B] transition-colors disabled:opacity-40">
+                <ArrowLeft size={15} /> Kembali
+              </button>
+            )}
+            <div className="flex items-center gap-2">
+              <HelpCircle size={16} className="text-[#0069b0]" />
+              <h1 className="text-sm font-bold text-[#14182B]">Paket Soal / Quiz</h1>
+            </div>
+            {view === 'list' && !hiddenHeader && (
+              <button onClick={openCreatePaket}
+                className="flex items-center gap-1 text-[11px] font-bold text-white bg-[#0069b0] px-3 py-1.5 rounded-lg hover:bg-[#004d7a] transition-colors">
+                <Plus size={13} /> Buat
+              </button>
+            )}
           </div>
-          {view === 'list' && (
+        </div>
+      )}
+
+      <div className={embedded ? 'space-y-3' : 'px-4 pt-4 max-w-lg mx-auto space-y-3'}>
+        {hiddenHeader && view === 'list' && pakets.length > 0 && (
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-[#14182B]">Paket Soal ({pakets.length})</h2>
             <button onClick={openCreatePaket}
               className="flex items-center gap-1 text-[11px] font-bold text-white bg-[#0069b0] px-3 py-1.5 rounded-lg hover:bg-[#004d7a] transition-colors">
               <Plus size={13} /> Buat
             </button>
-          )}
-        </div>
-      </div>
-
-      <div className={embedded ? 'space-y-3' : 'px-4 pt-4 max-w-lg mx-auto space-y-3'}>
+          </div>
+        )}
+        {hiddenHeader && view !== 'list' && (
+          <button onClick={backToList}
+            className="flex items-center gap-1.5 text-xs font-semibold text-[#8B90A0] hover:text-[#14182B] transition-colors">
+            <ArrowLeft size={15} /> Kembali
+          </button>
+        )}
         {view === 'list' && (
           loading ? (
             <div className="text-center text-xs text-[#8B90A0] py-16">Memuat paket soal...</div>
@@ -905,7 +927,13 @@ export default function GuruPaketSoal({ courseId, embedded, onBack }: GuruPaketS
                   <select value={paketForm.level} onChange={e => setPaketForm({ ...paketForm, level: e.target.value })}
                     className="w-full text-xs border border-[#E5E7EF] rounded-xl px-3 py-3 focus:outline-none focus:border-[#0069b0] bg-white">
                     <option value="">Semua level</option>
-                    {(paketForm.batch_id ? (batchLevels[Number(paketForm.batch_id)] || []) : []).map(lv => <option key={lv} value={lv}>Level {lv}</option>)}
+                    {(() => {
+                      const bid = paketForm.batch_id
+                      const lvls = bid ? (batchLevels[Number(bid)] || []) : []
+                      const isDefaultBatch = defaultBatchId != null && String(defaultBatchId) === String(bid)
+                      const all = isDefaultBatch && defaultLevel && !lvls.includes(defaultLevel) ? [defaultLevel, ...lvls] : lvls
+                      return all.map(lv => <option key={lv} value={lv}>Level {lv}</option>)
+                    })()}
                   </select>
                 </div>
               </div>

@@ -114,13 +114,17 @@ import SiswaNilai from './pages/Siswa/SiswaNilai'
 import DataCourse from './pages/Akademik/DataCourse'
 import DataLesson from './pages/Akademik/DataLesson'
 import DataBlog from './pages/Akademik/DataBlog'
+import PertemuanAdmin from './pages/Akademik/PertemuanAdmin'
 import DashboardManagement from './pages/Dashboard/DashboardManagement'
 import GuruDashboard from './pages/Guru/GuruDashboard'
 import GuruDataSiswa from './pages/Guru/GuruDataSiswa'
 import GuruLMS from './pages/Guru/GuruLMS'
 import GuruLMSAssignment from './pages/Guru/GuruLMSAssignment'
+import GuruLessonDetail from './pages/Guru/GuruLessonDetail'
 import GuruPaketSoal from './pages/Guru/GuruPaketSoal'
 import GuruProfil from './pages/Guru/GuruProfil'
+import GuruPertemuan from './pages/Guru/GuruPertemuan'
+import GuruPertemuanDetail from './pages/Guru/GuruPertemuanDetail'
 
 import GuruLayout from './layouts/GuruLayout'
 import AdminCabangLayout from './layouts/AdminCabangLayout'
@@ -130,6 +134,7 @@ import AdminCabangDataKandidat from './pages/AdminCabang/AdminCabangDataKandidat
 import AdminCabangPendaftaran from './pages/AdminCabang/AdminCabangPendaftaran'
 import AdminCabangPengeluaran from './pages/AdminCabang/AdminCabangPengeluaran'
 import AdminCabangKategoriPengeluaran from './pages/AdminCabang/AdminCabangKategoriPengeluaran'
+import PertemuanCabang from './pages/AdminCabang/PertemuanCabang'
 import AdminQuizPaketSoal from './pages/AdminCabang/AdminQuizPaketSoal'
 function ProtectedRoute({ children, roleAllowed, roleBlocked }: { children: React.ReactNode; roleAllowed?: string; roleBlocked?: string[] }) {
   const { user, isAuthenticated, isLoading } = useAuth()
@@ -343,6 +348,39 @@ function AppRoutes() {
       />
 
       <Route
+        path="/guru-lms/lesson/:lessonId"
+        element={
+          <ProtectedRoute roleAllowed="GURU">
+            <GuruLayout>
+              <GuruLessonDetail />
+            </GuruLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/guru-pertemuan"
+        element={
+          <ProtectedRoute roleAllowed="GURU">
+            <GuruLayout>
+              <GuruPertemuan />
+            </GuruLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/guru-pertemuan/:kelasId"
+        element={
+          <ProtectedRoute roleAllowed="GURU">
+            <GuruLayout>
+              <GuruPertemuanDetail />
+            </GuruLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/guru-paket-soal"
         element={
           <ProtectedRoute roleAllowed="GURU">
@@ -475,6 +513,26 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/admin-cabang/pertemuan"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <PertemuanCabang />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-cabang/pertemuan/:kelasId"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <GuruPertemuanDetail readOnly backPath="/admin-cabang/pertemuan" />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/admin-cabang/rekap-siswa"
         element={
           <ProtectedRoute roleAllowed="ADMIN_CABANG">
@@ -516,6 +574,16 @@ function AppRoutes() {
       />
       <Route
         path="/admin-cabang/lms"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <DataCourse />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-cabang/lms/bank-paket-soal"
         element={
           <ProtectedRoute roleAllowed="ADMIN_CABANG">
             <AdminCabangLayout>
@@ -890,8 +958,11 @@ function AppRoutes() {
                 <Route path="/evaluasi-instruktur" element={<EvaluasiInstruktur />} />
                 <Route path="/raport" element={<Raport />} />
                 <Route path="/lms" element={<DataCourse />} />
+                <Route path="/lms/bank-paket-soal" element={<DataCourse />} />
                 <Route path="/paket-soal" element={<AdminQuizPaketSoal />} />
                 <Route path="/lms/:courseId/lessons" element={<DataLesson />} />
+                <Route path="/pertemuan" element={<PertemuanAdmin />} />
+                <Route path="/pertemuan/:kelasId" element={<GuruPertemuanDetail readOnly backPath="/pertemuan" />} />
                 <Route path="/data-blog" element={<DataBlog />} />
                 <Route path="/ai-chat" element={<AiChat />} />
                 <Route path="/log-login" element={<LogLogin />} />

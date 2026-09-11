@@ -9,12 +9,14 @@ class Course extends Model
     protected $table = 'lms_courses';
 
     protected $fillable = [
+        'user_id',
         'batch_id',
         'level',
         'title',
         'description',
         'image',
         'category_id',
+        'kelas_sensei_id',
         'sort',
         'status',
     ];
@@ -22,6 +24,11 @@ class Course extends Model
     public function category()
     {
         return $this->belongsTo(LmsCategory::class, 'category_id');
+    }
+
+    public function kelasSensei()
+    {
+        return $this->belongsTo(KelasSensei::class, 'kelas_sensei_id');
     }
 
     public function lessons()
@@ -32,6 +39,11 @@ class Course extends Model
     public function files()
     {
         return $this->hasMany(CourseFile::class, 'course_id');
+    }
+
+    public function pakets()
+    {
+        return $this->hasMany(QuizPaket::class, 'course_id');
     }
 
     public function batch()
