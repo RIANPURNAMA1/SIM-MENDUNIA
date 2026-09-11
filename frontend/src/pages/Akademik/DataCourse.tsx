@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import {
   BookOpen, Plus, Edit3, Trash2, Search, X, Image as ImageIcon, FileText,
   ListChecks, Eye, ChevronUp, ChevronDown, Camera, Clock, Repeat,
-  Award, Users, UserCheck, Pencil, Loader2, ArrowLeft, Video, UploadCloud, Mic, RotateCcw,
+  Award, Users, UserCheck, Pencil, Loader2, ArrowLeft, Video, UploadCloud, Upload, Mic, RotateCcw,
+  Settings,
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -23,6 +24,7 @@ interface Course {
   category: { id: number; name: string; sort: number } | null
   sort: number
   status: string
+  kelas_sensei_id: number | null
   lessons_count: number
   files_count: number
 }
@@ -141,7 +143,7 @@ interface LessonSlideData {
   sort?: number
 }
 
-type View = 'list' | 'quiz' | 'quiz-questions' | 'quiz-results' | 'quiz-materi'
+type View = 'list' | 'quiz' | 'bank' | 'quiz-questions' | 'quiz-results' | 'quiz-materi'
 
 const inputCls = 'w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white'
 const labelCls = 'block text-sm font-medium text-slate-700 mb-1'
@@ -156,6 +158,7 @@ const emptyQuestionForm = { question: '', question_type: 'choice', rating_max: '
 
 export default function DataCourse() {
   const location = useLocation()
+  const navigate = useNavigate()
   const isAdminCabang = location.pathname.startsWith('/admin-cabang')
 
   const [courses, setCourses] = useState<Course[]>([])
@@ -166,7 +169,7 @@ export default function DataCourse() {
   const [filterLevel, setFilterLevel] = useState('')
   const [filterBatch, setFilterBatch] = useState('')
 
-  const [view, setView] = useState<View>('list')
+  const [view, setView] = useState<View>(location.pathname.includes('/bank-paket-soal') ? 'bank' : 'list')
   const [activeCourse, setActiveCourse] = useState<Course | null>(null)
 
   const [showCourseModal, setShowCourseModal] = useState(false)
@@ -189,6 +192,11 @@ export default function DataCourse() {
   const [quizCategories, setQuizCategories] = useState<Category[]>([])
   const [quizSearch, setQuizSearch] = useState('')
 
+  const [bankPakets, setBankPakets] = useState<QuizPaket[]>([])
+  const [bankLoading, setBankLoading] = useState(false)
+  const [bankSearch, setBankSearch] = useState('')
+  const [quizSource, setQuizSource] = useState<'course' | 'bank'>('course')
+
   const [showPaketModal, setShowPaketModal] = useState(false)
   const [editingPaket, setEditingPaket] = useState<QuizPaket | null>(null)
   const [paketForm, setPaketForm] = useState({ ...emptyPaketForm })
@@ -196,6 +204,12 @@ export default function DataCourse() {
   const [coverPreview, setCoverPreview] = useState('')
   const [uploadingCover, setUploadingCover] = useState(false)
   const coverInputRef = useRef<HTMLInputElement>(null)
+
+  const [showBankPickerModal, setShowBankPickerModal] = useState(false)
+  const [bankPickerPakets, setBankPickerPakets] = useState<QuizPaket[]>([])
+  const [bankPickerLoading, setBankPickerLoading] = useState(false)
+  const [bankPickedIds, setBankPickedIds] = useState<number[]>([])
+  const [assigningPakets, setAssigningPakets] = useState(false)
 
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [categoryForm, setCategoryForm] = useState({ name: '' })
@@ -229,6 +243,120 @@ export default function DataCourse() {
   const [lessonSlides, setLessonSlides] = useState<LessonSlideItem[]>([])
   const [removedSlideIds, setRemovedSlideIds] = useState<number[]>([])
   const materiQuillRef = useRef<any>(null)
+
+  const [courseTab, setCourseTab] = useState<'lessons' | 'quiz'>('lessons')
+  const [courseLessons, setCourseLessons] = useState<LessonItem[]>([])
+  const [courseLessonsLoading, setCourseLessonsLoading] = useState(false)
+  const [lessonSource, setLessonSource] = useState<'paket' | 'course'>('paket')
+
+  // ==================== Welcome Video Setting ====================
+  const [showWelcomeSettings, setShowWelcomeSettings] = useState(false)
+  const [welcomeVideo, setWelcomeVideo] = useState<string | null>(null)
+  const [welcomeVideoUrl, setWelcomeVideoUrl] = useState<string | null>(null)
+  const [welcomeFile, setWelcomeFile] = useState<File | null>(null)
+  const [welcomeUrlInput, setWelcomeUrlInput] = useState('')
+  const [welcomeSaving, setWelcomeSaving] = useState(false)
+  const [welcomeLoading, setWelcomeLoading] = useState(false)
+
+  const openWelcomeSettings = async () => {
+    setShowWelcomeSettings(true)
+    setWelcomeLoading(true)
+    setWelcomeFile(null)
+    setWelcomeUrlInput('')
+    try {
+      const res = await lmsAdminApi.welcomeInfo()
+      setWelcomeVideo(res.data.welcome_video || null)
+      setWelcomeVideoUrl(res.data.welcome_video_url || null)
+    } catch {
+      setWelcomeVideo(null)
+      setWelcomeVideoUrl(null)
+    } finally {
+      setWelcomeLoading(false)
+    }
+  }
+
+  const handleSaveWelcomeVideo = async () => {
+    if (!welcomeFile) return
+    setWelcomeSaving(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', welcomeFile)
+      const res = await lmsAdminApi.uploadWelcomeVideo(fd)
+      setWelcomeVideo(res.data.welcome_video || null)
+      setWelcomeVideoUrl(res.data.welcome_video_url || null)
+      setWelcomeFile(null)
+      Swal.fire({
+        icon: 'success',
+        title: 'Tersimpan',
+        text: 'Video selamat datang berhasil disimpan',
+        timer: 1800,
+        showConfirmButton: false,
+      })
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || 'Gagal menyimpan video selamat datang'
+      Swal.fire({ icon: 'error', title: 'Gagal', text: msg })
+    } finally {
+      setWelcomeSaving(false)
+    }
+  }
+
+  const handleSaveWelcomeUrl = async () => {
+    const url = welcomeUrlInput.trim()
+    if (!url) return
+    if (!getYouTubeEmbedUrl(url) && !url.startsWith('http')) {
+      Swal.fire({ icon: 'warning', title: 'URL tidak valid', text: 'Masukkan URL YouTube yang valid (youtube.com/watch, youtu.be, shorts, dll.)' })
+      return
+    }
+    setWelcomeSaving(true)
+    try {
+      const res = await lmsAdminApi.saveWelcomeVideoUrl(url)
+      setWelcomeVideoUrl(res.data.welcome_video_url || null)
+      setWelcomeVideo(res.data.welcome_video || null)
+      setWelcomeUrlInput('')
+      setWelcomeFile(null)
+      Swal.fire({
+        icon: 'success',
+        title: 'Tersimpan',
+        text: 'URL video selamat datang berhasil disimpan',
+        timer: 1800,
+        showConfirmButton: false,
+      })
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || 'Gagal menyimpan URL video selamat datang'
+      Swal.fire({ icon: 'error', title: 'Gagal', text: msg })
+    } finally {
+      setWelcomeSaving(false)
+    }
+  }
+
+  const handleDeleteWelcomeVideo = async () => {
+    const confirm = await Swal.fire({
+      icon: 'warning',
+      title: 'Hapus video selamat datang?',
+      text: 'Video ini akan dihapus dari halaman LMS siswa',
+      showCancelButton: true,
+      confirmButtonText: 'Hapus',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#d33',
+    })
+    if (!confirm.isConfirmed) return
+    try {
+      await lmsAdminApi.deleteWelcomeVideo()
+      setWelcomeVideo(null)
+      setWelcomeVideoUrl(null)
+      setWelcomeFile(null)
+      setWelcomeUrlInput('')
+      Swal.fire({
+        icon: 'success',
+        title: 'Dihapus',
+        text: 'Video selamat datang dihapus',
+        timer: 1800,
+        showConfirmButton: false,
+      })
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal hapus video selamat datang' })
+    }
+  }
 
   const quillModules = {
     toolbar: {
@@ -293,6 +421,7 @@ export default function DataCourse() {
   const quillFormats = ['header', 'bold', 'italic', 'underline', 'strike', 'list', 'link', 'image', 'video']
 
   useEffect(() => { fetchCourses(); fetchQuizMeta(); fetchCategories() }, [])
+  useEffect(() => { if (location.pathname.includes('/bank-paket-soal')) fetchBankPakets() }, [])
 
   const fetchCategories = () => {
     if (isAdminCabang) { setCategories([]); return }
@@ -386,14 +515,165 @@ export default function DataCourse() {
     }).catch(() => setQuizPakets([])).finally(() => setQuizLoading(false))
   }
 
+  const fetchBankPakets = () => {
+    setBankLoading(true)
+    adminQuizApi.pakets().then(res => {
+      const all = res.data.pakets || []
+      setBankPakets(all.filter((p: QuizPaket) => !p.course_id))
+    }).catch(() => setBankPakets([])).finally(() => setBankLoading(false))
+  }
+
+  const openBank = () => {
+    setView('bank')
+    setQuizSource('course')
+    setBankSearch('')
+    setActiveQuizPaket(null)
+    fetchBankPakets()
+  }
+
+  const openCreateBankPaket = () => {
+    setEditingPaket(null)
+    setPaketForm({ ...emptyPaketForm, course_id: '' })
+    setCoverPreview('')
+    setQuizSource('bank')
+    setShowPaketModal(true)
+  }
+
+  const openBankPicker = () => {
+    if (!activeCourse) return
+    setBankPickedIds([])
+    setBankPickerLoading(true)
+    setShowBankPickerModal(true)
+    adminQuizApi.pakets().then(res => {
+      const all = res.data.pakets || []
+      setBankPickerPakets(all.filter((p: QuizPaket) => !p.course_id))
+    }).catch(() => setBankPickerPakets([])).finally(() => setBankPickerLoading(false))
+  }
+
+  const toggleBankPick = (id: number) => {
+    setBankPickedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+
+  const assignSelectedPakets = async () => {
+    if (!activeCourse) return
+    if (bankPickedIds.length === 0) {
+      Swal.fire({ icon: 'warning', title: 'Pilih paket dulu', text: 'Centang paket soal dari bank yang ingin ditambahkan' })
+      return
+    }
+    setAssigningPakets(true)
+    try {
+      await adminQuizApi.assignBank({ course_id: activeCourse.id, paket_ids: bankPickedIds })
+      setShowBankPickerModal(false)
+      fetchQuizPakets(activeCourse.id)
+      Swal.fire({ icon: 'success', title: `${bankPickedIds.length} paket ditambahkan`, text: `Berhasil ditambahkan ke kursus "${activeCourse.title}"`, timer: 2000, showConfirmButton: false })
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal menambahkan paket' })
+    } finally {
+      setAssigningPakets(false)
+    }
+  }
+
+  const refreshPaketList = () => {
+    if (quizSource === 'bank' || view === 'bank') fetchBankPakets()
+    else if (activeCourse) fetchQuizPakets(activeCourse.id)
+  }
+
   const openCourseDetail = (course: Course) => {
     setActiveCourse(course)
     setView('quiz')
+    setCourseTab(course.kelas_sensei_id ? 'lessons' : 'quiz')
+    setQuizSource('course')
     setQuizSearch('')
+    fetchCourseLessons(course.id)
     fetchQuizPakets(course.id)
   }
 
-  const openQuizQuestions = (paket: QuizPaket) => {
+  const fetchCourseLessons = (courseId: number) => {
+    setCourseLessonsLoading(true)
+    lmsAdminApi.lessons(courseId).then(res => {
+      setCourseLessons(res.data.lessons || [])
+    }).catch(() => setCourseLessons([])).finally(() => setCourseLessonsLoading(false))
+  }
+
+  const openCreateCourseLesson = () => {
+    setEditingLesson(null)
+    setLessonForm({ title: '', content: '', video_url: '', sort: String(courseLessons.length + 1), status: 'aktif' })
+    setLessonPdf(null)
+    setLessonPdfName(null)
+    setLessonPdfSize(null)
+    setLessonSlides([])
+    setRemovedSlideIds([])
+    setLessonSource('course')
+    setShowLessonModal(true)
+  }
+
+  const openEditCourseLesson = (lesson: LessonItem) => {
+    setEditingLesson(lesson)
+    setLessonForm({
+      title: lesson.title,
+      content: lesson.content || '',
+      video_url: lesson.video_url || '',
+      sort: lesson.sort.toString(),
+      status: lesson.status,
+    })
+    setLessonPdf(null)
+    setLessonPdfName(lesson.file_name || (lesson.file_path ? 'File materi' : null))
+    setLessonPdfSize(lesson.file_size || null)
+    setLessonSlides((lesson.slides || []).map(s => ({
+      key: `slide-${s.id}`,
+      id: s.id,
+      name: s.file_name,
+      size: s.file_size || undefined,
+      url: `${APP_URL}/storage/${s.file_path}`,
+    })))
+    setRemovedSlideIds([])
+    setLessonSource('course')
+    setShowLessonModal(true)
+  }
+
+  const deleteCourseLesson = (lesson: LessonItem) => {
+    Swal.fire({
+      title: 'Hapus pertemuan?',
+      text: `"${lesson.title}" akan dihapus`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      confirmButtonText: 'Hapus',
+      cancelButtonText: 'Batal',
+    }).then(res => {
+      if (res.isConfirmed) {
+        lmsAdminApi.deleteLesson(lesson.id).then(() => {
+          if (activeCourse) fetchCourseLessons(activeCourse.id)
+          Swal.fire({ icon: 'success', title: 'Dihapus', timer: 1500, showConfirmButton: false })
+        }).catch(() => Swal.fire({ icon: 'error', title: 'Gagal menghapus' }))
+      }
+    })
+  }
+
+  const moveCourseLesson = (index: number, direction: 'up' | 'down') => {
+    const newLessons = [...courseLessons]
+    const swapIndex = direction === 'up' ? index - 1 : index + 1
+    if (swapIndex < 0 || swapIndex >= newLessons.length) return
+    const temp = newLessons[index].sort
+    newLessons[index].sort = newLessons[swapIndex].sort
+    newLessons[swapIndex].sort = temp
+    const tempLesson = newLessons[index]
+    newLessons[index] = newLessons[swapIndex]
+    newLessons[swapIndex] = tempLesson
+    setCourseLessons(newLessons)
+    const makeFd = (sort: number) => {
+      const fd = new FormData()
+      fd.append('sort', String(sort))
+      return fd
+    }
+    Promise.all([
+      lmsAdminApi.updateLesson(newLessons[index].id, makeFd(newLessons[index].sort)),
+      lmsAdminApi.updateLesson(newLessons[swapIndex].id, makeFd(newLessons[swapIndex].sort)),
+    ]).catch(() => activeCourse && fetchCourseLessons(activeCourse.id))
+  }
+
+  const openQuizQuestions = (paket: QuizPaket, source: 'course' | 'bank' = 'course') => {
+    setQuizSource(source)
     setActiveQuizPaket(paket)
     setView('quiz-questions')
     setQLoading(true)
@@ -402,7 +682,8 @@ export default function DataCourse() {
     }).catch(() => setQuestions([])).finally(() => setQLoading(false))
   }
 
-  const openQuizResults = (paket: QuizPaket) => {
+  const openQuizResults = (paket: QuizPaket, source: 'course' | 'bank' = 'course') => {
+    setQuizSource(source)
     setActiveQuizPaket(paket)
     setView('quiz-results')
     setRLoading(true)
@@ -415,10 +696,14 @@ export default function DataCourse() {
     setView('list')
     setActiveCourse(null)
     setActiveQuizPaket(null)
+    if (location.pathname.includes('/bank-paket-soal')) {
+      navigate(location.pathname.replace('/bank-paket-soal', '') || '/lms')
+    }
   }
 
   const backToQuiz = () => {
-    setView('quiz')
+    setView(quizSource === 'bank' ? 'bank' : 'quiz')
+    setQuizSource('course')
     setActiveQuizPaket(null)
   }
 
@@ -430,7 +715,8 @@ export default function DataCourse() {
     }).catch(() => setMateriLessons([])).finally(() => setMateriLoading(false))
   }
 
-  const openMateri = (paket: QuizPaket) => {
+  const openMateri = (paket: QuizPaket, source: 'course' | 'bank' = 'course') => {
+    setQuizSource(source)
     setMateriPaket(paket)
     setActiveQuizPaket(null)
     setView('quiz-materi')
@@ -438,10 +724,13 @@ export default function DataCourse() {
   }
 
   const backFromMateri = () => {
+    const returnBank = quizSource === 'bank'
     const cid = activeCourse?.id
     setMateriPaket(null)
-    setView('quiz')
-    if (cid) fetchQuizPakets(cid)
+    setView(returnBank ? 'bank' : 'quiz')
+    setQuizSource('course')
+    if (returnBank) fetchBankPakets()
+    else if (cid) fetchQuizPakets(cid)
   }
 
   const openCreateLesson = () => {
@@ -452,6 +741,7 @@ export default function DataCourse() {
     setLessonPdfSize(null)
     setLessonSlides([])
     setRemovedSlideIds([])
+    setLessonSource('paket')
     setShowLessonModal(true)
   }
 
@@ -475,6 +765,7 @@ export default function DataCourse() {
       url: `${APP_URL}/storage/${s.file_path}`,
     })))
     setRemovedSlideIds([])
+    setLessonSource('paket')
     setShowLessonModal(true)
   }
 
@@ -483,7 +774,8 @@ export default function DataCourse() {
       Swal.fire({ icon: 'warning', title: 'Judul pelajaran wajib diisi' })
       return
     }
-    if (!materiPaket) return
+    if (lessonSource === 'course' && !activeCourse) return
+    if (lessonSource === 'paket' && !materiPaket) return
     setSavingLesson(true)
     try {
       const fd = new FormData()
@@ -502,14 +794,24 @@ export default function DataCourse() {
         fd.append('slides[]', s.file as File)
       })
       removedIds.forEach(id => fd.append('remove_slides[]', String(id)))
-      if (editingLesson) {
-        await adminQuizApi.updateMateri(editingLesson.id, fd)
+      if (lessonSource === 'course') {
+        fd.append('course_id', String(activeCourse!.id))
+        if (editingLesson) {
+          await lmsAdminApi.updateLesson(editingLesson.id, fd)
+        } else {
+          await lmsAdminApi.storeLesson(fd)
+        }
       } else {
-        await adminQuizApi.storeMateri(materiPaket.id, fd)
+        if (editingLesson) {
+          await adminQuizApi.updateMateri(editingLesson.id, fd)
+        } else {
+          await adminQuizApi.storeMateri(materiPaket!.id, fd)
+        }
       }
       setShowLessonModal(false)
-      fetchMateriLessons(materiPaket.id)
-      Swal.fire({ icon: 'success', title: editingLesson ? 'Materi diperbarui' : 'Materi dibuat', timer: 1500, showConfirmButton: false })
+      if (lessonSource === 'course' && activeCourse) fetchCourseLessons(activeCourse.id)
+      else if (materiPaket) fetchMateriLessons(materiPaket.id)
+      Swal.fire({ icon: 'success', title: editingLesson ? 'Pelajaran diperbarui' : (lessonSource === 'course' ? 'Pertemuan dibuat' : 'Materi dibuat'), timer: 1500, showConfirmButton: false })
     } catch {
       Swal.fire({ icon: 'error', title: 'Gagal menyimpan' })
     } finally {
@@ -660,6 +962,7 @@ export default function DataCourse() {
 
   // ==================== QUIZ PAKET CRUD ====================
   const openCreatePaket = () => {
+    setQuizSource('course')
     setEditingPaket(null)
     setPaketForm({ ...emptyPaketForm, course_id: activeCourse?.id?.toString() || '' })
     setCoverPreview('')
@@ -705,7 +1008,7 @@ export default function DataCourse() {
     try {
       const data: Record<string, unknown> = {
         title: paketForm.title, description: paketForm.description, cover_image: paketForm.cover_image || null,
-        course_id: paketForm.course_id ? Number(paketForm.course_id) : (activeCourse?.id || undefined),
+        course_id: paketForm.course_id ? Number(paketForm.course_id) : (view === 'quiz' && activeCourse ? activeCourse.id : undefined),
         batch_id: paketForm.batch_id ? Number(paketForm.batch_id) : undefined,
         level: paketForm.level || undefined, category: paketForm.category || undefined,
         time_limit_minutes: Number(paketForm.time_limit_minutes) || 30,
@@ -721,7 +1024,7 @@ export default function DataCourse() {
         await adminQuizApi.storePaket(data)
       }
       setShowPaketModal(false)
-      if (activeCourse) fetchQuizPakets(activeCourse.id)
+      refreshPaketList()
       Swal.fire({ icon: 'success', title: editingPaket ? 'Paket diperbarui' : 'Paket dibuat', timer: 1500, showConfirmButton: false })
     } catch {
       Swal.fire({ icon: 'error', title: 'Gagal menyimpan paket' })
@@ -737,7 +1040,7 @@ export default function DataCourse() {
     }).then(res => {
       if (res.isConfirmed) {
         adminQuizApi.deletePaket(p.id).then(() => {
-          if (activeCourse) fetchQuizPakets(activeCourse.id)
+          refreshPaketList()
           Swal.fire({ icon: 'success', title: 'Dihapus', timer: 1500, showConfirmButton: false })
         }).catch(() => Swal.fire({ icon: 'error', title: 'Gagal menghapus' }))
       }
@@ -746,7 +1049,7 @@ export default function DataCourse() {
 
   const togglePaket = (p: QuizPaket) => {
     adminQuizApi.togglePaket(p.id).then(() => {
-      if (activeCourse) fetchQuizPakets(activeCourse.id)
+      refreshPaketList()
     }).catch(() => Swal.fire({ icon: 'error', title: 'Gagal mengubah status' }))
   }
 
@@ -949,6 +1252,7 @@ export default function DataCourse() {
   })
 
   const filteredQuizPakets = quizPakets.filter(p => !quizSearch || p.title.toLowerCase().includes(quizSearch.toLowerCase()))
+  const filteredBankPakets = bankPakets.filter(p => !bankSearch || p.title.toLowerCase().includes(bankSearch.toLowerCase()))
 
   const uniqueLevels = [...new Set(courses.map(c => c.level).filter(Boolean))] as string[]
   const allBatchLevels: string[] = []
@@ -961,6 +1265,86 @@ export default function DataCourse() {
     if (!iso) return '-'
     return new Date(iso).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
   }
+
+  const renderPaketTable = (pakets: QuizPaket[], source: 'course' | 'bank') => (
+    <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-slate-200">
+          <thead className="bg-slate-50">
+            <tr>
+              <th className="w-10 px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">No</th>
+              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">Paket Soal</th>
+              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Soal</th>
+              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Dikerjakan</th>
+              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Peserta</th>
+              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Nilai Terbaik</th>
+              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Status</th>
+              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Aksi</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 bg-white">
+            {pakets.map((p, idx) => (
+              <tr key={p.id} className="hover:bg-slate-50/60 transition-colors">
+                <td className="px-4 py-3 text-sm text-slate-500">{idx + 1}</td>
+                <td className="px-4 py-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-slate-800 font-semibold truncate max-w-xs">{p.title}</p>
+                      {p.category && (
+                        <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#0E6187]/[0.08] text-[#0E6187] shrink-0">{p.category}</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {[p.batch?.nama_batch, p.level && `Level ${p.level}`].filter(Boolean).join(' · ') || 'Semua kandidat'}
+                    </p>
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800">{p.questions_count}</td>
+                <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800">{p.attempts_count}</td>
+                <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800">{p.participants}</td>
+                <td className="px-4 py-3 text-center text-sm font-semibold text-[#0E6187]">{Number(p.best_score) || '-'}</td>
+                <td className="px-4 py-3 text-center">
+                  <div className="flex items-center justify-center gap-1.5">
+                    <button onClick={() => togglePaket(p)}
+                      className={`relative w-10 h-[22px] rounded-full transition-colors shrink-0 ${p.status === 'aktif' ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                      title={p.status === 'aktif' ? 'Tutup paket' : 'Buka paket'}>
+                      <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${p.status === 'aktif' ? 'left-[20px]' : 'left-[2px]'}`} />
+                    </button>
+                    <span className={`text-[11px] font-semibold ${p.status === 'aktif' ? 'text-emerald-600' : 'text-slate-500'}`}>
+                      {p.status === 'aktif' ? 'Dibuka' : 'Ditutup'}
+                    </span>
+                  </div>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center justify-center gap-1">
+                    <button onClick={() => openMateri(p, source)}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0E6187] bg-[#0E6187]/[0.08] px-2 py-1.5 rounded-md hover:bg-[#0E6187]/15 transition-colors">
+                      <BookOpen size={13} /> Materi
+                    </button>
+                    <button onClick={() => openQuizQuestions(p, source)}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-[#0E6187] px-2 py-1.5 rounded-md hover:bg-[#0E6187]/90 transition-colors">
+                      <ListChecks size={13} /> Soal
+                    </button>
+                    <button onClick={() => openQuizResults(p, source)}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0E6187] bg-[#0E6187]/[0.08] px-2 py-1.5 rounded-md hover:bg-[#0E6187]/15 transition-colors">
+                      <Eye size={13} /> Hasil
+                    </button>
+                    <div className="w-px h-4 bg-slate-200 mx-1"></div>
+                    <button onClick={() => openEditPaket(p)} className="p-1.5 rounded-md bg-slate-100 hover:bg-slate-200 transition-colors" title="Edit">
+                      <Pencil size={13} className="text-slate-600" />
+                    </button>
+                    <button onClick={() => deletePaket(p)} className="p-1.5 rounded-md bg-red-50 hover:bg-red-100 transition-colors" title="Hapus">
+                      <Trash2 size={13} className="text-red-500" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
 
   // ==================== RENDER ====================
   return (
@@ -980,6 +1364,12 @@ export default function DataCourse() {
           </div>
           {view === 'list' && !isAdminCabang && (
             <div className="flex items-center gap-2">
+              <button onClick={openBank} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:border-slate-300 text-[12px]">
+                <ListChecks size={15} /> Bank Paket Soal
+              </button>
+              <button onClick={openWelcomeSettings} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:border-slate-300 text-[12px]">
+                <Settings size={15} /> Pengaturan
+              </button>
               <button onClick={openCreateCourseCat} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:border-slate-300 text-[12px]">
                 Kelola Kategori
               </button>
@@ -988,16 +1378,34 @@ export default function DataCourse() {
               </button>
             </div>
           )}
-          {view === 'quiz' && activeCourse && (
-            <button onClick={openCreatePaket} className={primaryBtn}>
-              <Plus size={16} /> Buat Paket
-            </button>
-          )}
-          {view === 'quiz-materi' && (
-            <button onClick={openCreateLesson} className={primaryBtn}>
-              <Plus size={16} /> Tambah Materi
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {view === 'quiz' && activeCourse && (
+              !activeCourse.kelas_sensei_id || courseTab === 'quiz' ? (
+                <>
+                  <button onClick={openCreatePaket} className={primaryBtn}>
+                    <Plus size={16} /> Buat Paket
+                  </button>
+                  <button onClick={openBankPicker} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:border-slate-300 text-[12px]">
+                    <ListChecks size={15} /> Paket Soal dari Bank
+                  </button>
+                </>
+              ) : (
+                <button onClick={openCreateCourseLesson} className={primaryBtn}>
+                  <Plus size={16} /> Tambah Pertemuan
+                </button>
+              )
+            )}
+            {view === 'quiz-materi' && (
+              <button onClick={openCreateLesson} className={primaryBtn}>
+                <Plus size={16} /> Tambah Materi
+              </button>
+            )}
+            {view === 'bank' && (
+              <button onClick={openCreateBankPaket} className={primaryBtn}>
+                <Plus size={16} /> Buat Paket Soal
+              </button>
+            )}
+          </div>
         </div>
 
         {/* ==================== LIST VIEW ==================== */}
@@ -1108,114 +1516,182 @@ export default function DataCourse() {
           </>
         )}
 
-        {/* ==================== QUIZ LIST VIEW ==================== */}
+        {/* ==================== COURSE DETAIL (PERTEMUAN + QUIZ) ==================== */}
         {view === 'quiz' && activeCourse && (
           <>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button onClick={backToList} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#0E6187] transition-colors">
-                <ChevronUp size={15} className="-rotate-90" /> Kembali
-              </button>
-              <div className="relative flex-1">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input value={quizSearch} onChange={e => setQuizSearch(e.target.value)} placeholder="Cari paket soal..." className={`${inputCls} pl-9`} />
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200">
+              <div className="p-5">
+                <button onClick={backToList} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#0E6187] transition-colors">
+                  <ChevronUp size={15} className="-rotate-90" /> Kembali
+                </button>
+                <div className="flex items-center gap-3 mt-4">
+                  <div className="w-11 h-11 rounded-xl bg-[#0E6187] text-white flex items-center justify-center shrink-0">
+                    <BookOpen size={22} />
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="text-lg font-bold text-slate-800 truncate">{activeCourse.title}</h2>
+                    <p className="text-sm text-slate-500">
+                      {[activeCourse.batch_id && batches.find(b => b.id === activeCourse.batch_id)?.nama_batch, activeCourse.level && `Level ${activeCourse.level}`].filter(Boolean).join(' · ') || 'Semua kandidat'}
+                      {' · '}{activeCourse.kelas_sensei_id ? `${courseLessons.length} pertemuan · ` : ''}{quizPakets.length} paket soal
+                    </p>
+                  </div>
+                </div>
+                {activeCourse.kelas_sensei_id ? (
+                  <div className="mt-4 border-b border-slate-200 flex gap-1">
+                    <button onClick={() => setCourseTab('lessons')}
+                      className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors ${courseTab === 'lessons' ? 'border-[#0E6187] text-[#0E6187]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+                      <BookOpen size={15} /> Daftar Pertemuan
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">{courseLessons.length}</span>
+                    </button>
+                    <button onClick={() => setCourseTab('quiz')}
+                      className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors ${courseTab === 'quiz' ? 'border-[#0E6187] text-[#0E6187]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+                      <ListChecks size={15} /> Quiz
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">{quizPakets.length}</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-4 pb-1">
+                    <h3 className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                      <ListChecks size={15} className="text-[#0E6187]" /> Daftar Paket Soal
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">{quizPakets.length}</span>
+                    </h3>
+                  </div>
+                )}
               </div>
             </div>
 
-            {quizLoading ? (
+            {/* ======= Daftar Pertemuan tab ======= */}
+            {courseTab === 'lessons' && (
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+                {courseLessonsLoading ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-slate-400 text-sm gap-2">
+                    <Loader2 size={24} className="animate-spin text-[#0E6187]" /> Memuat pertemuan...
+                  </div>
+                ) : courseLessons.length === 0 ? (
+                  <div className="p-14 text-center">
+                    <div className="w-14 h-14 mx-auto rounded-lg bg-[#0E6187]/10 flex items-center justify-center mb-3">
+                      <BookOpen size={28} className="text-[#0E6187]" />
+                    </div>
+                    <p className="text-slate-800 font-semibold">Belum ada pertemuan</p>
+                    <p className="text-slate-500 text-sm mt-1">Tambahkan pertemuan & materi pembelajaran untuk kursus "{activeCourse.title}"</p>
+                    <button onClick={openCreateCourseLesson} className={`${primaryBtn} mt-5`}>
+                      <Plus size={16} /> Tambah Pertemuan
+                    </button>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100">
+                    {courseLessons.map((lesson, idx) => (
+                      <div key={lesson.id} className="flex items-center gap-3 px-5 py-4 hover:bg-slate-50/60 transition-colors group">
+                        <div className="flex flex-col items-center gap-0.5">
+                          <button onClick={() => moveCourseLesson(idx, 'up')} disabled={idx === 0}
+                            className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20">
+                            <ChevronUp size={14} />
+                          </button>
+                          <span className="text-[10px] font-bold text-slate-400 w-5 text-center">{idx + 1}</span>
+                          <button onClick={() => moveCourseLesson(idx, 'down')} disabled={idx === courseLessons.length - 1}
+                            className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20">
+                            <ChevronDown size={14} />
+                          </button>
+                        </div>
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${lesson.status === 'aktif' ? 'bg-[#0E6187]/10 text-[#0E6187]' : 'bg-slate-100 text-slate-300'}`}>
+                          {lesson.video_url ? <Video size={16} /> : lesson.slides?.length ? <ImageIcon size={16} /> : <FileText size={16} />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-semibold truncate ${lesson.status === 'aktif' ? 'text-slate-800' : 'text-slate-400'}`}>{lesson.title}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            {lesson.video_url && <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400"><Video size={10} /> Video</span>}
+                            {lesson.content && <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400"><FileText size={10} /> Materi</span>}
+                            {lesson.file_name && <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400"><FileText size={10} /> PDF</span>}
+                            {!!lesson.slides?.length && <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400"><ImageIcon size={10} /> {lesson.slides.length} Slide</span>}
+                            <span className={`text-[10px] font-semibold ${lesson.status === 'aktif' ? 'text-emerald-600' : 'text-slate-400'}`}>
+                              {lesson.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => openEditCourseLesson(lesson)} className="p-2 rounded-lg text-slate-400 hover:bg-amber-50 hover:text-amber-600 transition-colors" title="Edit">
+                            <Edit3 size={14} />
+                          </button>
+                          <button onClick={() => deleteCourseLesson(lesson)} className="p-2 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors" title="Hapus">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ======= Quiz (paket soal) tab ======= */}
+            {courseTab === 'quiz' && (
+              <>
+                <div className="relative">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input value={quizSearch} onChange={e => setQuizSearch(e.target.value)} placeholder="Cari paket soal..." className={`${inputCls} pl-9`} />
+                </div>
+
+                {quizLoading ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-slate-400 text-sm gap-2">
+                    <Loader2 size={24} className="animate-spin text-[#0E6187]" /> Memuat paket soal...
+                  </div>
+                ) : filteredQuizPakets.length === 0 ? (
+                  <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-14 text-center">
+                    <div className="w-14 h-14 mx-auto rounded-lg bg-[#0E6187]/10 flex items-center justify-center mb-3">
+                      <ListChecks size={28} className="text-[#0E6187]" />
+                    </div>
+                    <p className="text-slate-800 font-semibold">Belum ada paket soal</p>
+                    <p className="text-slate-500 text-sm mt-1">Buat paket soal MCQ untuk kursus "{activeCourse.title}"</p>
+                    <button onClick={openCreatePaket} className={`${primaryBtn} mt-5`}>
+                      <Plus size={16} /> Buat Paket Soal
+                    </button>
+                  </div>
+                ) : renderPaketTable(filteredQuizPakets, 'course')}
+              </>
+            )}
+          </>
+        )}
+
+        {/* ==================== BANK PAKET SOAL VIEW ==================== */}
+        {view === 'bank' && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+              <button onClick={backToList} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#0E6187] transition-colors">
+                <ArrowLeft size={15} /> Kembali
+              </button>
+              <div className="flex items-center gap-3 mt-3">
+                <div className="w-11 h-11 rounded-xl bg-[#0E6187] text-white flex items-center justify-center shrink-0">
+                  <ListChecks size={22} />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-lg font-bold text-slate-800 truncate">Bank Paket Soal</h2>
+                  <p className="text-sm text-slate-500">Paket soal yang belum terhubung ke kursus mana pun</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input value={bankSearch} onChange={e => setBankSearch(e.target.value)} placeholder="Cari paket soal..." className={`${inputCls} pl-9`} />
+            </div>
+
+            {bankLoading ? (
               <div className="flex flex-col items-center justify-center py-20 text-slate-400 text-sm gap-2">
                 <Loader2 size={24} className="animate-spin text-[#0E6187]" /> Memuat paket soal...
               </div>
-            ) : filteredQuizPakets.length === 0 ? (
+            ) : filteredBankPakets.length === 0 ? (
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-14 text-center">
                 <div className="w-14 h-14 mx-auto rounded-lg bg-[#0E6187]/10 flex items-center justify-center mb-3">
                   <ListChecks size={28} className="text-[#0E6187]" />
                 </div>
-                <p className="text-slate-800 font-semibold">Belum ada paket soal</p>
-                <p className="text-slate-500 text-sm mt-1">Buat paket soal MCQ untuk kursus "{activeCourse.title}"</p>
-                <button onClick={openCreatePaket} className={`${primaryBtn} mt-5`}>
+                <p className="text-slate-800 font-semibold">Belum ada paket soal di bank</p>
+                <p className="text-slate-500 text-sm mt-1">Buat paket soal untuk disimpan di bank dan hubungkan ke kursus nanti</p>
+                <button onClick={openCreateBankPaket} className={`${primaryBtn} mt-5`}>
                   <Plus size={16} /> Buat Paket Soal
                 </button>
               </div>
-            ) : (
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-slate-200">
-                    <thead className="bg-slate-50">
-                      <tr>
-                        <th className="w-10 px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">No</th>
-                        <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">Paket Soal</th>
-                        <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Soal</th>
-                        <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Dikerjakan</th>
-                        <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Peserta</th>
-                        <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Nilai Terbaik</th>
-                        <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Status</th>
-                        <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
-                      {filteredQuizPakets.map((p, idx) => (
-                        <tr key={p.id} className="hover:bg-slate-50/60 transition-colors">
-                          <td className="px-4 py-3 text-sm text-slate-500">{idx + 1}</td>
-                          <td className="px-4 py-3">
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <p className="text-slate-800 font-semibold truncate max-w-xs">{p.title}</p>
-                                {p.category && (
-                                  <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#0E6187]/[0.08] text-[#0E6187] shrink-0">{p.category}</span>
-                                )}
-                              </div>
-                              <p className="text-xs text-slate-400 mt-0.5">
-                                {[p.batch?.nama_batch, p.level && `Level ${p.level}`].filter(Boolean).join(' · ') || 'Semua kandidat'}
-                              </p>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800">{p.questions_count}</td>
-                          <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800">{p.attempts_count}</td>
-                          <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800">{p.participants}</td>
-                          <td className="px-4 py-3 text-center text-sm font-semibold text-[#0E6187]">{Number(p.best_score) || '-'}</td>
-                          <td className="px-4 py-3 text-center">
-                            <div className="flex items-center justify-center gap-1.5">
-                              <button onClick={() => togglePaket(p)}
-                                className={`relative w-10 h-[22px] rounded-full transition-colors shrink-0 ${p.status === 'aktif' ? 'bg-emerald-500' : 'bg-slate-300'}`}
-                                title={p.status === 'aktif' ? 'Tutup paket' : 'Buka paket'}>
-                                <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${p.status === 'aktif' ? 'left-[20px]' : 'left-[2px]'}`} />
-                              </button>
-                              <span className={`text-[11px] font-semibold ${p.status === 'aktif' ? 'text-emerald-600' : 'text-slate-500'}`}>
-                                {p.status === 'aktif' ? 'Dibuka' : 'Ditutup'}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center justify-center gap-1">
-                      <button onClick={() => openMateri(p)}
-                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0E6187] bg-[#0E6187]/[0.08] px-2 py-1.5 rounded-md hover:bg-[#0E6187]/15 transition-colors">
-                                <BookOpen size={13} /> Materi
-                              </button>
-                              <button onClick={() => openQuizQuestions(p)}
-                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-[#0E6187] px-2 py-1.5 rounded-md hover:bg-[#0E6187]/90 transition-colors">
-                                <ListChecks size={13} /> Soal
-                              </button>
-                              <button onClick={() => openQuizResults(p)}
-                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0E6187] bg-[#0E6187]/[0.08] px-2 py-1.5 rounded-md hover:bg-[#0E6187]/15 transition-colors">
-                                <Eye size={13} /> Hasil
-                              </button>
-                              <div className="w-px h-4 bg-slate-200 mx-1"></div>
-                              <button onClick={() => openEditPaket(p)} className="p-1.5 rounded-md bg-slate-100 hover:bg-slate-200 transition-colors" title="Edit">
-                                <Pencil size={13} className="text-slate-600" />
-                              </button>
-                              <button onClick={() => deletePaket(p)} className="p-1.5 rounded-md bg-red-50 hover:bg-red-100 transition-colors" title="Hapus">
-                                <Trash2 size={13} className="text-red-500" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </>
+            ) : renderPaketTable(filteredBankPakets, 'bank')}
+          </div>
         )}
 
         {/* ==================== QUIZ MATERI VIEW ==================== */}
@@ -1510,11 +1986,6 @@ export default function DataCourse() {
                 <input type="text" value={courseCatForm.name} onChange={e => setCourseCatForm({ ...courseCatForm, name: e.target.value })}
                   className={inputCls} placeholder="Contoh: Bimbingan, Psikotes, Bahasa Jepang..." />
               </div>
-              <div>
-                <label className={labelCls}>Urutan</label>
-                <input type="number" value={courseCatForm.sort} onChange={e => setCourseCatForm({ ...courseCatForm, sort: e.target.value })}
-                  className={inputCls} />
-              </div>
               <div className="flex justify-end gap-2 pt-1">
                 <button onClick={() => setShowCourseCatModal(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
                   Batal
@@ -1533,7 +2004,7 @@ export default function DataCourse() {
                     <div key={cat.id} className="flex items-center gap-2 rounded-lg border border-slate-100 px-3 py-2">
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-slate-700 truncate">{cat.name}</p>
-                        <p className="text-[10px] text-slate-400">{cat.courses_count} kursus · Urutan {cat.sort}</p>
+                        <p className="text-[10px] text-slate-400">{cat.courses_count} kursus</p>
                       </div>
                       <button onClick={() => openEditCourseCat(cat)} className="p-1.5 rounded-md bg-slate-100 hover:bg-slate-200 transition-colors" title="Edit">
                         <Pencil size={13} className="text-slate-600" />
@@ -1802,13 +2273,82 @@ export default function DataCourse() {
         </div>
       )}
 
+      {/* ==================== BANK PICKER MODAL ==================== */}
+      {showBankPickerModal && activeCourse && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[10vh] pb-8 px-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+              <h3 className="font-semibold text-slate-800">Paket Soal dari Bank</h3>
+              <button onClick={() => setShowBankPickerModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
+                <X size={20} className="text-slate-400" />
+              </button>
+            </div>
+            <div className="p-5">
+              <p className="text-sm text-slate-500 mb-4">
+                Centang paket soal dari bank untuk ditambahkan ke kursus <span className="font-semibold text-slate-700">"{activeCourse.title}"</span>
+              </p>
+              {bankPickerLoading ? (
+                <div className="flex flex-col items-center justify-center py-16 text-slate-400 text-sm gap-2">
+                  <Loader2 size={24} className="animate-spin text-[#0E6187]" /> Memuat paket soal...
+                </div>
+              ) : bankPickerPakets.length === 0 ? (
+                <div className="py-14 text-center">
+                  <div className="w-14 h-14 mx-auto rounded-lg bg-[#0E6187]/10 flex items-center justify-center mb-3">
+                    <ListChecks size={28} className="text-[#0E6187]" />
+                  </div>
+                  <p className="text-slate-800 font-semibold">Bank kosong</p>
+                  <p className="text-slate-500 text-sm mt-1">Belum ada paket soal di bank paket</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden max-h-[50vh] overflow-y-auto">
+                  {bankPickerPakets.map(p => (
+                    <label key={p.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={bankPickedIds.includes(p.id)}
+                        onChange={() => toggleBankPick(p.id)}
+                        className="w-4 h-4 rounded border-slate-300 text-[#0E6187] focus:ring-[#0E6187]"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-slate-800 truncate">{p.title}</p>
+                          {p.category && (
+                            <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#0E6187]/[0.08] text-[#0E6187] shrink-0">{p.category}</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {[p.batch?.nama_batch, p.level && `Level ${p.level}`].filter(Boolean).join(' · ') || 'Semua kandidat'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-slate-500 shrink-0">
+                        <span>{p.questions_count} soal</span>
+                        <span className={`font-semibold ${p.status === 'aktif' ? 'text-emerald-600' : 'text-slate-500'}`}>
+                          {p.status === 'aktif' ? 'Dibuka' : 'Ditutup'}
+                        </span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="px-5 py-4 border-t border-slate-200 flex justify-end gap-3">
+              <button onClick={() => setShowBankPickerModal(false)} className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Batal</button>
+              <button onClick={assignSelectedPakets} disabled={assigningPakets || bankPickedIds.length === 0}
+                className="px-4 py-2.5 bg-[#0E6187] text-white rounded-lg text-sm font-semibold hover:bg-[#0E6187]/90 disabled:opacity-50 transition-colors">
+                {assigningPakets ? 'Menambahkan...' : `Tambahkan ${bankPickedIds.length > 0 ? `(${bankPickedIds.length})` : ''}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ==================== LESSON (MATERI) MODAL ==================== */}
       {showLessonModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[6vh] pb-8 px-4 overflow-y-auto">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-slate-800">{editingLesson ? 'Edit Materi' : 'Tambah Materi'}</h3>
+                <h3 className="font-semibold text-slate-800">{editingLesson ? 'Edit Materi' : (lessonSource === 'course' ? 'Tambah Pertemuan' : 'Tambah Materi')}</h3>
                 <p className="text-xs text-slate-400">{activeCourse?.title}</p>
               </div>
               <button onClick={() => setShowLessonModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
@@ -1894,7 +2434,7 @@ export default function DataCourse() {
             <div className="px-5 py-4 border-t border-slate-200 flex justify-end gap-3">
               <button onClick={() => setShowLessonModal(false)} className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Batal</button>
               <button onClick={handleSaveLesson} disabled={savingLesson} className="px-4 py-2.5 bg-[#0E6187] text-white rounded-lg text-sm font-semibold hover:bg-[#0E6187]/90 disabled:opacity-50 transition-colors">
-                {savingLesson ? 'Menyimpan...' : editingLesson ? 'Simpan Perubahan' : 'Tambah Materi'}
+                {savingLesson ? 'Menyimpan...' : editingLesson ? 'Simpan Perubahan' : (lessonSource === 'course' ? 'Tambah Pertemuan' : 'Tambah Materi')}
               </button>
             </div>
           </div>
@@ -2197,6 +2737,149 @@ export default function DataCourse() {
                 </>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== WELCOME VIDEO SETTINGS MODAL ==================== */}
+      {showWelcomeSettings && (
+        <div className="fixed inset-0 z-[70] bg-black/50 flex items-center justify-center p-4" onClick={() => setShowWelcomeSettings(false)}>
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[88vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-lg bg-[#0E6187]/10 flex items-center justify-center">
+                  <Settings size={18} className="text-[#0E6187]" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-gray-900">Pengaturan LMS</h2>
+                  <p className="text-[10px] text-gray-400 font-medium">Video Selamat Datang untuk halaman siswa</p>
+                </div>
+              </div>
+              <button onClick={() => setShowWelcomeSettings(false)}
+                className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {welcomeLoading ? (
+                <div className="flex items-center justify-center py-10">
+                  <div className="w-6 h-6 border-2 border-[#0E6187] border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : (
+                <>
+                  <p className="text-[11px] text-gray-500 leading-relaxed">
+                    Video ini akan pertunjukan di atas daftar kursus pada halaman <b className="text-gray-700">Kelas Mendunia</b> siswa.
+                    Mengunggah file video <b className="text-gray-700">mp4 / webm</b> ucapan untuk siswa atau memakai <b className="text-gray-700">URL YouTube</b>.
+                  </p>
+
+                  {welcomeVideoUrl && (
+                    <div className="overflow-hidden rounded-xl border border-gray-200">
+                      <iframe
+                        src={getYouTubeEmbedUrl(welcomeVideoUrl) || welcomeVideoUrl}
+                        allowFullScreen
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        className="w-full aspect-video bg-black"
+                        title="Video Selamat Datang"
+                      />
+                    </div>
+                  )}
+
+                  {welcomeVideo && (
+                    <div className="overflow-hidden rounded-xl border border-gray-200">
+                      <video src={`${APP_URL}/storage/${welcomeVideo}`} controls
+                        className="w-full aspect-video bg-black" />
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">File Video Selamat Datang</label>
+                    {welcomeFile ? (
+                      <div className="flex items-center gap-3 p-3 bg-[#0E6187]/5 border-2 border-[#0E6187]/20 rounded-xl">
+                        <Video size={18} className="text-[#0E6187] shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-gray-800 truncate">{welcomeFile.name}</p>
+                          <p className="text-[10px] text-gray-400 mt-0.5">{(welcomeFile.size / (1024 * 1024)).toFixed(1)} MB</p>
+                        </div>
+                        <button onClick={() => setWelcomeFile(null)}
+                          className="p-2 rounded-lg text-gray-400 hover:text-red-500 transition-colors">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center gap-2 px-4 py-6 border-2 border-dashed border-gray-200 rounded-xl text-xs text-gray-400 hover:border-[#0E6187]/30 hover:bg-gray-50 cursor-pointer transition-all">
+                        <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center">
+                          <Upload size={18} className="text-gray-300" />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-[11px] font-bold text-gray-500">Klik untuk diseleksi video</p>
+                          <p className="text-[9px] text-gray-400 mt-0.5">mp4, webm, mov · max 200 MB</p>
+                        </div>
+                        <input
+                          type="file"
+                          accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
+                          className="hidden"
+                          onChange={e => {
+                            const f = e.target.files?.[0]
+                            if (f) setWelcomeFile(f)
+                            e.target.value = ''
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-gray-200" />
+                    </div>
+                    <div className="relative flex justify-center">
+                      <span className="bg-white px-3 text-[10px] font-semibold text-gray-400 uppercase">atau</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">URL Video YouTube</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        value={welcomeUrlInput}
+                        onChange={e => setWelcomeUrlInput(e.target.value)}
+                        placeholder="https://www.youtube.com/watch?v=..."
+                        className="flex-1 min-w-0 rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-xs outline-none transition focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187]/30"
+                      />
+                      <button onClick={handleSaveWelcomeUrl} disabled={!welcomeUrlInput.trim() || welcomeSaving}
+                        className="shrink-0 rounded-xl bg-[#0E6187] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#0E6187]/90 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                        {welcomeSaving ? 'Menyimpan...' : 'Simpan URL'}
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-1.5">
+                      Dukung tautan <b>youtube.com/watch</b>, <b>youtu.be</b>, <b>youtube.com/shorts</b>, dan <b>playlist</b>.
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {!welcomeLoading && (
+              <div className="px-5 py-4 border-t border-gray-100 flex justify-end gap-3">
+                {(welcomeVideo || welcomeVideoUrl) && (
+                  <button
+                    onClick={handleDeleteWelcomeVideo}
+                    className="rounded-lg border border-red-200 text-red-600 px-4 py-2.5 text-xs font-semibold hover:bg-red-50 transition-colors">
+                    Hapus
+                  </button>
+                )}
+                <button onClick={() => setShowWelcomeSettings(false)}
+                  className="rounded-lg border border-gray-300 px-4 py-2.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
+                  Tutup
+                </button>
+                <button onClick={handleSaveWelcomeVideo} disabled={!welcomeFile || welcomeSaving}
+                  className="rounded-lg bg-[#0E6187] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#0E6187]/90 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                  {welcomeSaving ? 'Menyimpan...' : 'Simpan Video'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

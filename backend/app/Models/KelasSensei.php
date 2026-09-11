@@ -66,17 +66,31 @@ class KelasSensei extends Model
      */
     public function totalPertemuan(): int
     {
-        $tglMulai = \Carbon\Carbon::parse($this->tanggal_mulai);
-        $tglSelesai = \Carbon\Carbon::parse($this->tanggal_selesai);
+        return count($this->daftarPertemuan());
+    }
 
-        return $tglMulai->copy()->diffInDaysFiltered(function (\Carbon\Carbon $date) {
-            if ($date->dayOfWeek === \Carbon\Carbon::SUNDAY || $date->dayOfWeek === \Carbon\Carbon::SATURDAY) {
-                return false;
+    /**
+     * Daftar tanggal pertemuan (hari kerja di luar hari libur)
+     * antara tanggal mulai dan tanggal selesai.
+     *
+     * @return array<string>
+     */
+    public function daftarPertemuan(): array
+    {
+        $tglMulai = \Carbon\Carbon::parse($this->tanggal_mulai)->startOfDay();
+        $tglSelesai = \Carbon\Carbon::parse($this->tanggal_selesai)->startOfDay();
+
+        $dates = [];
+        $cursor = $tglMulai->copy();
+        while ($cursor->lte($tglSelesai)) {
+            if ($cursor->dayOfWeek !== \Carbon\Carbon::SATURDAY && $cursor->dayOfWeek !== \Carbon\Carbon::SUNDAY) {
+                if (!HariLibur::apakahLibur($cursor->toDateString())) {
+                    $dates[] = $cursor->toDateString();
+                }
             }
-            if (HariLibur::apakahLibur($date->toDateString())) {
-                return false;
-            }
-            return true;
-        }, $tglSelesai->copy()->addSecond());
+            $cursor->addDay();
+        }
+
+        return $dates;
     }
 }

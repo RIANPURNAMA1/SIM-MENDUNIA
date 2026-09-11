@@ -1,16 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   BookOpen, Plus, FileText, X, Image as ImageIcon, Download, Trash2,
   ChevronRight, ArrowLeft, Layers, Search, Video, GripVertical, Edit3,
-  ChevronUp, ChevronDown, Upload, FolderOpen, ListChecks, Eye, EyeOff, Trophy, Users
+  ChevronUp, ChevronDown, Upload, FolderOpen, ListChecks, Eye, EyeOff, Trophy, Users, History, HelpCircle, Check
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
-import { guruLmsApi, lmsAdminApi, APP_URL } from '../../services/api'
+import { guruLmsApi, lmsAdminApi, guruKelasApi, guruQuizApi, assignmentApi, APP_URL } from '../../services/api'
 import { getYouTubeEmbedUrl } from '../../utils/youtube'
 import Swal from 'sweetalert2'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
 import GuruPaketSoal from './GuruPaketSoal'
+import LessonMediaFields, { LessonSlideItem } from '../../components/LessonMediaFields'
 
 interface Course {
   id: number
@@ -23,6 +25,21 @@ interface Course {
   status: string
   lessons_count: number
   files_count: number
+  can_manage?: boolean
+  kelas_sensei_id?: number | null
+}
+
+interface KelasOption {
+  id: number
+  nama_kelas: string
+  level: string | null
+  batch_id: number | null
+  tanggal_mulai: string | null
+  tanggal_selesai: string | null
+  tanggal_mulai_formatted?: string | null
+  tanggal_selesai_formatted?: string | null
+  total_pertemuan?: number
+  batch_relasi?: { nama_batch: string } | null
 }
 
 interface CourseFile {
@@ -44,8 +61,25 @@ interface Lesson {
   file_name: string | null
   file_type: string | null
   file_size: number | null
+  paket_id: number | null
+  paket?: { id: number; title: string } | null
+  slides?: { id: number; file_path: string; file_name?: string; url?: string }[]
   sort: number
   status: string
+}
+
+interface PaketOption {
+  id: number
+  title: string
+}
+
+interface AssignItem {
+  id: number
+  title: string
+  description: string | null
+  due_date: string | null
+  max_score: number | null
+  submissions_count?: number
 }
 
 interface Batch {
@@ -87,6 +121,7 @@ export default function GuruLMS() {
   const [batches, setBatches] = useState<Batch[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const navigate = useNavigate()
 
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
   const [courseLessons, setCourseLessons] = useState<Lesson[]>([])
@@ -101,6 +136,8 @@ export default function GuruLMS() {
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
+  const [kelasSaya, setKelasSaya] = useState<KelasOption[]>([])
+  const [selectedKelasId, setSelectedKelasId] = useState('')
   const [uploading, setUploading] = useState(false)
   const quillRef = useRef<any>(null)
   const [batchLevels, setBatchLevels] = useState<Record<number, string[]>>({})
@@ -108,9 +145,24 @@ export default function GuruLMS() {
   const [showLessonModal, setShowLessonModal] = useState(false)
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null)
   const [savingLesson, setSavingLesson] = useState(false)
-  const [lessonForm, setLessonForm] = useState({ title: '', content: '', video_url: '', sort: '0', status: 'aktif' })
-  const [lessonFile, setLessonFile] = useState<File | null>(null)
-  const [lessonFilePreview, setLessonFilePreview] = useState<{ name: string; size: string } | null>(null)
+  const [lessonForm, setLessonForm] = useState({ title: '', content: '', video_url: '', paket_id: '', sort: '0', status: 'aktif' })
+  const [quizPakets, setQuizPakets] = useState<PaketOption[]>([])
+  const [lessonTasks, setLessonTasks] = useState<AssignItem[]>([])
+  const [taskForm, setTaskForm] = useState({ title: '', description: '', dueDate: '', maxScore: '' })
+  const [savingTask, setSavingTask] = useState(false)
+  const [showPaketManager, setShowPaketManager] = useState(false)
+  const [lessonStep, setLessonStep] = useState(1)
+  const lessonSteps = [
+    { label: 'Materi' },
+    { label: 'Quiz' },
+    { label: 'Tugas' },
+    { label: 'Selesai' },
+  ]
+  const [lessonPdf, setLessonPdf] = useState<File | null>(null)
+  const [lessonPdfName, setLessonPdfName] = useState<string | null>(null)
+  const [lessonPdfSize, setLessonPdfSize] = useState<number | null>(null)
+  const [removeLessonPdf, setRemoveLessonPdf] = useState(false)
+  const [lessonSlides, setLessonSlides] = useState<LessonSlideItem[]>([])
   const lessonQuillRef = useRef<any>(null)
   const [lessonUploading, setLessonUploading] = useState(false)
 
@@ -260,6 +312,24 @@ export default function GuruLMS() {
 
   useEffect(() => { fetchCourses() }, [])
 
+  useEffect(() => {
+    guruKelasApi.list().then(res => {
+      setKelasSaya(res.data.kelas || [])
+    }).catch(() => setKelasSaya([]))
+  }, [])
+
+  useEffect(() => {
+    guruQuizApi.pakets().then(res => {
+      setQuizPakets(res.data.pakets || [])
+    }).catch(() => setQuizPakets([]))
+  }, [])
+
+  const refreshQuizPakets = () => {
+    guruQuizApi.pakets().then(res => {
+      setQuizPakets(res.data.pakets || [])
+    }).catch(() => {})
+  }
+
   const fetchCourses = () => {
     setLoading(true)
     guruLmsApi.courses().then(res => {
@@ -288,6 +358,7 @@ export default function GuruLMS() {
   const openCreateCourse = () => {
     setEditingCourse(null)
     setCourseForm({ title: '', description: '', level: '', batch_id: '', sort: '0', status: 'aktif' })
+    setSelectedKelasId('')
     setImageFile(null)
     setImagePreview(null)
     setPendingFiles([])
@@ -307,10 +378,30 @@ export default function GuruLMS() {
     setImageFile(null)
     setImagePreview(course.image ? `${APP_URL}/storage/${course.image}` : null)
     setPendingFiles([])
+    setSelectedKelasId('')
     setShowCourseModal(true)
   }
 
+  const onSelectKelas = (id: string) => {
+    setSelectedKelasId(id)
+    const k = kelasSaya.find(k => String(k.id) === id)
+    if (k) {
+      setCourseForm(f => ({
+        ...f,
+        title: k.nama_kelas,
+        level: k.level || '',
+        batch_id: k.batch_id ? String(k.batch_id) : '',
+      }))
+    } else {
+      setCourseForm(f => ({ ...f, title: '', level: '', batch_id: '' }))
+    }
+  }
+
   const handleSaveCourse = async () => {
+    if (!editingCourse && !selectedKelasId) {
+      Swal.fire({ icon: 'warning', title: 'Pilih kelas terlebih dahulu', text: 'Guru hanya dapat membuat kursus berdasarkan kelas & pertemuan' })
+      return
+    }
     if (!courseForm.title.trim()) {
       Swal.fire({ icon: 'warning', title: 'Judul kursus wajib diisi' })
       return
@@ -324,6 +415,7 @@ export default function GuruLMS() {
       fd.append('batch_id', courseForm.batch_id)
       fd.append('sort', courseForm.sort || '0')
       fd.append('status', courseForm.status)
+      if (selectedKelasId) fd.append('kelas_sensei_id', selectedKelasId)
       if (imageFile) fd.append('image', imageFile)
 
       if (editingCourse) {
@@ -342,7 +434,13 @@ export default function GuruLMS() {
       }
       setShowCourseModal(false)
       fetchCourses()
-      Swal.fire({ icon: 'success', title: editingCourse ? 'Kursus diperbarui' : 'Kursus dibuat', timer: 1500, showConfirmButton: false })
+      Swal.fire({
+        icon: 'success',
+        title: editingCourse ? 'Kursus diperbarui' : 'Kursus dibuat',
+        text: !editingCourse && selectedKelasId ? 'Pelajaran otomatis dibuat dari tiap pertemuan kelas' : '',
+        timer: 1800,
+        showConfirmButton: false,
+      })
     } catch {
       Swal.fire({ icon: 'error', title: 'Gagal menyimpan kursus' })
     } finally {
@@ -371,26 +469,93 @@ export default function GuruLMS() {
   }
 
   // Lesson CRUD
+  const loadLessonTasks = (courseId: number) => {
+    assignmentApi.list(courseId).then((res: any) => {
+      setLessonTasks(res.data.assignments || [])
+    }).catch(() => setLessonTasks([]))
+  }
+
   const openCreateLesson = () => {
     setEditingLesson(null)
-    setLessonForm({ title: '', content: '', video_url: '', sort: String(courseLessons.length + 1), status: 'aktif' })
-    setLessonFile(null)
-    setLessonFilePreview(null)
+    setLessonStep(1)
+    setLessonForm({ title: '', content: '', video_url: '', paket_id: '', sort: String(courseLessons.length + 1), status: 'aktif' })
+    setLessonPdf(null)
+    setLessonPdfName(null)
+    setLessonPdfSize(null)
+    setRemoveLessonPdf(false)
+    setLessonSlides([])
+    if (selectedCourse) loadLessonTasks(selectedCourse.id)
     setShowLessonModal(true)
   }
 
   const openEditLesson = (lesson: Lesson) => {
     setEditingLesson(lesson)
+    setLessonStep(1)
     setLessonForm({
       title: lesson.title,
       content: lesson.content || '',
       video_url: lesson.video_url || '',
+      paket_id: lesson.paket_id ? String(lesson.paket_id) : '',
       sort: lesson.sort.toString(),
       status: lesson.status,
     })
-    setLessonFile(null)
-    setLessonFilePreview(lesson.file_name ? { name: lesson.file_name, size: lesson.file_size ? formatFileSize(lesson.file_size) : '' } : null)
+    setLessonPdf(null)
+    setLessonPdfName(lesson.file_name || null)
+    setLessonPdfSize(lesson.file_size || null)
+    setRemoveLessonPdf(false)
+    setLessonSlides((lesson.slides || []).map(s => ({
+      key: `existing-${s.id}`,
+      id: s.id,
+      url: s.url || `${APP_URL}/storage/${s.file_path}`,
+      name: s.file_name || 'slide',
+    })))
+    if (selectedCourse) loadLessonTasks(selectedCourse.id)
     setShowLessonModal(true)
+  }
+
+  const handleSaveTask = async () => {
+    if (!taskForm.title.trim()) {
+      Swal.fire({ icon: 'warning', title: 'Judul tugas wajib diisi' })
+      return
+    }
+    if (!selectedCourse) return
+    setSavingTask(true)
+    try {
+      const fd = new FormData()
+      fd.append('course_id', String(selectedCourse.id))
+      fd.append('title', taskForm.title)
+      if (taskForm.description) fd.append('description', taskForm.description)
+      if (taskForm.dueDate) fd.append('due_date', taskForm.dueDate)
+      if (taskForm.maxScore) fd.append('max_score', taskForm.maxScore)
+      await assignmentApi.store(fd)
+      setTaskForm({ title: '', description: '', dueDate: '', maxScore: '' })
+      loadLessonTasks(selectedCourse.id)
+      Swal.fire({ icon: 'success', title: 'Tugas ditambahkan', timer: 1200, showConfirmButton: false })
+    } catch (e: any) {
+      Swal.fire({ icon: 'error', title: 'Gagal menambah tugas', text: e?.response?.data?.message || '' })
+    } finally {
+      setSavingTask(false)
+    }
+  }
+
+  const handleDeleteTask = (task: AssignItem) => {
+    Swal.fire({
+      title: 'Hapus tugas?',
+      text: `"${task.title}" akan dihapus`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      confirmButtonText: 'Ya, hapus',
+      cancelButtonText: 'Batal',
+    }).then(async r => {
+      if (!r.isConfirmed) return
+      try {
+        await assignmentApi.delete(task.id)
+        loadLessonTasks(selectedCourse!.id)
+      } catch {
+        Swal.fire({ icon: 'error', title: 'Gagal menghapus tugas' })
+      }
+    })
   }
 
   const handleSaveLesson = async () => {
@@ -406,11 +571,21 @@ export default function GuruLMS() {
       fd.append('title', lessonForm.title)
       fd.append('content', lessonForm.content)
       fd.append('video_url', lessonForm.video_url)
+      fd.append('paket_id', lessonForm.paket_id)
       fd.append('sort', lessonForm.sort || '0')
       fd.append('status', lessonForm.status)
-      if (lessonFile) fd.append('file', lessonFile)
-
+      if (lessonPdf) fd.append('file', lessonPdf)
+      if (removeLessonPdf) fd.append('remove_file', '1')
+      lessonSlides.filter(s => s.file).forEach(s => {
+        if (s.file) fd.append('slides[]', s.file)
+      })
       if (editingLesson) {
+        const existing = new Set((editingLesson.slides || []).map(s => s.id))
+        const removedIds = (editingLesson.slides || [])
+          .filter(s => !lessonSlides.some(n => n.id === s.id))
+          .filter(s => existing.has(s.id))
+          .map(s => s.id)
+        removedIds.forEach(id => fd.append('remove_slides[]', String(id)))
         await guruLmsApi.updateLesson(editingLesson.id, fd)
       } else {
         await guruLmsApi.storeLesson(fd)
@@ -418,7 +593,8 @@ export default function GuruLMS() {
       setShowLessonModal(false)
       fetchCourseDetail(selectedCourse.id)
       fetchCourses()
-      Swal.fire({ icon: 'success', title: editingLesson ? 'Pelajaran diperbarui' : 'Pelajaran dibuat', timer: 1500, showConfirmButton: false })
+      const viaKelasToast = selectedCourse?.kelas_sensei_id ? 'Pertemuan' : 'Pelajaran'
+      Swal.fire({ icon: 'success', title: editingLesson ? `${viaKelasToast} diperbarui` : `${viaKelasToast} dibuat`, timer: 1500, showConfirmButton: false })
     } catch {
       Swal.fire({ icon: 'error', title: 'Gagal menyimpan pelajaran' })
     } finally {
@@ -553,6 +729,8 @@ export default function GuruLMS() {
 
   // ==================== COURSE DETAIL VIEW ====================
   if (selectedCourse) {
+    const canManage = !!selectedCourse.can_manage
+    const viaKelas = !!selectedCourse.kelas_sensei_id
     return (
       <div className="min-h-screen bg-[#F4F5F8] pb-24">
         <div className="h-[3px] bg-gradient-to-r from-[#0069b0] via-[#0069b0] to-[#0069b0]" />
@@ -587,14 +765,23 @@ export default function GuruLMS() {
                 </div>
               </div>
               <div className="flex items-center gap-1.5">
-                <button onClick={() => openEditCourse(selectedCourse)}
-                  className="flex items-center gap-1.5 text-[11px] font-bold text-[#0069b0] border border-[#0069b0]/30 px-3 py-1.5 rounded-lg hover:bg-[#0069b0]/5 transition-colors">
-                  <Edit3 size={12} /> Edit
-                </button>
-                <button onClick={() => handleDeleteCourse(selectedCourse)}
-                  className="flex items-center gap-1.5 text-[11px] font-bold text-red-500 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors">
-                  <Trash2 size={12} />
-                </button>
+                {!canManage && (
+                  <span className="flex items-center gap-1 text-[10px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1.5 rounded-lg">
+                    <Eye size={12} /> Hanya Baca
+                  </span>
+                )}
+                {canManage && (
+                  <>
+                    <button onClick={() => openEditCourse(selectedCourse)}
+                      className="flex items-center gap-1.5 text-[11px] font-bold text-[#0069b0] border border-[#0069b0]/30 px-3 py-1.5 rounded-lg hover:bg-[#0069b0]/5 transition-colors">
+                      <Edit3 size={12} /> Edit
+                    </button>
+                    <button onClick={() => handleDeleteCourse(selectedCourse)}
+                      className="flex items-center gap-1.5 text-[11px] font-bold text-red-500 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors">
+                      <Trash2 size={12} />
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
@@ -607,10 +794,12 @@ export default function GuruLMS() {
           <div className="max-w-5xl mx-auto px-4">
             <div className="flex gap-0 border-b border-gray-200">
               {([
-                { key: 'lessons' as TabType, label: 'Pelajaran', icon: ListChecks, count: courseLessons.length },
-                { key: 'files' as TabType, label: 'File Materi', icon: FolderOpen, count: courseFiles.length },
-                { key: 'quiz' as TabType, label: 'Quiz', icon: Trophy, count: undefined as number | undefined },
-                { key: 'tugas' as TabType, label: 'Tugas', icon: FileText, count: 0 },
+                { key: 'lessons' as TabType, label: viaKelas ? 'Daftar Pertemuan' : 'Pelajaran', icon: ListChecks, count: courseLessons.length },
+                ...(!viaKelas ? [
+                  { key: 'files' as TabType, label: 'File Materi', icon: FolderOpen, count: courseFiles.length },
+                  ...(canManage ? [{ key: 'quiz' as TabType, label: 'Quiz', icon: Trophy, count: undefined as number | undefined }] : []),
+                  { key: 'tugas' as TabType, label: 'Tugas', icon: FileText, count: 0 },
+                ] : []),
               ]).map(tab => (
                 <button key={tab.key} onClick={() => setActiveTab(tab.key)}
                   className={`flex items-center gap-1.5 px-4 py-3 text-xs font-bold border-b-2 transition-colors ${
@@ -637,11 +826,13 @@ export default function GuruLMS() {
           {activeTab === 'lessons' && (
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-                <h3 className="text-sm font-bold text-gray-800">Daftar Pelajaran</h3>
-                <button onClick={openCreateLesson}
-                  className="flex items-center gap-1.5 bg-[#0069b0] text-white px-3.5 py-2 rounded-lg text-[11px] font-bold hover:bg-[#004d7a] transition-colors shadow-sm">
-                  <Plus size={14} /> Tambah Pelajaran
-                </button>
+                <h3 className="text-sm font-bold text-gray-800">{viaKelas ? 'Daftar Pertemuan' : 'Daftar Pelajaran'}</h3>
+                {canManage && !viaKelas && (
+                  <button onClick={openCreateLesson}
+                    className="flex items-center gap-1.5 bg-[#0069b0] text-white px-3.5 py-2 rounded-lg text-[11px] font-bold hover:bg-[#004d7a] transition-colors shadow-sm">
+                    <Plus size={14} /> Tambah Pelajaran
+                  </button>
+                )}
               </div>
 
               {detailLoading ? (
@@ -656,38 +847,48 @@ export default function GuruLMS() {
                   <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
                     <BookOpen size={28} className="text-gray-300" />
                   </div>
-                  <p className="text-sm font-semibold text-gray-500">Belum ada pelajaran</p>
-                  <p className="text-xs text-gray-400 mt-1">Klik "Tambah Pelajaran" untuk menambahkan materi pembelajaran</p>
+                  <p className="text-sm font-semibold text-gray-500">{viaKelas ? 'Belum ada pertemuan' : 'Belum ada pelajaran'}</p>
+                  <p className="text-xs text-gray-400 mt-1">{canManage
+                    ? (viaKelas ? 'Pertemuan dibuat otomatis dari jadwal kelas' : 'Klik "Tambah Pelajaran" untuk menambahkan materi pembelajaran')
+                    : (viaKelas ? 'Tidak ada pertemuan untuk kursus ini' : 'Tidak ada pelajaran untuk kursus ini')}</p>
                 </div>
               ) : (
                 <div className="divide-y divide-gray-100">
                   {courseLessons.map((lesson, idx) => (
                     <div key={lesson.id} className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50/50 transition-colors group">
-                      <div className="flex flex-col items-center gap-0.5">
-                        <button onClick={() => moveLesson(idx, 'up')} disabled={idx === 0}
-                          className="p-0.5 hover:bg-gray-100 rounded disabled:opacity-20 disabled:cursor-not-allowed text-gray-300 hover:text-gray-500 transition-colors">
-                          <ChevronUp size={12} />
-                        </button>
-                        <span className="text-[10px] font-bold text-gray-300 w-5 text-center">{idx + 1}</span>
-                        <button onClick={() => moveLesson(idx, 'down')} disabled={idx === courseLessons.length - 1}
-                          className="p-0.5 hover:bg-gray-100 rounded disabled:opacity-20 disabled:cursor-not-allowed text-gray-300 hover:text-gray-500 transition-colors">
-                          <ChevronDown size={12} />
-                        </button>
-                      </div>
+                      {canManage && (
+                        <div className="flex flex-col items-center gap-0.5">
+                          <button onClick={() => moveLesson(idx, 'up')} disabled={idx === 0}
+                            className="p-0.5 hover:bg-gray-100 rounded disabled:opacity-20 disabled:cursor-not-allowed text-gray-300 hover:text-gray-500 transition-colors">
+                            <ChevronUp size={12} />
+                          </button>
+                          <span className="text-[10px] font-bold text-gray-300 w-5 text-center">{idx + 1}</span>
+                          <button onClick={() => moveLesson(idx, 'down')} disabled={idx === courseLessons.length - 1}
+                            className="p-0.5 hover:bg-gray-100 rounded disabled:opacity-20 disabled:cursor-not-allowed text-gray-300 hover:text-gray-500 transition-colors">
+                            <ChevronDown size={12} />
+                          </button>
+                        </div>
+                      )}
+                      {!canManage && (
+                        <span className="w-5 text-center text-[10px] font-bold text-gray-300">{idx + 1}</span>
+                      )}
 
-                      <div className={`flex items-center justify-center w-9 h-9 rounded-lg shrink-0 ${
+                      <div className={`flex items-center justify-center w-9 h-9 rounded-lg shrink-0 cursor-pointer ${
                         lesson.status === 'aktif' ? 'bg-[#0069b0]/10 text-[#0069b0]' : 'bg-gray-100 text-gray-300'
-                      }`}>
-                        {lesson.video_url ? <Video size={16} /> : <FileText size={16} />}
+                      }`} onClick={() => navigate(`/guru-lms/lesson/${lesson.id}`)}>
+                        {lesson.video_url ? <Video size={16} /> : lesson.slides?.length ? <ImageIcon size={16} /> : <FileText size={16} />}
                       </div>
 
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/guru-lms/lesson/${lesson.id}`)}>
                         <p className={`text-sm font-semibold truncate ${lesson.status === 'aktif' ? 'text-gray-800' : 'text-gray-400'}`}>
                           {lesson.title}
                         </p>
                         <div className="flex items-center gap-3 mt-0.5">
                           {lesson.video_url && <span className="text-[10px] text-gray-400 flex items-center gap-1"><Video size={10} /> Video</span>}
                           {lesson.content && <span className="text-[10px] text-gray-400 flex items-center gap-1"><FileText size={10} /> Materi</span>}
+                          {lesson.file_name && <span className="text-[10px] text-gray-400 flex items-center gap-1"><FileText size={10} /> PDF</span>}
+                          {!!lesson.slides?.length && <span className="text-[10px] text-gray-400 flex items-center gap-1"><ImageIcon size={10} /> {lesson.slides.length} Slide</span>}
+                          {lesson.paket && <span className="text-[10px] text-gray-400 flex items-center gap-1"><HelpCircle size={10} /> Quiz</span>}
                           <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
                             lesson.status === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'
                           }`}>
@@ -698,18 +899,22 @@ export default function GuruLMS() {
                       </div>
 
                       <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => toggleLessonStatus(lesson)} title={lesson.status === 'aktif' ? 'Nonaktifkan' : 'Aktifkan'}
-                          className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
-                          {lesson.status === 'aktif' ? <Eye size={14} /> : <EyeOff size={14} />}
-                        </button>
-                        <button onClick={() => openEditLesson(lesson)} title="Edit"
-                          className="p-2 rounded-lg text-gray-400 hover:bg-amber-50 hover:text-amber-600 transition-colors">
-                          <Edit3 size={14} />
-                        </button>
-                        <button onClick={() => handleDeleteLesson(lesson)} title="Hapus"
-                          className="p-2 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors">
-                          <Trash2 size={14} />
-                        </button>
+                        {canManage && (
+                          <>
+                            <button onClick={() => toggleLessonStatus(lesson)} title={lesson.status === 'aktif' ? 'Nonaktifkan' : 'Aktifkan'}
+                              className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
+                              {lesson.status === 'aktif' ? <Eye size={14} /> : <EyeOff size={14} />}
+                            </button>
+                            <button onClick={() => openEditLesson(lesson)} title="Edit"
+                              className="p-2 rounded-lg text-gray-400 hover:bg-amber-50 hover:text-amber-600 transition-colors">
+                              <Edit3 size={14} />
+                            </button>
+                            <button onClick={() => handleDeleteLesson(lesson)} title="Hapus"
+                              className="p-2 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors">
+                              <Trash2 size={14} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -723,15 +928,17 @@ export default function GuruLMS() {
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
                 <h3 className="text-sm font-bold text-gray-800">File Materi</h3>
-                <label className="flex items-center gap-1.5 bg-[#0069b0] text-white px-3.5 py-2 rounded-lg text-[11px] font-bold hover:bg-[#004d7a] cursor-pointer transition-colors shadow-sm">
-                  {fileUploading ? (
-                    <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Upload...</>
-                  ) : (
-                    <><Upload size={13} /> Upload File</>
-                  )}
-                  <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png" className="hidden"
-                    onChange={handleUploadFile} disabled={fileUploading} />
-                </label>
+                {canManage && (
+                  <label className="flex items-center gap-1.5 bg-[#0069b0] text-white px-3.5 py-2 rounded-lg text-[11px] font-bold hover:bg-[#004d7a] cursor-pointer transition-colors shadow-sm">
+                    {fileUploading ? (
+                      <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Upload...</>
+                    ) : (
+                      <><Upload size={13} /> Upload File</>
+                    )}
+                    <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png" className="hidden"
+                      onChange={handleUploadFile} disabled={fileUploading} />
+                  </label>
+                )}
               </div>
 
               {courseFiles.length === 0 ? (
@@ -740,7 +947,7 @@ export default function GuruLMS() {
                     <FolderOpen size={28} className="text-gray-300" />
                   </div>
                   <p className="text-sm font-semibold text-gray-500">Belum ada file</p>
-                  <p className="text-xs text-gray-400 mt-1">Upload file materi seperti PDF, Word, Excel, atau gambar</p>
+                  <p className="text-xs text-gray-400 mt-1">{canManage ? 'Upload file materi seperti PDF, Word, Excel, atau gambar' : 'Tidak ada file materi untuk kursus ini'}</p>
                 </div>
               ) : (
                 <div className="divide-y divide-gray-100">
@@ -761,10 +968,12 @@ export default function GuruLMS() {
                           className="p-2 rounded-lg text-gray-400 hover:bg-blue-50 hover:text-blue-600 transition-colors" title="Download">
                           <Download size={14} />
                         </a>
-                        <button onClick={() => handleDeleteFile(f)}
-                          className="p-2 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors" title="Hapus">
-                          <Trash2 size={14} />
-                        </button>
+                        {canManage && (
+                          <button onClick={() => handleDeleteFile(f)}
+                            className="p-2 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors" title="Hapus">
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -782,8 +991,8 @@ export default function GuruLMS() {
                   <ListChecks size={20} className="text-[#0069b0]" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-sm font-bold text-gray-800">Kelola Tugas</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">Buat, edit, dan nilai tugas untuk kursus ini</p>
+                  <h3 className="text-sm font-bold text-gray-800">{canManage ? 'Kelola Tugas' : 'Lihat Tugas'}</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">{canManage ? 'Buat, edit, dan nilai tugas untuk kursus ini' : 'Lihat tugas yang dibuat untuk kursus ini'}</p>
                 </div>
                 <ChevronRight size={16} className="text-gray-300" />
               </div>
@@ -792,7 +1001,7 @@ export default function GuruLMS() {
 
           {/* Quiz Tab - same quiz management as manager's LMS */}
           {activeTab === 'quiz' && (
-            <GuruPaketSoal courseId={selectedCourse.id} embedded onBack={() => setActiveTab('lessons')} />
+            <GuruPaketSoal courseId={selectedCourse.id} embedded hiddenHeader onBack={() => setActiveTab('lessons')} />
           )}
         </div>
 
@@ -801,110 +1010,269 @@ export default function GuruLMS() {
           <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[5vh] pb-8 px-4 overflow-y-auto">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
-                <h3 className="font-bold text-gray-900">{editingLesson ? 'Edit Pelajaran' : 'Tambah Pelajaran'}</h3>
+                <h3 className="font-bold text-gray-900">{editingLesson ? editingLesson.title : (viaKelas ? 'Tambah Pertemuan' : 'Tambah Pelajaran')}</h3>
                 <button onClick={() => setShowLessonModal(false)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
                   <X size={18} className="text-gray-400" />
                 </button>
               </div>
-              <div className="p-5 space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">Judul Pelajaran <span className="text-red-500">*</span></label>
-                  <input type="text" value={lessonForm.title} onChange={e => setLessonForm(f => ({ ...f, title: e.target.value }))}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]"
-                    placeholder="Contoh: Pengenalan Bahasa Arab" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">URL Video (YouTube)</label>
-                  <input type="text" value={lessonForm.video_url} onChange={e => setLessonForm(f => ({ ...f, video_url: e.target.value }))}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]"
-                    placeholder="https://www.youtube.com/watch?v=..." />
-                  {lessonForm.video_url && (
-                    <div className="mt-2 aspect-video bg-black rounded-lg overflow-hidden">
-                      <iframe
-                        src={getYouTubeEmbedUrl(lessonForm.video_url) || lessonForm.video_url}
-                        className="w-full h-full" allowFullScreen title="Preview" />
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">Konten Materi</label>
-                  <div className="relative">
-                    {lessonUploading && (
-                      <div className="absolute inset-0 z-10 bg-white/70 flex items-center justify-center rounded-lg">
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
-                          <div className="w-4 h-4 border-2 border-gray-300 border-t-[#0069b0] rounded-full animate-spin" />
-                          Mengupload...
-                        </div>
-                      </div>
-                    )}
-                    <ReactQuill
-                      ref={lessonQuillRef}
-                      value={lessonForm.content}
-                      onChange={value => setLessonForm(f => ({ ...f, content: value }))}
-                      modules={lessonQuillModules}
-                      formats={quillFormats}
-                      theme="snow"
-                      placeholder="Tulis materi pembelajaran di sini..."
-                      className="[&_.ql-editor]:min-h-[200px] [&_.ql-editor]:text-sm [&_.ql-container]:rounded-b-lg [&_.ql-toolbar]:rounded-t-lg [&_.ql-toolbar]:border-gray-300 [&_.ql-container]:border-gray-300"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">File Lampiran <span className="text-[10px] text-gray-400 font-normal">(PDF, Word, Excel, PPT, Teks)</span></label>
-                  {lessonFilePreview ? (
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                      <FileText size={18} className="text-[#0069b0] shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-gray-700 truncate">{lessonFilePreview.name}</p>
-                        {lessonFilePreview.size && <p className="text-[10px] text-gray-400">{lessonFilePreview.size}</p>}
-                      </div>
-                      <button onClick={() => { setLessonFile(null); setLessonFilePreview(null) }}
-                        className="p-1.5 rounded-lg text-gray-400 hover:bg-white hover:text-red-500 transition-colors">
-                        <Trash2 size={14} />
+              <div className="px-5 pt-4">
+                <div className="flex items-center gap-1.5 mb-4 overflow-x-auto">
+                  {lessonSteps.map((s, i) => {
+                    const st = i + 1
+                    const done = st < lessonStep
+                    const active = st === lessonStep
+                    return (
+                      <button key={s.label}
+                        onClick={() => setLessonStep(st)}
+                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold whitespace-nowrap transition-colors ${
+                          active ? 'bg-[#0069b0] text-white'
+                          : done ? 'bg-[#0069b0]/10 text-[#0069b0]'
+                          : 'bg-gray-50 text-gray-400'
+                        }`}>
+                        <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] ${
+                          active ? 'bg-white/20 text-white'
+                          : done ? 'bg-[#0069b0] text-white'
+                          : 'bg-gray-200 text-gray-400'
+                        }`}>
+                          {done ? <Check size={9} /> : st}
+                        </span>
+                        {s.label}
                       </button>
-                    </div>
-                  ) : (
-                    <label className="flex items-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-xs text-gray-500 hover:bg-gray-50 hover:border-[#0069b0]/30 cursor-pointer transition-colors">
-                      <Upload size={14} />
-                      <span>Pilih file untuk dilampirkan</span>
-                      <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" className="hidden"
-                        onChange={e => {
-                          const file = e.target.files?.[0]
-                          if (file) {
-                            setLessonFile(file)
-                            setLessonFilePreview({ name: file.name, size: formatFileSize(file.size) })
-                          }
-                        }} />
-                    </label>
-                  )}
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1.5">Urutan</label>
-                    <input type="number" value={lessonForm.sort} onChange={e => setLessonForm(f => ({ ...f, sort: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1.5">Status</label>
-                    <select value={lessonForm.status} onChange={e => setLessonForm(f => ({ ...f, status: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]">
-                      <option value="aktif">Aktif</option>
-                      <option value="nonaktif">Nonaktif</option>
-                    </select>
-                  </div>
+                    )
+                  })}
                 </div>
               </div>
-              <div className="px-5 py-4 border-t border-gray-200 flex justify-end gap-3">
+              <div className="px-5 pb-5">
+                <div className="pt-4 border-t border-gray-100 min-h-[260px] space-y-4">
+                  {lessonStep === 1 && (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-[#0069b0] text-white flex items-center justify-center text-[11px] font-bold">1</span>
+                        <h4 className="text-sm font-bold text-gray-800">Materi</h4>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-1.5">Judul Materi <span className="text-red-500">*</span></label>
+                        <input type="text" value={lessonForm.title} onChange={e => setLessonForm(f => ({ ...f, title: e.target.value }))}
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]"
+                          placeholder="Judul pelajaran" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-1.5">URL Video (YouTube)</label>
+                        <input type="text" value={lessonForm.video_url} onChange={e => setLessonForm(f => ({ ...f, video_url: e.target.value }))}
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]"
+                          placeholder="https://youtube.com/..." />
+                        {lessonForm.video_url && (
+                          <div className="mt-2 aspect-video bg-black rounded-lg overflow-hidden">
+                            <iframe
+                              src={getYouTubeEmbedUrl(lessonForm.video_url) || lessonForm.video_url}
+                              className="w-full h-full" allowFullScreen title="Preview" />
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-1.5">Konten Materi</label>
+                        <div className="relative">
+                          {lessonUploading && (
+                            <div className="absolute inset-0 z-10 bg-white/70 flex items-center justify-center rounded-lg">
+                              <div className="flex items-center gap-2 text-sm text-gray-500">
+                                <div className="w-4 h-4 border-2 border-gray-300 border-t-[#0069b0] rounded-full animate-spin" />
+                                Mengupload...
+                              </div>
+                            </div>
+                          )}
+                          <ReactQuill
+                            ref={lessonQuillRef}
+                            value={lessonForm.content}
+                            onChange={value => setLessonForm(f => ({ ...f, content: value }))}
+                            modules={lessonQuillModules}
+                            formats={quillFormats}
+                            theme="snow"
+                            placeholder="Tulis materi pembelajaran di sini..."
+                            className="[&_.ql-editor]:min-h-[120px] [&_.ql-editor]:text-sm [&_.ql-container]:rounded-b-lg [&_.ql-toolbar]:rounded-t-lg [&_.ql-toolbar]:border-gray-300 [&_.ql-container]:border-gray-300"
+                          />
+                        </div>
+                      </div>
+                      <LessonMediaFields
+                        pdfName={lessonPdf?.name || lessonPdfName}
+                        pdfSize={lessonPdf?.size || lessonPdfSize}
+                        slides={lessonSlides}
+                        onPdf={file => {
+                          setLessonPdf(file)
+                          setLessonPdfName(null)
+                          setLessonPdfSize(null)
+                          setRemoveLessonPdf(false)
+                        }}
+                        onRemovePdf={() => {
+                          if (lessonPdf) {
+                            setLessonPdf(null)
+                          }
+                          if (lessonPdfName) {
+                            setLessonPdfName(null)
+                            setLessonPdfSize(null)
+                            setRemoveLessonPdf(true)
+                          }
+                        }}
+                        onSlidesChange={setLessonSlides}
+                      />
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 mb-1.5">Urutan</label>
+                          <input type="number" value={lessonForm.sort} onChange={e => setLessonForm(f => ({ ...f, sort: e.target.value }))}
+                            className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 mb-1.5">Status</label>
+                          <select value={lessonForm.status} onChange={e => setLessonForm(f => ({ ...f, status: e.target.value }))}
+                            className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]">
+                            <option value="aktif">Aktif</option>
+                            <option value="nonaktif">Nonaktif</option>
+                          </select>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {lessonStep === 2 && (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-[#0069b0] text-white flex items-center justify-center text-[11px] font-bold">2</span>
+                        <h4 className="text-sm font-bold text-gray-800">Quiz</h4>
+                        {lessonForm.paket_id && (
+                          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-violet-50 text-violet-600">Terpasang</span>
+                        )}
+                      </div>
+                      <div className="rounded-xl border border-gray-200 overflow-hidden">
+                        <div className="p-4 space-y-3">
+                          <div>
+                            <label className="block text-xs font-bold text-gray-700 mb-1.5">Pilih Paket Soal Quiz</label>
+                            <select value={lessonForm.paket_id} onChange={e => setLessonForm(f => ({ ...f, paket_id: e.target.value }))}
+                              className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]">
+                              <option value="">Tidak ada quiz untuk pertemuan ini</option>
+                              {quizPakets.map(p => (
+                                <option key={p.id} value={p.id}>{p.title}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <button onClick={() => setShowPaketManager(true)}
+                            className="w-full flex items-center justify-center gap-1.5 border border-dashed border-[#0069b0]/40 bg-[#0069b0]/5 text-[#0069b0] px-3 py-2.5 rounded-lg text-xs font-bold hover:bg-[#0069b0]/10 transition-colors">
+                            <Plus size={13} /> Tambah Soal
+                          </button>
+                          <p className="text-[10px] text-gray-400">Kelola paket soal & tambah soal untuk paket terpilih. Setelah dibuat, pilih dari daftar di atas agar quiz mengikuti pertemuan ini.</p>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {lessonStep === 3 && (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-[#0069b0] text-white flex items-center justify-center text-[11px] font-bold">3</span>
+                        <h4 className="text-sm font-bold text-gray-800">Tugas</h4>
+                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">{lessonTasks.length} tugas</span>
+                      </div>
+                      {lessonTasks.length === 0 ? (
+                        <p className="text-[11px] text-gray-400 text-center py-2 bg-gray-50 rounded-lg">Belum ada tugas untuk kursus ini</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {lessonTasks.map(t => (
+                            <div key={t.id} className="flex items-center gap-3 px-3 py-2.5 bg-gray-50 rounded-lg">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-semibold text-gray-700 truncate">{t.title}</p>
+                                <p className="text-[10px] text-gray-400">{t.due_date ? `Tenggat: ${t.due_date}` : 'Tanpa tenggat'}</p>
+                              </div>
+                              <button onClick={() => handleDeleteTask(t)} className="p-1.5 rounded-md text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors">
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div className="border-t border-gray-100 pt-3">
+                        <p className="text-[11px] font-bold text-gray-700 mb-2">Tambah Tugas untuk Kursus Ini</p>
+                        <div className="space-y-2">
+                          <input type="text" placeholder="Judul tugas" value={taskForm.title}
+                            onChange={e => setTaskForm(f => ({ ...f, title: e.target.value }))}
+                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]" />
+                          <input type="text" placeholder="Deskripsi (opsional)" value={taskForm.description}
+                            onChange={e => setTaskForm(f => ({ ...f, description: e.target.value }))}
+                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]" />
+                          <div className="grid grid-cols-2 gap-2">
+                            <input type="date" value={taskForm.dueDate}
+                              onChange={e => setTaskForm(f => ({ ...f, dueDate: e.target.value }))}
+                              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]" />
+                            <input type="number" placeholder="Skor maks (opsional)" value={taskForm.maxScore}
+                              onChange={e => setTaskForm(f => ({ ...f, maxScore: e.target.value }))}
+                              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]" />
+                          </div>
+                          <button onClick={handleSaveTask} disabled={savingTask || !taskForm.title.trim()}
+                            className="w-full flex items-center justify-center gap-1.5 bg-[#0069b0]/10 text-[#0069b0] px-3 py-2 rounded-lg text-xs font-bold hover:bg-[#0069b0]/20 transition-colors disabled:opacity-50">
+                            <Plus size={13} /> {savingTask ? 'Menyimpan...' : 'Tambah Tugas'}
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {lessonStep === 4 && (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-[#0069b0] text-white flex items-center justify-center text-[11px] font-bold">4</span>
+                        <h4 className="text-sm font-bold text-gray-800">Selesai</h4>
+                      </div>
+                      <div className="rounded-md border border-gray-200 divide-y divide-gray-100 overflow-hidden">
+                        <div className="flex items-center justify-between px-4 py-3">
+                          <p className="text-xs font-bold text-gray-700 truncate">{lessonForm.title || 'Tanpa judul'}</p>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${lessonForm.paket_id ? 'bg-violet-50 text-violet-600' : 'bg-gray-100 text-gray-400'}`}>
+                            {lessonForm.paket_id ? 'Quiz terpasang' : 'Tanpa quiz'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between px-4 py-3">
+                          <p className="text-[11px] text-gray-500 flex items-center gap-1.5">
+                            <FileText size={12} /> {lessonPdf?.name || lessonPdfName || 'Tanpa materi PDF'}
+                          </p>
+                          <p className="text-[11px] text-gray-500 flex items-center gap-1.5">
+                            <ListChecks size={12} /> {lessonTasks.length} tugas
+                          </p>
+                        </div>
+                        {lessonSlides.length > 0 && (
+                          <div className="px-4 py-3">
+                            <p className="text-[11px] text-gray-500 flex items-center gap-1.5">
+                              <ImageIcon size={12} /> {lessonSlides.length} slide gambar
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className="px-5 py-4 border-t border-gray-200 flex items-center justify-between gap-3">
                 <button onClick={() => setShowLessonModal(false)}
                   className="rounded-lg border border-gray-300 px-4 py-2.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
                   Batal
                 </button>
-                <button onClick={handleSaveLesson} disabled={savingLesson}
-                  className="rounded-lg bg-[#0069b0] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#004d7a] transition disabled:opacity-50 flex items-center gap-1.5">
-                  {savingLesson ? 'Menyimpan...' : editingLesson ? 'Simpan' : 'Buat Pelajaran'}
+                <button onClick={handleSaveLesson} disabled={savingLesson || !lessonForm.title.trim()}
+                  className="flex items-center gap-1.5 rounded-lg bg-[#0069b0] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#004d7a] transition disabled:opacity-50">
+                  {savingLesson ? 'Menyimpan...' : <><Check size={13} /> {editingLesson ? 'Simpan Materi' : 'Tambah Materi'}</>}
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Paket Soal Manager Overlay */}
+        {showPaketManager && selectedCourse && (
+          <div className="fixed inset-0 z-[70] bg-white">
+            <GuruPaketSoal
+              courseId={selectedCourse.id}
+              defaultBatchId={selectedCourse.batch_id}
+              defaultLevel={selectedCourse.level}
+              embedded
+              onBack={() => {
+                setShowPaketManager(false)
+                refreshQuizPakets()
+              }}
+            />
           </div>
         )}
 
@@ -919,6 +1287,32 @@ export default function GuruLMS() {
                 </button>
               </div>
               <div className="p-5 space-y-4">
+                {!editingCourse && (
+                  <>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1.5">Berdasarkan Kelas & Pertemuan</label>
+                      <select value={selectedKelasId} onChange={e => onSelectKelas(e.target.value)}
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]">
+                        <option value="" disabled>Pilih Kelas...</option>
+                        {kelasSaya.map(k => (
+                          <option key={k.id} value={k.id}>
+                            {k.nama_kelas} · Level {k.level ?? '-'} ({k.tanggal_mulai_formatted || k.tanggal_mulai} – {k.tanggal_selesai_formatted || k.tanggal_selesai}, {k.total_pertemuan} pertemuan)
+                          </option>
+                        ))}
+                      </select>
+                      {selectedKelasId && (
+                        <div className="mt-2 rounded-lg bg-[#0069b0]/5 border border-[#0069b0]/20 px-3.5 py-2.5 flex items-start gap-2">
+                          <History size={14} className="text-[#0069b0] shrink-0 mt-0.5" />
+                          <div className="text-[11px] text-gray-600">
+                            <p className="font-bold text-gray-800">Pelajaran akan dibuat otomatis per pertemuan</p>
+                            <p>Kursus dibuat dari kelas ini, lalu 1 pelajaran dibuat untuk tiap tanggal pertemuan ({kelasSaya.find(k => String(k.id) === selectedKelasId)?.total_pertemuan} pelajaran). Anda tinggal isi materi tiap pelajaran.</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="border-t border-gray-100" />
+                  </>
+                )}
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1.5">Judul Kursus <span className="text-red-500">*</span></label>
                   <input type="text" value={courseForm.title} onChange={e => setCourseForm(f => ({ ...f, title: e.target.value }))}
@@ -1072,26 +1466,6 @@ export default function GuruLMS() {
                 className="flex items-center gap-1.5 border border-[#0069b0] text-[#0069b0] px-4 py-2.5 rounded-lg text-[11px] font-bold bg-white hover:bg-[#0069b0]/5 transition-colors shadow-sm">
                 <Trophy size={14} /> Rank
               </button>
-              <button onClick={openCreateCourse}
-                className="flex items-center gap-1.5 bg-[#0069b0] text-white px-4 py-2.5 rounded-lg text-[11px] font-bold hover:bg-[#004d7a] transition-colors shadow-sm">
-                <Plus size={14} /> Tambah Kursus
-              </button>
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            <div className="bg-gray-50 rounded-xl p-3 text-center">
-              <p className="text-lg font-bold text-gray-900">{courses.length}</p>
-              <p className="text-[10px] text-gray-400 font-medium">Total Kursus</p>
-            </div>
-            <div className="bg-gray-50 rounded-xl p-3 text-center">
-              <p className="text-lg font-bold text-gray-900">{courses.reduce((a, c) => a + c.lessons_count, 0)}</p>
-              <p className="text-[10px] text-gray-400 font-medium">Total Pelajaran</p>
-            </div>
-            <div className="bg-gray-50 rounded-xl p-3 text-center">
-              <p className="text-lg font-bold text-gray-900">{courses.reduce((a, c) => a + c.files_count, 0)}</p>
-              <p className="text-[10px] text-gray-400 font-medium">Total File</p>
             </div>
           </div>
 
@@ -1114,7 +1488,7 @@ export default function GuruLMS() {
               {search ? 'Kursus tidak ditemukan' : 'Belum ada Kursus'}
             </p>
             <p className="text-xs text-gray-400 mt-1">
-              {search ? 'Coba kata kunci lain' : 'Ketuk "Tambah Kursus" untuk membuat kursus baru'}
+              {search ? 'Coba kata kunci lain' : 'Belum ada kursus. Kursus dibuat otomatis saat Anda menambahkan kelas baru'}
             </p>
           </div>
         ) : (
@@ -1128,15 +1502,22 @@ export default function GuruLMS() {
                   ) : (
                     <BookOpen size={36} className="text-white/20" />
                   )}
-                  <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-white/20 text-white backdrop-blur-sm">
-                      {course.level ? `Level ${course.level}` : 'Umum'}
-                    </span>
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                      course.status === 'aktif' ? 'bg-emerald-500/80 text-white' : 'bg-gray-500/80 text-white'
-                    }`}>
-                      {course.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
-                    </span>
+                  <div className="absolute top-2.5 right-2.5 flex flex-col items-end gap-1">
+                    {!course.can_manage && (
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-900/60 text-white backdrop-blur-sm">
+                        Hanya Baca
+                      </span>
+                    )}
+                    <div className="flex items-center gap-1.5">
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-white/20 text-white backdrop-blur-sm">
+                        {course.level ? `Level ${course.level}` : 'Umum'}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                        course.status === 'aktif' ? 'bg-emerald-500/80 text-white' : 'bg-gray-500/80 text-white'
+                      }`}>
+                        {course.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <div className="p-4">
@@ -1173,6 +1554,32 @@ export default function GuruLMS() {
               </button>
             </div>
             <div className="p-5 space-y-4">
+              {!editingCourse && (
+                <>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">Berdasarkan Kelas & Pertemuan</label>
+                    <select value={selectedKelasId} onChange={e => onSelectKelas(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]">
+                      <option value="" disabled>Pilih Kelas...</option>
+                      {kelasSaya.map(k => (
+                        <option key={k.id} value={k.id}>
+                          {k.nama_kelas} · Level {k.level ?? '-'} ({k.tanggal_mulai_formatted || k.tanggal_mulai} – {k.tanggal_selesai_formatted || k.tanggal_selesai}, {k.total_pertemuan} pertemuan)
+                        </option>
+                      ))}
+                    </select>
+                    {selectedKelasId && (
+                      <div className="mt-2 rounded-lg bg-[#0069b0]/5 border border-[#0069b0]/20 px-3.5 py-2.5 flex items-start gap-2">
+                        <History size={14} className="text-[#0069b0] shrink-0 mt-0.5" />
+                        <div className="text-[11px] text-gray-600">
+                          <p className="font-bold text-gray-800">Pelajaran akan dibuat otomatis per pertemuan</p>
+                          <p>Kursus dibuat dari kelas ini, lalu 1 pelajaran dibuat untuk tiap tanggal pertemuan ({kelasSaya.find(k => String(k.id) === selectedKelasId)?.total_pertemuan} pelajaran). Anda tinggal isi materi tiap pelajaran.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="border-t border-gray-100" />
+                </>
+              )}
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">Judul Kursus <span className="text-red-500">*</span></label>
                 <input type="text" value={courseForm.title} onChange={e => setCourseForm(f => ({ ...f, title: e.target.value }))}

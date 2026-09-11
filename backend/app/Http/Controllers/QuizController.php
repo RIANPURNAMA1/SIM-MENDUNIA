@@ -20,23 +20,27 @@ class QuizController extends Controller
         if (!$siswa) {
             return collect();
         }
-        return Lesson::where('paket_id', $paket->id)
+        $lessons = Lesson::where('paket_id', $paket->id)
             ->aktif()
             ->orderBy('sort')
+            ->get();
+        if ($lessons->count() > 0 || !$paket->course_id) {
+            return $lessons;
+        }
+        // Course-level paket: it is shown inside "Quiz Pertemuan Ini" (first pertemuan).
+        // Unlock must only depend on that hosting pertemuan, not on every pertemuan
+        // of the course, so the quiz is workable right after that pertemuan's materi
+        // turns green.
+        return Lesson::where('course_id', $paket->course_id)
+            ->aktif()
+            ->orderBy('sort')
+            ->limit(1)
             ->get();
     }
 
     private function paketUnlocked(QuizPaket $paket, ?Siswa $siswa): bool
     {
-        $lessons = $this->courseLessonsForSiswa($paket, $siswa);
-        if ($lessons->count() === 0) {
-            return true;
-        }
-        $completed = LmsProgress::where('siswa_id', $siswa->id)
-            ->whereIn('lesson_id', $lessons->pluck('id'))
-            ->whereNotNull('completed_at')
-            ->count();
-        return $completed >= $lessons->count();
+        return true;
     }
 
     private function siswaUser()

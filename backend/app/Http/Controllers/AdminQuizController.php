@@ -610,4 +610,22 @@ class AdminQuizController extends Controller
             'siswa' => $attempt->siswa,
         ]);
     }
+
+    public function assignBank(Request $request)
+    {
+        $data = $request->validate([
+            'course_id' => 'required|exists:lms_courses,id',
+            'paket_ids' => 'required|array|min:1',
+            'paket_ids.*' => 'integer|exists:quiz_pakets,id',
+        ]);
+
+        $attached = QuizPaket::whereIn('id', $data['paket_ids'])
+            ->whereNull('course_id')
+            ->update(['course_id' => $data['course_id']]);
+
+        return response()->json([
+            'attached' => $attached,
+            'course_id' => $data['course_id'],
+        ]);
+    }
 }

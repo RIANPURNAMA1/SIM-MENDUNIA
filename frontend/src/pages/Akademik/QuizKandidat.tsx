@@ -709,13 +709,18 @@ export default function QuizKandidat() {
     }
     const greenCount = lessons.filter(isGreen).length
     const progressPct = lessons.length > 0 ? Math.round((greenCount / lessons.length) * 100) : 0
-    const allGreen = lessons.length > 0 && lessons.every(isGreen)
+    const ready = detail.is_unlocked
 
     if (lessonId && activeLesson) {
       const lp = lessonProgressMap[activeLesson.id]
       const lessonGreen = isGreen(activeLesson)
       const modulMin = lp?.modul_min_seconds || 30
       const readSecs = lp?.read_seconds || 0
+      const markReadDone = () => {
+        lmsApi.readComplete(activeLesson.id).then(res => {
+          if (res.data?.progress) applyReadProgress(activeLesson.id, res.data.progress)
+        }).catch(() => {})
+      }
       return (
         <div className="min-h-screen bg-[#f0f2f5] pb-24 lg:pb-8">
           {/* Hero */}
@@ -776,6 +781,12 @@ export default function QuizKandidat() {
                     <div className="h-full rounded-md bg-[#0E6187] transition-all duration-500"
                       style={{ width: `${Math.min((readSecs / modulMin) * 100, 100)}%` }} />
                   </div>
+                )}
+                {activeLesson.has_content && !lp?.read_green && (
+                  <button onClick={markReadDone}
+                    className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-md bg-emerald-50 text-emerald-600 text-[11px] font-bold hover:bg-emerald-100 transition-colors">
+                    <Check size={13} strokeWidth={3} /> Sudah Baca Materi
+                  </button>
                 )}
               </div>
             )}
@@ -916,14 +927,14 @@ export default function QuizKandidat() {
                     </span>
                   )}
                   <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold ${
-                    allGreen ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/10 text-white/60'
+                    ready ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/10 text-white/60'
                   }`}>
-                    {allGreen ? 'Selesai' : `${greenCount} dari ${lessons.length} hijau`}
+                    {ready ? 'Siap dikerjakan' : `${greenCount} dari ${lessons.length} hijau`}
                   </span>
                 </div>
               </div>
               <div className="text-right shrink-0">
-                <div className={`text-3xl font-black ${allGreen ? 'text-emerald-400' : 'text-white'}`}>
+                <div className={`text-3xl font-black ${ready ? 'text-emerald-400' : 'text-white'}`}>
                   {progressPct}%
                 </div>
                 <p className="text-[10px] font-bold text-white/50 mt-0.5">Progres</p>
@@ -951,7 +962,7 @@ export default function QuizKandidat() {
               <span className="text-lg font-black text-emerald-600 tabular-nums">{progressPct}%</span>
             </div>
             <p className="text-[10.5px] text-slate-400 font-medium mt-2.5">
-              Baca seluruh materi hingga activity hijau untuk membuka kuis.
+              Buka dan baca materi pelajaran untuk memperdalam pemahaman sebelum mengerjakan kuis.
             </p>
           </div>
 
@@ -982,16 +993,10 @@ export default function QuizKandidat() {
           </div>
 
           {/* CTA */}
-          {allGreen ? (
-            <button onClick={goToRules}
-              className="w-full flex items-center justify-center gap-2 text-[13px] font-bold py-3.5 rounded-md bg-[#0E6187] text-white hover:bg-[#0a4d6b] transition-colors">
-              <Play size={15} /> Mulai Mengerjakan Quiz
-            </button>
-          ) : (
-            <div className="flex items-center justify-center gap-2 text-[12px] font-bold text-slate-400 bg-slate-100 rounded-md py-3.5">
-              <Lock size={15} /> Selesaikan semua materi hingga hijau untuk membuka quiz
-            </div>
-          )}
+          <button onClick={goToRules}
+            className="w-full flex items-center justify-center gap-2 text-[13px] font-bold py-3.5 rounded-md bg-[#0E6187] text-white hover:bg-[#0a4d6b] transition-colors">
+            <Play size={15} /> Mulai Mengerjakan Quiz
+          </button>
         </div>
 
         {/* Bottom nav */}

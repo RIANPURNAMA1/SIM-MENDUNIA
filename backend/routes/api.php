@@ -43,6 +43,7 @@ use App\Http\Controllers\AffiliateDashboardController;
 use App\Http\Controllers\BiayaController;
 use App\Http\Controllers\SiswaDashboardController;
 use App\Http\Controllers\GuruDashboardController;
+use App\Http\Controllers\PertemuanController;
 use App\Http\Controllers\Api\CouponController;
 use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\AdminCabangController;
@@ -457,12 +458,20 @@ Route::get('/guru/penilaian-rekap/{kelasId}', [GuruDashboardController::class, '
     Route::post('/guru/level-evaluation', [GuruDashboardController::class, 'storeLevelEvaluation']);
     Route::get('/guru/level-evaluations/{batchId}/{level}', [GuruDashboardController::class, 'getLevelEvaluations']);
 
+    // Riwayat Pertemuan (per pertemuan berdasarkan jadwal kelas)
+    Route::get('/guru/pertemuan/kelas/{kelasId}', [PertemuanController::class, 'index']);
+    Route::post('/guru/pertemuan/kelas/{kelasId}', [PertemuanController::class, 'store']);
+    Route::get('/guru/pertemuan/ringkasan', [PertemuanController::class, 'ringkasan']);
+    Route::get('/admin/pertemuan/kelas', [PertemuanController::class, 'adminIndex'])->middleware('role:MANAGER,HR,ADMIN');
+    Route::get('/admin-cabang/pertemuan/kelas', [PertemuanController::class, 'adminCabangIndex'])->middleware('role:ADMIN_CABANG');
+
     // Guru LMS (static routes BEFORE wildcard routes)
     Route::get('/guru/lms-courses', [GuruDashboardController::class, 'lmsCourses']);
     Route::post('/guru/lms-courses', [GuruDashboardController::class, 'lmsStoreCourse']);
     Route::post('/guru/lms-courses/files', [GuruDashboardController::class, 'lmsStoreCourseFile']);
     Route::delete('/guru/lms-courses/files/{id}', [GuruDashboardController::class, 'lmsDeleteCourseFile']);
     Route::post('/guru/lms-lessons', [GuruDashboardController::class, 'guruStoreLesson']);
+    Route::get('/guru/lms-lessons/{id}', [GuruDashboardController::class, 'guruLessonDetail']);
     Route::post('/guru/lms-lessons/{id}', [GuruDashboardController::class, 'guruUpdateLesson']);
     Route::delete('/guru/lms-lessons/{id}', [GuruDashboardController::class, 'guruDeleteLesson']);
     Route::get('/guru/lms-courses/{courseId}/files', [GuruDashboardController::class, 'lmsCourseFiles']);
@@ -481,11 +490,13 @@ Route::get('/guru/penilaian-rekap/{kelasId}', [GuruDashboardController::class, '
 
     // LMS
     Route::prefix('lms')->group(function () {
+        Route::get('/welcome', [LmsController::class, 'welcome']);
         Route::get('/courses', [LmsController::class, 'courses']);
         Route::get('/courses/{id}', [LmsController::class, 'courseDetail']);
         Route::get('/lessons/{id}', [LmsController::class, 'lessonDetail']);
         Route::post('/lessons/{id}/video-progress', [LmsController::class, 'lessonVideoProgress']);
         Route::post('/lessons/{id}/read-progress', [LmsController::class, 'lessonReadProgress']);
+        Route::post('/lessons/{id}/read-complete', [LmsController::class, 'lessonReadComplete']);
         Route::post('/lessons/{id}/complete', [LmsController::class, 'completeLesson']);
         Route::delete('/lessons/{id}/complete', [LmsController::class, 'uncompleteLesson']);
 
@@ -547,6 +558,11 @@ Route::get('/guru/penilaian-rekap/{kelasId}', [GuruDashboardController::class, '
         Route::post('/categories', [LmsController::class, 'storeCategory']);
         Route::put('/categories/{id}', [LmsController::class, 'updateCategory']);
         Route::delete('/categories/{id}', [LmsController::class, 'destroyCategory']);
+        // Welcome video setting (Manager / HR / Admin)
+        Route::get('/welcome', [LmsController::class, 'welcome'])->middleware('role:MANAGER,HR,ADMIN');
+        Route::post('/welcome-video', [LmsController::class, 'updateWelcomeVideo'])->middleware('role:MANAGER,HR,ADMIN');
+        Route::post('/welcome-video-url', [LmsController::class, 'updateWelcomeVideoUrl'])->middleware('role:MANAGER,HR,ADMIN');
+        Route::delete('/welcome-video', [LmsController::class, 'deleteWelcomeVideo'])->middleware('role:MANAGER,HR,ADMIN');
     });
 });
 
@@ -612,6 +628,7 @@ Route::prefix('admin-cabang')->middleware(['auth:sanctum'])->group(function () {
         Route::post('/pakets/{id}', [AdminQuizController::class, 'update']);
         Route::delete('/pakets/{id}', [AdminQuizController::class, 'destroy']);
         Route::post('/pakets/{id}/toggle', [AdminQuizController::class, 'toggle']);
+        Route::post('/assign-bank', [AdminQuizController::class, 'assignBank']);
         Route::get('/pakets/{id}/questions', [AdminQuizController::class, 'questions']);
         Route::post('/pakets/{id}/questions', [AdminQuizController::class, 'storeQuestion']);
         Route::post('/questions/{id}', [AdminQuizController::class, 'updateQuestion']);
