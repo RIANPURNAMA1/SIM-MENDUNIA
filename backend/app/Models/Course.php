@@ -19,6 +19,8 @@ class Course extends Model
         'kelas_sensei_id',
         'sort',
         'status',
+        'alert',
+        'alert_active',
     ];
 
     public function category()

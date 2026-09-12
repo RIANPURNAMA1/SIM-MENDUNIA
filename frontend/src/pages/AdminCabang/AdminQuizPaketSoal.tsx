@@ -3,6 +3,7 @@ import {
   Plus, X, Trash2, ArrowLeft, ListChecks, Eye,
   ChevronUp, ChevronDown, Camera, Clock, Repeat, Award, Users,
   UserCheck, BookOpen, Search, Pencil, Loader2, ImageIcon,
+  LayoutGrid, ShieldCheck,
 } from 'lucide-react'
 import { adminQuizApi } from '../../services/api'
 import Swal from 'sweetalert2'
@@ -20,6 +21,7 @@ interface Paket {
   max_warnings: number
   passing_score: number
   shuffle_questions: boolean
+  quiz_template: string
   status: string
   questions_count: number
   attempts_count: number
@@ -91,7 +93,7 @@ type View = 'list' | 'questions' | 'results'
 const emptyPaketForm = {
   title: '', description: '', course_id: '', batch_id: '', level: '', category: '',
   time_limit_minutes: '30', max_attempts: '3', max_warnings: '3',
-  passing_score: '0', shuffle_questions: true, status: 'nonaktif', user_id: '',
+  passing_score: '0', shuffle_questions: true, quiz_template: 'basic', status: 'nonaktif', user_id: '',
   cover_image: '',
 }
 
@@ -195,6 +197,7 @@ export default function AdminQuizPaketSoal() {
       max_warnings: p.max_warnings.toString(),
       passing_score: p.passing_score.toString(),
       shuffle_questions: p.shuffle_questions,
+      quiz_template: p.quiz_template || 'basic',
       status: p.status,
       user_id: p.user_id?.toString() || '',
       cover_image: p.cover_image || '',
@@ -243,6 +246,7 @@ export default function AdminQuizPaketSoal() {
         max_warnings: Number(paketForm.max_warnings) || 3,
         passing_score: Number(paketForm.passing_score) || 0,
         shuffle_questions: paketForm.shuffle_questions,
+        quiz_template: paketForm.quiz_template,
         status: paketForm.status,
         user_id: paketForm.user_id ? Number(paketForm.user_id) : undefined,
       }
@@ -935,6 +939,49 @@ export default function AdminQuizPaketSoal() {
                   className={`relative w-11 h-6 rounded-full transition-colors ${paketForm.shuffle_questions ? 'bg-[#0E6187]' : 'bg-slate-300'}`}>
                   <span className={`absolute top-[2px] w-5 h-5 rounded-full bg-white shadow transition-all ${paketForm.shuffle_questions ? 'left-[22px]' : 'left-[2px]'}`} />
                 </button>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Template UI Quiz</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button type="button" onClick={() => setPaketForm({ ...paketForm, quiz_template: 'basic' })}
+                    className={`flex flex-col items-center gap-2 border-2 rounded-xl px-3 py-4 text-center transition-all ${
+                      paketForm.quiz_template !== 'jft'
+                        ? 'border-[#0E6187] bg-[#0E6187]/[0.04] ring-1 ring-[#0E6187]/20'
+                        : 'border-slate-200 hover:border-slate-300'
+                    }`}>
+                    <span className={`w-10 h-10 flex items-center justify-center rounded-xl ${
+                      paketForm.quiz_template !== 'jft' ? 'bg-[#0E6187] text-white' : 'bg-slate-100 text-slate-400'
+                    }`}>
+                      <LayoutGrid size={18} />
+                    </span>
+                    <span>
+                      <span className="block text-sm font-semibold text-slate-800">Basic</span>
+                      <span className="block text-xs text-slate-400 mt-0.5">Sederhana & fokus</span>
+                    </span>
+                  </button>
+                  <button type="button" onClick={() => setPaketForm({ ...paketForm, quiz_template: 'jft' })}
+                    className={`flex flex-col items-center gap-2 border-2 rounded-xl px-3 py-4 text-center transition-all ${
+                      paketForm.quiz_template === 'jft'
+                        ? 'border-[#1f2022] bg-[#1f2022] ring-1 ring-[#1f2022]/20'
+                        : 'border-slate-200 hover:border-slate-300'
+                    }`}>
+                    <span className={`w-10 h-10 flex items-center justify-center rounded-xl ${
+                      paketForm.quiz_template === 'jft' ? 'bg-[#5e8b5d] text-white' : 'bg-slate-100 text-slate-400'
+                    }`}>
+                      <ShieldCheck size={18} />
+                    </span>
+                    <span>
+                      <span className={`block text-sm font-semibold ${paketForm.quiz_template === 'jft' ? 'text-white' : 'text-slate-800'}`}>JFT UI</span>
+                      <span className={`block text-xs mt-0.5 ${paketForm.quiz_template === 'jft' ? 'text-white/60' : 'text-slate-400'}`}>Kamera & pengawasan</span>
+                    </span>
+                  </button>
+                </div>
+                <p className="text-xs text-slate-400 mt-2">
+                  {paketForm.quiz_template === 'jft'
+                    ? 'JFT UI: tampilan quiz lengkap dengan pengawasan kamera. Sistem mengambil foto berkala & memberi peringatan.'
+                    : 'Basic: tampilan quiz sederhana tanpa pengawasan kamera. Cocok untuk quiz evaluasi ringan.'}
+                </p>
               </div>
 
               <div className="flex items-center justify-between bg-slate-50 rounded-lg px-4 py-3">

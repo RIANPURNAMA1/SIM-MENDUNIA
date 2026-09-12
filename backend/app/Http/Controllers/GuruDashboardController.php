@@ -9,6 +9,7 @@ use App\Models\Cabang;
 use App\Models\Course;
 use App\Models\CourseFile;
 use App\Models\Lesson;
+use App\Models\LessonRecap;
 use App\Models\LessonSlide;
 use Illuminate\Support\Facades\Storage;
 use App\Models\DailyAssessmentStatus;
@@ -736,6 +737,7 @@ class GuruDashboardController extends Controller
         $lesson = Lesson::with([
             'paket' => fn ($q) => $q->withCount('questions')->withCount('attempts'),
             'slides',
+            'recap',
             'course',
             'course.pakets' => fn ($q) => $q->withCount('questions')->withCount('attempts')->orderBy('id'),
         ])->findOrFail($id);
@@ -748,6 +750,10 @@ class GuruDashboardController extends Controller
             $s->url = asset('storage/' . $s->file_path);
             return $s;
         });
+
+        if ($lesson->recap && $lesson->recap->file_path) {
+            $lesson->recap->url = asset('storage/' . $lesson->recap->file_path);
+        }
 
         return response()->json(['lesson' => $lesson]);
     }
@@ -898,6 +904,76 @@ class GuruDashboardController extends Controller
         $lesson->delete();
 
         return response()->json(['message' => 'Lesson deleted']);
+    }
+
+    // ========== Guru Lesson Recap (Rekap Pertemuan) ==========
+
+    public function guruStoreLessonRecap(Request $request, $id)
+    {
+        $user = Auth::guard('sanctum')->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $lesson = Lesson::findOrFail($id);
+        $this->courseOwnedByGuru($lesson->course_id, $user);
+
+        $data = $request->validate([
+            'file' => 'nullable|file|mimes:jpg,jpeg,png,webp,gif,pdf|max:20480',
+            'description' => 'nullable|string|max:2000',
+        ]);
+
+        $recap = LessonRecap::firstOrNew(['lesson_id' => $lesson->id]);
+        $hasFile = $request->hasFile('file');
+        $hasDescription = !empty($data['description']);
+
+        if (!$hasFile && !$hasDescription && !$recap->exists) {
+            return response()->json(['message' => 'Upload foto/PDF atau deskripsi wajib diisi'], 422);
+        }
+
+        if ($hasFile) {
+            if ($recap->file_path) {
+                Storage::disk('public')->delete($recap->file_path);
+            }
+            $file = $request->file('file');
+            $recap->file_path = $file->store('lms/recaps', 'public');
+            $recap->file_name = $file->getClientOriginalName();
+            $recap->file_type = $file->getMimeType();
+            $recap->file_size = $file->getSize();
+            $recap->kind = str_starts_with((string) $recap->file_type, 'image/') ? 'image' : 'pdf';
+        }
+
+        $recap->description = $data['description'] ?? '';
+        $recap->save();
+
+        if ($recap->file_path) {
+            $recap->url = asset('storage/' . $recap->file_path);
+        } else {
+            $recap->url = null;
+        }
+
+        return response()->json(['recap' => $recap]);
+    }
+
+    public function guruDeleteLessonRecap(Request $request, $id)
+    {
+        $user = Auth::guard('sanctum')->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $lesson = Lesson::findOrFail($id);
+        $this->courseOwnedByGuru($lesson->course_id, $user);
+
+        $recap = LessonRecap::where('lesson_id', $lesson->id)->first();
+        if ($recap) {
+            if ($recap->file_path) {
+                Storage::disk('public')->delete($recap->file_path);
+            }
+            $recap->delete();
+        }
+
+        return response()->json(['message' => 'Rekap pertemuan dihapus']);
     }
 
     // ========== Guru Assignment Management ==========

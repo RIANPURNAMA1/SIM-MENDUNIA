@@ -4,7 +4,7 @@ import {
   User, CheckCircle, Clock, XCircle, CreditCard, Package, Check, Copy, AlertTriangle,
   ChevronDown, ChevronUp, ChevronLeft, Building2, Upload, Loader, MessageSquare, ChevronRight,
   LayoutDashboard, Wallet, CalendarCheck, BookOpen, Award, Briefcase, Bell, ClipboardList,
-  FileSignature, ListChecks,
+  FileSignature, ListChecks, Megaphone,
   LogOut,
   Lock,
   ExternalLink,
@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 import { useAuth } from '../contexts/AuthContext'
-import api, { APP_URL } from '../services/api'
+import api, { APP_URL, lmsApi } from '../services/api'
 
 function currentLearningLevel(jadwalLevels: Record<string, { tanggal_mulai: string; tanggal_selesai: string }>): number {
   const today = new Date().toISOString().slice(0, 10)
@@ -214,6 +214,7 @@ export default function SiswaDashboard() {
   const [evaluations, setEvaluations] = useState<Record<string, { evaluasi: string | null; user?: { name: string } }>>({})
   const [quizLeaderboard, setQuizLeaderboard] = useState<QuizLeaderboard[]>([])
   const [leaderboardPage, setLeaderboardPage] = useState(1)
+  const [courseAlerts, setCourseAlerts] = useState<{ id: number; title: string; alert: string; category?: { name: string } | null }[]>([])
 
   useEffect(() => {
     api.get('/siswa-dashboard')
@@ -232,6 +233,9 @@ export default function SiswaDashboard() {
       .finally(() => setLoading(false))
     api.get('/siswa/evaluations').then((res: any) => {
       setEvaluations(res.data.evaluations || {})
+    }).catch(() => {})
+    lmsApi.courses().then(res => {
+      setCourseAlerts((res.data.courses || []).filter((c: any) => c.alert && c.alert_active))
     }).catch(() => {})
   }, [])
 
@@ -520,6 +524,36 @@ export default function SiswaDashboard() {
       </header>
 
       <div className="mx-auto -mt-10 max-w-lg space-y-4 px-4">
+        {/* ============ Course Alerts ============ */}
+        {courseAlerts.length > 0 && (
+          <div className="space-y-3">
+            {courseAlerts.map(c => (
+              <div key={c.id} className="rounded-xl border border-[#0E6187]/25 bg-gradient-to-r from-[#E7F3FB] to-white p-4 shadow-sm animate-fade-up delay-150">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0E6187] shadow-sm">
+                    <Megaphone size={16} className="text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-bold text-[#0E6187]">{c.title}</p>
+                      {c.category?.name && (
+                        <span className="shrink-0 rounded-full bg-[#0E6187]/10 px-2 py-0.5 text-[9px] font-bold text-[#0E6187]">
+                          {c.category.name}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-0.5 text-xs font-medium text-slate-600 leading-relaxed">{c.alert}</p>
+                    <Link to={`/siswa-dashboard/lms/${c.id}`}
+                      className="mt-2 inline-flex items-center gap-1 rounded-lg bg-[#0E6187] px-3 py-1.5 text-[10px] font-bold text-white transition-all hover:bg-[#0a5588] hover:shadow active:scale-95">
+                      Buka Kursus <ChevronRight size={10} />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* ============ Alert System ============ */}
         {showPaymentBanner && (
           <div className={`rounded-xl border p-4 shadow-sm animate-fade-up delay-150 transition-all ${

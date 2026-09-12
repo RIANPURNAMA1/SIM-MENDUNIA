@@ -634,6 +634,8 @@ export const guruLmsApi = {
   storeLesson: (data: FormData) => api.post('/guru/lms-lessons', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   updateLesson: (id: number, data: FormData) => api.post(`/guru/lms-lessons/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   deleteLesson: (id: number) => api.delete(`/guru/lms-lessons/${id}`),
+  storeLessonRecap: (id: number, data: FormData) => api.post(`/guru/lms-lessons/${id}/recap`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  deleteLessonRecap: (id: number) => api.delete(`/guru/lms-lessons/${id}/recap`),
   leaderboard: () => api.get('/guru/quiz/leaderboard'),
 }
 

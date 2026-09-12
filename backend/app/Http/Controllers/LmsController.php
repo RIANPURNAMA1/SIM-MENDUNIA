@@ -6,12 +6,14 @@ use App\Models\Batch;
 use App\Models\Course;
 use App\Models\CourseFile;
 use App\Models\Lesson;
+use App\Models\LessonRecap;
 use App\Models\LessonSlide;
 use App\Models\LmsAssignment;
 use App\Models\LmsCategory;
 use App\Models\LmsSubmission;
 use App\Models\LmsProgress;
 use App\Models\LmsSetting;
+use App\Models\QuizAttempt;
 use App\Models\Siswa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -77,7 +79,7 @@ class LmsController extends Controller
             });
         }
 
-        $courses = $query->with('category')->get();
+        $courses = $query->with(['category', 'batch:id,nama_batch'])->get();
 
         return response()->json(['courses' => $courses]);
     }
@@ -123,11 +125,55 @@ class LmsController extends Controller
             return response()->json(['message' => 'Siswa not found'], 404);
         }
 
-        $lesson = Lesson::aktif()->with('course', 'slides')->findOrFail($id);
+        $lesson = Lesson::aktif()->with('course', 'slides', 'paket.course:id,title')->findOrFail($id);
 
         $progress = LmsProgress::where('lesson_id', $lesson->id)
             ->where('siswa_id', $siswa->id)
             ->first();
+
+        $recap = LessonRecap::where('lesson_id', $lesson->id)->first();
+        $recapPayload = null;
+        if ($recap) {
+            $recapPayload = [
+                'id' => $recap->id,
+                'file_path' => $recap->file_path,
+                'file_name' => $recap->file_name,
+                'file_size' => $recap->file_size,
+                'file_type' => $recap->file_type,
+                'kind' => $recap->kind,
+                'description' => $recap->description,
+                'created_at' => $recap->created_at,
+                'url' => $recap->file_path ? asset('storage/' . $recap->file_path) : null,
+            ];
+        }
+
+        $quizPayload = null;
+        if ($lesson->paket_id && $lesson->paket) {
+            $paket = $lesson->paket;
+            $attempts = QuizAttempt::where('quiz_paket_id', $paket->id)
+                ->where('siswa_id', $siswa->id)
+                ->orderBy('attempt_number')
+                ->get();
+            $used = $attempts->count();
+            $best = $attempts->where('status', 'submitted')->max('score');
+            $quizPayload = [
+                'id' => $paket->id,
+                'title' => $paket->title,
+                'description' => $paket->description,
+                'category' => $paket->category,
+                'cover_url' => $paket->cover_url,
+                'course_id' => $paket->course_id,
+                'course_title' => optional($paket->course)->title,
+                'questions_count' => $paket->questions()->count(),
+                'time_limit_minutes' => $paket->time_limit_minutes,
+                'max_attempts' => $paket->max_attempts,
+                'passing_score' => (int) $paket->passing_score,
+                'attempts_used' => $used,
+                'best_score' => $best === null ? null : (int) $best,
+                'can_start' => $used < $paket->max_attempts,
+                'is_unlocked' => true,
+            ];
+        }
 
         return response()->json([
             'lesson' => $lesson,
@@ -137,6 +183,8 @@ class LmsController extends Controller
                 'file_name' => $s->file_name,
                 'url' => asset('storage/' . $s->file_path),
             ]),
+            'recap' => $recapPayload,
+            'quiz' => $quizPayload,
             'completed' => $progress && $progress->completed_at !== null,
             'completed_at' => $progress?->completed_at,
             'progress' => $this->progressPayload($lesson, $progress),
@@ -432,6 +480,8 @@ class LmsController extends Controller
             'batch_id' => 'nullable|exists:batches,id',
             'sort' => 'nullable|integer|min:0',
             'status' => 'nullable|in:aktif,nonaktif',
+            'alert' => 'nullable|string|max:1000',
+            'alert_active' => 'nullable|boolean',
             'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
@@ -457,6 +507,8 @@ class LmsController extends Controller
             'batch_id' => 'nullable|exists:batches,id',
             'sort' => 'nullable|integer|min:0',
             'status' => 'nullable|in:aktif,nonaktif',
+            'alert' => 'nullable|string|max:1000',
+            'alert_active' => 'nullable|boolean',
             'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 

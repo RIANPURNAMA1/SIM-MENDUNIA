@@ -474,6 +474,8 @@ Route::get('/guru/penilaian-rekap/{kelasId}', [GuruDashboardController::class, '
     Route::get('/guru/lms-lessons/{id}', [GuruDashboardController::class, 'guruLessonDetail']);
     Route::post('/guru/lms-lessons/{id}', [GuruDashboardController::class, 'guruUpdateLesson']);
     Route::delete('/guru/lms-lessons/{id}', [GuruDashboardController::class, 'guruDeleteLesson']);
+    Route::post('/guru/lms-lessons/{id}/recap', [GuruDashboardController::class, 'guruStoreLessonRecap']);
+    Route::delete('/guru/lms-lessons/{id}/recap', [GuruDashboardController::class, 'guruDeleteLessonRecap']);
     Route::get('/guru/lms-courses/{courseId}/files', [GuruDashboardController::class, 'lmsCourseFiles']);
     Route::get('/guru/lms-courses/{courseId}/lessons', [GuruDashboardController::class, 'guruLessons']);
     Route::get('/guru/lms-courses/{id}', [GuruDashboardController::class, 'lmsCourseDetail']);

@@ -3,6 +3,7 @@ import {
   Plus, X, Trash2, ArrowLeft, HelpCircle, ListChecks, Eye,
   ChevronUp, ChevronDown, Camera, Clock, Repeat, Award, Users,
   BookOpen, Loader2, ImageIcon, UploadCloud, Mic, RotateCcw,
+  LayoutGrid, ShieldCheck,
 } from 'lucide-react'
 import { guruQuizApi } from '../../services/api'
 import Swal from 'sweetalert2'
@@ -15,6 +16,7 @@ interface GuruPaketSoalProps {
   hiddenHeader?: boolean
   defaultBatchId?: number | string | null
   defaultLevel?: string | null
+  initialPaketId?: number | null
 }
 
 interface Paket {
@@ -30,6 +32,7 @@ interface Paket {
   max_warnings: number
   passing_score: number
   shuffle_questions: boolean
+  quiz_template: string
   status: string
   questions_count: number
   attempts_count: number
@@ -103,13 +106,13 @@ type View = 'list' | 'questions' | 'results'
 const emptyPaketForm = {
   title: '', description: '', course_id: '', batch_id: '', level: '', category: '',
   time_limit_minutes: '30', max_attempts: '3', max_warnings: '3',
-  passing_score: '0', shuffle_questions: true, status: 'nonaktif',
+  passing_score: '0', shuffle_questions: true, quiz_template: 'basic', status: 'nonaktif',
   cover_image: '',
 }
 
 const emptyQuestionForm = { question: '', question_type: 'choice', rating_max: '9', correct_index: '', points: '1', image_path: '', image_url: '', audio_path: '', audio_url: '', audio_max_plays: '2' }
 
-export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader, defaultBatchId, defaultLevel }: GuruPaketSoalProps) {
+export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader, defaultBatchId, defaultLevel, initialPaketId }: GuruPaketSoalProps) {
   const [pakets, setPakets] = useState<Paket[]>([])
   const [batches, setBatches] = useState<Batch[]>([])
   const [batchLevels, setBatchLevels] = useState<Record<number, string[]>>({})
@@ -119,6 +122,7 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
 
   const [view, setView] = useState<View>('list')
   const [activePaket, setActivePaket] = useState<Paket | null>(null)
+  const autoOpenedRef = useRef(false)
 
   const [showPaketModal, setShowPaketModal] = useState(false)
   const [editingPaket, setEditingPaket] = useState<Paket | null>(null)
@@ -160,6 +164,13 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
     guruQuizApi.pakets().then(res => {
       const all = res.data.pakets || []
       setPakets(courseId ? all.filter((p: Paket) => p.course_id === courseId) : all)
+      if (initialPaketId && !autoOpenedRef.current) {
+        const target = all.find((p: Paket) => p.id === initialPaketId)
+        if (target) {
+          autoOpenedRef.current = true
+          openQuestions(target)
+        }
+      }
     }).catch(() => {}).finally(() => setLoading(false))
   }
 
@@ -199,6 +210,7 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
       max_warnings: p.max_warnings.toString(),
       passing_score: p.passing_score.toString(),
       shuffle_questions: p.shuffle_questions,
+      quiz_template: p.quiz_template || 'basic',
       status: p.status,
       cover_image: p.cover_image || '',
     })
@@ -246,6 +258,7 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
         max_warnings: Number(paketForm.max_warnings) || 3,
         passing_score: Number(paketForm.passing_score) || 0,
         shuffle_questions: paketForm.shuffle_questions,
+        quiz_template: paketForm.quiz_template,
         status: paketForm.status,
       }
       if (editingPaket) {
@@ -1001,6 +1014,49 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
                   className={`relative w-10 h-[22px] rounded-full transition-colors ${paketForm.shuffle_questions ? 'bg-[#0069b0]' : 'bg-gray-300'}`}>
                   <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${paketForm.shuffle_questions ? 'left-[20px]' : 'left-[2px]'}`} />
                 </button>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-[#4B5063] mb-2 block">Template UI Quiz</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => setPaketForm({ ...paketForm, quiz_template: 'basic' })}
+                    className={`flex flex-col items-center gap-2 border-2 rounded-xl px-3 py-4 text-center transition-all ${
+                      paketForm.quiz_template !== 'jft'
+                        ? 'border-[#0069b0] bg-[#0069b0]/[0.04] ring-1 ring-[#0069b0]/20'
+                        : 'border-[#E5E7EF] hover:border-[#D6D9E1]'
+                    }`}>
+                    <span className={`w-10 h-10 flex items-center justify-center rounded-xl ${
+                      paketForm.quiz_template !== 'jft' ? 'bg-[#0069b0] text-white' : 'bg-[#F4F5F8] text-[#8B90A0]'
+                    }`}>
+                      <LayoutGrid size={18} />
+                    </span>
+                    <span>
+                      <span className="block text-[11.5px] font-bold text-[#14182B]">Basic</span>
+                      <span className="block text-[9.5px] text-[#8B90A0] font-medium mt-0.5">Sederhana & fokus</span>
+                    </span>
+                  </button>
+                  <button type="button" onClick={() => setPaketForm({ ...paketForm, quiz_template: 'jft' })}
+                    className={`flex flex-col items-center gap-2 border-2 rounded-xl px-3 py-4 text-center transition-all ${
+                      paketForm.quiz_template === 'jft'
+                        ? 'border-[#1f2022] bg-[#1f2022] ring-1 ring-[#1f2022]/20'
+                        : 'border-[#E5E7EF] hover:border-[#D6D9E1]'
+                    }`}>
+                    <span className={`w-10 h-10 flex items-center justify-center rounded-xl ${
+                      paketForm.quiz_template === 'jft' ? 'bg-[#5e8b5d] text-white' : 'bg-[#F4F5F8] text-[#8B90A0]'
+                    }`}>
+                      <ShieldCheck size={18} />
+                    </span>
+                    <span>
+                      <span className={`block text-[11.5px] font-bold ${paketForm.quiz_template === 'jft' ? 'text-white' : 'text-[#14182B]'}`}>JFT UI</span>
+                      <span className={`block text-[9.5px] font-medium mt-0.5 ${paketForm.quiz_template === 'jft' ? 'text-white/60' : 'text-[#8B90A0]'}`}>Kamera & pengawasan</span>
+                    </span>
+                  </button>
+                </div>
+                <p className="text-[10px] text-[#8B90A0] font-medium mt-2">
+                  {paketForm.quiz_template === 'jft'
+                    ? 'JFT UI: tampilan quiz lengkap dengan pengawasan kamera. Sistem mengambil foto berkala & memberi peringatan.'
+                    : 'Basic: tampilan quiz sederhana tanpa pengawasan kamera. Cocok untuk quiz evaluasi ringan.'}
+                </p>
               </div>
 
               <div className="flex items-center justify-between bg-[#F4F5F8] rounded-xl px-4 py-3">

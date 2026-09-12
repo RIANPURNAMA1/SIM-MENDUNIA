@@ -41,6 +41,11 @@ class Lesson extends Model
         return $this->belongsTo(QuizPaket::class, 'paket_id');
     }
 
+    public function recap()
+    {
+        return $this->hasOne(LessonRecap::class, 'lesson_id');
+    }
+
     public function progress()
     {
         return $this->hasMany(LmsProgress::class, 'lesson_id');

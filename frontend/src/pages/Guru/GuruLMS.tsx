@@ -8,6 +8,7 @@ import {
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
 import { guruLmsApi, lmsAdminApi, guruKelasApi, guruQuizApi, assignmentApi, APP_URL } from '../../services/api'
+import { DEFAULT_COURSE_COVER } from '../../utils/courseCover'
 import { getYouTubeEmbedUrl } from '../../utils/youtube'
 import Swal from 'sweetalert2'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
@@ -748,7 +749,7 @@ export default function GuruLMS() {
                   {selectedCourse.image ? (
                     <img src={`${APP_URL}/storage/${selectedCourse.image}`} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <BookOpen size={20} className="text-white/50" />
+                    <img src={DEFAULT_COURSE_COVER} alt="" className="w-full h-full object-cover" />
                   )}
                 </div>
                 <div>
@@ -1492,7 +1493,7 @@ export default function GuruLMS() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
             {filtered.map(course => (
               <button key={course.id} onClick={() => openCourse(course)}
                 className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-all text-left group">
@@ -1500,7 +1501,7 @@ export default function GuruLMS() {
                   {course.image ? (
                     <img src={`${APP_URL}/storage/${course.image}`} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <BookOpen size={36} className="text-white/20" />
+                    <img src={DEFAULT_COURSE_COVER} alt="" className="w-full h-full object-cover" />
                   )}
                   <div className="absolute top-2.5 right-2.5 flex flex-col items-end gap-1">
                     {!course.can_manage && (
@@ -1520,15 +1521,15 @@ export default function GuruLMS() {
                     </div>
                   </div>
                 </div>
-                <div className="p-4">
+                <div className="p-3 sm:p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-sm font-bold text-gray-900 group-hover:text-[#0069b0] transition-colors truncate">{course.title}</h3>
-                      <span className="text-[10px] font-medium text-gray-400 mt-0.5 inline-block">{getBatchName(course.batch_id)}</span>
+                      <h3 className="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-[#0069b0] transition-colors truncate">{course.title}</h3>
+                      <span className="text-[10px] font-medium text-gray-400 mt-0.5 inline-block truncate">{getBatchName(course.batch_id)}</span>
                     </div>
                     <ChevronRight size={16} className="text-gray-300 shrink-0 mt-0.5 group-hover:text-[#0069b0] transition-colors" />
                   </div>
-                  <div className="flex items-center gap-4 mt-2.5 text-[10px] text-gray-400">
+                  <div className="flex items-center gap-3 sm:gap-4 mt-2.5 text-[10px] text-gray-400">
                     <span className="flex items-center gap-1">
                       <ListChecks size={11} /> {course.lessons_count} pelajaran
                     </span>

@@ -109,6 +109,7 @@ import AbsensiSaya from './pages/Absensi/AbsensiSaya'
 import LMS from './pages/Akademik/LMS'
 import QuizKandidat from './pages/Akademik/QuizKandidat'
 import QuizPlay from './pages/Akademik/QuizPlay'
+import QuizBasicPlay from './pages/Akademik/QuizBasicPlay'
 import Raport from './pages/Akademik/Raport'
 import SiswaNilai from './pages/Siswa/SiswaNilai'
 import DataCourse from './pages/Akademik/DataCourse'
@@ -285,6 +286,7 @@ function AppRoutes() {
         <Route path="quiz/:paketId" element={<QuizKandidat />} />
         <Route path="quiz/:paketId/materi/:lessonId" element={<QuizKandidat />} />
         <Route path="quiz/:paketId/play/:attemptId" element={<QuizPlay />} />
+        <Route path="quiz/:paketId/play-basic/:attemptId" element={<QuizBasicPlay />} />
         <Route path="nilai" element={<SiswaNilai />} />
         <Route path="matching-job" element={<ProgressKandidat />} />
         <Route path="kontrak" element={<KontrakSiswa />} />
