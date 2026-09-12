@@ -4,9 +4,10 @@ import {
   BookOpen, Play, PlayCircle, Check, CheckCircle, Circle, ChevronLeft, ChevronRight,
   FileText, Video, ArrowLeft, Clock, ListChecks, Lock, FileQuestion,
   ClipboardList, Upload, Download, Send, GraduationCap, Star, Award, AlertTriangle, X, Trash2,
-  CalendarCheck, LayoutDashboard, Wallet, User, Trophy,
+  CalendarCheck, LayoutDashboard, Wallet, User, Trophy, Search, ClipboardCheck,
 } from 'lucide-react'
 import { lmsApi, quizApi, APP_URL } from '../../services/api'
+import { DEFAULT_COURSE_COVER } from '../../utils/courseCover'
 import { getYouTubeEmbedUrl } from '../../utils/youtube'
 import LessonSlidesViewer from '../../components/LessonSlidesViewer'
 import TrackedVideo from '../../components/TrackedVideo'
@@ -20,6 +21,7 @@ interface Course {
   image: string | null
   level: string | null
   category: { id: number; name: string } | null
+  batch: { id: number; nama_batch: string } | null
   kelas_sensei_id: number | null
   lessons_count: number
   sort: number
@@ -142,19 +144,22 @@ export default function LMS() {
   const [welcomeVideo, setWelcomeVideo] = useState<string | null>(null)
   const [welcomeVideoUrl, setWelcomeVideoUrl] = useState<string | null>(null)
   const [activeCategory, setActiveCategory] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
   const courseCategories = useMemo(() =>
     Array.from(new Set(courses.map(c => c.category?.name).filter((c): c is string => !!c))),
     [courses]
   )
-  const visibleCourses = activeCategory === 'all'
-    ? courses
-    : courses.filter(c => c.category?.name === activeCategory)
+  const visibleCourses = (searchQuery.trim()
+    ? courses.filter(c => c.title.toLowerCase().includes(searchQuery.trim().toLowerCase()))
+    : courses).filter(c => activeCategory === 'all' || c.category?.name === activeCategory)
   const [view, setView] = useState<ViewType>('courses')
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [completedLessonIds, setCompletedLessonIds] = useState<number[]>([])
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null)
-  const [lessonDetail, setLessonDetail] = useState<{ completed: boolean; completed_at: string | null; progress: LessonProgress | null; slides?: { id: number; file_name: string; url: string }[] } | null>(null)
+  const [lessonDetail, setLessonDetail] = useState<{ completed: boolean; completed_at: string | null; progress: LessonProgress | null; slides?: { id: number; file_name: string; url: string }[]; recap?: {
+    id: number; file_name: string | null; file_size: number | null; kind: 'image' | 'pdf'; description: string | null; url: string | null
+  } | null; quiz?: CourseQuiz | null } | null>(null)
   const [lessonProgressMap, setLessonProgressMap] = useState<Record<number, LessonProgress>>({})
   const [, setDetailLoading] = useState(false)
   const [completing, setCompleting] = useState(false)
@@ -169,6 +174,7 @@ export default function LMS() {
   const [submitting, setSubmitting] = useState(false)
   const [courseQuizzes, setCourseQuizzes] = useState<CourseQuiz[]>([])
   const [quizLoading, setQuizLoading] = useState(false)
+  const [lessonTab, setLessonTab] = useState<'materi' | 'quiz' | 'tugas' | 'rekap'>('materi')
 
   useEffect(() => {
     lmsApi.courses().then(res => {
@@ -261,6 +267,7 @@ export default function LMS() {
     setSelectedLesson(lesson)
     setDetailLoading(true)
     setLessonDetail(null)
+    setLessonTab('materi')
     setView('lesson')
     if (selectedCourse?.id && lesson.id !== Number(lessonId)) {
       navigate(`/siswa-dashboard/lms/${selectedCourse.id}/materi/${lesson.id}`)
@@ -275,6 +282,8 @@ export default function LMS() {
         completed_at: res.data.completed_at,
         progress: res.data.progress || null,
         slides: (res.data.slides || []).map((s: any) => ({ id: s.id, file_name: s.file_name, url: s.url })),
+        recap: res.data.recap || null,
+        quiz: res.data.quiz || null,
       })
       if (res.data?.progress) {
         setLessonProgressMap(prev => ({ ...prev, [id]: res.data.progress }))
@@ -290,6 +299,7 @@ export default function LMS() {
       if (selectedLesson?.id !== id) {
         setSelectedLesson(lesson)
         setLessonDetail(null)
+        setLessonTab('materi')
         setDetailLoading(true)
         setView('lesson')
         loadLessonDetail(id)
@@ -386,11 +396,8 @@ export default function LMS() {
       setSelectedLesson(null)
       setLessonDetail(null)
       if (selectedCourse?.id) {
-        loadCourseQuizzes(selectedCourse.id)
-        setView(courseQuizzes.length > 0 ? 'quiz-detail' : 'course-detail')
-        navigate(courseQuizzes.length > 0
-          ? `/siswa-dashboard/lms/${selectedCourse.id}/quiz`
-          : `/siswa-dashboard/lms/${selectedCourse.id}`)
+        setView('course-detail')
+        navigate(`/siswa-dashboard/lms/${selectedCourse.id}`)
       }
     } else if (view === 'quiz-detail') {
       setView('course-detail')
@@ -569,51 +576,75 @@ export default function LMS() {
         </header>
 
         <div className="max-w-lg lg:max-w-5xl mx-auto px-4 pt-4 pb-4 lg:py-6">
-          {/* Hero */}
-          <div className="relative overflow-hidden rounded-md bg-gradient-to-br from-[#0E6187] via-[#12729f] to-[#0f2840] shadow-lg shadow-[#0E6187]/20 mb-4">
-            <div className="absolute -right-[3rem] -top-[3rem] w-44 h-44 rounded-full bg-white/5" />
-            <div className="absolute -right-[5rem] -bottom-[4rem] w-56 h-56 rounded-full bg-white/5" />
-            <div className="relative p-5">
-              {selectedCourse.category && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/15 backdrop-blur text-white text-[10px] font-bold mb-2.5">
-                  <BookOpen size={10} className="text-emerald-300" /> {selectedCourse.category.name}
-                </span>
-              )}
-              <h2 className="text-lg font-black text-white leading-snug">{selectedLesson.title}</h2>
-              <p className="text-[10px] text-white/60 mt-1 flex items-center gap-1.5">
-                <GraduationCap size={11} /> {selectedCourse.title}
-              </p>
-              <div className="mt-4">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[10px] font-medium text-white/70">Progress kursus</span>
-                  <span className="text-[11px] font-black text-white">{getProgressPercent()}%</span>
-                </div>
-                <div className="h-2 bg-white/15 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-300 rounded-full transition-all duration-700"
-                    style={{ width: `${getProgressPercent()}%` }} />
-                </div>
-                <p className="text-[9px] text-white/50 mt-1.5">{progress} dari {total} pelajaran selesai</p>
+          {/* Lesson header */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 mb-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#0E6187]">Pertemuan {currentIdx + 1} dari {total}</p>
+                <h2 className="text-base font-bold text-slate-900 mt-1">{selectedLesson.title}</h2>
+                <p className="text-[11px] text-slate-500 font-medium mt-1">
+                  {selectedCourse.title}
+                  {selectedCourse.batch?.nama_batch ? ` · Batch ${selectedCourse.batch.nama_batch}` : ''}
+                  {selectedCourse.level ? ` · Level ${selectedCourse.level}` : ''}
+                </p>
               </div>
+              {lessonDetail?.completed || (videoGreen && readGreen) ? (
+                <span className="shrink-0 flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">
+                  <Check size={11} /> {lessonDetail?.completed ? 'Selesai' : 'Activity hijau'}
+                </span>
+              ) : (
+                <span className="shrink-0 text-[9px] font-bold px-2 py-1 rounded-full bg-slate-100 text-slate-400">Aktif</span>
+              )}
             </div>
+            <div className="mt-4">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-medium text-slate-400">Progress kursus</span>
+                <span className="text-[10px] font-black text-[#0E6187]">{getProgressPercent()}%</span>
+              </div>
+              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-full bg-[#0E6187] rounded-full transition-all duration-700"
+                  style={{ width: `${getProgressPercent()}%` }} />
+              </div>
+              <p className="text-[9px] text-slate-400 mt-1.5">{progress} dari {total} pelajaran selesai</p>
+            </div>
+          </div>
+
+          {/* Sub menu tabs */}
+          <div className="flex gap-0 bg-white rounded-2xl border border-slate-200 overflow-hidden mb-3">
+            {([
+              { key: 'materi' as 'materi', label: 'Materi', icon: BookOpen, count: undefined as number | undefined },
+              { key: 'quiz' as 'quiz', label: 'Quiz', icon: ListChecks, count: lessonDetail?.quiz ? 1 : (currentIdx === 0 && courseQuizzes.length > 0 ? courseQuizzes.length : undefined) },
+              { key: 'tugas' as 'tugas', label: 'Tugas', icon: ClipboardList, count: assignments.length },
+              { key: 'rekap' as 'rekap', label: 'Rekap Pertemuan', icon: ClipboardCheck, count: lessonDetail?.recap ? 1 : undefined },
+            ]).map(tab => (
+              <button key={tab.key} onClick={() => setLessonTab(tab.key)}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-1 py-3 text-[11px] font-bold border-b-2 transition-colors ${
+                  lessonTab === tab.key ? 'border-[#0E6187] text-[#0E6187] bg-[#0E6187]/[0.03]' : 'border-transparent text-slate-400 hover:text-slate-700'
+                }`}>
+                <tab.icon size={13} />
+                <span className="truncate">{tab.label}</span>
+                {tab.count !== undefined && (
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
+                    lessonTab === tab.key ? 'bg-[#0E6187]/10 text-[#0E6187]' : 'bg-slate-100 text-slate-500'
+                  }`}>{tab.count}</span>
+                )}
+              </button>
+            ))}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Main Content */}
-            <div className="lg:col-span-2 space-y-4">
-              {/* Materi Card */}
-              <div className="bg-white rounded-md shadow-sm overflow-hidden">
-                <div className="px-5 pt-4 pb-3 border-b border-slate-100 flex items-center justify-between">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-9 h-9 rounded-md bg-[#0E6187]/10 flex items-center justify-center shrink-0">
-                      <BookOpen size={16} className="text-[#0E6187]" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.16em]">Materi</p>
-                      <h2 className="text-sm font-bold text-slate-900 truncate">{selectedLesson.title}</h2>
-                    </div>
+            <div className="lg:col-span-2 space-y-3">
+              {/* Materi */}
+              {lessonTab === 'materi' && (
+              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <BookOpen size={15} className="text-[#0E6187]" />
+                    <h3 className="text-[11px] font-bold tracking-[0.12em] text-slate-500 uppercase">Materi</h3>
                   </div>
                   {lessonDetail?.completed || (videoGreen && readGreen) ? (
-                    <span className="shrink-0 flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">
+                    <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">
                       <Check size={11} /> {lessonDetail?.completed ? 'Selesai' : 'Activity hijau'}
                     </span>
                   ) : null}
@@ -685,112 +716,132 @@ export default function LMS() {
                   </a>
                 )}
               </div>
+              )}
 
-              {/* Completion Card */}
-              <div className="bg-white rounded-md shadow-sm p-5">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className={`w-11 h-11 rounded-md flex items-center justify-center shrink-0 ${
-                    lessonDetail?.completed ? 'bg-emerald-50' : 'bg-[#0E6187]/10'
-                  }`}>
-                    {lessonDetail?.completed ? (
-                      <CheckCircle size={22} className="text-emerald-500" />
-                    ) : (
-                      <ClipboardList size={22} className="text-[#0E6187]" />
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-black text-slate-900">
-                      {lessonDetail?.completed ? 'Pelajaran selesai' : 'Tandai Selesai'}
-                    </p>
-                    <p className="text-[10px] text-slate-400 mt-0.5 leading-relaxed">
-                      {lessonDetail?.completed
-                        ? `Diselesaikan ${new Date(lessonDetail.completed_at!).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`
-                        : 'Buka materi ini untuk menandai pelajaran selesai'}
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => toggleComplete(selectedLesson.id, !!lessonDetail?.completed)}
-                  disabled={completing || !lessonDetail}
-                  className={`w-full flex items-center justify-center gap-2 rounded-md py-3.5 text-sm font-black transition-all active:scale-[0.98] ${
-                    lessonDetail?.completed
-                      ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      : 'bg-[#0E6187] text-white hover:bg-[#0E6187]/90 shadow-lg shadow-[#0E6187]/25 disabled:opacity-50 disabled:shadow-none'
-                  }`}>
-                  {completing ? 'Memproses...' : lessonDetail?.completed ? (
-                    <span className="flex items-center gap-2"><X size={15} /> Tandai Batal Selesai</span>
-                  ) : (
-                    <span className="flex items-center gap-2"><Check size={15} strokeWidth={3} /> Tandai Selesai</span>
-                  )}
-                </button>
-
-                {!lessonDetail?.completed && (
-                  <div className="mt-4 pt-4 border-t border-slate-100 space-y-2.5">
-                    <div className={`rounded-md px-4 py-3 ${videoGreen ? 'bg-emerald-50/70' : 'bg-slate-50'}`}>
-                      <div className="flex items-center gap-2.5 mb-2">
-                        <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${videoGreen ? 'bg-emerald-500 text-white' : 'bg-white text-slate-400 shadow-sm'}`}>
-                          {videoGreen ? <Check size={14} strokeWidth={3} /> : <PlayCircle size={14} />}
-                        </div>
-                        <span className="flex-1 text-[11px] font-bold text-slate-700">Tonton video</span>
-                        <span className={`text-[10px] font-bold ${videoGreen ? 'text-emerald-600' : 'text-slate-400'}`}>
-                          {videoGreen ? 'Selesai' : selectedLesson.video_url ? `${Math.round(prog?.video_percent || 0)}%` : 'Tidak ada video'}
-                        </span>
-                      </div>
-                      {selectedLesson.video_url && !videoGreen && (
-                        <div className="h-1.5 bg-slate-200/70 rounded-full overflow-hidden">
-                          <div className="h-full bg-gradient-to-r from-[#0E6187] to-sky-400 rounded-full transition-all"
-                            style={{ width: `${Math.round(prog?.video_percent || 0)}%` }} />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className={`rounded-md px-4 py-3 ${readGreen ? 'bg-emerald-50/70' : 'bg-slate-50'}`}>
-                      <div className="flex items-center gap-2.5 mb-2">
-                        <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${readGreen ? 'bg-emerald-500 text-white' : 'bg-white text-slate-400 shadow-sm'}`}>
-                          {readGreen ? <Check size={14} strokeWidth={3} /> : <BookOpen size={14} />}
-                        </div>
-                        <span className="flex-1 text-[11px] font-bold text-slate-700">Baca modul</span>
-                        <span className={`text-[10px] font-bold ${readGreen ? 'text-emerald-600' : 'text-slate-400'}`}>
-                          {readGreen ? 'Selesai' : selectedLesson.content ? `${Math.min(prog?.read_seconds || 0, 30)} / ${30} detik` : 'Tidak ada modul'}
-                        </span>
-                      </div>
-                      {selectedLesson.content && !readGreen && (
-                        <div className="h-1.5 bg-slate-200/70 rounded-full overflow-hidden">
-                          <div className="h-full bg-gradient-to-r from-[#0E6187] to-sky-400 rounded-full transition-all"
-                            style={{ width: `${Math.min((prog?.read_seconds || 0) / 30, 1) * 100}%` }} />
-                        </div>
-                      )}
-                    </div>
-                    {selectedLesson.content && !prog?.read_green && (
-                      <button onClick={markReadDone}
-                        className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-md bg-emerald-50 text-emerald-600 text-[11px] font-bold hover:bg-emerald-100 transition-colors">
-                        <Check size={13} strokeWidth={3} /> Sudah Baca Materi
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Quiz Pertemuan Ini */}
-              {currentIdx === 0 && courseQuizzes.length > 0 && (
-                <div className="bg-white rounded-md shadow-sm overflow-hidden">
-                  <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-                    <h3 className="text-[11px] font-black text-slate-800 flex items-center gap-2">
-                      <span className="w-7 h-7 rounded-md bg-[#0E6187]/10 flex items-center justify-center shrink-0">
-                        <ListChecks size={13} className="text-[#0E6187]" />
-                      </span>
-                      Quiz Pertemuan Ini
-                    </h3>
+              {/* Quiz */}
+              {lessonTab === 'quiz' && (
+                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                  <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+                    <ListChecks size={15} className="text-[#0E6187]" />
+                    <h3 className="text-[11px] font-bold tracking-[0.12em] text-slate-500 uppercase">Quiz</h3>
                   </div>
                   <div className="p-5 space-y-3">
-                    {courseQuizzes.map(q => renderQuizCard(q))}
+                    {lessonDetail?.quiz ? (
+                      renderQuizCard(lessonDetail.quiz)
+                    ) : currentIdx === 0 && courseQuizzes.length > 0 ? (
+                      courseQuizzes.map(q => renderQuizCard(q))
+                    ) : (
+                      <div className="border border-dashed border-slate-200 rounded-xl p-6 text-center">
+                        <ListChecks size={22} className="text-slate-300 mx-auto mb-2" />
+                        <p className="text-xs font-bold text-slate-500">Belum ada quiz</p>
+                        <p className="text-[10px] text-slate-400 font-medium mt-0.5">Quiz pertemuan ini belum tersedia</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Tugas */}
+              {lessonTab === 'tugas' && (
+                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                  <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+                    <ClipboardList size={15} className="text-[#0E6187]" />
+                    <h3 className="text-[11px] font-bold tracking-[0.12em] text-slate-500 uppercase">Tugas ({assignments.length})</h3>
+                  </div>
+                  <div className="p-5">
+                    {assignLoading ? (
+                      <p className="text-xs text-slate-400 text-center py-4">Memuat tugas...</p>
+                    ) : assignments.length === 0 ? (
+                      <p className="text-xs text-slate-400 text-center py-4">Belum ada tugas untuk kursus ini</p>
+                    ) : (
+                      <div className="space-y-2.5">
+                        {assignments.map(a => {
+                          const isPastDue = a.due_date && new Date(a.due_date + 'T23:59:59') < new Date()
+                          const hasSubmitted = !!a.submission
+                          const isGraded = a.submission?.score !== null
+                          return (
+                            <div key={a.id} className="flex items-center gap-3 border border-slate-100 rounded-xl p-3 bg-slate-50">
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                isGraded ? 'bg-emerald-50 text-emerald-500' : hasSubmitted ? 'bg-amber-50 text-amber-500' : 'bg-[#0E6187]/10 text-[#0E6187]'
+                              }`}>
+                                {isGraded ? <Award size={14} /> : hasSubmitted ? <CheckCircle size={14} /> : <ClipboardList size={14} />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-semibold text-slate-700 truncate">{a.title}</p>
+                                <div className="flex items-center gap-2.5 mt-0.5">
+                                  {a.due_date && (
+                                    <span className={`text-[10px] ${isPastDue && !hasSubmitted ? 'text-red-500 font-semibold' : 'text-slate-400'}`}>
+                                      {isPastDue && !hasSubmitted ? 'Terlambat · ' : ''}{a.due_date}
+                                    </span>
+                                  )}
+                                  {isGraded ? (
+                                    <span className="text-[10px] font-bold text-emerald-600">Skor {a.submission?.score}{a.max_score ? `/${a.max_score}` : ''}</span>
+                                  ) : hasSubmitted ? (
+                                    <span className="text-[10px] font-bold text-amber-500">Sudah dikumpulkan</span>
+                                  ) : (
+                                    <span className="text-[10px] text-slate-400">Belum dikumpulkan</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Rekap */}
+              {lessonTab === 'rekap' && (
+                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                  <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+                    <ClipboardCheck size={15} className="text-[#0E6187]" />
+                    <h3 className="text-[11px] font-bold tracking-[0.12em] text-slate-500 uppercase">Rekap Pertemuan</h3>
+                  </div>
+                  <div className="p-5 space-y-3">
+                    {lessonDetail?.recap ? (
+                      <>
+                        {lessonDetail.recap.url && lessonDetail.recap.kind === 'image' ? (
+                          <a href={lessonDetail.recap.url} target="_blank" rel="noopener noreferrer"
+                            className="block rounded-xl overflow-hidden border border-slate-100 bg-slate-50">
+                            <img src={lessonDetail.recap.url} alt="Rekap pertemuan"
+                              className="w-full max-h-[420px] object-contain" />
+                          </a>
+                        ) : lessonDetail.recap.url ? (
+                          <a href={lessonDetail.recap.url} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-3 bg-[#0E6187]/5 border border-[#0E6187]/10 rounded-xl p-3 hover:bg-[#0E6187]/10 transition-colors group">
+                            <div className="w-9 h-9 rounded-xl bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+                              <FileText size={16} className="text-[#0E6187]" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-gray-800 truncate group-hover:text-[#0E6187] transition-colors">
+                                {lessonDetail.recap.file_name}
+                              </p>
+                              <p className="text-[10px] text-gray-400 mt-0.5">Rekap PDF{lessonDetail.recap.file_size ? ` - ${lessonDetail.recap.file_size < 1024 * 1024 ? (lessonDetail.recap.file_size / 1024).toFixed(1) + ' KB' : (lessonDetail.recap.file_size / (1024 * 1024)).toFixed(1) + ' MB'}` : ''}</p>
+                            </div>
+                            <Download size={15} className="text-[#0E6187] shrink-0" />
+                          </a>
+                        ) : null}
+                        {lessonDetail.recap.description && (
+                          <p className="text-xs text-gray-600 leading-relaxed bg-slate-50 border border-slate-100 rounded-xl p-4 whitespace-pre-line">
+                            {lessonDetail.recap.description}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <div className="border border-dashed border-slate-200 rounded-xl p-6 text-center">
+                        <ClipboardCheck size={22} className="text-slate-300 mx-auto mb-2" />
+                        <p className="text-xs font-bold text-slate-500">Belum ada rekap</p>
+                        <p className="text-[10px] text-slate-400 font-medium mt-0.5">Rekap pertemuan ini belum tersedia</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
               {/* Navigation */}
-              <div className="bg-white rounded-md shadow-sm p-3 flex items-center gap-2">
+              <div className="bg-white rounded-2xl border border-slate-200 p-3 flex items-center gap-2">
                 <button
                   onClick={() => { if (currentIdx > 0) openLesson(lessons[currentIdx - 1]) }}
                   disabled={currentIdx === 0}
@@ -1553,7 +1604,7 @@ export default function LMS() {
               <GraduationCap size={20} />
             </div>
             <div>
-              <h1 className="text-xl font-bold">LMS</h1>
+              <h1 className="text-xl font-bold">KELAS MENDUNIA </h1>
               <p className="mt-0.5 text-[13px] text-teal-100">Materi pembelajaran dan progress belajar</p>
             </div>
           </div>
@@ -1618,6 +1669,22 @@ export default function LMS() {
           </div>
         ) : (
           <>
+            <div className="relative">
+              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Cari kursus kamu..."
+                className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-9 text-xs font-medium text-gray-800 placeholder:text-gray-400 outline-none transition-all focus:border-[#0E6187] focus:ring-2 focus:ring-[#0E6187]/15"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  <X size={15} />
+                </button>
+              )}
+            </div>
+
             {courseCategories.length > 0 && (
               <div className="-mx-4 px-4 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <div className="flex items-center gap-2">
@@ -1636,10 +1703,10 @@ export default function LMS() {
             {visibleCourses.length === 0 ? (
               <div className="bg-white rounded-md shadow-sm border border-gray-200 p-10 text-center">
                 <div className="w-14 h-14 rounded-md bg-gray-50 flex items-center justify-center mx-auto mb-3">
-                  <BookOpen size={26} className="text-gray-300" />
+                  <Search size={26} className="text-gray-300" />
                 </div>
-                <h3 className="text-sm font-bold text-gray-800">Tidak Ada Kursus di Kategori Ini</h3>
-                <p className="text-xs text-gray-400 mt-1">Pilih kategori lain untuk melihat kursusnya.</p>
+                <h3 className="text-sm font-bold text-gray-800">{searchQuery.trim() ? 'Kursus Tidak Ditemukan' : 'Tidak Ada Kursus di Kategori Ini'}</h3>
+                <p className="text-xs text-gray-400 mt-1">{searchQuery.trim() ? `Tidak ada kursus yang cocok dengan "${searchQuery.trim()}".` : 'Pilih kategori lain untuk melihat kursusnya.'}</p>
               </div>
             ) : (
             <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
@@ -1650,20 +1717,13 @@ export default function LMS() {
                     {course.image ? (
                       <img src={`${APP_URL}/storage/${course.image}`} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     ) : (
-                      <BookOpen size={28} className="text-white/15" />
+                      <img src={DEFAULT_COURSE_COVER} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                     {course.category && (
                       <div className="absolute top-2 left-2">
                         <span className="inline-block rounded-full bg-[#0E6187] px-2 py-0.5 text-[8px] font-bold text-white shadow-md ring-1 ring-white/40">
                           {course.category.name}
-                        </span>
-                      </div>
-                    )}
-                    {course.level && (
-                      <div className="absolute top-2 right-2 flex items-center gap-1.5">
-                        <span className="px-1.5 py-0.5 rounded-md text-[8px] font-bold bg-white/20 text-white backdrop-blur-sm">
-                          Level {course.level}
                         </span>
                       </div>
                     )}
@@ -1676,6 +1736,16 @@ export default function LMS() {
                       <div className="text-[8px] sm:text-[11px] text-gray-400 mt-1 line-clamp-1 sm:line-clamp-2 leading-relaxed [&_*]:inline"
                         title={course.description.replace(/<[^>]*>/g, ' ')}
                         dangerouslySetInnerHTML={{ __html: course.description }} />
+                    )}
+                    {(course.batch || course.level) && (
+                      <div className="mt-1.5 flex flex-col gap-1">
+                       
+                        {course.level && (
+                          <span className="self-start px-2 py-0.5 rounded-md text-[8px] sm:text-[9px] font-bold bg-[#0E6187]/10 text-[#0E6187]">
+                            Level {course.level}
+                          </span>
+                        )}
+                      </div>
                     )}
                     <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-gray-100">
                       <span className="flex items-center gap-1 text-[8px] sm:text-[10px] font-bold text-slate-400 whitespace-nowrap">

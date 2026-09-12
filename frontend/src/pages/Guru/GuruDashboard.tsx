@@ -3,7 +3,7 @@ import {
   Calendar, CheckCircle, X, Plus, Users, User,
   ChevronRight, FileText, Clock,
   QrCode, History, BookOpen, ClipboardList, Camera, MapPin, Notebook,
-  Award, BarChart3, HelpCircle,
+  Award, BarChart3,
 } from 'lucide-react'
 import api, { guruKelasApi, jadwalLevelApi, APP_URL } from '../../services/api'
 import Swal from 'sweetalert2'
@@ -571,8 +571,6 @@ export default function GuruDashboard() {
               { icon: History, label: 'Riwayat', href: '/riwayat-absensi-karyawan' },
               { icon: Clock, label: 'Lembur', href: '/lembur-karyawan' },
               { icon: BookOpen, label: 'Kelas Mendunia', href: '/guru-lms' },
-              { icon: HelpCircle, label: 'Paket Soal', href: '/guru-paket-soal' },
-              { icon: History, label: 'Riwayat Pertemuan', href: '/guru-pertemuan' },
             ].map((item, i) => (
               <button key={i} onClick={() => item.href ? window.location.href = item.href : item.action?.()}
                 className="flex flex-col items-center gap-2 py-3 rounded-lg hover:bg-[#F4F5F8] transition-colors">

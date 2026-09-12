@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft, Clock, ListChecks, Award, Camera, ShieldAlert, X, Play,
   AlertTriangle, CheckCircle2, BookOpen, LayoutDashboard, CalendarCheck,
-  Wallet, User, FileQuestion, Lock, Check, Video, FileText,
+  Wallet, User, FileQuestion, Lock, Check, Video, FileText, LayoutGrid,
 } from 'lucide-react'
 import { quizApi, lmsApi } from '../../services/api'
 import LessonSlidesViewer from '../../components/LessonSlidesViewer'
@@ -57,6 +57,7 @@ interface PaketDetail {
   passing_score: number
   max_warnings: number
   has_prerequisite_course: boolean
+  quiz_template?: string
 }
 
 interface LessonPayload {
@@ -423,7 +424,9 @@ export default function QuizKandidat() {
     stopTimers()
     stopStream()
     setCameraModal(false)
-    navigate(`/siswa-dashboard/quiz/${packageId}/play/${attemptId}`, { state: { title: paketTitleRef.current } })
+    const template = detail?.paket?.quiz_template || 'basic'
+    const route = template === 'jft' ? 'play' : 'play-basic'
+    navigate(`/siswa-dashboard/quiz/${packageId}/${route}/${attemptId}`, { state: { title: paketTitleRef.current } })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stopTimers, stopStream, navigate])
 
@@ -436,7 +439,9 @@ export default function QuizKandidat() {
         return
       }
       const packageId = detail?.paket.id ?? paketId ?? 0
-      navigate(`/siswa-dashboard/quiz/${packageId}/play/${attemptId}`, { state: { title: paketTitleRef.current } })
+      const template = detail?.paket?.quiz_template || 'basic'
+      const route = template === 'jft' ? 'play' : 'play-basic'
+      navigate(`/siswa-dashboard/quiz/${packageId}/${route}/${attemptId}`, { state: { title: paketTitleRef.current } })
     }).catch(() => {
       Swal.fire({ icon: 'error', title: 'Gagal melanjutkan percobaan' })
       goBack()
@@ -1035,6 +1040,7 @@ export default function QuizKandidat() {
 
   if (view === 'rules' && detail) {
     const { paket, attempts, lessons, is_unlocked } = detail
+    const isProctoring = paket.quiz_template === 'jft'
     const used = attempts.length
     const inProgress = attempts.find(a => a.status === 'in_progress')
     const remainingAttempts = paket.max_attempts - used
@@ -1049,9 +1055,14 @@ export default function QuizKandidat() {
         resumeAttempt(inProgress.attempt_id)
         return
       }
-      setView('rules')
-      setCameraModal(true)
-      requestCamera()
+      if (isProctoring) {
+        setView('rules')
+        setCameraModal(true)
+        requestCamera()
+      } else {
+        setCameraModal(false)
+        startNew()
+      }
     }
 
     return (
@@ -1088,24 +1099,39 @@ export default function QuizKandidat() {
                   <p className="text-[10px] text-slate-400 font-medium mt-0.5">Quiz akan dikumpulkan otomatis saat waktu habis.</p>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-md bg-[#0E6187]/[0.06] flex items-center justify-center shrink-0">
-                  <AlertTriangle size={15} className="text-[#0E6187]" />
+              {isProctoring && (
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-md bg-[#0E6187]/[0.06] flex items-center justify-center shrink-0">
+                    <AlertTriangle size={15} className="text-[#0E6187]" />
+                  </div>
+                  <div>
+                    <p className="text-[12px] font-bold text-slate-700">Max {paket.max_warnings} peringatan</p>
+                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">Meninggalkan halaman quiz dapat memicu peringatan. Peringatan terakhir mengumpulkan quiz otomatis.</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[12px] font-bold text-slate-700">Max {paket.max_warnings} peringatan</p>
-                  <p className="text-[10px] text-slate-400 font-medium mt-0.5">Meninggalkan halaman quiz dapat memicu peringatan. Peringatan terakhir mengumpulkan quiz otomatis.</p>
+              )}
+              {isProctoring && (
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-md bg-[#0E6187]/[0.06] flex items-center justify-center shrink-0">
+                    <Camera size={15} className="text-[#0E6187]" />
+                  </div>
+                  <div>
+                    <p className="text-[12px] font-bold text-slate-700">Kamera pengawas</p>
+                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">Kamera wajib aktif selama pengerjaan sebagai bentuk kejujuran.</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-md bg-[#0E6187]/[0.06] flex items-center justify-center shrink-0">
-                  <Camera size={15} className="text-[#0E6187]" />
+              )}
+              {!isProctoring && (
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-md bg-[#0E6187]/[0.06] flex items-center justify-center shrink-0">
+                    <LayoutGrid size={15} className="text-[#0E6187]" />
+                  </div>
+                  <div>
+                    <p className="text-[12px] font-bold text-slate-700">Template Basic</p>
+                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">Tanpa pengawasan kamera — diakses melalui tampilan quiz sederhana.</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[12px] font-bold text-slate-700">Kamera pengawas</p>
-                  <p className="text-[10px] text-slate-400 font-medium mt-0.5">Kamera wajib aktif selama pengerjaan sebagai bentuk kejujuran.</p>
-                </div>
-              </div>
+              )}
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-md bg-[#0E6187]/[0.06] flex items-center justify-center shrink-0">
                   <ListChecks size={15} className="text-[#0E6187]" />

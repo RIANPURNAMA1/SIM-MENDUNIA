@@ -1,0 +1,1 @@
+export const DEFAULT_COURSE_COVER = 'https://i.pinimg.com/736x/a7/2e/b6/a72eb6dad6d4c20201d3a70c4fb784cf.jpg'

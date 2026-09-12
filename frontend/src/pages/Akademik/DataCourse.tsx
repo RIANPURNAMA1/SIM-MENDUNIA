@@ -4,7 +4,7 @@ import {
   BookOpen, Plus, Edit3, Trash2, Search, X, Image as ImageIcon, FileText,
   ListChecks, Eye, ChevronUp, ChevronDown, Camera, Clock, Repeat,
   Award, Users, UserCheck, Pencil, Loader2, ArrowLeft, Video, UploadCloud, Upload, Mic, RotateCcw,
-  Settings,
+  Settings, LayoutGrid, ShieldCheck, Link2,
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -27,6 +27,8 @@ interface Course {
   kelas_sensei_id: number | null
   lessons_count: number
   files_count: number
+  alert?: string | null
+  alert_active?: boolean
 }
 
 interface LmsCategory {
@@ -53,6 +55,7 @@ interface QuizPaket {
   max_warnings: number
   passing_score: number
   shuffle_questions: boolean
+  quiz_template: string
   status: string
   questions_count: number
   attempts_count: number
@@ -152,7 +155,7 @@ const primaryBtn = 'inline-flex items-center gap-2 bg-[#0E6187] hover:bg-[#0E618
 const emptyPaketForm = {
   title: '', description: '', course_id: '', batch_id: '', level: '', category: '',
   time_limit_minutes: '30', max_attempts: '3', max_warnings: '3',
-  passing_score: '0', shuffle_questions: true, status: 'nonaktif', user_id: '', cover_image: '',
+  passing_score: '0', shuffle_questions: true, quiz_template: 'basic', status: 'nonaktif', user_id: '', cover_image: '',
 }
 const emptyQuestionForm = { question: '', question_type: 'choice', rating_max: '9', correct_index: '', points: '1', image_path: '', image_url: '', audio_path: '', audio_url: '', audio_max_plays: '2' }
 
@@ -175,7 +178,7 @@ export default function DataCourse() {
   const [showCourseModal, setShowCourseModal] = useState(false)
   const [editingCourse, setEditingCourse] = useState<Course | null>(null)
   const [savingCourse, setSavingCourse] = useState(false)
-  const [courseForm, setCourseForm] = useState({ title: '', description: '', level: '', batch_id: '', category_id: '', sort: '0', status: 'aktif' })
+  const [courseForm, setCourseForm] = useState({ title: '', description: '', level: '', batch_id: '', category_id: '', sort: '0', status: 'aktif', alert: '', alert_active: true })
   const [categories, setCategories] = useState<LmsCategory[]>([])
   const [showCourseCatModal, setShowCourseCatModal] = useState(false)
   const [courseCatForm, setCourseCatForm] = useState({ name: '', sort: '0' })
@@ -519,7 +522,7 @@ export default function DataCourse() {
     setBankLoading(true)
     adminQuizApi.pakets().then(res => {
       const all = res.data.pakets || []
-      setBankPakets(all.filter((p: QuizPaket) => !p.course_id))
+      setBankPakets(all)
     }).catch(() => setBankPakets([])).finally(() => setBankLoading(false))
   }
 
@@ -894,7 +897,7 @@ export default function DataCourse() {
   // ==================== COURSE CRUD ====================
   const openCreateCourse = () => {
     setEditingCourse(null)
-    setCourseForm({ title: '', description: '', level: '', batch_id: '', category_id: '', sort: '0', status: 'aktif' })
+    setCourseForm({ title: '', description: '', level: '', batch_id: '', category_id: '', sort: '0', status: 'aktif', alert: '', alert_active: true })
     setImageFile(null)
     setImagePreview(null)
     setShowCourseModal(true)
@@ -910,6 +913,8 @@ export default function DataCourse() {
       category_id: course.category_id?.toString() || '',
       sort: course.sort.toString(),
       status: course.status,
+      alert: course.alert || '',
+      alert_active: course.alert_active !== false && course.alert_active !== 0,
     })
     setImageFile(null)
     setImagePreview(course.image ? `${APP_URL}/storage/${course.image}` : null)
@@ -930,6 +935,8 @@ export default function DataCourse() {
       fd.append('category_id', courseForm.category_id)
       fd.append('sort', courseForm.sort || '0')
       fd.append('status', courseForm.status)
+      fd.append('alert', courseForm.alert)
+      fd.append('alert_active', courseForm.alert_active ? '1' : '0')
       if (imageFile) fd.append('image', imageFile)
       if (editingCourse) {
         await lmsAdminApi.updateCourse(editingCourse.id, fd)
@@ -977,7 +984,8 @@ export default function DataCourse() {
       batch_id: p.batch_id?.toString() || '', level: p.level || '', category: p.category || '',
       time_limit_minutes: p.time_limit_minutes.toString(), max_attempts: p.max_attempts.toString(),
       max_warnings: p.max_warnings.toString(), passing_score: p.passing_score.toString(),
-      shuffle_questions: p.shuffle_questions, status: p.status, user_id: p.user_id?.toString() || '',
+      shuffle_questions: p.shuffle_questions, quiz_template: p.quiz_template || 'basic',
+      status: p.status, user_id: p.user_id?.toString() || '',
       cover_image: p.cover_image || '',
     })
     setCoverPreview(p.cover_url || '')
@@ -1015,7 +1023,8 @@ export default function DataCourse() {
         max_attempts: Number(paketForm.max_attempts) || 3,
         max_warnings: Number(paketForm.max_warnings) || 3,
         passing_score: Number(paketForm.passing_score) || 0,
-        shuffle_questions: paketForm.shuffle_questions, status: paketForm.status,
+        shuffle_questions: paketForm.shuffle_questions, quiz_template: paketForm.quiz_template,
+        status: paketForm.status,
         user_id: paketForm.user_id ? Number(paketForm.user_id) : undefined,
       }
       if (editingPaket) {
@@ -1297,6 +1306,11 @@ export default function DataCourse() {
                     <p className="text-xs text-slate-400 mt-0.5">
                       {[p.batch?.nama_batch, p.level && `Level ${p.level}`].filter(Boolean).join(' · ') || 'Semua kandidat'}
                     </p>
+                    {source === 'bank' && p.course_id && (
+                      <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-600 shrink-0">
+                        <Link2 size={10} /> Terhubung ke kursus
+                      </span>
+                    )}
                   </div>
                 </td>
                 <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800">{p.questions_count}</td>
@@ -1665,7 +1679,7 @@ export default function DataCourse() {
                 </div>
                 <div className="min-w-0">
                   <h2 className="text-lg font-bold text-slate-800 truncate">Bank Paket Soal</h2>
-                  <p className="text-sm text-slate-500">Paket soal yang belum terhubung ke kursus mana pun</p>
+                  <p className="text-sm text-slate-500">Semua paket soal tersimpan di sini, termasuk yang sudah terhubung ke kursus</p>
                 </div>
               </div>
             </div>
@@ -2137,6 +2151,23 @@ export default function DataCourse() {
                   )}
                 </div>
               </div>
+              <div>
+                <label className={labelCls}>Alert Kursus (opsional)</label>
+                <textarea value={courseForm.alert} onChange={e => setCourseForm({ ...courseForm, alert: e.target.value })}
+                  rows={2} placeholder="Contoh: Akses kelas ini untuk menonton video pembelajaran"
+                  className={`${inputCls} resize-none`} />
+                <div className="mt-2 flex items-center gap-2">
+                  <button type="button" onClick={() => setCourseForm({ ...courseForm, alert_active: true })}
+                    className={`flex-1 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${courseForm.alert_active ? 'border-[#0E6187] bg-[#0E6187] text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'}`}>
+                    Aktif
+                  </button>
+                  <button type="button" onClick={() => setCourseForm({ ...courseForm, alert_active: false })}
+                    className={`flex-1 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${!courseForm.alert_active ? 'border-[#0E6187] bg-[#0E6187] text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'}`}>
+                    Nonaktif
+                  </button>
+                </div>
+                <p className="mt-1.5 text-[11px] text-slate-400">Alert yang aktif akan tampil di dashboard siswa kursus terkait.</p>
+              </div>
             </div>
             <div className="px-5 py-4 border-t border-slate-200 flex justify-end gap-3">
               <button onClick={() => setShowCourseModal(false)} className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Batal</button>
@@ -2251,6 +2282,48 @@ export default function DataCourse() {
                   className={`relative w-10 h-[22px] rounded-full transition-colors ${paketForm.shuffle_questions ? 'bg-[#0E6187]' : 'bg-slate-300'}`}>
                   <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${paketForm.shuffle_questions ? 'left-[20px]' : 'left-[2px]'}`} />
                 </button>
+              </div>
+              <div>
+                <label className={labelCls}>Template UI Quiz</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button type="button" onClick={() => setPaketForm({ ...paketForm, quiz_template: 'basic' })}
+                    className={`flex flex-col items-center gap-2 border-2 rounded-xl px-3 py-4 text-center transition-all ${
+                      paketForm.quiz_template !== 'jft'
+                        ? 'border-[#0E6187] bg-[#0E6187]/[0.04] ring-1 ring-[#0E6187]/20'
+                        : 'border-slate-200 hover:border-slate-300'
+                    }`}>
+                    <span className={`w-10 h-10 flex items-center justify-center rounded-xl ${
+                      paketForm.quiz_template !== 'jft' ? 'bg-[#0E6187] text-white' : 'bg-slate-100 text-slate-400'
+                    }`}>
+                      <LayoutGrid size={18} />
+                    </span>
+                    <span>
+                      <span className="block text-sm font-semibold text-slate-800">Basic</span>
+                      <span className="block text-xs text-slate-400 mt-0.5">Sederhana & fokus</span>
+                    </span>
+                  </button>
+                  <button type="button" onClick={() => setPaketForm({ ...paketForm, quiz_template: 'jft' })}
+                    className={`flex flex-col items-center gap-2 border-2 rounded-xl px-3 py-4 text-center transition-all ${
+                      paketForm.quiz_template === 'jft'
+                        ? 'border-[#1f2022] bg-[#1f2022] ring-1 ring-[#1f2022]/20'
+                        : 'border-slate-200 hover:border-slate-300'
+                    }`}>
+                    <span className={`w-10 h-10 flex items-center justify-center rounded-xl ${
+                      paketForm.quiz_template === 'jft' ? 'bg-[#5e8b5d] text-white' : 'bg-slate-100 text-slate-400'
+                    }`}>
+                      <ShieldCheck size={18} />
+                    </span>
+                    <span>
+                      <span className={`block text-sm font-semibold ${paketForm.quiz_template === 'jft' ? 'text-white' : 'text-slate-800'}`}>JFT UI</span>
+                      <span className={`block text-xs mt-0.5 ${paketForm.quiz_template === 'jft' ? 'text-white/60' : 'text-slate-400'}`}>Kamera & pengawasan</span>
+                    </span>
+                  </button>
+                </div>
+                <p className="text-xs text-slate-400 mt-2">
+                  {paketForm.quiz_template === 'jft'
+                    ? 'JFT UI: tampilan quiz lengkap dengan pengawasan kamera. Sistem mengambil foto berkala & memberi peringatan.'
+                    : 'Basic: tampilan quiz sederhana tanpa pengawasan kamera. Cocok untuk quiz evaluasi ringan.'}
+                </p>
               </div>
               <div className="flex items-center justify-between bg-slate-50 rounded-lg px-4 py-3">
                 <div>
