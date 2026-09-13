@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, BookOpen, FileText, ListChecks, Plus, ChevronRight, ChevronDown, HelpCircle,
   Download, Clock, ClipboardList, Check, Edit3, X, Trash2, Loader2, Layers, Camera, Upload, ImageIcon,
+  BarChart3, Users,
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -87,6 +88,36 @@ interface RecapData {
   created_at?: string | null
 }
 
+interface RekapNilaiPaket {
+  id: number
+  title: string
+  questions_count: number
+  max_score: number
+}
+
+interface RekapNilaiSiswaScore {
+  paket_id: number
+  attempts_count: number
+  best_score: number | null
+  attempts: { id: number; attempt_number: number; score: number | null }[]
+}
+
+interface RekapNilaiSiswa {
+  siswa_id: number
+  nama: string
+  level: string | null
+  batch_id: number | null
+  scores: RekapNilaiSiswaScore[]
+}
+
+interface RekapNilaiData {
+  lesson_id: number
+  course_title: string | null
+  batch_id: number | null
+  pakets: RekapNilaiPaket[]
+  siswa: RekapNilaiSiswa[]
+}
+
 const fmtFileSize = (bytes?: number | null) => {
   if (!bytes) return ''
   const mb = bytes / 1024 / 1024
@@ -141,6 +172,22 @@ export default function GuruLessonDetail() {
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const [rekapNilai, setRekapNilai] = useState<RekapNilaiData | null>(null)
+  const [rekapNilaiLoading, setRekapNilaiLoading] = useState(false)
+
+  const loadRekapNilai = (id: number) => {
+    setRekapNilaiLoading(true)
+    guruLmsApi.lessonRekapNilai(id)
+      .then(res => setRekapNilai(res.data))
+      .catch(() => setRekapNilai(null))
+      .finally(() => setRekapNilaiLoading(false))
+  }
+
+  const switchLessonTab = (key: typeof lessonTab) => {
+    setLessonTab(key)
+    if (key === 'rekap' && lesson) loadRekapNilai(lesson.id)
+  }
+
   const loadLesson = (id: number) => guruLmsApi.lessonDetail(id).then(res => {
     setLesson(res.data.lesson)
     const r = res.data.lesson.recap || null
@@ -176,6 +223,7 @@ export default function GuruLessonDetail() {
       setShowBankPicker(false)
       setBankPickedIds([])
       await loadLesson(lesson.id)
+      loadRekapNilai(lesson.id)
       Swal.fire({ icon: 'success', title: `${bankPickedIds.length} paket soal dipasang ke pertemuan ini`, timer: 1500, showConfirmButton: false })
     } catch {
       Swal.fire({ icon: 'error', title: 'Gagal memasang paket soal' })
@@ -205,6 +253,7 @@ export default function GuruLessonDetail() {
         return next
       })
       await loadLesson(lesson.id)
+      loadRekapNilai(lesson.id)
       Swal.fire({ icon: 'success', title: 'Paket dilepas dari pertemuan', timer: 1400, showConfirmButton: false })
     } catch {
       Swal.fire({ icon: 'error', title: 'Gagal melepas paket soal' })
@@ -269,9 +318,10 @@ export default function GuruLessonDetail() {
     }
     setPreviewPaketId(paketId)
     if (paketQuestionsMap[paketId]) return
+    if (!lesson) return
     setQuestionsLoading(true)
     try {
-      const res = await guruQuizApi.questions(paketId)
+      const res = await guruLmsApi.lessonPaketQuestions(lesson.id, paketId)
       setPaketQuestionsMap(m => ({ ...m, [paketId]: res.data.questions || [] }))
     } catch {
       setPaketQuestionsMap(m => ({ ...m, [paketId]: [] }))
@@ -341,6 +391,7 @@ export default function GuruLessonDetail() {
     guruLmsApi.lessonDetail(Number(lessonId)).then(res => {
       const l = res.data.lesson
       setLesson(l)
+      loadRekapNilai(l.id)
       return loadTasks(l.course_id)
     }).catch(() => {
       Swal.fire({ icon: 'error', title: 'Gagal memuat pertemuan' })
@@ -462,6 +513,22 @@ export default function GuruLessonDetail() {
     .filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i)
   const quizCount = lessonPakets.length > 0 ? lessonPakets.length : undefined
 
+  const rekapNilaiStats = rekapNilai && rekapNilai.pakets.length > 0
+    ? (() => {
+        const done = rekapNilai.siswa.filter(s => s.scores.some(sc => sc?.best_score != null)).length
+        const avgs = rekapNilai.siswa.map(s => {
+          const vals = s.scores.filter(sc => sc != null && sc.best_score != null).map(sc => sc!.best_score as number)
+          return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null
+        }).filter((v): v is number => v != null)
+        return {
+          total: rekapNilai.siswa.length,
+          done,
+          notDone: rekapNilai.siswa.length - done,
+          overallAvg: avgs.length ? Math.round(avgs.reduce((a, b) => a + b, 0) / avgs.length) : null,
+        }
+      })()
+    : null
+
   return (
     <div className="min-h-screen bg-[#F4F5F8] pb-24">
       <div className="h-[3px] bg-gradient-to-r from-[#0069b0] via-[#0069b0] to-[#0069b0]" />
@@ -503,7 +570,7 @@ export default function GuruLessonDetail() {
             { key: 'tugas' as 'tugas', label: 'Tugas', icon: ClipboardList, count: tasks.length },
             { key: 'rekap' as 'rekap', label: 'Rekap Pertemuan', icon: Camera, count: recap ? 1 : undefined },
           ]).map(tab => (
-            <button key={tab.key} onClick={() => setLessonTab(tab.key)}
+            <button key={tab.key} onClick={() => switchLessonTab(tab.key)}
               className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-3 text-[11px] font-bold border-b-2 transition-colors ${
                 lessonTab === tab.key ? 'border-[#0069b0] text-[#0069b0] bg-[#0069b0]/[0.03]' : 'border-transparent text-[#8B90A0] hover:text-[#14182B]'
               }`}>
@@ -715,6 +782,175 @@ export default function GuruLessonDetail() {
 
         {/* Rekap Pertemuan */}
         {lessonTab === 'rekap' && (
+        <div className="space-y-3">
+          {/* Nilai Quiz Siswa */}
+          <div className="bg-white rounded-2xl border border-[#E5E7EF] overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#E5E7EF] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BarChart3 size={15} className="text-[#0069b0]" />
+                <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Nilai Quiz Siswa</h3>
+              </div>
+              {rekapNilai?.batch_id && (
+                <span className="text-[10px] font-bold text-[#0069b0] bg-[#0069b0]/[0.06] px-2.5 py-1 rounded-full">
+                  {rekapNilai.course_title || `Batch ${rekapNilai.batch_id}`}
+                </span>
+              )}
+            </div>
+            <div className="p-5">
+
+              {rekapNilaiLoading ? (
+                <div className="flex items-center justify-center gap-2 py-8 text-[11px] text-[#8B90A0] font-medium">
+                  <Loader2 size={15} className="animate-spin text-[#0069b0]" /> Memuat daftar nilai...
+                </div>
+              ) : !rekapNilai || rekapNilai.pakets.length === 0 ? (
+                <div className="border border-dashed border-[#E5E7EF] rounded-xl p-5 text-center">
+                  <div className="w-10 h-10 mx-auto rounded-xl bg-[#0069b0]/[0.06] flex items-center justify-center mb-2">
+                    <Users size={18} className="text-[#0069b0]" />
+                  </div>
+                  <p className="text-xs font-bold text-[#14182B]">Belum ada nilai quiz</p>
+                  <p className="text-[10px] text-[#8B90A0] font-medium mt-0.5">
+                    Belum ada paket soal di pertemuan ini. Pasang quiz dulu agar nilai siswa muncul di sini.
+                  </p>
+                </div>
+              ) : rekapNilai.siswa.length === 0 ? (
+                <div className="border border-dashed border-[#E5E7EF] rounded-xl p-5 text-center">
+                  <div className="w-10 h-10 mx-auto rounded-xl bg-[#0069b0]/[0.06] flex items-center justify-center mb-2">
+                    <Users size={18} className="text-[#0069b0]" />
+                  </div>
+                  <p className="text-xs font-bold text-[#14182B]">Belum ada siswa</p>
+                  <p className="text-[10px] text-[#8B90A0] font-medium mt-0.5">
+                    Tidak ada siswa aktif pada batch kursus ini.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    <div className="rounded-xl bg-[#F4F5F8] border border-[#E5E7EF] p-3 text-center">
+                      <p className="text-[9px] font-bold text-[#8B90A0] uppercase tracking-wide">Rata-Rata</p>
+                      <p className={`text-lg font-bold mt-1 ${rekapNilaiStats?.overallAvg == null ? 'text-[#C5C8D4]' : 'text-[#0069b0]'}`}>
+                        {rekapNilaiStats?.overallAvg ?? '–'}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-emerald-50/50 border border-emerald-100 p-3 text-center">
+                      <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-wide">Sudah Mengerjakan</p>
+                      <p className="text-lg font-bold text-emerald-600 mt-1">
+                        {rekapNilaiStats?.done ?? 0}
+                        <span className="text-[10px] font-bold text-emerald-400">/{rekapNilaiStats?.total ?? 0}</span>
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-[#F4F5F8] border border-[#E5E7EF] p-3 text-center">
+                      <p className="text-[9px] font-bold text-[#8B90A0] uppercase tracking-wide">Belum Mengerjakan</p>
+                      <p className={`text-lg font-bold mt-1 ${rekapNilaiStats?.notDone ? 'text-amber-600' : 'text-[#C5C8D4]'}`}>
+                        {rekapNilaiStats?.notDone ?? 0}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto -mx-5 px-5">
+                    <div className="min-w-[440px] rounded-2xl border border-[#E5E7EF] overflow-hidden">
+                      <table className="w-full text-left">
+                        <thead>
+                          <tr className="bg-[#F7F9FC] border-b border-[#E5E7EF]">
+                            <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide w-8 text-center">No</th>
+                            <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide">Nama Siswa</th>
+                            {rekapNilai.pakets.map(p => (
+                              <th key={p.id} className="py-2.5 px-2 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide text-center">
+                                <div className="max-w-[100px] mx-auto">
+                                  <p className="truncate" title={p.title}>{p.title}</p>
+                                  <p className="text-[9px] font-bold text-[#B9BDCB] mt-0.5">{p.questions_count} soal</p>
+                                </div>
+                              </th>
+                            ))}
+                            <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide text-center">Rata-Rata</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rekapNilai.siswa.map((s, i) => {
+                            const scores = rekapNilai.pakets.map(p => s.scores.find(sc => sc.paket_id === p.id))
+                            const valid = scores.filter(sc => sc != null && sc.best_score != null)
+                            const avg = valid.length > 0
+                              ? Math.round(valid.reduce((acc, sc) => acc + (sc!.best_score as number), 0) / valid.length)
+                              : null
+                            return (
+                              <tr key={s.siswa_id} className="border-b border-[#F0F1F5] last:border-0 hover:bg-[#F7F9FC]/60 transition-colors">
+                                <td className="py-3 px-3 text-center">
+                                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#F4F5F8] text-[10px] font-bold text-[#8B90A0]">{i + 1}</span>
+                                </td>
+                                <td className="py-3 px-3">
+                                  <p className="text-xs font-bold text-[#14182B]">{s.nama}</p>
+                                  {s.level != null && (
+                                    <span className="text-[9px] font-bold text-[#8B90A0] bg-[#F4F5F8] px-1.5 py-0.5 rounded-md mt-1 inline-block">Level {s.level}</span>
+                                  )}
+                                </td>
+                                {scores.map((sc, si) => {
+                                  const score = sc?.best_score ?? null
+                                  const color = score == null ? 'bg-[#F4F5F8] text-[#B9BDCB]'
+                                    : score >= 75 ? 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100'
+                                    : score >= 60 ? 'bg-amber-50 text-amber-600 ring-1 ring-amber-100'
+                                    : 'bg-red-50 text-red-500 ring-1 ring-red-100'
+                                  return (
+                                    <td key={sc?.paket_id ?? `paket-${si}`} className="py-3 px-2 text-center">
+                                      {score == null ? (
+                                        <span className="inline-block px-2.5 py-1 rounded-lg text-[10px] font-bold bg-[#F4F5F8] text-[#B9BDCB]">Belum</span>
+                                      ) : (
+                                        <div className="inline-flex flex-col items-center">
+                                          <span className={`inline-block px-2.5 py-1 rounded-lg text-[11px] font-bold ${color}`}>{score}</span>
+                                          {sc != null && sc.attempts_count > 1 && (
+                                            <span className="text-[9px] font-semibold text-[#B9BDCB] mt-0.5">{sc.attempts_count} percobaan</span>
+                                          )}
+                                        </div>
+                                      )}
+                                    </td>
+                                  )
+                                })}
+                                <td className="py-3 px-3 text-center">
+                                  {avg == null ? (
+                                    <span className="text-[11px] font-bold text-[#C5C8D4]">–</span>
+                                  ) : (
+                                    <span className={`inline-block px-2.5 py-1 rounded-lg text-[11px] font-bold ${
+                                      avg >= 75 ? 'bg-[#0069b0]/10 text-[#0069b0]'
+                                      : avg >= 60 ? 'bg-amber-50 text-amber-600 ring-1 ring-amber-100'
+                                      : 'bg-red-50 text-red-500 ring-1 ring-red-100'
+                                    }`}>{avg}</span>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                        <tfoot>
+                          <tr className="bg-[#F7F9FC] border-t border-[#E5E7EF]">
+                            <td className="py-3 px-3" />
+                            <td className="py-3 px-3">
+                              <span className="text-[10px] font-bold text-[#4B5063] uppercase tracking-wide">Rata-Rata Kelas</span>
+                            </td>
+                            {rekapNilai.pakets.map(p => {
+                              const vals = rekapNilai.siswa
+                                .map(s => s.scores.find(sc => sc.paket_id === p.id)?.best_score ?? null)
+                                .filter((v): v is number => v != null)
+                              const avg = vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null
+                              return (
+                                <td key={p.id} className="py-3 px-2 text-center">
+                                  {avg == null ? (
+                                    <span className="text-[11px] font-semibold text-[#B9BDCB]">–</span>
+                                  ) : (
+                                    <span className="text-xs font-bold text-[#0069b0]">{avg}</span>
+                                  )}
+                                </td>
+                              )
+                            })}
+                            <td className="py-3 px-3" />
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Rekap Dokumen */}
         <div className="bg-white rounded-2xl border border-[#E5E7EF] overflow-hidden">
           <div className="px-5 py-4 border-b border-[#E5E7EF] flex items-center gap-2">
             <Camera size={15} className="text-[#0069b0]" />
@@ -821,6 +1057,7 @@ export default function GuruLessonDetail() {
               </div>
             )}
           </div>
+        </div>
         </div>
         )}
       </div>

@@ -42,6 +42,28 @@ return [
 
     'groq' => [
         'api_key' => env('GROQ_API_KEY'),
+        'model' => env('GROQ_MODEL', 'openai/gpt-oss-120b'),
+    ],
+
+    'gemini' => [
+        'api_key' => env('GEMINI_API_KEY'),
+        'model' => env('GEMINI_MODEL', 'gemini-2.0-flash'),
+    ],
+
+    'claude' => [
+        'api_key' => env('CLAUDE_API_KEY'),
+        'model' => env('CLAUDE_MODEL', 'claude-3-5-sonnet-latest'),
+    ],
+
+    'gpt' => [
+        'api_key' => env('GPT_API_KEY'),
+        'model' => env('GPT_MODEL', 'gpt-4o-mini'),
+    ],
+
+    'modelsstudio' => [
+        'api_key' => env('MODELSSTUDIO_API_KEY'),
+        'base_url' => env('MODELSSTUDIO_BASE_URL', 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1'),
+        'model' => env('MODELSSTUDIO_MODEL', 'qwen-plus'),
     ],
 
     'penempatan' => [

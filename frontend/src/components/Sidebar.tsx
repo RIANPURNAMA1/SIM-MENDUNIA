@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useLandingStatus } from "../contexts/LandingStatusContext";
 import api from "../services/api";
 import {
   LayoutDashboard,
@@ -149,7 +150,6 @@ const navItems: NavItem[] = [
       { label: "Riwayat Pertemuan", icon: "Calendar", href: "/pertemuan" },
       { label: "Pengaturan Pembayaran", icon: "CreditCard", href: "/pengaturan-pembayaran" },
       { label: "Monitoring Notifikasi", icon: "MessageSquare", href: "/notifikasi-wa" },
-      { label: "Setting Notifikasi", icon: "Bell", href: "/notifikasi-wa-setting" },
       { label: "Template Notifikasi", icon: "FileText", href: "/template-notifikasi" },
     ],
   },
@@ -171,7 +171,7 @@ const navItems: NavItem[] = [
       { label: "Rekap Siswa", icon: "BarChart3", href: "/rekap-siswa" },
       { label: "Penilaian Siswa", icon: "Notebook", href: "/penilaian" },
       { label: "Evaluasi Instruktur", icon: "ClipboardCheck", href: "/evaluasi-instruktur" },
-      { label: "LMS", icon: "BookOpen", href: "/lms" },
+      { label: "Kelas Mendunia", icon: "BookOpen", href: "/lms" },
       { label: "Raport Siswa", icon: "Notebook", href: "/raport" },
     ],
   },
@@ -257,9 +257,13 @@ const navItems: NavItem[] = [
     icon: "Zap",
     children: [
       { label: "AI Chat", icon: "Bot", href: "/ai-chat" },
-      { label: "Notifikasi WA", icon: "MessageCircle", href: "/pengaturan-wa" },
       { label: "Log Login", icon: "LogIn", href: "/log-login" },
     ],
+  },
+  {
+    label: "Pengaturan",
+    icon: "Settings",
+    href: "/notifikasi-wa-setting",
   },
 ];
 
@@ -267,6 +271,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation();
   const path = location.pathname;
   const { user, logout } = useAuth();
+  const { landingEnabled } = useLandingStatus();
 
   const isRestricted =
     user?.role === "KANDIDAT" ||
@@ -320,6 +325,15 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           if (item.label === "Affiliate & Pasukan" && "children" in item) {
             return null;
           }
+          if (item.label === "Website" && "children" in item && !landingEnabled) {
+            const group = item as NavGroup;
+            return {
+              ...group,
+              children: group.children.filter(
+                (child) => child.label !== "Lihat Website",
+              ),
+            };
+          }
           return item;
         })
         .filter(Boolean) as NavItem[])
@@ -340,6 +354,15 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           }
           if (item.label === "Keuangan" && "children" in item) {
             if (user?.role !== "HR" && user?.role !== "MANAGER" && user?.role !== "ACCOUNTING") return null;
+          }
+          if (item.label === "Website" && "children" in item && !landingEnabled) {
+            const group = item as NavGroup;
+            return {
+              ...group,
+              children: group.children.filter(
+                (child) => child.label !== "Lihat Website",
+              ),
+            };
           }
           return item;
         })

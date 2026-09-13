@@ -620,6 +620,21 @@ export const waSettingApi = {
   testWebhook: (data: { from?: string; message?: string; payload?: string; execute?: boolean }) => api.post('/wa-settings/test-webhook', data),
 }
 
+export const siteApi = {
+  getLandingStatus: () => api.get('/site/landing-status'),
+}
+
+export const aiSettingApi = {
+  get: () => api.get('/ai-settings'),
+  update: (data: {
+    provider: 'groq' | 'gemini' | 'claude' | 'gpt' | 'modelsstudio';
+    groq_api_key?: string; gemini_api_key?: string; claude_api_key?: string; gpt_api_key?: string; modelsstudio_api_key?: string;
+    modelsstudio_base_url?: string;
+    groq_model?: string; gemini_model?: string; claude_model?: string; gpt_model?: string; modelsstudio_model?: string;
+  }) => api.put('/ai-settings', data),
+  test: (data: { provider: 'groq' | 'gemini' | 'claude' | 'gpt' | 'modelsstudio'; api_key?: string }) => api.post('/ai-settings/test', data),
+}
+
 export const guruLmsApi = {
   courses: () => api.get('/guru/lms-courses'),
   courseDetail: (id: number) => api.get(`/guru/lms-courses/${id}`),
@@ -631,12 +646,15 @@ export const guruLmsApi = {
   deleteCourseFile: (id: number) => api.delete(`/guru/lms-courses/files/${id}`),
   lessons: (courseId: number) => api.get(`/guru/lms-courses/${courseId}/lessons`),
   lessonDetail: (id: number) => api.get(`/guru/lms-lessons/${id}`),
+  lessonRekapNilai: (id: number) => api.get(`/guru/lms-lessons/${id}/rekap-nilai`),
   storeLesson: (data: FormData) => api.post('/guru/lms-lessons', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   updateLesson: (id: number, data: FormData) => api.post(`/guru/lms-lessons/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   deleteLesson: (id: number) => api.delete(`/guru/lms-lessons/${id}`),
   storeLessonRecap: (id: number, data: FormData) => api.post(`/guru/lms-lessons/${id}/recap`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   deleteLessonRecap: (id: number) => api.delete(`/guru/lms-lessons/${id}/recap`),
   attachLessonPaket: (id: number, quizPaketId: number) => api.post(`/guru/lms-lessons/${id}/pakets`, { quiz_paket_id: quizPaketId }),
+  lessonPaketQuestions: (id: number, paketId: number) => api.get(`/guru/lms-lessons/${id}/pakets/${paketId}/questions`),
+  coursePaketQuestions: (courseId: number, paketId: number) => api.get(`/guru/lms-courses/${courseId}/pakets/${paketId}/questions`),
   detachLessonPaket: (id: number, paketId: number) => api.delete(`/guru/lms-lessons/${id}/pakets/${paketId}`),
   leaderboard: () => api.get('/guru/quiz/leaderboard'),
 }

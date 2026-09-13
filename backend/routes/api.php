@@ -472,14 +472,17 @@ Route::get('/guru/penilaian-rekap/{kelasId}', [GuruDashboardController::class, '
     Route::delete('/guru/lms-courses/files/{id}', [GuruDashboardController::class, 'lmsDeleteCourseFile']);
     Route::post('/guru/lms-lessons', [GuruDashboardController::class, 'guruStoreLesson']);
     Route::get('/guru/lms-lessons/{id}', [GuruDashboardController::class, 'guruLessonDetail']);
+    Route::get('/guru/lms-lessons/{id}/rekap-nilai', [GuruDashboardController::class, 'guruLessonRekapNilai']);
     Route::post('/guru/lms-lessons/{id}', [GuruDashboardController::class, 'guruUpdateLesson']);
     Route::delete('/guru/lms-lessons/{id}', [GuruDashboardController::class, 'guruDeleteLesson']);
     Route::post('/guru/lms-lessons/{id}/recap', [GuruDashboardController::class, 'guruStoreLessonRecap']);
     Route::delete('/guru/lms-lessons/{id}/recap', [GuruDashboardController::class, 'guruDeleteLessonRecap']);
     Route::post('/guru/lms-lessons/{id}/pakets', [GuruDashboardController::class, 'guruAttachLessonPaket']);
+    Route::get('/guru/lms-lessons/{id}/pakets/{paketId}/questions', [GuruDashboardController::class, 'guruLessonPaketQuestions']);
     Route::delete('/guru/lms-lessons/{id}/pakets/{paketId}', [GuruDashboardController::class, 'guruDetachLessonPaket']);
     Route::get('/guru/lms-courses/{courseId}/files', [GuruDashboardController::class, 'lmsCourseFiles']);
     Route::get('/guru/lms-courses/{courseId}/lessons', [GuruDashboardController::class, 'guruLessons']);
+    Route::get('/guru/lms-courses/{courseId}/pakets/{paketId}/questions', [GuruDashboardController::class, 'guruCoursePaketQuestions']);
     Route::get('/guru/lms-courses/{id}', [GuruDashboardController::class, 'lmsCourseDetail']);
     Route::post('/guru/lms-courses/{id}', [GuruDashboardController::class, 'lmsUpdateCourse']);
     Route::delete('/guru/lms-courses/{id}', [GuruDashboardController::class, 'lmsDeleteCourse']);
@@ -781,6 +784,20 @@ Route::get('/bank-accounts-public', [\App\Http\Controllers\PaymentController::cl
 
 // Public — payment settings for registration forms
 Route::get('/payment-settings-public', [\App\Http\Controllers\PaymentController::class, 'paymentSettingsPublic']);
+
+// Public — status halaman landing (untuk on/off website publik)
+Route::get('/site/landing-status', function () {
+    return response()->json([
+        'landing_enabled' => \App\Models\NotificationSetting::isEnabled('landing_page'),
+    ]);
+});
+
+// ========== AI Settings (admin) ==========
+Route::middleware(['auth:sanctum'])->prefix('ai-settings')->group(function () {
+    Route::get('/', [\App\Http\Controllers\AiSettingsController::class, 'index']);
+    Route::put('/', [\App\Http\Controllers\AiSettingsController::class, 'update']);
+    Route::post('/test', [\App\Http\Controllers\AiSettingsController::class, 'test']);
+});
 
 // Redis test endpoint
 Route::get('/redis-test', function () {

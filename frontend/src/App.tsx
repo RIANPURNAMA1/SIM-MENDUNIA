@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { LandingStatusProvider, useLandingStatus } from './contexts/LandingStatusContext'
 import DashboardLayout from './layouts/DashboardLayout'
 import AffiliateLayout from './layouts/AffiliateLayout'
 import Login from './pages/Login'
@@ -191,6 +192,16 @@ function ProtectedRoute({ children, roleAllowed, roleBlocked }: { children: Reac
     return <Navigate to={map[user?.role || ''] || '/login'} replace />
   }
 
+  return <>{children}</>
+}
+
+function LandingGuard({ children }: { children: React.ReactNode }) {
+  const { landingEnabled } = useLandingStatus()
+  const { isAuthenticated } = useAuth()
+
+  if (!landingEnabled) {
+    return <Navigate to={isAuthenticated ? '/' : '/login'} replace />
+  }
   return <>{children}</>
 }
 
@@ -901,7 +912,7 @@ function AppRoutes() {
               </DashboardLayout>
             </ProtectedRoute>
           ) : (
-            <Navigate to="/landing" replace />
+            <Navigate to="/login" replace />
           )
         }
       />
@@ -909,14 +920,16 @@ function AppRoutes() {
       <Route
         path="/landing"
         element={
-          <CompanyLanding />
+          <LandingGuard>
+            <CompanyLanding />
+          </LandingGuard>
         }
       />
-      <Route path="/program" element={<ProgramPage />} />
-      <Route path="/testimoni" element={<TestimoniPage />} />
-      <Route path="/faq" element={<FaqPage />} />
-      <Route path="/kontak" element={<ContactPage />} />
-      <Route path="/program/:slug" element={<ProgramDetailPage />} />
+      <Route path="/program" element={<LandingGuard><ProgramPage /></LandingGuard>} />
+      <Route path="/testimoni" element={<LandingGuard><TestimoniPage /></LandingGuard>} />
+      <Route path="/faq" element={<LandingGuard><FaqPage /></LandingGuard>} />
+      <Route path="/kontak" element={<LandingGuard><ContactPage /></LandingGuard>} />
+      <Route path="/program/:slug" element={<LandingGuard><ProgramDetailPage /></LandingGuard>} />
 
       <Route
         path="/*"
@@ -1004,7 +1017,9 @@ export default function App(): React.ReactNode {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
+        <LandingStatusProvider>
+          <AppRoutes />
+        </LandingStatusProvider>
       </AuthProvider>
     </BrowserRouter>
   )

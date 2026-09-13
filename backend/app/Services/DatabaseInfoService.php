@@ -8,7 +8,8 @@ class DatabaseInfoService
 {
     public function getSystemPrompt(): string
     {
-        $schema = $this->getCompactSchema();
+        $schema = $this->getFullSchema();
+        $guide = $this->getTableGuide();
         $stats = $this->getDatabaseStats();
         $shiftData = $this->getShiftData();
         $divisiData = $this->getDivisiData();
@@ -17,16 +18,29 @@ class DatabaseInfoService
         $karyawanData = $this->getKaryawanData();
         $kelasSenseiData = $this->getKelasSenseiData();
         $absensiSenseiToday = $this->getAbsensiSenseiTodayData();
+        $siswaData = $this->getSiswaData();
+        $batchData = $this->getBatchData();
+        $lmsData = $this->getLmsData();
+        $kandidatData = $this->getKandidatData();
+        $keuanganData = $this->getKeuanganData();
+        $proyekData = $this->getProyekData();
+        $websiteData = $this->getWebsiteData();
         $todayData = $this->getTodayData();
         $pendingData = $this->getPendingData();
 
         return <<<PROMPT
-Anda asisten AI "Absensi Mendunia". Jawab dalam bahasa Indonesia yang ramah dan informatif. Anda MENGETAHUI data real-time dari database.
+Anda asisten AI "SIM Mendunia" yang cerdas. Jawab dalam bahasa Indonesia yang ramah, jelas, dan informatif. Anda MENGETAHUI seluruh isi sistem SIM Mendunia secara real-time dari database (96 tabel).
 
-DATABASE SCHEMA:
+=================================================================
+PETA MODUL SISTEM (untuk menemukan tabel yang tepat):
+{$guide}
+=================================================================
+
+FULL DATABASE SCHEMA (semua tabel & kolom):
 {$schema}
 
-STATISTIK SAAT INI:
+=================================================================
+STATISTIK SISTEM SAAT INI:
 {$stats}
 
 {$shiftData}
@@ -43,129 +57,185 @@ STATISTIK SAAT INI:
 
 {$absensiSenseiToday}
 
+{$siswaData}
+
+{$batchData}
+
+{$lmsData}
+
+{$kandidatData}
+
+{$keuanganData}
+
+{$proyekData}
+
+{$websiteData}
+
 DATA HARI INI ({$todayData['tanggal']}):
 {$todayData['data']}
 
 DATA PENDING:
 {$pendingData}
 
-ANDA DAPAT MELAKUKAN TINDAKAN (ACTIONS):
-Jika user MEMINTA Anda untuk melakukan tindakan (approve/reject izin, lembur, update status absensi), Anda WAJIB menambahkan blok [ACTION] di akhir respons dengan format:
+=================================================================
+CARA MENGAMBIL DATA & MELAKUKAN TINDAKAN:
+
+1) [QUERY] — Ambil data dari database secara live (hanya SELECT):
+Jika data yang tersedia di prompt belum cukup untuk menjawab pertanyaan user (misal: detail per siswa, transaksi, riwayat absensi seseorang, data penjualan, dll), Anda WAJIB menambahkan blok [QUERY] berisi SQL yang valid. Anda dapat mengirim beberapa [QUERY] sekaligus.
+
+[QUERY]
+{"sql":"SELECT id,name,nama_batch,level FROM ... LIMIT 10"}
+[/QUERY]
+
+Aturan query:
+- HANYA pernyataan SELECT (satu statement, tanpa titik koma ganda, tanpa WITH).
+- SELALU sertakan LIMIT (maks 50 baris).
+- Jangan pernah meminta kolom password / token.
+- Kolom id, nama, status, tanggal harus disertakan bila ada agar jawaban lebih baik.
+- Kolom umum seperti nama, alamat, email, jabatan, status BOLEH ditampilkan bebas dalam jawaban. Hanya kolom password/token yang dilarang.
+- Setelah query dieksekusi, hasilnya akan diserahkan kembali kepada Anda, lalu Anda lanjutkan dengan jawaban final dalam bahasa Indonesia (tanpa blok [QUERY] lagi kecuali data masih kurang).
+
+2) [ACTION] — Melakukan tindakan (approve/reject, update status):
+Jika user MEMINTA Anda untuk melakukan tindakan, tambahkan blok [ACTION] di akhir respons:
 
 [ACTION]
 {"action":"approve_izin","izin_id":5}
 [/ACTION]
 
 Tindakan yang tersedia:
-1. approve_izin — Menyetujui izin/cuti. Parameter: izin_id (int).
-2. reject_izin — Menolak izin/cuti. Parameter: izin_id (int), catatan (string, opsional).
-3. approve_lembur — Menyetujui lembur. Parameter: lembur_id (int).
-4. reject_lembur — Menolak lembur. Parameter: lembur_id (int).
-5. update_status_absensi — Mengubah status absensi. Parameter: absensi_id (int), status (string: HADIR/TERLAMBAT/IZIN/ALPA).
+1. approve_izin — Setujui izin/cuti. Parameter: izin_id (int).
+2. reject_izin — Tolak izin/cuti. Parameter: izin_id (int), catatan (string opsional).
+3. approve_lembur — Setujui lembur. Parameter: lembur_id (int).
+4. reject_lembur — Tolak lembur. Parameter: lembur_id (int).
+5. update_status_absensi — Ubah status absensi. Parameter: absensi_id (int), status (HADIR/TERLAMBAT/IZIN/ALPA/PULANG LEBIH AWAL/TIDAK ABSEN PULANG/LIBUR).
 
 PENTING:
-- HANYA lakukan tindakan jika user MEMINTA.
-- Blok [ACTION] WAJIB di baris paling akhir setelah teks respons.
-- Jika tidak ada tindakan yang diminta, jangan sertakan blok [ACTION].
-- Lihat DATA PENDING di atas untuk mengetahui ID yang tersedia.
+- [QUERY] bersifat membaca data (default untuk menjawab pertanyaan yang datanya tidak tersedia).
+- [ACTION] HANYA dilakukan jika user MEMINTA dengan jelas.
+- Blok [QUERY] atau [ACTION] diletakkan di baris paling akhir setelah teks / alasan Anda.
+- Lihat DATA PENDING untuk ID izin/lembur yang tersedia.
+- JANGAN PERNAH mengaku "tidak punya akses" atau "dibatasi" untuk kolom normal (nama, jabatan, status, hp, email, alamat). Akses Anda normal. Satu-satunya hal terlarang adalah kolom password/token.
 
-Gunakan data di atas untuk menjawab pertanyaan user. Jika user menanyakan data spesifik yang tidak ada, jawab dengan informasi yang tersedia. Jika benar-benar tidak tahu, sampaikan dengan jujur.
+Gunakan data di atas untuk menjawab pertanyaan user secara akurat dan ringkas (gunakan tabel/poin bila perlu). Jika benar-benar tidak ada data, jawab jujur dan sarankan langkah selanjutnya.
 PROMPT;
     }
 
-    protected function getCompactSchema(): string
+    // ============ PANDUAN MODUL → TABEL ============
+    protected function getTableGuide(): string
     {
-        $tables = [
-            'users' => ['id','name','email','role(HR/MANAGER/KARYAWAN)','divisi_id','shift_id','cabang_ids','status(AKTIF/NONAKTIF)','nip','nik','jabatan','no_hp','alamat','tanggal_masuk','status_kerja(TETAP/KONTRAK/MAGANG)','tempat_lahir','tanggal_lahir','jenis_kelamin(L/P)','agama','pendidikan_terakhir'],
-            'cabangs' => ['id','kode_cabang','nama_cabang','status_pusat(PUSAT/CABANG)','alamat','latitude','longitude','radius(m)'],
-            'divisis' => ['id','nama_divisi','kode_divisi'],
-            'shifts' => ['id','nama_shift','kode_shift','jam_masuk','jam_pulang','total_jam','toleransi(menit)','status(AKTIF/NONAKTIF)'],
-            'absensis' => ['id','user_id','shift_id','cabang_id','izin_id','tanggal','jam_masuk','jam_keluar','lat_masuk','long_masuk','status(HADIR/TERLAMBAT/IZIN/ALPA/DLL)'],
-            'shift_jadwal' => ['id','user_id','shift_id','tanggal','is_libur'],
-            'izins' => ['id','user_id','jenis_izin(SAKIT/CUTI/IZIN)','tgl_mulai','tgl_selesai','alasan','status(PENDING/APPROVED/REJECTED)'],
-            'lemburs' => ['id','user_id','jam_masuk','jam_keluar','keterangan','status(PENDING/APPROVED/REJECTED)'],
-            'hari_liburs' => ['id','tanggal','keterangan'],
-            'kelas_sensei' => ['id','user_id','nama_kelas','level(1-4)','tanggal_mulai','tanggal_selesai','status(aktif/selesai/dibatalkan)'],
-            'absensi_sensei' => ['id','kelas_sensei_id','user_id','tanggal','jam_masuk','jam_keluar','status(HADIR/TERLAMBAT/PULANG LEBIH AWAL/TIDAK ABSEN PULANG)'],
-            'absensi_khusus' => ['id','user_id','tanggal','jam_masuk','jam_keluar','total_detik','status(BERJALAN/DITUNDA/SELESAI)'],
-            'agendas' => ['id','user_id','judul','tanggal','jam_mulai','jam_selesai','status(terjadwal/selesai/dibatalkan)'],
-            'penilaians' => ['id','user_id','nama_siswa','kelas','mata_pelajaran','nilai','tanggal_penilaian'],
-            'projects' => ['id','nama_proyek','status(PERENCANAAN/BERJALAN/SELESAI/DITUNDA)','manager_id'],
-            'project_lists' => ['id','project_id','nama_list','urutan'],
-            'tasks' => ['id','project_list_id','judul_tugas','prioritas(RENDAH/SEDANG/TINGGI/DARURAT)','is_selesai(bool)'],
-            'task_assignments' => ['id','task_id','user_id'],
-        ];
+        return implode("\n", [
+            '- HR & Operasional: users(karyawan/guru/affiliate/kandidat), divisis, cabangs, shifts, shift_jadwal, absensis, absensi_khusus, izins, izin_approvals, wa_izin_approvals, lemburs, hari_liburs, pengaturan_shifts',
+            '- Akademik/Siswa: siswas, batches, gurus, kelasses, kelas_sensei, absensi_siswas, jadwal_levels, assessment_categories, assessment_components, student_assessments, daily_assessment_statuses, level_evaluations, student_evaluations, penilaians, penilaian_settings, riwayat pertemuan: lesson_recaps & kelas_pertemuan',
+            '- Kelas Mendunia (LMS): lms_courses, lms_categories, lms_lessons, lms_lesson_slides, lms_progress, lms_assignments, lms_course_files, lms_settings, quiz_pakets, quiz_categories, quiz_sections, quiz_questions, quiz_attempts, quiz_answers',
+            '- Affiliate/Kandidat/Penjualan: products, product_categories, biaya_kategoris, product_biaya_kategori, coupons, pendaftar, affiliate_links, komisi_affiliates, komisi_tiers, pembayarans, pembayaran_items, batch_biayas, batch_kategori_deadlines, wa_payment_approvals, payment_settings, bank_accounts',
+            '- Keuangan: pengeluaran, kategori_pengeluaran, company_profiles',
+            '- Proyek/Task: projects, project_lists, project_activities, tasks, task_assignments, agendas',
+            '- Website/Matching Job: blogs, blog_categories, visits, matching_job_forms, matching_job_details, kontraks, kontrak_tanda_tangans',
+            '- Notifikasi & Sistem: notification_settings, wa_notifications, wa_reminder_settings, email_notifications, notification_templates, login_logs',
+        ]);
+    }
+
+    // ============ SCHEMA DINAMIS (semua tabel) ============
+    protected function getFullSchema(): string
+    {
+        try {
+            $tables = DB::select(
+                "SELECT TABLE_NAME FROM information_schema.TABLES
+                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE'
+                 ORDER BY TABLE_NAME"
+            );
+        } catch (\Exception $e) {
+            return 'Tidak dapat membaca schema.';
+        }
+
+        if (empty($tables)) {
+            return 'Tidak ada tabel.';
+        }
 
         $lines = [];
-        foreach ($tables as $name => $cols) {
-            $lines[] = "- {$name}: " . implode(', ', $cols);
+        foreach ($tables as $t) {
+            $cols = DB::select(
+                "SELECT COLUMN_NAME, COLUMN_COMMENT FROM information_schema.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?
+                 ORDER BY ORDINAL_POSITION",
+                [$t->TABLE_NAME]
+            );
+
+            $parts = [];
+            foreach ($cols as $c) {
+                $col = $c->COLUMN_NAME;
+                if (!empty($c->COLUMN_COMMENT)) {
+                    $col .= '(' . $c->COLUMN_COMMENT . ')';
+                }
+                $parts[] = $col;
+            }
+
+            $lines[] = '- ' . $t->TABLE_NAME . ': ' . implode(', ', $parts);
         }
+
         return implode("\n", $lines);
     }
 
+    // ============ STATISTIK ============
     protected function getDatabaseStats(): string
     {
         $stats = [];
 
         try {
+            $totalUser = DB::table('users')->count();
             $totalKaryawan = DB::table('users')->where('role', 'KARYAWAN')->count();
             $totalHR = DB::table('users')->where('role', 'HR')->count();
+            $totalGuru = DB::table('users')->where('role', 'GURU')->count();
+            $totalAffiliate = DB::table('users')->where('role', 'AFFILIATE')->count();
             $totalManager = DB::table('users')->where('role', 'MANAGER')->count();
-            $totalUser = DB::table('users')->count();
-            $stats[] = "Total users: {$totalUser} (Karyawan: {$totalKaryawan}, HR: {$totalHR}, Manager: {$totalManager})";
+            $stats[] = "Total users: {$totalUser} (Karyawan:{$totalKaryawan}, HR:{$totalHR}, Manager:{$totalManager}, Guru:{$totalGuru}, Affiliate:{$totalAffiliate})";
+        } catch (\Exception $e) {}
+
+        $countMap = [
+            'Total cabang' => 'cabangs',
+            'Total divisi' => 'divisis',
+            'Total shift' => 'shifts',
+            'Total data absensi' => 'absensis',
+            'Total izin' => 'izins',
+            'Total lembur' => 'lemburs',
+            'Total siswa' => 'siswas',
+            'Total batch' => 'batches',
+            'Total kelas sensei' => 'kelas_sensei',
+            'Total absensi sensei' => 'absensi_sensei',
+            'Total pendaftar/kandidat' => 'pendaftar',
+            'Total produk' => 'products',
+            'Total kupon' => 'coupons',
+            'Total pembayaran' => 'pembayarans',
+            'Total pengeluaran' => 'pengeluaran',
+            'Total proyek' => 'projects',
+            'Total tugas' => 'tasks',
+            'Total agenda' => 'agendas',
+            'Total kursus LMS' => 'lms_courses',
+            'Total lesson LMS' => 'lms_lessons',
+            'Total paket quiz' => 'quiz_pakets',
+            'Total blog' => 'blogs',
+            'Total form matching job' => 'matching_job_forms',
+            'Total kontrak' => 'kontraks',
+        ];
+        foreach ($countMap as $label => $table) {
+            try {
+                $stats[] = "{$label}: " . DB::table($table)->count();
+            } catch (\Exception $e) {}
+        }
+
+        try {
+            $activeKelas = DB::table('kelas_sensei')->where('status', 'aktif')->count();
+            $stats[] = "Kelas sensei aktif: {$activeKelas}";
         } catch (\Exception $e) {}
 
         try {
-            $totalCabang = DB::table('cabangs')->count();
-            $stats[] = "Total cabang: {$totalCabang}";
-        } catch (\Exception $e) {}
-
-        try {
-            $totalDivisi = DB::table('divisis')->count();
-            $stats[] = "Total divisi: {$totalDivisi}";
-        } catch (\Exception $e) {}
-
-        try {
-            $totalShift = DB::table('shifts')->count();
-            $stats[] = "Total shift: {$totalShift}";
-        } catch (\Exception $e) {}
-
-        try {
-            $totalAbsensi = DB::table('absensis')->count();
-            $stats[] = "Total data absensi: {$totalAbsensi}";
-        } catch (\Exception $e) {}
-
-        try {
-            $totalIzin = DB::table('izins')->count();
             $pendingIzin = DB::table('izins')->where('status', 'PENDING')->count();
-            $stats[] = "Total izin: {$totalIzin} (Pending: {$pendingIzin})";
+            $stats[] = "Izin pending: {$pendingIzin}";
         } catch (\Exception $e) {}
 
         try {
-            $totalLembur = DB::table('lemburs')->count();
             $pendingLembur = DB::table('lemburs')->where('status', 'PENDING')->count();
-            $stats[] = "Total lembur: {$totalLembur} (Pending: {$pendingLembur})";
-        } catch (\Exception $e) {}
-
-        try {
-            $totalKelas = DB::table('kelas_sensei')->where('status', 'aktif')->count();
-            $totalKelasAll = DB::table('kelas_sensei')->count();
-            $stats[] = "Total kelas sensei: {$totalKelasAll} (Aktif: {$totalKelas})";
-        } catch (\Exception $e) {}
-
-        try {
-            $totalProyek = DB::table('projects')->count();
-            $stats[] = "Total proyek: {$totalProyek}";
-        } catch (\Exception $e) {}
-
-        try {
-            $totalTasks = DB::table('tasks')->count();
-            $stats[] = "Total tasks: {$totalTasks}";
-        } catch (\Exception $e) {}
-
-        try {
-            $totalAgenda = DB::table('agendas')->count();
-            $stats[] = "Total agenda: {$totalAgenda}";
+            $stats[] = "Lembur pending: {$pendingLembur}";
         } catch (\Exception $e) {}
 
         return implode("\n", $stats);
@@ -306,23 +376,17 @@ PROMPT;
                     ->where('kelas_sensei_id', $k->id)
                     ->whereBetween('tanggal', [$k->tanggal_mulai, $k->tanggal_selesai])
                     ->count();
-
-                $alpaCount = DB::table('absensi_sensei')
-                    ->where('kelas_sensei_id', $k->id)
-                    ->whereBetween('tanggal', [$k->tanggal_mulai, $k->tanggal_selesai])
-                    ->where('status', 'ALPA')
-                    ->count();
-
                 $hadirCount = DB::table('absensi_sensei')
                     ->where('kelas_sensei_id', $k->id)
-                    ->whereBetween('tanggal', [$k->tanggal_mulai, $k->tanggal_selesai])
                     ->where('status', 'HADIR')
                     ->count();
-
                 $terlambatCount = DB::table('absensi_sensei')
                     ->where('kelas_sensei_id', $k->id)
-                    ->whereBetween('tanggal', [$k->tanggal_mulai, $k->tanggal_selesai])
                     ->where('status', 'TERLAMBAT')
+                    ->count();
+                $alpaCount = DB::table('absensi_sensei')
+                    ->where('kelas_sensei_id', $k->id)
+                    ->where('status', 'ALPA')
                     ->count();
 
                 $lines[] = "- ID:{$k->id} | {$k->nama_kelas} | Level:{$k->level} | Sensei:{$k->nama_sensei} | {$k->tanggal_mulai} s/d {$k->tanggal_selesai} | Status:{$k->status} | Absen:{$absenCount} (Hadir:{$hadirCount}, Terlambat:{$terlambatCount}, Alpa:{$alpaCount})";
@@ -367,6 +431,212 @@ PROMPT;
         } catch (\Exception $e) {
             return "ABSENSI SENSEI HARI INI: Error mengambil data";
         }
+    }
+
+    protected function getSiswaData(): string
+    {
+        try {
+            $totalSiswa = DB::table('siswas')->count();
+            if ($totalSiswa === 0) return "DATA SISWA: Tidak ada data";
+
+            $lines = ["DATA SISWA (total {$totalSiswa}). Per status kandidat:"];
+            $byStatus = DB::table('siswas')
+                ->select('status_kandidat', DB::raw('COUNT(*) as total'))
+                ->groupBy('status_kandidat')
+                ->get();
+            foreach ($byStatus as $s) {
+                $lines[] = "- {$s->status_kandidat}: {$s->total}";
+            }
+
+            $byBatch = DB::table('siswas')
+                ->join('batches', 'siswas.batch_id', '=', 'batches.id')
+                ->select('batches.nama_batch', DB::raw('COUNT(siswas.id) as total'))
+                ->groupBy('batches.nama_batch')
+                ->orderByDesc('total')
+                ->get();
+            if ($byBatch->isNotEmpty()) {
+                $lines[] = "Sebaran per batch:";
+                foreach ($byBatch as $b) {
+                    $lines[] = "- {$b->nama_batch}: {$b->total}";
+                }
+            }
+
+            return implode("\n", $lines);
+        } catch (\Exception $e) {
+            return "DATA SISWA: Error mengambil data";
+        }
+    }
+
+    protected function getBatchData(): string
+    {
+        try {
+            $batches = DB::table('batches')
+                ->leftJoin('cabangs', 'batches.cabang_id', '=', 'cabangs.id')
+                ->select('batches.id', 'batches.nama_batch', 'batches.kuota', 'batches.status', 'batches.link_grup', 'cabangs.nama_cabang as cabang')
+                ->get();
+
+            if ($batches->isEmpty()) return "DATA BATCH: Tidak ada data";
+
+            $lines = ["DATA BATCH ({$batches->count()} batch):"];
+            foreach ($batches as $b) {
+                $siswaCount = DB::table('siswas')->where('batch_id', $b->id)->count();
+                $cabang = $b->cabang ?? '-';
+                $kuota = $b->kuota ?? '-';
+                $linkGrup = $b->link_grup ?? '-';
+                $lines[] = "- ID:{$b->id} | {$b->nama_batch} | Cabang:{$cabang} | Kuota:{$kuota} | Siswa:{$siswaCount} | Link Grup:{$linkGrup}";
+            }
+            return implode("\n", $lines);
+        } catch (\Exception $e) {
+            return "DATA BATCH: Error mengambil data";
+        }
+    }
+
+    protected function getLmsData(): string
+    {
+        $lines = [];
+
+        try {
+            $courses = DB::table('lms_courses')
+                ->select('id', 'judul', 'category_id', 'kelas_sensei_id')
+                ->orderByDesc('id')
+                ->limit(15)
+                ->get();
+            if ($courses->isNotEmpty()) {
+                $lines[] = "KURSUS LMS terbaru:";
+                foreach ($courses as $c) {
+                    $lines[] = "- ID:{$c->id} | {$c->judul}";
+                }
+            }
+        } catch (\Exception $e) {}
+
+        try {
+            $pakets = DB::table('quiz_pakets')->orderByDesc('id')->limit(15)->get();
+            if ($pakets->isNotEmpty()) {
+                $lines[] = "PAKET QUIZ:";
+                foreach ($pakets as $p) {
+                    $pertanyaan = DB::table('quiz_questions')->where('paket_id', $p->id)->count();
+                    $lines[] = "- ID:{$p->id} | {$p->nama_paket} | Pertanyaan:{$pertanyaan}";
+                }
+            }
+        } catch (\Exception $e) {}
+
+        return implode("\n", $lines) ?: "DATA KELAS MENDUNIA (LMS): Tidak ada data";
+    }
+
+    protected function getKandidatData(): string
+    {
+        $lines = [];
+
+        try {
+            $total = DB::table('pendaftar')->count();
+            $lines[] = "PENDAFTAR/SUMBER KANDIDAT (total {$total}):";
+            $byStatus = DB::table('pendaftar')
+                ->select('status', DB::raw('COUNT(*) as total'))
+                ->groupBy('status')
+                ->get();
+            foreach ($byStatus as $s) {
+                $lines[] = "- {$s->status}: {$s->total}";
+            }
+
+            $recent = DB::table('pendaftar')
+                ->join('products', 'pendaftar.product_id', '=', 'products.id')
+                ->select('pendaftar.id', 'pendaftar.nama', 'pendaftar.no_wa', 'pendaftar.status', 'products.nama_produk')
+                ->orderByDesc('pendaftar.id')
+                ->limit(10)
+                ->get();
+            if ($recent->isNotEmpty()) {
+                $lines[] = "Pendaftar terbaru:";
+                foreach ($recent as $r) {
+                    $lines[] = "- ID:{$r->id} | {$r->nama} | WA:{$r->no_wa} | Produk:{$r->nama_produk} | Status:{$r->status}";
+                }
+            }
+        } catch (\Exception $e) {
+            $lines[] = "DATA KANDIDAT: Error mengambil data";
+        }
+
+        return implode("\n", $lines);
+    }
+
+    protected function getKeuanganData(): string
+    {
+        $lines = [];
+
+        try {
+            $totalBayar = DB::table('pembayarans')->count();
+            $terverifikasi = DB::table('pembayarans')->where('status', 'VERIFIED')->count();
+            $pendingBayar = DB::table('pembayarans')->whereIn('status', ['PENDING', 'MENUNGGU'])->count();
+            $lines[] = "PEMBAYARAN (total {$totalBayar}, verifikasi:{$terverifikasi}, pending:{$pendingBayar})";
+
+            $pengeluaranKategori = DB::table('pengeluaran')
+                ->leftJoin('kategori_pengeluaran', 'pengeluaran.kategori_id', '=', 'kategori_pengeluaran.id')
+                ->select('kategori_pengeluaran.nama_kategori', DB::raw('COALESCE(SUM(pengeluaran.jumlah),0) as total'))
+                ->groupBy('kategori_pengeluaran.nama_kategori')
+                ->orderByDesc('total')
+                ->limit(5)
+                ->get();
+            if ($pengeluaranKategori->isNotEmpty()) {
+                $lines[] = "Total pengeluaran per kategori (terbesar):";
+                foreach ($pengeluaranKategori as $k) {
+                    $lines[] = "- {$k->nama_kategori}: " . number_format((float)$k->total, 0, ',', '.');
+                }
+            }
+
+            $pendingWa = DB::table('wa_payment_approvals')->where('status', 'PENDING')->count();
+            $lines[] = "Approval pembayaran WA pending: {$pendingWa}";
+        } catch (\Exception $e) {
+            $lines[] = "DATA KEUANGAN: Error mengambil data";
+        }
+
+        return implode("\n", $lines);
+    }
+
+    protected function getProyekData(): string
+    {
+        try {
+            $projects = DB::table('projects')
+                ->leftJoin('users', 'projects.manager_id', '=', 'users.id')
+                ->select('projects.id', 'projects.nama_proyek', 'projects.status', 'users.name as manager')
+                ->orderByDesc('projects.id')
+                ->limit(15)
+                ->get();
+
+            if ($projects->isEmpty()) return "DATA PROYEK: Tidak ada data";
+
+            $lines = ["DATA PROYEK ({$projects->count()} aktif/terbaru):"];
+            foreach ($projects as $p) {
+                $taskCount = DB::table('tasks')
+                    ->join('project_lists', 'tasks.project_list_id', '=', 'project_lists.id')
+                    ->where('project_lists.project_id', $p->id)
+                    ->count();
+                $manager = $p->manager ?? '-';
+                $lines[] = "- ID:{$p->id} | {$p->nama_proyek} | Status:{$p->status} | Manager:{$manager} | Tasks:{$taskCount}";
+            }
+            return implode("\n", $lines);
+        } catch (\Exception $e) {
+            return "DATA PROYEK: Error mengambil data";
+        }
+    }
+
+    protected function getWebsiteData(): string
+    {
+        $lines = [];
+
+        try {
+            $blogCount = DB::table('blogs')->count();
+            $lines[] = "Total blog: {$blogCount}";
+        } catch (\Exception $e) {}
+
+        try {
+            $mjCount = DB::table('matching_job_forms')->count();
+            $lines[] = "Total pendaftar matching job: {$mjCount}";
+        } catch (\Exception $e) {}
+
+        try {
+            $kontrakCount = DB::table('kontraks')->count();
+            $lines[] = "Total kontrak: {$kontrakCount}";
+        } catch (\Exception $e) {}
+
+        return implode("\n", $lines) ?: "DATA WEBSITE: Tidak ada data";
     }
 
     protected function getTodayData(): array
@@ -448,6 +718,20 @@ PROMPT;
         } catch (\Exception $e) {
             $lines[] = "LEMBUR PENDING: Error mengambil data";
         }
+
+        try {
+            $pendingPayments = DB::table('wa_payment_approvals')
+                ->join('pendaftar', 'wa_payment_approvals.pendaftar_id', '=', 'pendaftar.id')
+                ->where('wa_payment_approvals.status', 'PENDING')
+                ->select('wa_payment_approvals.id', 'pendaftar.nama', 'wa_payment_approvals.amount')
+                ->get();
+            if ($pendingPayments->isNotEmpty()) {
+                $lines[] = "PEMBAYARAN MENUNGGU VERIFIKASI:";
+                foreach ($pendingPayments as $p) {
+                    $lines[] = "- ID:{$p->id} | {$p->nama} | Rp " . number_format((float)$p->amount, 0, ',', '.');
+                }
+            }
+        } catch (\Exception $e) {}
 
         return implode("\n", $lines);
     }

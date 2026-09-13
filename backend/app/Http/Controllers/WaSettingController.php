@@ -275,6 +275,13 @@ class WaSettingController extends Controller
             'wa_reminder_pembayaran' => 'Pengingat pembayaran otomatis (WA)',
             'wa_registration_approved' => 'Pendaftaran disetujui (WA)',
             'wa_jadwal_level' => 'Jadwal level diatur admin cabang (WA)',
+            'wa_hadir' => 'Notifikasi WA untuk status HADIR',
+            'wa_terlambat' => 'Notifikasi WA untuk status TERLAMBAT',
+            'wa_pulang_lebih_awal' => 'Notifikasi WA untuk status PULANG LEBIH AWAL',
+            'wa_tidak_absen_pulang' => 'Notifikasi WA untuk status TIDAK ABSEN PULANG',
+            'wa_alpa' => 'Notifikasi WA untuk status ALPA',
+            'wa_reminder_belum_absen' => 'Notifikasi reminder belum absen (30 menit sebelum jam masuk)',
+            'wa_izin' => 'Notifikasi WA pengajuan izin ke manager',
             'email_pembayaran' => 'Notifikasi pembayaran ke admin (Email)',
             'email_pembayaran_admin_addresses' => 'Alamat email admin (pisahkan koma)',
             'email_reminder_pembayaran' => 'Pengingat pembayaran otomatis (Email)',
@@ -283,6 +290,7 @@ class WaSettingController extends Controller
             'email_full_payment' => 'Tagihan lunas (Email)',
             'starsender_api_key' => 'API Key StarSender',
             'starsender_api_url' => 'API URL StarSender',
+            'landing_page' => 'Halaman landing/website publik ditampilkan',
         ];
 
         $settings = [];

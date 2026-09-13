@@ -620,7 +620,7 @@ class GuruQuizController extends Controller
 
         $paket = $this->ownPaket($paketId, $user->id);
 
-        $attempts = QuizAttempt::with('siswa:id,nama,batch,level')
+        $attempts = QuizAttempt::with(['siswa:id,nama,batch,level,batch_id', 'siswa.batchRelasi.cabang'])
             ->where('quiz_paket_id', $paket->id)
             ->orderByDesc('created_at')
             ->get();
@@ -630,8 +630,9 @@ class GuruQuizController extends Controller
             return [
                 'siswa_id' => (int) $rows->first()->siswa_id,
                 'nama' => $siswa?->nama ?? 'Tanpa nama',
-                'batch' => $siswa?->batch,
-                'level' => $siswa?->level,
+                'cabang' => $siswa?->batchRelasi?->cabang?->nama_cabang,
+                'batch' => $siswa?->batchRelasi?->nama_batch,
+                'level' => $siswa?->levelRekap(),
                 'attempts_count' => $rows->count(),
                 'best_score' => (int) $rows->where('status', 'submitted')->max('score'),
                 'attempts' => $rows->map(function ($a) {
