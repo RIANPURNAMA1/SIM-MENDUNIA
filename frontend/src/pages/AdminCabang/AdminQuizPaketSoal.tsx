@@ -35,6 +35,13 @@ interface Paket {
   course?: { id: number; title: string } | null
 }
 
+interface Section {
+  id: number
+  name: string
+  sort: number
+  questions_count: number
+}
+
 interface Question {
   id: number
   question: string
@@ -44,6 +51,8 @@ interface Question {
   correct_index: number | null
   points: number
   sort: number
+  section_id: number | null
+  section?: Section | null
 }
 
 interface Batch { id: number; nama_batch: string }
@@ -97,7 +106,9 @@ const emptyPaketForm = {
   cover_image: '',
 }
 
-const emptyQuestionForm = { question: '', question_type: 'choice', rating_max: '9', correct_index: '', points: '1' }
+const emptyQuestionForm = { question: '', question_type: 'choice', rating_max: '9', correct_index: '', points: '1', section_id: '' }
+
+const DEFAULT_SECTIONS = ['Vocabulary', 'Grammar', 'Reading', 'Listening', 'Conversation']
 
 const inputCls =
   'w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white'
@@ -132,6 +143,7 @@ export default function AdminQuizPaketSoal() {
   const [savingCategory, setSavingCategory] = useState(false)
 
   const [questions, setQuestions] = useState<Question[]>([])
+  const [sections, setSections] = useState<Section[]>([])
   const [qLoading, setQLoading] = useState(false)
   const [showQuestionModal, setShowQuestionModal] = useState(false)
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null)
@@ -331,9 +343,23 @@ export default function AdminQuizPaketSoal() {
     setActivePaket(p)
     setView('questions')
     setQLoading(true)
-    adminQuizApi.questions(p.id).then(res => {
-      setQuestions(res.data.questions || [])
-    }).catch(() => setQuestions([])).finally(() => setQLoading(false))
+    Promise.all([
+      adminQuizApi.questions(p.id),
+      adminQuizApi.sections(p.id),
+    ]).then(async ([qRes, sRes]) => {
+      setQuestions(qRes.data.questions || [])
+      const existing = sRes.data.sections || []
+      setSections(existing)
+      const existingNames = existing.map((s: Section) => s.name.toLowerCase())
+      for (const name of DEFAULT_SECTIONS) {
+        if (!existingNames.includes(name.toLowerCase())) {
+          try {
+            const res = await adminQuizApi.storeSection(p.id, { name })
+            setSections(prev => [...prev, res.data.section])
+          } catch {}
+        }
+      }
+    }).catch(() => { setQuestions([]); setSections([]) }).finally(() => setQLoading(false))
   }
 
   const openResults = (p: Paket) => {
@@ -360,6 +386,7 @@ export default function AdminQuizPaketSoal() {
       rating_max: q.rating_max ? q.rating_max.toString() : '9',
       correct_index: q.correct_index?.toString() ?? '',
       points: q.points.toString(),
+      section_id: q.section_id?.toString() ?? '',
     })
     setQOptions(q.question_type === 'rating' ? Array.from({ length: q.rating_max || 9 }, (_, i) => String(i + 1)) : [...q.options])
     setShowQuestionModal(true)
@@ -396,6 +423,7 @@ export default function AdminQuizPaketSoal() {
         options: opts,
         correct_index: isRating ? null : Number(qForm.correct_index),
         points: Number(qForm.points) || 1,
+        section_id: qForm.section_id ? Number(qForm.section_id) : null,
       }
       if (editingQuestion) {
         await adminQuizApi.updateQuestion(editingQuestion.id, data)
@@ -652,6 +680,9 @@ export default function AdminQuizPaketSoal() {
                         <div className="flex items-start justify-between gap-2">
                           <span className="text-sm font-bold text-slate-400 shrink-0 mt-0.5">#{i + 1}</span>
                           <p className="text-[15px] font-semibold text-slate-800 leading-snug flex-1">{q.question}</p>
+                          {q.section && (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#0E6187]/[0.08] text-[#0E6187] shrink-0">{q.section.name}</span>
+                          )}
                           <div className="flex items-center gap-1.5 shrink-0">
                             <button onClick={() => openEditQuestion(q)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors" title="Edit">
                               <Pencil size={14} className="text-slate-600" />
@@ -1027,6 +1058,15 @@ export default function AdminQuizPaketSoal() {
                 <label className={labelCls}>Pertanyaan <span className="text-red-500">*</span></label>
                 <textarea value={qForm.question} onChange={e => setQForm({ ...qForm, question: e.target.value })}
                   rows={2} placeholder="Tulis pertanyaan..." className={`${inputCls} resize-none`} />
+              </div>
+
+              <div>
+                <label className={labelCls}>Bagian / Materi Soal <span className="text-slate-400 font-normal">(opsional)</span></label>
+                <select value={qForm.section_id} onChange={e => setQForm({ ...qForm, section_id: e.target.value })} className={inputCls}>
+                  <option value="">Tanpa bagian</option>
+                  {sections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+                <p className="text-xs text-slate-400 mt-1">Contoh: Vocabulary, Grammar, Reading, Listening, Conversation</p>
               </div>
 
               <div>

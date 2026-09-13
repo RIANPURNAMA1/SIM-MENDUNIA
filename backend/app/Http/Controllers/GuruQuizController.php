@@ -9,6 +9,7 @@ use App\Models\QuizAttempt;
 use App\Models\QuizCategory;
 use App\Models\QuizPaket;
 use App\Models\QuizQuestion;
+use App\Models\QuizSection;
 use App\Models\Siswa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -164,6 +165,21 @@ class GuruQuizController extends Controller
         return response()->json(['pakets' => $pakets]);
     }
 
+    public function bank()
+    {
+        $user = $this->guruUser();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $pakets = QuizPaket::with('course:id,title')
+            ->withCount('questions')
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->json(['pakets' => $pakets]);
+    }
+
     public function store(Request $request)
     {
         $user = $this->guruUser();
@@ -184,6 +200,7 @@ class GuruQuizController extends Controller
             'max_warnings' => 'required|integer|min:1|max:10',
             'passing_score' => 'nullable|integer|min:0|max:100',
             'shuffle_questions' => 'nullable|boolean',
+            'quiz_template' => 'nullable|in:basic,jft',
             'status' => 'nullable|in:aktif,nonaktif',
         ]);
 
@@ -191,6 +208,8 @@ class GuruQuizController extends Controller
         $data['shuffle_questions'] = $request->boolean('shuffle_questions');
         $data['passing_score'] = (int) ($data['passing_score'] ?? 0);
         $data['cover_image'] = $data['cover_image'] ?? null;
+        $data['template'] = $data['quiz_template'] ?? 'basic';
+        unset($data['quiz_template']);
 
         $paket = QuizPaket::create($data);
 
@@ -219,6 +238,7 @@ class GuruQuizController extends Controller
             'max_warnings' => 'sometimes|integer|min:1|max:10',
             'passing_score' => 'nullable|integer|min:0|max:100',
             'shuffle_questions' => 'nullable|boolean',
+            'quiz_template' => 'nullable|in:basic,jft',
             'status' => 'nullable|in:aktif,nonaktif',
         ]);
 
@@ -228,6 +248,10 @@ class GuruQuizController extends Controller
         if (array_key_exists('passing_score', $data)) {
             $data['passing_score'] = (int) ($data['passing_score'] ?? 0);
         }
+        if (isset($data['quiz_template'])) {
+            $data['template'] = $data['quiz_template'];
+        }
+        unset($data['quiz_template']);
 
         $paket->update($data);
 
@@ -338,8 +362,107 @@ class GuruQuizController extends Controller
 
         return response()->json([
             'paket' => $paket->load('batch:id,nama_batch', 'course:id,title'),
-            'questions' => $paket->questions,
+            'questions' => $paket->questions->load('section:id,name'),
         ]);
+    }
+
+    public function sections($paketId)
+    {
+        $user = $this->guruUser();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $paket = $this->ownPaket($paketId, $user->id);
+
+        return response()->json([
+            'sections' => $paket->sections()->withCount('questions')->get(),
+        ]);
+    }
+
+    public function storeSection(Request $request, $paketId)
+    {
+        $user = $this->guruUser();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $paket = $this->ownPaket($paketId, $user->id);
+
+        $data = $request->validate([
+            'name' => 'required|string|max:100',
+            'sort' => 'nullable|integer|min:0',
+        ]);
+
+        $sort = $data['sort'] ?? ((int) $paket->sections()->max('sort')) + 1;
+
+        $section = QuizSection::create([
+            'quiz_paket_id' => $paketId,
+            'name' => trim($data['name']),
+            'sort' => $sort,
+        ]);
+
+        return response()->json(['section' => $section->loadCount('questions')], 201);
+    }
+
+    public function updateSection(Request $request, $id)
+    {
+        $user = $this->guruUser();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $section = $this->ownSection($id, $user->id);
+
+        $data = $request->validate([
+            'name' => 'required|string|max:100',
+            'sort' => 'nullable|integer|min:0',
+        ]);
+
+        $section->update([
+            'name' => trim($data['name']),
+            'sort' => $data['sort'] ?? $section->sort,
+        ]);
+
+        return response()->json(['section' => $section->fresh()->loadCount('questions')]);
+    }
+
+    public function deleteSection($id)
+    {
+        $user = $this->guruUser();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $section = $this->ownSection($id, $user->id);
+        $section->delete();
+
+        return response()->json(['message' => 'Bagian dihapus']);
+    }
+
+    private function ownSection($id, $userId)
+    {
+        $section = QuizSection::with('paket')->findOrFail($id);
+        if ($section->paket->user_id !== $userId) {
+            abort(404);
+        }
+        return $section;
+    }
+
+    private function normalizeOptions($options)
+    {
+        if (!is_array($options)) return [];
+        $result = [];
+        foreach ($options as $o) {
+            if (is_array($o)) {
+                $text = trim((string) ($o['text'] ?? ''));
+                $imagePath = trim((string) ($o['image_path'] ?? ''));
+                $result[] = ['text' => $text, 'image_path' => $imagePath ?: null];
+            } else {
+                $result[] = ['text' => (string) $o, 'image_path' => null];
+            }
+        }
+        return $result;
     }
 
     public function storeQuestion(Request $request, $paketId)
@@ -353,10 +476,11 @@ class GuruQuizController extends Controller
 
         $data = $request->validate([
             'question' => 'required|string',
+            'section_id' => 'nullable|integer|exists:quiz_sections,id',
             'question_type' => 'sometimes|string|in:choice,rating',
             'rating_max' => 'nullable|integer|min:2|max:10',
             'options' => 'sometimes|array',
-            'options.*' => 'required|string|distinct',
+            'options.*' => 'required',
             'correct_index' => 'nullable|integer|min:0',
             'points' => 'nullable|integer|min:1',
             'sort' => 'nullable|integer|min:0',
@@ -365,8 +489,12 @@ class GuruQuizController extends Controller
             'audio_max_plays' => 'nullable|integer|min:1|max:99',
         ]);
 
+        if (!empty($data['section_id']) && !QuizSection::where('id', $data['section_id'])->where('quiz_paket_id', $paketId)->exists()) {
+            return response()->json(['message' => 'Bagian tidak valid untuk paket ini'], 422);
+        }
+
         $type = $data['question_type'] ?? 'choice';
-        $options = array_values($data['options'] ?? []);
+        $options = $this->normalizeOptions($data['options'] ?? []);
 
         if ($type === 'rating') {
             $ratingMax = (int) ($data['rating_max'] ?? count($options) ?: 9);
@@ -376,6 +504,10 @@ class GuruQuizController extends Controller
         } else {
             if (count($options) < 2 || count($options) > 6) {
                 return response()->json(['message' => 'Opsi jawaban minimal 2 dan maksimal 6'], 422);
+            }
+            $searchable = array_map(fn ($o) => $o['text'] . '|' . ($o['image_path'] ?? ''), $options);
+            if (count(array_unique($searchable)) !== count($searchable)) {
+                return response()->json(['message' => 'Opsi jawaban tidak boleh duplikat'], 422);
             }
             if ((int) ($data['correct_index'] ?? -1) >= count($options)) {
                 return response()->json(['message' => 'correct_index melebihi jumlah opsi'], 422);
@@ -410,10 +542,11 @@ class GuruQuizController extends Controller
 
         $data = $request->validate([
             'question' => 'sometimes|string',
+            'section_id' => 'nullable|integer|exists:quiz_sections,id',
             'question_type' => 'sometimes|string|in:choice,rating',
             'rating_max' => 'nullable|integer|min:2|max:10',
             'options' => 'sometimes|array',
-            'options.*' => 'required|string|distinct',
+            'options.*' => 'required',
             'correct_index' => 'nullable|integer|min:0',
             'points' => 'nullable|integer|min:1',
             'sort' => 'nullable|integer|min:0',
@@ -421,6 +554,10 @@ class GuruQuizController extends Controller
             'audio_path' => 'nullable|string',
             'audio_max_plays' => 'nullable|integer|min:1|max:99',
         ]);
+
+        if (!empty($data['section_id']) && !QuizSection::where('id', $data['section_id'])->where('quiz_paket_id', $question->quiz_paket_id)->exists()) {
+            return response()->json(['message' => 'Bagian tidak valid untuk paket ini'], 422);
+        }
 
         if (isset($data['question_type'])) {
             $type = $data['question_type'];
@@ -432,9 +569,13 @@ class GuruQuizController extends Controller
             } else {
                 $data['rating_max'] = null;
                 if (isset($data['options'])) {
-                    $options = array_values($data['options']);
+                    $options = $this->normalizeOptions($data['options']);
                     if (count($options) < 2 || count($options) > 6) {
                         return response()->json(['message' => 'Opsi jawaban minimal 2 dan maksimal 6'], 422);
+                    }
+                    $searchable = array_map(fn ($o) => $o['text'] . '|' . ($o['image_path'] ?? ''), $options);
+                    if (count(array_unique($searchable)) !== count($searchable)) {
+                        return response()->json(['message' => 'Opsi jawaban tidak boleh duplikat'], 422);
                     }
                     if (isset($data['correct_index']) && $data['correct_index'] !== null && (int) $data['correct_index'] >= count($options)) {
                         return response()->json(['message' => 'correct_index melebihi jumlah opsi'], 422);

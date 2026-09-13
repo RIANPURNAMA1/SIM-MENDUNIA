@@ -4,7 +4,7 @@ import {
   User, CheckCircle, Clock, XCircle, CreditCard, Package, Check, Copy, AlertTriangle,
   ChevronDown, ChevronUp, ChevronLeft, Building2, Upload, Loader, MessageSquare, ChevronRight,
   LayoutDashboard, Wallet, CalendarCheck, BookOpen, Award, Briefcase, Bell, ClipboardList,
-  FileSignature, ListChecks, Megaphone,
+  FileSignature, Megaphone,
   LogOut,
   Lock,
   ExternalLink,
@@ -455,7 +455,6 @@ export default function SiswaDashboard() {
     { label: 'Bayar', to: '/siswa-dashboard/pembayaran', icon: Wallet, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
     { label: 'Absensi', to: '/siswa-dashboard/absensi', icon: CalendarCheck, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
     { label: 'Kelas Mendunia', to: '/siswa-dashboard/lms', icon: BookOpen, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
-    { label: 'Quiz', to: '/siswa-dashboard/quiz', icon: ListChecks, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
     { label: 'Nilai', to: '/siswa-dashboard/nilai', icon: Award, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
     { label: 'Matching Job', to: '/siswa-dashboard/matching-job', icon: Briefcase, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
     { label: 'Kontrak', to: '/siswa-dashboard/kontrak', icon: FileSignature, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
@@ -621,10 +620,10 @@ export default function SiswaDashboard() {
         {/* ============ Quick Actions ============ */}
         <section className="rounded-xl bg-white p-4 shadow-sm animate-fade-up delay-200">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-slate-800">Akses Cepat</h2>
+            <h2 className="text-sm font-bold text-slate-800">Menu</h2>
             <span className="text-[11px] text-slate-400">{quickActions.length} menu</span>
           </div>
-          <div className="-mx-4 mt-3 flex items-stretch gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+          <div className="mt-4 grid grid-cols-4 gap-x-2 gap-y-4 sm:grid-cols-6">
             {quickActions.map((qa, idx) => {
               const Icon = qa.icon
               const delays = ['delay-75', 'delay-100', 'delay-150', 'delay-200', 'delay-250', 'delay-300', 'delay-350', 'delay-400']
@@ -640,7 +639,7 @@ export default function SiswaDashboard() {
                       confirmButtonText: 'OK',
                       confirmButtonColor: '#0E6187',
                     })}
-                    className={`flex w-[68px] shrink-0 flex-col items-center gap-1.5 transition-all duration-200 hover:-translate-y-1 active:scale-95 group animate-pop-in ${delays[idx % delays.length]}`}
+                    className={`flex flex-col items-center gap-1.5 transition-all duration-200 hover:-translate-y-1 active:scale-95 group animate-pop-in ${delays[idx % delays.length]}`}
                   >
                     <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${qa.bg} ${qa.color} transition-all duration-200 group-hover:shadow-md group-hover:scale-105`}>
                       <Icon size={20} />
@@ -654,7 +653,7 @@ export default function SiswaDashboard() {
                   <div
                     key={qa.label}
                     title="Belum ada jadwal kelas"
-                    className="flex w-[68px] shrink-0 cursor-not-allowed flex-col items-center gap-1.5 opacity-50 group"
+                    className="flex cursor-not-allowed flex-col items-center gap-1.5 opacity-50 group"
                   >
                     <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
                       <Lock size={18} />
@@ -667,7 +666,7 @@ export default function SiswaDashboard() {
                 <Link
                   key={qa.label}
                   to={qa.to}
-                  className={`flex w-[68px] shrink-0 flex-col items-center gap-1.5 transition-all duration-200 hover:-translate-y-1 active:scale-95 group animate-pop-in ${delays[idx % delays.length]}`}
+                  className={`flex flex-col items-center gap-1.5 transition-all duration-200 hover:-translate-y-1 active:scale-95 group animate-pop-in ${delays[idx % delays.length]}`}
                 >
                   <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${qa.bg} ${qa.color} transition-all duration-200 group-hover:shadow-md group-hover:scale-105`}>
                     <Icon size={20} />

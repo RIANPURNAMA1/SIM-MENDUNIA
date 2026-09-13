@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   BookOpen, Plus, FileText, X, Image as ImageIcon, Download, Trash2,
   ChevronRight, ArrowLeft, Layers, Search, Video, GripVertical, Edit3,
-  ChevronUp, ChevronDown, Upload, FolderOpen, ListChecks, Eye, EyeOff, Trophy, Users, History, HelpCircle, Check
+  ChevronUp, ChevronDown, Upload, FolderOpen, ListChecks, Eye, EyeOff, Trophy, Users, History, HelpCircle, Check, Lock
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -64,6 +64,7 @@ interface Lesson {
   file_size: number | null
   paket_id: number | null
   paket?: { id: number; title: string } | null
+  link_pakets?: { id: number; title: string }[]
   slides?: { id: number; file_path: string; file_name?: string; url?: string }[]
   sort: number
   status: string
@@ -745,12 +746,13 @@ export default function GuruLMS() {
             </button>
             <div className="flex items-start justify-between">
               <div className="flex items-start gap-3">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0E6187] to-[#1a3355] flex items-center justify-center shrink-0 overflow-hidden">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0E6187] to-[#1a3355] flex items-center justify-center shrink-0 overflow-hidden relative">
                   {selectedCourse.image ? (
                     <img src={`${APP_URL}/storage/${selectedCourse.image}`} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <img src={DEFAULT_COURSE_COVER} alt="" className="w-full h-full object-cover" />
                   )}
+                  <div className="absolute inset-0 bg-[#0E6187]/40 mix-blend-multiply pointer-events-none" />
                 </div>
                 <div>
                   <h1 className="text-lg font-bold text-gray-900">{selectedCourse.title}</h1>
@@ -889,7 +891,9 @@ export default function GuruLMS() {
                           {lesson.content && <span className="text-[10px] text-gray-400 flex items-center gap-1"><FileText size={10} /> Materi</span>}
                           {lesson.file_name && <span className="text-[10px] text-gray-400 flex items-center gap-1"><FileText size={10} /> PDF</span>}
                           {!!lesson.slides?.length && <span className="text-[10px] text-gray-400 flex items-center gap-1"><ImageIcon size={10} /> {lesson.slides.length} Slide</span>}
-                          {lesson.paket && <span className="text-[10px] text-gray-400 flex items-center gap-1"><HelpCircle size={10} /> Quiz</span>}
+                          {lesson.paket || (lesson.link_pakets?.length ?? 0) > 0 ? (
+                            <span className="text-[10px] text-gray-400 flex items-center gap-1"><HelpCircle size={10} /> Quiz</span>
+                          ) : null}
                           <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
                             lesson.status === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'
                           }`}>
@@ -1494,19 +1498,37 @@ export default function GuruLMS() {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-            {filtered.map(course => (
-              <button key={course.id} onClick={() => openCourse(course)}
-                className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-all text-left group">
-                <div className="h-32 bg-gradient-to-br from-[#0E6187] to-[#1a3355] flex items-center justify-center relative overflow-hidden">
+            {filtered.map(course => {
+              const courseActive = course.status === 'aktif'
+              return (
+              <button key={course.id} onClick={() => courseActive ? openCourse(course) : (
+                Swal.fire({
+                  icon: 'warning',
+                  title: 'Kursus Ditutup',
+                  text: 'Kursus ini sedang ditutup dan tidak dapat diakses saat ini.',
+                  confirmButtonText: 'OK',
+                  confirmButtonColor: '#0069b0',
+                })
+              )}
+                className={`bg-white rounded-xl border border-gray-200 overflow-hidden text-left group transition-all ${
+                  courseActive ? 'hover:shadow-md' : 'opacity-75 cursor-not-allowed'
+                }`}>
+                <div className={`h-32 bg-gradient-to-br from-[#0E6187] to-[#1a3355] flex items-center justify-center relative overflow-hidden ${courseActive ? '' : 'grayscale'}`}>
                   {course.image ? (
                     <img src={`${APP_URL}/storage/${course.image}`} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <img src={DEFAULT_COURSE_COVER} alt="" className="w-full h-full object-cover" />
                   )}
+                  <div className="absolute inset-0 bg-[#0E6187]/40 mix-blend-multiply pointer-events-none" />
                   <div className="absolute top-2.5 right-2.5 flex flex-col items-end gap-1">
                     {!course.can_manage && (
                       <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-900/60 text-white backdrop-blur-sm">
                         Hanya Baca
+                      </span>
+                    )}
+                    {!courseActive && (
+                      <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/90 text-white backdrop-blur-sm">
+                        <Lock size={9} /> Ditutup
                       </span>
                     )}
                     <div className="flex items-center gap-1.5">
@@ -1514,9 +1536,9 @@ export default function GuruLMS() {
                         {course.level ? `Level ${course.level}` : 'Umum'}
                       </span>
                       <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                        course.status === 'aktif' ? 'bg-emerald-500/80 text-white' : 'bg-gray-500/80 text-white'
+                        courseActive ? 'bg-emerald-500/80 text-white' : 'bg-gray-500/80 text-white'
                       }`}>
-                        {course.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
+                        {courseActive ? 'Aktif' : 'Nonaktif'}
                       </span>
                     </div>
                   </div>
@@ -1527,7 +1549,11 @@ export default function GuruLMS() {
                       <h3 className="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-[#0069b0] transition-colors truncate">{course.title}</h3>
                       <span className="text-[10px] font-medium text-gray-400 mt-0.5 inline-block truncate">{getBatchName(course.batch_id)}</span>
                     </div>
-                    <ChevronRight size={16} className="text-gray-300 shrink-0 mt-0.5 group-hover:text-[#0069b0] transition-colors" />
+                    {courseActive ? (
+                      <ChevronRight size={16} className="text-gray-300 shrink-0 mt-0.5 group-hover:text-[#0069b0] transition-colors" />
+                    ) : (
+                      <Lock size={16} className="text-gray-300 shrink-0 mt-0.5" />
+                    )}
                   </div>
                   <div className="flex items-center gap-3 sm:gap-4 mt-2.5 text-[10px] text-gray-400">
                     <span className="flex items-center gap-1">
@@ -1539,7 +1565,8 @@ export default function GuruLMS() {
                   </div>
                 </div>
               </button>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

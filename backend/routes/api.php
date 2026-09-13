@@ -476,6 +476,8 @@ Route::get('/guru/penilaian-rekap/{kelasId}', [GuruDashboardController::class, '
     Route::delete('/guru/lms-lessons/{id}', [GuruDashboardController::class, 'guruDeleteLesson']);
     Route::post('/guru/lms-lessons/{id}/recap', [GuruDashboardController::class, 'guruStoreLessonRecap']);
     Route::delete('/guru/lms-lessons/{id}/recap', [GuruDashboardController::class, 'guruDeleteLessonRecap']);
+    Route::post('/guru/lms-lessons/{id}/pakets', [GuruDashboardController::class, 'guruAttachLessonPaket']);
+    Route::delete('/guru/lms-lessons/{id}/pakets/{paketId}', [GuruDashboardController::class, 'guruDetachLessonPaket']);
     Route::get('/guru/lms-courses/{courseId}/files', [GuruDashboardController::class, 'lmsCourseFiles']);
     Route::get('/guru/lms-courses/{courseId}/lessons', [GuruDashboardController::class, 'guruLessons']);
     Route::get('/guru/lms-courses/{id}', [GuruDashboardController::class, 'lmsCourseDetail']);
@@ -523,12 +525,17 @@ Route::get('/guru/penilaian-rekap/{kelasId}', [GuruDashboardController::class, '
     Route::prefix('guru/quiz')->group(function () {
         Route::get('/meta', [GuruQuizController::class, 'meta']);
         Route::get('/pakets', [GuruQuizController::class, 'index']);
+        Route::get('/bank-pakets', [GuruQuizController::class, 'bank']);
         Route::post('/pakets', [GuruQuizController::class, 'store']);
         Route::post('/pakets/{id}', [GuruQuizController::class, 'update']);
         Route::delete('/pakets/{id}', [GuruQuizController::class, 'destroy']);
         Route::post('/pakets/{id}/toggle', [GuruQuizController::class, 'toggle']);
         Route::get('/pakets/{id}/questions', [GuruQuizController::class, 'questions']);
         Route::post('/pakets/{id}/questions', [GuruQuizController::class, 'storeQuestion']);
+        Route::get('/pakets/{id}/sections', [GuruQuizController::class, 'sections']);
+        Route::post('/pakets/{id}/sections', [GuruQuizController::class, 'storeSection']);
+        Route::post('/sections/{id}', [GuruQuizController::class, 'updateSection']);
+        Route::delete('/sections/{id}', [GuruQuizController::class, 'deleteSection']);
         Route::post('/questions/{id}', [GuruQuizController::class, 'updateQuestion']);
         Route::delete('/questions/{id}', [GuruQuizController::class, 'deleteQuestion']);
         Route::get('/leaderboard', [GuruQuizController::class, 'leaderboard']);
@@ -633,6 +640,10 @@ Route::prefix('admin-cabang')->middleware(['auth:sanctum'])->group(function () {
         Route::post('/assign-bank', [AdminQuizController::class, 'assignBank']);
         Route::get('/pakets/{id}/questions', [AdminQuizController::class, 'questions']);
         Route::post('/pakets/{id}/questions', [AdminQuizController::class, 'storeQuestion']);
+        Route::get('/pakets/{id}/sections', [AdminQuizController::class, 'sections']);
+        Route::post('/pakets/{id}/sections', [AdminQuizController::class, 'storeSection']);
+        Route::post('/sections/{id}', [AdminQuizController::class, 'updateSection']);
+        Route::delete('/sections/{id}', [AdminQuizController::class, 'deleteSection']);
         Route::post('/questions/{id}', [AdminQuizController::class, 'updateQuestion']);
         Route::delete('/questions/{id}', [AdminQuizController::class, 'deleteQuestion']);
         Route::get('/pakets/{id}/materi', [AdminQuizController::class, 'materi']);

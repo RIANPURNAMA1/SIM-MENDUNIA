@@ -9,6 +9,7 @@ class QuizQuestion extends Model
     protected $fillable = [
         'quiz_paket_id',
         'question',
+        'section_id',
         'question_type',
         'rating_max',
         'options',
@@ -35,6 +36,11 @@ class QuizQuestion extends Model
     public function paket()
     {
         return $this->belongsTo(QuizPaket::class, 'quiz_paket_id');
+    }
+
+    public function section()
+    {
+        return $this->belongsTo(QuizSection::class, 'section_id');
     }
 
     public function getImageUrlAttribute()

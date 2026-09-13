@@ -3,9 +3,10 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft, Clock, ListChecks, Award, Camera, ShieldAlert, X, Play,
   AlertTriangle, CheckCircle2, BookOpen, LayoutDashboard, CalendarCheck,
-  Wallet, User, FileQuestion, Lock, Check, Video, FileText, LayoutGrid,
+  Wallet, User, FileQuestion, Lock, Check, LayoutGrid,
 } from 'lucide-react'
 import { quizApi, lmsApi } from '../../services/api'
+import { detectFace, loadFaceModels, type DetectedFace } from '../../utils/faceDetector'
 import LessonSlidesViewer from '../../components/LessonSlidesViewer'
 import TrackedVideo from '../../components/TrackedVideo'
 import Swal from 'sweetalert2'
@@ -144,6 +145,7 @@ export default function QuizKandidat() {
 
   const [activeLesson, setActiveLesson] = useState<LessonPayload | null>(null)
   const [lessonProgressMap, setLessonProgressMap] = useState<Record<number, LessonProgress>>({})
+  const [lessonQuizzesMap, setLessonQuizzesMap] = useState<Record<number, any[]>>({})
 
   const [questions, setQuestions] = useState<PlayQuestion[]>([])
   const [selected, setSelected] = useState<Record<number, number | null>>({})
@@ -154,6 +156,7 @@ export default function QuizKandidat() {
   const [camError, setCamError] = useState<string | null>(null)
   const [camBusy, setCamBusy] = useState(false)
   const [camActive, setCamActive] = useState(false)
+  const [headTurned, setHeadTurned] = useState(false)
   const [starting, setStarting] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
@@ -164,6 +167,7 @@ export default function QuizKandidat() {
   const streamRef = useRef<MediaStream | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const cameraRef = useRef<HTMLVideoElement | null>(null)
+  const modalOverlayRef = useRef<HTMLCanvasElement | null>(null)
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const snapshotRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const readTickRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -202,7 +206,7 @@ export default function QuizKandidat() {
     fetchPakets()
     const openId = paketId ? Number(paketId) : 0
     if (openId) {
-      setView('materi')
+      setView('rules')
       openPaket(openId)
     } else {
       setView('list')
@@ -247,8 +251,13 @@ export default function QuizKandidat() {
         is_unlocked: res.data.is_unlocked ?? true,
       })
       loadLessonProgress((res.data.lessons || []) as LessonPayload[])
-    }).catch(() => {
-      Swal.fire({ icon: 'error', title: 'Gagal memuat detail paket' })
+    }).catch((err: any) => {
+      const msg: unknown = err?.response?.data?.message
+      Swal.fire({
+        icon: 'error',
+        title: 'Paket tidak dapat diakses',
+        text: typeof msg === 'string' && msg ? msg : 'Gagal memuat detail paket.',
+      })
       setView('list')
       navigate('/siswa-dashboard/quiz')
     })
@@ -259,6 +268,9 @@ export default function QuizKandidat() {
       lmsApi.lessonDetail(l.id).then(res => {
         if (res.data?.progress) {
           setLessonProgressMap(prev => ({ ...prev, [l.id]: res.data.progress }))
+        }
+        if (res.data?.quizzes && res.data.quizzes.length > 0) {
+          setLessonQuizzesMap(prev => ({ ...prev, [l.id]: res.data.quizzes }))
         }
       }).catch(() => {})
     })
@@ -301,11 +313,6 @@ export default function QuizKandidat() {
     }).catch(() => {})
   }
 
-  const openLesson = (l: LessonPayload) => {
-    const pkgId = detail?.paket.id ?? paketId ?? ''
-    navigate(`/siswa-dashboard/quiz/${pkgId}/materi/${l.id}`)
-  }
-
   const applyReadProgress = (lessonId: number, p: LessonProgress) => {
     setLessonProgressMap(prev => ({ ...prev, [lessonId]: p }))
   }
@@ -336,6 +343,7 @@ export default function QuizKandidat() {
     }
     setCamBusy(true)
     setCamError(null)
+    loadFaceModels()
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user', width: { ideal: 640 } },
@@ -359,6 +367,71 @@ export default function QuizKandidat() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [camActive, cameraModal])
+
+  // Draw the detected face bounding box in the camera gate modal. Green
+  // normally, red while the head is turned left/right.
+  const drawModalOverlay = useCallback((face: DetectedFace | null) => {
+    const cv = modalOverlayRef.current
+    const video = videoRef.current
+    if (!cv || !video) return
+    if (cv.width !== cv.clientWidth || cv.height !== cv.clientHeight) {
+      cv.width = cv.clientWidth
+      cv.height = cv.clientHeight
+    }
+    const ctx = cv.getContext('2d')
+    if (!ctx) return
+    ctx.clearRect(0, 0, cv.width, cv.height)
+    if (!face) return
+    const vw = video.videoWidth
+    const vh = video.videoHeight
+    if (!vw || !vh) return
+    const cw = cv.width
+    const ch = cv.height
+    const scale = Math.max(cw / vw, ch / vh)
+    const ox = (cw - vw * scale) / 2
+    const oy = (ch - vh * scale) / 2
+    const x = face.x * scale + ox
+    const y = face.y * scale + oy
+    const w = face.width * scale
+    const h = face.height * scale
+    const color = face.turned ? '#ef4444' : '#22c55e'
+    ctx.lineWidth = 3
+    ctx.strokeStyle = color
+    ctx.strokeRect(x, y, w, h)
+    const label = face.turned ? 'ANDA MENOLOH' : 'WAJAH TERDETEKSI'
+    ctx.font = 'bold 11px system-ui, sans-serif'
+    const tw = ctx.measureText(label).width
+    ctx.fillStyle = color
+    ctx.fillRect(x, y - 14, tw + 10, 14)
+    ctx.fillStyle = '#ffffff'
+    ctx.fillText(label, x + 5, y - 4)
+  }, [])
+
+  useEffect(() => {
+    if (!cameraModal || !camActive || !streamRef.current) {
+      setHeadTurned(false)
+      if (cameraModal && !camActive) drawModalOverlay(null)
+      return
+    }
+    let stopped = false
+    const tick = async () => {
+      const video = videoRef.current
+      if (!video || !streamRef.current || stopped) return
+      try {
+        const face = await detectFace(video)
+        if (stopped) return
+        drawModalOverlay(face)
+        setHeadTurned(!!face?.turned)
+      } catch {
+        /* model belum siap — lewati */
+      }
+    }
+    const id = setInterval(tick, 500)
+    return () => {
+      stopped = true
+      clearInterval(id)
+    }
+  }, [cameraModal, camActive, drawModalOverlay])
 
   // Track reading of the open modul (activity hijau) when viewing material detail.
   useEffect(() => {
@@ -420,12 +493,12 @@ export default function QuizKandidat() {
     })
   }, [submitting, stopTimers])
 
-  const enterPlay = useCallback((attemptId: number, packageId: number) => {
+  const enterPlay = useCallback((attemptId: number, packageId: number, template?: string) => {
     stopTimers()
     stopStream()
     setCameraModal(false)
-    const template = detail?.paket?.quiz_template || 'basic'
-    const route = template === 'jft' ? 'play' : 'play-basic'
+    const tpl = template || detail?.paket?.quiz_template || 'basic'
+    const route = tpl === 'jft' ? 'play' : 'play-basic'
     navigate(`/siswa-dashboard/quiz/${packageId}/${route}/${attemptId}`, { state: { title: paketTitleRef.current } })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stopTimers, stopStream, navigate])
@@ -439,8 +512,8 @@ export default function QuizKandidat() {
         return
       }
       const packageId = detail?.paket.id ?? paketId ?? 0
-      const template = detail?.paket?.quiz_template || 'basic'
-      const route = template === 'jft' ? 'play' : 'play-basic'
+      const tpl = data.template || detail?.paket?.quiz_template || 'basic'
+      const route = tpl === 'jft' ? 'play' : 'play-basic'
       navigate(`/siswa-dashboard/quiz/${packageId}/${route}/${attemptId}`, { state: { title: paketTitleRef.current } })
     }).catch(() => {
       Swal.fire({ icon: 'error', title: 'Gagal melanjutkan percobaan' })
@@ -454,7 +527,7 @@ export default function QuizKandidat() {
     setStarting(true)
     quizApi.start(packageId).then(res => {
       const d = res.data
-      enterPlay(d.attempt.id, packageId)
+      enterPlay(d.attempt.id, packageId, d.template)
     }).catch(err => {
       const attemptId = err?.response?.data?.attempt_id
       if (attemptId) {
@@ -582,7 +655,10 @@ export default function QuizKandidat() {
           {questions.map((q, qi) => (
             <div key={q.id} className="bg-white rounded-md border border-[#E5E7EF] p-5">
               <div className="flex items-start justify-between gap-2">
-                <p className="text-[13px] font-bold text-slate-800 leading-snug">
+                {q.section && (
+                  <span className="text-[9px] font-bold uppercase tracking-wide text-[#0E6187] bg-[#0E6187]/[0.06] px-2 py-0.5 rounded-full shrink-0">{q.section}</span>
+                )}
+                <p className={`text-[13px] font-bold text-slate-800 leading-snug flex-1 ${q.section ? '' : ''}`}>
                   <span className="text-[#0E6187]">{qi + 1}.</span> {q.question}
                 </p>
                 <span className="text-[9.5px] font-bold text-slate-300 shrink-0 mt-0.5">{q.points} poin</span>
@@ -593,14 +669,17 @@ export default function QuizKandidat() {
                 )}
                 {q.options.map((opt, oi) => {
                   const isSel = selected[q.id] === oi
-                  const badgeLabel = q.question_type === 'rating' ? opt : String.fromCharCode(65 + oi)
+                  const optLabel = typeof opt === 'string' ? opt : (opt?.text ?? '')
+                  const optImg = typeof opt === 'string' ? null : (opt?.image_url || null)
+                  const badgeLabel = q.question_type === 'rating' ? optLabel : String.fromCharCode(65 + oi)
                   return (
                     <button key={oi} onClick={() => selectAnswer(q, oi)}
                       className={`w-full flex items-center gap-2.5 text-left text-[12px] px-3.5 py-3 rounded-md border-2 transition-all ${isSel ? (q.question_type === 'rating' ? 'border-violet-500 bg-violet-50 font-bold text-violet-600' : 'border-[#0E6187] bg-[#0E6187]/[0.04] font-bold text-[#0E6187]') : 'border-transparent bg-slate-50 text-slate-600 font-medium hover:bg-slate-100'}`}>
                       <span className={`w-6 h-6 flex items-center justify-center rounded-md text-[10px] font-bold shrink-0 ${isSel ? (q.question_type === 'rating' ? 'bg-violet-500 text-white' : 'bg-[#0E6187] text-white') : 'bg-white border border-slate-200 text-slate-400'}`}>
                         {badgeLabel}
                       </span>
-                      {opt}
+                      {optImg && <img src={optImg} alt="" className="h-11 w-11 shrink-0 rounded-md border border-slate-200 object-cover" />}
+                      {optLabel && <span>{optLabel}</span>}
                       {isSel && <CheckCircle2 size={15} className={`ml-auto shrink-0 ${q.question_type === 'rating' ? 'text-violet-500' : 'text-[#0E6187]'}`} />}
                     </button>
                   )
@@ -704,7 +783,7 @@ export default function QuizKandidat() {
   }
 
   if (view === 'materi' && detail) {
-    const { paket, lessons } = detail
+    const { paket, lessons, attempts } = detail
     const isGreen = (l: LessonPayload) => {
       const p = lessonProgressMap[l.id]
       if (!l.has_video && !l.has_content) return true
@@ -877,6 +956,61 @@ export default function QuizKandidat() {
                   <span className="ml-auto text-[11px] font-bold text-[#0E6187] shrink-0">Buka →</span>
                 </a>
               )}
+
+              {lessonQuizzesMap[activeLesson.id]?.length > 0 && (
+                <div className="px-5 pb-5">
+                  <div className="bg-white rounded-md border border-slate-200 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                      <h3 className="text-[11px] font-black text-slate-800 flex items-center gap-2">
+                        <span className="w-7 h-7 rounded-md bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+                          <ListChecks size={13} className="text-[#0E6187]" />
+                        </span>
+                        Quiz Pertemuan Ini
+                      </h3>
+                      <span className="text-[10px] font-bold text-gray-400">{lessonQuizzesMap[activeLesson.id].length} paket</span>
+                    </div>
+                    <div className="p-3 space-y-2">
+                      {lessonQuizzesMap[activeLesson.id].map((q: any) => {
+                        const unlocked = q.is_unlocked || q.status === 'aktif'
+                        const attemptsMaxed = q.max_attempts > 0 && q.attempts_used >= q.max_attempts
+                        const best = q.best_score != null ? q.best_score : null
+                        return (
+                          <button key={q.id} type="button"
+                            onClick={() => { if (unlocked && !attemptsMaxed) navigate(`/siswa-dashboard/quiz/${q.id}`) }}
+                            className={`w-full flex items-center gap-3 rounded-md border p-3 text-left bg-white transition-all ${
+                              unlocked && !attemptsMaxed ? 'border-slate-200 hover:border-[#0E6187]/40 hover:shadow-sm' : 'border-slate-100 opacity-80'
+                            }`}>
+                            <div className={`w-9 h-9 rounded-md flex items-center justify-center shrink-0 ${unlocked ? 'bg-[#0E6187]/10 text-[#0E6187]' : 'bg-gray-50 text-gray-300'}`}>
+                              {unlocked ? <ListChecks size={16} /> : <Lock size={14} />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-bold text-gray-900 truncate">{q.title}</p>
+                              <p className="text-[10px] text-gray-400 mt-0.5">
+                                {q.questions_count} soal · {q.max_attempts} percobaan
+                                {attemptsMaxed ? ' (habis)' : ''}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {best != null && (
+                                <span className={`text-[11px] font-black ${q.passing_score > 0 && best >= q.passing_score ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                  {best}%
+                                </span>
+                              )}
+                              {!unlocked ? (
+                                <span className="rounded-md bg-gray-100 px-2 py-1 text-[9px] font-bold text-gray-400">Ditutup</span>
+                              ) : attemptsMaxed ? (
+                                <span className="rounded-md bg-red-50 px-2 py-1 text-[9px] font-bold text-red-500">Habis</span>
+                              ) : (
+                                <span className="rounded-md bg-[#0E6187] px-2.5 py-1 text-[9px] font-bold text-white">Kerjakan</span>
+                              )}
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Back Button */}
@@ -949,53 +1083,39 @@ export default function QuizKandidat() {
         </div>
 
         <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
-          {/* Progress */}
-          <div className="bg-white rounded-md border border-slate-200 p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-[12px] font-bold text-slate-700">Daftar Materi</p>
-              <span className="text-[10.5px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">
-                {greenCount}/{lessons.length} Hijau
-              </span>
-            </div>
-            <div className="flex items-center gap-3 mt-3">
-              <div className="flex-1">
-                <div className="h-2 rounded-md bg-slate-100 overflow-hidden">
-                  <div className="h-full rounded-md bg-emerald-500 transition-all duration-500"
-                    style={{ width: `${progressPct}%` }} />
-                </div>
+          {/* Riwayat Pengerjaan */}
+          {attempts.length > 0 && (
+            <div className="bg-white rounded-md border border-slate-200 p-5">
+              <div className="flex items-center justify-between">
+                <p className="text-[12px] font-bold text-slate-700">Riwayat Pengerjaan</p>
+                <span className="text-[10px] font-bold text-slate-500">{attempts.length}/{paket.max_attempts} percobaan</span>
               </div>
-              <span className="text-lg font-black text-emerald-600 tabular-nums">{progressPct}%</span>
+              <div className="mt-3 space-y-2">
+                {attempts.map(a => (
+                  <div key={a.attempt_id} className="flex items-center gap-3 bg-slate-50 rounded-md border border-slate-100 px-3 py-2.5">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${a.status === 'submitted' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-500'}`}>
+                      #{a.attempt_number}
+                    </span>
+                    <div className="flex-1">
+                      <p className="text-[11px] font-bold text-slate-700">
+                        {a.status === 'submitted' ? (Number(a.score) || 0) + ' poin' : 'Sedang berjalan'}
+                        {a.auto_submitted && <span className="ml-1 text-[9px] font-bold text-orange-500">AUTO</span>}
+                      </p>
+                      <p className="text-[9.5px] text-slate-400 font-medium mt-0.5">
+                        {a.started_at ? new Date(a.started_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
+                      </p>
+                    </div>
+                    {a.status === 'in_progress' && <span className="text-[9.5px] font-bold text-orange-500 shrink-0">LANJUTKAN*</span>}
+                  </div>
+                ))}
+              </div>
+              {paket.max_attempts - attempts.length > 0 && (
+                <p className="text-[10px] text-slate-400 font-medium mt-2.5">
+                  Sisa percobaan: {paket.max_attempts - attempts.length}×
+                </p>
+              )}
             </div>
-            <p className="text-[10.5px] text-slate-400 font-medium mt-2.5">
-              Buka dan baca materi pelajaran untuk memperdalam pemahaman sebelum mengerjakan kuis.
-            </p>
-          </div>
-
-          {/* Lesson list */}
-          <div className="bg-white rounded-md border border-slate-200 overflow-hidden divide-y divide-slate-100">
-            {lessons.map((l, idx) => {
-              const lGreen = isGreen(l)
-              return (
-                <button key={l.id} onClick={() => openLesson(l)}
-                  className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-slate-50 transition-colors text-left">
-                  <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${lGreen ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                    {lGreen ? <Check size={15} /> : <span className="text-[10.5px] font-bold">{idx + 1}</span>}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-semibold text-slate-800 truncate">{l.title}</p>
-                    <p className="text-[10px] text-slate-400 font-medium mt-0.5 flex items-center gap-1">
-                      {l.has_video && <><Video size={10} /> Video</>}
-                      {l.has_video && l.has_content && <span>·</span>}
-                      {l.has_content && <><FileText size={10} /> Modul</>}
-                    </p>
-                  </div>
-                  <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-md ${lGreen ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 bg-slate-100'}`}>
-                    {lGreen ? 'Hijau' : 'Belum hijau'}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
+          )}
 
           {/* CTA */}
           <button onClick={goToRules}
@@ -1039,30 +1159,44 @@ export default function QuizKandidat() {
   }
 
   if (view === 'rules' && detail) {
-    const { paket, attempts, lessons, is_unlocked } = detail
+    const { paket, attempts } = detail
     const isProctoring = paket.quiz_template === 'jft'
     const used = attempts.length
     const inProgress = attempts.find(a => a.status === 'in_progress')
     const remainingAttempts = paket.max_attempts - used
     const canStartNew = remainingAttempts > 0
-    const completedCount = lessons.filter(l => l.completed).length
-    const progressPct = lessons.length > 0 ? Math.round((completedCount / lessons.length) * 100) : 0
 
     const startFlow = () => {
-      if (inProgress) {
-        setCamError(null)
-        setCameraModal(false)
-        resumeAttempt(inProgress.attempt_id)
-        return
-      }
-      if (isProctoring) {
-        setView('rules')
-        setCameraModal(true)
-        requestCamera()
-      } else {
-        setCameraModal(false)
-        startNew()
-      }
+      const isResume = !!inProgress
+      Swal.fire({
+        title: isResume ? 'Lanjutkan pengerjaan?' : 'Siap mengerjakan quiz?',
+        text: isResume
+          ? 'Anda memiliki percobaan yang sedang berjalan. Quiz akan dilanjutkan dari posisi terakhir.'
+          : 'Pastikan koneksi internet stabil dan wajah terlihat jelas di depan kamera selama pengerjaan.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#0E6187',
+        confirmButtonText: isResume ? 'Ya, Lanjutkan' : 'Ya, Siap Mulai',
+        cancelButtonText: 'Batal',
+        reverseButtons: true,
+        allowOutsideClick: false,
+      }).then(result => {
+        if (!result.isConfirmed) return
+        if (inProgress) {
+          setCamError(null)
+          setCameraModal(false)
+          resumeAttempt(inProgress.attempt_id)
+          return
+        }
+        if (isProctoring) {
+          setView('rules')
+          setCameraModal(true)
+          requestCamera()
+        } else {
+          setCameraModal(false)
+          startNew()
+        }
+      })
     }
 
     return (
@@ -1173,51 +1307,11 @@ export default function QuizKandidat() {
             </div>
           )}
 
-          {/* Materi Wajib */}
-          <div className="bg-white rounded-md border border-slate-200 p-5 mt-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <h2 className="text-[11px] font-bold tracking-wide text-slate-500 uppercase">Materi Wajib</h2>
-              <span className="text-[10px] font-bold text-slate-500">{completedCount}/{lessons.length} selesai</span>
-            </div>
-            <div className="mt-3 h-2 rounded-md bg-slate-100 overflow-hidden">
-              <div className="h-full rounded-md transition-all duration-500"
-                style={{ width: `${progressPct}%`, backgroundColor: progressPct === 100 ? '#10b981' : '#0E6187' }} />
-            </div>
-            <p className="text-[10px] text-slate-400 font-medium mt-2">
-              Selesaikan seluruh materi di bawah untuk membuka kuis.
-            </p>
-          </div>
-
-          {/* Lesson list */}
-          {lessons.length > 0 && (
-            <div className="bg-white rounded-md border border-slate-200 mt-3 overflow-hidden shadow-sm">
-              {lessons.map((l, idx) => (
-                <button key={l.id} onClick={() => openLesson(l)}
-                  className={`w-full flex items-center gap-3 px-5 py-4 hover:bg-slate-50 transition-colors ${idx !== 0 ? 'border-t border-slate-100' : ''}`}>
-                  <div className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 ${l.completed ? 'bg-emerald-50 text-emerald-500' : 'bg-[#0E6187]/[0.06] text-[#0E6187]'}`}>
-                    {l.completed ? <Check size={17} /> : <BookOpen size={17} />}
-                  </div>
-                  <div className="flex-1 min-w-0 text-left">
-                    <p className="text-[13px] font-bold text-slate-800 truncate">{l.title}</p>
-                    <p className="text-[10px] text-slate-400 font-medium mt-0.5 flex items-center gap-1">
-                      {l.has_video && <><Video size={10} /> Video</>}
-                      {l.has_video && l.has_content && <span>·</span>}
-                      {l.has_content && <><FileText size={10} /> Modul</>}
-                    </p>
-                  </div>
-                  {l.completed && (
-                    <span className="text-[9.5px] font-bold text-emerald-500 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md shrink-0">Selesai</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
-
           <div className="mt-4">
-            <button onClick={startFlow} disabled={!is_unlocked || (!inProgress && !canStartNew) || starting}
-              className={`w-full flex items-center justify-center gap-2 text-[12.5px] font-bold py-3.5 rounded-md transition-colors ${!is_unlocked || (!inProgress && !canStartNew) ? 'bg-slate-200 text-slate-400' : 'bg-[#0E6187] text-white hover:bg-[#0a4d6b]'}`}>
+            <button onClick={startFlow} disabled={(!inProgress && !canStartNew) || starting}
+              className={`w-full flex items-center justify-center gap-2 text-[12.5px] font-bold py-3.5 rounded-md transition-colors ${(!inProgress && !canStartNew) ? 'bg-slate-200 text-slate-400' : 'bg-[#0E6187] text-white hover:bg-[#0a4d6b]'}`}>
               <Play size={15} />
-              {starting ? 'Menyiapkan...' : is_unlocked ? 'Kerjakan Quiz' : 'Selesaikan semua materi untuk membuka kuis'}
+              {starting ? 'Menyiapkan...' : 'Kerjakan Quiz'}
             </button>
           </div>
         </div>
@@ -1236,7 +1330,10 @@ export default function QuizKandidat() {
 
               <div className="mt-4">
                 {camActive && streamRef.current ? (
-                  <video ref={videoRef} muted playsInline autoPlay className="w-full h-52 rounded-md object-cover bg-black" />
+                  <div className="relative">
+                    <video ref={videoRef} muted playsInline autoPlay className="w-full h-52 rounded-md object-cover bg-black" />
+                    <canvas ref={modalOverlayRef} className="pointer-events-none absolute inset-0 h-full w-full rounded-md" />
+                  </div>
                 ) : (
                   <div className="w-full h-52 rounded-md bg-slate-100 flex items-center justify-center">
                     {camBusy ? (
@@ -1247,6 +1344,11 @@ export default function QuizKandidat() {
                       </button>
                     )}
                   </div>
+                )}
+                {headTurned && camActive && (
+                  <p className="text-[10.5px] font-bold text-red-500 mt-2">
+                    Wajah menoleh ke samping — hadapkan wajah ke kamera.
+                  </p>
                 )}
                 {camError && <p className="text-[10.5px] font-bold text-red-500 mt-2">{camError}</p>}
               </div>

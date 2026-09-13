@@ -25,6 +25,7 @@ interface LessonDetail {
   file_size: number | null
   paket_id: number | null
   paket?: { id: number; title: string; status: string; questions_count?: number; attempts_count?: number } | null
+  link_pakets?: { id: number; title: string; status: string; questions_count?: number; attempts_count?: number }[]
   slides?: { id: number; file_path: string; file_name?: string; url?: string }[]
   sort: number
   status: string
@@ -126,7 +127,7 @@ export default function GuruLessonDetail() {
   const [showBankPicker, setShowBankPicker] = useState(false)
   const [bankPakets, setBankPakets] = useState<BankPaket[]>([])
   const [bankLoading, setBankLoading] = useState(false)
-  const [bankPickedId, setBankPickedId] = useState<number | null>(null)
+  const [bankPickedIds, setBankPickedIds] = useState<number[]>([])
   const [assigningBank, setAssigningBank] = useState(false)
   const [previewPaketId, setPreviewPaketId] = useState<number | null>(null)
   const [paketQuestionsMap, setPaketQuestionsMap] = useState<Record<number, PaketQuestion[]>>({})
@@ -150,35 +151,63 @@ export default function GuruLessonDetail() {
   const loadTasks = (courseId: number) => assignmentApi.list(courseId).then((t: any) => setTasks(t.data.assignments || [])).catch(() => setTasks([]))
 
   const openBankPicker = () => {
-    setBankPickedId(null)
+    setBankPickedIds([])
     setShowBankPicker(true)
     setBankLoading(true)
-    guruQuizApi.pakets()
+    guruQuizApi.bankPakets()
       .then(res => {
-        setBankPakets((res.data.pakets || []).filter((p: BankPaket) => !p.course_id))
+        setBankPakets(res.data.pakets || [])
       })
       .catch(() => setBankPakets([]))
       .finally(() => setBankLoading(false))
   }
 
   const pickBankPaket = (id: number) => {
-    setBankPickedId(prev => (prev === id ? null : id))
+    setBankPickedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
   }
 
   const assignBankPaket = async () => {
-    if (!lesson || !bankPickedId) return
+    if (!lesson || bankPickedIds.length === 0) return
     setAssigningBank(true)
     try {
-      const fd = new FormData()
-      fd.append('paket_id', String(bankPickedId))
-      await guruLmsApi.updateLesson(lesson.id, fd)
+      for (const id of bankPickedIds) {
+        await guruLmsApi.attachLessonPaket(lesson.id, id)
+      }
       setShowBankPicker(false)
+      setBankPickedIds([])
       await loadLesson(lesson.id)
-      Swal.fire({ icon: 'success', title: 'Paket soal dipasang ke pertemuan ini', timer: 1500, showConfirmButton: false })
+      Swal.fire({ icon: 'success', title: `${bankPickedIds.length} paket soal dipasang ke pertemuan ini`, timer: 1500, showConfirmButton: false })
     } catch {
       Swal.fire({ icon: 'error', title: 'Gagal memasang paket soal' })
     } finally {
       setAssigningBank(false)
+    }
+  }
+
+  const handleRemovePaket = async (paketId: number) => {
+    if (!lesson) return
+    const conf = await Swal.fire({
+      title: 'Lepas paket ini?',
+      text: 'Paket tetap tersimpan di bank soal. Quiz pertemuan ini akan menghilang untuk siswa.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Lepas',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#dc2626',
+    })
+    if (!conf.isConfirmed) return
+    try {
+      await guruLmsApi.detachLessonPaket(lesson.id, paketId)
+      setPreviewPaketId(prev => prev === paketId ? null : prev)
+      setPaketQuestionsMap(m => {
+        const next = { ...m }
+        delete next[paketId]
+        return next
+      })
+      await loadLesson(lesson.id)
+      Swal.fire({ icon: 'success', title: 'Paket dilepas dari pertemuan', timer: 1400, showConfirmButton: false })
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal melepas paket soal' })
     }
   }
 
@@ -252,6 +281,7 @@ export default function GuruLessonDetail() {
   }
 
   const renderQuizPreview = (paketId: number) => {
+    if (previewPaketId !== paketId) return null
     const qs = paketQuestionsMap[paketId]
     if (questionsLoading && qs === undefined) {
       return (
@@ -272,6 +302,9 @@ export default function GuruLessonDetail() {
         {qs.map((q, i) => (
           <div key={q.id} className="bg-white rounded-xl border border-[#E5E7EF] p-4">
             <p className="text-xs font-bold text-[#14182B] leading-snug">{i + 1}. {q.question}</p>
+            {q.section?.name && (
+              <span className="mt-2 inline-block rounded-full bg-[#0069b0]/[0.06] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#0069b0]">{q.section.name}</span>
+            )}
             <div className="mt-2 space-y-1.5">
               {q.question_type === 'rating' ? (
                 <div className="flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-lg bg-violet-50 text-violet-700 font-bold">
@@ -279,15 +312,21 @@ export default function GuruLessonDetail() {
                   <span>Rating 1–{q.rating_max || q.options.length}</span>
                   <span className="ml-auto text-[9.5px] font-bold text-violet-400 shrink-0">TANPA KUNCI</span>
                 </div>
-              ) : (q.options.map((opt, oi) => (
-                <div key={oi} className={`flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-lg ${oi === q.correct_index ? 'bg-emerald-50 text-emerald-700 font-bold' : 'bg-[#F4F5F8] text-[#4B5063] font-medium'}`}>
-                  <span className={`w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold shrink-0 ${oi === q.correct_index ? 'bg-emerald-500 text-white' : 'bg-[#E5E7EF] text-[#8B90A0]'}`}>
-                    {String.fromCharCode(65 + oi)}
-                  </span>
-                  {opt}
-                  {oi === q.correct_index && <span className="ml-auto text-[9px] font-bold text-emerald-500 shrink-0">BENAR</span>}
-                </div>
-              )))}
+              ) : (q.options.map((opt, oi) => {
+                const optLabel = typeof opt === 'string' ? opt : (opt?.text ?? '')
+                const optRaw = typeof opt === 'string' ? null : (opt?.image_url || opt?.image_path || null)
+                const optUrl = optRaw && !optRaw.startsWith('http') ? `${APP_URL}/storage/${optRaw}` : optRaw
+                return (
+                  <div key={oi} className={`flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-lg ${oi === q.correct_index ? 'bg-emerald-50 text-emerald-700 font-bold' : 'bg-[#F4F5F8] text-[#4B5063] font-medium'}`}>
+                    <span className={`w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold shrink-0 ${oi === q.correct_index ? 'bg-emerald-500 text-white' : 'bg-[#E5E7EF] text-[#8B90A0]'}`}>
+                      {String.fromCharCode(65 + oi)}
+                    </span>
+                    {optUrl && <img src={optUrl} className="h-6 w-6 rounded object-cover shrink-0" alt="" />}
+                    {optLabel && <span>{optLabel}</span>}
+                    {oi === q.correct_index && <span className="ml-auto text-[9px] font-bold text-emerald-500 shrink-0">BENAR</span>}
+                  </div>
+                )
+              }))}
             </div>
             <p className="text-[10px] text-[#8B90A0] font-semibold mt-2">Skor: {q.points} poin</p>
           </div>
@@ -419,8 +458,9 @@ export default function GuruLessonDetail() {
 
   const canManage = !!lesson.course?.can_manage
   const slides = (lesson.slides || []).map(s => ({ id: s.id, name: s.file_name || 'slide', url: s.url || `${APP_URL}/storage/${s.file_path}` }))
-  const attachedPaket = lesson.paket
-  const quizCount = attachedPaket ? 1 : undefined
+  const lessonPakets = [...(lesson.paket ? [lesson.paket] : []), ...(lesson.link_pakets || [])]
+    .filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i)
+  const quizCount = lessonPakets.length > 0 ? lessonPakets.length : undefined
 
   return (
     <div className="min-h-screen bg-[#F4F5F8] pb-24">
@@ -537,26 +577,44 @@ export default function GuruLessonDetail() {
             <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Quiz</h3>
           </div>
           <div className="p-5">
-            {attachedPaket ? (
-              <>
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
-                  <ListChecks size={16} className="text-violet-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-[#14182B] truncate">{attachedPaket.title}</p>
-                  <p className="text-[10px] text-[#8B90A0]">
-                    {attachedPaket.questions_count != null ? `${attachedPaket.questions_count} soal` : 'Paket soal'}
-                    {attachedPaket.attempts_count != null ? ` · ${attachedPaket.attempts_count} percobaan` : ''}
-                  </p>
-                </div>
-                <button onClick={() => toggleQuizPreview(attachedPaket.id)}
-                  className="flex items-center gap-1 text-[11px] font-bold text-[#0069b0] border border-[#0069b0]/30 bg-[#0069b0]/5 px-3 py-1.5 rounded-lg hover:bg-[#0069b0]/10 transition-colors shrink-0">
-                  Lihat Paket Soal <ChevronDown size={12} className={previewPaketId === attachedPaket.id ? 'rotate-180 transition-transform' : 'transition-transform'} />
-                </button>
+            {lessonPakets.length > 0 ? (
+              <div className="space-y-3">
+                {lessonPakets.map(paket => (
+                  <div key={paket.id} className="border border-[#E5E7EF] rounded-xl p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
+                        <ListChecks size={16} className="text-violet-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-[#14182B] truncate">{paket.title}</p>
+                        <p className="text-[10px] text-[#8B90A0]">
+                          {paket.questions_count != null ? `${paket.questions_count} soal` : 'Paket soal'}
+                          {paket.attempts_count != null ? ` · ${paket.attempts_count} percobaan` : ''}
+                        </p>
+                      </div>
+                      {canManage && (
+                        <button onClick={() => handleRemovePaket(paket.id)}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 transition-colors shrink-0"
+                          title="Lepas paket dari pertemuan">
+                          <Trash2 size={13} className="text-red-500" />
+                        </button>
+                      )}
+                    </div>
+                    <button onClick={() => toggleQuizPreview(paket.id)}
+                      className="mt-3 inline-flex items-center gap-1 text-[11px] font-bold text-[#0069b0] border border-[#0069b0]/30 bg-[#0069b0]/5 px-3 py-1.5 rounded-lg hover:bg-[#0069b0]/10 transition-colors">
+                      Lihat Paket Soal <ChevronDown size={12} className={previewPaketId === paket.id ? 'rotate-180 transition-transform' : 'transition-transform'} />
+                    </button>
+                    {renderQuizPreview(paket.id)}
+                  </div>
+                ))}
+
+                {canManage && (
+                  <button onClick={openBankPicker}
+                    className="w-full flex items-center justify-center gap-1.5 border border-dashed border-[#0069b0]/40 bg-[#0069b0]/5 text-[#0069b0] px-3 py-2.5 rounded-xl text-[11px] font-bold hover:bg-[#0069b0]/10 transition-colors">
+                    <Plus size={13} /> Tambah Paket dari Bank
+                  </button>
+                )}
               </div>
-              {renderQuizPreview(attachedPaket.id)}
-              </>
             ) : (
               <div className="border border-dashed border-[#E5E7EF] rounded-xl p-6 text-center">
                 <div className="w-11 h-11 mx-auto rounded-xl bg-[#0069b0]/[0.06] flex items-center justify-center mb-2">
@@ -883,7 +941,7 @@ export default function GuruLessonDetail() {
             <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-[#F0F1F5] sticky top-0 bg-white">
               <div>
                 <h2 className="text-sm font-bold text-[#14182B]">Pilih Paket Soal dari Bank</h2>
-                <p className="text-[10px] text-[#8B90A0] font-medium">Centang paket untuk dijadikan quiz pertemuan ini</p>
+                <p className="text-[10px] text-[#8B90A0] font-medium">Centang satu atau lebih paket untuk dijadikan quiz pertemuan ini</p>
               </div>
               <button onClick={() => setShowBankPicker(false)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F4F5F8] hover:bg-[#E5E7EF]">
                 <X size={15} className="text-[#4B5063]" />
@@ -911,15 +969,19 @@ export default function GuruLessonDetail() {
                 <>
                   <div className="space-y-2">
                     {bankPakets.map(p => {
-                      const checked = bankPickedId === p.id
+                      const checked = bankPickedIds.includes(p.id)
+                      const attached = lessonPakets.some(x => x.id === p.id)
                       return (
                         <label key={p.id}
-                          className={`flex items-center gap-3 border rounded-xl px-4 py-3 cursor-pointer transition-colors ${checked ? 'border-[#0069b0] bg-[#0069b0]/[0.04] ring-1 ring-[#0069b0]/20' : 'border-[#E5E7EF] hover:bg-[#F7F8FA]'}`}>
-                          <input type="checkbox" checked={checked} onChange={() => pickBankPaket(p.id)}
+                          className={`flex items-center gap-3 border rounded-xl px-4 py-3 transition-colors ${attached ? 'border-[#E5E7EF] bg-[#F8F9FB] opacity-70 cursor-not-allowed' : `cursor-pointer ${checked ? 'border-[#0069b0] bg-[#0069b0]/[0.04] ring-1 ring-[#0069b0]/20' : 'border-[#E5E7EF] hover:bg-[#F7F8FA]'}`}`}>
+                          <input type="checkbox" checked={checked || attached} disabled={attached} onChange={() => pickBankPaket(p.id)}
                             className="w-4 h-4 rounded border-[#D6D9E1] text-[#0069b0] focus:ring-[#0069b0] shrink-0" />
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
                               <p className="text-xs font-bold text-[#14182B] truncate">{p.title}</p>
+                              {p.course_id && (
+                                <span className="text-[9px] font-bold text-[#0069b0] bg-[#0069b0]/[0.06] px-1.5 py-0.5 rounded-full shrink-0">Terhubung kursus</span>
+                              )}
                               {p.status === 'nonaktif' && (
                                 <span className="text-[9px] font-bold text-amber-600 shrink-0">Nonaktif</span>
                               )}
@@ -929,8 +991,8 @@ export default function GuruLessonDetail() {
                               {p.category && <><span>·</span><span>{p.category}</span></>}
                             </p>
                           </div>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${p.status === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-[#8B90A0]'}`}>
-                            {p.status === 'aktif' ? 'Dibuka' : 'Ditutup'}
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${attached ? 'bg-[#0069b0]/10 text-[#0069b0]' : p.status === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-[#8B90A0]'}`}>
+                            {attached ? 'Sudah terpasang' : p.status === 'aktif' ? 'Dibuka' : 'Ditutup'}
                           </span>
                         </label>
                       )
@@ -946,10 +1008,10 @@ export default function GuruLessonDetail() {
                   className="px-4 py-2.5 text-[11px] font-bold text-[#4B5063] hover:bg-[#F4F5F8] rounded-lg transition-colors">
                   Batal
                 </button>
-                <button onClick={assignBankPaket} disabled={assigningBank || !bankPickedId}
+                <button onClick={assignBankPaket} disabled={assigningBank || bankPickedIds.length === 0}
                   className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-bold text-white bg-[#0069b0] rounded-lg hover:bg-[#004d7a] transition-colors disabled:opacity-50">
                   {assigningBank ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
-                  {assigningBank ? 'Memasang...' : 'Pasang Paket'}
+                  {assigningBank ? 'Memasang...' : bankPickedIds.length > 1 ? `Pasang ${bankPickedIds.length} Paket` : 'Pasang Paket'}
                 </button>
               </div>
             )}
