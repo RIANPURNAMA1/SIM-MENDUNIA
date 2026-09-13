@@ -535,19 +535,25 @@ export default function LMS() {
       : currentIdx === 0 ? courseQuizzes : [])
     const materiCount = lessonDetail?.slides?.length || (selectedLesson.content || selectedLesson.video_url || selectedLesson.file_path ? 1 : 0)
     const courseInfo = [selectedCourse.batch?.nama_batch && `Batch ${selectedCourse.batch.nama_batch}`, selectedCourse.level && `Level ${selectedCourse.level}`].filter(Boolean).join(' · ')
+    const tabItems = [
+      { key: 'materi' as const, label: 'Materi', icon: BookOpen, count: undefined as number | undefined },
+      { key: 'quiz' as const, label: 'Quiz', icon: ListChecks, count: lessonQuizzes.length || undefined },
+      { key: 'tugas' as const, label: 'Tugas', icon: ClipboardList, count: assignments.length || undefined },
+      { key: 'rekap' as const, label: 'Rekap', icon: FileText, count: lessonDetail?.recap ? 1 : undefined },
+    ]
 
     return (
-      <div className="min-h-screen bg-[#f2f4f8] pb-32 lg:pb-8">
+      <div className="min-h-screen bg-[#f2f4f8] pb-32 md:pb-8">
         {/* Sticky Header */}
         <header className="bg-white/85 backdrop-blur-xl sticky top-0 z-30 border-b border-slate-100">
-          <div className="max-w-lg lg:max-w-5xl mx-auto px-4 py-2.5">
+          <div className="max-w-lg md:max-w-6xl mx-auto px-4 py-2.5">
             <div className="flex items-center gap-3">
               <button onClick={goBack}
                 className="flex items-center justify-center w-9 h-9 rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 active:scale-95 transition-all shrink-0">
                 <ArrowLeft size={16} />
               </button>
               <div className="flex-1 min-w-0">
-                <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400">Materi</p>
+                <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400">{selectedCourse.title}</p>
                 <h1 className="text-sm font-bold text-slate-900 truncate">{selectedLesson.title}</h1>
               </div>
               <span className="flex items-center justify-center min-w-[3.2rem] px-2.5 py-1 rounded-md bg-[#0E6187]/10 text-[#0E6187] text-[10px] font-black shrink-0">
@@ -557,62 +563,127 @@ export default function LMS() {
           </div>
         </header>
 
-        <div className="max-w-lg lg:max-w-5xl mx-auto px-4 pt-4 pb-4 lg:py-6">
-          {/* Tabs */}
-          <div className="flex gap-1 bg-slate-100 rounded-md p-1 mb-4">
-            {([
-              { key: 'materi' as const, label: 'Materi', icon: BookOpen, count: undefined as number | undefined },
-              { key: 'quiz' as const, label: 'Quiz', icon: ListChecks, count: lessonQuizzes.length || undefined },
-              { key: 'tugas' as const, label: 'Tugas', icon: ClipboardList, count: assignments.length || undefined },
-              { key: 'rekap' as const, label: 'Rekap', icon: FileText, count: lessonDetail?.recap ? 1 : undefined },
-            ]).map(tab => (
-              <button key={tab.key} onClick={() => setLessonTab(tab.key)} type="button"
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-md text-xs font-bold transition-all ${
-                  lessonTab === tab.key
-                    ? 'bg-white text-[#0E6187] shadow-sm'
-                    : 'text-slate-400 hover:text-slate-600'
-                }`}>
-                <tab.icon size={14} />
-                {tab.label}
-                {tab.count !== undefined && (
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${
-                    lessonTab === tab.key ? 'bg-[#0E6187]/10 text-[#0E6187]' : 'bg-slate-200/50 text-slate-400'
-                  }`}>{tab.count}</span>
-                )}
-              </button>
-            ))}
-          </div>
+        <div className="max-w-lg md:max-w-6xl mx-auto px-4 pt-4 pb-4 md:py-6">
+          <div className="flex items-start gap-3 md:gap-6">
+            {/* ============ Sidebar Rail (Mobile) ============ */}
+            <aside className="md:hidden w-14 shrink-0 sticky top-16 z-20">
+              <div className="bg-white rounded-md border border-slate-200 shadow-sm p-1.5 flex flex-col items-center gap-1">
+                <p className="text-[8px] font-black uppercase tracking-[0.14em] text-slate-300 py-0.5">Menu</p>
+                {tabItems.map(tab => {
+                  const active = lessonTab === tab.key
+                  return (
+                    <button key={tab.key} type="button" onClick={() => setLessonTab(tab.key)}
+                      className={`relative w-11 h-11 rounded-md flex flex-col items-center justify-center gap-0.5 transition-all ${
+                        active
+                          ? 'bg-[#0E6187] text-white shadow-md shadow-[#0E6187]/25'
+                          : 'text-slate-400 hover:bg-slate-50 hover:text-[#0E6187]'
+                      }`}>
+                      <tab.icon size={16} />
+                      <span className="text-[8px] font-bold leading-none whitespace-nowrap">{tab.label}</span>
+                      {tab.count !== undefined && (
+                        <span className={`absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-0.5 rounded-full text-[8px] font-black flex items-center justify-center ${
+                          active ? 'bg-white text-[#0E6187]' : 'bg-[#0E6187] text-white'
+                        }`}>{tab.count}</span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </aside>
 
-          {/* Info Card */}
-          <div className="bg-white rounded-md border border-slate-200 shadow-sm p-4 mb-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-md bg-[#0E6187]/10 flex items-center justify-center shrink-0">
-                  <BookOpen size={18} className="text-[#0E6187]" />
+            {/* ============ Sidebar (Desktop) ============ */}
+            <aside className="hidden md:block md:w-[290px] md:shrink-0">
+              <div className="sticky top-20 space-y-4">
+                {/* Sidebar Info Card */}
+                <div className="bg-white rounded-md border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="bg-gradient-to-r from-[#0E6187] to-[#0a516d] px-4 py-4 text-white">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-teal-100">Pertemuan {currentIdx + 1}</p>
+                        <h2 className="text-sm font-bold leading-tight mt-1 truncate">{selectedLesson.title}</h2>
+                        {courseInfo && (
+                          <p className="text-[10px] text-teal-100/90 font-medium mt-1 truncate">{courseInfo}</p>
+                        )}
+                      </div>
+                      <span className="shrink-0 text-lg font-black text-white/90">{getProgressPercent()}%</span>
+                    </div>
+                    <div className="mt-3.5 h-1.5 rounded-full bg-white/15 overflow-hidden">
+                      <div className="h-full rounded-full bg-white transition-all duration-700"
+                        style={{ width: `${getProgressPercent()}%` }} />
+                    </div>
+                  </div>
+                  <div className="px-4 py-2.5 flex items-center justify-between bg-slate-50/60">
+                    <span className="text-[10px] font-medium text-slate-400">Progres kursus</span>
+                    <span className="text-[10px] font-bold text-slate-500">{progress} dari {total} selesai</span>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.16em]">Pertemuan {currentIdx + 1}</p>
-                  <h2 className="text-sm font-bold text-slate-900 truncate">{selectedLesson.title}</h2>
-                  <p className="text-[10px] text-[#0E6187] font-medium mt-0.5 truncate">{courseInfo || selectedCourse.title}</p>
-                </div>
-              </div>
-              <span className="shrink-0 text-base font-black text-[#0E6187]">{getProgressPercent()}%</span>
-            </div>
-            <div className="mt-4">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] font-medium text-slate-400">Progres kursus</span>
-                <span className="text-[10px] font-bold text-slate-400">{progress} dari {total} selesai</span>
-              </div>
-              <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                <div className="h-full rounded-full bg-[#0E6187] transition-all duration-700"
-                  style={{ width: `${getProgressPercent()}%` }} />
-              </div>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Main Content */}
-            <div className="lg:col-span-3 space-y-4">
+                {/* Sidebar Menu */}
+                <div className="bg-white rounded-md border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="px-4 pt-3 pb-2 border-b border-slate-100">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-slate-400">Menu Pertemuan</p>
+                  </div>
+                  <nav className="p-2 space-y-1">
+                    {tabItems.map(tab => {
+                      const active = lessonTab === tab.key
+                      return (
+                        <button key={tab.key} onClick={() => setLessonTab(tab.key)} type="button"
+                          className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-xs font-bold transition-all group ${
+                            active
+                              ? 'bg-[#0E6187] text-white shadow-md shadow-[#0E6187]/25'
+                              : 'text-slate-500 hover:bg-slate-50 hover:text-[#0E6187]'
+                          }`}>
+                          <span className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
+                            active
+                              ? 'bg-white/15 text-white'
+                              : 'bg-slate-100 text-slate-400 group-hover:bg-[#0E6187]/10 group-hover:text-[#0E6187]'
+                          }`}>
+                            <tab.icon size={15} />
+                          </span>
+                          <span className="flex-1 text-left">{tab.label}</span>
+                          {tab.count !== undefined && (
+                            <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md ${
+                              active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-400'
+                            }`}>{tab.count}</span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </nav>
+                </div>
+              </div>
+            </aside>
+
+            {/* ============ Main Content ============ */}
+            <div className="flex-1 min-w-0">
+              {/* Mobile Info Card */}
+              <div className="bg-white rounded-md border border-slate-200 shadow-sm p-4 mb-4 md:hidden">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-md bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+                      <BookOpen size={18} className="text-[#0E6187]" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.16em]">Pertemuan {currentIdx + 1}</p>
+                      <h2 className="text-sm font-bold text-slate-900 truncate">{selectedLesson.title}</h2>
+                      <p className="text-[10px] text-[#0E6187] font-medium mt-0.5 truncate">{courseInfo || selectedCourse.title}</p>
+                    </div>
+                  </div>
+                  <span className="shrink-0 text-base font-black text-[#0E6187]">{getProgressPercent()}%</span>
+                </div>
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-medium text-slate-400">Progres kursus</span>
+                    <span className="text-[10px] font-bold text-slate-400">{progress} dari {total} selesai</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                    <div className="h-full rounded-full bg-[#0E6187] transition-all duration-700"
+                      style={{ width: `${getProgressPercent()}%` }} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
               {lessonTab === 'materi' && (
             <>
               {/* Materi Card */}
@@ -891,11 +962,12 @@ export default function LMS() {
           )}
 
             </div>
+            </div>
           </div>
         </div>
 
         {/* ============ Mobile Bottom Action Bar ============ */}
-        <nav className="fixed inset-x-0 bottom-0 z-30 lg:hidden bg-white/95 backdrop-blur border-t border-slate-100 px-4 pt-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+        <nav className="fixed inset-x-0 bottom-0 z-30 md:hidden bg-white/95 backdrop-blur border-t border-slate-100 px-4 pt-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <div className="max-w-lg mx-auto flex items-center gap-2">
             {currentIdx > 0 ? (
               <button

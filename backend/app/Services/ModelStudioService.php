@@ -5,22 +5,40 @@ namespace App\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class GroqService
+class ModelStudioService
 {
     protected ?string $apiKey = null;
-    protected string $apiUrl;
     protected string $model;
+    protected string $baseUrl;
 
     public function __construct()
     {
-        $this->apiKey = \App\Models\NotificationSetting::getValue('ai_groq_api_key', config('services.groq.api_key'));
-        $this->apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
-        $this->model = \App\Models\NotificationSetting::getValue('ai_groq_model', config('services.groq.model', 'openai/gpt-oss-120b'));
+        $this->apiKey = \App\Models\NotificationSetting::getValue('ai_modelsstudio_api_key', config('services.modelsstudio.api_key'));
+        $this->model = \App\Models\NotificationSetting::getValue('ai_modelsstudio_model', config('services.modelsstudio.model', 'qwen-plus'));
+        $this->baseUrl = rtrim(
+            \App\Models\NotificationSetting::getValue('ai_modelsstudio_base_url', config('services.modelsstudio.base_url', 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1')),
+            '/'
+        );
     }
 
     public function setApiKey(string $apiKey): self
     {
         $this->apiKey = $apiKey;
+        return $this;
+    }
+
+    public function setBaseUrl(string $baseUrl): self
+    {
+        $baseUrl = trim($baseUrl);
+        if ($baseUrl !== '') {
+            $this->baseUrl = rtrim($baseUrl, '/');
+        }
+        return $this;
+    }
+
+    public function setModel(string $model): self
+    {
+        $this->model = $model;
         return $this;
     }
 
@@ -42,14 +60,14 @@ class GroqService
     public function chat(array $messages, float $temperature = 0.7, int $maxTokens = 2048): string
     {
         if (empty($this->apiKey)) {
-            return 'API key Groq belum dikonfigurasi. Hubungi administrator.';
+            return 'API key Model Studio belum dikonfigurasi. Hubungi administrator.';
         }
 
         try {
             $response = $this->postRetry(fn () => Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->apiKey,
                 'Content-Type' => 'application/json',
-            ])->timeout(120)->post($this->apiUrl, [
+            ])->timeout(120)->post($this->baseUrl . '/chat/completions', [
                 'model' => $this->model,
                 'messages' => $messages,
                 'temperature' => $temperature,
@@ -57,10 +75,10 @@ class GroqService
             ]));
 
             if ($response->failed()) {
-                Log::error('Groq API Error: ' . $response->body());
+                Log::error('Model Studio API Error: ' . $response->body());
                 $status = $response->status();
                 if (in_array($status, [429, 500, 502, 503, 504])) {
-                    return 'Maaf, layanan AI (Groq) sedang sibuk. Silakan coba lagi dalam beberapa saat.';
+                    return 'Maaf, layanan AI (Model Studio) sedang sibuk. Silakan coba lagi dalam beberapa saat.';
                 }
                 return 'Maaf, terjadi kesalahan saat menghubungi AI. Silakan coba lagi.';
             }
@@ -68,7 +86,7 @@ class GroqService
             $data = $response->json();
             return $data['choices'][0]['message']['content'] ?? 'Tidak ada respon dari AI.';
         } catch (\Exception $e) {
-            Log::error('Groq API Exception: ' . $e->getMessage());
+            Log::error('Model Studio API Exception: ' . $e->getMessage());
             return 'Maaf, terjadi kesalahan koneksi. Silakan coba lagi.';
         }
     }

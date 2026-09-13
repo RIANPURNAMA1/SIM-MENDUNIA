@@ -188,7 +188,7 @@ export default function AiChatPage() {
             <Bot className="w-6 h-6 text-[#0E6187]" />
             <div>
               <h1 className="text-lg font-bold text-gray-800">AI Assistant</h1>
-              <p className="text-xs text-gray-500">Tanyakan apapun tentang data sistem</p>
+              <p className="text-xs text-gray-500">Pandai tentang seluruh data sistem SIM Mendunia</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -210,16 +210,17 @@ export default function AiChatPage() {
               </div>
               <div className="bg-white rounded-xl shadow-sm p-4 max-w-[80%] rounded-tl-none">
                 <p className="font-semibold text-sm text-gray-800 mb-1">AI Assistant</p>
-                <p className="text-sm text-gray-600">Halo! Saya adalah asisten AI yang mengetahui seluruh data di sistem ini. Saya bisa membantu Anda melihat dan menganalisis data:</p>
+                <p className="text-sm text-gray-600">Halo! Saya asisten AI SIM Mendunia yang menguasai seluruh data sistem secara real-time. Saya bisa membaca dan menganalisis data dari semua modul:</p>
                 <ul className="mt-2 text-sm text-gray-600 list-disc list-inside space-y-0.5">
-                  <li>Data kehadiran karyawan</li>
-                  <li>Rekap absensi dan statistik</li>
-                  <li>Status izin, cuti, lembur</li>
-                  <li>Data proyek dan task management</li>
-                  <li>Informasi shift dan jadwal</li>
-                  <li>Data siswa dan penilaian</li>
-                  <li>Dan masih banyak lagi...</li>
+                  <li>Kehadiran, absensi & statistik karyawan</li>
+                  <li>Izin, cuti, lembur, shift & jadwal</li>
+                  <li>Siswa, batch, kelas & penilaian</li>
+                  <li>Kelas Mendunia (LMS), quiz & guru</li>
+                  <li>Kandidat, produk, kupon & komisi affiliate</li>
+                  <li>Pembayaran & keuangan</li>
+                  <li>Proyek, agenda, website, matching job & lainnya</li>
                 </ul>
+                <p className="text-sm text-gray-500 mt-2">Contoh: <em>"Berapa siswa yang belum bayar?"</em>, <em>"Siapa yang terlambat hari ini?"</em>, <em>"Rekap kinerja batch ini"</em>.</p>
                 <p className="text-xs text-gray-400 mt-2">{timeNow()}</p>
               </div>
             </div>

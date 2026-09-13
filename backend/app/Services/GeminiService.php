@@ -5,17 +5,15 @@ namespace App\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class GroqService
+class GeminiService
 {
     protected ?string $apiKey = null;
-    protected string $apiUrl;
     protected string $model;
 
     public function __construct()
     {
-        $this->apiKey = \App\Models\NotificationSetting::getValue('ai_groq_api_key', config('services.groq.api_key'));
-        $this->apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
-        $this->model = \App\Models\NotificationSetting::getValue('ai_groq_model', config('services.groq.model', 'openai/gpt-oss-120b'));
+        $this->apiKey = \App\Models\NotificationSetting::getValue('ai_gemini_api_key', config('services.gemini.api_key'));
+        $this->model = \App\Models\NotificationSetting::getValue('ai_gemini_model', config('services.gemini.model', 'gemini-2.0-flash'));
     }
 
     public function setApiKey(string $apiKey): self
@@ -42,33 +40,45 @@ class GroqService
     public function chat(array $messages, float $temperature = 0.7, int $maxTokens = 2048): string
     {
         if (empty($this->apiKey)) {
-            return 'API key Groq belum dikonfigurasi. Hubungi administrator.';
+            return 'API key Gemini belum dikonfigurasi. Hubungi administrator.';
         }
 
         try {
+            $contents = [];
+            foreach ($messages as $message) {
+                $role = ($message['role'] ?? 'user') === 'assistant' ? 'model' : 'user';
+                $contents[] = [
+                    'role' => $role,
+                    'parts' => [['text' => $message['content'] ?? '']],
+                ];
+            }
+
+            $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $this->model . ':generateContent';
+
             $response = $this->postRetry(fn () => Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
                 'Content-Type' => 'application/json',
-            ])->timeout(120)->post($this->apiUrl, [
-                'model' => $this->model,
-                'messages' => $messages,
-                'temperature' => $temperature,
-                'max_tokens' => $maxTokens,
+                'x-goog-api-key' => $this->apiKey,
+            ])->timeout(120)->post($url, [
+                'contents' => $contents,
+                'generationConfig' => [
+                    'temperature' => $temperature,
+                    'maxOutputTokens' => $maxTokens,
+                ],
             ]));
 
             if ($response->failed()) {
-                Log::error('Groq API Error: ' . $response->body());
+                Log::error('Gemini API Error: ' . $response->body());
                 $status = $response->status();
                 if (in_array($status, [429, 500, 502, 503, 504])) {
-                    return 'Maaf, layanan AI (Groq) sedang sibuk. Silakan coba lagi dalam beberapa saat.';
+                    return 'Maaf, layanan AI (Gemini) sedang sibuk. Silakan coba lagi dalam beberapa saat.';
                 }
                 return 'Maaf, terjadi kesalahan saat menghubungi AI. Silakan coba lagi.';
             }
 
             $data = $response->json();
-            return $data['choices'][0]['message']['content'] ?? 'Tidak ada respon dari AI.';
+            return $data['candidates'][0]['content']['parts'][0]['text'] ?? 'Tidak ada respon dari AI.';
         } catch (\Exception $e) {
-            Log::error('Groq API Exception: ' . $e->getMessage());
+            Log::error('Gemini API Exception: ' . $e->getMessage());
             return 'Maaf, terjadi kesalahan koneksi. Silakan coba lagi.';
         }
     }

@@ -12,6 +12,7 @@ use App\Models\Lesson;
 use App\Models\LessonRecap;
 use App\Models\LessonSlide;
 use App\Models\QuizPaket;
+use App\Models\QuizAttempt;
 use Illuminate\Support\Facades\Storage;
 use App\Models\DailyAssessmentStatus;
 use App\Models\LmsAssignment;
@@ -725,7 +726,14 @@ class GuruDashboardController extends Controller
             return $lesson;
         });
 
-        return response()->json(['course' => $course, 'lessons' => $lessons]);
+        $pakets = QuizPaket::where('course_id', $courseId)
+            ->with('course:id,title')
+            ->withCount('questions')
+            ->withCount('attempts')
+            ->orderBy('id')
+            ->get();
+
+        return response()->json(['course' => $course, 'lessons' => $lessons, 'pakets' => $pakets]);
     }
 
     public function guruLessonDetail($id)
@@ -758,6 +766,130 @@ class GuruDashboardController extends Controller
         }
 
         return response()->json(['lesson' => $lesson]);
+    }
+
+    public function guruLessonRekapNilai($id)
+    {
+        $user = Auth::guard('sanctum')->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $lesson = Lesson::with(['course', 'paket', 'linkPakets'])->findOrFail($id);
+
+        $pakets = collect();
+        if ($lesson->paket) $pakets->push($lesson->paket);
+        if ($lesson->linkPakets) $pakets = $pakets->concat($lesson->linkPakets);
+        $pakets = $pakets->unique('id')->values();
+
+        $batchId = $lesson->course?->batch_id;
+
+        $siswaList = collect();
+        if ($batchId) {
+            $siswaList = Siswa::where('batch_id', $batchId)
+                ->where('status', 'AKTIF')
+                ->orderBy('nama')
+                ->get(['id', 'nama', 'level', 'batch_id']);
+        }
+
+        $paketIds = $pakets->pluck('id');
+        $siswaIds = $siswaList->pluck('id');
+
+        $attempts = collect();
+        if ($paketIds->isNotEmpty() && $siswaIds->isNotEmpty()) {
+            $attempts = QuizAttempt::where('status', 'submitted')
+                ->whereIn('quiz_paket_id', $paketIds)
+                ->whereIn('siswa_id', $siswaIds)
+                ->orderBy('attempt_number')
+                ->get(['id', 'quiz_paket_id', 'siswa_id', 'attempt_number', 'score', 'correct_count', 'total_count']);
+        }
+
+        $attemptsGrouped = $attempts->groupBy(fn ($a) => $a->siswa_id . '-' . $a->quiz_paket_id);
+
+        $siswa = $siswaList->map(function ($s) use ($pakets, $attemptsGrouped) {
+            $scores = $pakets->map(function ($p) use ($s, $attemptsGrouped) {
+                $rows = $attemptsGrouped->get($s->id . '-' . $p->id, collect());
+                return [
+                    'paket_id' => $p->id,
+                    'attempts_count' => $rows->count(),
+                    'best_score' => $rows->isEmpty() ? null : (int) $rows->max('score'),
+                    'attempts' => $rows->values()->map(fn ($a) => [
+                        'id' => $a->id,
+                        'attempt_number' => $a->attempt_number,
+                        'score' => $a->score,
+                    ])->values(),
+                ];
+            })->values();
+
+            return [
+                'siswa_id' => $s->id,
+                'nama' => $s->nama,
+                'level' => $s->level,
+                'batch_id' => $s->batch_id,
+                'scores' => $scores,
+            ];
+        })->values();
+
+        $paketData = $pakets->map(function ($p) {
+            return [
+                'id' => $p->id,
+                'title' => $p->title,
+                'questions_count' => (int) ($p->questions_count ?? $p->questions()->count()),
+                'max_score' => (int) $p->questions()->sum('points'),
+            ];
+        })->values();
+
+        return response()->json([
+            'lesson_id' => $lesson->id,
+            'course_title' => $lesson->course?->title,
+            'batch_id' => $batchId,
+            'pakets' => $paketData,
+            'siswa' => $siswa,
+        ]);
+    }
+
+    public function guruLessonPaketQuestions($id, $paketId)
+    {
+        $user = Auth::guard('sanctum')->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $lesson = Lesson::with(['paket', 'linkPakets'])->findOrFail($id);
+
+        $isPaket = $lesson->paket && (int) $lesson->paket->id === (int) $paketId;
+        $isLinked = $lesson->linkPakets->contains(fn ($p) => (int) $p->id === (int) $paketId);
+        if (!$isPaket && !$isLinked) {
+            abort(404);
+        }
+
+        $paket = QuizPaket::with('questions.section:id,name')->findOrFail($paketId);
+
+        return response()->json([
+            'paket' => $paket,
+            'questions' => $paket->questions,
+        ]);
+    }
+
+    public function guruCoursePaketQuestions($courseId, $paketId)
+    {
+        $user = Auth::guard('sanctum')->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $course = Course::findOrFail($courseId);
+        $course->can_manage = (int) $course->user_id === (int) $user->id;
+
+        $paket = QuizPaket::where('course_id', $courseId)
+            ->with('questions.section:id,name')
+            ->findOrFail($paketId);
+
+        return response()->json([
+            'course' => $course,
+            'paket' => $paket,
+            'questions' => $paket->questions,
+        ]);
     }
 
     public function guruStoreLesson(Request $request)

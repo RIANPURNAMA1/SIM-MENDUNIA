@@ -4,7 +4,7 @@ import {
   BookOpen, Plus, Edit3, Trash2, Search, X, Image as ImageIcon, FileText,
   ListChecks, Eye, ChevronUp, ChevronDown, Camera, Clock, Repeat,
   Award, Users, UserCheck, Pencil, Loader2, ArrowLeft, Video, UploadCloud, Upload, Mic, RotateCcw,
-  Settings, LayoutGrid, ShieldCheck, Link2,
+  Settings, LayoutGrid, ShieldCheck, Link2, Building2, Layers,
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -97,6 +97,7 @@ interface SectionItem {
 interface Participant {
   siswa_id: number
   nama: string
+  cabang: string | null
   batch: string | null
   level: number | string | null
   attempts_count: number
@@ -1347,78 +1348,78 @@ export default function DataCourse() {
   }
 
   const renderPaketTable = (pakets: QuizPaket[], source: 'course' | 'bank') => (
-    <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+    <div className="bg-white border-2 border-slate-200 overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-200">
-          <thead className="bg-slate-50">
+        <table className="w-full text-sm border-collapse">
+          <thead className="bg-[#0E6187] text-white">
             <tr>
-              <th className="w-10 px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">No</th>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">Paket Soal</th>
-              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Soal</th>
-              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Dikerjakan</th>
-              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Peserta</th>
-              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Nilai Terbaik</th>
-              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Status</th>
-              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Aksi</th>
+              <th className="w-10 px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">No</th>
+              <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Paket Soal</th>
+              <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Soal</th>
+              <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Dikerjakan</th>
+              <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Peserta</th>
+              <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Nilai Terbaik</th>
+              <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Status</th>
+              <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Aksi</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 bg-white">
+          <tbody className="bg-white">
             {pakets.map((p, idx) => (
-              <tr key={p.id} className="hover:bg-slate-50/60 transition-colors">
-                <td className="px-4 py-3 text-sm text-slate-500">{idx + 1}</td>
-                <td className="px-4 py-3">
+              <tr key={p.id} className="hover:bg-[#0E6187]/5 transition-colors">
+                <td className="px-4 py-3 text-sm text-slate-500 border border-slate-200">{idx + 1}</td>
+                <td className="px-4 py-3 border border-slate-200">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-slate-800 font-semibold truncate max-w-xs">{p.title}</p>
                       {p.category && (
-                        <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#0E6187]/[0.08] text-[#0E6187] shrink-0">{p.category}</span>
+                        <span className="inline-block text-[10px] font-semibold px-2 py-0.5 bg-[#0E6187]/[0.08] text-[#0E6187] shrink-0">{p.category}</span>
                       )}
                     </div>
                     <p className="text-xs text-slate-400 mt-0.5">
                       {[p.batch?.nama_batch, p.level && `Level ${p.level}`].filter(Boolean).join(' · ') || 'Semua kandidat'}
                     </p>
                     {source === 'bank' && p.course_id && (
-                      <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-600 shrink-0">
+                      <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold px-1.5 py-0.5 bg-amber-50 text-amber-600 shrink-0">
                         <Link2 size={10} /> Terhubung ke kursus
                       </span>
                     )}
                   </div>
                 </td>
-                <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800">{p.questions_count}</td>
-                <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800">{p.attempts_count}</td>
-                <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800">{p.participants}</td>
-                <td className="px-4 py-3 text-center text-sm font-semibold text-[#0E6187]">{Number(p.best_score) || '-'}</td>
-                <td className="px-4 py-3 text-center">
+                <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800 border border-slate-200">{p.questions_count}</td>
+                <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800 border border-slate-200">{p.attempts_count}</td>
+                <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800 border border-slate-200">{p.participants}</td>
+                <td className="px-4 py-3 text-center text-sm font-semibold text-[#0E6187] border border-slate-200">{Number(p.best_score) || '-'}</td>
+                <td className="px-4 py-3 text-center border border-slate-200">
                   <div className="flex items-center justify-center gap-1.5">
                     <button onClick={() => togglePaket(p)}
-                      className={`relative w-10 h-[22px] rounded-full transition-colors shrink-0 ${p.status === 'aktif' ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                      className={`relative w-10 h-[22px] border border-slate-300 transition-colors shrink-0 ${p.status === 'aktif' ? 'bg-emerald-500' : 'bg-slate-200'}`}
                       title={p.status === 'aktif' ? 'Tutup paket' : 'Buka paket'}>
-                      <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${p.status === 'aktif' ? 'left-[20px]' : 'left-[2px]'}`} />
+                      <span className={`absolute top-[2px] w-[16px] h-[16px] bg-white shadow transition-all ${p.status === 'aktif' ? 'left-[20px]' : 'left-[2px]'}`} />
                     </button>
                     <span className={`text-[11px] font-semibold ${p.status === 'aktif' ? 'text-emerald-600' : 'text-slate-500'}`}>
                       {p.status === 'aktif' ? 'Dibuka' : 'Ditutup'}
                     </span>
                   </div>
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 border border-slate-200">
                   <div className="flex items-center justify-center gap-1">
                     <button onClick={() => openMateri(p, source)}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0E6187] bg-[#0E6187]/[0.08] px-2 py-1.5 rounded-md hover:bg-[#0E6187]/15 transition-colors">
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0E6187] bg-[#0E6187]/[0.08] px-2 py-1.5 hover:bg-[#0E6187]/15 transition-colors">
                       <BookOpen size={13} /> Materi
                     </button>
                     <button onClick={() => openQuizQuestions(p, source)}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-[#0E6187] px-2 py-1.5 rounded-md hover:bg-[#0E6187]/90 transition-colors">
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-[#0E6187] px-2 py-1.5 hover:bg-[#0E6187]/90 transition-colors">
                       <ListChecks size={13} /> Soal
                     </button>
                     <button onClick={() => openQuizResults(p, source)}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0E6187] bg-[#0E6187]/[0.08] px-2 py-1.5 rounded-md hover:bg-[#0E6187]/15 transition-colors">
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0E6187] bg-[#0E6187]/[0.08] px-2 py-1.5 hover:bg-[#0E6187]/15 transition-colors">
                       <Eye size={13} /> Hasil
                     </button>
                     <div className="w-px h-4 bg-slate-200 mx-1"></div>
-                    <button onClick={() => openEditPaket(p)} className="p-1.5 rounded-md bg-slate-100 hover:bg-slate-200 transition-colors" title="Edit">
+                    <button onClick={() => openEditPaket(p)} className="p-1.5 hover:bg-slate-100 transition-colors" title="Edit">
                       <Pencil size={13} className="text-slate-600" />
                     </button>
-                    <button onClick={() => deletePaket(p)} className="p-1.5 rounded-md bg-red-50 hover:bg-red-100 transition-colors" title="Hapus">
+                    <button onClick={() => deletePaket(p)} className="p-1.5 bg-red-50 hover:bg-red-100 transition-colors" title="Hapus">
                       <Trash2 size={13} className="text-red-500" />
                     </button>
                   </div>
@@ -1529,30 +1530,30 @@ export default function DataCourse() {
                 )}
               </div>
             ) : (
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+              <div className="bg-white border-2 border-slate-200 overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-slate-200">
-                    <thead className="bg-slate-50">
+                  <table className="w-full text-sm border-collapse">
+                    <thead className="bg-[#0E6187] text-white">
                       <tr>
-                        <th className="w-10 px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">No</th>
-                        <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">Kursus</th>
-                        <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">File</th>
-                        <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Urutan</th>
-                        <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Status</th>
-                        <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Quiz</th>
-                        <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">Aksi</th>
+                        <th className="w-10 px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">No</th>
+                        <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Kursus</th>
+                        <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">File</th>
+                        <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Urutan</th>
+                        <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Status</th>
+                        <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Quiz</th>
+                        <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Aksi</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
+                    <tbody className="bg-white">
                       {filteredCourses.map((c, idx) => (
-                        <tr key={c.id} className="hover:bg-slate-50/60 transition-colors">
-                          <td className="px-4 py-3 text-sm text-slate-500">{idx + 1}</td>
-                          <td className="px-4 py-3">
+                        <tr key={c.id} className="hover:bg-[#0E6187]/5 transition-colors">
+                          <td className="px-4 py-3 text-sm text-slate-500 border border-slate-200">{idx + 1}</td>
+                          <td className="px-4 py-3 border border-slate-200">
                             <div className="min-w-0">
                               <p className="text-slate-800 font-semibold truncate max-w-xs">{c.title}</p>
                               <div className="flex flex-wrap items-center gap-1.5 mt-1">
                                 {c.category && (
-                                  <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600">
+                                  <span className="inline-block px-1.5 py-0.5 text-[10px] font-bold bg-indigo-50 text-indigo-600">
                                     {c.category.name}
                                   </span>
                                 )}
@@ -1562,28 +1563,28 @@ export default function DataCourse() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800">{c.lessons_count}</td>
-                          <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800">{(c as any).files_count || 0}</td>
-                          <td className="px-4 py-3 text-center text-sm font-semibold text-[#0E6187]">{c.sort}</td>
-                          <td className="px-4 py-3 text-center">
-                            <span className={`inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full ${c.status === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
+                          <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800 border border-slate-200">{c.lessons_count}</td>
+                          <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800 border border-slate-200">{(c as any).files_count || 0}</td>
+                          <td className="px-4 py-3 text-center text-sm font-semibold text-[#0E6187] border border-slate-200">{c.sort}</td>
+                          <td className="px-4 py-3 text-center border border-slate-200">
+                            <span className={`inline-block text-[11px] font-semibold px-2 py-0.5 ${c.status === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
                               {c.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-center">
+                          <td className="px-4 py-3 text-center border border-slate-200">
                             <button onClick={() => openCourseDetail(c)}
-                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-[#0E6187] px-2.5 py-1.5 rounded-md hover:bg-[#0E6187]/90 transition-colors">
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-[#0E6187] px-2.5 py-1.5 hover:bg-[#0E6187]/90 transition-colors">
                               <ListChecks size={13} /> Buka
                             </button>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3 border border-slate-200">
                             <div className="flex items-center justify-center gap-1">
                               {!isAdminCabang && (
                                 <>
-                                  <button onClick={() => openEditCourse(c)} className="p-1.5 rounded-md bg-slate-100 hover:bg-slate-200 transition-colors" title="Edit">
+                                  <button onClick={() => openEditCourse(c)} className="p-1.5 hover:bg-slate-100 transition-colors" title="Edit">
                                     <Pencil size={13} className="text-slate-600" />
                                   </button>
-                                  <button onClick={() => deleteCourse(c)} className="p-1.5 rounded-md bg-red-50 hover:bg-red-100 transition-colors" title="Hapus">
+                                  <button onClick={() => deleteCourse(c)} className="p-1.5 bg-red-50 hover:bg-red-100 transition-colors" title="Hapus">
                                     <Trash2 size={13} className="text-red-500" />
                                   </button>
                                 </>
@@ -2009,41 +2010,56 @@ export default function DataCourse() {
                 <p className="text-slate-500 text-sm mt-1">Hasil akan muncul setelah kandidat mengerjakan quiz</p>
               </div>
             ) : (
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+              <div className="bg-white border-2 border-slate-200 overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-sm border-collapse">
                     <thead>
-                      <tr className="bg-slate-50 border-b border-slate-200">
-                        <th className="text-left px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide w-10">#</th>
-                        <th className="text-left px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Nama Kandidat</th>
-                        <th className="text-left px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Riwayat Percobaan</th>
-                        <th className="text-right px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Nilai Terbaik</th>
-                        <th className="text-right px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Aksi</th>
+                      <tr className="bg-[#0E6187] text-white">
+                        <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide w-10 border border-[#0E6187]">#</th>
+                        <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Nama Kandidat</th>
+                        <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Cabang</th>
+                        <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Batch</th>
+                        <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Level</th>
+                        <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Riwayat Percobaan</th>
+                        <th className="text-right px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Nilai Terbaik</th>
+                        <th className="text-right px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Aksi</th>
                       </tr>
                     </thead>
                     <tbody>
                       {participants.map((par, idx) => (
-                        <tr key={par.siswa_id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/60 transition-colors">
-                          <td className="px-4 py-3.5 text-xs text-slate-400 font-semibold">{idx + 1}</td>
-                          <td className="px-4 py-3.5">
+                        <tr key={par.siswa_id} className="bg-white hover:bg-[#0E6187]/5 transition-colors">
+                          <td className="px-4 py-3 text-xs font-bold text-slate-400 border border-slate-200">{idx + 1}</td>
+                          <td className="px-4 py-3 border border-slate-200">
                             <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-lg bg-[#0E6187]/10 flex items-center justify-center shrink-0">
-                                <Users size={15} className="text-[#0E6187]" />
+                              <div className="w-10 h-10 border-2 border-[#0E6187] bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+                                <span className="text-sm font-black text-[#0E6187]">{par.nama.trim().charAt(0).toUpperCase() || '?'}</span>
                               </div>
-                              <div className="min-w-0">
-                                <p className="font-semibold text-slate-800 truncate">{par.nama}</p>
-                                <p className="text-xs text-slate-500">
-                                  {[par.batch && `Batch ${par.batch}`, par.level !== null && `Level ${par.level}`].filter(Boolean).join(' · ') || '-'}
-                                </p>
-                              </div>
+                              <p className="font-semibold text-slate-800 truncate">{par.nama}</p>
                             </div>
                           </td>
-                          <td className="px-4 py-3.5">
+                          <td className="px-4 py-3 border border-slate-200">
+                            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600">
+                              <Building2 size={13} className="text-slate-400 shrink-0" /> {par.cabang || '-'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 border border-slate-200">
+                            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600">
+                              <Users size={13} className="text-[#0E6187] shrink-0" /> {par.batch || '-'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 border border-slate-200">
+                            {par.level !== null && par.level !== '' ? (
+                              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600">
+                                <Layers size={13} className="text-emerald-500 shrink-0" /> Level {par.level}
+                              </span>
+                            ) : '-'}
+                          </td>
+                          <td className="px-4 py-3 border border-slate-200">
                             <div className="flex flex-wrap gap-1.5">
                               {par.attempts.map(a => (
                                 <button key={a.attempt_id} onClick={() => openAttemptDetail(a.attempt_id)}
                                   title={`${fmtDate(a.started_at)} · ${a.warnings} peringatan`}
-                                  className="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 hover:bg-[#0E6187]/5 hover:border-[#0E6187]/30 transition-colors group">
+                                  className="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-300 px-2.5 py-1.5 hover:bg-[#0E6187]/5 hover:border-[#0E6187] transition-colors group">
                                   <span className="text-[11px] font-bold text-slate-500">#{a.attempt_number}</span>
                                   <span className={`text-xs font-semibold ${a.status === 'submitted' ? 'text-slate-700' : 'text-slate-400'}`}>
                                     {a.status === 'submitted' ? (Number(a.score) || 0) + ' poin' : 'Belum selesai'}
@@ -2054,13 +2070,13 @@ export default function DataCourse() {
                               ))}
                             </div>
                           </td>
-                          <td className="px-4 py-3.5 text-right">
-                            <p className="text-lg font-bold text-[#0E6187]">{Number(par.best_score) || 0}</p>
+                          <td className="px-4 py-3 text-right border border-slate-200">
+                            <p className="text-lg font-black text-[#0E6187]">{Number(par.best_score) || 0}</p>
                             <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">poin</p>
                           </td>
-                          <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                          <td className="px-4 py-3 text-right whitespace-nowrap border border-slate-200">
                             <button onClick={() => resetAttempts(par.siswa_id, par.nama)}
-                              className="inline-flex items-center gap-1.5 text-[11px] font-bold text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg px-2.5 py-1.5 transition-colors">
+                              className="inline-flex items-center gap-1.5 text-[11px] font-bold text-red-500 hover:text-white hover:bg-red-500 border-2 border-red-200 px-2.5 py-1.5 transition-colors">
                               <RotateCcw size={12} /> Reset
                             </button>
                           </td>

@@ -5,17 +5,15 @@ namespace App\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class GroqService
+class GptService
 {
     protected ?string $apiKey = null;
-    protected string $apiUrl;
     protected string $model;
 
     public function __construct()
     {
-        $this->apiKey = \App\Models\NotificationSetting::getValue('ai_groq_api_key', config('services.groq.api_key'));
-        $this->apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
-        $this->model = \App\Models\NotificationSetting::getValue('ai_groq_model', config('services.groq.model', 'openai/gpt-oss-120b'));
+        $this->apiKey = \App\Models\NotificationSetting::getValue('ai_gpt_api_key', config('services.gpt.api_key'));
+        $this->model = \App\Models\NotificationSetting::getValue('ai_gpt_model', config('services.gpt.model', 'gpt-4o-mini'));
     }
 
     public function setApiKey(string $apiKey): self
@@ -42,14 +40,14 @@ class GroqService
     public function chat(array $messages, float $temperature = 0.7, int $maxTokens = 2048): string
     {
         if (empty($this->apiKey)) {
-            return 'API key Groq belum dikonfigurasi. Hubungi administrator.';
+            return 'API key GPT belum dikonfigurasi. Hubungi administrator.';
         }
 
         try {
             $response = $this->postRetry(fn () => Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->apiKey,
                 'Content-Type' => 'application/json',
-            ])->timeout(120)->post($this->apiUrl, [
+            ])->timeout(120)->post('https://api.openai.com/v1/chat/completions', [
                 'model' => $this->model,
                 'messages' => $messages,
                 'temperature' => $temperature,
@@ -57,10 +55,10 @@ class GroqService
             ]));
 
             if ($response->failed()) {
-                Log::error('Groq API Error: ' . $response->body());
+                Log::error('GPT API Error: ' . $response->body());
                 $status = $response->status();
                 if (in_array($status, [429, 500, 502, 503, 504])) {
-                    return 'Maaf, layanan AI (Groq) sedang sibuk. Silakan coba lagi dalam beberapa saat.';
+                    return 'Maaf, layanan AI (GPT) sedang sibuk. Silakan coba lagi dalam beberapa saat.';
                 }
                 return 'Maaf, terjadi kesalahan saat menghubungi AI. Silakan coba lagi.';
             }
@@ -68,7 +66,7 @@ class GroqService
             $data = $response->json();
             return $data['choices'][0]['message']['content'] ?? 'Tidak ada respon dari AI.';
         } catch (\Exception $e) {
-            Log::error('Groq API Exception: ' . $e->getMessage());
+            Log::error('GPT API Exception: ' . $e->getMessage());
             return 'Maaf, terjadi kesalahan koneksi. Silakan coba lagi.';
         }
     }
