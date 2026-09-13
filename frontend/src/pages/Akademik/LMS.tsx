@@ -1,16 +1,17 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
-  BookOpen, Play, PlayCircle, Check, CheckCircle, Circle, ChevronLeft, ChevronRight,
+  BookOpen, Play, Check, CheckCircle, ChevronLeft, ChevronRight,
   FileText, Video, ArrowLeft, Clock, ListChecks, Lock, FileQuestion,
   ClipboardList, Upload, Download, Send, GraduationCap, Star, Award, AlertTriangle, X, Trash2,
-  CalendarCheck, LayoutDashboard, Wallet, User, Trophy, Search, ClipboardCheck,
+  CalendarCheck, LayoutDashboard, Wallet, User, Trophy, Search,
 } from 'lucide-react'
 import { lmsApi, quizApi, APP_URL } from '../../services/api'
 import { DEFAULT_COURSE_COVER } from '../../utils/courseCover'
 import { getYouTubeEmbedUrl } from '../../utils/youtube'
 import LessonSlidesViewer from '../../components/LessonSlidesViewer'
 import TrackedVideo from '../../components/TrackedVideo'
+import { fmtFileSize } from '../../components/LessonMediaFields'
 import Swal from 'sweetalert2'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -145,27 +146,32 @@ export default function LMS() {
   const [welcomeVideoUrl, setWelcomeVideoUrl] = useState<string | null>(null)
   const [activeCategory, setActiveCategory] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 8
   const courseCategories = useMemo(() =>
     Array.from(new Set(courses.map(c => c.category?.name).filter((c): c is string => !!c))),
     [courses]
   )
-  const visibleCourses = (searchQuery.trim()
+  const filteredCourses = (searchQuery.trim()
     ? courses.filter(c => c.title.toLowerCase().includes(searchQuery.trim().toLowerCase()))
     : courses).filter(c => activeCategory === 'all' || c.category?.name === activeCategory)
+  const sortedCourses = useMemo(() =>
+    [...filteredCourses].sort((a, b) => b.id - a.id),
+    [filteredCourses]
+  )
+  const totalPages = Math.ceil(sortedCourses.length / ITEMS_PER_PAGE)
+  const visibleCourses = sortedCourses.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
   const [view, setView] = useState<ViewType>('courses')
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [completedLessonIds, setCompletedLessonIds] = useState<number[]>([])
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null)
-  const [lessonDetail, setLessonDetail] = useState<{ completed: boolean; completed_at: string | null; progress: LessonProgress | null; slides?: { id: number; file_name: string; url: string }[]; recap?: {
-    id: number; file_name: string | null; file_size: number | null; kind: 'image' | 'pdf'; description: string | null; url: string | null
-  } | null; quiz?: CourseQuiz | null } | null>(null)
+  const [lessonDetail, setLessonDetail] = useState<{ completed: boolean; completed_at: string | null; progress: LessonProgress | null; slides?: { id: number; file_name: string; url: string }[]; quizzes?: CourseQuiz[]; recap?: { id: number; file_name: string | null; file_size: number | null; kind: string | null; description: string | null; url: string | null } | null } | null>(null)
   const [lessonProgressMap, setLessonProgressMap] = useState<Record<number, LessonProgress>>({})
   const [, setDetailLoading] = useState(false)
-  const [completing, setCompleting] = useState(false)
   const lastActivityRef = useRef(Date.now())
   const autoCompletedRef = useRef<number | null>(null)
-  const [activeTab, setActiveTab] = useState<'lessons' | 'assignments'>('lessons')
+  const [lessonTab, setLessonTab] = useState<'materi' | 'quiz' | 'tugas' | 'rekap'>('materi')
   const [assignments, setAssignments] = useState<AssignmentItem[]>([])
   const [assignLoading, setAssignLoading] = useState(false)
   const [showSubmitForm, setShowSubmitForm] = useState<number | null>(null)
@@ -174,7 +180,10 @@ export default function LMS() {
   const [submitting, setSubmitting] = useState(false)
   const [courseQuizzes, setCourseQuizzes] = useState<CourseQuiz[]>([])
   const [quizLoading, setQuizLoading] = useState(false)
-  const [lessonTab, setLessonTab] = useState<'materi' | 'quiz' | 'tugas' | 'rekap'>('materi')
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, activeCategory])
 
   useEffect(() => {
     lmsApi.courses().then(res => {
@@ -228,7 +237,6 @@ export default function LMS() {
     setSelectedCourse(course)
     setSelectedLesson(null)
     setLessonDetail(null)
-    setActiveTab('lessons')
     setView('course-detail')
     setLoadedCourseId(course.id)
     loadAssignmentsForCourse(course.id)
@@ -265,9 +273,9 @@ export default function LMS() {
 
   const openLesson = (lesson: Lesson) => {
     setSelectedLesson(lesson)
+    setLessonTab('materi')
     setDetailLoading(true)
     setLessonDetail(null)
-    setLessonTab('materi')
     setView('lesson')
     if (selectedCourse?.id && lesson.id !== Number(lessonId)) {
       navigate(`/siswa-dashboard/lms/${selectedCourse.id}/materi/${lesson.id}`)
@@ -282,8 +290,8 @@ export default function LMS() {
         completed_at: res.data.completed_at,
         progress: res.data.progress || null,
         slides: (res.data.slides || []).map((s: any) => ({ id: s.id, file_name: s.file_name, url: s.url })),
+        quizzes: res.data.quizzes || [],
         recap: res.data.recap || null,
-        quiz: res.data.quiz || null,
       })
       if (res.data?.progress) {
         setLessonProgressMap(prev => ({ ...prev, [id]: res.data.progress }))
@@ -298,37 +306,14 @@ export default function LMS() {
     if (lesson) {
       if (selectedLesson?.id !== id) {
         setSelectedLesson(lesson)
-        setLessonDetail(null)
         setLessonTab('materi')
+        setLessonDetail(null)
         setDetailLoading(true)
         setView('lesson')
         loadLessonDetail(id)
       }
     }
   }, [lessonId, lessons, selectedCourse, selectedLesson])
-
-  const toggleComplete = (lessonId: number, isCompleted: boolean) => {
-    setCompleting(true)
-    const action = isCompleted
-      ? lmsApi.uncompleteLesson(lessonId)
-      : lmsApi.completeLesson(lessonId)
-
-    action.then(() => {
-      if (isCompleted) {
-        setCompletedLessonIds(prev => prev.filter(id => id !== lessonId))
-        setLessonDetail(prev => prev ? { ...prev, completed: false, completed_at: null } : prev)
-      } else {
-        setCompletedLessonIds(prev => [...prev, lessonId])
-        setLessonDetail(prev => prev ? { ...prev, completed: true, completed_at: new Date().toISOString() } : prev)
-      }
-    }).catch(err => {
-      if (!isCompleted && err?.response?.status === 422 && err?.response?.data?.syarat) {
-        Swal.fire('Syarat belum terpenuhi',
-          'Tonton video hingga selesai dan baca modul terlebih dahulu agar activity berubah hijau.',
-          'warning')
-      }
-    }).finally(() => setCompleting(false))
-  }
 
   useEffect(() => {
     if (view !== 'lesson' || !selectedLesson) return
@@ -396,6 +381,7 @@ export default function LMS() {
       setSelectedLesson(null)
       setLessonDetail(null)
       if (selectedCourse?.id) {
+        loadCourseQuizzes(selectedCourse.id)
         setView('course-detail')
         navigate(`/siswa-dashboard/lms/${selectedCourse.id}`)
       }
@@ -544,15 +530,11 @@ export default function LMS() {
     const progress = completedLessonIds.length
     const total = lessons.length
     const currentIdx = lessons.findIndex(l => l.id === selectedLesson.id)
-    const prog = lessonDetail?.progress
-    const videoGreen = !selectedLesson.video_url || !!prog?.video_green
-    const readGreen = !selectedLesson.content || !!prog?.read_green
-
-    const markReadDone = () => {
-      lmsApi.readComplete(selectedLesson.id).then(res => {
-        if (res.data?.progress) applyProgress(selectedLesson.id, res.data.progress)
-      }).catch(() => {})
-    }
+    const lessonQuizzes = (lessonDetail?.quizzes && lessonDetail.quizzes.length > 0
+      ? lessonDetail.quizzes
+      : currentIdx === 0 ? courseQuizzes : [])
+    const materiCount = lessonDetail?.slides?.length || (selectedLesson.content || selectedLesson.video_url || selectedLesson.file_path ? 1 : 0)
+    const courseInfo = [selectedCourse.batch?.nama_batch && `Batch ${selectedCourse.batch.nama_batch}`, selectedCourse.level && `Level ${selectedCourse.level}`].filter(Boolean).join(' · ')
 
     return (
       <div className="min-h-screen bg-[#f2f4f8] pb-32 lg:pb-8">
@@ -576,78 +558,75 @@ export default function LMS() {
         </header>
 
         <div className="max-w-lg lg:max-w-5xl mx-auto px-4 pt-4 pb-4 lg:py-6">
-          {/* Lesson header */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 mb-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#0E6187]">Pertemuan {currentIdx + 1} dari {total}</p>
-                <h2 className="text-base font-bold text-slate-900 mt-1">{selectedLesson.title}</h2>
-                <p className="text-[11px] text-slate-500 font-medium mt-1">
-                  {selectedCourse.title}
-                  {selectedCourse.batch?.nama_batch ? ` · Batch ${selectedCourse.batch.nama_batch}` : ''}
-                  {selectedCourse.level ? ` · Level ${selectedCourse.level}` : ''}
-                </p>
-              </div>
-              {lessonDetail?.completed || (videoGreen && readGreen) ? (
-                <span className="shrink-0 flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">
-                  <Check size={11} /> {lessonDetail?.completed ? 'Selesai' : 'Activity hijau'}
-                </span>
-              ) : (
-                <span className="shrink-0 text-[9px] font-bold px-2 py-1 rounded-full bg-slate-100 text-slate-400">Aktif</span>
-              )}
-            </div>
-            <div className="mt-4">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] font-medium text-slate-400">Progress kursus</span>
-                <span className="text-[10px] font-black text-[#0E6187]">{getProgressPercent()}%</span>
-              </div>
-              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-[#0E6187] rounded-full transition-all duration-700"
-                  style={{ width: `${getProgressPercent()}%` }} />
-              </div>
-              <p className="text-[9px] text-slate-400 mt-1.5">{progress} dari {total} pelajaran selesai</p>
-            </div>
-          </div>
-
-          {/* Sub menu tabs */}
-          <div className="flex gap-0 bg-white rounded-2xl border border-slate-200 overflow-hidden mb-3">
+          {/* Tabs */}
+          <div className="flex gap-1 bg-slate-100 rounded-md p-1 mb-4">
             {([
-              { key: 'materi' as 'materi', label: 'Materi', icon: BookOpen, count: undefined as number | undefined },
-              { key: 'quiz' as 'quiz', label: 'Quiz', icon: ListChecks, count: lessonDetail?.quiz ? 1 : (currentIdx === 0 && courseQuizzes.length > 0 ? courseQuizzes.length : undefined) },
-              { key: 'tugas' as 'tugas', label: 'Tugas', icon: ClipboardList, count: assignments.length },
-              { key: 'rekap' as 'rekap', label: 'Rekap Pertemuan', icon: ClipboardCheck, count: lessonDetail?.recap ? 1 : undefined },
+              { key: 'materi' as const, label: 'Materi', icon: BookOpen, count: undefined as number | undefined },
+              { key: 'quiz' as const, label: 'Quiz', icon: ListChecks, count: lessonQuizzes.length || undefined },
+              { key: 'tugas' as const, label: 'Tugas', icon: ClipboardList, count: assignments.length || undefined },
+              { key: 'rekap' as const, label: 'Rekap', icon: FileText, count: lessonDetail?.recap ? 1 : undefined },
             ]).map(tab => (
-              <button key={tab.key} onClick={() => setLessonTab(tab.key)}
-                className={`flex-1 flex items-center justify-center gap-1.5 px-1 py-3 text-[11px] font-bold border-b-2 transition-colors ${
-                  lessonTab === tab.key ? 'border-[#0E6187] text-[#0E6187] bg-[#0E6187]/[0.03]' : 'border-transparent text-slate-400 hover:text-slate-700'
+              <button key={tab.key} onClick={() => setLessonTab(tab.key)} type="button"
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-md text-xs font-bold transition-all ${
+                  lessonTab === tab.key
+                    ? 'bg-white text-[#0E6187] shadow-sm'
+                    : 'text-slate-400 hover:text-slate-600'
                 }`}>
-                <tab.icon size={13} />
-                <span className="truncate">{tab.label}</span>
+                <tab.icon size={14} />
+                {tab.label}
                 {tab.count !== undefined && (
-                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
-                    lessonTab === tab.key ? 'bg-[#0E6187]/10 text-[#0E6187]' : 'bg-slate-100 text-slate-500'
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${
+                    lessonTab === tab.key ? 'bg-[#0E6187]/10 text-[#0E6187]' : 'bg-slate-200/50 text-slate-400'
                   }`}>{tab.count}</span>
                 )}
               </button>
             ))}
           </div>
 
+          {/* Info Card */}
+          <div className="bg-white rounded-md border border-slate-200 shadow-sm p-4 mb-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-md bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+                  <BookOpen size={18} className="text-[#0E6187]" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.16em]">Pertemuan {currentIdx + 1}</p>
+                  <h2 className="text-sm font-bold text-slate-900 truncate">{selectedLesson.title}</h2>
+                  <p className="text-[10px] text-[#0E6187] font-medium mt-0.5 truncate">{courseInfo || selectedCourse.title}</p>
+                </div>
+              </div>
+              <span className="shrink-0 text-base font-black text-[#0E6187]">{getProgressPercent()}%</span>
+            </div>
+            <div className="mt-4">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-medium text-slate-400">Progres kursus</span>
+                <span className="text-[10px] font-bold text-slate-400">{progress} dari {total} selesai</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                <div className="h-full rounded-full bg-[#0E6187] transition-all duration-700"
+                  style={{ width: `${getProgressPercent()}%` }} />
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Main Content */}
-            <div className="lg:col-span-2 space-y-3">
-              {/* Materi */}
+            <div className="lg:col-span-3 space-y-4">
               {lessonTab === 'materi' && (
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <BookOpen size={15} className="text-[#0E6187]" />
-                    <h3 className="text-[11px] font-bold tracking-[0.12em] text-slate-500 uppercase">Materi</h3>
+            <>
+              {/* Materi Card */}
+              <div className="bg-white rounded-md shadow-sm overflow-hidden">
+                <div className="px-5 pt-4 pb-3 border-b border-slate-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-9 h-9 rounded-md bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+                      <BookOpen size={16} className="text-[#0E6187]" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.16em]">Materi</p>
+                      <h2 className="text-sm font-bold text-slate-900 truncate">{selectedLesson.title}</h2>
+                    </div>
                   </div>
-                  {lessonDetail?.completed || (videoGreen && readGreen) ? (
-                    <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">
-                      <Check size={11} /> {lessonDetail?.completed ? 'Selesai' : 'Activity hijau'}
-                    </span>
-                  ) : null}
                 </div>
 
                 {selectedLesson.video_url && (
@@ -657,17 +636,6 @@ export default function LMS() {
                       title={selectedLesson.title}
                       progress={lessonDetail?.progress || null}
                       onHeartbeat={(currentTime, duration) => sendVideoHeartbeat(selectedLesson.id, currentTime, duration)} />
-                    {lessonDetail?.progress && lessonDetail.progress.video_percent > 0 && (
-                      <div className="px-3 py-2 flex items-center gap-2 bg-[#0E6187]/95">
-                        <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                          <div className="h-full bg-emerald-300 rounded-full transition-all"
-                            style={{ width: `${lessonDetail.progress.video_percent}%` }} />
-                        </div>
-                        <span className={`text-[10px] font-bold ${lessonDetail.progress.video_green ? 'text-emerald-300' : 'text-white/70'}`}>
-                          {lessonDetail.progress.video_green ? 'Video selesai' : `${Math.round(lessonDetail.progress.video_percent)}%`}
-                        </span>
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -716,209 +684,212 @@ export default function LMS() {
                   </a>
                 )}
               </div>
-              )}
+            </>
+          )}
 
-              {/* Quiz */}
               {lessonTab === 'quiz' && (
-                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                  <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-                    <ListChecks size={15} className="text-[#0E6187]" />
-                    <h3 className="text-[11px] font-bold tracking-[0.12em] text-slate-500 uppercase">Quiz</h3>
+            <>
+              {/* Quiz Pertemuan Ini */}
+              {lessonQuizzes.length > 0 ? (
+                <div className="bg-white rounded-md shadow-sm overflow-hidden">
+                  <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <h3 className="text-[11px] font-black text-slate-800 flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-md bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+                        <ListChecks size={13} className="text-[#0E6187]" />
+                      </span>
+                      Quiz Pertemuan Ini
+                    </h3>
+                    <span className="text-[10px] font-bold text-gray-400">{lessonQuizzes.length} paket</span>
                   </div>
-                  <div className="p-5 space-y-3">
-                    {lessonDetail?.quiz ? (
-                      renderQuizCard(lessonDetail.quiz)
-                    ) : currentIdx === 0 && courseQuizzes.length > 0 ? (
-                      courseQuizzes.map(q => renderQuizCard(q))
-                    ) : (
-                      <div className="border border-dashed border-slate-200 rounded-xl p-6 text-center">
-                        <ListChecks size={22} className="text-slate-300 mx-auto mb-2" />
-                        <p className="text-xs font-bold text-slate-500">Belum ada quiz</p>
-                        <p className="text-[10px] text-slate-400 font-medium mt-0.5">Quiz pertemuan ini belum tersedia</p>
-                      </div>
-                    )}
+                  <div className="p-4 space-y-2.5">
+                    {lessonQuizzes.map(q => {
+                      const unlocked = q.is_unlocked
+                      const attemptsMaxed = q.max_attempts > 0 && q.attempts_used >= q.max_attempts
+                      const best = q.best_score != null ? q.best_score : null
+                      return (
+                        <button key={q.id} type="button"
+                          onClick={() => { if (unlocked && !attemptsMaxed) navigate(`/siswa-dashboard/quiz/${q.id}`) }}
+                          className={`w-full flex items-center gap-3 rounded-md border p-3 text-left bg-white transition-all ${
+                            unlocked && !attemptsMaxed ? 'border-slate-200 hover:border-[#0E6187]/40 hover:shadow-sm' : 'border-slate-100 opacity-80'
+                          }`}>
+                          <div className={`w-9 h-9 rounded-md flex items-center justify-center shrink-0 ${unlocked ? 'bg-[#0E6187]/10 text-[#0E6187]' : 'bg-gray-50 text-gray-300'}`}>
+                            {unlocked ? <ListChecks size={16} /> : <Lock size={14} />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-gray-900 truncate">{q.title}</p>
+                            <p className="text-[10px] text-gray-400 mt-0.5">
+                              {q.questions_count} soal · {q.max_attempts} percobaan
+                              {attemptsMaxed ? ' (habis)' : ''}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {best != null && (
+                              <span className={`text-[11px] font-black ${q.passing_score > 0 && best >= q.passing_score ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                {best}%
+                              </span>
+                            )}
+                            {!unlocked ? (
+                              <span className="rounded-md bg-gray-100 px-2 py-1 text-[9px] font-bold text-gray-400">Ditutup</span>
+                            ) : attemptsMaxed ? (
+                              <span className="rounded-md bg-red-50 px-2 py-1 text-[9px] font-bold text-red-500">Habis</span>
+                            ) : (
+                              <span className="rounded-md bg-[#0E6187] px-2.5 py-1 text-[9px] font-bold text-white">Kerjakan</span>
+                            )}
+                          </div>
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
+              ) : (
+                <div className="bg-white rounded-md shadow-sm p-10 text-center">
+                  <div className="w-14 h-14 rounded-md bg-gray-50 flex items-center justify-center mx-auto mb-3">
+                    <ListChecks size={26} className="text-gray-300" />
+                  </div>
+                  <p className="text-sm font-semibold text-gray-500">Belum ada quiz</p>
+                  <p className="text-xs text-gray-400 mt-1">Quiz untuk pertemuan ini belum tersedia</p>
+                </div>
               )}
+            </>
+          )}
 
-              {/* Tugas */}
               {lessonTab === 'tugas' && (
-                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                  <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-                    <ClipboardList size={15} className="text-[#0E6187]" />
-                    <h3 className="text-[11px] font-bold tracking-[0.12em] text-slate-500 uppercase">Tugas ({assignments.length})</h3>
-                  </div>
-                  <div className="p-5">
-                    {assignLoading ? (
-                      <p className="text-xs text-slate-400 text-center py-4">Memuat tugas...</p>
-                    ) : assignments.length === 0 ? (
-                      <p className="text-xs text-slate-400 text-center py-4">Belum ada tugas untuk kursus ini</p>
-                    ) : (
-                      <div className="space-y-2.5">
-                        {assignments.map(a => {
-                          const isPastDue = a.due_date && new Date(a.due_date + 'T23:59:59') < new Date()
-                          const hasSubmitted = !!a.submission
-                          const isGraded = a.submission?.score !== null
-                          return (
-                            <div key={a.id} className="flex items-center gap-3 border border-slate-100 rounded-xl p-3 bg-slate-50">
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                                isGraded ? 'bg-emerald-50 text-emerald-500' : hasSubmitted ? 'bg-amber-50 text-amber-500' : 'bg-[#0E6187]/10 text-[#0E6187]'
-                              }`}>
-                                {isGraded ? <Award size={14} /> : hasSubmitted ? <CheckCircle size={14} /> : <ClipboardList size={14} />}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-semibold text-slate-700 truncate">{a.title}</p>
-                                <div className="flex items-center gap-2.5 mt-0.5">
-                                  {a.due_date && (
-                                    <span className={`text-[10px] ${isPastDue && !hasSubmitted ? 'text-red-500 font-semibold' : 'text-slate-400'}`}>
-                                      {isPastDue && !hasSubmitted ? 'Terlambat · ' : ''}{a.due_date}
-                                    </span>
-                                  )}
-                                  {isGraded ? (
-                                    <span className="text-[10px] font-bold text-emerald-600">Skor {a.submission?.score}{a.max_score ? `/${a.max_score}` : ''}</span>
-                                  ) : hasSubmitted ? (
-                                    <span className="text-[10px] font-bold text-amber-500">Sudah dikumpulkan</span>
-                                  ) : (
-                                    <span className="text-[10px] text-slate-400">Belum dikumpulkan</span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Rekap */}
-              {lessonTab === 'rekap' && (
-                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                  <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-                    <ClipboardCheck size={15} className="text-[#0E6187]" />
-                    <h3 className="text-[11px] font-bold tracking-[0.12em] text-slate-500 uppercase">Rekap Pertemuan</h3>
-                  </div>
-                  <div className="p-5 space-y-3">
-                    {lessonDetail?.recap ? (
-                      <>
-                        {lessonDetail.recap.url && lessonDetail.recap.kind === 'image' ? (
-                          <a href={lessonDetail.recap.url} target="_blank" rel="noopener noreferrer"
-                            className="block rounded-xl overflow-hidden border border-slate-100 bg-slate-50">
-                            <img src={lessonDetail.recap.url} alt="Rekap pertemuan"
-                              className="w-full max-h-[420px] object-contain" />
-                          </a>
-                        ) : lessonDetail.recap.url ? (
-                          <a href={lessonDetail.recap.url} target="_blank" rel="noopener noreferrer"
-                            className="flex items-center gap-3 bg-[#0E6187]/5 border border-[#0E6187]/10 rounded-xl p-3 hover:bg-[#0E6187]/10 transition-colors group">
-                            <div className="w-9 h-9 rounded-xl bg-[#0E6187]/10 flex items-center justify-center shrink-0">
-                              <FileText size={16} className="text-[#0E6187]" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-semibold text-gray-800 truncate group-hover:text-[#0E6187] transition-colors">
-                                {lessonDetail.recap.file_name}
-                              </p>
-                              <p className="text-[10px] text-gray-400 mt-0.5">Rekap PDF{lessonDetail.recap.file_size ? ` - ${lessonDetail.recap.file_size < 1024 * 1024 ? (lessonDetail.recap.file_size / 1024).toFixed(1) + ' KB' : (lessonDetail.recap.file_size / (1024 * 1024)).toFixed(1) + ' MB'}` : ''}</p>
-                            </div>
-                            <Download size={15} className="text-[#0E6187] shrink-0" />
-                          </a>
-                        ) : null}
-                        {lessonDetail.recap.description && (
-                          <p className="text-xs text-gray-600 leading-relaxed bg-slate-50 border border-slate-100 rounded-xl p-4 whitespace-pre-line">
-                            {lessonDetail.recap.description}
-                          </p>
-                        )}
-                      </>
-                    ) : (
-                      <div className="border border-dashed border-slate-200 rounded-xl p-6 text-center">
-                        <ClipboardCheck size={22} className="text-slate-300 mx-auto mb-2" />
-                        <p className="text-xs font-bold text-slate-500">Belum ada rekap</p>
-                        <p className="text-[10px] text-slate-400 font-medium mt-0.5">Rekap pertemuan ini belum tersedia</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Navigation */}
-              <div className="bg-white rounded-2xl border border-slate-200 p-3 flex items-center gap-2">
-                <button
-                  onClick={() => { if (currentIdx > 0) openLesson(lessons[currentIdx - 1]) }}
-                  disabled={currentIdx === 0}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-md bg-slate-50 text-slate-600 text-xs font-bold hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed active:scale-[0.98] transition-all">
-                  <ChevronLeft size={15} /> Sebelumnya
-                </button>
-                <span className="shrink-0 text-[10px] font-black text-slate-300 px-1">{currentIdx + 1}/{total}</span>
-                {currentIdx === lessons.length - 1 && courseQuizzes.length > 0 ? (
-                  <button
-                    onClick={() => selectedCourse?.id && navigate(`/siswa-dashboard/lms/${selectedCourse.id}/quiz`)}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-md text-xs font-black bg-[#0E6187] text-white hover:bg-[#0E6187]/90 shadow-lg shadow-[#0E6187]/20 transition-colors">
-                    Mulai Quiz <ListChecks size={15} />
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => { if (currentIdx < lessons.length - 1) openLesson(lessons[currentIdx + 1]) }}
-                    disabled={currentIdx === lessons.length - 1}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-md text-xs font-black bg-[#0E6187] text-white hover:bg-[#0E6187]/90 shadow-lg shadow-[#0E6187]/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
-                    Selanjutnya <ChevronRight size={15} />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Sidebar */}
-            <div className="space-y-4">
-              {/* Daftar Pelajaran */}
+            <>
+              {/* Tugas */}
               <div className="bg-white rounded-md shadow-sm overflow-hidden">
-                <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                <div className="px-5 pt-4 pb-3 border-b border-slate-100 flex items-center justify-between">
                   <h3 className="text-[11px] font-black text-slate-800 flex items-center gap-2">
                     <span className="w-7 h-7 rounded-md bg-[#0E6187]/10 flex items-center justify-center shrink-0">
-                      <ListChecks size={13} className="text-[#0E6187]" />
+                      <ClipboardList size={13} className="text-[#0E6187]" />
                     </span>
-                    Daftar Pelajaran
+                    Tugas
                   </h3>
-                  <span className="text-[10px] font-bold text-slate-400">{progress}/{total} selesai</span>
+                  <span className="text-[10px] font-bold text-gray-400">{assignments.length} tugas</span>
                 </div>
-                <div className="p-2 space-y-1 max-h-[55vh] overflow-y-auto">
-                  {lessons.map((lesson, idx) => {
-                    const isActive = lesson.id === selectedLesson.id
-                    const isCompleted = completedLessonIds.includes(lesson.id)
-                    const lp = lessonProgressMap[lesson.id]
-                    const lessonGreen = (!lesson.video_url || lp?.video_green) && (!lesson.content || lp?.read_green)
-                    return (
-                      <button key={lesson.id} onClick={() => openLesson(lesson)}
-                        className={`w-full text-left flex items-center gap-2.5 px-3 py-2.5 rounded-md transition-all ${
-                          isActive ? 'bg-[#0E6187]/10' : 'hover:bg-slate-50'
+                <div className="p-4 space-y-2.5">
+                  {assignments.length === 0 ? (
+                    <div className="py-10 text-center">
+                      <div className="w-14 h-14 rounded-md bg-gray-50 flex items-center justify-center mx-auto mb-3">
+                        <ClipboardList size={26} className="text-gray-300" />
+                      </div>
+                      <p className="text-sm font-semibold text-gray-500">Belum ada tugas</p>
+                      <p className="text-xs text-gray-400 mt-1">Tugas akan segera tersedia</p>
+                    </div>
+                  ) : (
+                    assignments.map(a => {
+                      const isPastDue = a.due_date && new Date(a.due_date + 'T23:59:59') < new Date()
+                      const hasSubmitted = !!a.submission
+                      const isGraded = a.submission?.score !== null
+                      return (
+                        <div key={a.id} className={`flex items-center gap-3 rounded-md border p-3 bg-slate-50 ${
+                          isGraded ? 'border-emerald-200' : hasSubmitted ? 'border-amber-200' : isPastDue ? 'border-red-200' : 'border-slate-100'
                         }`}>
-                        <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 text-[10px] font-black ${
-                          isCompleted
-                            ? 'bg-emerald-500 text-white'
-                            : lessonGreen
-                              ? 'bg-emerald-500/85 text-white'
-                              : isActive
-                                ? 'bg-[#0E6187] text-white'
-                                : 'bg-slate-100 text-slate-400'
-                        }`}>
-                          {isCompleted ? <CheckCircle size={14} /> : lessonGreen ? <Check size={14} strokeWidth={3} /> : idx + 1}
+                          <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${
+                            isGraded ? 'bg-emerald-50 text-emerald-500' : hasSubmitted ? 'bg-amber-50 text-amber-500' : 'bg-[#0E6187]/10 text-[#0E6187]'
+                          }`}>
+                            {isGraded ? <Award size={14} /> : hasSubmitted ? <CheckCircle size={14} /> : <ClipboardList size={14} />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-gray-800 truncate">{a.title}</p>
+                            <p className="text-[10px] text-gray-400 mt-0.5 truncate">
+                              {isGraded && a.submission
+                                ? `Nilai: ${a.submission.score}/${a.max_score ?? '?'}`
+                                : hasSubmitted
+                                  ? 'Sudah dikumpulkan'
+                                  : isPastDue
+                                    ? 'Tenggat berakhir'
+                                    : a.due_date
+                                      ? `Tenggat ${new Date(a.due_date + 'T23:59:59').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                                      : 'Belum dikerjakan'}
+                            </p>
+                          </div>
                         </div>
-                        <span className={`truncate flex-1 text-[11px] font-semibold ${isActive ? 'text-[#0E6187]' : 'text-slate-600'}`}>{lesson.title}</span>
-                        {!lesson.video_url && !lesson.content ? null : (
-                          <span className={`shrink-0 w-1.5 h-1.5 rounded-full ${lessonGreen ? 'bg-emerald-500' : 'bg-slate-200'}`} title={lessonGreen ? 'Activity hijau' : 'Activity belum hijau'} />
-                        )}
-                      </button>
-                    )
-                  })}
+                      )
+                    })
+                  )}
                 </div>
-                {courseQuizzes.length > 0 && (
-                  <div className="p-2 border-t border-slate-100">
-                    <button
-                      onClick={() => selectedCourse?.id && navigate(`/siswa-dashboard/lms/${selectedCourse.id}/quiz`)}
-                      className="w-full flex items-center justify-center gap-2 py-3 rounded-md text-xs font-black bg-[#0E6187]/10 text-[#0E6187] hover:bg-[#0E6187]/20 transition-colors">
-                      <Play size={13} /> Lanjut mengerjakan Quiz
-                    </button>
-                  </div>
-                )}
               </div>
+            </>
+          )}
+
+              {lessonTab === 'rekap' && (
+            <>
+              {/* Rekap Pertemuan */}
+              <div className="bg-white rounded-md shadow-sm overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+                  <h3 className="text-[11px] font-black text-slate-800 flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-md bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+                      <ClipboardList size={13} className="text-[#0E6187]" />
+                    </span>
+                    Rekap Pertemuan
+                  </h3>
+                  <span className="text-[10px] font-bold text-slate-400">{currentIdx + 1}/{total}</span>
+                </div>
+                <div className="p-5">
+                  <h2 className="text-base font-black text-slate-900 leading-snug">{selectedLesson.title}</h2>
+                  {courseInfo && (
+                    <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
+                      <GraduationCap size={11} /> {courseInfo}
+                    </p>
+                  )}
+                  <div className="grid grid-cols-3 gap-2 mt-4">
+                    {[
+                      { key: 'materi' as const, label: 'Materi', icon: BookOpen, count: materiCount },
+                      { key: 'quiz' as const, label: 'Quiz', icon: ListChecks, count: lessonQuizzes.length },
+                      { key: 'tugas' as const, label: 'Tugas', icon: ClipboardList, count: assignments.length },
+                    ].map(stat => (
+                      <div key={stat.key} className="rounded-lg bg-slate-50 border border-slate-100 px-3 py-2.5 text-center">
+                        <div className="flex items-center justify-center gap-1 text-[9px] font-bold text-slate-400 uppercase tracking-wide">
+                          <stat.icon size={11} className="text-[#0E6187]" /> {stat.label}
+                        </div>
+                        <p className="text-lg font-black text-slate-800 mt-1">{stat.count}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {lessonDetail?.recap ? (
+                    <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
+                      {lessonDetail.recap.url && lessonDetail.recap.kind === 'image' && (
+                        <a href={lessonDetail.recap.url} target="_blank" rel="noopener noreferrer"
+                          className="block rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
+                          <img src={lessonDetail.recap.url} alt="Rekap pertemuan" className="w-full max-h-[420px] object-contain" />
+                        </a>
+                      )}
+                      {lessonDetail.recap.url && lessonDetail.recap.kind !== 'image' && (
+                        <a href={lessonDetail.recap.url} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-3 border border-slate-200 rounded-lg p-3 bg-slate-50 hover:bg-slate-100 transition-colors">
+                          <div className="w-9 h-9 rounded-lg bg-rose-50 flex items-center justify-center shrink-0">
+                            <FileText size={16} className="text-rose-500" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-gray-800 truncate">{lessonDetail.recap.file_name}</p>
+                            <p className="text-[10px] text-gray-400">{fmtFileSize(lessonDetail.recap.file_size ?? undefined)} · PDF</p>
+                          </div>
+                          <span className="shrink-0 text-[11px] font-bold text-[#0E6187] flex items-center gap-1">
+                            <Download size={12} /> Buka
+                          </span>
+                        </a>
+                      )}
+                      {lessonDetail.recap.description && (
+                        <p className="text-xs text-gray-600 leading-relaxed bg-slate-50 border border-slate-100 rounded-lg p-4">
+                          {lessonDetail.recap.description}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="mt-4 pt-4 border-t border-slate-100 py-10 text-center">
+                      <div className="w-14 h-14 rounded-md bg-gray-50 flex items-center justify-center mx-auto mb-3">
+                        <ClipboardList size={26} className="text-gray-300" />
+                      </div>
+                      <p className="text-sm font-semibold text-gray-500">Belum ada rekap pertemuan</p>
+                      <p className="text-xs text-gray-400 mt-1">Rekap dari pengajar akan muncul di sini</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
             </div>
           </div>
         </div>
@@ -993,14 +964,12 @@ export default function LMS() {
               </div>
               <div className="flex items-center gap-2 mt-3">
                 {lessons.map((lesson, idx) => {
-                  const lp = lessonProgressMap[lesson.id]
-                  const green = (!lesson.video_url || lp?.video_green) && (!lesson.content || lp?.read_green)
                   const done = completedLessonIds.includes(lesson.id)
                   return (
                     <span key={lesson.id} className={`flex items-center gap-1 text-[10px] font-medium px-2.5 py-1 rounded-full ${
-                      done ? 'bg-emerald-50 text-emerald-500' : green ? 'bg-emerald-50 text-emerald-500' : 'bg-gray-50 text-gray-400'
+                      done ? 'bg-emerald-50 text-emerald-500' : 'bg-gray-50 text-gray-400'
                     }`}>
-                      {done || green ? <Check size={10} /> : <span>{idx + 1}</span>}
+                      {done ? <Check size={10} /> : <span>{idx + 1}</span>}
                       <span className="truncate max-w-[100px]">{lesson.title}</span>
                     </span>
                   )
@@ -1069,82 +1038,46 @@ export default function LMS() {
 
     return (
       <>
-      <div className="min-h-screen bg-[#f0f2f5] pb-24 animate-fade-up">
-        {/* Hero */}
-        <div className="relative h-52 bg-gradient-to-br from-[#0E6187] to-[#1a3355] overflow-hidden">
-          {selectedCourse.image && (
-            <img src={`${APP_URL}/storage/${selectedCourse.image}`} alt=""
-              className="absolute inset-0 w-full h-full object-cover opacity-30" />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0E6187] via-[#0E6187]/60 to-transparent" />
-          <div className="relative max-w-lg mx-auto px-4 h-full flex flex-col justify-end pb-6">
-            <button onClick={goBack}
-              className="flex items-center gap-1.5 text-[11px] font-bold text-white/50 hover:text-white transition-colors mb-4 self-start">
-              <ArrowLeft size={12} /> Semua Kursus
-            </button>
-            <div className="flex items-end justify-between gap-4">
-              <div className="min-w-0">
-                <h1 className="text-xl font-bold text-white truncate">{selectedCourse.title}</h1>
-                <div className="flex items-center gap-2 mt-2">
-                  {selectedCourse.level && (
-                    <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-white/15 text-white/80">
-                      Level {selectedCourse.level}
-                    </span>
-                  )}
-                  <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold ${
-                    isComplete ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/10 text-white/60'
-                  }`}>
-                    {isComplete ? 'Selesai' : `${progress} dari ${total} selesai`}
-                  </span>
-                </div>
+      <div className="min-h-screen bg-[#f2f4f8] pb-24 animate-fade-up">
+        {/* Header */}
+        <header className="bg-white sticky top-0 z-30 border-b border-slate-100 shadow-sm shadow-slate-200/40">
+          <div className="max-w-lg mx-auto px-4 py-3">
+            <div className="flex items-center gap-3">
+              <button onClick={goBack}
+                className="flex items-center justify-center w-9 h-9 rounded-md bg-slate-50 text-slate-600 hover:bg-slate-100 active:scale-95 transition-all shrink-0">
+                <ArrowLeft size={16} />
+              </button>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-sm font-bold text-slate-900 truncate">{selectedCourse.title}</h1>
+                <p className="text-[10px] text-[#0E6187] font-medium truncate">
+                  {[
+                    selectedCourse.batch?.nama_batch && `Batch ${selectedCourse.batch.nama_batch}`,
+                    selectedCourse.level && `Level ${selectedCourse.level}`,
+                  ].filter(Boolean).join(' · ') || 'Kursus'}
+                </p>
               </div>
               <div className="text-right shrink-0">
-                <div className={`text-3xl font-black ${isComplete ? 'text-emerald-400' : 'text-white'}`}>
-                  {percent}%
-                </div>
-                <p className="text-[10px] font-bold text-white/50 mt-0.5">Progres</p>
+                <p className="text-base font-black text-[#0E6187] leading-none">{percent}%</p>
+                <p className="text-[9px] font-medium text-slate-400 mt-1">{isComplete ? 'Selesai' : `${progress} dari ${total} selesai`}</p>
               </div>
             </div>
+            <div className="mt-3 h-1 rounded-full bg-slate-100 overflow-hidden">
+              <div className="h-full rounded-full bg-[#0E6187] transition-all duration-700" style={{ width: `${percent}%` }} />
+            </div>
           </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="max-w-lg mx-auto px-4 mt-4">
-          <div className="flex gap-1 bg-gray-100 rounded-md p-1">
-            {([
-              { key: 'lessons' as const, label: 'Pelajaran', icon: ListChecks, count: isQuizCourse ? courseQuizzes.length : lessons.length },
-              { key: 'assignments' as const, label: 'Tugas', icon: ClipboardList, count: assignments.length },
-            ]).map(tab => (
-              <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-md text-xs font-bold transition-all ${
-                  activeTab === tab.key
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-400 hover:text-gray-600'
-                }`}>
-                <tab.icon size={14} />
-                {tab.label}
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${
-                  activeTab === tab.key ? 'bg-gray-100 text-gray-600' : 'bg-gray-200/50 text-gray-400'
-                }`}>{tab.count}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+        </header>
 
         {/* Content */}
-        <div className="max-w-lg mx-auto px-4 mt-3">
+        <div className="max-w-lg mx-auto px-4 mt-4">
           {/* Lessons Tab */}
-          {activeTab === 'lessons' && (
-            isQuizCourse ? (
-            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
-                  <h3 className="text-[11px] font-black text-gray-800 flex items-center gap-2">
-                    <span className="w-7 h-7 rounded-md bg-[#0E6187]/10 flex items-center justify-center shrink-0">
-                      <ListChecks size={13} className="text-[#0E6187]" />
-                    </span>
+            {isQuizCourse ? (
+            <div className="bg-white rounded-md border border-slate-200 overflow-hidden shadow-sm">
+                <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-slate-800 flex items-center gap-2">
+                    <ListChecks size={14} className="text-[#0E6187]" />
                     Daftar Paket Soal
                   </h3>
-                  <span className="text-[10px] font-bold text-gray-400">{courseQuizzes.length} paket soal</span>
+                  <span className="text-[10px] font-bold text-[#0E6187]">{courseQuizzes.length} paket soal</span>
                 </div>
                 <div className="p-4 space-y-3">
                   {quizLoading ? (
@@ -1165,54 +1098,46 @@ export default function LMS() {
                 </div>
             </div>
             ) : (
-            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
-                  <h3 className="text-[11px] font-black text-gray-800 flex items-center gap-2">
-                    <span className="w-7 h-7 rounded-md bg-[#0E6187]/10 flex items-center justify-center shrink-0">
-                      <BookOpen size={13} className="text-[#0E6187]" />
-                    </span>
+            <div className="bg-white rounded-md border border-slate-200 overflow-hidden shadow-sm">
+                <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-slate-800 flex items-center gap-2">
+                    <BookOpen size={14} className="text-[#0E6187]" />
                     Daftar Pertemuan
                   </h3>
-                  <span className="text-[10px] font-bold text-gray-400">{progress}/{total} selesai</span>
+                  <span className="text-[10px] font-bold text-[#0E6187]">{progress}/{total} selesai</span>
                 </div>
                 {lessons.length === 0 ? (
                   <div className="p-12 text-center">
-                    <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
-                      <BookOpen size={28} className="text-gray-300" />
+                    <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-4">
+                      <BookOpen size={24} className="text-slate-300" />
                     </div>
-                    <p className="text-sm font-semibold text-gray-500">Belum ada pertemuan</p>
-                    <p className="text-xs text-gray-400 mt-1">Pertemuan akan segera tersedia</p>
+                    <p className="text-sm font-semibold text-slate-500">Belum ada pertemuan</p>
+                    <p className="text-xs text-slate-400 mt-1">Pertemuan akan segera tersedia</p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-gray-100">
+                  <div className="divide-y divide-slate-100">
                     {lessons.map((lesson, idx) => {
                       const isCompleted = completedLessonIds.includes(lesson.id)
-                      const lp = lessonProgressMap[lesson.id]
-                      const lessonGreen = (!lesson.video_url || lp?.video_green) && (!lesson.content || lp?.read_green)
                       return (
                         <button key={lesson.id} onClick={() => openLesson(lesson)}
-                          className="w-full text-left flex items-center gap-3 px-5 py-4 hover:bg-gray-50/80 transition-colors group">
-                          <div className={`w-9 h-9 rounded-md flex items-center justify-center shrink-0 text-xs font-bold ${
+                          className="w-full text-left flex items-center gap-3 px-4 py-3.5 hover:bg-slate-50 transition-colors group">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold ${
                             isCompleted
-                              ? 'bg-emerald-500 text-white'
-                              : lessonGreen
-                                ? 'bg-emerald-500/85 text-white'
-                                : 'bg-gray-100 text-gray-400 group-hover:bg-[#0E6187]/10 group-hover:text-[#0E6187]'
+                              ? 'bg-[#0E6187] text-white'
+                              : 'bg-slate-100 text-slate-500'
                           } transition-colors`}>
-                            {isCompleted ? <CheckCircle size={16} /> : lessonGreen ? <Check size={15} strokeWidth={3} /> : idx + 1}
+                            {isCompleted ? <CheckCircle size={15} /> : idx + 1}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-800 truncate group-hover:text-[#0E6187] transition-colors">
-                              {lesson.title}
-                            </p>
+                            <p className="text-[13px] font-semibold text-slate-800 truncate">{lesson.title}</p>
                             <div className="flex items-center gap-2 mt-1">
                               {lesson.video_url && (
-                                <span className="flex items-center gap-1 text-[10px] font-medium text-gray-400">
+                                <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
                                   <Video size={10} /> Video
                                 </span>
                               )}
                               {lesson.content && (
-                                <span className="flex items-center gap-1 text-[10px] font-medium text-gray-400">
+                                <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
                                   <FileText size={10} /> Materi
                                 </span>
                               )}
@@ -1223,14 +1148,11 @@ export default function LMS() {
                               )}
                             </div>
                           </div>
-                          <div className="shrink-0 flex items-center gap-2">
+                          <div className="shrink-0 flex items-center gap-1.5">
                             {isCompleted && (
-                              <span className="text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-md">Selesai</span>
+                              <span className="text-[10px] font-medium text-[#0E6187]">Selesai</span>
                             )}
-                            {!isCompleted && lessonGreen && (
-                              <span className="text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-md">Activity hijau</span>
-                            )}
-                            <ChevronRight size={14} className="text-gray-300 group-hover:text-[#0E6187] transition-colors" />
+                            <ChevronRight size={14} className="text-slate-300" />
                           </div>
                         </button>
                       )
@@ -1239,10 +1161,10 @@ export default function LMS() {
                 )}
               </div>
             )
-          )}
+          }
 
-          {/* Assignments Tab */}
-          {activeTab === 'assignments' && (
+          {/* Assignments */}
+          {assignments.length > 0 && (
             <div className="space-y-4">
               {assignLoading ? (
                 <div className="bg-white rounded-md border border-gray-200 p-12 text-center">
@@ -1542,8 +1464,8 @@ export default function LMS() {
       })()}
 
       {/* ============ Bottom Nav Bar ============ */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden">
-        <div className="mx-auto grid max-w-lg grid-cols-5">
+      <nav className="fixed bottom-3 left-3 right-3 z-40 rounded-2xl border border-slate-200 bg-white/95 shadow-lg shadow-slate-900/10 backdrop-blur lg:hidden">
+        <div className="mx-auto grid max-w-md grid-cols-5">
           {bottomNav.map(nav => {
             const Icon = nav.icon
             const isActive = nav.to === location.pathname
@@ -1551,12 +1473,18 @@ export default function LMS() {
               <Link
                 key={nav.label}
                 to={nav.to}
-                className={`flex flex-col items-center gap-1 py-2.5 transition ${
+                className={`group flex flex-col items-center justify-center py-2 transition ${
                   isActive ? 'text-[#0E6187]' : 'text-slate-400'
                 }`}
               >
-                <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
-                <span className="text-[10px] font-medium">{nav.label}</span>
+                <span className={`flex h-9 w-9 items-center justify-center rounded-xl transition-all ${
+                  isActive
+                    ? 'bg-[#0E6187] text-white'
+                    : 'group-hover:bg-[#0E6187] group-hover:text-white'
+                }`}>
+                  <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
+                </span>
+                <span className="mt-0.5 text-[9px] font-semibold">{nav.label}</span>
               </Link>
             )
           })}
@@ -1656,7 +1584,7 @@ export default function LMS() {
       )}
 
       {/* Course Grid */}
-      <div className="mx-auto mt-6 max-w-lg space-y-4 px-4 pt-2">
+      <div className="mx-auto mt-6 max-w-lg space-y-4 px-4 pt-2 md:max-w-3xl lg:max-w-5xl xl:max-w-6xl">
         {courses.length === 0 ? (
           <div className="bg-white rounded-md shadow-sm border border-gray-200 p-12 text-center">
             <div className="w-16 h-16 rounded-md bg-gray-50 flex items-center justify-center mx-auto mb-4">
@@ -1709,49 +1637,45 @@ export default function LMS() {
                 <p className="text-xs text-gray-400 mt-1">{searchQuery.trim() ? `Tidak ada kursus yang cocok dengan "${searchQuery.trim()}".` : 'Pilih kategori lain untuk melihat kursusnya.'}</p>
               </div>
             ) : (
-            <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+<div className="grid grid-cols-2 gap-2.5 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {visibleCourses.map(course => (
-                <button key={course.id} onClick={() => handleCourseClick(course)}
-                  className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg hover:shadow-gray-200/50 hover:border-gray-300 transition-all text-left group">
-                  <div className="h-24 sm:h-28 lg:h-32 bg-gradient-to-br from-[#0E6187] to-[#1a3355] flex items-center justify-center relative overflow-hidden">
+<button key={course.id} onClick={() => handleCourseClick(course)}
+                  className="bg-white rounded-md shadow-sm border border-gray-200 overflow-hidden hover:shadow-md hover:shadow-gray-200/50 hover:border-[#0E6187]/40 transition-all text-left group flex flex-col">
+                  <div className="aspect-[4/3] bg-gradient-to-br from-[#0E6187] to-[#1a3355] flex items-center justify-center relative overflow-hidden shrink-0">
                     {course.image ? (
                       <img src={`${APP_URL}/storage/${course.image}`} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     ) : (
                       <img src={DEFAULT_COURSE_COVER} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                    <div className="absolute inset-0 bg-[#0E6187]/40" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
                     {course.category && (
                       <div className="absolute top-2 left-2">
-                        <span className="inline-block rounded-full bg-[#0E6187] px-2 py-0.5 text-[8px] font-bold text-white shadow-md ring-1 ring-white/40">
+                        <span className="inline-block rounded-full bg-white/90 px-2 py-0.5 text-[8px] font-bold text-[#0E6187] shadow-sm">
                           {course.category.name}
                         </span>
                       </div>
                     )}
+                    <span className="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded-full bg-black/35 px-2 py-0.5 text-[8px] sm:text-[9px] font-bold text-white ring-1 ring-white/20 backdrop-blur">
+                      <Play size={9} /> {course.lessons_count} Pel
+                    </span>
                   </div>
-                  <div className="p-3">
-                    <h3 className="text-[11px] sm:text-sm font-bold text-gray-900 leading-snug line-clamp-2 min-h-[2.6em] sm:min-h-0 group-hover:text-[#0E6187] transition-colors">
+                  <div className="p-2.5 sm:p-3 flex flex-col flex-1">
+                    <h3 className="text-[11px] sm:text-[13px] md:text-sm font-bold text-gray-900 leading-snug line-clamp-1 sm:line-clamp-2 group-hover:text-[#0E6187] transition-colors" title={course.title}>
                       {course.title}
                     </h3>
                     {course.description && (
-                      <div className="text-[8px] sm:text-[11px] text-gray-400 mt-1 line-clamp-1 sm:line-clamp-2 leading-relaxed [&_*]:inline"
+                      <p className="text-[8px] sm:text-[10px] text-gray-400 mt-0.5 line-clamp-1 leading-relaxed [&_*]:inline"
                         title={course.description.replace(/<[^>]*>/g, ' ')}
                         dangerouslySetInnerHTML={{ __html: course.description }} />
                     )}
-                    {(course.batch || course.level) && (
-                      <div className="mt-1.5 flex flex-col gap-1">
-                       
-                        {course.level && (
-                          <span className="self-start px-2 py-0.5 rounded-md text-[8px] sm:text-[9px] font-bold bg-[#0E6187]/10 text-[#0E6187]">
-                            Level {course.level}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                    <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-gray-100">
-                      <span className="flex items-center gap-1 text-[8px] sm:text-[10px] font-bold text-slate-400 whitespace-nowrap">
-                        <Play size={10} /> {course.lessons_count} Pel
-                      </span>
-                      <span className="flex items-center gap-0.5 text-[8px] sm:text-[10px] font-bold text-[#0E6187] whitespace-nowrap">
+                    <div className="mt-auto flex items-center justify-between pt-2 gap-2">
+                      {course.level ? (
+                        <span className="px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-bold bg-[#0E6187]/10 text-[#0E6187]">
+                          Level {course.level}
+                        </span>
+                      ) : <span />}
+                      <span className="flex items-center gap-0.5 text-[9px] sm:text-[10px] font-bold text-slate-400 group-hover:text-[#0E6187] whitespace-nowrap transition-colors">
                         Buka <ChevronRight size={10} />
                       </span>
                     </div>
@@ -1760,13 +1684,44 @@ export default function LMS() {
               ))}
             </div>
             )}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-1.5 pt-3 pb-1">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition-all hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`flex h-8 min-w-[2rem] items-center justify-center rounded-lg text-[11px] font-bold transition-all ${
+                      page === currentPage
+                        ? 'bg-[#0E6187] text-white shadow-md shadow-[#0E6187]/20'
+                        : 'border border-gray-200 bg-white text-gray-500 hover:bg-gray-50'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition-all hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>
 
       {/* ============ Bottom Nav Bar ============ */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden">
-        <div className="mx-auto grid max-w-lg grid-cols-5">
+      <nav className="fixed bottom-3 left-3 right-3 z-40 rounded-2xl border border-slate-200 bg-white/95 shadow-lg shadow-slate-900/10 backdrop-blur lg:hidden">
+        <div className="mx-auto grid max-w-md grid-cols-5">
           {bottomNav.map(nav => {
             const Icon = nav.icon
             const isActive = nav.to === location.pathname
@@ -1774,12 +1729,18 @@ export default function LMS() {
               <Link
                 key={nav.label}
                 to={nav.to}
-                className={`flex flex-col items-center gap-1 py-2.5 transition ${
+                className={`group flex flex-col items-center justify-center py-2 transition ${
                   isActive ? 'text-[#0E6187]' : 'text-slate-400'
                 }`}
               >
-                <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
-                <span className="text-[10px] font-medium">{nav.label}</span>
+                <span className={`flex h-9 w-9 items-center justify-center rounded-xl transition-all ${
+                  isActive
+                    ? 'bg-[#0E6187] text-white'
+                    : 'group-hover:bg-[#0E6187] group-hover:text-white'
+                }`}>
+                  <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
+                </span>
+                <span className="mt-0.5 text-[9px] font-semibold">{nav.label}</span>
               </Link>
             )
           })}
@@ -1788,88 +1749,98 @@ export default function LMS() {
 
       {/* ============ Rank Quiz Modal ============ */}
       {showRankModal && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-white" onClick={() => setShowRankModal(false)}>
-          <div className="flex h-full w-full flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 shrink-0">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowRankModal(false)}>
+          <div className="flex w-full max-w-md max-h-[85vh] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3.5 shrink-0">
               <div>
                 <h2 className="flex items-center gap-2 text-sm font-bold text-slate-800">
                   <Trophy size={16} className="text-amber-500" /> Rank Quiz
                 </h2>
-                <p className="mt-0.5 text-[11px] text-slate-400">Peringkat nilai terbaik setiap paket soal</p>
+                <p className="mt-0.5 text-[10px] text-slate-400">Peringkat nilai terbaik setiap paket soal</p>
               </div>
               <button onClick={() => setShowRankModal(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200">
+                className="flex h-8 w-8 items-center justify-center rounded-md bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200">
                 <X size={16} />
               </button>
             </div>
 
-            <div className="mx-auto w-full max-w-2xl flex-1 space-y-3 overflow-y-auto p-5">
+            <div className="space-y-3 overflow-y-auto p-4">
               {rankLoading ? (
                 <div className="flex flex-col items-center justify-center py-16 text-slate-400">
                   <div className="h-7 w-7 rounded-full border-2 border-slate-200 border-t-[#0E6187] animate-spin" />
                   <p className="mt-3 text-xs font-medium">Memuat peringkat...</p>
                 </div>
               ) : rankData.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-12 text-center">
+                <div className="rounded-md border border-dashed border-slate-200 bg-slate-50 p-12 text-center">
                   <Trophy size={28} className="mx-auto mb-2 text-slate-300" />
                   <p className="text-sm font-bold text-slate-700">Belum ada peringkat</p>
-                  <p className="mt-1 text-[11px] text-slate-400">Peringkat akan muncul setelah kandidat mengerjakan quiz</p>
+                  <p className="mt-1 text-[10px] text-slate-400">Peringkat akan muncul setelah kandidat mengerjakan quiz</p>
                 </div>
               ) : (
                 rankData.map(lb => (
-                  <div key={lb.paket_id} className="rounded-2xl border border-slate-100 bg-slate-50 p-3.5">
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-amber-100 text-amber-700">
-                        <Trophy size={13} />
+                  <div key={lb.paket_id} className="overflow-hidden rounded-md border border-slate-200">
+                    <div className="flex items-center gap-2.5 border-b border-slate-200 bg-slate-50 px-3 py-2.5">
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-amber-100 text-amber-700">
+                        <Trophy size={12} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs font-bold text-slate-800">{lb.title}</p>
+                        <p className="truncate text-[11px] font-bold text-slate-800">{lb.title}</p>
                         <p className="text-[10px] text-slate-400">
                           {[lb.course, lb.level && `Level ${lb.level}`].filter(Boolean).join(' · ') || 'Quiz'}
                         </p>
                       </div>
                       {lb.max_score != null && (
-                        <span className="shrink-0 text-[10px] font-bold text-slate-400">Max {lb.max_score} poin</span>
+                        <span className="shrink-0 text-[10px] font-bold text-slate-400">Max {lb.max_score}</span>
                       )}
                     </div>
-                    <div className="mt-2.5 space-y-1">
-                      {lb.entries.map(e => {
-                        const isMe = e.nama === user?.name
-                        return (
-                          <div key={e.siswa_id} className={`flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 ${
-                            isMe ? 'bg-[#0E6187]/10 ring-1 ring-[#0E6187]/30' : 'bg-white'
-                          }`}>
-                            <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${rankStylesLms(e.rank)}`}>
-                              {e.rank}
-                            </span>
-                            <div className="min-w-0 flex-1">
-                              <p className={`truncate text-[11px] font-semibold ${isMe ? 'text-[#0E6187]' : 'text-slate-700'}`}>
-                                {e.nama}{isMe && <span className="ml-1 text-[9px] font-bold text-[#0E6187]">(Kamu)</span>}
-                              </p>
-                              <p className="text-[9.5px] text-slate-400">
-                                {[e.cabang, e.batch, e.level != null && `Level ${e.level}`].filter(Boolean).join(' · ') || '-'}
-                              </p>
+
+                    <div className="grid grid-cols-[2.75rem_1fr_3.25rem] items-center gap-2 border-b border-slate-100 bg-slate-100/70 px-3 py-1.5">
+                      <span className="text-center text-[9px] font-bold uppercase tracking-wide text-slate-400">#</span>
+                      <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Nama</span>
+                      <span className="text-right text-[9px] font-bold uppercase tracking-wide text-slate-400">Skor</span>
+                    </div>
+
+                    {lb.entries.length > 0 && (
+                      <div className="divide-y divide-slate-100">
+                        {lb.entries.map(e => {
+                          const isMe = e.nama === user?.name
+                          return (
+                            <div key={e.siswa_id} className={`grid grid-cols-[2.75rem_1fr_3.25rem] items-center gap-2 px-3 py-2 ${
+                              isMe ? 'bg-[#0E6187]/10' : 'bg-white'
+                            }`}>
+                              <span className={`mx-auto flex h-5 w-5 items-center justify-center rounded-md text-[10px] font-bold ${rankStylesLms(e.rank)}`}>
+                                {e.rank}
+                              </span>
+                              <div className="min-w-0">
+                                <p className={`truncate text-[11px] font-semibold ${isMe ? 'text-[#0E6187]' : 'text-slate-700'}`}>
+                                  {e.nama}{isMe && <span className="ml-1 text-[9px] font-bold text-[#0E6187]">(Kamu)</span>}
+                                </p>
+                                <p className="truncate text-[9.5px] text-slate-400">
+                                  {[e.cabang, e.batch, e.level != null && `Level ${e.level}`].filter(Boolean).join(' · ') || '-'}
+                                </p>
+                              </div>
+                              <span className="justify-self-end rounded-md bg-slate-800 px-2 py-0.5 text-[10px] font-bold text-white">{e.best_score}</span>
                             </div>
-                            <span className="shrink-0 rounded-md bg-slate-800 px-2 py-0.5 text-[10px] font-bold text-white">{e.best_score}</span>
-                          </div>
-                        )
-                      })}
-                      {lb.my_rank != null && lb.my_score != null && !lb.entries.some(e => e.nama === user?.name) && (
-                        <div className="flex items-center gap-2.5 rounded-xl bg-[#0E6187]/10 ring-1 ring-[#0E6187]/30 px-2.5 py-1.5">
-                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-700 text-[10px] font-bold text-white">#{lb.my_rank}</span>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-[11px] font-semibold text-[#0E6187]">
-                              {user?.name || 'Kamu'} <span className="text-[9px] font-bold">(Kamu)</span>
-                            </p>
-                            <p className="text-[9.5px] text-slate-400">Peringkat #{lb.my_rank} dari keseluruhan peserta</p>
-                          </div>
-                          <span className="shrink-0 rounded-md bg-slate-800 px-2 py-0.5 text-[10px] font-bold text-white">{lb.my_score}</span>
+                          )
+                        })}
+                      </div>
+                    )}
+
+                    {lb.my_rank != null && lb.my_score != null && !lb.entries.some(e => e.nama === user?.name) && (
+                      <div className="grid grid-cols-[2.75rem_1fr_3.25rem] items-center gap-2 bg-[#0E6187]/10 px-3 py-2">
+                        <span className="mx-auto flex h-5 w-5 items-center justify-center rounded-md bg-slate-700 text-[10px] font-bold text-white">{lb.my_rank}</span>
+                        <div className="min-w-0">
+                          <p className="truncate text-[11px] font-semibold text-[#0E6187]">
+                            {user?.name || 'Kamu'} <span className="text-[9px] font-bold">(Kamu)</span>
+                          </p>
+                          <p className="text-[9.5px] text-slate-400">Peringkat #{lb.my_rank} dari keseluruhan peserta</p>
                         </div>
-                      )}
-                      {lb.entries.length === 0 && lb.my_score == null && (
-                        <p className="py-3 text-center text-[11px] text-slate-400">Belum ada peserta mengerjakan</p>
-                      )}
-                    </div>
+                        <span className="justify-self-end rounded-md bg-slate-800 px-2 py-0.5 text-[10px] font-bold text-white">{lb.my_score}</span>
+                      </div>
+                    )}
+                    {lb.entries.length === 0 && lb.my_score == null && (
+                      <p className="bg-white py-3 text-center text-[11px] text-slate-400">Belum ada peserta mengerjakan</p>
+                    )}
                   </div>
                 ))
               )}

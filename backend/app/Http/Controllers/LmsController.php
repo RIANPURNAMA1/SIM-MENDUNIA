@@ -63,7 +63,7 @@ class LmsController extends Controller
 
         $query = Course::withCount(['lessons' => function ($q) {
             $q->where('status', 'aktif');
-        }])->aktif()->orderBy('sort');
+        }])->orderBy('sort');
 
         if ($siswa->batch_id) {
             $query->where(function ($q) use ($siswa) {
@@ -125,7 +125,7 @@ class LmsController extends Controller
             return response()->json(['message' => 'Siswa not found'], 404);
         }
 
-        $lesson = Lesson::aktif()->with('course', 'slides', 'paket.course:id,title')->findOrFail($id);
+        $lesson = Lesson::aktif()->with('course', 'slides', 'paket.course:id,title', 'linkPakets.course:id,title')->findOrFail($id);
 
         $progress = LmsProgress::where('lesson_id', $lesson->id)
             ->where('siswa_id', $siswa->id)
@@ -147,33 +147,41 @@ class LmsController extends Controller
             ];
         }
 
-        $quizPayload = null;
-        if ($lesson->paket_id && $lesson->paket) {
-            $paket = $lesson->paket;
-            $attempts = QuizAttempt::where('quiz_paket_id', $paket->id)
+        $pakets = collect();
+        if ($lesson->paket) {
+            $pakets->push($lesson->paket);
+        }
+        foreach ($lesson->linkPakets as $lp) {
+            $pakets->push($lp);
+        }
+        $pakets = $pakets->unique('id')->values();
+
+        $quizzes = $pakets->map(function ($p) use ($siswa) {
+            $attempts = QuizAttempt::where('quiz_paket_id', $p->id)
                 ->where('siswa_id', $siswa->id)
                 ->orderBy('attempt_number')
                 ->get();
             $used = $attempts->count();
             $best = $attempts->where('status', 'submitted')->max('score');
-            $quizPayload = [
-                'id' => $paket->id,
-                'title' => $paket->title,
-                'description' => $paket->description,
-                'category' => $paket->category,
-                'cover_url' => $paket->cover_url,
-                'course_id' => $paket->course_id,
-                'course_title' => optional($paket->course)->title,
-                'questions_count' => $paket->questions()->count(),
-                'time_limit_minutes' => $paket->time_limit_minutes,
-                'max_attempts' => $paket->max_attempts,
-                'passing_score' => (int) $paket->passing_score,
+
+            return [
+                'id' => $p->id,
+                'title' => $p->title,
+                'description' => $p->description,
+                'category' => $p->category,
+                'cover_url' => $p->cover_url,
+                'course_id' => $p->course_id,
+                'course_title' => optional($p->course)->title,
+                'questions_count' => $p->questions()->count(),
+                'time_limit_minutes' => $p->time_limit_minutes,
+                'max_attempts' => $p->max_attempts,
+                'passing_score' => (int) $p->passing_score,
                 'attempts_used' => $used,
                 'best_score' => $best === null ? null : (int) $best,
-                'can_start' => $used < $paket->max_attempts,
-                'is_unlocked' => true,
+                'can_start' => $used < $p->max_attempts,
+                'is_unlocked' => $p->status === 'aktif',
             ];
-        }
+        })->values();
 
         return response()->json([
             'lesson' => $lesson,
@@ -184,7 +192,7 @@ class LmsController extends Controller
                 'url' => asset('storage/' . $s->file_path),
             ]),
             'recap' => $recapPayload,
-            'quiz' => $quizPayload,
+            'quizzes' => $quizzes,
             'completed' => $progress && $progress->completed_at !== null,
             'completed_at' => $progress?->completed_at,
             'progress' => $this->progressPayload($lesson, $progress),

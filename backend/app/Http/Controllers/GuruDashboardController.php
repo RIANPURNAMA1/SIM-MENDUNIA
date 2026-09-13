@@ -11,6 +11,7 @@ use App\Models\CourseFile;
 use App\Models\Lesson;
 use App\Models\LessonRecap;
 use App\Models\LessonSlide;
+use App\Models\QuizPaket;
 use Illuminate\Support\Facades\Storage;
 use App\Models\DailyAssessmentStatus;
 use App\Models\LmsAssignment;
@@ -714,7 +715,7 @@ class GuruDashboardController extends Controller
 
         $course = Course::withCount('lessons')->findOrFail($courseId);
         $course->can_manage = (int) $course->user_id === (int) $user->id;
-        $lessons = $course->lessons()->with('paket', 'slides')->orderBy('sort')->get();
+        $lessons = $course->lessons()->with('paket', 'linkPakets', 'slides')->orderBy('sort')->get();
 
         $lessons->transform(function ($lesson) {
             $lesson->slides->transform(function ($s) {
@@ -736,6 +737,7 @@ class GuruDashboardController extends Controller
 
         $lesson = Lesson::with([
             'paket' => fn ($q) => $q->withCount('questions')->withCount('attempts'),
+            'linkPakets' => fn ($q) => $q->withCount('questions')->withCount('attempts')->orderBy('id'),
             'slides',
             'recap',
             'course',
@@ -974,6 +976,52 @@ class GuruDashboardController extends Controller
         }
 
         return response()->json(['message' => 'Rekap pertemuan dihapus']);
+    }
+
+    // ========== Guru Lesson Bank Pakets (multiple quiz per pertemuan) ==========
+
+    public function guruAttachLessonPaket(Request $request, $id)
+    {
+        $user = Auth::guard('sanctum')->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $data = $request->validate([
+            'quiz_paket_id' => 'required|exists:quiz_pakets,id',
+        ]);
+
+        $lesson = Lesson::findOrFail($id);
+        $this->courseOwnedByGuru($lesson->course_id, $user);
+
+        $paket = QuizPaket::find($data['quiz_paket_id']);
+        if (!$paket) {
+            return response()->json(['message' => 'Paket soal tidak ditemukan'], 422);
+        }
+
+        $lesson->linkPakets()->syncWithoutDetaching([$paket->id]);
+
+        return response()->json(['message' => 'Paket soal ditambahkan', 'quiz_paket_id' => $paket->id]);
+    }
+
+    public function guruDetachLessonPaket(Request $request, $id, $paketId)
+    {
+        $user = Auth::guard('sanctum')->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $lesson = Lesson::findOrFail($id);
+        $this->courseOwnedByGuru($lesson->course_id, $user);
+
+        $lesson->linkPakets()->detach($paketId);
+
+        if ((int) $lesson->paket_id === (int) $paketId) {
+            $lesson->paket_id = null;
+            $lesson->save();
+        }
+
+        return response()->json(['message' => 'Paket soal dilepas dari pertemuan']);
     }
 
     // ========== Guru Assignment Management ==========

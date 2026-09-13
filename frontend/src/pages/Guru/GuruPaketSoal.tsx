@@ -3,9 +3,9 @@ import {
   Plus, X, Trash2, ArrowLeft, HelpCircle, ListChecks, Eye,
   ChevronUp, ChevronDown, Camera, Clock, Repeat, Award, Users,
   BookOpen, Loader2, ImageIcon, UploadCloud, Mic, RotateCcw,
-  LayoutGrid, ShieldCheck,
+  LayoutGrid, ShieldCheck, Pencil,
 } from 'lucide-react'
-import { guruQuizApi } from '../../services/api'
+import { guruQuizApi, APP_URL } from '../../services/api'
 import Swal from 'sweetalert2'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
 
@@ -47,9 +47,11 @@ interface Paket {
 interface Question {
   id: number
   question: string
+  section_id: number | null
+  section: { id: number; name: string } | null
   question_type: string
   rating_max: number | null
-  options: string[]
+  options: OptionEntry[]
   correct_index: number | null
   points: number
   sort: number
@@ -58,6 +60,13 @@ interface Question {
   audio_path: string | null
   audio_url: string | null
   audio_max_plays: number | null
+}
+
+interface SectionItem {
+  id: number
+  name: string
+  sort: number
+  questions_count: number
 }
 
 interface Batch { id: number; nama_batch: string }
@@ -78,6 +87,21 @@ interface AttemptRow {
   webcam_photo: string | null
 }
 
+interface QuizOpt {
+  text: string
+  image_path: string | null
+  image_url: string | null
+}
+
+type OptionEntry = string | { text?: string; image_path?: string | null; image_url?: string | null }
+
+const optText = (o: OptionEntry) => (typeof o === 'string' ? o : (o?.text ?? ''))
+const optAbsUrl = (o: OptionEntry) => {
+  const p = typeof o === 'string' ? null : (o?.image_url || o?.image_path || null)
+  if (!p) return null
+  return p.startsWith('http') ? p : `${APP_URL}/storage/${p}`
+}
+
 interface Participant {
   siswa_id: number
   nama: string
@@ -93,7 +117,7 @@ interface DetailRow {
   question: string
   question_type: string
   rating_max: number | null
-  options: string[]
+  options: OptionEntry[]
   correct_index: number | null
   points: number
   sort: number
@@ -110,7 +134,7 @@ const emptyPaketForm = {
   cover_image: '',
 }
 
-const emptyQuestionForm = { question: '', question_type: 'choice', rating_max: '9', correct_index: '', points: '1', image_path: '', image_url: '', audio_path: '', audio_url: '', audio_max_plays: '2' }
+const emptyQuestionForm = { question: '', section_id: '', question_type: 'choice', rating_max: '9', correct_index: '', points: '1', image_path: '', image_url: '', audio_path: '', audio_url: '', audio_max_plays: '2' }
 
 export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader, defaultBatchId, defaultLevel, initialPaketId }: GuruPaketSoalProps) {
   const [pakets, setPakets] = useState<Paket[]>([])
@@ -137,12 +161,19 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
   const [savingCategory, setSavingCategory] = useState(false)
 
   const [questions, setQuestions] = useState<Question[]>([])
+  const [sections, setSections] = useState<SectionItem[]>([])
   const [qLoading, setQLoading] = useState(false)
   const [showQuestionModal, setShowQuestionModal] = useState(false)
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null)
   const [qForm, setQForm] = useState({ ...emptyQuestionForm })
-  const [qOptions, setQOptions] = useState<string[]>(['', ''])
+  const [qOptions, setQOptions] = useState<QuizOpt[]>([{ text: '', image_path: null, image_url: null }, { text: '', image_path: null, image_url: null }])
   const [savingQuestion, setSavingQuestion] = useState(false)
+  const [uploadingOptImg, setUploadingOptImg] = useState<number | null>(null)
+  const [showSectionModal, setShowSectionModal] = useState(false)
+  const [showSectionListModal, setShowSectionListModal] = useState(false)
+  const [editingSection, setEditingSection] = useState<SectionItem | null>(null)
+  const [sectionName, setSectionName] = useState('')
+  const [savingSection, setSavingSection] = useState(false)
 
   const [participants, setParticipants] = useState<Participant[]>([])
   const [rLoading, setRLoading] = useState(false)
@@ -345,6 +376,9 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
     guruQuizApi.questions(p.id).then(res => {
       setQuestions(res.data.questions || [])
     }).catch(() => setQuestions([])).finally(() => setQLoading(false))
+    guruQuizApi.sections(p.id).then(res => {
+      setSections(res.data.sections || [])
+    }).catch(() => setSections([]))
   }
 
   const openResults = (p: Paket) => {
@@ -382,7 +416,7 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
   const openCreateQuestion = () => {
     setEditingQuestion(null)
     setQForm({ ...emptyQuestionForm })
-    setQOptions(['', ''])
+    setQOptions([{ text: '', image_path: null, image_url: null }, { text: '', image_path: null, image_url: null }])
     setShowQuestionModal(true)
   }
 
@@ -390,6 +424,7 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
     setEditingQuestion(q)
     setQForm({
       question: q.question,
+      section_id: q.section_id ? String(q.section_id) : '',
       question_type: q.question_type === 'rating' ? 'rating' : 'choice',
       rating_max: q.rating_max ? q.rating_max.toString() : '9',
       correct_index: q.correct_index?.toString() ?? '',
@@ -398,8 +433,81 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
       audio_path: q.audio_path || '', audio_url: q.audio_url || '',
       audio_max_plays: q.audio_max_plays != null ? q.audio_max_plays.toString() : '',
     })
-    setQOptions(q.question_type === 'rating' ? Array.from({ length: q.rating_max || 9 }, (_, i) => String(i + 1)) : [...q.options])
+    const seed = q.question_type === 'rating'
+      ? Array.from({ length: q.rating_max || 9 }, (_, i) => String(i + 1))
+      : (q.options || [])
+    setQOptions(seed.map(o => typeof o === 'string'
+      ? { text: o, image_path: null, image_url: null }
+      : { text: o?.text ?? '', image_path: o?.image_path || null, image_url: o?.image_url || null }))
     setShowQuestionModal(true)
+  }
+
+  const openSectionModal = (sec: SectionItem | null) => {
+    setEditingSection(sec)
+    setSectionName(sec?.name || '')
+    setShowSectionModal(true)
+  }
+
+  const saveSection = async () => {
+    if (!activePaket) return
+    const name = sectionName.trim()
+    if (!name) {
+      Swal.fire({ icon: 'warning', title: 'Nama bagian wajib diisi' })
+      return
+    }
+    setSavingSection(true)
+    try {
+      if (editingSection) {
+        await guruQuizApi.updateSection(editingSection.id, { name, sort: editingSection.sort })
+      } else {
+        await guruQuizApi.storeSection(activePaket.id, { name })
+      }
+      setShowSectionModal(false)
+      const res = await guruQuizApi.sections(activePaket.id)
+      setSections(res.data.sections || [])
+      Swal.fire({ icon: 'success', title: editingSection ? 'Bagian diperbarui' : 'Bagian ditambahkan', timer: 1000, showConfirmButton: false })
+    } catch {
+      Swal.fire({ icon: 'error', title: editingSection ? 'Gagal memperbarui bagian' : 'Gagal menambahkan bagian' })
+    } finally {
+      setSavingSection(false)
+    }
+  }
+
+  const deleteSection = (sec: SectionItem) => {
+    Swal.fire({
+      title: 'Hapus bagian?',
+      text: `Bagian "${sec.name}" dan pengelompokan soal akan dilepas (soal tetap ada)`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      confirmButtonText: 'Hapus',
+      cancelButtonText: 'Batal',
+    }).then(res => {
+      if (res.isConfirmed && activePaket) {
+        guruQuizApi.deleteSection(sec.id).then(async () => {
+          const r = await guruQuizApi.sections(activePaket.id)
+          setSections(r.data.sections || [])
+          openQuestions(activePaket)
+          Swal.fire({ icon: 'success', title: 'Bagian dihapus', timer: 1200, showConfirmButton: false })
+        }).catch(() => Swal.fire({ icon: 'error', title: 'Gagal menghapus bagian' }))
+      }
+    })
+  }
+
+  const uploadOptionImage = (file: File | undefined, oi: number) => {
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      Swal.fire({ icon: 'warning', title: 'File harus berupa gambar' }); return
+    }
+    const fd = new FormData()
+    fd.append('file', file)
+    setUploadingOptImg(oi)
+    guruQuizApi.uploadMedia(fd)
+      .then(res => {
+        setQOptions(prev => prev.map((o, i) => i === oi ? { ...o, image_path: res.data.path, image_url: res.data.url } : o))
+      })
+      .catch(() => Swal.fire({ icon: 'error', title: 'Gagal mengunggah gambar opsi' }))
+      .finally(() => setUploadingOptImg(null))
   }
 
   const saveQuestion = async () => {
@@ -414,9 +522,11 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
       const ratingMax = Math.min(10, Math.max(2, Number(qForm.rating_max) || 9))
       opts = Array.from({ length: ratingMax }, (_, i) => String(i + 1))
     } else {
-      opts = qOptions.map(o => o.trim()).filter(Boolean)
+      opts = qOptions
+        .map(o => ({ text: o.text.trim(), image_path: o.image_path || null }))
+        .filter(o => o.text || o.image_path) as unknown as string[]
       if (opts.length < 2) {
-        Swal.fire({ icon: 'warning', title: 'Minimal 2 opsi jawaban' })
+        Swal.fire({ icon: 'warning', title: 'Minimal 2 opsi jawaban (isi teks atau unggah gambar)' })
         return
       }
       if (qForm.correct_index === '' || Number(qForm.correct_index) >= opts.length) {
@@ -428,6 +538,7 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
     try {
       const data = {
         question: qForm.question,
+        section_id: qForm.section_id ? Number(qForm.section_id) : null,
         question_type: isRating ? 'rating' : 'choice',
         rating_max: isRating ? Number(qForm.rating_max) || 9 : null,
         options: opts,
@@ -510,6 +621,14 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
       guruQuizApi.updateQuestion(arr[swapIndex].id, { sort: arr[swapIndex].sort }),
     ]).catch(() => {})
   }
+
+  const questionGroups = questions.reduce<{ section: string; items: Question[] }[]>((acc, q) => {
+    const sec = q.section?.name?.trim() || ''
+    const last = acc[acc.length - 1]
+    if (last && last.section === sec) { last.items.push(q); return acc }
+    acc.push({ section: sec, items: [q] })
+    return acc
+  }, [])
 
   const openAttemptDetail = (attemptId: number) => {
     setShowDetailModal(true)
@@ -703,48 +822,63 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
                 <p className="text-[11px] text-[#8B90A0] font-medium mt-1">Tambahkan minimal 1 soal untuk paket ini</p>
               </div>
             ) : (
-              questions.map((q, i) => (
-                <div key={q.id} className="bg-white rounded-2xl border border-[#E5E7EF] p-5">
-                  <div className="flex items-start gap-3">
-                    <div className="flex flex-col items-center gap-1 mt-0.5">
-                      <button onClick={() => moveQuestion(i, 'up')} className="p-0.5 text-[#8B90A0] hover:text-[#0069b0]" disabled={i === 0}>
-                        <ChevronUp size={16} />
-                      </button>
-                      <button onClick={() => moveQuestion(i, 'down')} className="p-0.5 text-[#8B90A0] hover:text-[#0069b0]" disabled={i === questions.length - 1}>
-                        <ChevronDown size={16} />
-                      </button>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-[12.5px] font-bold text-[#14182B] leading-snug">{q.question}</p>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button onClick={() => openEditQuestion(q)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F4F5F8] hover:bg-[#E5E7EF] transition-colors">
-                            <Repeat size={13} className="text-[#4B5063]" />
-                          </button>
-                          <button onClick={() => deleteQuestion(q)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 transition-colors">
-                            <Trash2 size={13} className="text-red-500" />
-                          </button>
+              questionGroups.map(g => (
+                <div key={g.section || '__none'}>
+                  <div className="flex items-center gap-2 px-1 pt-2 pb-1">
+                    <span className="w-1 h-5 rounded-full bg-[#0069b0]" />
+                    <span className="text-[11px] font-bold text-[#14182B] uppercase tracking-wide">{g.section || 'Umum'}</span>
+                    <span className="text-[9.5px] text-[#8B90A0] font-semibold">{g.items.length} soal</span>
+                  </div>
+                  <div className="space-y-3">
+                    {g.items.map(q => {
+                      const i = questions.indexOf(q)
+                      return (
+                        <div key={q.id} className="bg-white rounded-2xl border border-[#E5E7EF] p-5">
+                          <div className="flex items-start gap-3">
+                            <div className="flex flex-col items-center gap-1 mt-0.5">
+                              <button onClick={() => moveQuestion(i, 'up')} className="p-0.5 text-[#8B90A0] hover:text-[#0069b0]" disabled={i === 0}>
+                                <ChevronUp size={16} />
+                              </button>
+                              <button onClick={() => moveQuestion(i, 'down')} className="p-0.5 text-[#8B90A0] hover:text-[#0069b0]" disabled={i === questions.length - 1}>
+                                <ChevronDown size={16} />
+                              </button>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="text-[12.5px] font-bold text-[#14182B] leading-snug">{q.question}</p>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button onClick={() => openEditQuestion(q)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F4F5F8] hover:bg-[#E5E7EF] transition-colors">
+                                    <Repeat size={13} className="text-[#4B5063]" />
+                                  </button>
+                                  <button onClick={() => deleteQuestion(q)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 transition-colors">
+                                    <Trash2 size={13} className="text-red-500" />
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="mt-2 space-y-1.5">
+                                {q.question_type === 'rating' ? (
+                                  <div className="flex items-center gap-2 text-[11.5px] px-3 py-1.5 rounded-lg bg-violet-50 text-violet-700 font-bold">
+                                    <span className="px-1.5 py-0.5 rounded-full bg-violet-500 text-white text-[9px] font-bold shrink-0">SKALA</span>
+                                    <span>Rating 1–{q.rating_max || q.options.length}</span>
+                                    <span className="ml-auto text-[9.5px] font-bold text-violet-400 shrink-0">TANPA KUNCI</span>
+                                  </div>
+                                ) : (q.options.map((opt, oi) => (
+                                  <div key={oi} className={`flex items-center gap-2 text-[11.5px] px-3 py-1.5 rounded-lg ${oi === q.correct_index ? 'bg-emerald-50 text-emerald-700 font-bold' : 'bg-[#F4F5F8] text-[#4B5063] font-medium'}`}>
+                                    <span className={`w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold shrink-0 ${oi === q.correct_index ? 'bg-emerald-500 text-white' : 'bg-[#E5E7EF] text-[#8B90A0]'}`}>
+                                      {String.fromCharCode(65 + oi)}
+                                    </span>
+                                    {optAbsUrl(opt) && <img src={optAbsUrl(opt)} className="h-5 w-5 rounded-md object-cover shrink-0" alt="" />}
+                                    {optText(opt) && <span>{optText(opt)}</span>}
+                                    {oi === q.correct_index && <span className="ml-auto text-[9.5px] font-bold text-emerald-500 shrink-0">BENAR</span>}
+                                  </div>
+                                )))}
+                              </div>
+                              <p className="text-[10px] text-[#8B90A0] font-semibold mt-2">Skor: {q.points} poin</p>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="mt-2 space-y-1.5">
-                        {q.question_type === 'rating' ? (
-                          <div className="flex items-center gap-2 text-[11.5px] px-3 py-1.5 rounded-lg bg-violet-50 text-violet-700 font-bold">
-                            <span className="px-1.5 py-0.5 rounded-full bg-violet-500 text-white text-[9px] font-bold shrink-0">SKALA</span>
-                            <span>Rating 1–{q.rating_max || q.options.length}</span>
-                            <span className="ml-auto text-[9.5px] font-bold text-violet-400 shrink-0">TANPA KUNCI</span>
-                          </div>
-                        ) : (q.options.map((opt, oi) => (
-                          <div key={oi} className={`flex items-center gap-2 text-[11.5px] px-3 py-1.5 rounded-lg ${oi === q.correct_index ? 'bg-emerald-50 text-emerald-700 font-bold' : 'bg-[#F4F5F8] text-[#4B5063] font-medium'}`}>
-                            <span className={`w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold shrink-0 ${oi === q.correct_index ? 'bg-emerald-500 text-white' : 'bg-[#E5E7EF] text-[#8B90A0]'}`}>
-                              {String.fromCharCode(65 + oi)}
-                            </span>
-                            {opt}
-                            {oi === q.correct_index && <span className="ml-auto text-[9.5px] font-bold text-emerald-500 shrink-0">BENAR</span>}
-                          </div>
-                        )))}
-                      </div>
-                      <p className="text-[10px] text-[#8B90A0] font-semibold mt-2">Skor: {q.points} poin</p>
-                    </div>
+                      )
+                    })}
                   </div>
                 </div>
               ))
@@ -1101,6 +1235,32 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
               </div>
 
               <div>
+                <label className="text-[11px] font-bold text-[#4B5063] mb-1.5 block">Bagian / Materi Soal <span className="text-[#8B90A0] font-medium">(opsional)</span></label>
+                <div className="flex items-center gap-2">
+                  <select value={qForm.section_id} onChange={e => setQForm({ ...qForm, section_id: e.target.value })}
+                    className="w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-3 bg-white focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10">
+                    <option value="">Tanpa bagian</option>
+                    {sections.map(s => (
+                      <option key={s.id} value={s.id}>{s.name}{s.questions_count ? ` (${s.questions_count})` : ''}</option>
+                    ))}
+                  </select>
+                  <button type="button" onClick={() => openSectionModal(null)}
+                    className="shrink-0 px-3 py-3 text-[10px] font-bold text-[#0069b0] border border-[#0069b0]/30 rounded-xl hover:bg-[#0069b0]/5">
+                    + Bagian
+                  </button>
+                </div>
+                {sections.length > 0 && (
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-[9.5px] font-bold text-[#8B90A0] uppercase tracking-wide">Bagian di paket ini:</span>
+                    <button type="button" onClick={() => setShowSectionListModal(true)}
+                      className="text-[10px] font-bold text-[#0069b0] hover:underline">
+                      Kelola bagian
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div>
                 <label className="text-[11px] font-bold text-[#4B5063] mb-1.5 block">Media Soal <span className="text-[#8B90A0] font-medium">(opsional)</span></label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className={`border border-[#E5E7EF] rounded-xl p-3 ${qForm.image_path ? 'bg-[#F7F8FA]' : ''}`}>
@@ -1209,9 +1369,28 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
                           className={`w-7 h-7 shrink-0 flex items-center justify-center rounded-full border-2 transition-colors ${qForm.correct_index === String(oi) ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-[#E5E7EF] text-[#8B90A0] hover:border-[#0069b0]'}`}>
                           {String.fromCharCode(65 + oi)}
                         </button>
-                        <input value={opt} onChange={e => { const arr = [...qOptions]; arr[oi] = e.target.value; setQOptions(arr) }}
-                          placeholder={`Opsi ${String.fromCharCode(65 + oi)}`}
+                        <input value={opt.text} onChange={e => { const arr = [...qOptions]; arr[oi] = { ...arr[oi], text: e.target.value }; setQOptions(arr) }}
+                          placeholder={opt.image_path ? `Opsi ${String.fromCharCode(65 + oi)} (gambar)` : `Opsi ${String.fromCharCode(65 + oi)}`}
                           className="flex-1 text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10" />
+                        <div className="relative shrink-0 h-9 w-9">
+                          <label title="Unggah gambar jawaban"
+                            className={`w-9 h-9 flex items-center justify-center rounded-xl border transition-colors cursor-pointer ${opt.image_path ? 'border-transparent' : 'border-[#E5E7EF] bg-[#F4F5F8] hover:border-[#0069b0] hover:text-[#0069b0] text-[#8B90A0]'} ${uploadingOptImg === oi ? 'opacity-50 pointer-events-none' : ''}`}>
+                            {uploadingOptImg === oi
+                              ? <Loader2 size={14} className="animate-spin text-[#0069b0]" />
+                              : opt.image_path
+                                ? <img src={opt.image_url || ''} className="w-9 h-9 rounded-xl object-cover" alt={`Opsi ${String.fromCharCode(65 + oi)}`} />
+                                : <ImageIcon size={14} />}
+                            <input type="file" accept="image/*" className="hidden" disabled={uploadingOptImg !== null}
+                              onChange={e => { uploadOptionImage(e.target.files?.[0], oi); e.target.value = '' }} />
+                          </label>
+                          {opt.image_path && (
+                            <button onClick={() => setQOptions(prev => prev.map((o, i) => i === oi ? { ...o, image_path: null, image_url: null } : o))}
+                              title="Hapus gambar opsi"
+                              className="absolute -top-1.5 -right-1.5 w-5 h-5 flex items-center justify-center rounded-full bg-red-500 text-white shadow">
+                              <X size={11} />
+                            </button>
+                          )}
+                        </div>
                         {qOptions.length > 2 && (
                           <button onClick={() => setQOptions(qOptions.filter((_, idx) => idx !== oi))} className="p-1 text-red-400 hover:text-red-500 shrink-0">
                             <X size={14} />
@@ -1221,12 +1400,12 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
                     ))}
                   </div>
                   {qOptions.length < 6 && (
-                    <button onClick={() => setQOptions([...qOptions, ''])}
+                    <button onClick={() => setQOptions([...qOptions, { text: '', image_path: null, image_url: null }])}
                       className="mt-2 flex items-center gap-1 text-[11px] font-bold text-[#0069b0]">
                       <Plus size={12} /> Tambah opsi
                     </button>
                   )}
-                  <p className="text-[10px] text-[#8B90A0] font-medium mt-2">Klik huruf <span className="font-bold text-emerald-500">A/B/C...</span> untuk menandai kunci jawaban.</p>
+                  <p className="text-[10px] text-[#8B90A0] font-medium mt-2">Klik huruf <span className="font-bold text-emerald-500">A/B/C...</span> untuk menandai kunci jawaban. Klik ikon <span className="font-bold text-[#0069b0]">gambar</span> di kanan opsi untuk menjadikan opsi berupa gambar.</p>
                 </div>
               )}
 
@@ -1305,13 +1484,13 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
                                   const isSelected = q.selected_index === oi
                                   return (
                                     <span key={oi} className={`w-8 h-8 flex items-center justify-center rounded-full text-[11px] font-bold border-2 ${isSelected ? 'border-violet-500 bg-violet-500 text-white' : 'border-[#E5E7EF] bg-[#F4F5F8] text-[#8B90A0]'}`}>
-                                      {opt}
+                                      {optText(opt)}
                                     </span>
                                   )
                                 })}
                               </div>
                               <p className="text-[10px] text-[#8B90A0] font-medium mt-1.5">
-                                Jawaban: <span className="font-bold text-violet-600">{q.selected_index !== null && q.selected_index !== undefined ? q.options[q.selected_index] : 'Tidak diisi'}</span>
+                                Jawaban: <span className="font-bold text-violet-600">{q.selected_index !== null && q.selected_index !== undefined ? optText(q.options[q.selected_index]) : 'Tidak diisi'}</span>
                                 {q.is_correct === true && <span className="ml-2 text-[9px] font-bold text-violet-500">TERISI · POIN DIBERIKAN</span>}
                               </p>
                             </div>
@@ -1324,7 +1503,8 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
                                 <span className={`w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold shrink-0 ${isCorrect ? 'bg-emerald-500 text-white' : isSelected ? 'bg-red-500 text-white' : 'bg-[#E5E7EF] text-[#8B90A0]'}`}>
                                   {String.fromCharCode(65 + oi)}
                                 </span>
-                                <span className="flex-1">{opt}</span>
+                                {optAbsUrl(opt) && <img src={optAbsUrl(opt)} className="h-5 w-5 rounded-md object-cover shrink-0" alt="" />}
+                                <span className="flex-1">{optText(opt)}</span>
                                 {isCorrect && <span className="text-[9px] font-bold shrink-0">KUNCI</span>}
                                 {isSelected && <span className="text-[9px] font-bold shrink-0">JAWABAN</span>}
                               </div>
@@ -1336,6 +1516,66 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Section add/edit modal */}
+      {showSectionModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onClick={() => setShowSectionModal(false)}>
+          <div className="bg-white w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl p-5" onClick={e => e.stopPropagation()}>
+            <h2 className="text-sm font-bold text-[#14182B] mb-1">{editingSection ? 'Ubah Bagian' : 'Tambah Bagian'}</h2>
+            <p className="text-[10px] text-[#8B90A0] font-medium mb-4">Bagian dipakai untuk mengelompokkan soal (contoh: Vocabulary, Grammar, Listening)</p>
+            <input autoFocus value={sectionName} onChange={e => setSectionName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') saveSection() }}
+              placeholder="Nama bagian..." className="w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-3 mb-4 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10" />
+            <div className="flex items-center gap-2">
+              <button onClick={() => setShowSectionModal(false)} className="flex-1 py-2.5 rounded-xl text-xs font-bold text-[#4B5063] bg-[#F4F5F8] hover:bg-[#E5E7EF]">Batal</button>
+              <button onClick={saveSection} disabled={savingSection}
+                className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white bg-[#0069b0] hover:bg-[#E3A62B] disabled:opacity-50">
+                {savingSection ? 'Menyimpan...' : editingSection ? 'Simpan' : 'Tambah'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Section list/manage modal */}
+      {showSectionListModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onClick={() => setShowSectionListModal(false)}>
+          <div className="bg-white w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-[#F0F1F5] sticky top-0 bg-white">
+              <div>
+                <h2 className="text-sm font-bold text-[#14182B]">Kelola Bagian</h2>
+                <p className="text-[10px] text-[#8B90A0] font-medium">{activePaket?.title}</p>
+              </div>
+              <button onClick={() => setShowSectionListModal(false)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F4F5F8] hover:bg-[#E5E7EF]">
+                <X size={15} className="text-[#4B5063]" />
+              </button>
+            </div>
+            <div className="p-4 space-y-2">
+              {sections.map(s => (
+                <div key={s.id} className="flex items-center gap-2 border border-[#E5E7EF] rounded-xl px-3 py-2.5">
+                  <span className="flex-1 text-xs font-bold text-[#14182B]">{s.name}</span>
+                  <span className="text-[10px] font-medium text-[#8B90A0]">{s.questions_count} soal</span>
+                  <button onClick={() => { setShowSectionListModal(false); openSectionModal(s) }}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg bg-[#F4F5F8] hover:bg-[#E5E7EF] text-[#4B5063]">
+                    <Pencil size={13} />
+                  </button>
+                  <button onClick={() => deleteSection(s)}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-500">
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              ))}
+              {sections.length === 0 && (
+                <p className="text-[11px] text-[#8B90A0] font-medium text-center py-6">Belum ada bagian. Tambah bagian untuk mengelompokkan soal.</p>
+              )}
+              <button onClick={() => { setShowSectionListModal(false); openSectionModal(null) }}
+                className="w-full mt-2 py-2.5 rounded-xl text-xs font-bold text-[#0069b0] border border-dashed border-[#0069b0]/40 hover:bg-[#0069b0]/5">
+                + Tambah Bagian
+              </button>
             </div>
           </div>
         </div>

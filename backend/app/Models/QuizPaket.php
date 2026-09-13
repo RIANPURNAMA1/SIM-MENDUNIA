@@ -20,6 +20,7 @@ class QuizPaket extends Model
         'max_warnings',
         'passing_score',
         'shuffle_questions',
+        'template',
         'status',
     ];
 
@@ -31,7 +32,12 @@ class QuizPaket extends Model
         'shuffle_questions' => 'boolean',
     ];
 
-    protected $appends = ['cover_url'];
+    protected $appends = ['cover_url', 'quiz_template'];
+
+    public function getQuizTemplateAttribute()
+    {
+        return $this->template ?? 'basic';
+    }
 
     public function getCoverUrlAttribute()
     {
@@ -59,6 +65,11 @@ class QuizPaket extends Model
     public function batch()
     {
         return $this->belongsTo(Batch::class, 'batch_id');
+    }
+
+    public function sections()
+    {
+        return $this->hasMany(QuizSection::class)->orderBy('sort')->orderBy('id');
     }
 
     public function questions()

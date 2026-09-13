@@ -20,7 +20,10 @@ class QuizController extends Controller
         if (!$siswa) {
             return collect();
         }
-        $lessons = Lesson::where('paket_id', $paket->id)
+        $lessons = Lesson::where(function ($q) use ($paket) {
+            $q->where('paket_id', $paket->id)
+                ->orWhereHas('linkPakets', fn ($sub) => $sub->where('quiz_paket_id', $paket->id));
+        })
             ->aktif()
             ->orderBy('sort')
             ->get();
@@ -40,6 +43,10 @@ class QuizController extends Controller
 
     private function paketUnlocked(QuizPaket $paket, ?Siswa $siswa): bool
     {
+        // Paket yang statusnya bukan 'aktif' (mis. "Ditutup") tidak boleh dikerjakan.
+        if ($paket->status !== 'aktif') {
+            return false;
+        }
         return true;
     }
 
@@ -197,6 +204,7 @@ class QuizController extends Controller
                 'attempts_used' => $used,
                 'best_score' => $best === null ? null : (int) $best,
                 'can_start' => $used < $p->max_attempts,
+                'quiz_template' => $p->quiz_template,
                 'is_unlocked' => $this->paketUnlocked($p, $siswa),
             ];
         });
@@ -208,12 +216,24 @@ class QuizController extends Controller
     {
         $siswa = $this->siswaUser();
         if (!$siswa) {
-            return response()->json(['paket' => null], 404);
+            return response()->json(['message' => 'Silakan login sebagai siswa terlebih dahulu.'], 404);
         }
 
-        $paket = QuizPaket::aktif()->withCount('questions')->findOrFail($id);
+        $paket = QuizPaket::aktif()->withCount('questions')->find($id);
+        if (!$paket) {
+            return response()->json(['message' => 'Paket soal tidak ditemukan atau sudah ditutup.'], 404);
+        }
         if (!$this->paketVisible($paket, $siswa)) {
-            return response()->json(['message' => 'Paket soal tidak tersedia'], 404);
+            $reason = [];
+            if ($paket->batch_id && $paket->batch_id != $siswa->batch_id) {
+                $reason[] = 'paket ini khusus batch ' . $paket->batch_id;
+            }
+            if ($paket->level && (string) $paket->level !== (string) $siswa->level) {
+                $reason[] = 'paket ini khusus level ' . $paket->level;
+            }
+            return response()->json([
+                'message' => 'Paket soal tidak tersedia untuk Anda (' . implode(', ', $reason) . '). Hubungi pengajar bila seharusnya bisa diakses.',
+            ], 404);
         }
 
         $attempts = QuizAttempt::where('quiz_paket_id', $paket->id)
@@ -291,6 +311,7 @@ class QuizController extends Controller
                 'max_attempts' => $paket->max_attempts,
                 'passing_score' => (int) $paket->passing_score,
                 'max_warnings' => (int) $paket->max_warnings,
+                'quiz_template' => $paket->quiz_template,
                 'has_prerequisite_course' => $hasPrerequisiteCourse,
             ],
             'lessons' => $lessons,
@@ -352,7 +373,8 @@ class QuizController extends Controller
         $questions = $paket->questions->map(fn ($q) => [
             'id' => $q->id,
             'question' => $q->question,
-            'options' => $q->options,
+            'section' => $q->section->name ?? null,
+            'options' => $this->optionList($q->options),
             'points' => $q->points,
             'image_url' => $q->image_url,
             'audio_url' => $q->audio_url,
@@ -371,6 +393,7 @@ class QuizController extends Controller
                 'time_limit_seconds' => (int) $attempt->time_limit_seconds,
                 'max_warnings' => (int) $paket->max_warnings,
             ],
+            'template' => $paket->quiz_template,
             'questions' => $questions,
         ], 201);
     }
@@ -444,14 +467,16 @@ class QuizController extends Controller
                 'max_warnings' => (int) $attempt->paket->max_warnings,
                 'warnings' => $attempt->warnings,
             ],
+            'template' => $attempt->paket->quiz_template,
             'questions' => $questions->map(function ($q) use ($answers) {
                 $a = $answers->get($q->id);
                 return [
                     'id' => $q->id,
                     'question' => $q->question,
+                    'section' => $q->section->name ?? null,
                     'question_type' => $q->question_type ?? 'choice',
                     'rating_max' => $q->rating_max,
-                    'options' => $q->options,
+                    'options' => $this->optionList($q->options),
                     'points' => $q->points,
                     'image_url' => $q->image_url,
                     'audio_url' => $q->audio_url,
@@ -564,5 +589,21 @@ class QuizController extends Controller
             'attempt' => $this->resultPayload($attempt),
             'message' => 'Quiz diselesaikan',
         ]);
+    }
+
+    private function optionList($options)
+    {
+        if (!is_array($options)) return [];
+        return array_map(function ($o) {
+            if (is_array($o)) {
+                $path = $o['image_path'] ?? null;
+                return [
+                    'text' => (string) ($o['text'] ?? ''),
+                    'image_path' => $path,
+                    'image_url' => $path ? asset('storage/' . $path) : null,
+                ];
+            }
+            return ['text' => (string) $o, 'image_path' => null, 'image_url' => null];
+        }, $options);
     }
 }

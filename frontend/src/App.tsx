@@ -282,7 +282,7 @@ function AppRoutes() {
         <Route path="lms/:courseId" element={<LMS />} />
         <Route path="lms/:courseId/materi/:lessonId" element={<LMS />} />
         <Route path="lms/:courseId/quiz" element={<LMS />} />
-        <Route path="quiz" element={<QuizKandidat />} />
+        <Route path="quiz" element={<Navigate to="/siswa-dashboard/lms" replace />} />
         <Route path="quiz/:paketId" element={<QuizKandidat />} />
         <Route path="quiz/:paketId/materi/:lessonId" element={<QuizKandidat />} />
         <Route path="quiz/:paketId/play/:attemptId" element={<QuizPlay />} />

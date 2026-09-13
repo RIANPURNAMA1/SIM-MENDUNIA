@@ -318,6 +318,11 @@ html.dark .border-\[\#e8eaf0\] { border-color: #334155; }
 html.dark .bg-\[\#f5f6f7\] { background-color: #1c2837; }
 html.dark .border-\[\#dddfe2\] { border-color: #334155; }
 html.dark .bg-\[\#dddfe2\] { background-color: #334155; }
+html.dark .bg-\[\#f2f4f8\] { background-color: #0f172a; }
+/* Semi-transparent white glass headers → dark glass on dark mode */
+html.dark .bg-white\/85 { background-color: rgba(15, 23, 42, 0.85); }
+html.dark .bg-white\/90 { background-color: rgba(15, 23, 42, 0.9); }
+html.dark .bg-white\/95 { background-color: rgba(15, 23, 42, 0.95); }
 
 /* ---- Tinted status backgrounds (hue preserved, translucent on dark) ---- */
 html.dark .bg-blue-50 { background-color: rgba(37, 99, 235, 0.15); }

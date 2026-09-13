@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Volume2, VolumeX } from 'lucide-react'
 import { quizApi } from '../../services/api'
+import { detectFace, faceModelsReady, loadFaceModels, type DetectedFace } from '../../utils/faceDetector'
 import Swal from 'sweetalert2'
 
 interface PlayQuestion {
@@ -15,6 +16,7 @@ interface PlayQuestion {
   audio_url?: string | null
   audio_max_plays?: number | null
   selected_index?: number | null
+  section?: string | null
 }
 
 interface PlayAttempt {
@@ -103,19 +105,32 @@ export default function QuizPlay() {
   const [warnBanner, setWarnBanner] = useState(false)
   const [testTitle, setTestTitle] = useState('')
   const [audioPlays, setAudioPlays] = useState<Record<number, number>>({})
+  const [cameraActive, setCameraActive] = useState(false)
+  const [faceMissing, setFaceMissing] = useState(false)
+  const [headTurned, setHeadTurned] = useState(false)
+  const [streamVersion, setStreamVersion] = useState(0)
+  const [monitorMsg, setMonitorMsg] = useState('')
 
   const endTimeRef = useRef(0)
   const streamRef = useRef<MediaStream | null>(null)
   const cameraRef = useRef<HTMLVideoElement | null>(null)
+  const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const snapshotRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const faceMonitorRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const shuffledRef = useRef(false)
+  const cameraAttachedRef = useRef(false)
+  const goneStreakRef = useRef(0)
+  const turnStreakRef = useRef(0)
+  const offenseRef = useRef(0)
 
   const stopTimers = useCallback(() => {
     if (countdownRef.current) clearInterval(countdownRef.current)
     if (snapshotRef.current) clearInterval(snapshotRef.current)
+    if (faceMonitorRef.current) clearInterval(faceMonitorRef.current)
     countdownRef.current = null
     snapshotRef.current = null
+    faceMonitorRef.current = null
   }, [])
 
   const stopStream = useCallback(() => {
@@ -144,6 +159,7 @@ export default function QuizPlay() {
           options: q.options, points: q.points,
           image_url: q.image_url ?? null, audio_url: q.audio_url ?? null,
           audio_max_plays: q.audio_max_plays ?? null, selected_index: q.selected_index ?? null,
+          section: q.section ?? null,
         }
       })
       if (!shuffledRef.current) {
@@ -152,6 +168,14 @@ export default function QuizPlay() {
       }
       setQuestions(qs)
       setSelected(pre)
+      setCameraActive(false)
+      setFaceMissing(false)
+      setHeadTurned(false)
+      setMonitorMsg('')
+      goneStreakRef.current = 0
+      turnStreakRef.current = 0
+      offenseRef.current = 0
+      cameraAttachedRef.current = false
 
       const endTime = Date.parse(a.started_at) + a.time_limit_seconds * 1000
       endTimeRef.current = endTime
@@ -170,8 +194,11 @@ export default function QuizPlay() {
   }, [load, stopTimers])
 
   // ── Camera stream for proctoring snapshots ──
-  const requestCamera = useCallback(async () => {
-    if (!navigator.mediaDevices?.getUserMedia) return
+  const requestCamera = useCallback(async (): Promise<boolean> => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraActive(false)
+      return false
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 } }, audio: false })
       stopStream()
@@ -179,16 +206,48 @@ export default function QuizPlay() {
       if (cameraRef.current) {
         cameraRef.current.srcObject = stream
         cameraRef.current.play().catch(() => {})
+        setCameraActive(true)
+      } else {
+        setCameraActive(false)
       }
+      setStreamVersion(v => v + 1)
+      return true
     } catch {
-      /* kamera tidak wajib di halaman play */
+      setCameraActive(false)
+      return false
     }
   }, [stopStream])
 
+  // Request camera with retries — during route transition to play, the previous
+  // page's stream may still hold the device, so getUserMedia can briefly fail.
   useEffect(() => {
-    requestCamera()
-    return stopStream
+    let cancelled = false
+    loadFaceModels()
+    const start = async (attempts: number) => {
+      const ok = await requestCamera()
+      if (cancelled) return
+      if (!ok && attempts > 0) {
+        setTimeout(() => start(attempts - 1), 900)
+      }
+    }
+    start(4)
+    return () => {
+      cancelled = true
+      stopStream()
+    }
   }, [requestCamera, stopStream])
+
+  // ── Attach stream to video once element exists ──
+  useEffect(() => {
+    if (isLoading || !streamRef.current || !cameraRef.current) return
+    cameraAttachedRef.current = true
+    const v = cameraRef.current
+    if (v.srcObject !== streamRef.current) v.srcObject = streamRef.current
+    const onMeta = () => setCameraActive(true)
+    v.addEventListener('loadedmetadata', onMeta)
+    v.play().catch(() => {})
+    return () => v.removeEventListener('loadedmetadata', onMeta)
+  }, [isLoading, streamVersion])
 
   // ── Timer + snapshots ──
   const submitNow = useCallback((reason: string) => {
@@ -215,6 +274,7 @@ export default function QuizPlay() {
       }
     }, 1000)
     snapshotRef.current = setInterval(captureSnapshot, 25000)
+    faceMonitorRef.current = setInterval(runDetection, 600)
     return stopTimers
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attempt, submitNow, stopTimers])
@@ -233,6 +293,108 @@ export default function QuizPlay() {
       quizApi.uploadWebcam(Number(attemptId), fd).catch(() => {})
     }, 'image/jpeg', 0.8)
   }
+
+  // ── Face / presence monitoring (proctoring) ──
+  // Offense 1 → warning banner + backend warn. Offense 2 → pengerjaan dianggap
+  // selesai, dikumpulkan otomatis, lalu kembali ke halaman paket.
+  const handleOffense = useCallback((reason: string) => {
+    if (!attemptId) return
+    offenseRef.current += 1
+    const offense = offenseRef.current
+    if (offense < 2) {
+      setFaceMissing(reason === 'wajah tak terdeteksi')
+      setMonitorMsg(`Kamera pengawas mendeteksi ${reason}. Jika terulang, pengerjaan akan dikumpulkan otomatis.`)
+      quizApi.warn(Number(attemptId)).then(res => {
+        const d = res.data
+        if (d.auto_submitted || d.status === 'submitted') submitNow(reason)
+      }).catch(() => {})
+      return
+    }
+    stopTimers()
+    setMonitorMsg('')
+    Swal.fire({
+      icon: 'warning',
+      title: 'Pengerjaan dikumpulkan otomatis',
+      text: `Kamera pengawas mendeteksi ${reason} secara berulang. Jawaban disimpan dan quiz dianggap selesai.`,
+      confirmButtonColor: '#0E6187',
+      confirmButtonText: 'OK',
+      allowOutsideClick: false,
+    })
+    submitNow(reason)
+  }, [attemptId, submitNow, stopTimers])
+
+  // Draw the detected face bounding box. Green normally, red while head is
+  // turned left/right. Coordinates are mapped from video pixels to the
+  // displayed (object-cover cropped) size of the widget.
+  const drawOverlay = useCallback((face: DetectedFace | null) => {
+    const cv = overlayCanvasRef.current
+    const video = cameraRef.current
+    if (!cv || !video) return
+    if (cv.width !== cv.clientWidth || cv.height !== cv.clientHeight) {
+      cv.width = cv.clientWidth
+      cv.height = cv.clientHeight
+    }
+    const ctx = cv.getContext('2d')
+    if (!ctx) return
+    ctx.clearRect(0, 0, cv.width, cv.height)
+    if (!face) return
+    const vw = video.videoWidth
+    const vh = video.videoHeight
+    if (!vw || !vh) return
+    const cw = cv.width
+    const ch = cv.height
+    const scale = Math.max(cw / vw, ch / vh)
+    const ox = (cw - vw * scale) / 2
+    const oy = (ch - vh * scale) / 2
+    const x = face.x * scale + ox
+    const y = face.y * scale + oy
+    const w = face.width * scale
+    const h = face.height * scale
+    const color = face.turned ? '#ef4444' : '#22c55e'
+    ctx.lineWidth = 2
+    ctx.strokeStyle = color
+    ctx.strokeRect(x, y, w, h)
+    const label = face.turned ? 'MENOLOH' : 'WAJAH'
+    ctx.font = 'bold 8px system-ui, sans-serif'
+    const tw = ctx.measureText(label).width
+    ctx.fillStyle = color
+    ctx.fillRect(x, y - 10, tw + 8, 10)
+    ctx.fillStyle = '#ffffff'
+    ctx.fillText(label, x + 4, y - 3)
+  }, [])
+
+  const runDetection = useCallback(async () => {
+    const video = cameraRef.current
+    if (!video || !streamRef.current) return
+    try {
+      const face = await detectFace(video)
+      drawOverlay(face)
+      setHeadTurned(face?.turned ?? false)
+
+      if (face) {
+        goneStreakRef.current = 0
+        setFaceMissing(false)
+        turnStreakRef.current = face.turned ? turnStreakRef.current + 1 : 0
+        if (turnStreakRef.current >= 4) {
+          turnStreakRef.current = 0
+          handleOffense('Anda menoleh ke samping')
+        }
+      } else {
+        turnStreakRef.current = 0
+        goneStreakRef.current += 1
+        if (goneStreakRef.current >= 6) {
+          goneStreakRef.current = 0
+          handleOffense('wajah tak terdeteksi')
+        }
+      }
+    } catch {
+      if (!faceModelsReady()) return
+      drawOverlay(null)
+      setHeadTurned(false)
+      turnStreakRef.current = 0
+      goneStreakRef.current = 0
+    }
+  }, [drawOverlay, handleOffense])
 
   // ── Warn on leaving page ──
   const sendWarn = useCallback(() => {
@@ -301,11 +463,22 @@ export default function QuizPlay() {
   const currentQuestion = questions[currentIndex]
 
   const sections = useMemo(() => {
-    if (!currentQuestion) return []
-    return [{ name: 'Quiz', total: questions.length, answered: answeredCount, startIndex: 0 }]
-  }, [questions, answeredCount, currentQuestion])
+    const acc: { name: string; total: number; answered: number; startIndex: number }[] = []
+    questions.forEach((q, idx) => {
+      const name = (q.section || '').trim()
+      const answered = selected[q.id] !== undefined && selected[q.id] !== null
+      const last = acc[acc.length - 1]
+      if (last && last.name === name) {
+        last.total++
+        if (answered) last.answered++
+      } else {
+        acc.push({ name, total: 1, answered: answered ? 1 : 0, startIndex: idx })
+      }
+    })
+    return acc
+  }, [questions, selected])
 
-  const currentSectionName = currentQuestion?.question ? 'Quiz' : ''
+  const currentSectionName = currentQuestion ? (currentQuestion.section || '').trim() : ''
   const sectionLocalIndex = currentIndex
   const isLast = currentIndex === questions.length - 1
 
@@ -327,12 +500,25 @@ export default function QuizPlay() {
               <span className="font-bold">{sectionLocalIndex + 1}</span>
             </p>
             <p className="mt-1 text-[13px] font-normal text-gray-300">Section:</p>
-            <p className="max-w-[160px] truncate text-[13px] font-semibold text-white">{currentSectionName}</p>
+            <p className="max-w-[160px] truncate text-[13px] font-semibold text-white">{currentSectionName || '—'}</p>
           </div>
 
           <div className="flex items-center gap-2">
-            {streamRef.current && (
-              <video ref={cameraRef} muted playsInline autoPlay className="h-12 w-16 rounded-lg border border-white/20 object-cover bg-black" />
+            {streamRef.current ? (
+              <div className="fixed bottom-24 right-3 z-40 md:static md:bottom-auto md:right-auto">
+                <div className="relative overflow-hidden rounded-md border border-white/20 bg-black shadow-lg md:shadow-none">
+                  <video ref={cameraRef} muted playsInline autoPlay className="h-28 w-40 object-cover md:h-16 md:w-24" />
+                  <canvas ref={overlayCanvasRef} className="pointer-events-none absolute inset-0 h-full w-full" />
+                  <span className={`absolute bottom-1 right-1 h-2 w-2 rounded-full border border-white/60 ${faceMissing ? 'bg-red-500' : cameraActive ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`} />
+                  <span className={`absolute bottom-0 left-0 right-0 px-1 py-0.5 text-center text-[9px] font-bold text-white ${headTurned ? 'bg-red-500/80' : faceMissing ? 'bg-red-500/80' : cameraActive ? 'bg-black/50' : 'bg-black/60'}`}>
+                    {headTurned ? 'Menoleh' : faceMissing ? 'Tak terdeteksi' : cameraActive ? 'Wajah OK' : 'Menghubungkan kamera...'}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded bg-red-500/15 px-2 py-1 text-[10px] font-bold text-red-300">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" /> Kamera mati
+              </span>
             )}
             <button
               onClick={submitManually}
@@ -374,12 +560,31 @@ export default function QuizPlay() {
         </div>
       )}
 
+      {/* ── Camera monitor banner ── */}
+      {monitorMsg && (
+        <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2">
+          <p className="flex-1 text-[11px] font-bold text-amber-700">{monitorMsg}</p>
+          <button onClick={() => setMonitorMsg('')} className="text-xs font-bold text-amber-400 hover:text-amber-700">✕</button>
+        </div>
+      )}
+
+      {/* ── Face missing banner ── */}
+      {faceMissing && !monitorMsg && (
+        <div className="flex items-center gap-2 border-b border-red-200 bg-red-50 px-4 py-2">
+          <p className="flex-1 text-[11px] font-bold text-red-600">
+            Kepala/wajah Anda tidak terdeteksi oleh kamera pengawas. Pastikan wajah terlihat jelas di depan kamera.
+          </p>
+          <button onClick={() => { setFaceMissing(false); goneStreakRef.current = 0 }}
+            className="text-xs font-bold text-red-400 hover:text-red-600">✕</button>
+        </div>
+      )}
+
       {/* ── Mobile: question navigator ── */}
       <div className="flex items-center gap-2 overflow-x-auto border-b border-gray-200 bg-white px-3 py-2 md:hidden">
         <span className="shrink-0 text-[10px] font-semibold text-gray-400">Soal:</span>
         {questions.map((q, idx) => {
           const isActive = idx === currentIndex
-          const isAnswered = !!selected[q.id]
+          const isAnswered = selected[q.id] !== undefined && selected[q.id] !== null
           const isFlagged = flagged.has(idx)
           return (
             <button
@@ -406,13 +611,17 @@ export default function QuizPlay() {
           <div className="flex">
             <div className="absolute inset-y-0 left-0 w-10 bg-white" />
             <div className="relative z-10 mr-2 flex w-10 shrink-0 flex-col py-4">
-              {sections.map(section => {
+              {sections.map((section, i) => {
                 const pct = section.total > 0 ? (section.answered / section.total) * 100 : 0
                 return (
-                  <div key={section.name} className="flex flex-col items-center px-2" style={{ flex: section.total }}>
-                    <p className={`mb-1 text-[12px] ${section.name === currentSectionName ? 'font-bold text-black' : 'font-medium text-gray-500'}`}>
-                      {section.name.substring(0, 2)}...
-                    </p>
+                  <div key={section.name || `sec-${i}`} className="flex flex-col items-center px-2" style={{ flex: section.total }}>
+                    {section.name ? (
+                      <p className={`mb-1 text-[12px] ${section.name === currentSectionName ? 'font-bold text-black' : 'font-medium text-gray-500'}`}>
+                        {section.name.substring(0, 2)}...
+                      </p>
+                    ) : (
+                      <p className="mb-1 text-[12px] text-gray-500">–</p>
+                    )}
                     <div className="relative w-2.5 flex-1 overflow-hidden rounded-full bg-[#e2e4e8]">
                       <div className="absolute bottom-0 left-0 w-full rounded-full bg-[#5e8b5d] transition-all duration-300" style={{ height: `${pct}%` }} />
                     </div>
@@ -424,28 +633,30 @@ export default function QuizPlay() {
             <div className="flex flex-1 flex-col py-4 pl-1">
               {questions.map((q, idx) => {
                 const isActive = idx === currentIndex
-                const isAnswered = !!selected[q.id]
+const isAnswered = selected[q.id] !== undefined && selected[q.id] !== null
                 const isFlagged = flagged.has(idx)
                 const bgColor = idx === currentIndex ? '#5e8b5d' : isAnswered ? '#474747' : '#5e8b5d'
                 return (
-                  <div key={q.id} className="flex items-center">
-                    <button
-                      onClick={() => setCurrentIndex(idx)}
-                      className="relative flex h-[28px] w-[56px] items-center justify-center rounded text-[13px] font-bold text-white transition-all hover:opacity-90"
-                      style={{ backgroundColor: bgColor }}
-                    >
-                      <span className="w-full text-center">{idx + 1}</span>
-                      {isFlagged && (
-                        <svg className="absolute right-[14px] top-1 h-[10px] w-[10px] fill-[#fde047] drop-shadow-sm" viewBox="0 0 24 24">
-                          <path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z" />
+                  <div key={q.id}>
+                    <div className="flex items-center pb-2">
+                      <button
+                        onClick={() => setCurrentIndex(idx)}
+                        className="relative flex h-[28px] w-[56px] items-center justify-center rounded text-[13px] font-bold text-white transition-all hover:opacity-90"
+                        style={{ backgroundColor: bgColor }}
+                      >
+                        <span className="w-full text-center">{idx + 1}</span>
+                        {isFlagged && (
+                          <svg className="absolute right-[14px] top-1 h-[10px] w-[10px] fill-[#fde047] drop-shadow-sm" viewBox="0 0 24 24">
+                            <path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z" />
+                          </svg>
+                        )}
+                      </button>
+                      {isActive && (
+                        <svg className="h-[14px] w-[10px] shrink-0" viewBox="0 0 10 14" fill={bgColor}>
+                          <path d="M0 0L10 7L0 14z" />
                         </svg>
                       )}
-                    </button>
-                    {isActive && (
-                      <svg className="h-[14px] w-[10px] shrink-0" viewBox="0 0 10 14" fill={bgColor}>
-                        <path d="M0 0L10 7L0 14z" />
-                      </svg>
-                    )}
+                    </div>
                   </div>
                 )
               })}
@@ -465,6 +676,7 @@ export default function QuizPlay() {
                         className="max-h-56 w-auto max-w-full rounded-lg border border-gray-200 bg-white object-contain" />
                     </div>
                   )}
+                  
                   <p className="text-base font-medium text-gray-900 md:text-lg">{currentQuestion.question}</p>
                   {currentQuestion.audio_url && (
                     <QuestionAudio
@@ -486,7 +698,9 @@ export default function QuizPlay() {
                 )}
                 {currentQuestion.options.map((opt, oi) => {
                   const isSelected = selected[currentQuestion.id] === oi
-                  const badgeLabel = currentQuestion.question_type === 'rating' ? opt : String.fromCharCode(65 + oi)
+                  const optLabel = typeof opt === 'string' ? opt : (opt?.text ?? '')
+                  const optImg = typeof opt === 'string' ? null : (opt?.image_url || null)
+                  const badgeLabel = currentQuestion.question_type === 'rating' ? optLabel : String.fromCharCode(65 + oi)
                   return (
                     <button
                       key={oi}
@@ -501,7 +715,8 @@ export default function QuizPlay() {
                       }`}>
                         {badgeLabel}
                       </span>
-                      <span className="text-sm text-gray-800 md:text-base">{opt}</span>
+                      {optImg && <img src={optImg} alt="" className="h-14 w-14 shrink-0 rounded-lg border border-gray-200 object-cover md:h-16 md:w-16" />}
+                      {optLabel && <span className="text-sm text-gray-800 md:text-base">{optLabel}</span>}
                       {isSelected && <span className={`ml-auto ${currentQuestion.question_type === 'rating' ? 'text-violet-500' : 'text-[#5e8b5d]'}`}>✓</span>}
                     </button>
                   )
