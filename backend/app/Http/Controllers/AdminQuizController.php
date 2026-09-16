@@ -357,6 +357,8 @@ $data = $request->validate([
             'is_active' => 'sometimes|boolean',
         ]);
 
+        $data['question'] = !empty(trim((string) ($data['question'] ?? ''))) ? trim((string) $data['question']) : null;
+
         if (!empty($data['section_id']) && !QuizSection::where('id', $data['section_id'])->where('quiz_paket_id', $paketId)->exists()) {
             return response()->json(['message' => 'Bagian tidak valid untuk paket ini'], 422);
         }
@@ -418,6 +420,10 @@ $data = $request->validate([
             'audio_path' => 'nullable|string',
             'audio_max_plays' => 'nullable|integer|min:1|max:99',
         ]);
+
+        if (isset($data['question'])) {
+            $data['question'] = !empty(trim((string) $data['question'])) ? trim((string) $data['question']) : null;
+        }
 
         if (!empty($data['section_id']) && !QuizSection::where('id', $data['section_id'])->where('quiz_paket_id', $question->quiz_paket_id)->exists()) {
             return response()->json(['message' => 'Bagian tidak valid untuk paket ini'], 422);
