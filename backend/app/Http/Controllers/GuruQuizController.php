@@ -128,13 +128,19 @@ class GuruQuizController extends Controller
         $batchIds = array_unique(array_map(fn ($p) => (int) explode(':', $p)[0], $pairs));
         $pairSet = array_fill_keys($pairs, true);
 
-        return Siswa::whereIn('batch_id', $batchIds)
+        $ids = Siswa::whereIn('batch_id', $batchIds)
             ->get()
             ->filter(fn ($s) => isset($pairSet["{$s->batch_id}:{$s->level}"]))
             ->pluck('id')
             ->map(fn ($id) => (int) $id)
             ->values()
             ->all();
+
+        if (empty($ids)) {
+            return null;
+        }
+
+        return $ids;
     }
 
     public function leaderboard()

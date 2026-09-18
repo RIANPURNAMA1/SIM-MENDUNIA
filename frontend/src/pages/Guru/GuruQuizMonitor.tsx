@@ -123,11 +123,24 @@ export default function GuruQuizMonitor() {
   const [lastSync, setLastSync] = useState<number | null>(null)
 
   const todayStr = toDateInput(new Date())
+  const urlDateParam = useRef(new URLSearchParams(window.location.search).get('date')).current
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     const p = new URLSearchParams(window.location.search).get('date')
     return p && /^\d{4}-\d{2}-\d{2}$/.test(p) ? p : todayStr
   })
+  const [userPickedDate, setUserPickedDate] = useState(false)
   const isToday = selectedDate === todayStr
+
+  useEffect(() => {
+    if (!data || userPickedDate || urlDateParam) return
+    const dates = data.dates || []
+    if (dates.length === 0) return
+    const hasAny = dates.some(d => d.date === selectedDate && d.count > 0)
+    if (!hasAny) {
+      const pick = dates.find(d => d.date < selectedDate) ?? dates[0]
+      if (pick && pick.date !== selectedDate) setSelectedDate(pick.date)
+    }
+  }, [data, selectedDate, userPickedDate, urlDateParam])
 
   const [detail, setDetail] = useState<AttemptDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
@@ -364,7 +377,7 @@ export default function GuruQuizMonitor() {
             <CalendarDays size={12} /> Hari:
           </span>
           {(data?.dates || []).map(dt => (
-            <button key={dt.date} onClick={() => setSelectedDate(dt.date)}
+            <button key={dt.date} onClick={() => { setUserPickedDate(true); setSelectedDate(dt.date) }}
               className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-bold transition-colors ${
                 selectedDate === dt.date
                   ? 'bg-[#0E6187] text-white'
@@ -375,7 +388,7 @@ export default function GuruQuizMonitor() {
             </button>
           ))}
           <input type="date" value={selectedDate} max={todayStr}
-            onChange={e => e.target.value && setSelectedDate(e.target.value)}
+            onChange={e => { if (!e.target.value) return; setUserPickedDate(true); setSelectedDate(e.target.value) }}
             className="ml-auto bg-white/5 border border-white/10 text-slate-200 text-[10px] font-bold rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#0E6187]"
             style={{ colorScheme: 'dark' }}
             title="Pilih tanggal lain" />
@@ -385,7 +398,11 @@ export default function GuruQuizMonitor() {
           <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.02] p-12 text-center">
             <CheckCircle2 size={28} className="text-slate-500 mx-auto mb-3" />
             <p className="text-sm font-bold text-slate-200">Belum ada kandidat mengerjakan pada {fmtDay(selectedDate, isToday).toLowerCase()}</p>
-            <p className="text-xs text-slate-500 font-medium mt-1">Kandidat yang mulai mengerjakan quiz ini pada hari tersebut akan muncul di sini.</p>
+            <p className="text-xs text-slate-500 font-medium mt-1">
+              {(data?.dates || []).length > 0
+                ? 'History pengerjaan ada di hari lain — pilih chip Hari di atas.'
+                : 'Kandidat yang mulai mengerjakan quiz ini pada hari tersebut akan muncul di sini.'}
+            </p>
           </div>
         ) : (
           <>
