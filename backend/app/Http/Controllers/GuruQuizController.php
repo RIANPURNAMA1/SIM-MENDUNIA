@@ -74,6 +74,69 @@ class GuruQuizController extends Controller
         abort(404);
     }
 
+    /**
+     * Kandidat yang boleh tampil pada monitor/hasil = siswa pada kelas yang
+     * BENAR-BENAR diajar sensei ini. Kelas diambil dari kursus milik sensei
+     * (lms_courses.kelas_sensei_id / batch+level kursus); bila sensei tidak
+     * punya kursus, fallback ke seluruh kelas_sensei milik user berstatus aktif.
+     * Pencocokan memakai batch_id & level, konsisten dengan diAjarSensei.
+     * Mengembalikan null saat sensei tidak punya kelas (mis. admin/operator)
+     * agar perilaku lama dipertahankan (tidak dibatasi).
+     */
+    private function classStudentIds($userId): ?array
+    {
+        $courses = Course::where('user_id', $userId)
+            ->where('status', 'aktif')
+            ->get(['kelas_sensei_id', 'batch_id', 'level']);
+
+        $kelasIds = $courses->pluck('kelas_sensei_id')->filter()->unique();
+
+        $pairs = $courses
+            ->filter(fn ($c) => !$c->kelas_sensei_id && $c->batch_id && $c->level !== null)
+            ->map(fn ($c) => "{$c->batch_id}:{$c->level}")
+            ->values()
+            ->all();
+
+        if ($kelasIds->isNotEmpty()) {
+            $pairs = array_merge($pairs, KelasSensei::whereIn('id', $kelasIds)
+                ->where('status', 'aktif')
+                ->whereNotNull('batch_id')
+                ->whereNotNull('level')
+                ->get(['batch_id', 'level'])
+                ->map(fn ($k) => "{$k->batch_id}:{$k->level}")
+                ->values()
+                ->all());
+        }
+
+        if (empty($pairs) && $courses->isEmpty()) {
+            $pairs = KelasSensei::where('user_id', $userId)
+                ->where('status', 'aktif')
+                ->whereNotNull('batch_id')
+                ->whereNotNull('level')
+                ->get(['batch_id', 'level'])
+                ->map(fn ($k) => "{$k->batch_id}:{$k->level}")
+                ->values()
+                ->all();
+        }
+
+        $pairs = array_values(array_unique($pairs));
+
+        if (empty($pairs)) {
+            return null;
+        }
+
+        $batchIds = array_unique(array_map(fn ($p) => (int) explode(':', $p)[0], $pairs));
+        $pairSet = array_fill_keys($pairs, true);
+
+        return Siswa::whereIn('batch_id', $batchIds)
+            ->get()
+            ->filter(fn ($s) => isset($pairSet["{$s->batch_id}:{$s->level}"]))
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+    }
+
     public function leaderboard()
     {
         $user = $this->guruUser();
@@ -88,12 +151,15 @@ class GuruQuizController extends Controller
             ->take(20)
             ->get();
 
+        $classIds = $this->classStudentIds($user->id);
+
         $result = [];
         foreach ($packets as $paket) {
             $bestRows = QuizAttempt::query()
                 ->where('quiz_paket_id', $paket->id)
                 ->where('status', 'submitted')
                 ->whereNotNull('score')
+                ->when($classIds !== null, fn ($q) => $q->whereIn('siswa_id', $classIds))
                 ->selectRaw('siswa_id, MAX(score) as best_score, MIN(COALESCE(submitted_at, started_at)) as first_best_at')
                 ->groupBy('siswa_id')
                 ->orderByDesc('best_score')
@@ -130,6 +196,7 @@ class GuruQuizController extends Controller
                 'max_score' => (int) $paket->questions()->sum('points') ?: null,
                 'participants' => (int) QuizAttempt::where('quiz_paket_id', $paket->id)
                     ->where('status', 'submitted')
+                    ->when($classIds !== null, fn ($q) => $q->whereIn('siswa_id', $classIds))
                     ->distinct()
                     ->count('siswa_id'),
                 'entries' => $entries,
@@ -688,8 +755,10 @@ $data = $request->validate([
 
         $paket = $this->accessiblePaket($paketId, $user->id);
 
+        $classIds = $this->classStudentIds($user->id);
         $attempts = QuizAttempt::with(['siswa:id,nama,batch,level,batch_id', 'siswa.batchRelasi.cabang'])
             ->where('quiz_paket_id', $paket->id)
+            ->when($classIds !== null, fn ($q) => $q->whereIn('siswa_id', $classIds))
             ->orderByDesc('created_at')
             ->get();
 
@@ -729,24 +798,44 @@ $data = $request->validate([
 
     // Live proctoring monitor: ongoing attempts (or submitted within the last 2 hours)
     // with the latest webcam snapshot and answer progress. Built for polling (~3s).
-    public function monitor($paketId)
+    public function monitor(Request $request, $paketId)
     {
         $user = $this->guruUser();
         if (!$user) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
+        $date = $request->query('date');
+        $date = $date && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) ? $date : now()->toDateString();
+
         $paket = $this->accessiblePaket($paketId, $user->id)->loadCount('questions');
         $paket->load('questions');
 
+        $classIds = $this->classStudentIds($user->id);
         $attempts = QuizAttempt::with(['siswa:id,nama,batch,level,batch_id', 'siswa.batchRelasi.cabang', 'answers:id,quiz_attempt_id,quiz_question_id,selected_index,answer_text,is_correct,earned_points,updated_at'])
             ->where('quiz_paket_id', $paket->id)
-            ->where(function ($q) {
-                $q->where('status', 'in_progress')
-                    ->orWhere('submitted_at', '>', now()->subHours(2));
+            ->when($classIds !== null, fn ($q) => $q->whereIn('siswa_id', $classIds))
+            ->where(function ($q) use ($date) {
+                $q->where(function ($q2) use ($date) {
+                    $q2->where('status', 'in_progress')->whereDate('created_at', $date);
+                })->orWhere(function ($q2) use ($date) {
+                    $q2->whereNotNull('submitted_at')->whereDate('submitted_at', $date);
+                });
             })
             ->orderByDesc('created_at')
             ->get();
+
+        $dates = QuizAttempt::where('quiz_paket_id', $paket->id)
+            ->when($classIds !== null, fn ($q) => $q->whereIn('siswa_id', $classIds))
+            ->selectRaw('DATE(COALESCE(submitted_at, created_at)) as day, COUNT(*) as cnt')
+            ->groupBy('day')
+            ->orderByDesc('day')
+            ->get()
+            ->map(fn ($r) => [
+                'date' => (string) $r->day,
+                'count' => (int) $r->cnt,
+                'is_today' => (string) $r->day === now()->toDateString(),
+            ]);
 
         $rows = $attempts->map(function ($a) use ($paket) {
             $siswa = $a->siswa;
@@ -818,6 +907,8 @@ $data = $request->validate([
                 'questions_count' => (int) $paket->questions_count,
             ],
             'server_time' => now()->toIso8601String(),
+            'date' => $date,
+            'dates' => $dates,
             'attempts' => $rows,
         ]);
     }
