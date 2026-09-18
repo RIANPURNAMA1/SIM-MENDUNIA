@@ -125,6 +125,15 @@ class GuruQuizController extends Controller
             return null;
         }
 
+        return $this->siswaIdsForPairs($pairs);
+    }
+
+    private function siswaIdsForPairs(array $pairs): ?array
+    {
+        if (empty($pairs)) {
+            return null;
+        }
+
         $batchIds = array_unique(array_map(fn ($p) => (int) explode(':', $p)[0], $pairs));
         $pairSet = array_fill_keys($pairs, true);
 
@@ -136,11 +145,64 @@ class GuruQuizController extends Controller
             ->values()
             ->all();
 
-        if (empty($ids)) {
+        return empty($ids) ? null : $ids;
+    }
+
+    /**
+     * Siswa pada satu kelas (kelas_sensei) tertentu — dipakai untuk menyaring
+     * hasil/monitoring sesuai kelas pada pertemuan (lesson) yang sedang dibuka.
+     * Kelas wajib milik sensei ini atau terhubung ke kursus miliknya.
+     */
+    private function kelasSiswaIds($kelasId, $userId): ?array
+    {
+        $kelas = KelasSensei::find($kelasId);
+        if (!$kelas) {
             return null;
         }
 
-        return $ids;
+        $owned = (int) $kelas->user_id === (int) $userId;
+        $linked = Course::where('user_id', $userId)->where('kelas_sensei_id', $kelas->id)->exists();
+        if (!$owned && !$linked) {
+            return null;
+        }
+
+        return $this->kelasPairsToIds($kelas->id);
+    }
+
+    private function kelasPairsToIds($kelasId): ?array
+    {
+        return $this->siswaIdsForPairs(
+            KelasSensei::where('id', $kelasId)
+                ->where('status', 'aktif')
+                ->whereNotNull('batch_id')
+                ->whereNotNull('level')
+                ->get(['batch_id', 'level'])
+                ->map(fn ($k) => "{$k->batch_id}:{$k->level}")
+                ->values()
+                ->all()
+        );
+    }
+
+    /**
+     * Kelas default untuk data paket: berdasarkan kelas (kelas_sensei) dari
+     * course yang menaungi paket — jadi tidak ikut batch lain yang kebetulan
+     * mengerjakan paket yang sama. Fallback ke kelas milik sensei.
+     */
+    private function paketClassIds($paket, $userId): ?array
+    {
+        $kelasId = $paket->course?->kelas_sensei_id;
+        if (!$kelasId && $paket->batch_id && $paket->level !== null && $paket->level !== '') {
+            return $this->siswaIdsForPairs(["{$paket->batch_id}:{$paket->level}"]);
+        }
+
+        if ($kelasId) {
+            $ids = $this->kelasPairsToIds($kelasId);
+            if ($ids !== null) {
+                return $ids;
+            }
+        }
+
+        return $this->classStudentIds($userId);
     }
 
     public function leaderboard()
@@ -752,7 +814,7 @@ $data = $request->validate([
         return response()->json(['message' => 'Soal dihapus']);
     }
 
-    public function results($paketId)
+    public function results(Request $request, $paketId)
     {
         $user = $this->guruUser();
         if (!$user) {
@@ -761,7 +823,11 @@ $data = $request->validate([
 
         $paket = $this->accessiblePaket($paketId, $user->id);
 
-        $classIds = $this->classStudentIds($user->id);
+        $classIds = $this->paketClassIds($paket, $user->id);
+        if ($request->query('kelas_sensei_id')) {
+            $classIds = $this->kelasSiswaIds((int) $request->query('kelas_sensei_id'), $user->id);
+        }
+
         $attempts = QuizAttempt::with(['siswa:id,nama,batch,level,batch_id', 'siswa.batchRelasi.cabang'])
             ->where('quiz_paket_id', $paket->id)
             ->when($classIds !== null, fn ($q) => $q->whereIn('siswa_id', $classIds))
@@ -817,7 +883,11 @@ $data = $request->validate([
         $paket = $this->accessiblePaket($paketId, $user->id)->loadCount('questions');
         $paket->load('questions');
 
-        $classIds = $this->classStudentIds($user->id);
+        $classIds = $this->paketClassIds($paket, $user->id);
+        if ($request->query('kelas_sensei_id')) {
+            $classIds = $this->kelasSiswaIds((int) $request->query('kelas_sensei_id'), $user->id);
+        }
+
         $attempts = QuizAttempt::with(['siswa:id,nama,batch,level,batch_id', 'siswa.batchRelasi.cabang', 'answers:id,quiz_attempt_id,quiz_question_id,selected_index,answer_text,is_correct,earned_points,updated_at'])
             ->where('quiz_paket_id', $paket->id)
             ->when($classIds !== null, fn ($q) => $q->whereIn('siswa_id', $classIds))
@@ -926,7 +996,7 @@ $data = $request->validate([
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
-        $paket = $this->ownPaket($paketId, $user->id);
+        $paket = $this->accessiblePaket($paketId, $user->id);
 
         $data = $request->validate([
             'siswa_id' => 'nullable|integer',
