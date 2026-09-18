@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, BookOpen, FileText, ListChecks, Plus, ChevronRight, ChevronDown, HelpCircle,
   Download, Clock, ClipboardList, Check, Edit3, X, Trash2, Loader2, Layers, Camera, Upload, ImageIcon,
-  BarChart3, Users, Video, Eye, EyeOff, Activity, Search, Volume2, UploadCloud, Mic, Repeat,
+  BarChart3, Users, Video, Eye, EyeOff, Activity, Search, Volume2, UploadCloud, Mic, Repeat, RotateCcw,
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -241,6 +241,11 @@ const mediaUrl = (u?: string | null): string => {
   return /^https?:\/\//.test(u) ? u : `${APP_URL}/storage/${u}`
 }
 
+const optImgUrl = (o?: AttemptOption | undefined | null): string => {
+  if (!o || typeof o === 'string') return ''
+  return mediaUrl(o.image_url || o.image_path || null)
+}
+
 const fmtDuration = (startedAt?: string | null, submittedAt?: string | null) => {
   if (!startedAt) return '—'
   const start = new Date(startedAt).getTime()
@@ -380,6 +385,27 @@ export default function GuruLessonDetail() {
       .then(res => setDetail(res.data))
       .catch(() => setDetail(null))
       .finally(() => setDetailLoading(false))
+  }
+
+  const confirmResetParticipant = (par: ResultParticipant) => {
+    if (!hasilPaket) return
+    Swal.fire({
+      title: `Reset percobaan ${par.nama}?`,
+      text: 'Hapus semua percobaan kandidat ini agar bisa mengerjakan quiz lagi?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      confirmButtonText: 'Ya, Reset',
+      cancelButtonText: 'Batal',
+    }).then(res => {
+      if (!res.isConfirmed) return
+      guruQuizApi.resetAttempts(hasilPaket.id, par.siswa_id)
+        .then(r => {
+          Swal.fire({ icon: 'success', title: r.data?.message || 'Percobaan direset', timer: 1500, showConfirmButton: false })
+          openQuizResults(hasilPaket)
+        })
+        .catch(() => Swal.fire({ icon: 'error', title: 'Gagal mereset percobaan' }))
+    })
   }
 
   const switchLessonTab = (key: typeof lessonTab) => {
@@ -1112,6 +1138,7 @@ export default function GuruLessonDetail() {
                 <span className={`w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold shrink-0 ${isKunci ? 'bg-emerald-500 text-white' : isPilih ? 'bg-red-500 text-white' : 'bg-[#E5E7EF] text-[#8B90A0]'}`}>
                   {String.fromCharCode(65 + oi)}
                 </span>
+                {optImgUrl(opt) && <img src={optImgUrl(opt)} className="h-5 w-5 rounded-md object-cover shrink-0" alt="" />}
                 {optText(opt) && <span className="flex-1">{optText(opt)}</span>}
                 {isKunci && <span className="text-[9px] font-bold shrink-0">KUNCI</span>}
                 {isPilih && <span className="text-[9px] font-bold shrink-0">JAWABAN</span>}
@@ -1891,10 +1918,19 @@ export default function GuruLessonDetail() {
                                 </span>
                               </td>
                               <td className="py-3 px-3 text-center">
-                                <button onClick={() => openAttemptDetail(a.attempt_id)}
-                                  className="inline-flex items-center gap-1 text-[10px] font-bold text-[#0069b0] border border-[#0069b0]/30 bg-[#0069b0]/5 px-2.5 py-1.5 rounded-md hover:bg-[#0069b0]/10 transition-colors">
-                                  Jawaban <ChevronRight size={11} />
-                                </button>
+                                <div className="inline-flex items-center gap-1.5">
+                                  <button onClick={() => openAttemptDetail(a.attempt_id)}
+                                    className="inline-flex items-center gap-1 text-[10px] font-bold text-[#0069b0] border border-[#0069b0]/30 bg-[#0069b0]/5 px-2.5 py-1.5 rounded-md hover:bg-[#0069b0]/10 transition-colors">
+                                    Jawaban <ChevronRight size={11} />
+                                  </button>
+                                  {canManage && ai === 0 && (
+                                    <button onClick={() => confirmResetParticipant(par)}
+                                      title={`Reset semua percobaan ${par.nama}`}
+                                      className="inline-flex items-center gap-1 text-[10px] font-bold text-red-500 border border-red-200 bg-red-50 px-2.5 py-1.5 rounded-md hover:bg-red-100 transition-colors">
+                                      <RotateCcw size={11} /> Reset
+                                    </button>
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           ))

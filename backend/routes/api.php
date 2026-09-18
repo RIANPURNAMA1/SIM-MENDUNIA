@@ -472,6 +472,7 @@ Route::get('/guru/penilaian-rekap/{kelasId}', [GuruDashboardController::class, '
     // Guru LMS (static routes BEFORE wildcard routes)
     Route::get('/guru/lms-courses', [GuruDashboardController::class, 'lmsCourses']);
     Route::post('/guru/lms-sync-kelas', [GuruDashboardController::class, 'lmsSyncKelas']);
+    Route::post('/guru/lms-sync-kehadiran', [GuruDashboardController::class, 'lmsSyncKehadiran']);
     Route::post('/guru/lms-courses', [GuruDashboardController::class, 'lmsStoreCourse']);
     Route::post('/guru/lms-courses/files', [GuruDashboardController::class, 'lmsStoreCourseFile']);
     Route::delete('/guru/lms-courses/files/{id}', [GuruDashboardController::class, 'lmsDeleteCourseFile']);

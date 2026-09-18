@@ -10,7 +10,7 @@ interface PlayQuestion {
   question: string
   question_type: string
   rating_max: number | null
-  options: string[]
+  options: (string | { text?: string; image_url?: string | null; image_path?: string | null })[]
   points: number
   image_url?: string | null
   audio_url?: string | null
@@ -147,6 +147,18 @@ const CELEBRATION_HTML = `
     </div>
   `
 
+// ── Toleransi proctoring untuk perangkat lemah ──
+// Semua didasarkan pada durasi (ms), bukan jumlah tick, agar konsisten
+// di perangkat yang frame deteksinya lambat. Tujuannya: hanya siswa yang
+// benar-benar meninggalkan layar yang kena, bukan karena false-negative
+// kamera/deteksi.
+const CAM_GRACE_MS = 15000  // masa pemanasan awal (model + fokus kamera)
+const GONE_MS = 12000       // wajah hilang terus-menerus ≥ 12 dtk → warning
+const TURN_MS = 5000        // menoleh terus-menerus ≥ 5 dtk → warning
+const WARN_COOLDOWN_MS = 20000 // maks 1 warning per 20 dtk
+const CAM_DEAD_MS = 10000   // kamera tidak hidup ≥ 10 dtk → banner + coba ulang
+const CAM_RETRY_MS = 15000  // interval minimal coba ulang kamera
+
 export default function QuizBasicPlay() {
   const { paketId, attemptId } = useParams()
   const navigate = useNavigate()
@@ -177,6 +189,7 @@ export default function QuizBasicPlay() {
   const endTimeRef = useRef(0)
   const streamRef = useRef<MediaStream | null>(null)
   const cameraRef = useRef<HTMLVideoElement | null>(null)
+  const detectBusyRef = useRef(false)
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const snapshotRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -184,8 +197,12 @@ export default function QuizBasicPlay() {
   const essayTimersRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({})
   const isLoadingEssayRef = useRef<Record<number, boolean>>({})
   const cameraAttachedRef = useRef(false)
-  const goneStreakRef = useRef(0)
-  const turnStreakRef = useRef(0)
+  const goneStartRef = useRef(0)
+  const turnStartRef = useRef(0)
+  const lastWarnAtRef = useRef(0)
+  const camDeadStartRef = useRef(0)
+  const graceUntilRef = useRef(0)
+  const lastRetryAtRef = useRef(0)
   const offenseRef = useRef(0)
 
   const stopTimers = useCallback(() => {
@@ -265,9 +282,13 @@ export default function QuizBasicPlay() {
       setHeadTurned(false)
       setMonitorMsg('')
       setWarnBanner(false)
-      goneStreakRef.current = 0
-      turnStreakRef.current = 0
+      goneStartRef.current = 0
+      turnStartRef.current = 0
+      camDeadStartRef.current = 0
+      lastWarnAtRef.current = 0
+      lastRetryAtRef.current = 0
       offenseRef.current = 0
+      graceUntilRef.current = Date.now() + CAM_GRACE_MS
       cameraAttachedRef.current = false
 
       const endTime = Date.parse(a.started_at) + a.time_limit_seconds * 1000
@@ -293,7 +314,9 @@ export default function QuizBasicPlay() {
       return false
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 } }, audio: false })
+      // Resolusi + FPS ditekan agar perangkat bawah tidak berat saat decoding
+      // & deteksi wajah. 480p/15fps sudah cukup untuk proctoring.
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 360 }, frameRate: { ideal: 15, max: 30 } }, audio: false })
       stopStream()
       streamRef.current = stream
       if (cameraRef.current) {
@@ -405,7 +428,7 @@ export default function QuizBasicPlay() {
     }, 1000)
     if (cameraEnabled) {
       snapshotRef.current = setInterval(captureSnapshot, 3000)
-      faceMonitorRef.current = setInterval(runDetection, 600)
+      faceMonitorRef.current = setInterval(runDetection, 1000)
     }
     return stopTimers
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -414,7 +437,7 @@ export default function QuizBasicPlay() {
   const captureSnapshot = () => {
     const video = cameraRef.current
     if (!video || video.videoWidth === 0 || !attemptId) return
-    const maxW = 640
+    const maxW = 480
     const scale = Math.min(1, maxW / video.videoWidth)
     const canvas = document.createElement('canvas')
     canvas.width = Math.round(video.videoWidth * scale)
@@ -425,7 +448,7 @@ export default function QuizBasicPlay() {
       const fd = new FormData()
       fd.append('photo', new File([blob], `snap-${Date.now()}.jpg`, { type: 'image/jpeg' }))
       quizApi.uploadWebcam(Number(attemptId), fd).catch(() => {})
-    }, 'image/jpeg', 0.7)
+    }, 'image/jpeg', 0.6)
   }
 
   // ── Face / presence monitoring (proctoring) ──
@@ -496,36 +519,79 @@ export default function QuizBasicPlay() {
 
   const runDetection = useCallback(async () => {
     const video = cameraRef.current
-    if (!video || !streamRef.current) return
+    // Guard agar deteksi tidak bertumpuk: di perangkat lambat, face-api bisa
+    // lebih lama dari interval → tanpa guard CPU menumpuk & aplikasi lag/close.
+    if (!video || detectBusyRef.current) return
+    detectBusyRef.current = true
+    const now = Date.now()
     try {
+      // Liveness gate: kalau stream kamera tidak benar-benar hidup, WAJAH TIDAK
+      // DIHITUNG sebagai pelanggaran. Kamera hang/mati sering terjadi di
+      // perangkat lemah — itu bukan kesalahan siswa.
+      const live = !!streamRef.current && video.readyState >= 2 && video.videoWidth > 0
+      if (!live) {
+        if (!camDeadStartRef.current) {
+          camDeadStartRef.current = now
+          setMonitorMsg('Kamera pengawas tidak aktif. Pastikan kamera tetap menyala — Anda tidak akan dihukum karena ini.')
+        }
+        setFaceMissing(false)
+        setHeadTurned(false)
+        drawOverlay(null)
+        // Coba hubungkan ulang beberapa saat setelah kamera mati
+        if (now - camDeadStartRef.current >= CAM_DEAD_MS && now - lastRetryAtRef.current >= CAM_RETRY_MS) {
+          lastRetryAtRef.current = now
+          setMonitorMsg('Kamera pengawas tidak aktif. Mencoba menghubungkan ulang...')
+          requestCamera().then(ok => {
+            if (ok) {
+              setMonitorMsg('')
+              graceUntilRef.current = Date.now() + CAM_GRACE_MS
+            }
+          })
+        }
+        return
+      }
+      if (camDeadStartRef.current) {
+        camDeadStartRef.current = 0
+        setMonitorMsg('')
+      }
+
       const face = await detectFace(video)
       drawOverlay(face)
       setHeadTurned(face?.turned ?? false)
 
-      if (face) {
-        goneStreakRef.current = 0
-        setFaceMissing(false)
-        turnStreakRef.current = face.turned ? turnStreakRef.current + 1 : 0
-        if (turnStreakRef.current >= 4) {
-          turnStreakRef.current = 0
-          handleOffense('Anda menoleh ke samping')
+      if (!face) {
+        turnStartRef.current = 0
+        setFaceMissing(true)
+        if (!goneStartRef.current) goneStartRef.current = now
+        const absentMs = now - goneStartRef.current
+        if (absentMs >= GONE_MS && now >= graceUntilRef.current && now - lastWarnAtRef.current >= WARN_COOLDOWN_MS) {
+          lastWarnAtRef.current = now
+          handleOffense('wajah tak terdeteksi')
         }
       } else {
-        turnStreakRef.current = 0
-        goneStreakRef.current += 1
-        if (goneStreakRef.current >= 6) {
-          goneStreakRef.current = 0
-          handleOffense('wajah tak terdeteksi')
+        goneStartRef.current = 0
+        setFaceMissing(false)
+        if (face.turned) {
+          if (!turnStartRef.current) turnStartRef.current = now
+          if (now - turnStartRef.current >= TURN_MS && now >= graceUntilRef.current && now - lastWarnAtRef.current >= WARN_COOLDOWN_MS) {
+            lastWarnAtRef.current = now
+            handleOffense('Anda menoleh ke samping')
+          }
+        } else {
+          turnStartRef.current = 0
         }
       }
     } catch {
       if (!faceModelsReady()) return
       drawOverlay(null)
       setHeadTurned(false)
-      turnStreakRef.current = 0
-      goneStreakRef.current = 0
+      // Error internal deteksi — di-reset, bukan dihitung pelanggaran.
+      goneStartRef.current = 0
+      turnStartRef.current = 0
+    } finally {
+      detectBusyRef.current = false
     }
-  }, [drawOverlay, handleOffense])
+  }, [drawOverlay, handleOffense, requestCamera])
 
   // ── Warn on leaving page ──
   const sendWarn = useCallback(() => {
@@ -766,7 +832,7 @@ export default function QuizBasicPlay() {
           <p className="flex-1 text-[11px] font-bold text-red-600">
             Kepala/wajah Anda tidak terdeteksi oleh kamera pengawas. Pastikan wajah terlihat jelas di depan kamera.
           </p>
-          <button onClick={() => { setFaceMissing(false); goneStreakRef.current = 0 }}
+          <button onClick={() => { setFaceMissing(false); goneStartRef.current = 0 }}
             className="text-xs font-bold text-red-400 hover:text-red-600">✕</button>
         </div>
       )}

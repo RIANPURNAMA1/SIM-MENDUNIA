@@ -16,6 +16,7 @@ use App\Models\QuizAttempt;
 use Illuminate\Support\Facades\Storage;
 use App\Models\DailyAssessmentStatus;
 use App\Models\LmsAssignment;
+use App\Models\LmsProgress;
 use App\Models\LmsSubmission;
 use App\Models\Siswa;
 use App\Models\Guru;
@@ -614,6 +615,111 @@ class GuruDashboardController extends Controller
                 : 'Semua kelas sudah sinkron dengan LMS',
             'synced' => count($synced),
             'skipped' => $skipped,
+        ]);
+    }
+
+    /**
+     * Sinkronkan kehadiran siswa ke pertemuan LMS.
+     *
+     * Untuk setiap kursus milik guru yang terhubung ke kelas (kelas_sensei_id),
+     * pertemuan yang sesuai dengan tanggal kelas yang benar-benar dihadiri siswa
+     * akan ditandai selesai pada lms_progress sehingga pertemuan tidak terkunci.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function lmsSyncKehadiran()
+    {
+        $user = Auth::guard('sanctum')->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $courses = Course::with('lessons')
+            ->where('user_id', $user->id)
+            ->whereNotNull('kelas_sensei_id')
+            ->where('status', 'aktif')
+            ->get();
+
+        $processedCourses = 0;
+        $syncedStudents = 0;
+        $unlockedMeetings = 0;
+        $kelasIds = $courses->pluck('kelas_sensei_id')->filter()->unique()->values();
+
+        $kelasMap = KelasSensei::whereIn('id', $kelasIds)->get()->keyBy('id');
+
+        foreach ($courses as $course) {
+            $kelas = $kelasMap->get((int) $course->kelas_sensei_id);
+            if (!$kelas) continue;
+
+            $meetingDates = $kelas->daftarPertemuan();
+            if (count($meetingDates) === 0) continue;
+
+            $lessons = $course->lessons
+                ->where('status', 'aktif')
+                ->sortBy('sort')
+                ->values();
+            if ($lessons->count() === 0) continue;
+
+            $siswas = Siswa::where('batch_id', $kelas->batch_id)
+                ->when($kelas->level !== null && $kelas->level !== '', fn ($q) => $q->where('level', $kelas->level))
+                ->get();
+            if ($siswas->count() === 0) continue;
+
+            $processedCourses++;
+            $courseUnlocked = 0;
+
+            $presentDatesBySiswa = AbsensiSiswa::whereIn('siswa_id', $siswas->pluck('id'))
+                ->whereRaw("LOWER(status) IN ('hadir', 'terlambat', 'pulang lebih awal', 'tidak absen pulang')")
+                ->whereBetween('tanggal', [$kelas->tanggal_mulai, $kelas->tanggal_selesai])
+                ->get()
+                ->groupBy('siswa_id');
+
+            foreach ($siswas as $siswa) {
+                $presentDates = collect($presentDatesBySiswa->get($siswa->id, collect()))
+                    ->map(fn ($a) => Carbon::parse($a->tanggal)->toDateString());
+
+                $attendedCount = 0;
+                foreach ($meetingDates as $i => $date) {
+                    if ($presentDates->contains($date)) {
+                        $attendedCount = $i + 1;
+                    }
+                }
+
+                if ($attendedCount <= 0) continue;
+
+                $studentUnlocked = 0;
+                foreach ($lessons as $i => $lesson) {
+                    if ($i + 1 > $attendedCount) break;
+
+                    $progress = LmsProgress::firstOrNew([
+                        'lesson_id' => $lesson->id,
+                        'siswa_id' => $siswa->id,
+                    ]);
+
+                    if (!$progress->completed_at) {
+                        $progress->completed_at = now();
+                        $progress->save();
+                        $courseUnlocked++;
+                        $studentUnlocked++;
+                    }
+                }
+
+                if ($studentUnlocked > 0) {
+                    $syncedStudents++;
+                }
+            }
+
+            $unlockedMeetings += $courseUnlocked;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $unlockedMeetings > 0
+                ? $unlockedMeetings . ' pertemuan disinkronkan dari kehadiran siswa'
+                : 'Semua kehadiran sudah sinkron dengan LMS',
+            'courses' => $processedCourses,
+            'students' => $syncedStudents,
+            'unlocked' => $unlockedMeetings,
         ]);
     }
 

@@ -178,8 +178,7 @@ class LmsController extends Controller
         $attendedCount = 0;
         if (count($meetingDates) > 0 && $kelas) {
             $presentDates = AbsensiSiswa::where('siswa_id', $siswa->id)
-                ->where('status', '!=', 'ALPA')
-                ->whereNotNull('jam_masuk')
+                ->whereRaw("LOWER(status) IN ('hadir', 'terlambat', 'pulang lebih awal', 'tidak absen pulang')")
                 ->whereBetween('tanggal', [$kelas->tanggal_mulai, $kelas->tanggal_selesai])
                 ->pluck('tanggal')
                 ->map(fn ($d) => \Carbon\Carbon::parse($d)->toDateString());
@@ -192,8 +191,7 @@ class LmsController extends Controller
         } else {
             // Kursus tanpa kelas/pertemuan terjadwal: pakai total absensi hadir sebagai indikator progres.
             $attendedCount = AbsensiSiswa::where('siswa_id', $siswa->id)
-                ->where('status', '!=', 'ALPA')
-                ->whereNotNull('jam_masuk')
+                ->whereRaw("LOWER(status) IN ('hadir', 'terlambat', 'pulang lebih awal', 'tidak absen pulang')")
                 ->count();
         }
 
@@ -300,6 +298,7 @@ class LmsController extends Controller
                 ->get();
             $used = $attempts->count();
             $best = $attempts->where('status', 'submitted')->max('score');
+            $inProgress = $attempts->firstWhere('status', 'in_progress');
 
             return [
                 'id' => $p->id,
@@ -319,6 +318,8 @@ class LmsController extends Controller
                 'is_unlocked' => $unlocked,
                 'is_link_locked' => $linkLocked,
                 'locked' => $senseiLocked,
+                'quiz_template' => $p->quiz_template,
+                'in_progress_attempt_id' => $inProgress?->id,
             ];
         })->values();
 

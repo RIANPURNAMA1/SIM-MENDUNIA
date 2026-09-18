@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   BookOpen, Plus, FileText, X, Image as ImageIcon, Download, Trash2,
   ChevronRight, ArrowLeft, Layers, Search, Video, GripVertical, Edit3,
-  ChevronUp, ChevronDown, Upload, FolderOpen, ListChecks, Eye, EyeOff, Trophy, Users, History, HelpCircle, Check, Lock, Activity, RefreshCw, Volume2, CalendarCheck
+  ChevronUp, ChevronDown, Upload, FolderOpen, ListChecks, Eye, Trophy, Users, History, HelpCircle, Check, Lock, Activity, RefreshCw, Volume2, CalendarCheck
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -193,6 +193,7 @@ export default function GuruLMS() {
   const [rankData, setRankData] = useState<RankPaket[]>([])
   const [rankLoading, setRankLoading] = useState(false)
   const [syncing, setSyncing] = useState(false)
+  const [syncingKehadiran, setSyncingKehadiran] = useState(false)
 
   const handleSyncKelas = async () => {
     setSyncing(true)
@@ -209,6 +210,30 @@ export default function GuruLMS() {
       Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal sinkronisasi kelas ke LMS' })
     } finally {
       setSyncing(false)
+    }
+  }
+
+  const handleSyncKehadiran = async () => {
+    setSyncingKehadiran(true)
+    try {
+      const res = await guruLmsApi.syncKehadiran()
+      const data = res.data
+      const unlocked = Number(data?.unlocked || 0)
+      const students = Number(data?.students || 0)
+      const courses = Number(data?.courses || 0)
+      if (unlocked > 0) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Kehadiran Disinkronkan',
+          text: `${unlocked} pertemuan dibuka untuk ${students} siswa di ${courses} kelas`,
+        })
+      } else {
+        Swal.fire({ icon: 'info', title: 'Semua Sudah Sinkron', text: data?.message || 'Tidak ada pertemuan baru yang disinkronkan dari kehadiran siswa', timer: 2000, showConfirmButton: false })
+      }
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal sinkronisasi kehadiran ke LMS' })
+    } finally {
+      setSyncingKehadiran(false)
     }
   }
 
@@ -560,31 +585,6 @@ export default function GuruLMS() {
     setShowLessonModal(true)
   }
 
-  const openEditLesson = (lesson: Lesson) => {
-    setEditingLesson(lesson)
-    setLessonStep(1)
-    setLessonForm({
-      title: lesson.title,
-      content: lesson.content || '',
-      video_url: lesson.video_url || '',
-      paket_id: lesson.paket_id ? String(lesson.paket_id) : '',
-      sort: lesson.sort.toString(),
-      status: lesson.status,
-    })
-    setLessonPdf(null)
-    setLessonPdfName(lesson.file_name || null)
-    setLessonPdfSize(lesson.file_size || null)
-    setRemoveLessonPdf(false)
-    setLessonSlides((lesson.slides || []).map(s => ({
-      key: `existing-${s.id}`,
-      id: s.id,
-      url: s.url || `${APP_URL}/storage/${s.file_path}`,
-      name: s.file_name || 'slide',
-    })))
-    if (selectedCourse) loadLessonTasks(selectedCourse.id)
-    setShowLessonModal(true)
-  }
-
   const handleSaveTask = async () => {
     if (!taskForm.title.trim()) {
       Swal.fire({ icon: 'warning', title: 'Judul tugas wajib diisi' })
@@ -674,26 +674,6 @@ export default function GuruLMS() {
     }
   }
 
-  const handleDeleteLesson = (lesson: Lesson) => {
-    Swal.fire({
-      title: 'Hapus pelajaran?',
-      text: `"${lesson.title}" akan dihapus`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#dc2626',
-      confirmButtonText: 'Hapus',
-      cancelButtonText: 'Batal',
-    }).then(res => {
-      if (res.isConfirmed) {
-        guruLmsApi.deleteLesson(lesson.id).then(() => {
-          if (selectedCourse) fetchCourseDetail(selectedCourse.id)
-          fetchCourses()
-          Swal.fire({ icon: 'success', title: 'Dihapus', timer: 1500, showConfirmButton: false })
-        }).catch(() => Swal.fire({ icon: 'error', title: 'Gagal menghapus' }))
-      }
-    })
-  }
-
   const moveLesson = (index: number, direction: 'up' | 'down') => {
     const newLessons = [...courseLessons]
     const swapIndex = direction === 'up' ? index - 1 : index + 1
@@ -713,15 +693,6 @@ export default function GuruLMS() {
       (() => { const fd = new FormData(); fd.append('sort', String(newLessons[index].sort)); return guruLmsApi.updateLesson(newLessons[index].id, fd) })(),
       (() => { const fd = new FormData(); fd.append('sort', String(newLessons[swapIndex].sort)); return guruLmsApi.updateLesson(newLessons[swapIndex].id, fd) })(),
     ]).catch(() => { if (selectedCourse) fetchCourseDetail(selectedCourse.id) })
-  }
-
-  const toggleLessonStatus = (lesson: Lesson) => {
-    const newStatus = lesson.status === 'aktif' ? 'nonaktif' : 'aktif'
-    const fd = new FormData()
-    fd.append('status', newStatus)
-    guruLmsApi.updateLesson(lesson.id, fd).then(() => {
-      if (selectedCourse) fetchCourseDetail(selectedCourse.id)
-    }).catch(() => {})
   }
 
   // File management
@@ -996,25 +967,6 @@ export default function GuruLMS() {
                             {lesson.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
                           </span>
                         </div>
-                      </div>
-
-                      <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {canManage && (
-                          <>
-                            <button onClick={() => toggleLessonStatus(lesson)} title={lesson.status === 'aktif' ? 'Nonaktifkan' : 'Aktifkan'}
-                              className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
-                              {lesson.status === 'aktif' ? <Eye size={14} /> : <EyeOff size={14} />}
-                            </button>
-                            <button onClick={() => openEditLesson(lesson)} title="Edit"
-                              className="p-2 rounded-lg text-gray-400 hover:bg-amber-50 hover:text-amber-600 transition-colors">
-                              <Edit3 size={14} />
-                            </button>
-                            <button onClick={() => handleDeleteLesson(lesson)} title="Hapus"
-                              className="p-2 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors">
-                              <Trash2 size={14} />
-                            </button>
-                          </>
-                        )}
                       </div>
                     </div>
                   ))}
@@ -1717,6 +1669,10 @@ export default function GuruLMS() {
               <button onClick={handleSyncKelas} disabled={syncing}
                 className="flex items-center gap-1.5 border border-gray-300 text-gray-600 px-4 py-2.5 rounded-lg text-[11px] font-bold bg-white hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50">
                 <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} /> {syncing ? 'Sinkronisasi...' : 'Sinkronisasi'}
+              </button>
+              <button onClick={handleSyncKehadiran} disabled={syncingKehadiran}
+                className="flex items-center gap-1.5 border border-[#0B5E42] text-[#0B5E42] px-4 py-2.5 rounded-lg text-[11px] font-bold bg-white hover:bg-[#0B5E42]/5 transition-colors shadow-sm disabled:opacity-50">
+                <CalendarCheck size={14} className={syncingKehadiran ? 'animate-pulse' : ''} /> {syncingKehadiran ? 'Sinkronisasi Kehadiran...' : 'Sinkronisasi Kehadiran'}
               </button>
               <button onClick={openRankModal}
                 className="flex items-center gap-1.5 border border-[#0069b0] text-[#0069b0] px-4 py-2.5 rounded-lg text-[11px] font-bold bg-white hover:bg-[#0069b0]/5 transition-colors shadow-sm">

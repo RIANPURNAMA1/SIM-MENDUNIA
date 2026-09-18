@@ -32,6 +32,8 @@ interface PaketList {
   best_score: number | null
   can_start: boolean
   locked?: boolean
+  quiz_template?: string | null
+  in_progress_attempt_id?: number | null
 }
 
 interface AttemptHistory {
@@ -84,8 +86,9 @@ interface PlayQuestion {
   question: string
   question_type: string
   rating_max: number | null
-  options: string[]
+  options: (string | { text?: string; image_url?: string | null; image_path?: string | null })[]
   points: number
+  section?: string | null
   selected_index?: number | null
   answer_text?: string | null
 }
@@ -409,6 +412,11 @@ export default function QuizKandidat() {
     ctxSource === 'tugas' && ctxSourceId ? { source: 'tugas', source_id: ctxSourceId } : undefined
   const ctxQuery = () => (ctxSource === 'tugas' && ctxSourceId ? `?source=tugas&source_id=${ctxSourceId}` : '')
   const quizUrl = (id: number) => `/siswa-dashboard/quiz/${id}${ctxQuery()}`
+  const resumeUrl = (packageId: number, attemptId: number, template?: string | null) => {
+    const tpl = template || detail?.paket?.quiz_template || 'basic'
+    const route = tpl === 'jft' ? 'play' : 'play-basic'
+    return `/siswa-dashboard/quiz/${packageId}/${route}/${attemptId}${ctxQuery()}`
+  }
   const [view, setView] = useState<View>('list')
   const [pakets, setPakets] = useState<PaketList[]>([])
   const [loading, setLoading] = useState(true)
@@ -446,6 +454,7 @@ export default function QuizKandidat() {
   const streamRef = useRef<MediaStream | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const cameraRef = useRef<HTMLVideoElement | null>(null)
+  const detectBusyRef = useRef(false)
   const modalOverlayRef = useRef<HTMLCanvasElement | null>(null)
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const snapshotRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -646,7 +655,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
     loadFaceModels()
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 } },
+        video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 360 }, frameRate: { ideal: 15, max: 30 } },
         audio: false,
       })
       stopStream()
@@ -716,7 +725,8 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
     let stopped = false
     const tick = async () => {
       const video = videoRef.current
-      if (!video || !streamRef.current || stopped) return
+      if (!video || !streamRef.current || stopped || detectBusyRef.current) return
+      detectBusyRef.current = true
       try {
         const face = await detectFace(video)
         if (stopped) return
@@ -724,9 +734,11 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
         setHeadTurned(!!face?.turned)
       } catch {
         /* model belum siap — lewati */
+      } finally {
+        detectBusyRef.current = false
       }
     }
-    const id = setInterval(tick, 500)
+    const id = setInterval(tick, 700)
     return () => {
       stopped = true
       clearInterval(id)
@@ -1390,6 +1402,11 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
                                 <span className="rounded-md bg-gray-100 px-2 py-1 text-[9px] font-bold text-gray-400">{q.is_link_locked ? 'Terkunci' : 'Ditutup'}</span>
                               ) : attemptsMaxed ? (
                                 <span className="rounded-md bg-red-50 px-2 py-1 text-[9px] font-bold text-red-500">Habis</span>
+                              ) : q.in_progress_attempt_id ? (
+                                <span role="button" onClick={e => { e.stopPropagation(); navigate(resumeUrl(q.id, q.in_progress_attempt_id, q.quiz_template)) }}
+                                  className="rounded-md bg-emerald-500 px-2.5 py-1 text-[9px] font-bold text-white">
+                                  Lanjutkan
+                                </span>
                               ) : (
                                 <span className="rounded-md bg-[#0E6187] px-2.5 py-1 text-[9px] font-bold text-white">Kerjakan</span>
                               )}
@@ -1496,7 +1513,10 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
                       </p>
                     </div>
                     {a.status === 'in_progress' ? (
-                      <span className="text-[9.5px] font-bold text-orange-500 shrink-0">LANJUTKAN*</span>
+                      <button onClick={() => resumeAttempt(a.attempt_id)}
+                        className="shrink-0 text-[9.5px] font-bold text-orange-600 bg-white border border-orange-300 px-2.5 py-1.5 rounded-md hover:bg-orange-50 transition-colors">
+                        Lanjutkan
+                      </button>
                     ) : (
                       <button onClick={() => openReview(a.attempt_id)}
                         className="shrink-0 text-[10px] font-bold text-[#0E6187] bg-white border border-[#0E6187]/25 px-2.5 py-1.5 rounded-md hover:bg-[#0E6187]/5 transition-colors">
@@ -1517,7 +1537,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
           {/* CTA */}
           <button onClick={goToRules}
             className="w-full flex items-center justify-center gap-2 text-[13px] font-bold py-3.5 rounded-md bg-[#0E6187] text-white hover:bg-[#0a4d6b] transition-colors">
-            <Play size={15} /> Mulai Mengerjakan Quiz
+            <Play size={15} /> {attempts.some(a => a.status === 'in_progress') ? 'Lanjutkan Mengerjakan Quiz' : 'Mulai Mengerjakan Quiz'}
           </button>
         </div>
 
@@ -1722,7 +1742,10 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
                       </p>
                     </div>
                     {a.status === 'in_progress' ? (
-                      <span className="text-[9.5px] font-bold text-orange-500 shrink-0">LANJUTKAN*</span>
+                      <button onClick={() => resumeAttempt(a.attempt_id)}
+                        className="shrink-0 text-[9.5px] font-bold text-orange-600 bg-white border border-orange-300 px-2.5 py-1.5 rounded-md hover:bg-orange-50 transition-colors">
+                        Lanjutkan
+                      </button>
                     ) : (
                       <button onClick={() => openReview(a.attempt_id)}
                         className="shrink-0 text-[10px] font-bold text-[#0E6187] bg-white border border-[#0E6187]/25 px-2.5 py-1.5 rounded-md hover:bg-[#0E6187]/5 transition-colors">
@@ -1742,7 +1765,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
             <button onClick={startFlow} disabled={(!inProgress && !canStartNew) || starting}
               className={`w-full flex items-center justify-center gap-2 text-[12.5px] font-bold py-3.5 rounded-md transition-colors ${(!inProgress && !canStartNew) ? 'bg-slate-200 text-slate-400' : 'bg-[#0E6187] text-white hover:bg-[#0a4d6b]'}`}>
               <Play size={15} />
-              {starting ? 'Menyiapkan...' : 'Kerjakan Quiz'}
+              {starting ? 'Menyiapkan...' : (inProgress ? 'Lanjutkan Quiz' : 'Kerjakan Quiz')}
             </button>
           </div>
         </div>
@@ -1858,6 +1881,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
         ) : (
           pakets.map(p => {
             const lulus = p.best_score !== null && p.passing_score > 0 && p.best_score >= p.passing_score
+            const inProgressId = p.in_progress_attempt_id
             return (
               <button key={p.id} onClick={() => openPaket(p.id)}
                 className="w-full text-left bg-white rounded-md border border-[#E5E7EF] p-5 transition-all hover:shadow-sm">
@@ -1890,9 +1914,16 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
                   <p className="text-[10.5px] font-semibold text-slate-400">
                     {p.attempts_used}/{p.max_attempts} percobaan dipakai
                   </p>
-                  <span className={`flex items-center gap-1.5 text-[11px] font-bold py-1.5 px-3 rounded-lg ${p.can_start ? 'bg-[#0E6187] text-white' : 'bg-slate-100 text-slate-400'}`}>
-                    <Play size={11} /> {p.can_start ? 'Kerjakan' : 'Selesai'}
-                  </span>
+                  {inProgressId ? (
+                    <span role="button" onClick={e => { e.stopPropagation(); navigate(resumeUrl(p.id, inProgressId, p.quiz_template)) }}
+                      className="flex items-center gap-1.5 text-[11px] font-bold py-1.5 px-3 rounded-lg bg-emerald-500 text-white">
+                      <Play size={11} /> Lanjutkan
+                    </span>
+                  ) : (
+                    <span className={`flex items-center gap-1.5 text-[11px] font-bold py-1.5 px-3 rounded-lg ${p.can_start ? 'bg-[#0E6187] text-white' : 'bg-slate-100 text-slate-400'}`}>
+                      <Play size={11} /> {p.can_start ? 'Kerjakan' : 'Selesai'}
+                    </span>
+                  )}
                 </div>
               </button>
             )

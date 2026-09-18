@@ -12,6 +12,7 @@ use App\Models\LmsProgress;
 use App\Events\WebcamSnapshotUpdated;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
 class QuizController extends Controller
@@ -248,6 +249,7 @@ class QuizController extends Controller
                 ->get();
             $used = $attempts->count();
             $best = $attempts->where('status', 'submitted')->max('score');
+            $inProgress = $attempts->firstWhere('status', 'in_progress');
 
             return [
                 'id' => $p->id,
@@ -266,6 +268,7 @@ class QuizController extends Controller
                 'best_score' => $best === null ? null : (int) $best,
                 'can_start' => !$locked && $used < $p->max_attempts,
                 'quiz_template' => $p->quiz_template,
+                'in_progress_attempt_id' => $inProgress?->id,
                 'camera_enabled' => (bool) $p->camera_enabled,
                 'block_exit' => (bool) $p->block_exit,
                 'is_unlocked' => !$locked && $this->paketUnlocked($p, $siswa),
@@ -725,6 +728,22 @@ class QuizController extends Controller
         }
 
         $maxWarnings = (int) $attempt->paket->max_warnings;
+
+        // Safety net: warning berulang dalam 20 detik diabaikan. Melindungi
+        // siswa dengan kamera/deteksi yang kurang stabil agar tidak cepat
+        // ter-eksekusi (auto-submit) oleh false-positive dari perangkat lemah.
+        $cooldownKey = "quiz_warn_cooldown_{$attemptId}";
+        if (Cache::has($cooldownKey)) {
+            return response()->json([
+                'warnings' => $attempt->warnings,
+                'max_warnings' => $maxWarnings,
+                'auto_submitted' => $attempt->status === 'submitted',
+                'status' => $attempt->status,
+                'cooldown' => true,
+            ]);
+        }
+        Cache::put($cooldownKey, true, now()->addSeconds(20));
+
         $warnings = min($attempt->warnings + 1, $maxWarnings);
         $auto = $warnings >= $maxWarnings;
 

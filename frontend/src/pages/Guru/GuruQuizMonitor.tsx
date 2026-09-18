@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
-  ArrowLeft, Camera, CheckCircle2, X, RefreshCw, Pause, Play, ShieldAlert, Users, ListChecks, Timer,
+  ArrowLeft, Camera, CheckCircle2, X, RefreshCw, Pause, Play, ShieldAlert, Users, ListChecks, Timer, CalendarDays,
+  ImageIcon, Volume2,
 } from 'lucide-react'
 import { guruQuizApi, APP_URL } from '../../services/api'
 import { getEcho, leaveChannel } from '../../services/echo'
@@ -38,9 +39,17 @@ interface MonitorAttempt {
   siswa: MonitorSiswa
 }
 
+interface MonitorDateEntry {
+  date: string
+  count: number
+  is_today: boolean
+}
+
 interface MonitorData {
   paket: { id: number; title: string; template: string; time_limit_minutes: number; max_warnings: number; questions_count: number }
   server_time: string
+  date: string
+  dates: MonitorDateEntry[]
   attempts: MonitorAttempt[]
 }
 
@@ -75,7 +84,23 @@ const optAbsUrl = (o: OptionEntry) => {
   return p.startsWith('http') ? p : `${APP_URL}/storage/${p}`
 }
 
+const mediaUrl = (u?: string | null) => {
+  if (!u) return undefined
+  return u.startsWith('http') ? u : `${APP_URL}/storage/${u}`
+}
+
 const fmtClock = (sec: number) => `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`
+
+const toDateInput = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+const fmtDay = (d: string, isToday: boolean) => {
+  if (isToday) return 'Hari ini'
+  try {
+    return new Date(`${d}T00:00:00`).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' })
+  } catch {
+    return d
+  }
+}
 
 const STATUS_UI: Record<string, { cls: string; label: string }> = {
   benar: { cls: 'bg-emerald-500 border-emerald-400 text-white', label: 'Dijawab benar' },
@@ -97,6 +122,13 @@ export default function GuruQuizMonitor() {
   const [now, setNow] = useState(Date.now())
   const [lastSync, setLastSync] = useState<number | null>(null)
 
+  const todayStr = toDateInput(new Date())
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    const p = new URLSearchParams(window.location.search).get('date')
+    return p && /^\d{4}-\d{2}-\d{2}$/.test(p) ? p : todayStr
+  })
+  const isToday = selectedDate === todayStr
+
   const [detail, setDetail] = useState<AttemptDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [showDetail, setShowDetail] = useState(false)
@@ -108,7 +140,7 @@ export default function GuruQuizMonitor() {
   const fetchMonitor = useCallback(() => {
     if (!paketId || fetchingRef.current) return
     fetchingRef.current = true
-    guruQuizApi.monitor(Number(paketId)).then(res => {
+    guruQuizApi.monitor(Number(paketId), selectedDate).then(res => {
       setData(res.data)
       setLastSync(Date.now())
       setFailed(false)
@@ -118,15 +150,15 @@ export default function GuruQuizMonitor() {
       fetchingRef.current = false
       setLoading(false)
     })
-  }, [paketId])
+  }, [paketId, selectedDate])
 
   useEffect(() => {
     fetchMonitor()
     const poll = setInterval(() => {
-      if (!paused) fetchMonitor()
+      if (!paused && selectedDate === toDateInput(new Date())) fetchMonitor()
     }, 3000)
     return () => clearInterval(poll)
-  }, [fetchMonitor, paused])
+  }, [fetchMonitor, paused, selectedDate])
 
   // Realtime push: saat ada snapshot kamera baru dari siswa, segarkan data
   // seketika tanpa menunggu polling berikutnya.
@@ -136,10 +168,10 @@ export default function GuruQuizMonitor() {
     if (!echo) return
     const channel = echo.channel(`quiz-monitor.${paketId}`)
     channel.listen('.snapshot.updated', () => {
-      if (!paused) fetchMonitor()
+      if (!paused && selectedDate === toDateInput(new Date())) fetchMonitor()
     })
     return () => leaveChannel(`quiz-monitor.${paketId}`)
-  }, [paketId, paused, fetchMonitor])
+  }, [paketId, paused, selectedDate, fetchMonitor])
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000)
@@ -256,13 +288,14 @@ export default function GuruQuizMonitor() {
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <h1 className="text-sm font-bold text-white truncate">{navTitle || data?.paket.title || 'Monitoring Quiz'}</h1>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 text-[9px] font-bold text-red-400 shrink-0">
-                    <span className={`h-1.5 w-1.5 rounded-full ${liveCount > 0 ? 'bg-red-500 animate-pulse' : 'bg-slate-500'}`} />
-                    LIVE
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold shrink-0 ${isToday ? 'bg-red-500/15 text-red-400' : 'bg-white/10 text-slate-400'}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${isToday && liveCount > 0 ? 'bg-red-500 animate-pulse' : 'bg-slate-500'}`} />
+                    {isToday ? 'LIVE' : 'RIWAYAT'}
                   </span>
                 </div>
                 <p className="text-[10px] text-slate-400 font-medium mt-0.5">
-                  {liveCount > 0 ? `${liveCount} kandidat sedang mengerjakan` : 'Tidak ada kandidat aktif'}
+                  {fmtDay(selectedDate, isToday)}
+                  {liveCount > 0 ? ` · ${liveCount} kandidat sedang mengerjakan` : ' · tidak ada kandidat aktif'}
                   {lastSync && ` · diperbarui ${ago(new Date(lastSync).toISOString())}`}
                 </p>
               </div>
@@ -325,11 +358,34 @@ export default function GuruQuizMonitor() {
 
       {/* ── Body ── */}
       <div className="mx-auto max-w-7xl px-4 py-4">
+        {/* Pilih hari */}
+        <div className="mb-3.5 flex flex-wrap items-center gap-1.5">
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-400 mr-1">
+            <CalendarDays size={12} /> Hari:
+          </span>
+          {(data?.dates || []).map(dt => (
+            <button key={dt.date} onClick={() => setSelectedDate(dt.date)}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-bold transition-colors ${
+                selectedDate === dt.date
+                  ? 'bg-[#0E6187] text-white'
+                  : 'bg-white/5 text-slate-300 hover:bg-white/10'
+              }`}>
+              {fmtDay(dt.date, dt.is_today)}
+              <span className={selectedDate === dt.date ? 'text-white/70' : 'text-slate-500'}>({dt.count})</span>
+            </button>
+          ))}
+          <input type="date" value={selectedDate} max={todayStr}
+            onChange={e => e.target.value && setSelectedDate(e.target.value)}
+            className="ml-auto bg-white/5 border border-white/10 text-slate-200 text-[10px] font-bold rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#0E6187]"
+            style={{ colorScheme: 'dark' }}
+            title="Pilih tanggal lain" />
+        </div>
+
         {attempts.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.02] p-12 text-center">
             <CheckCircle2 size={28} className="text-slate-500 mx-auto mb-3" />
-            <p className="text-sm font-bold text-slate-200">Belum ada kandidat mengerjakan</p>
-            <p className="text-xs text-slate-500 font-medium mt-1">Kandidat yang mulai mengerjakan quiz ini akan muncul di sini secara otomatis.</p>
+            <p className="text-sm font-bold text-slate-200">Belum ada kandidat mengerjakan pada {fmtDay(selectedDate, isToday).toLowerCase()}</p>
+            <p className="text-xs text-slate-500 font-medium mt-1">Kandidat yang mulai mengerjakan quiz ini pada hari tersebut akan muncul di sini.</p>
           </div>
         ) : (
           <>
@@ -561,6 +617,22 @@ export default function GuruQuizMonitor() {
                             {q.question_type === 'essay' && q.is_correct === null && q.answer_text?.trim() ? 'BELUM DINILAI' : q.is_correct === true ? 'BENAR' : q.is_correct === false ? 'SALAH' : 'TIDAK DIJAWAB'}
                           </span>
                         </div>
+                        {(q.image_url || q.audio_url) && (
+                          <div className="mt-2 space-y-2">
+                            {q.image_url && (
+                              <div>
+                                <span className="inline-flex items-center gap-1 text-[9px] font-bold text-[#0069b0] uppercase tracking-wide mb-1"><ImageIcon size={10} /> Soal Gambar</span>
+                                <img src={mediaUrl(q.image_url)} alt="Gambar soal" className="w-full max-h-44 object-contain rounded-lg border border-[#E5E7EF] bg-[#F4F5F8]" />
+                              </div>
+                            )}
+                            {q.audio_url && (
+                              <div>
+                                <span className="inline-flex items-center gap-1 text-[9px] font-bold text-[#0069b0] uppercase tracking-wide mb-1"><Volume2 size={10} /> Soal Suara</span>
+                                <audio src={mediaUrl(q.audio_url)} controls className="w-full h-9" />
+                              </div>
+                            )}
+                          </div>
+                        )}
                         <div className="mt-2 space-y-1.5">
                           {q.question_type === 'rating' ? (
                             <div>

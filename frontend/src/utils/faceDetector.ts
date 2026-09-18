@@ -11,6 +11,10 @@ export interface DetectedFace {
 const MODEL_URL = '/face-api-models'
 const YAW_THRESHOLD = 0.26
 
+// Input size lebih kecil = jauh lebih ringan di perangkat bawah.
+// 160 cukup presisi untuk mendeteksi wajah + menoleh pada jarak kamera webcam.
+const DETECT_INPUT_SIZE = 160
+
 let loadPromise: Promise<boolean> | null = null
 let modelsReady = false
 
@@ -37,7 +41,7 @@ export const detectFace = async (video: HTMLVideoElement): Promise<DetectedFace 
   if (!video.videoWidth || !video.videoHeight) return null
   try {
     const det = await faceapi
-      .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224 }))
+      .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: DETECT_INPUT_SIZE }))
       .withFaceLandmarks()
     if (!det) return null
     const box = det.detection.box
