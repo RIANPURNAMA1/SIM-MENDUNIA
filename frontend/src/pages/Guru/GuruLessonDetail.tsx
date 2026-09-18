@@ -36,6 +36,7 @@ interface LessonDetail {
     title: string
     level: string | null
     batch_id: number | null
+    kelas_sensei_id?: number | null
     can_manage?: boolean
     pakets?: {
       id: number
@@ -370,7 +371,7 @@ export default function GuruLessonDetail() {
     setHasilPaket({ id: paket.id, title: paket.title })
     setParticipants([])
     setHasilLoading(true)
-    guruQuizApi.results(paket.id)
+    guruQuizApi.results(paket.id, lesson?.course?.kelas_sensei_id ?? undefined)
       .then(res => setParticipants(res.data.participants || []))
       .catch(() => setParticipants([]))
       .finally(() => setHasilLoading(false))
@@ -1089,9 +1090,9 @@ export default function GuruLessonDetail() {
                 <span className="inline-flex items-center gap-1 text-[9px] font-bold text-[#0069b0] uppercase tracking-wide mb-1"><Volume2 size={10} /> Soal Suara</span>
                 <audio src={mediaUrl(q.audio_url)} controls className="w-full h-9" />
               </div>
-            )}
-          </div>
-        )}
+)}
+</div>
+              )}
         <div className="mt-2 space-y-1.5">
           {q.question_type === 'rating' ? (
             <div>
@@ -1440,7 +1441,7 @@ export default function GuruLessonDetail() {
                         className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#4B5063] bg-[#F4F5F8] border border-[#E5E7EF] px-3 py-1.5 rounded-md hover:bg-[#EDEEF3] transition-colors">
                         Lihat Paket Soal <ChevronDown size={12} className={previewPaketId === paket.id ? 'rotate-180 transition-transform' : 'transition-transform'} />
                       </button>
-                      <button onClick={() => navigate(`/guru-paket-soal/monitor/${paket.id}`, { state: { title: paket.title } })}
+                      <button onClick={() => navigate(`/guru-paket-soal/monitor/${paket.id}?kelas_sensei_id=${lesson?.course?.kelas_sensei_id ?? ''}`, { state: { title: paket.title } })}
                         className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#4B5063] bg-[#F4F5F8] border border-[#E5E7EF] px-3 py-1.5 rounded-md hover:bg-[#EDEEF3] transition-colors"
                         title="Monitor langsung pengerjaan siswa (kamera + progres)">
                         <Activity size={12} /> Monitor
@@ -1866,26 +1867,27 @@ export default function GuruLessonDetail() {
                   <p className="text-[10px] text-[#8B90A0] font-medium mt-1">Hasil muncul setelah kandidat mengerjakan quiz ini</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <div className="min-w-[600px] rounded-md border border-[#E5E7EF] overflow-hidden">
-                    <table className="w-full text-left">
+                <>
+                <div className="hidden md:block overflow-x-auto">
+                  <div className="min-w-[760px] rounded-md border border-[#E5E7EF] overflow-hidden">
+                    <table className="w-full text-left border-collapse bg-white">
                       <thead>
-                        <tr className="bg-[#F7F9FC] border-b border-[#E5E7EF]">
-                          <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide">Kandidat</th>
-                          <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide text-center">Percobaan</th>
-                          <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide text-center">Skor</th>
-                          <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide text-center">Benar/Total</th>
-                          <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide text-center">Waktu Pengerjaan</th>
-                          <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide text-center">Status</th>
-                          <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide text-center">Aksi</th>
+                        <tr className="bg-[#F7F9FC]">
+                          <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide border border-[#E5E7EF]">Kandidat</th>
+                          <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide text-center border border-[#E5E7EF]">Percobaan</th>
+                          <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide text-center border border-[#E5E7EF]">Skor</th>
+                          <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide text-center border border-[#E5E7EF]">Benar/Total</th>
+                          <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide text-center border border-[#E5E7EF]">Waktu Pengerjaan</th>
+                          <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide text-center border border-[#E5E7EF]">Status</th>
+                          <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide text-center border border-[#E5E7EF]">Aksi</th>
                         </tr>
                       </thead>
                       <tbody>
                         {participants.map(par =>
                           par.attempts.map((a, ai) => (
-                            <tr key={a.attempt_id} className="border-b border-[#F0F1F5] last:border-0 hover:bg-[#F7F9FC]/60 transition-colors align-top">
+                            <tr key={a.attempt_id} className="hover:bg-[#F7F9FC]/60 transition-colors align-top bg-white">
                               {ai === 0 && (
-                                <td rowSpan={par.attempts.length} className="py-3 px-3">
+                                <td rowSpan={par.attempts.length} className="py-3 px-3 border border-[#E5E7EF]">
                                   <p className="text-xs font-bold text-[#14182B]">{par.nama}</p>
                                   <p className="text-[9.5px] text-[#8B90A0] font-medium mt-0.5">
                                     {[par.batch && `Batch ${par.batch}`, par.level != null && `Level ${par.level}`].filter(Boolean).join(' · ') || '-'}
@@ -1893,22 +1895,22 @@ export default function GuruLessonDetail() {
                                   <p className="text-[9.5px] font-bold text-[#0069b0] mt-1">Skor terbaik: {Number(par.best_score) || 0}</p>
                                 </td>
                               )}
-                              <td className="py-3 px-3 text-center text-[11px] font-bold text-[#4B5063]">#{a.attempt_number}</td>
-                              <td className="py-3 px-3 text-center">
+                              <td className="py-3 px-3 text-center text-[11px] font-bold text-[#4B5063] border border-[#E5E7EF]">#{a.attempt_number}</td>
+                              <td className="py-3 px-3 text-center border border-[#E5E7EF]">
                                 <span className={`text-[11px] font-bold ${a.status === 'submitted' ? 'text-[#0069b0]' : 'text-[#B9BDCB]'}`}>
                                   {a.status === 'submitted' ? Number(a.score) || 0 : '–'}
                                 </span>
                               </td>
-                              <td className="py-3 px-3 text-center text-[11px] font-semibold text-[#4B5063]">
+                              <td className="py-3 px-3 text-center text-[11px] font-semibold text-[#4B5063] border border-[#E5E7EF]">
                                 {a.correct_count != null && a.total_count != null ? `${a.correct_count}/${a.total_count}` : '–'}
                               </td>
-                              <td className="py-3 px-3 text-center">
+                              <td className="py-3 px-3 text-center border border-[#E5E7EF]">
                                 <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#4B5063]">
                                   <Clock size={11} className="text-[#8B90A0]" />
                                   {fmtDuration(a.started_at, a.submitted_at)}
                                 </span>
                               </td>
-                              <td className="py-3 px-3 text-center">
+                              <td className="py-3 px-3 text-center border border-[#E5E7EF]">
                                 <span className={`inline-block text-[9px] font-bold px-2 py-1 rounded-full ${
                                   a.status === 'submitted'
                                     ? a.auto_submitted ? 'bg-orange-50 text-orange-600' : 'bg-emerald-50 text-emerald-600'
@@ -1917,13 +1919,13 @@ export default function GuruLessonDetail() {
                                   {a.status === 'submitted' ? (a.auto_submitted ? 'Dikumpulkan otomatis' : 'Selesai') : 'Sedang dikerjakan'}
                                 </span>
                               </td>
-                              <td className="py-3 px-3 text-center">
+                              <td className="py-3 px-3 text-center border border-[#E5E7EF]">
                                 <div className="inline-flex items-center gap-1.5">
                                   <button onClick={() => openAttemptDetail(a.attempt_id)}
                                     className="inline-flex items-center gap-1 text-[10px] font-bold text-[#0069b0] border border-[#0069b0]/30 bg-[#0069b0]/5 px-2.5 py-1.5 rounded-md hover:bg-[#0069b0]/10 transition-colors">
                                     Jawaban <ChevronRight size={11} />
                                   </button>
-                                  {canManage && ai === 0 && (
+                                  {ai === 0 && (
                                     <button onClick={() => confirmResetParticipant(par)}
                                       title={`Reset semua percobaan ${par.nama}`}
                                       className="inline-flex items-center gap-1 text-[10px] font-bold text-red-500 border border-red-200 bg-red-50 px-2.5 py-1.5 rounded-md hover:bg-red-100 transition-colors">
@@ -1939,6 +1941,72 @@ export default function GuruLessonDetail() {
                     </table>
                   </div>
                 </div>
+
+                <div className="md:hidden space-y-3">
+                  {participants.map(par => (
+                    <div key={par.siswa_id} className="rounded-lg border border-[#E5E7EF] overflow-hidden">
+                      <div className="flex items-center justify-between gap-2 px-3.5 py-3 bg-[#F7F9FC] border-b border-[#E5E7EF]">
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-[#14182B] truncate">{par.nama}</p>
+                          <p className="text-[9.5px] text-[#8B90A0] font-medium mt-0.5">
+                            {[par.batch && `Batch ${par.batch}`, par.level != null && `Level ${par.level}`].filter(Boolean).join(' · ') || '-'}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-[9px] font-bold text-[#0069b0] bg-[#0069b0]/[0.06] px-2 py-1 rounded-full">Terbaik {Number(par.best_score) || 0}</span>
+                      </div>
+                      <div className="divide-y divide-[#F0F1F5]">
+                        {par.attempts.map((a, ai) => (
+                          <div key={a.attempt_id} className="px-3.5 py-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[10px] font-bold text-[#4B5063]">#{a.attempt_number}</span>
+                              <span className={`text-[9px] font-bold px-2 py-1 rounded-full ${
+                                a.status === 'submitted'
+                                  ? a.auto_submitted ? 'bg-orange-50 text-orange-600' : 'bg-emerald-50 text-emerald-600'
+                                  : 'bg-[#F4F5F8] text-[#8B90A0]'
+                              }`}>
+                                {a.status === 'submitted' ? (a.auto_submitted ? 'Dikumpulkan otomatis' : 'Selesai') : 'Sedang dikerjakan'}
+                              </span>
+                            </div>
+                            <div className="mt-2 grid grid-cols-3 gap-2">
+                              <div className="rounded-md bg-[#F7F9FC] border border-[#F0F1F5] py-2 text-center">
+                                <p className="text-[8.5px] font-bold text-[#8B90A0] uppercase tracking-wide">Skor</p>
+                                <p className={`text-xs font-bold mt-0.5 ${a.status === 'submitted' ? 'text-[#0069b0]' : 'text-[#B9BDCB]'}`}>
+                                  {a.status === 'submitted' ? Number(a.score) || 0 : '–'}
+                                </p>
+                              </div>
+                              <div className="rounded-md bg-[#F7F9FC] border border-[#F0F1F5] py-2 text-center">
+                                <p className="text-[8.5px] font-bold text-[#8B90A0] uppercase tracking-wide">Benar</p>
+                                <p className="text-xs font-bold text-[#14182B] mt-0.5">
+                                  {a.correct_count != null && a.total_count != null ? `${a.correct_count}/${a.total_count}` : '–'}
+                                </p>
+                              </div>
+                              <div className="rounded-md bg-[#F7F9FC] border border-[#F0F1F5] py-2 text-center">
+                                <p className="text-[8.5px] font-bold text-[#8B90A0] uppercase tracking-wide">Waktu</p>
+                                <p className="text-[10px] font-bold text-[#14182B] mt-0.5">
+                                  {fmtDuration(a.started_at, a.submitted_at)}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="mt-2.5 flex gap-1.5">
+                              <button onClick={() => openAttemptDetail(a.attempt_id)}
+                                className="flex-1 inline-flex items-center justify-center gap-1 text-[10px] font-bold text-[#0069b0] border border-[#0069b0]/30 bg-[#0069b0]/5 px-2.5 py-2 rounded-md hover:bg-[#0069b0]/10 transition-colors">
+                                Jawaban <ChevronRight size={11} />
+                              </button>
+                              {ai === 0 && (
+                                <button onClick={() => confirmResetParticipant(par)}
+                                  title={`Reset semua percobaan ${par.nama}`}
+                                  className="flex-1 inline-flex items-center justify-center gap-1 text-[10px] font-bold text-red-500 border border-red-200 bg-red-50 px-2.5 py-2 rounded-md hover:bg-red-100 transition-colors">
+                                  <RotateCcw size={11} /> Reset
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
               )}
             </div>
           </div>

@@ -124,6 +124,11 @@ export default function GuruQuizMonitor() {
 
   const todayStr = toDateInput(new Date())
   const urlDateParam = useRef(new URLSearchParams(window.location.search).get('date')).current
+  const urlKelasRef = useRef(new URLSearchParams(window.location.search).get('kelas_sensei_id')).current
+  const urlKelas = (() => {
+    const n = urlKelasRef ? Number(urlKelasRef) : NaN
+    return Number.isInteger(n) && n > 0 ? n : undefined
+  })()
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     const p = new URLSearchParams(window.location.search).get('date')
     return p && /^\d{4}-\d{2}-\d{2}$/.test(p) ? p : todayStr
@@ -153,7 +158,7 @@ export default function GuruQuizMonitor() {
   const fetchMonitor = useCallback(() => {
     if (!paketId || fetchingRef.current) return
     fetchingRef.current = true
-    guruQuizApi.monitor(Number(paketId), selectedDate).then(res => {
+    guruQuizApi.monitor(Number(paketId), selectedDate, urlKelas).then(res => {
       setData(res.data)
       setLastSync(Date.now())
       setFailed(false)
@@ -163,7 +168,7 @@ export default function GuruQuizMonitor() {
       fetchingRef.current = false
       setLoading(false)
     })
-  }, [paketId, selectedDate])
+  }, [paketId, selectedDate, urlKelas])
 
   useEffect(() => {
     fetchMonitor()
