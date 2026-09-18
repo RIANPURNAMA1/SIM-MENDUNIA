@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft, Clock, ListChecks, Award, Camera, ShieldAlert, X, Play,
   AlertTriangle, CheckCircle2, BookOpen, LayoutDashboard, CalendarCheck,
-  Wallet, User, FileQuestion, Lock, Check, LayoutGrid,
+  Wallet, User, FileQuestion, Lock, Check, LayoutGrid, XCircle,
 } from 'lucide-react'
 import { quizApi, lmsApi } from '../../services/api'
 import { detectFace, loadFaceModels, type DetectedFace } from '../../utils/faceDetector'
@@ -30,6 +30,7 @@ interface PaketList {
   attempts_used: number
   best_score: number | null
   can_start: boolean
+  locked?: boolean
 }
 
 interface AttemptHistory {
@@ -83,6 +84,37 @@ interface PlayQuestion {
   options: string[]
   points: number
   selected_index?: number | null
+  answer_text?: string | null
+}
+
+interface ReviewOption {
+  text: string
+  image_path?: string | null
+  image_url?: string | null
+}
+
+interface ReviewQuestion {
+  id: number
+  question: string
+  section?: string | null
+  question_type: string
+  rating_max: number | null
+  options: ReviewOption[]
+  correct_index: number | null
+  keyword?: string | null
+  points: number
+  sort: number
+  image_url?: string | null
+  selected_index?: number | null
+  answer_text?: string | null
+  earned_points?: number | null
+  is_correct?: boolean | null
+}
+
+interface ReviewData {
+  attempt: ResultPayload
+  paket: { id: number; title: string }
+  questions: ReviewQuestion[]
 }
 
 interface ResultPayload {
@@ -133,6 +165,203 @@ const fmtClock = (sec: number) => {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
+function SummaryTile({ value, label, accent }: { value: string; label: string; accent?: boolean }) {
+  return (
+    <div className={`rounded-md px-2 py-2.5 text-center ${accent ? 'bg-[#0E6187]/10' : 'bg-slate-50'}`}>
+      <p className={`text-base font-black tabular-nums ${accent ? 'text-[#0E6187]' : 'text-slate-700'}`}>{value}</p>
+      <p className="text-[9.5px] font-bold text-slate-400 mt-0.5">{label}</p>
+    </div>
+  )
+}
+
+function ReviewLine({ label, value, tone }: { label: string; value: string; tone: 'good' | 'bad' | 'muted' }) {
+  const cls = tone === 'good'
+    ? 'border-emerald-100 bg-emerald-50/50 text-emerald-700'
+    : tone === 'bad'
+      ? 'border-red-100 bg-red-50/50 text-red-600'
+      : 'border-slate-100 bg-slate-50 text-slate-500'
+  return (
+    <div className={`rounded-lg border px-3 py-2.5 ${cls}`}>
+      <p className="text-[9.5px] font-black uppercase tracking-wide opacity-70">{label}</p>
+      <p className="text-[12px] font-medium mt-1 break-words whitespace-pre-wrap">{value}</p>
+    </div>
+  )
+}
+
+function ReviewQuestionCard({ q, index }: { q: ReviewQuestion; index: number }) {
+  const isRating = q.question_type === 'rating'
+  const isEssay = q.question_type === 'essay'
+  const answered = isEssay
+    ? Boolean(q.answer_text && String(q.answer_text).trim() !== '')
+    : q.selected_index !== undefined && q.selected_index !== null
+  const correct = q.is_correct === true
+  const wrong = q.is_correct === false
+  const status = !answered ? 'empty' : correct ? 'correct' : wrong ? 'wrong' : 'empty'
+
+  const statusCfg = {
+    correct: { label: 'Benar', cls: 'bg-emerald-50 text-emerald-600 border-emerald-100' },
+    wrong: { label: 'Salah', cls: 'bg-red-50 text-red-500 border-red-100' },
+    empty: { label: 'Kosong', cls: 'bg-slate-100 text-slate-400 border-slate-100' },
+  }[status]
+
+  const headerCls = status === 'correct'
+    ? 'border-emerald-50 bg-emerald-50/50'
+    : status === 'wrong'
+      ? 'border-red-50 bg-red-50/50'
+      : 'bg-slate-50/60'
+
+  const letter = (i: number) => String.fromCharCode(65 + i)
+
+  return (
+    <div className={`rounded-lg border ${status === 'correct' ? 'border-emerald-100' : status === 'wrong' ? 'border-red-100' : 'border-slate-100'} bg-white overflow-hidden`}>
+      <div className={`px-3.5 py-2.5 flex items-center gap-2.5 border-b ${headerCls}`}>
+        <span className="w-6 h-6 rounded-md bg-white border border-slate-200 text-[11px] font-black text-slate-700 flex items-center justify-center shrink-0">
+          {index + 1}
+        </span>
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border ${statusCfg.cls}`}>
+          {status === 'correct' ? <Check size={12} /> : status === 'wrong' ? <XCircle size={12} /> : <AlertTriangle size={12} />} {statusCfg.label}
+        </span>
+        <span className="ml-auto text-[10px] font-bold text-slate-300">{q.points} poin</span>
+      </div>
+
+      <div className="p-3.5">
+        <div
+          className="text-[13px] font-medium text-slate-800 leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-1"
+          dangerouslySetInnerHTML={{ __html: q.question }} />
+
+        {isEssay ? (
+          <div className="mt-3 space-y-2">
+            <ReviewLine label="Jawaban Anda" value={q.answer_text || 'Tidak dijawab'} tone={answered ? (correct ? 'good' : 'bad') : 'muted'} />
+            {q.keyword && <ReviewLine label="Kunci Jawaban" value={q.keyword} tone="good" />}
+            <p className="text-[11px] font-bold text-slate-500">
+              Poin: <span className="text-slate-800">{q.earned_points ?? 0} / {q.points}</span>
+            </p>
+          </div>
+        ) : isRating ? (
+          <div className="mt-3 space-y-2">
+            <ReviewLine
+              label="Jawaban Anda"
+              value={q.selected_index != null ? `Rating ${q.selected_index}${q.rating_max ? ' / ' + q.rating_max : ''}` : 'Tidak dijawab'}
+              tone={answered ? 'good' : 'muted'} />
+            <p className="text-[11px] font-semibold text-slate-500">Soal penilaian skala — nilai ditentukan instruktur.</p>
+          </div>
+        ) : (
+          <div className="mt-2 space-y-1.5">
+            {q.options.map((opt, oi) => {
+              const isCorrectOpt = q.correct_index != null && oi === q.correct_index
+              const isSelected = oi === q.selected_index
+              const isWrongPick = isSelected && !isCorrectOpt
+              const cls = isCorrectOpt
+                ? 'border-emerald-300 bg-emerald-50'
+                : isWrongPick
+                  ? 'border-red-300 bg-red-50'
+                  : 'border-slate-200 bg-white'
+              return (
+                <div key={oi} className={`flex items-center gap-2 px-3 py-2 rounded-md border text-xs font-medium text-slate-700 ${cls}`}>
+                  <span className="w-5 h-5 rounded bg-white border border-slate-200 flex items-center justify-center text-[10px] font-black shrink-0">
+                    {letter(oi)}
+                  </span>
+                  <span className="flex-1 min-w-0 flex items-center gap-2">
+                    {opt.text && <span>{opt.text}</span>}
+                    {opt.image_url && <img src={opt.image_url} alt="" className="h-12 rounded object-contain bg-white" />}
+                  </span>
+                  {isCorrectOpt && (
+                    <span className="inline-flex items-center gap-1 text-[9px] font-black text-emerald-600 px-1.5 py-0.5 rounded bg-emerald-100/70 shrink-0">
+                      <Check size={10} /> Kunci Jawaban
+                    </span>
+                  )}
+                  {isWrongPick && (
+                    <span className="inline-flex items-center gap-1 text-[9px] font-black text-red-500 px-1.5 py-0.5 rounded bg-red-100/70 shrink-0">
+                      <XCircle size={10} /> Jawaban Anda
+                    </span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ReviewModal({ open, loading, error, data, attemptLabel, onClose }: {
+  open: boolean
+  loading: boolean
+  error: string | null
+  data: ReviewData | null
+  attemptLabel: string
+  onClose: () => void
+}) {
+  if (!open) return null
+
+  const correctCount = data ? data.questions.filter(q => q.is_correct === true).length : 0
+  const wrongCount = data ? data.questions.filter(q => q.is_correct === false).length : 0
+  const skipCount = data ? data.questions.length - correctCount - wrongCount : 0
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4">
+      <div className="w-full max-w-2xl max-h-[92vh] bg-white rounded-t-2xl sm:rounded-2xl overflow-hidden flex flex-col">
+        <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <span className="w-9 h-9 rounded-lg bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+              <FileQuestion size={17} className="text-[#0E6187]" />
+            </span>
+            <div>
+              <h2 className="text-sm font-black text-slate-800">Pembahasan Quiz</h2>
+              <p className="text-[11px] text-slate-400 font-medium">{data?.paket.title || 'Quiz'} · {attemptLabel}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="flex-1 flex items-center justify-center py-20">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-8 h-8 border-2 border-[#0E6187]/20 border-t-[#0E6187] rounded-full animate-spin" />
+              <p className="text-[11px] font-semibold text-slate-400">Memuat pembahasan...</p>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="flex-1 flex flex-col items-center justify-center py-20 px-6 text-center">
+            <AlertTriangle size={28} className="text-amber-500" />
+            <p className="mt-3 text-sm font-bold text-slate-700">Tidak dapat membuka pembahasan</p>
+            <p className="mt-1 text-[11px] text-slate-400">{error}</p>
+            <button onClick={onClose}
+              className="mt-5 px-5 py-2 rounded-lg bg-[#0E6187] text-white text-xs font-bold hover:bg-[#0a4d6b] transition-colors">
+              Tutup
+            </button>
+          </div>
+        ) : data ? (
+          <>
+            <div className="px-4 sm:px-5 py-3 border-b border-slate-100">
+              <div className="grid grid-cols-4 gap-2">
+                <SummaryTile value={`${data.attempt.score ?? 0}`} label="Nilai" accent />
+                <SummaryTile value={`${correctCount}`} label="Benar" />
+                <SummaryTile value={`${wrongCount}`} label="Salah" />
+                <SummaryTile value={`${skipCount}`} label="Kosong" />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {data.questions.map((q, i) => <ReviewQuestionCard key={q.id} q={q} index={i} />)}
+            </div>
+
+            <div className="px-4 sm:px-5 py-3 border-t border-slate-100">
+              <button onClick={onClose}
+                className="w-full py-2.5 rounded-lg bg-[#0E6187] text-white text-xs font-bold hover:bg-[#0a4d6b] transition-colors">
+                Tutup Pembahasan
+              </button>
+            </div>
+          </>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
 export default function QuizKandidat() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -149,6 +378,7 @@ export default function QuizKandidat() {
 
   const [questions, setQuestions] = useState<PlayQuestion[]>([])
   const [selected, setSelected] = useState<Record<number, number | null>>({})
+  const [essayDrafts, setEssayDrafts] = useState<Record<number, string>>({})
   const [remaining, setRemaining] = useState(0)
   const [warnBanner, setWarnBanner] = useState(false)
 
@@ -161,6 +391,12 @@ export default function QuizKandidat() {
   const [submitting, setSubmitting] = useState(false)
 
   const [result, setResult] = useState<ResultPayload | null>(null)
+
+  const [reviewOpen, setReviewOpen] = useState(false)
+  const [reviewLoading, setReviewLoading] = useState(false)
+  const [reviewErr, setReviewErr] = useState<string | null>(null)
+  const [reviewData, setReviewData] = useState<ReviewData | null>(null)
+  const [reviewAttemptId, setReviewAttemptId] = useState<number | null>(null)
 
   const attemptRef = useRef<number | null>(null)
   const paketTitleRef = useRef('')
@@ -198,7 +434,7 @@ export default function QuizKandidat() {
   const fetchPakets = () => {
     setLoading(true)
     quizApi.pakets().then(res => {
-      setPakets(res.data.pakets || [])
+      setPakets((res.data.pakets || []).filter((p: PaketList) => !p.locked))
     }).catch(() => {}).finally(() => setLoading(false))
   }
 
@@ -483,15 +719,21 @@ export default function QuizKandidat() {
     if (!attemptRef.current || submitting) return
     setSubmitting(true)
     stopTimers()
-    quizApi.submit(attemptRef.current).then(res => {
-      setResult(res.data.attempt)
-      setView('result')
-    }).catch(() => {
-      Swal.fire({ icon: 'error', title: 'Gagal mengumpulkan quiz', text: reason })
-      setSubmitting(false)
-      if (reason === 'waktu habis') setRemaining(0)
+    const essayOrders = questions
+      .filter(q => q.question_type === 'essay')
+      .map(q => quizApi.answer(attemptRef.current!, { question_id: q.id, selected_index: null, answer_text: (essayDrafts[q.id] ?? '').trim() || null }))
+    Promise.allSettled(essayOrders).finally(() => {
+      quizApi.submit(attemptRef.current!).then(res => {
+        setResult(res.data.attempt)
+        setView('result')
+      }).catch(() => {
+        Swal.fire({ icon: 'error', title: 'Gagal mengumpulkan quiz', text: reason })
+        setSubmitting(false)
+        if (reason === 'waktu habis') setRemaining(0)
+      })
     })
-  }, [submitting, stopTimers])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submitting, stopTimers, questions, essayDrafts])
 
   const enterPlay = useCallback((attemptId: number, packageId: number, template?: string) => {
     stopTimers()
@@ -540,6 +782,22 @@ export default function QuizKandidat() {
     }).finally(() => setStarting(false))
   }
 
+  const openReview = (attemptId: number) => {
+    setReviewAttemptId(attemptId)
+    setReviewOpen(true)
+    setReviewLoading(true)
+    setReviewErr(null)
+    setReviewData(null)
+    quizApi.review(attemptId).then(res => {
+      setReviewData(res.data)
+    }).catch((err: any) => {
+      const msg = typeof err?.response?.data?.message === 'string'
+        ? err.response.data.message
+        : 'Gagal memuat pembahasan.'
+      setReviewErr(msg)
+    }).finally(() => setReviewLoading(false))
+  }
+
   const selectAnswer = (q: PlayQuestion, idx: number) => {
     if (!attemptRef.current) return
     const current = selected[q.id]
@@ -550,6 +808,13 @@ export default function QuizKandidat() {
         setSelected({ ...selected, [q.id]: current })
         Swal.fire({ icon: 'warning', title: 'Gagal menyimpan jawaban', text: 'Periksa koneksi Anda' })
       })
+  }
+
+  const updateEssay = (q: PlayQuestion, val: string) => {
+    if (!attemptRef.current) return
+    setEssayDrafts(d => ({ ...d, [q.id]: val }))
+    quizApi.answer(attemptRef.current, { question_id: q.id, selected_index: null, answer_text: val.trim() || null })
+      .catch(() => Swal.fire({ icon: 'warning', title: 'Gagal menyimpan jawaban', text: 'Periksa koneksi Anda' }))
   }
 
   const sendWarn = useCallback(() => {
@@ -588,7 +853,9 @@ export default function QuizKandidat() {
     })
   }
 
-  const answeredCount = questions.filter(q => selected[q.id] !== undefined && selected[q.id] !== null).length
+  const answeredCount = questions.filter(q => q.question_type === 'essay'
+    ? !!(essayDrafts[q.id] ?? '').trim()
+    : selected[q.id] !== undefined && selected[q.id] !== null).length
 
   // ==================== RENDER ====================
 
@@ -664,6 +931,20 @@ export default function QuizKandidat() {
                 <span className="text-[9.5px] font-bold text-slate-300 shrink-0 mt-0.5">{q.points} poin</span>
               </div>
               <div className="mt-3 space-y-2">
+                {q.question_type === 'essay' ? (
+                  <div>
+                    <textarea
+                      value={essayDrafts[q.id] ?? ''}
+                      onChange={e => updateEssay(q, e.target.value)}
+                      disabled={submitting}
+                      rows={5}
+                      placeholder="Tulis jawaban esai Anda di sini..."
+                      className="w-full text-[12px] leading-relaxed border-2 border-[#E5E7EF] rounded-md px-3.5 py-3 focus:outline-none focus:border-amber-400 focus:bg-amber-50/30 transition-colors resize-y"
+                    />
+                    <p className="text-[9.5px] font-medium text-slate-400 mt-1.5">Jawaban tersimpan otomatis · Esai dinilai oleh pengajar</p>
+                  </div>
+                ) : (
+                <>
                 {q.question_type === 'rating' && (
                   <p className="text-[10px] font-bold text-violet-600 uppercase tracking-wide">Skala penilaian 1–{q.rating_max || q.options.length} — pilih salah satu</p>
                 )}
@@ -684,6 +965,8 @@ export default function QuizKandidat() {
                     </button>
                   )
                 })}
+                </>
+                )}
               </div>
             </div>
           ))}
@@ -755,6 +1038,10 @@ export default function QuizKandidat() {
             </p>
 
             <div className="flex gap-2 mt-5">
+              <button onClick={() => openReview(result.attempt_id)}
+                className="flex-1 text-[11.5px] font-bold text-[#0E6187] bg-white border border-[#0E6187]/30 py-3 rounded-md hover:bg-[#0E6187]/5 transition-colors">
+                Lihat Pembahasan
+              </button>
               <button onClick={goBack}
                 className="flex-1 text-[12px] font-bold text-white bg-[#0E6187] py-3 rounded-md hover:bg-[#0a4d6b] transition-colors">
                 Selesai
@@ -778,6 +1065,15 @@ export default function QuizKandidat() {
             })}
           </div>
         </nav>
+
+        <ReviewModal
+          open={reviewOpen}
+          loading={reviewLoading}
+          error={reviewErr}
+          data={reviewData}
+          attemptLabel={`Percobaan #${result.attempt_number}`}
+          onClose={() => setReviewOpen(false)}
+        />
       </div>
     )
   }
@@ -971,7 +1267,7 @@ export default function QuizKandidat() {
                     </div>
                     <div className="p-3 space-y-2">
                       {lessonQuizzesMap[activeLesson.id].map((q: any) => {
-                        const unlocked = q.is_unlocked || q.status === 'aktif'
+                        const unlocked = q.is_unlocked !== undefined ? q.is_unlocked : (q.status === 'aktif' && !q.is_link_locked)
                         const attemptsMaxed = q.max_attempts > 0 && q.attempts_used >= q.max_attempts
                         const best = q.best_score != null ? q.best_score : null
                         return (
@@ -997,7 +1293,7 @@ export default function QuizKandidat() {
                                 </span>
                               )}
                               {!unlocked ? (
-                                <span className="rounded-md bg-gray-100 px-2 py-1 text-[9px] font-bold text-gray-400">Ditutup</span>
+                                <span className="rounded-md bg-gray-100 px-2 py-1 text-[9px] font-bold text-gray-400">{q.is_link_locked ? 'Terkunci' : 'Ditutup'}</span>
                               ) : attemptsMaxed ? (
                                 <span className="rounded-md bg-red-50 px-2 py-1 text-[9px] font-bold text-red-500">Habis</span>
                               ) : (
@@ -1096,7 +1392,7 @@ export default function QuizKandidat() {
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${a.status === 'submitted' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-500'}`}>
                       #{a.attempt_number}
                     </span>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <p className="text-[11px] font-bold text-slate-700">
                         {a.status === 'submitted' ? (Number(a.score) || 0) + ' poin' : 'Sedang berjalan'}
                         {a.auto_submitted && <span className="ml-1 text-[9px] font-bold text-orange-500">AUTO</span>}
@@ -1105,7 +1401,14 @@ export default function QuizKandidat() {
                         {a.started_at ? new Date(a.started_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
                       </p>
                     </div>
-                    {a.status === 'in_progress' && <span className="text-[9.5px] font-bold text-orange-500 shrink-0">LANJUTKAN*</span>}
+                    {a.status === 'in_progress' ? (
+                      <span className="text-[9.5px] font-bold text-orange-500 shrink-0">LANJUTKAN*</span>
+                    ) : (
+                      <button onClick={() => openReview(a.attempt_id)}
+                        className="shrink-0 text-[10px] font-bold text-[#0E6187] bg-white border border-[#0E6187]/25 px-2.5 py-1.5 rounded-md hover:bg-[#0E6187]/5 transition-colors">
+                        Lihat Pembahasan
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1140,6 +1443,15 @@ export default function QuizKandidat() {
             })}
           </div>
         </nav>
+
+        <ReviewModal
+          open={reviewOpen}
+          loading={reviewLoading}
+          error={reviewErr}
+          data={reviewData}
+          attemptLabel={reviewData?.attempt?.attempt_number ? `Percobaan #${reviewData.attempt.attempt_number}` : ''}
+          onClose={() => setReviewOpen(false)}
+        />
       </div>
     )
   }
@@ -1160,7 +1472,7 @@ export default function QuizKandidat() {
 
   if (view === 'rules' && detail) {
     const { paket, attempts } = detail
-    const isProctoring = paket.quiz_template === 'jft'
+    const isProctoring = true
     const used = attempts.length
     const inProgress = attempts.find(a => a.status === 'in_progress')
     const remainingAttempts = paket.max_attempts - used
@@ -1262,7 +1574,7 @@ export default function QuizKandidat() {
                   </div>
                   <div>
                     <p className="text-[12px] font-bold text-slate-700">Template Basic</p>
-                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">Tanpa pengawasan kamera — diakses melalui tampilan quiz sederhana.</p>
+                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">Kamera pengawas & keamanan aktif selama pengerjaan quiz.</p>
                   </div>
                 </div>
               )}
@@ -1288,7 +1600,7 @@ export default function QuizKandidat() {
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${a.status === 'submitted' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-500'}`}>
                       #{a.attempt_number}
                     </span>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <p className="text-[11px] font-bold text-slate-700">
                         {a.status === 'submitted' ? (Number(a.score) || 0) + ' poin' : 'Sedang berjalan'}
                         {a.auto_submitted && <span className="ml-1 text-[9px] font-bold text-orange-500">AUTO</span>}
@@ -1297,7 +1609,14 @@ export default function QuizKandidat() {
                         {a.started_at ? new Date(a.started_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
                       </p>
                     </div>
-                    {a.status === 'in_progress' && <span className="text-[9.5px] font-bold text-orange-500 shrink-0">LANJUTKAN*</span>}
+                    {a.status === 'in_progress' ? (
+                      <span className="text-[9.5px] font-bold text-orange-500 shrink-0">LANJUTKAN*</span>
+                    ) : (
+                      <button onClick={() => openReview(a.attempt_id)}
+                        className="shrink-0 text-[10px] font-bold text-[#0E6187] bg-white border border-[#0E6187]/25 px-2.5 py-1.5 rounded-md hover:bg-[#0E6187]/5 transition-colors">
+                        Lihat Pembahasan
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1382,6 +1701,15 @@ export default function QuizKandidat() {
             })}
           </div>
         </nav>
+
+        <ReviewModal
+          open={reviewOpen}
+          loading={reviewLoading}
+          error={reviewErr}
+          data={reviewData}
+          attemptLabel={reviewData?.attempt?.attempt_number ? `Percobaan #${reviewData.attempt.attempt_number}` : ''}
+          onClose={() => setReviewOpen(false)}
+        />
       </div>
     )
   }

@@ -14,6 +14,7 @@ class QuizQuestion extends Model
         'rating_max',
         'options',
         'correct_index',
+        'keyword',
         'points',
         'sort',
         'image_path',

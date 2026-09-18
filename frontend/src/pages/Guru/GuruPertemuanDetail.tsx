@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft, BookOpen, CalendarDays, Camera, Check, CheckCircle2, Circle, FileText,
-  Image as ImageIcon, ListChecks, MapPin, Save, Trash2, Users, X,
+  Image as ImageIcon, ListChecks, MapPin, Save, Trash2, Users, X, Activity,
 } from 'lucide-react'
 import { pertemuanApi } from '../../services/api'
 import Swal from 'sweetalert2'
@@ -260,16 +260,28 @@ export default function GuruPertemuanDetail({ readOnly = false, backPath = '/gur
                     {d.latihan_paket && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-[#0E6187]/10 text-[#0E6187]">
                         <BookOpen size={11} /> Latihan: {d.latihan_paket.title}
+                        <button onClick={() => navigate(`/guru-paket-soal/monitor/${d.latihan_paket!.id}`, { state: { title: d.latihan_paket!.title } })}
+                          className="ml-1 w-5 h-5 flex items-center justify-center rounded bg-[#0E6187]/10 hover:bg-[#0E6187]/20 transition-colors" title="Monitor langsung">
+                          <Activity size={9} />
+                        </button>
                       </span>
                     )}
                     {d.ulangan_harian_paket && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-600">
                         <ListChecks size={11} /> Ulangan Harian: {d.ulangan_harian_paket.title}
+                        <button onClick={() => navigate(`/guru-paket-soal/monitor/${d.ulangan_harian_paket!.id}`, { state: { title: d.ulangan_harian_paket!.title } })}
+                          className="ml-1 w-5 h-5 flex items-center justify-center rounded bg-blue-100 hover:bg-blue-200 transition-colors" title="Monitor langsung">
+                          <Activity size={9} />
+                        </button>
                       </span>
                     )}
                     {d.ulangan_mingguan_paket && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-violet-50 text-violet-600">
                         <Check size={11} /> Ulangan Mingguan: {d.ulangan_mingguan_paket.title}
+                        <button onClick={() => navigate(`/guru-paket-soal/monitor/${d.ulangan_mingguan_paket!.id}`, { state: { title: d.ulangan_mingguan_paket!.title } })}
+                          className="ml-1 w-5 h-5 flex items-center justify-center rounded bg-violet-100 hover:bg-violet-200 transition-colors" title="Monitor langsung">
+                          <Activity size={9} />
+                        </button>
                       </span>
                     )}
                   </div>

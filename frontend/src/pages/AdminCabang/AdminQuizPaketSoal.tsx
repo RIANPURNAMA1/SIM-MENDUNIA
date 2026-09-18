@@ -49,6 +49,7 @@ interface Question {
   rating_max: number | null
   options: string[]
   correct_index: number | null
+  keyword: string | null
   points: number
   sort: number
   section_id: number | null
@@ -91,9 +92,12 @@ interface DetailRow {
   rating_max: number | null
   options: string[]
   correct_index: number | null
+  keyword: string | null
   points: number
   sort: number
   selected_index: number | null
+  answer_text: string | null
+  earned_points: number | null
   is_correct: boolean | null
 }
 
@@ -106,7 +110,7 @@ const emptyPaketForm = {
   cover_image: '',
 }
 
-const emptyQuestionForm = { question: '', question_type: 'choice', rating_max: '9', correct_index: '', points: '1', section_id: '' }
+const emptyQuestionForm = { question: '', question_type: 'choice', rating_max: '9', correct_index: '', points: '1', keyword: '', section_id: '' }
 
 const DEFAULT_SECTIONS = ['Vocabulary', 'Grammar', 'Reading', 'Listening', 'Conversation']
 
@@ -156,6 +160,8 @@ export default function AdminQuizPaketSoal() {
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [detail, setDetail] = useState<{ attempt: any; questions: DetailRow[]; siswa: any } | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [grades, setGrades] = useState<Record<number, string>>({})
+  const [savingGrade, setSavingGrade] = useState<number | null>(null)
 
   const fetchMeta = () => {
     adminQuizApi.meta().then(res => {
@@ -382,13 +388,14 @@ export default function AdminQuizPaketSoal() {
     setEditingQuestion(q)
     setQForm({
       question: q.question,
-      question_type: q.question_type === 'rating' ? 'rating' : 'choice',
+      question_type: q.question_type === 'rating' ? 'rating' : q.question_type === 'essay' ? 'essay' : 'choice',
       rating_max: q.rating_max ? q.rating_max.toString() : '9',
       correct_index: q.correct_index?.toString() ?? '',
       points: q.points.toString(),
+      keyword: q.keyword || '',
       section_id: q.section_id?.toString() ?? '',
     })
-    setQOptions(q.question_type === 'rating' ? Array.from({ length: q.rating_max || 9 }, (_, i) => String(i + 1)) : [...q.options])
+    setQOptions(q.question_type === 'rating' ? Array.from({ length: q.rating_max || 9 }, (_, i) => String(i + 1)) : q.question_type === 'essay' ? [] : [...q.options])
     setShowQuestionModal(true)
   }
 
@@ -399,8 +406,11 @@ export default function AdminQuizPaketSoal() {
       return
     }
     const isRating = qForm.question_type === 'rating'
+    const isEssay = qForm.question_type === 'essay'
     let opts: string[]
-    if (isRating) {
+    if (isEssay) {
+      opts = []
+    } else if (isRating) {
       const ratingMax = Math.min(10, Math.max(2, Number(qForm.rating_max) || 9))
       opts = Array.from({ length: ratingMax }, (_, i) => String(i + 1))
     } else {
@@ -418,10 +428,11 @@ export default function AdminQuizPaketSoal() {
     try {
       const data = {
         question: qForm.question,
-        question_type: isRating ? 'rating' : 'choice',
+        question_type: isEssay ? 'essay' : isRating ? 'rating' : 'choice',
         rating_max: isRating ? Number(qForm.rating_max) || 9 : null,
         options: opts,
-        correct_index: isRating ? null : Number(qForm.correct_index),
+        correct_index: isEssay ? null : isRating ? null : Number(qForm.correct_index),
+        keyword: isEssay ? (qForm.keyword.trim() || null) : null,
         points: Number(qForm.points) || 1,
         section_id: qForm.section_id ? Number(qForm.section_id) : null,
       }
@@ -478,12 +489,34 @@ export default function AdminQuizPaketSoal() {
     setShowDetailModal(true)
     setDetailLoading(true)
     setDetail(null)
+    setGrades({})
     adminQuizApi.attemptDetail(attemptId).then(res => {
       setDetail({ attempt: res.data.attempt, questions: res.data.questions || [], siswa: res.data.siswa })
     }).catch(() => {
       setDetail(null)
       Swal.fire({ icon: 'error', title: 'Gagal memuat detail' })
     }).finally(() => setDetailLoading(false))
+  }
+
+  const saveGrade = async (qid: number) => {
+    if (!detail) return
+    const dq = detail.questions.find(x => x.id === qid)
+    if (!dq) return
+    const earned = Math.max(0, Math.min(Number(grades[qid] ?? 0) || 0, Number(dq.points) || 0))
+    setSavingGrade(qid)
+    try {
+      await adminQuizApi.gradeAttempt(detail.attempt.id, { grades: [{ question_id: qid, earned_points: earned }] })
+      setGrades(g => { const n = { ...g }; delete n[qid]; return n })
+      setDetailLoading(true)
+      const res = await adminQuizApi.attemptDetail(detail.attempt.id)
+      setDetail({ attempt: res.data.attempt, questions: res.data.questions || [], siswa: res.data.siswa })
+      Swal.fire({ icon: 'success', title: 'Nilai esai tersimpan', timer: 1000, showConfirmButton: false })
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal menyimpan nilai' })
+    } finally {
+      setSavingGrade(null)
+      setDetailLoading(false)
+    }
   }
 
   const backToList = () => setView('list')
@@ -1011,7 +1044,7 @@ export default function AdminQuizPaketSoal() {
                 <p className="text-xs text-slate-400 mt-2">
                   {paketForm.quiz_template === 'jft'
                     ? 'JFT UI: tampilan quiz lengkap dengan pengawasan kamera. Sistem mengambil foto berkala & memberi peringatan.'
-                    : 'Basic: tampilan quiz sederhana tanpa pengawasan kamera. Cocok untuk quiz evaluasi ringan.'}
+                    : 'Basic: tampilan quiz sederhana dengan kamera pengawas & keamanan aktif — foto berkala & peringatan otomatis.'}
                 </p>
               </div>
 
@@ -1071,10 +1104,10 @@ export default function AdminQuizPaketSoal() {
 
               <div>
                 <label className={labelCls}>Tipe Jawaban</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+<div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   <button type="button" onClick={() => setQForm({ ...qForm, question_type: 'choice' })}
-                    className={`flex items-center gap-2.5 border rounded-lg px-3.5 py-3 text-left transition-colors ${qForm.question_type !== 'rating' ? 'border-[#0E6187] bg-[#0E6187]/5 ring-1 ring-[#0E6187]/20' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
-                    <span className={`w-9 h-9 flex items-center justify-center rounded-lg text-xs font-bold shrink-0 ${qForm.question_type !== 'rating' ? 'bg-[#0E6187] text-white' : 'bg-slate-100 text-slate-500'}`}>A/B/C</span>
+                    className={`flex items-center gap-2.5 border rounded-lg px-3.5 py-3 text-left transition-colors ${qForm.question_type === 'choice' ? 'border-[#0E6187] bg-[#0E6187]/5 ring-1 ring-[#0E6187]/20' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+                    <span className={`w-9 h-9 flex items-center justify-center rounded-lg text-xs font-bold shrink-0 ${qForm.question_type === 'choice' ? 'bg-[#0E6187] text-white' : 'bg-slate-100 text-slate-500'}`}>A/B/C</span>
                     <span>
                       <span className="block text-sm font-semibold text-slate-700">Pilihan Ganda</span>
                       <span className="block text-xs text-slate-400 mt-0.5">Opsi A, B, C dengan kunci jawaban</span>
@@ -1085,7 +1118,15 @@ export default function AdminQuizPaketSoal() {
                     <span className={`w-9 h-9 flex items-center justify-center rounded-lg text-xs font-bold shrink-0 ${qForm.question_type === 'rating' ? 'bg-violet-500 text-white' : 'bg-slate-100 text-slate-500'}`}>1-9</span>
                     <span>
                       <span className="block text-sm font-semibold text-slate-700">Skala Rating</span>
-                      <span className="block text-xs text-slate-400 mt-0.5">Penilaian bebas 1–{qForm.rating_max} (tanpa kunci)</span>
+                      <span className="block text-xs text-slate-400 mt-0.5">Penilaian bebas 1-{qForm.rating_max} (tanpa kunci)</span>
+                    </span>
+                  </button>
+                  <button type="button" onClick={() => setQForm({ ...qForm, question_type: 'essay' })}
+                    className={`flex items-center gap-2.5 border rounded-lg px-3.5 py-3 text-left transition-colors ${qForm.question_type === 'essay' ? 'border-amber-500 bg-amber-50 ring-1 ring-amber-500/20' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+                    <span className={`w-9 h-9 flex items-center justify-center rounded-lg text-xs font-bold shrink-0 ${qForm.question_type === 'essay' ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-500'}`}>TEXT</span>
+                    <span>
+                      <span className="block text-sm font-semibold text-slate-700">Esai / Uraian</span>
+                      <span className="block text-xs text-slate-400 mt-0.5">Jawaban teks, nilai via kunci</span>
                     </span>
                   </button>
                 </div>
@@ -1107,6 +1148,15 @@ export default function AdminQuizPaketSoal() {
                     </div>
                   </div>
                   <p className="text-xs text-slate-400 mt-2">Kandidat memilih nilai 1 sampai {Math.min(10, Math.max(2, Number(qForm.rating_max) || 9))}. Jawaban bersifat penilaian bebas (tidak ada benar/salah), poin penuh diberikan jika diisi.</p>
+                </div>
+              ) : qForm.question_type === 'essay' ? (
+                <div>
+                  <label className={labelCls}>Kunci Jawaban <span className="text-slate-400 font-normal">(opsional)</span></label>
+                  <textarea value={qForm.keyword} onChange={e => setQForm({ ...qForm, keyword: e.target.value })}
+                    placeholder="Contoh: karena, transportasi umum, 1847"
+                    rows={2}
+                    className={`${inputCls} resize-none`} />
+                  <p className="text-xs text-slate-400 mt-1">Jika diisi, jawaban siswa yang mengandung kata kunci otomatis diberi poin penuh saat submit. Jika dikosongkan, jawaban menunggu penilaian manual.</p>
                 </div>
               ) : (
                 <div>
@@ -1202,9 +1252,14 @@ export default function AdminQuizPaketSoal() {
 
                   {detail.questions.map((dq, i) => (
                     <div key={dq.id} className="bg-white border border-slate-200 rounded-lg p-4">
-                      <p className="text-sm font-semibold text-slate-800 leading-snug">
-                        <span className="text-slate-400 mr-1">#{i + 1}</span> {dq.question}
-                      </p>
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-semibold text-slate-800 leading-snug">
+                          <span className="text-slate-400 mr-1">#{i + 1}</span> {dq.question}
+                        </p>
+                        <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${dq.question_type === 'essay' && dq.is_correct === null && dq.answer_text?.trim() ? 'bg-amber-50 text-amber-600' : dq.is_correct === true ? 'bg-emerald-50 text-emerald-600' : dq.is_correct === false ? 'bg-red-50 text-red-500' : 'bg-slate-100 text-slate-400'}`}>
+                          {dq.question_type === 'essay' && dq.is_correct === null && dq.answer_text?.trim() ? 'BELUM DINILAI' : dq.is_correct === true ? 'BENAR' : dq.is_correct === false ? 'SALAH' : 'TIDAK DIJAWAB'}
+                        </span>
+                      </div>
                       {dq.question_type === 'rating' ? (
                         <div className="mt-2.5">
                           <div className="flex gap-1.5 flex-wrap">
@@ -1221,6 +1276,38 @@ export default function AdminQuizPaketSoal() {
                             Jawaban: <span className="font-bold text-violet-600">{dq.selected_index !== null && dq.selected_index !== undefined ? dq.options[dq.selected_index] : 'Tidak diisi'}</span>
                             {dq.is_correct === true && <span className="ml-2 text-[10px] font-bold text-violet-500">TERISI · POIN DIBERIKAN</span>}
                           </p>
+                        </div>
+                      ) : dq.question_type === 'essay' ? (
+                        <div className="mt-2.5">
+                          <p className="text-xs font-semibold text-slate-500 mb-1.5">Jawaban Siswa</p>
+                          <p className="text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5 whitespace-pre-wrap min-h-[44px]">
+                            {dq.answer_text?.trim() ? dq.answer_text : <span className="text-slate-400">Tidak diisi</span>}
+                          </p>
+                          {dq.keyword && (
+                            <p className="text-xs text-amber-600 font-medium mt-1.5"><span className="font-semibold">Kata kunci:</span> {dq.keyword}</p>
+                          )}
+                          {dq.answer_text?.trim() && (
+                            <div className="flex items-center gap-2.5 mt-3">
+                              <div>
+                                <label className="block text-xs text-slate-500 font-medium mb-1">Nilai (0-{dq.points})</label>
+                                <input type="number" min={0} max={dq.points}
+                                  value={grades[dq.id] ?? ''}
+                                  onChange={e => setGrades(g => ({ ...g, [dq.id]: e.target.value }))}
+                                  className="w-24 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187]"
+                                  placeholder="-" />
+                              </div>
+                              <button type="button" disabled={savingGrade !== null || !grades[dq.id]?.trim()}
+                                onClick={() => saveGrade(dq.id)}
+                                className="self-end text-xs font-semibold text-white bg-[#0E6187] px-3.5 py-2 rounded-lg disabled:opacity-40 hover:bg-[#0E6187]/90">
+                                {savingGrade === dq.id ? 'Menyimpan...' : 'Simpan Nilai'}
+                              </button>
+                              {dq.earned_points !== null && dq.earned_points !== undefined && (
+                                <span className={`self-end text-xs font-bold px-2.5 py-1 rounded-full ${dq.is_correct === true ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                                  {dq.earned_points}/{dq.points} poin
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       ) : (
                       <div className="mt-2.5 space-y-2">

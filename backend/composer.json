@@ -83,5 +83,9 @@
         }
     },
     "minimum-stability": "stable",
+    "maksimum-stability": "stable",
     "prefer-stable": true
 }
+
+
+

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   BookOpen, Plus, FileText, X, Image as ImageIcon, Download, Trash2,
   ChevronRight, ArrowLeft, Layers, Search, Video, GripVertical, Edit3,
-  ChevronUp, ChevronDown, Upload, FolderOpen, ListChecks, Eye, EyeOff, Trophy, Users, History, HelpCircle, Check, Lock
+  ChevronUp, ChevronDown, Upload, FolderOpen, ListChecks, Eye, EyeOff, Trophy, Users, History, HelpCircle, Check, Lock, Activity
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -13,6 +13,7 @@ import { getYouTubeEmbedUrl } from '../../utils/youtube'
 import Swal from 'sweetalert2'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
 import GuruPaketSoal from './GuruPaketSoal'
+import GuruMateriBank from './GuruMateriBank'
 import LessonMediaFields, { LessonSlideItem } from '../../components/LessonMediaFields'
 
 interface Course {
@@ -126,7 +127,7 @@ function rankStylesGuru(rank: number) {
   return 'bg-slate-100 text-slate-500'
 }
 
-type TabType = 'lessons' | 'files' | 'tugas' | 'quiz'
+type TabType = 'lessons' | 'materi' | 'files' | 'tugas' | 'quiz'
 
 export default function GuruLMS() {
   const [courses, setCourses] = useState<Course[]>([])
@@ -386,6 +387,12 @@ export default function GuruLMS() {
     } finally {
       setQLoading(false)
     }
+  }
+
+  const toggleCoursePaket = (paket: CoursePaket) => {
+    guruQuizApi.togglePaket(paket.id).then(() => {
+      setCoursePakets(prev => prev.map(p => p.id === paket.id ? { ...p, status: p.status === 'aktif' ? 'nonaktif' : 'aktif' } : p))
+    }).catch(() => Swal.fire({ icon: 'error', title: 'Gagal mengubah status' }))
   }
 
   const openCourse = (course: Course) => {
@@ -965,6 +972,16 @@ export default function GuruLMS() {
             </div>
           )}
 
+          {/* Materi Tab - Bank Materi */}
+          {activeTab === 'materi' && (
+            <GuruMateriBank
+              courseId={selectedCourse.id}
+              courseTitle={selectedCourse.title}
+              canManage={canManage}
+              embedded
+              onBack={() => setActiveTab('lessons')} />
+          )}
+
           {/* Files Tab */}
           {activeTab === 'files' && (
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -1095,11 +1112,21 @@ export default function GuruLMS() {
                                 </span>
                               </div>
                             </div>
-                            <button onClick={() => toggleCoursePaketPreview(p.id)}
-                              className="flex items-center gap-1 text-[11px] font-bold text-[#0069b0] bg-[#0069b0]/[0.06] px-3 py-1.5 rounded-lg hover:bg-[#0069b0]/[0.1] transition-colors shrink-0">
-                              Lihat Paket Soal
-                              <ChevronDown size={12} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
-                            </button>
+                            <button onClick={() => toggleCoursePaket(p)}
+                                className={`relative w-10 h-[22px] rounded-full transition-colors shrink-0 ${p.status === 'aktif' ? 'bg-emerald-500' : 'bg-gray-300'}`}
+                                title={p.status === 'aktif' ? 'Nonaktifkan paket' : 'Aktifkan paket'}>
+                                <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${p.status === 'aktif' ? 'left-[20px]' : 'left-[2px]'}`} />
+                              </button>
+                              <button onClick={() => navigate(`/guru-paket-soal/monitor/${p.id}`, { state: { title: p.title } })}
+                                className="flex items-center gap-1 text-[11px] font-bold text-red-500 bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors shrink-0"
+                                title="Monitor langsung (kamera pengawas + progres pengerjaan)">
+                                <Activity size={12} /> Monitor
+                              </button>
+                              <button onClick={() => toggleCoursePaketPreview(p.id)}
+                                className="flex items-center gap-1 text-[11px] font-bold text-[#0069b0] bg-[#0069b0]/[0.06] px-3 py-1.5 rounded-lg hover:bg-[#0069b0]/[0.1] transition-colors shrink-0">
+                                Lihat Paket Soal
+                                <ChevronDown size={12} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+                              </button>
                           </div>
 
                           {open && (

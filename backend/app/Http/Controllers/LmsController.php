@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AbsensiSiswa;
 use App\Models\Batch;
 use App\Models\Course;
 use App\Models\CourseFile;
@@ -111,10 +112,35 @@ class LmsController extends Controller
             return [$l->id => $payload];
         });
 
+        $attendedCount = 0;
+        if ($course->kelas_sensei_id) {
+            $attendedCount = AbsensiSiswa::where('siswa_id', $siswa->id)
+                ->where('kelas_sensei_id', $course->kelas_sensei_id)
+                ->whereNotNull('jam_masuk')
+                ->count();
+        } else {
+            $attendedCount = AbsensiSiswa::where('siswa_id', $siswa->id)
+                ->whereNotNull('jam_masuk')
+                ->count();
+        }
+
+        $lessonAttendance = $course->lessons->values()->map(function ($l, $i) use ($attendedCount, $progresses) {
+            $idx = $i + 1;
+            $completed = $progresses->get($l->id)?->completed_at !== null;
+            return [
+                'lesson_id' => $l->id,
+                'attended' => $idx <= $attendedCount,
+                'is_current' => $idx === $attendedCount + 1,
+                'is_unlocked' => $completed || $idx <= $attendedCount + 1,
+                'attended_count' => $attendedCount,
+            ];
+        })->keyBy('lesson_id');
+
         return response()->json([
             'course' => $course,
             'completed_lesson_ids' => $completedLessonIds,
             'lesson_progress' => $lessonProgress,
+            'lesson_attendance' => $lessonAttendance,
         ]);
     }
 
@@ -125,11 +151,33 @@ class LmsController extends Controller
             return response()->json(['message' => 'Siswa not found'], 404);
         }
 
-        $lesson = Lesson::aktif()->with('course', 'slides', 'paket.course:id,title', 'linkPakets.course:id,title')->findOrFail($id);
+        $lesson = Lesson::aktif()->with('course', 'slides', 'paket.course:id,title', 'linkPakets.course:id,title', 'linkMateris.course:id,title')->findOrFail($id);
 
         $progress = LmsProgress::where('lesson_id', $lesson->id)
             ->where('siswa_id', $siswa->id)
             ->first();
+
+        $materis = $lesson->linkMateris
+            ->filter(fn ($m) => $m->status === 'aktif')
+            ->load('slides')
+            ->values()
+            ->map(fn ($m) => [
+                'id' => $m->id,
+                'title' => $m->title,
+                'content' => $m->content,
+                'video_url' => $m->video_url,
+                'file_path' => $m->file_path,
+                'file_name' => $m->file_name,
+                'file_type' => $m->file_type,
+                'file_size' => $m->file_size,
+                'file_url' => $m->file_url,
+                'slides' => $m->slides->map(fn ($s) => [
+                    'id' => $s->id,
+                    'file_path' => $s->file_path,
+                    'file_name' => $s->file_name,
+                    'url' => asset('storage/' . $s->file_path),
+                ]),
+            ]);
 
         $recap = LessonRecap::where('lesson_id', $lesson->id)->first();
         $recapPayload = null;
@@ -147,16 +195,23 @@ class LmsController extends Controller
             ];
         }
 
-        $pakets = collect();
+        $paketMap = collect();
         if ($lesson->paket) {
-            $pakets->push($lesson->paket);
+            $paketMap[$lesson->paket->id] = ['paket' => $lesson->paket, 'link_locked' => false];
         }
         foreach ($lesson->linkPakets as $lp) {
-            $pakets->push($lp);
+            if (isset($paketMap[$lp->id])) {
+                continue;
+            }
+            $paketMap[$lp->id] = ['paket' => $lp, 'link_locked' => ($lp->pivot->status ?? 'aktif') !== 'aktif'];
         }
-        $pakets = $pakets->unique('id')->values();
 
-        $quizzes = $pakets->map(function ($p) use ($siswa) {
+        $quizzes = $paketMap
+            ->map(function ($entry) use ($siswa) {
+            $p = $entry['paket'];
+            $linkLocked = $entry['link_locked'];
+            $senseiLocked = !$p->diAjarSensei($siswa);
+            $unlocked = $p->status === 'aktif' && !$linkLocked && !$senseiLocked;
             $attempts = QuizAttempt::where('quiz_paket_id', $p->id)
                 ->where('siswa_id', $siswa->id)
                 ->orderBy('attempt_number')
@@ -178,13 +233,16 @@ class LmsController extends Controller
                 'passing_score' => (int) $p->passing_score,
                 'attempts_used' => $used,
                 'best_score' => $best === null ? null : (int) $best,
-                'can_start' => $used < $p->max_attempts,
-                'is_unlocked' => $p->status === 'aktif',
+                'can_start' => $unlocked && $used < $p->max_attempts,
+                'is_unlocked' => $unlocked,
+                'is_link_locked' => $linkLocked,
+                'locked' => $senseiLocked,
             ];
         })->values();
 
         return response()->json([
             'lesson' => $lesson,
+            'materis' => $materis,
             'slides' => $lesson->slides->map(fn ($s) => [
                 'id' => $s->id,
                 'file_path' => $s->file_path,
@@ -339,12 +397,25 @@ class LmsController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        $assignmentIds = $assignments->pluck('id');
+        $pakets = LmsAssignment::whereIn('id', $assignmentIds)->with('pakets')->get()
+            ->mapWithKeys(function ($a) {
+                return [$a->id => $a->pakets->map(fn ($p) => [
+                    'id' => $p->id,
+                    'title' => $p->title,
+                    'questions_count' => $p->questions()->count(),
+                    'time_limit_minutes' => $p->time_limit_minutes,
+                    'max_attempts' => $p->max_attempts,
+                    'passing_score' => (int) $p->passing_score,
+                ])->values()];
+            });
+
         $submittedIds = LmsSubmission::whereIn('assignment_id', $assignments->pluck('id'))
             ->where('siswa_id', $siswa->id)
             ->get()
             ->keyBy('assignment_id');
 
-        $result = $assignments->map(function ($a) use ($submittedIds) {
+        $result = $assignments->map(function ($a) use ($submittedIds, $pakets) {
             $sub = $submittedIds->get($a->id);
             return [
                 'id' => $a->id,
@@ -355,6 +426,7 @@ class LmsController extends Controller
                 'file_name' => $a->file_name,
                 'due_date' => $a->due_date?->format('Y-m-d'),
                 'max_score' => $a->max_score,
+                'pakets' => $pakets->get($a->id, []),
                 'submission' => $sub ? [
                     'id' => $sub->id,
                     'file_path' => $sub->file_path,

@@ -42,6 +42,22 @@ interface Batch { id: number; nama_batch: string; warna?: string | null }
 interface CourseOption { id: number; title: string }
 interface Category { id: number; name: string }
 
+interface MateriItem {
+  id: number
+  course_id: number | null
+  title: string
+  content: string | null
+  video_url: string | null
+  file_url: string | null
+  file_name: string | null
+  file_size: number | null
+  sort: number
+  status: string
+  course: { id: number; title: string } | null
+  lessons_count: number
+  slides?: { id: number; file_path: string; file_name: string; file_type?: string | null; url?: string }[]
+}
+
 interface QuizPaket {
   id: number
   title: string
@@ -78,6 +94,7 @@ interface Question {
   rating_max: number | null
   options: (string | { text?: string; image_path?: string | null; image_url?: string | null })[]
   correct_index: number | null
+  keyword: string | null
   points: number
   sort: number
   image_path: string | null
@@ -126,9 +143,12 @@ interface DetailRow {
   rating_max: number | null
   options: (string | { text?: string; image_path?: string | null; image_url?: string | null })[]
   correct_index: number | null
+  keyword: string | null
   points: number
   sort: number
   selected_index: number | null
+  answer_text: string | null
+  earned_points: number | null
   is_correct: boolean | null
 }
 
@@ -162,7 +182,7 @@ interface LessonSlideData {
   sort?: number
 }
 
-type View = 'list' | 'quiz' | 'bank' | 'quiz-questions' | 'quiz-results' | 'quiz-materi'
+type View = 'list' | 'quiz' | 'bank' | 'materi-bank' | 'quiz-questions' | 'quiz-results' | 'quiz-materi'
 
 const inputCls = 'w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white'
 const labelCls = 'block text-sm font-medium text-slate-700 mb-1'
@@ -173,7 +193,7 @@ const emptyPaketForm = {
   time_limit_minutes: '30', max_attempts: '3', max_warnings: '3',
   passing_score: '0', shuffle_questions: true, quiz_template: 'basic', status: 'nonaktif', user_id: '', cover_image: '',
 }
-const emptyQuestionForm = { question: '', section_id: '', question_type: 'choice', rating_max: '9', correct_index: '', points: '1', image_path: '', image_url: '', audio_path: '', audio_url: '', audio_max_plays: '2' }
+const emptyQuestionForm = { question: '', section_id: '', question_type: 'choice', rating_max: '9', correct_index: '', points: '1', keyword: '', image_path: '', image_url: '', audio_path: '', audio_url: '', audio_max_plays: '2' }
 
 const DEFAULT_SECTIONS = ['Vocabulary', 'Grammar', 'Reading', 'Listening', 'Conversation']
 
@@ -257,6 +277,8 @@ export default function DataCourse() {
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [detail, setDetail] = useState<{ attempt: any; questions: DetailRow[]; siswa: any } | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [grades, setGrades] = useState<Record<number, string>>({})
+  const [savingGrade, setSavingGrade] = useState<number | null>(null)
 
   const [materiLessons, setMateriLessons] = useState<LessonItem[]>([])
   const [materiLoading, setMateriLoading] = useState(false)
@@ -271,6 +293,20 @@ export default function DataCourse() {
   const [lessonSlides, setLessonSlides] = useState<LessonSlideItem[]>([])
   const [removedSlideIds, setRemovedSlideIds] = useState<number[]>([])
   const materiQuillRef = useRef<any>(null)
+
+  const [bankMateris, setBankMateris] = useState<MateriItem[]>([])
+  const [bankMateriLoading, setBankMateriLoading] = useState(false)
+  const [bankMateriSearch, setBankMateriSearch] = useState('')
+  const [showMateriModal, setShowMateriModal] = useState(false)
+  const [editingMateri, setEditingMateri] = useState<MateriItem | null>(null)
+  const [savingMateri, setSavingMateri] = useState(false)
+  const [materiForm, setMateriForm] = useState({ course_id: '', title: '', content: '', video_url: '', sort: '0', status: 'aktif' })
+  const [materiPdf, setMateriPdf] = useState<File | null>(null)
+  const [materiPdfName, setMateriPdfName] = useState<string | null>(null)
+  const [materiPdfSize, setMateriPdfSize] = useState<number | null>(null)
+  const [materiSlides, setMateriSlides] = useState<LessonSlideItem[]>([])
+  const [removedMateriSlideIds, setRemovedMateriSlideIds] = useState<number[]>([])
+  const bankMateriQuillRef = useRef<any>(null)
 
   const [courseTab, setCourseTab] = useState<'lessons' | 'quiz'>('lessons')
   const [courseLessons, setCourseLessons] = useState<LessonItem[]>([])
@@ -909,6 +945,117 @@ export default function DataCourse() {
     ]).catch(() => materiPaket && fetchMateriLessons(materiPaket.id))
   }
 
+  // ==================== BANK MATERI ====================
+  const fetchBankMateris = () => {
+    setBankMateriLoading(true)
+    lmsAdminApi.materiBank().then(res => {
+      setBankMateris(res.data.materials || [])
+    }).catch(() => setBankMateris([])).finally(() => setBankMateriLoading(false))
+  }
+
+  const openMateriBank = () => {
+    setView('materi-bank')
+    setBankMateriSearch('')
+    setEditingMateri(null)
+    setShowMateriModal(false)
+    fetchBankMateris()
+  }
+
+  const openCreateMateri = () => {
+    setEditingMateri(null)
+    setMateriForm({ course_id: '', title: '', content: '', video_url: '', sort: String(bankMateris.length + 1), status: 'aktif' })
+    setMateriPdf(null)
+    setMateriPdfName(null)
+    setMateriPdfSize(null)
+    setMateriSlides([])
+    setRemovedMateriSlideIds([])
+    setShowMateriModal(true)
+  }
+
+  const openEditMateri = (m: MateriItem) => {
+    setEditingMateri(m)
+    setMateriForm({
+      course_id: m.course_id ? String(m.course_id) : '',
+      title: m.title,
+      content: m.content || '',
+      video_url: m.video_url || '',
+      sort: m.sort.toString(),
+      status: m.status,
+    })
+    setMateriPdf(null)
+    setMateriPdfName(m.file_name ? m.file_name : null)
+    setMateriPdfSize(m.file_size || null)
+    setMateriSlides((m.slides || []).map(s => ({
+      key: `existing-${s.id}`,
+      id: s.id,
+      url: s.url || `${APP_URL}/storage/${s.file_path}`,
+      name: s.file_name || 'slide',
+    })))
+    setRemovedMateriSlideIds([])
+    setShowMateriModal(true)
+  }
+
+  const handleSaveMateri = async () => {
+    if (!materiForm.title.trim()) {
+      Swal.fire({ icon: 'warning', title: 'Judul materi wajib diisi' })
+      return
+    }
+    setSavingMateri(true)
+    try {
+      const fd = new FormData()
+      fd.append('course_id', materiForm.course_id || '')
+      fd.append('title', materiForm.title)
+      fd.append('content', materiForm.content || '')
+      fd.append('video_url', materiForm.video_url || '')
+      fd.append('sort', materiForm.sort || '0')
+      fd.append('status', materiForm.status)
+      if (materiPdf) {
+        fd.append('file', materiPdf)
+      } else if (editingMateri && materiPdfName === null) {
+        fd.append('remove_file', '1')
+      }
+      materiSlides.filter(s => s.file).forEach(s => {
+        if (s.file) fd.append('slides[]', s.file as File)
+      })
+      removedMateriSlideIds.forEach(id => fd.append('remove_slides[]', String(id)))
+      if (editingMateri) {
+        await lmsAdminApi.updateMateri(editingMateri.id, fd)
+      } else {
+        await lmsAdminApi.storeMateri(fd)
+      }
+      setShowMateriModal(false)
+      fetchBankMateris()
+      Swal.fire({ icon: 'success', title: editingMateri ? 'Materi diperbarui' : 'Materi dibuat', timer: 1500, showConfirmButton: false })
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal menyimpan' })
+    } finally {
+      setSavingMateri(false)
+    }
+  }
+
+  const handleDeleteMateri = (m: MateriItem) => {
+    Swal.fire({
+      title: 'Hapus materi?',
+      text: `"${m.title}" akan dihapus dari bank`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      confirmButtonText: 'Hapus',
+      cancelButtonText: 'Batal',
+    }).then(res => {
+      if (res.isConfirmed) {
+        lmsAdminApi.deleteMateri(m.id).then(() => {
+          setBankMateris(prev => prev.filter(x => x.id !== m.id))
+          Swal.fire({ icon: 'success', title: 'Dihapus', timer: 1500, showConfirmButton: false })
+        }).catch(() => Swal.fire({ icon: 'error', title: 'Gagal menghapus' }))
+      }
+    })
+  }
+
+  const filteredBankMateris = bankMateris.filter(m =>
+    !bankMateriSearch || m.title.toLowerCase().includes(bankMateriSearch.toLowerCase())
+  )
+
   const uploadMateriMedia = (type: 'image' | 'file') => {
     const input = document.createElement('input')
     input.type = 'file'
@@ -1153,10 +1300,11 @@ export default function DataCourse() {
     setQForm({
       question: q.question,
       section_id: q.section_id ? String(q.section_id) : '',
-      question_type: q.question_type === 'rating' ? 'rating' : 'choice',
+      question_type: q.question_type === 'rating' ? 'rating' : q.question_type === 'essay' ? 'essay' : 'choice',
       rating_max: q.rating_max ? q.rating_max.toString() : '9',
       correct_index: q.correct_index?.toString() ?? '',
       points: q.points.toString(),
+      keyword: q.keyword || '',
       image_path: q.image_path || '', image_url: q.image_url || '',
       audio_path: q.audio_path || '', audio_url: q.audio_url || '',
       audio_max_plays: q.audio_max_plays != null ? q.audio_max_plays.toString() : '',
@@ -1190,8 +1338,11 @@ export default function DataCourse() {
     if (!activeQuizPaket) return
     if (!qForm.question.trim()) { Swal.fire({ icon: 'warning', title: 'Soal wajib diisi' }); return }
     const isRating = qForm.question_type === 'rating'
+    const isEssay = qForm.question_type === 'essay'
     let opts: string[]
-    if (isRating) {
+    if (isEssay) {
+      opts = []
+    } else if (isRating) {
       const ratingMax = Math.min(10, Math.max(2, Number(qForm.rating_max) || 9))
       opts = Array.from({ length: ratingMax }, (_, i) => String(i + 1))
     } else {
@@ -1210,10 +1361,11 @@ export default function DataCourse() {
       const data = {
         question: qForm.question,
         section_id: qForm.section_id ? Number(qForm.section_id) : null,
-        question_type: isRating ? 'rating' : 'choice',
+        question_type: isEssay ? 'essay' : isRating ? 'rating' : 'choice',
         rating_max: isRating ? Number(qForm.rating_max) || 9 : null,
         options: opts,
-        correct_index: isRating ? null : Number(qForm.correct_index),
+        correct_index: isEssay ? null : isRating ? null : Number(qForm.correct_index),
+        keyword: isEssay ? (qForm.keyword.trim() || null) : null,
         points: Number(qForm.points) || 1,
         image_path: qForm.image_path || null,
         audio_path: qForm.audio_path || null,
@@ -1295,10 +1447,32 @@ export default function DataCourse() {
     setShowDetailModal(true)
     setDetailLoading(true)
     setDetail(null)
+    setGrades({})
     adminQuizApi.attemptDetail(attemptId).then(res => {
       setDetail({ attempt: res.data.attempt, questions: res.data.questions || [], siswa: res.data.siswa })
     }).catch(() => { setDetail(null); Swal.fire({ icon: 'error', title: 'Gagal memuat detail' }) })
       .finally(() => setDetailLoading(false))
+  }
+
+  const saveGrade = async (qid: number) => {
+    if (!detail) return
+    const q = detail.questions.find(x => x.id === qid)
+    if (!q) return
+    const earned = Math.max(0, Math.min(Number(grades[qid] ?? 0) || 0, Number(q.points) || 0))
+    setSavingGrade(qid)
+    try {
+      await adminQuizApi.gradeAttempt(detail.attempt.id, { grades: [{ question_id: qid, earned_points: earned }] })
+      setGrades(g => { const n = { ...g }; delete n[qid]; return n })
+      setDetailLoading(true)
+      const res = await adminQuizApi.attemptDetail(detail.attempt.id)
+      setDetail({ attempt: res.data.attempt, questions: res.data.questions || [], siswa: res.data.siswa })
+      Swal.fire({ icon: 'success', title: 'Nilai esai tersimpan', timer: 1000, showConfirmButton: false })
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal menyimpan nilai' })
+    } finally {
+      setSavingGrade(null)
+      setDetailLoading(false)
+    }
   }
 
   const resetAttempts = (siswaId?: number, nama?: string) => {
@@ -1453,6 +1627,9 @@ export default function DataCourse() {
               <button onClick={openBank} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:border-slate-300 text-[12px]">
                 <ListChecks size={15} /> Bank Paket Soal
               </button>
+              <button onClick={openMateriBank} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:border-slate-300 text-[12px]">
+                <BookOpen size={15} /> Bank Materi
+              </button>
               <button onClick={openWelcomeSettings} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:border-slate-300 text-[12px]">
                 <Settings size={15} /> Pengaturan
               </button>
@@ -1489,6 +1666,11 @@ export default function DataCourse() {
             {view === 'bank' && (
               <button onClick={openCreateBankPaket} className={primaryBtn}>
                 <Plus size={16} /> Buat Paket Soal
+              </button>
+            )}
+            {view === 'materi-bank' && (
+              <button onClick={openCreateMateri} className={primaryBtn}>
+                <Plus size={16} /> Buat Materi
               </button>
             )}
           </div>
@@ -1777,6 +1959,104 @@ export default function DataCourse() {
                 </button>
               </div>
             ) : renderPaketTable(filteredBankPakets, 'bank')}
+          </div>
+        )}
+
+        {/* ==================== BANK MATERI VIEW ==================== */}
+        {view === 'materi-bank' && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+              <button onClick={backToList} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#0E6187] transition-colors">
+                <ArrowLeft size={15} /> Kembali
+              </button>
+              <div className="flex items-center gap-3 mt-3">
+                <div className="w-11 h-11 rounded-xl bg-[#0E6187] text-white flex items-center justify-center shrink-0">
+                  <BookOpen size={22} />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-lg font-bold text-slate-800 truncate">Bank Materi</h2>
+                  <p className="text-sm text-slate-500">Semua materi pembelajaran tersimpan di sini, termasuk yang sudah terhubung ke pertemuan</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input value={bankMateriSearch} onChange={e => setBankMateriSearch(e.target.value)} placeholder="Cari materi..." className={`${inputCls} pl-9`} />
+            </div>
+
+            {bankMateriLoading ? (
+              <div className="flex flex-col items-center justify-center py-20 text-slate-400 text-sm gap-2">
+                <Loader2 size={24} className="animate-spin text-[#0E6187]" /> Memuat materi...
+              </div>
+            ) : filteredBankMateris.length === 0 ? (
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-14 text-center">
+                <div className="w-14 h-14 mx-auto rounded-lg bg-[#0E6187]/10 flex items-center justify-center mb-3">
+                  <BookOpen size={28} className="text-[#0E6187]" />
+                </div>
+                <p className="text-slate-800 font-semibold">Belum ada materi di bank</p>
+                <p className="text-slate-500 text-sm mt-1">Buat materi untuk disimpan di bank dan hubungkan ke pertemuan nanti</p>
+                <button onClick={openCreateMateri} className={`${primaryBtn} mt-5`}>
+                  <Plus size={16} /> Buat Materi
+                </button>
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+                <div className="divide-y divide-slate-100">
+                  {filteredBankMateris.map(m => (
+                    <div key={m.id} className="flex items-center gap-3 px-5 py-4">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-[#0E6187]/10 text-[#0E6187]">
+                        <FileText size={16} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-800 truncate">{m.title}</p>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          {m.course && (
+                            <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                              <BookOpen size={10} /> {m.course.title}
+                            </span>
+                          )}
+                          {m.video_url && (
+                            <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                              <Video size={10} /> Video
+                            </span>
+                          )}
+                          {m.content && (
+                            <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                              <FileText size={10} /> Materi
+                            </span>
+                          )}
+                          {m.file_name && (
+                            <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                              <FileText size={10} /> PDF
+                            </span>
+                          )}
+                          {m.slides && m.slides.length > 0 && (
+                            <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                              <ImageIcon size={10} /> {m.slides.length} slide
+                            </span>
+                          )}
+                          <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                            <Link2 size={10} /> Terhubung ke {m.lessons_count} pertemuan
+                          </span>
+                          <span className={`text-[10px] font-semibold ${m.status === 'aktif' ? 'text-emerald-500' : 'text-slate-400'}`}>
+                            {m.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button onClick={() => openEditMateri(m)} className="p-2 text-slate-400 hover:text-[#0E6187] hover:bg-slate-100 rounded-lg transition-colors" title="Edit">
+                          <Edit3 size={16} />
+                        </button>
+                        <button onClick={() => handleDeleteMateri(m)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Hapus">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -2429,7 +2709,7 @@ export default function DataCourse() {
                 <p className="text-xs text-slate-400 mt-2">
                   {paketForm.quiz_template === 'jft'
                     ? 'JFT UI: tampilan quiz lengkap dengan pengawasan kamera. Sistem mengambil foto berkala & memberi peringatan.'
-                    : 'Basic: tampilan quiz sederhana tanpa pengawasan kamera. Cocok untuk quiz evaluasi ringan.'}
+                    : 'Basic: tampilan quiz sederhana dengan kamera pengawas & keamanan aktif — foto berkala & peringatan otomatis.'}
                 </p>
               </div>
               <div className="flex items-center justify-between bg-slate-50 rounded-lg px-4 py-3">
@@ -2621,6 +2901,107 @@ export default function DataCourse() {
         </div>
       )}
 
+      {/* ==================== BANK MATERI MODAL ==================== */}
+      {showMateriModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[6vh] pb-8 px-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-slate-800">{editingMateri ? 'Edit Materi Bank' : 'Buat Materi'}</h3>
+                <p className="text-xs text-slate-400">Disimpan di Bank Materi</p>
+              </div>
+              <button onClick={() => setShowMateriModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
+                <X size={20} className="text-slate-400" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className={labelCls}>Judul Materi <span className="text-red-500">*</span></label>
+                <input value={materiForm.title} onChange={e => setMateriForm({ ...materiForm, title: e.target.value })}
+                  placeholder="Judul materi" className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Tautan ke Kursus <span className="text-slate-400 font-normal">(opsional)</span></label>
+                <select value={materiForm.course_id} onChange={e => setMateriForm({ ...materiForm, course_id: e.target.value })} className={inputCls}>
+                  <option value="">Tanpa kursus</option>
+                  {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>URL Video (YouTube)</label>
+                <div className="flex gap-2">
+                  <input value={materiForm.video_url} onChange={e => setMateriForm({ ...materiForm, video_url: e.target.value })}
+                    placeholder="https://youtube.com/..." className={inputCls} />
+                  {materiForm.video_url && (
+                    <button onClick={() => setMateriForm({ ...materiForm, video_url: '' })} className="shrink-0 px-3 flex items-center text-slate-400 hover:text-red-500 transition-colors">
+                      <X size={18} />
+                    </button>
+                  )}
+                </div>
+                {materiForm.video_url && (
+                  <div className="mt-3">
+                    <p className="text-xs font-medium text-slate-500 mb-1.5 flex items-center gap-1"><Video size={12} /> Pratinjau video</p>
+                    <div className="rounded-lg overflow-hidden border border-slate-200 bg-black aspect-video">
+                      <iframe src={getYouTubeEmbedUrl(materiForm.video_url) || materiForm.video_url} className="w-full h-full" allowFullScreen title="Preview Video" />
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className={labelCls}>Konten Materi</label>
+                <ReactQuill ref={bankMateriQuillRef} value={materiForm.content}
+                  onChange={value => setMateriForm({ ...materiForm, content: value })}
+                  modules={quillModules} formats={quillFormats} theme="snow" placeholder="Tulis materi pembelajaran di sini..."
+                  className="[&_.ql-editor]:min-h-[160px] [&_.ql-editor]:text-sm [&_.ql-container]:rounded-b-lg [&_.ql-toolbar]:rounded-t-lg [&_.ql-toolbar]:border-slate-200 [&_.ql-container]:border-slate-200" />
+              </div>
+              <div className="border-t border-slate-100 pt-4">
+                <LessonMediaFields
+                  pdfName={materiPdfName}
+                  pdfSize={materiPdfSize}
+                  slides={materiSlides}
+                  uploading={savingMateri}
+                  onPdf={file => {
+                    setMateriPdf(file)
+                    setMateriPdfName(file ? file.name : null)
+                    setMateriPdfSize(file ? file.size : null)
+                  }}
+                  onRemovePdf={() => {
+                    setMateriPdf(null)
+                    setMateriPdfName(null)
+                    setMateriPdfSize(null)
+                  }}
+                  onSlidesChange={slides => {
+                    const removed = materiSlides.filter(s => !slides.some(n => n.key === s.key))
+                    removed.forEach(s => { if (!s.id) URL.revokeObjectURL(s.url || '') })
+                    setRemovedMateriSlideIds(prev => [...prev, ...removed.filter(s => s.id).map(s => s.id!)])
+                    setMateriSlides(slides)
+                  }}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>Urutan</label>
+                  <input type="number" min={1} value={materiForm.sort} onChange={e => setMateriForm({ ...materiForm, sort: e.target.value })} className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Status</label>
+                  <select value={materiForm.status} onChange={e => setMateriForm({ ...materiForm, status: e.target.value })} className={inputCls}>
+                    <option value="aktif">Aktif</option>
+                    <option value="nonaktif">Nonaktif</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="px-5 py-4 border-t border-slate-200 flex justify-end gap-3">
+              <button onClick={() => setShowMateriModal(false)} className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Batal</button>
+              <button onClick={handleSaveMateri} disabled={savingMateri} className="px-4 py-2.5 bg-[#0E6187] text-white rounded-lg text-sm font-semibold hover:bg-[#0E6187]/90 disabled:opacity-50 transition-colors">
+                {savingMateri ? 'Menyimpan...' : editingMateri ? 'Simpan Perubahan' : 'Buat Materi'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ==================== QUESTION MODAL ==================== */}
       {showQuestionModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[8vh] pb-8 px-4 overflow-y-auto">
@@ -2710,10 +3091,10 @@ export default function DataCourse() {
               </div>
               <div>
                 <label className={labelCls}>Tipe Jawaban</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+<div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   <button type="button" onClick={() => setQForm({ ...qForm, question_type: 'choice' })}
-                    className={`flex items-center gap-2.5 border rounded-lg px-3.5 py-3 text-left transition-colors ${qForm.question_type !== 'rating' ? 'border-[#0E6187] bg-[#0E6187]/5 ring-1 ring-[#0E6187]/20' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
-                    <span className={`w-9 h-9 flex items-center justify-center rounded-lg text-xs font-bold shrink-0 ${qForm.question_type !== 'rating' ? 'bg-[#0E6187] text-white' : 'bg-slate-100 text-slate-500'}`}>A/B/C</span>
+                    className={`flex items-center gap-2.5 border rounded-lg px-3.5 py-3 text-left transition-colors ${qForm.question_type === 'choice' ? 'border-[#0E6187] bg-[#0E6187]/5 ring-1 ring-[#0E6187]/20' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+                    <span className={`w-9 h-9 flex items-center justify-center rounded-lg text-xs font-bold shrink-0 ${qForm.question_type === 'choice' ? 'bg-[#0E6187] text-white' : 'bg-slate-100 text-slate-500'}`}>A/B/C</span>
                     <span>
                       <span className="block text-sm font-semibold text-slate-700">Pilihan Ganda</span>
                       <span className="block text-xs text-slate-400 mt-0.5">Opsi A, B, C dengan kunci jawaban</span>
@@ -2724,7 +3105,15 @@ export default function DataCourse() {
                     <span className={`w-9 h-9 flex items-center justify-center rounded-lg text-xs font-bold shrink-0 ${qForm.question_type === 'rating' ? 'bg-violet-500 text-white' : 'bg-slate-100 text-slate-500'}`}>1-9</span>
                     <span>
                       <span className="block text-sm font-semibold text-slate-700">Skala Rating</span>
-                      <span className="block text-xs text-slate-400 mt-0.5">Penilaian bebas 1–{qForm.rating_max} (tanpa kunci)</span>
+                      <span className="block text-xs text-slate-400 mt-0.5">Penilaian bebas 1-{qForm.rating_max} (tanpa kunci)</span>
+                    </span>
+                  </button>
+                  <button type="button" onClick={() => setQForm({ ...qForm, question_type: 'essay' })}
+                    className={`flex items-center gap-2.5 border rounded-lg px-3.5 py-3 text-left transition-colors ${qForm.question_type === 'essay' ? 'border-amber-500 bg-amber-50 ring-1 ring-amber-500/20' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+                    <span className={`w-9 h-9 flex items-center justify-center rounded-lg text-xs font-bold shrink-0 ${qForm.question_type === 'essay' ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-500'}`}>TEXT</span>
+                    <span>
+                      <span className="block text-sm font-semibold text-slate-700">Esai / Uraian</span>
+                      <span className="block text-xs text-slate-400 mt-0.5">Jawaban teks, nilai via kunci</span>
                     </span>
                   </button>
                 </div>
@@ -2745,6 +3134,15 @@ export default function DataCourse() {
                     </div>
                   </div>
                   <p className="text-xs text-slate-400 mt-2">Kandidat memilih nilai 1 sampai {Math.min(10, Math.max(2, Number(qForm.rating_max) || 9))}. Jawaban bersifat penilaian bebas (tidak ada benar/salah), poin penuh diberikan jika diisi.</p>
+                </div>
+              ) : qForm.question_type === 'essay' ? (
+                <div>
+                  <label className={labelCls}>Kunci Jawaban <span className="text-slate-400 font-normal">(opsional)</span></label>
+                  <textarea value={qForm.keyword} onChange={e => setQForm({ ...qForm, keyword: e.target.value })}
+                    placeholder="Contoh: karena, transportasi umum, 1847"
+                    rows={2}
+                    className={`${inputCls} resize-none`} />
+                  <p className="text-xs text-slate-400 mt-1">Jika diisi, jawaban siswa yang mengandung kata kunci otomatis diberi poin penuh saat submit. Jika dikosongkan, jawaban menunggu penilaian manual.</p>
                 </div>
               ) : (
                 <div>
@@ -2891,8 +3289,8 @@ export default function DataCourse() {
                       <div key={q.id} className="border border-slate-200 rounded-lg p-4">
                         <div className="flex items-start justify-between gap-2">
                           <p className="text-sm font-bold text-slate-800 leading-snug">{i + 1}. {q.question}</p>
-                          <span className={`text-[10px] font-bold shrink-0 px-2 py-0.5 rounded-full ${q.is_correct === true ? 'bg-emerald-50 text-emerald-600' : q.is_correct === false ? 'bg-red-50 text-red-500' : 'bg-slate-100 text-slate-500'}`}>
-                            {q.is_correct === true ? 'BENAR' : q.is_correct === false ? 'SALAH' : 'TIDAK DIJAWAB'}
+                          <span className={`text-[10px] font-bold shrink-0 px-2 py-0.5 rounded-full ${q.question_type === 'essay' && q.is_correct === null && q.answer_text?.trim() ? 'bg-amber-50 text-amber-600' : q.is_correct === true ? 'bg-emerald-50 text-emerald-600' : q.is_correct === false ? 'bg-red-50 text-red-500' : 'bg-slate-100 text-slate-500'}`}>
+                            {q.question_type === 'essay' && q.is_correct === null && q.answer_text?.trim() ? 'BELUM DINILAI' : q.is_correct === true ? 'BENAR' : q.is_correct === false ? 'SALAH' : 'TIDAK DIJAWAB'}
                           </span>
                         </div>
                         {(q as any).image_url && (
@@ -2923,6 +3321,38 @@ export default function DataCourse() {
                                 Jawaban: <span className="font-bold text-violet-600">{q.selected_index !== null && q.selected_index !== undefined ? (typeof q.options[q.selected_index] === 'string' ? q.options[q.selected_index] : ((q.options[q.selected_index] as { text?: string }).text ?? '')) : 'Tidak diisi'}</span>
                                 {q.is_correct === true && <span className="ml-2 text-[9.5px] font-bold text-violet-500">TERISI · POIN DIBERIKAN</span>}
                               </p>
+                            </div>
+                          ) : q.question_type === 'essay' ? (
+                            <div>
+                              <p className="text-[11px] font-bold text-slate-600 mb-1.5">Jawaban Siswa</p>
+                              <p className="text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 whitespace-pre-wrap min-h-[44px]">
+                                {q.answer_text?.trim() ? q.answer_text : <span className="text-slate-400">Tidak diisi</span>}
+                              </p>
+                              {q.keyword && (
+                                <p className="text-[10px] text-amber-600 font-semibold mt-1.5"><span className="font-bold">Kata kunci:</span> {q.keyword}</p>
+                              )}
+                              {q.answer_text?.trim() && (
+                                <div className="flex items-center gap-2 mt-3">
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-slate-600 block mb-1">Nilai (0-{q.points})</label>
+                                    <input type="number" min={0} max={q.points}
+                                      value={grades[q.id] ?? ''}
+                                      onChange={e => setGrades(g => ({ ...g, [q.id]: e.target.value }))}
+                                      className="w-24 text-xs border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187]"
+                                      placeholder="-" />
+                                  </div>
+                                  <button type="button" disabled={savingGrade !== null || !grades[q.id]?.trim()}
+                                    onClick={() => saveGrade(q.id)}
+                                    className="self-end text-[11px] font-bold text-white bg-[#0E6187] px-3.5 py-2 rounded-lg disabled:opacity-40 hover:bg-[#0E6187]/90">
+                                    {savingGrade === q.id ? 'Menyimpan...' : 'Simpan Nilai'}
+                                  </button>
+                                  {q.earned_points !== null && q.earned_points !== undefined && (
+                                    <span className={`self-end text-[11px] font-bold px-2 py-1 rounded-full ${q.is_correct === true ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                                      {q.earned_points}/{q.points} poin
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           ) : (q.options.map((opt, oi) => {
                             const isCorrect = q.correct_index === oi

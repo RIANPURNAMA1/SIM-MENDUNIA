@@ -33,6 +33,11 @@ class LmsAssignment extends Model
         return $this->hasMany(LmsSubmission::class, 'assignment_id');
     }
 
+    public function pakets()
+    {
+        return $this->belongsToMany(QuizPaket::class, 'lms_assignment_pakets', 'assignment_id', 'quiz_paket_id');
+    }
+
     public function scopeAktif($query)
     {
         return $query->where('status', 'aktif');

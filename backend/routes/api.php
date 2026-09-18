@@ -43,6 +43,7 @@ use App\Http\Controllers\AffiliateDashboardController;
 use App\Http\Controllers\BiayaController;
 use App\Http\Controllers\SiswaDashboardController;
 use App\Http\Controllers\GuruDashboardController;
+use App\Http\Controllers\GuruMateriController;
 use App\Http\Controllers\PertemuanController;
 use App\Http\Controllers\Api\CouponController;
 use App\Http\Controllers\CompanyProfileController;
@@ -52,6 +53,7 @@ use App\Http\Controllers\LmsController;
 use App\Http\Controllers\QuizController;
 use App\Http\Controllers\GuruQuizController;
 use App\Http\Controllers\AdminQuizController;
+use App\Http\Controllers\AdminMateriController;
 use App\Http\Controllers\Api\LoginLogController;
 use App\Http\Controllers\RaportController;
 use App\Http\Controllers\BlogController;
@@ -478,8 +480,17 @@ Route::get('/guru/penilaian-rekap/{kelasId}', [GuruDashboardController::class, '
     Route::post('/guru/lms-lessons/{id}/recap', [GuruDashboardController::class, 'guruStoreLessonRecap']);
     Route::delete('/guru/lms-lessons/{id}/recap', [GuruDashboardController::class, 'guruDeleteLessonRecap']);
     Route::post('/guru/lms-lessons/{id}/pakets', [GuruDashboardController::class, 'guruAttachLessonPaket']);
+    Route::patch('/guru/lms-lessons/{id}/pakets/{paketId}/status', [GuruDashboardController::class, 'guruSetLinkPaketStatus']);
     Route::get('/guru/lms-lessons/{id}/pakets/{paketId}/questions', [GuruDashboardController::class, 'guruLessonPaketQuestions']);
     Route::delete('/guru/lms-lessons/{id}/pakets/{paketId}', [GuruDashboardController::class, 'guruDetachLessonPaket']);
+
+    // Guru LMS Materi (bank materi)
+    Route::get('/guru/lms/materi-bank', [GuruMateriController::class, 'bank']);
+    Route::post('/guru/lms/materi-bank', [GuruMateriController::class, 'store']);
+    Route::post('/guru/lms/materi-bank/{id}', [GuruMateriController::class, 'update']);
+    Route::delete('/guru/lms/materi-bank/{id}', [GuruMateriController::class, 'destroy']);
+    Route::post('/guru/lms-lessons/{id}/materis', [GuruMateriController::class, 'attachLesson']);
+    Route::delete('/guru/lms-lessons/{id}/materis/{materialId}', [GuruMateriController::class, 'detachLesson']);
     Route::get('/guru/lms-courses/{courseId}/files', [GuruDashboardController::class, 'lmsCourseFiles']);
     Route::get('/guru/lms-courses/{courseId}/lessons', [GuruDashboardController::class, 'guruLessons']);
     Route::get('/guru/lms-courses/{courseId}/pakets/{paketId}/questions', [GuruDashboardController::class, 'guruCoursePaketQuestions']);
@@ -517,6 +528,7 @@ Route::get('/guru/penilaian-rekap/{kelasId}', [GuruDashboardController::class, '
         Route::get('/pakets', [QuizController::class, 'index']);
         Route::get('/pakets/{id}', [QuizController::class, 'paketDetail']);
         Route::post('/pakets/{id}/start', [QuizController::class, 'start']);
+        Route::get('/attempts/{id}/review', [QuizController::class, 'review']);
         Route::get('/attempts/{id}', [QuizController::class, 'show']);
         Route::post('/attempts/{id}/answer', [QuizController::class, 'answer']);
         Route::post('/attempts/{id}/warn', [QuizController::class, 'warn']);
@@ -543,8 +555,10 @@ Route::get('/guru/penilaian-rekap/{kelasId}', [GuruDashboardController::class, '
         Route::delete('/questions/{id}', [GuruQuizController::class, 'deleteQuestion']);
         Route::get('/leaderboard', [GuruQuizController::class, 'leaderboard']);
         Route::get('/pakets/{id}/results', [GuruQuizController::class, 'results']);
+        Route::get('/pakets/{id}/monitor', [GuruQuizController::class, 'monitor']);
         Route::post('/pakets/{id}/reset-attempts', [GuruQuizController::class, 'resetAttempts']);
         Route::get('/attempts/{id}', [GuruQuizController::class, 'attemptDetail']);
+        Route::post('/attempts/{id}/grade', [GuruQuizController::class, 'gradeAttempt']);
         Route::post('/upload-cover', [GuruQuizController::class, 'uploadCover']);
         Route::post('/upload-media', [GuruQuizController::class, 'uploadMedia']);
         Route::post('/categories', [GuruQuizController::class, 'storeCategory']);
@@ -570,6 +584,11 @@ Route::get('/guru/penilaian-rekap/{kelasId}', [GuruDashboardController::class, '
         Route::post('/categories', [LmsController::class, 'storeCategory']);
         Route::put('/categories/{id}', [LmsController::class, 'updateCategory']);
         Route::delete('/categories/{id}', [LmsController::class, 'destroyCategory']);
+        // Bank Materi (Manager / HR / Admin)
+        Route::get('/materi-bank', [AdminMateriController::class, 'bank']);
+        Route::post('/materi-bank', [AdminMateriController::class, 'store']);
+        Route::post('/materi-bank/{id}', [AdminMateriController::class, 'update']);
+        Route::delete('/materi-bank/{id}', [AdminMateriController::class, 'destroy']);
         // Welcome video setting (Manager / HR / Admin)
         Route::get('/welcome', [LmsController::class, 'welcome'])->middleware('role:MANAGER,HR,ADMIN');
         Route::post('/welcome-video', [LmsController::class, 'updateWelcomeVideo'])->middleware('role:MANAGER,HR,ADMIN');
@@ -656,6 +675,7 @@ Route::prefix('admin-cabang')->middleware(['auth:sanctum'])->group(function () {
         Route::get('/pakets/{id}/results', [AdminQuizController::class, 'results']);
         Route::post('/pakets/{id}/reset-attempts', [AdminQuizController::class, 'resetAttempts']);
         Route::get('/attempts/{id}', [AdminQuizController::class, 'attemptDetail']);
+        Route::post('/attempts/{id}/grade', [AdminQuizController::class, 'gradeAttempt']);
         Route::post('/upload-cover', [AdminQuizController::class, 'uploadCover']);
         Route::post('/upload-media', [AdminQuizController::class, 'uploadMedia']);
         Route::post('/categories', [AdminQuizController::class, 'storeCategory']);
