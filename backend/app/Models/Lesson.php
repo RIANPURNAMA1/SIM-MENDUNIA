@@ -43,7 +43,7 @@ class Lesson extends Model
 
     public function linkPakets()
     {
-        return $this->belongsToMany(QuizPaket::class, 'lms_lesson_quiz_pakets', 'lesson_id', 'quiz_paket_id')->withPivot('status');
+        return $this->belongsToMany(QuizPaket::class, 'lms_lesson_quiz_pakets', 'lesson_id', 'quiz_paket_id')->withPivot('status', 'penilaian_ulangan');
     }
 
     public function linkMateris()
@@ -64,5 +64,32 @@ class Lesson extends Model
     public function scopeAktif($query)
     {
         return $query->where('status', 'aktif');
+    }
+
+    /**
+     * Tanggal pertemuan lesson ini — diambil dari jadwal kelas
+     * (daftarPertemuan kelas_sensei kursus) sesuai urutan lesson.
+     */
+    public function pertemuanTanggal(): ?string
+    {
+        $course = $this->course;
+        if (!$course?->kelas_sensei_id) {
+            return null;
+        }
+
+        $kelas = KelasSensei::find($course->kelas_sensei_id);
+        if (!$kelas) {
+            return null;
+        }
+
+        $dates = $kelas->daftarPertemuan();
+        if (empty($dates)) {
+            return null;
+        }
+
+        $ids = $course->lessons()->orderBy('sort')->pluck('id');
+        $index = $ids->search($this->id);
+
+        return $index !== false && isset($dates[$index]) ? $dates[$index] : null;
     }
 }

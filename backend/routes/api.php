@@ -485,6 +485,7 @@ Route::get('/guru/penilaian-rekap/{kelasId}', [GuruDashboardController::class, '
     Route::delete('/guru/lms-lessons/{id}/recap', [GuruDashboardController::class, 'guruDeleteLessonRecap']);
     Route::post('/guru/lms-lessons/{id}/pakets', [GuruDashboardController::class, 'guruAttachLessonPaket']);
     Route::patch('/guru/lms-lessons/{id}/pakets/{paketId}/status', [GuruDashboardController::class, 'guruSetLinkPaketStatus']);
+    Route::post('/guru/lms-lessons/{id}/pakets/{paketId}/penilaian', [GuruDashboardController::class, 'guruSetPaketPenilaian']);
     Route::get('/guru/lms-lessons/{id}/pakets/{paketId}/questions', [GuruDashboardController::class, 'guruLessonPaketQuestions']);
     Route::delete('/guru/lms-lessons/{id}/pakets/{paketId}', [GuruDashboardController::class, 'guruDetachLessonPaket']);
 

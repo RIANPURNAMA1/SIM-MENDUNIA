@@ -663,6 +663,7 @@ export const guruLmsApi = {
   deleteLessonRecap: (id: number) => api.delete(`/guru/lms-lessons/${id}/recap`),
   attachLessonPaket: (id: number, quizPaketId: number) => api.post(`/guru/lms-lessons/${id}/pakets`, { quiz_paket_id: quizPaketId }),
   setLessonPaketStatus: (id: number, paketId: number, status: string) => api.patch(`/guru/lms-lessons/${id}/pakets/${paketId}/status`, { status }),
+  setLessonPaketPenilaian: (id: number, paketId: number, penilaianUlangan: boolean) => api.post(`/guru/lms-lessons/${id}/pakets/${paketId}/penilaian`, { penilaian_ulangan: penilaianUlangan ? 1 : 0 }),
   lessonPaketQuestions: (id: number, paketId: number) => api.get(`/guru/lms-lessons/${id}/pakets/${paketId}/questions`),
   coursePaketQuestions: (courseId: number, paketId: number) => api.get(`/guru/lms-courses/${courseId}/pakets/${paketId}/questions`),
   detachLessonPaket: (id: number, paketId: number) => api.delete(`/guru/lms-lessons/${id}/pakets/${paketId}`),
