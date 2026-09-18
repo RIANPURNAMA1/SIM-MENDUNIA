@@ -971,6 +971,11 @@ class GuruDashboardController extends Controller
             $lesson->course->can_manage = (int) $lesson->course->user_id === (int) $user->id;
         }
 
+        $lesson->pertemuan_date = $this->lessonPertemuanTanggal($lesson);
+        $lesson->pertemuan_date_label = $lesson->pertemuan_date
+            ? \Carbon\Carbon::parse($lesson->pertemuan_date)->locale('id')->translatedFormat('l, d M Y')
+            : null;
+
         $lesson->slides->transform(function ($s) {
             $s->url = asset('storage/' . $s->file_path);
             return $s;
@@ -1402,7 +1407,68 @@ class GuruDashboardController extends Controller
         ]);
     }
 
+    public function guruSetPaketPenilaian(Request $request, $id, $paketId)
+    {
+        $user = Auth::guard('sanctum')->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $data = $request->validate([
+            'penilaian_ulangan' => 'required|boolean',
+        ]);
+
+        $lesson = Lesson::findOrFail($id);
+        $this->courseOwnedByGuru($lesson->course_id, $user);
+
+        $paket = $lesson->linkPakets()->where('quiz_paket_id', $paketId)->first();
+        if (!$paket) {
+            return response()->json(['message' => 'Paket soal tidak terhubung ke pertemuan ini'], 422);
+        }
+
+        $enabled = (bool) $data['penilaian_ulangan'];
+        $lesson->linkPakets()->updateExistingPivot($paketId, ['penilaian_ulangan' => $enabled]);
+
+        $synced = 0;
+        if ($enabled) {
+            $synced = $this->syncLessonPaketPenilaian($lesson, $paket);
+        }
+
+        return response()->json([
+            'message' => $enabled
+                ? "Masuk penilaian ulangan diaktifkan ($synced nilai terisi/diperbarui)"
+                : 'Masuk penilaian ulangan dimatikan',
+            'penilaian_ulangan' => $enabled,
+            'synced' => $synced,
+        ]);
+    }
+
+    private function syncLessonPaketPenilaian($lesson, $paket): int
+    {
+        $pendaftar = \App\Models\QuizAttempt::where('quiz_paket_id', $paket->id)
+            ->where('status', 'submitted')
+            ->whereNotNull('score')
+            ->get();
+
+        $synced = 0;
+        $sync = new \App\Services\QuizAssessmentSync();
+        foreach ($pendaftar as $attempt) {
+            $synced += $sync->syncAttemptFromLesson($attempt, $lesson);
+        }
+
+        return $synced;
+    }
+
     // ========== Guru Assignment Management ==========
+
+    /**
+     * Tanggal pertemuan sebuah lesson — mengikuti jadwal kelas (daftarPertemuan)
+     * sesuai posisi/urutan lesson pada kursus.
+     */
+    private function lessonPertemuanTanggal($lesson): ?string
+    {
+        return $lesson->pertemuanTanggal();
+    }
 
     private function assertLessonBelongsToCourse($courseId, $lessonId)
     {

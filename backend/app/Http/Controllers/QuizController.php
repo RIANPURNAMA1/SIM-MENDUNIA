@@ -149,10 +149,16 @@ class QuizController extends Controller
             'auto_submitted' => $auto ? true : $attempt->auto_submitted,
         ]);
 
-        try {
+try {
             WebcamSnapshotUpdated::dispatch((int) $attempt->quiz_paket_id, (int) $attempt->id);
         } catch (\Throwable $e) {
-            // Realtime push bersifat opsional: hasil tetap tersimpan walau server websocket mati.
+        }
+
+        try {
+            $sync = new \App\Services\QuizAssessmentSync();
+            $sync->syncAttempt($attempt);
+            $sync->syncAttemptFromLesson($attempt);
+        } catch (\Throwable $e) {
         }
 
         try {

@@ -15,10 +15,21 @@ import LessonSlidesViewer from '../../components/LessonSlidesViewer'
 import LessonMediaFields, { LessonSlideItem } from '../../components/LessonMediaFields'
 import GuruPaketSoal from './GuruPaketSoal'
 
+interface LessonPaketItem {
+  id: number
+  title: string
+  status: string
+  questions_count?: number
+  attempts_count?: number
+  pivot?: { status?: string; penilaian_ulangan?: boolean }
+}
+
 interface LessonDetail {
   id: number
   course_id: number
   title: string
+  pertemuan_date?: string | null
+  pertemuan_date_label?: string | null
   content: string | null
   video_url: string | null
   file_path: string | null
@@ -26,7 +37,7 @@ interface LessonDetail {
   file_size: number | null
   paket_id: number | null
   paket?: { id: number; title: string; status: string; questions_count?: number; attempts_count?: number } | null
-  link_pakets?: { id: number; title: string; status: string; questions_count?: number; attempts_count?: number; pivot?: { status?: string } }[]
+  link_pakets?: { id: number; title: string; status: string; questions_count?: number; attempts_count?: number; pivot?: { status?: string; penilaian_ulangan?: boolean } }[]
   link_materis?: LmsMateriItem[]
   slides?: { id: number; file_path: string; file_name?: string; url?: string }[]
   sort: number
@@ -323,6 +334,7 @@ export default function GuruLessonDetail() {
   const [assigningMateri, setAssigningMateri] = useState(false)
   const [previewPaketId, setPreviewPaketId] = useState<number | null>(null)
   const [togglingPaketId, setTogglingPaketId] = useState<number | null>(null)
+  const [togglingPenilaianId, setTogglingPenilaianId] = useState<number | null>(null)
   const [paketQuestionsMap, setPaketQuestionsMap] = useState<Record<number, PaketQuestion[]>>({})
   const [questionsLoading, setQuestionsLoading] = useState(false)
 
@@ -560,6 +572,34 @@ export default function GuruLessonDetail() {
       Swal.fire({ icon: 'error', title: 'Gagal mengubah status quiz' })
     } finally {
       setTogglingPaketId(null)
+    }
+  }
+
+  const handleTogglePaketPenilaian = async (paket: { id: number; pivot?: { status?: string; penilaian_ulangan?: boolean } }) => {
+    if (!lesson || !paket.pivot) return
+    const next = !paket.pivot.penilaian_ulangan
+    const tanggal = lesson.pertemuan_date_label
+    const ok = await Swal.fire({
+      title: next ? 'Masuk ke Penilaian Ulangan?' : 'Matikan masuk penilaian ulangan?',
+      text: next
+        ? `Skor terbaik siswa dari quiz ini otomatis terisi di Penilaian Ulangan pada ${tanggal ?? 'tanggal pertemuan'}. Siswa yang mengerjakan berikutnya juga ikut terisi secara otomatis.`
+        : 'Skor quiz tidak lagi diperbarui ke Penilaian Ulangan, tapi nilai yang sudah terisi tetap tersimpan.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#0E6187',
+      confirmButtonText: next ? 'Aktifkan' : 'Matikan',
+      cancelButtonText: 'Batal',
+    })
+    if (!ok.isConfirmed) return
+    setTogglingPenilaianId(paket.id)
+    try {
+      const res = await guruLmsApi.setLessonPaketPenilaian(lesson.id, paket.id, next)
+      await loadLesson(lesson.id)
+      Swal.fire({ icon: 'success', title: next ? 'Aktif masuk penilaian' : 'Dinonaktifkan', text: res.data?.message, timer: 2200, showConfirmButton: false })
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal menyimpan pengaturan penilaian' })
+    } finally {
+      setTogglingPenilaianId(null)
     }
   }
 
@@ -1010,7 +1050,10 @@ export default function GuruLessonDetail() {
 
   const canManage = !!lesson.course?.can_manage
   const slides = (lesson.slides || []).map(s => ({ id: s.id, name: s.file_name || 'slide', url: s.url || `${APP_URL}/storage/${s.file_path}` }))
-  const lessonPakets = [...(lesson.paket ? [lesson.paket] : []), ...(lesson.link_pakets || [])]
+  const lessonPakets: LessonPaketItem[] = [
+    ...(lesson.paket ? [{ ...lesson.paket, pivot: undefined as LessonPaketItem['pivot'] }] : []),
+    ...(lesson.link_pakets || []),
+  ]
     .filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i)
   const quizCount = lessonPakets.length > 0 ? lessonPakets.length : undefined
 
@@ -1451,6 +1494,23 @@ export default function GuruLessonDetail() {
                         title="Lihat hasil pengerjaan kandidat + kunci jawaban + waktu pengerjaan">
                         <BarChart3 size={12} /> Hasil Quiz
                       </button>
+                      {canManage && (
+                        <button onClick={() => handleTogglePaketPenilaian(paket)}
+                          disabled={togglingPenilaianId === paket.id}
+                          title={paket.pivot?.penilaian_ulangan
+                            ? 'Skor terbaik siswa otomatis masuk Penilaian Ulangan (tanggal pertemuan). Klik untuk mematikan.'
+                            : 'Aktifkan: skor terbaik siswa otomatis masuk Penilaian Ulangan pada tanggal pertemuan ini.'}
+                          className={`inline-flex items-center gap-1 text-[11px] font-semibold px-3 py-1.5 rounded-md border transition-colors disabled:opacity-50 ${
+                            paket.pivot?.penilaian_ulangan
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                              : 'border-[#E5E7EF] bg-[#F4F5F8] text-[#4B5063] hover:bg-[#EDEEF3]'
+                          }`}>
+                          {togglingPenilaianId === paket.id
+                            ? <Loader2 size={12} className="animate-spin" />
+                            : <ClipboardList size={12} />}
+                          {paket.pivot?.penilaian_ulangan ? 'Masuk Penilaian' : 'Nilai Ulangan'}
+                        </button>
+                      )}
                       {canManage && (
                         <button onClick={() => handleRemovePaket(paket.id)}
                           className="w-8 h-8 flex items-center justify-center rounded-md border border-[#E5E7EF] bg-white text-[#8B90A0] hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors shrink-0 ml-auto"

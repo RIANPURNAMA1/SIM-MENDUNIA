@@ -151,18 +151,15 @@ class GuruQuizController extends Controller
     /**
      * Siswa pada satu kelas (kelas_sensei) tertentu — dipakai untuk menyaring
      * hasil/monitoring sesuai kelas pada pertemuan (lesson) yang sedang dibuka.
-     * Kelas wajib milik sensei ini atau terhubung ke kursus miliknya.
+     *
+     * Parameter ini hanya MENYEMPITKAN daftar peserta paket yang sudah lolos
+     * akses (accessiblePaket), jadi tidak perlu memvalidasi kepemilikan kelas
+     * lagi; mengembalikan null hanya bila kelas tidak ditemukan.
      */
-    private function kelasSiswaIds($kelasId, $userId): ?array
+    private function kelasSiswaIds($kelasId): ?array
     {
         $kelas = KelasSensei::find($kelasId);
         if (!$kelas) {
-            return null;
-        }
-
-        $owned = (int) $kelas->user_id === (int) $userId;
-        $linked = Course::where('user_id', $userId)->where('kelas_sensei_id', $kelas->id)->exists();
-        if (!$owned && !$linked) {
             return null;
         }
 
@@ -825,7 +822,7 @@ $data = $request->validate([
 
         $classIds = $this->paketClassIds($paket, $user->id);
         if ($request->query('kelas_sensei_id')) {
-            $classIds = $this->kelasSiswaIds((int) $request->query('kelas_sensei_id'), $user->id);
+            $classIds = $this->kelasSiswaIds((int) $request->query('kelas_sensei_id'));
         }
 
         $attempts = QuizAttempt::with(['siswa:id,nama,batch,level,batch_id', 'siswa.batchRelasi.cabang'])
@@ -885,7 +882,7 @@ $data = $request->validate([
 
         $classIds = $this->paketClassIds($paket, $user->id);
         if ($request->query('kelas_sensei_id')) {
-            $classIds = $this->kelasSiswaIds((int) $request->query('kelas_sensei_id'), $user->id);
+            $classIds = $this->kelasSiswaIds((int) $request->query('kelas_sensei_id'));
         }
 
         $attempts = QuizAttempt::with(['siswa:id,nama,batch,level,batch_id', 'siswa.batchRelasi.cabang', 'answers:id,quiz_attempt_id,quiz_question_id,selected_index,answer_text,is_correct,earned_points,updated_at'])
