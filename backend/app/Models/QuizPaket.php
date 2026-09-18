@@ -52,6 +52,32 @@ class QuizPaket extends Model
         return $q->where('status', 'aktif');
     }
 
+    /**
+     * Batasi paket milik sensei agar hanya tampil untuk siswa pada batch & level
+     * yang benar-benar diajar sensei tersebut (kelas_sensei berstatus aktif).
+     * Pemilik yang tidak punya kelas aktif (mis. admin/operator) tidak dibatasi.
+     */
+    public function diAjarSensei(?Siswa $siswa): bool
+    {
+        if (!$siswa) {
+            return false;
+        }
+
+        if (!KelasSensei::where('user_id', $this->user_id)->where('status', 'aktif')->exists()) {
+            return true;
+        }
+
+        if (!$siswa->batch_id || $siswa->level === null) {
+            return false;
+        }
+
+        return KelasSensei::where('user_id', $this->user_id)
+            ->where('batch_id', $siswa->batch_id)
+            ->where('level', (string) $siswa->level)
+            ->where('status', 'aktif')
+            ->exists();
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');

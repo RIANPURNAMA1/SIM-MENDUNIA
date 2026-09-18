@@ -10,11 +10,14 @@ class QuizAnswer extends Model
         'quiz_attempt_id',
         'quiz_question_id',
         'selected_index',
+        'answer_text',
+        'earned_points',
         'is_correct',
     ];
 
     protected $casts = [
         'selected_index' => 'integer',
+        'earned_points' => 'integer',
         'is_correct' => 'boolean',
     ];
 

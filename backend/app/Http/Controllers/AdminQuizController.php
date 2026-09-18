@@ -8,6 +8,7 @@ use App\Models\Guru;
 use App\Models\KelasSensei;
 use App\Models\Lesson;
 use App\Models\LessonSlide;
+use App\Models\QuizAnswer;
 use App\Models\QuizAttempt;
 use App\Models\QuizCategory;
 use App\Models\QuizPaket;
@@ -343,11 +344,12 @@ class AdminQuizController extends Controller
         $data = $request->validate([
             'question' => 'required|string',
             'section_id' => 'nullable|integer|exists:quiz_sections,id',
-            'question_type' => 'sometimes|string|in:choice,rating',
+            'question_type' => 'sometimes|string|in:choice,rating,essay',
             'rating_max' => 'nullable|integer|min:2|max:10',
             'options' => 'sometimes|array',
             'options.*' => 'required',
             'correct_index' => 'nullable|integer|min:0',
+            'keyword' => 'nullable|string|max:2000',
             'points' => 'nullable|integer|min:1',
             'sort' => 'nullable|integer|min:0',
             'image_path' => 'nullable|string',
@@ -362,7 +364,12 @@ class AdminQuizController extends Controller
         $type = $data['question_type'] ?? 'choice';
         $options = $this->normalizeOptions($data['options'] ?? []);
 
-        if ($type === 'rating') {
+        if ($type === 'essay') {
+            $options = [];
+            $data['correct_index'] = null;
+            $data['rating_max'] = null;
+            $data['keyword'] = !empty(trim((string) ($data['keyword'] ?? ''))) ? trim((string) $data['keyword']) : null;
+        } elseif ($type === 'rating') {
             $ratingMax = (int) ($data['rating_max'] ?? count($options) ?: 9);
             $options = array_map('strval', range(1, $ratingMax));
             $data['correct_index'] = null;
@@ -399,11 +406,12 @@ class AdminQuizController extends Controller
         $data = $request->validate([
             'question' => 'sometimes|string',
             'section_id' => 'nullable|integer|exists:quiz_sections,id',
-            'question_type' => 'sometimes|string|in:choice,rating',
+            'question_type' => 'sometimes|string|in:choice,rating,essay',
             'rating_max' => 'nullable|integer|min:2|max:10',
             'options' => 'sometimes|array',
             'options.*' => 'required',
             'correct_index' => 'nullable|integer|min:0',
+            'keyword' => 'nullable|string|max:2000',
             'points' => 'nullable|integer|min:1',
             'sort' => 'nullable|integer|min:0',
             'image_path' => 'nullable|string',
@@ -417,7 +425,12 @@ class AdminQuizController extends Controller
 
         if (isset($data['question_type'])) {
             $type = $data['question_type'];
-            if ($type === 'rating') {
+            if ($type === 'essay') {
+                $data['options'] = [];
+                $data['correct_index'] = null;
+                $data['rating_max'] = null;
+                $data['keyword'] = !empty(trim((string) ($data['keyword'] ?? ''))) ? trim((string) $data['keyword']) : null;
+            } elseif ($type === 'rating') {
                 $ratingMax = (int) ($data['rating_max'] ?? $question->rating_max ?? count($question->options ?? []));
                 $data['options'] = array_map('strval', range(1, $ratingMax));
                 $data['correct_index'] = null;
@@ -679,12 +692,15 @@ class AdminQuizController extends Controller
                 'rating_max' => $q->rating_max,
                 'options' => $q->options,
                 'correct_index' => $q->correct_index,
+                'keyword' => $q->keyword,
                 'points' => $q->points,
                 'sort' => $q->sort,
                 'image_url' => $q->image_url,
                 'audio_url' => $q->audio_url,
                 'audio_max_plays' => $q->audio_max_plays,
                 'selected_index' => $a?->selected_index,
+                'answer_text' => $a?->answer_text,
+                'earned_points' => $a?->earned_points,
                 'is_correct' => $a?->is_correct,
             ];
         });
@@ -693,6 +709,53 @@ class AdminQuizController extends Controller
             'attempt' => $attempt,
             'questions' => $rows,
             'siswa' => $attempt->siswa,
+        ]);
+    }
+
+    public function gradeAttempt(Request $request, $attemptId)
+    {
+        $attempt = QuizAttempt::with('paket')->where('id', $attemptId)->firstOrFail();
+
+        if ($attempt->status !== 'submitted') {
+            return response()->json(['message' => 'Percobaan belum selesai, tidak bisa dinilai'], 422);
+        }
+
+        $data = $request->validate([
+            'grades' => 'required|array',
+            'grades.*.question_id' => 'required|integer',
+            'grades.*.earned_points' => 'nullable|integer|min:0',
+        ]);
+
+        $questions = $attempt->paket->questions->keyBy('id');
+
+        foreach ($data['grades'] as $g) {
+            $question = $questions->get($g['question_id']);
+            if (!$question || $question->question_type !== 'essay') {
+                continue;
+            }
+
+            $answer = QuizAnswer::where('quiz_attempt_id', $attempt->id)
+                ->where('quiz_question_id', $question->id)
+                ->first();
+            if (!$answer || trim((string) $answer->answer_text) === '') {
+                continue;
+            }
+
+            $earned = max(0, (int) ($g['earned_points'] ?? 0));
+            $points = (int) $question->points;
+
+            $answer->update([
+                'earned_points' => $earned,
+                'is_correct' => $earned >= $points ? true : ($earned > 0 ? null : false),
+            ]);
+        }
+
+        $attempt->recomputeScore();
+        $attempt->refresh();
+
+        return response()->json([
+            'attempt' => $attempt,
+            'message' => 'Nilai esai tersimpan',
         ]);
     }
 

@@ -22,7 +22,7 @@ class QuizController extends Controller
         }
         $lessons = Lesson::where(function ($q) use ($paket) {
             $q->where('paket_id', $paket->id)
-                ->orWhereHas('linkPakets', fn ($sub) => $sub->where('quiz_paket_id', $paket->id));
+                ->orWhereHas('linkPakets', fn ($sub) => $sub->where('quiz_paket_id', $paket->id)->where('lms_lesson_quiz_pakets.status', 'aktif'));
         })
             ->aktif()
             ->orderBy('sort')
@@ -69,7 +69,7 @@ class QuizController extends Controller
         if ($paket->level && $siswa->level !== null && (string) $paket->level !== (string) $siswa->level) {
             return false;
         }
-        return true;
+        return $paket->diAjarSensei($siswa);
     }
 
     private function ownAttempt($id, $siswaId)
@@ -93,35 +93,38 @@ class QuizController extends Controller
         }
 
         $answers = $attempt->answers()->get()->keyBy('quiz_question_id');
-        $correct = 0;
-        $pointsEarned = 0;
-        $totalPoints = 0;
 
         foreach ($attempt->paket->questions as $q) {
-            $totalPoints += (int) $q->points;
             $a = $answers->get($q->id);
+
+            if ($q->question_type === 'essay') {
+                $text = trim((string) ($a?->answer_text ?? ''));
+                $keyword = trim((string) ($q->keyword ?? ''));
+                if ($text === '') {
+                    continue;
+                }
+                if ($keyword !== '' && mb_stripos($text, $keyword) !== false) {
+                    $a?->update(['is_correct' => true, 'earned_points' => (int) $q->points]);
+                } else {
+                    $a?->update(['is_correct' => null, 'earned_points' => null]);
+                }
+                continue;
+            }
+
             $sel = $a?->selected_index;
             $isRating = $q->question_type === 'rating';
             if ($sel !== null && ($isRating || (int) $sel === (int) $q->correct_index)) {
-                $correct++;
-                $pointsEarned += (int) $q->points;
-                if ($a) {
-                    $a->is_correct = true;
-                    $a->save();
-                }
+                $a?->update(['is_correct' => true, 'earned_points' => (int) $q->points]);
             } elseif ($a) {
-                $a->is_correct = false;
-                $a->save();
+                $a->update(['is_correct' => false, 'earned_points' => 0]);
             }
         }
 
-        $score = $totalPoints > 0 ? round($pointsEarned * 100 / $totalPoints) : 0;
+        $attempt->recomputeScore();
 
         $attempt->update([
             'status' => 'submitted',
             'submitted_at' => now(),
-            'score' => (int) $score,
-            'correct_count' => $correct,
             'total_count' => $attempt->paket->questions->count(),
             'auto_submitted' => $auto ? true : $attempt->auto_submitted,
         ]);
@@ -136,7 +139,9 @@ class QuizController extends Controller
 
     private function resultPayload(QuizAttempt $attempt)
     {
-        $answered = $attempt->answers()->whereNotNull('selected_index')->count();
+        $answered = $attempt->answers()
+            ->where(fn ($q) => $q->whereNotNull('selected_index')->orWhereNotNull('answer_text'))
+            ->count();
         return [
             'attempt_id' => $attempt->id,
             'attempt_number' => $attempt->attempt_number,
@@ -181,6 +186,7 @@ class QuizController extends Controller
         $pakets = $query->orderByDesc('created_at')->get();
 
         $result = $pakets->map(function ($p) use ($siswa) {
+            $locked = !$p->diAjarSensei($siswa);
             $attempts = QuizAttempt::where('quiz_paket_id', $p->id)
                 ->where('siswa_id', $siswa->id)
                 ->orderBy('attempt_number')
@@ -203,9 +209,10 @@ class QuizController extends Controller
                 'passing_score' => (int) $p->passing_score,
                 'attempts_used' => $used,
                 'best_score' => $best === null ? null : (int) $best,
-                'can_start' => $used < $p->max_attempts,
+                'can_start' => !$locked && $used < $p->max_attempts,
                 'quiz_template' => $p->quiz_template,
-                'is_unlocked' => $this->paketUnlocked($p, $siswa),
+                'is_unlocked' => !$locked && $this->paketUnlocked($p, $siswa),
+                'locked' => $locked,
             ];
         });
 
@@ -482,8 +489,56 @@ class QuizController extends Controller
                     'audio_url' => $q->audio_url,
                     'audio_max_plays' => $q->audio_max_plays,
                     'selected_index' => $a?->selected_index,
+                    'answer_text' => $a?->answer_text,
                 ];
             }),
+        ]);
+    }
+
+    public function review($attemptId)
+    {
+        $siswa = $this->siswaUser();
+        if (!$siswa) {
+            return response()->json(['message' => 'Silakan login sebagai siswa terlebih dahulu.'], 401);
+        }
+
+        $attempt = $this->ownAttempt($attemptId, $siswa->id);
+
+        // Pembahasan (kunci jawaban) baru boleh dibuka setelah quiz dikumpulkan.
+        if ($attempt->status !== 'submitted') {
+            return response()->json(['message' => 'Pembahasan hanya tersedia setelah quiz dikumpulkan.'], 422);
+        }
+
+        $answers = $attempt->answers()->get()->keyBy('quiz_question_id');
+        $questions = $attempt->paket->questions->values()->map(function ($q) use ($answers) {
+            $a = $answers->get($q->id);
+            return [
+                'id' => $q->id,
+                'question' => $q->question,
+                'section' => $q->section->name ?? null,
+                'question_type' => $q->question_type ?? 'choice',
+                'rating_max' => $q->rating_max,
+                'options' => $this->optionList($q->options),
+                'correct_index' => $q->correct_index,
+                'keyword' => $q->keyword,
+                'points' => $q->points,
+                'sort' => $q->sort,
+                'image_url' => $q->image_url,
+                'audio_url' => $q->audio_url,
+                'selected_index' => $a?->selected_index,
+                'answer_text' => $a?->answer_text,
+                'earned_points' => $a?->earned_points,
+                'is_correct' => $a?->is_correct,
+            ];
+        });
+
+        return response()->json([
+            'attempt' => $this->resultPayload($attempt),
+            'paket' => [
+                'id' => $attempt->paket->id,
+                'title' => $attempt->paket->title,
+            ],
+            'questions' => $questions,
         ]);
     }
 
@@ -506,7 +561,8 @@ class QuizController extends Controller
 
         $data = $request->validate([
             'question_id' => 'required|integer',
-            'selected_index' => 'required|integer|min:-1',
+            'selected_index' => 'nullable|integer|min:-1',
+            'answer_text' => 'nullable|string|max:5000',
         ]);
 
         $question = QuizQuestion::where('quiz_paket_id', $attempt->quiz_paket_id)
@@ -516,21 +572,35 @@ class QuizController extends Controller
             return response()->json(['message' => 'Soal tidak ditemukan pada paket ini'], 422);
         }
 
-        $index = (int) $data['selected_index'];
+        $isEssay = $question->question_type === 'essay';
+
+        if ($isEssay) {
+            $text = trim((string) ($data['answer_text'] ?? ''));
+            $answer = QuizAnswer::updateOrCreate(
+                ['quiz_attempt_id' => $attempt->id, 'quiz_question_id' => $question->id],
+                ['answer_text' => $text !== '' ? $text : null, 'selected_index' => null]
+            );
+            return response()->json([
+                'question_id' => $question->id,
+                'answer_text' => $answer->answer_text,
+            ]);
+        }
+
+        $index = (int) ($data['selected_index'] ?? -1);
         if ($index >= 0 && $index >= count($question->options)) {
             return response()->json(['message' => 'Opsi tidak valid'], 422);
         }
 
         $savedIndex = $index >= 0 ? $index : null;
 
-        QuizAnswer::updateOrCreate(
+        $answer = QuizAnswer::updateOrCreate(
             ['quiz_attempt_id' => $attempt->id, 'quiz_question_id' => $question->id],
-            ['selected_index' => $savedIndex]
+            ['selected_index' => $savedIndex, 'answer_text' => null]
         );
 
         return response()->json([
             'question_id' => $question->id,
-            'selected_index' => $savedIndex,
+            'selected_index' => $answer->selected_index,
         ]);
     }
 

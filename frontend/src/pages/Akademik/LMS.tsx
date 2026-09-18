@@ -61,10 +61,38 @@ interface AssignmentItem {
   file_name: string | null
   due_date: string | null
   max_score: number | null
+  paket?: {
+    id: number
+    title: string
+    questions_count?: number
+    time_limit_minutes?: number
+    max_attempts?: number
+  } | null
+  pakets?: {
+    id: number
+    title: string
+    questions_count?: number
+    time_limit_minutes?: number
+    max_attempts?: number
+  }[] | null
   submission: AssignmentSubmission | null
 }
 
 type ViewType = 'courses' | 'course-detail' | 'lesson' | 'quiz-detail'
+
+interface LessonMateri {
+  id: number
+  title: string
+  content: string | null
+  video_url: string | null
+  file_path: string | null
+  file_name: string | null
+  file_type: string | null
+  file_size: number | null
+  file_url?: string | null
+  status: string
+  slides?: { id: number; file_name: string; file_path: string; url: string }[]
+}
 
 interface LessonProgress {
   lesson_id: number
@@ -96,6 +124,43 @@ interface CourseQuiz {
   best_score: number | null
   can_start: boolean
   is_unlocked: boolean
+  is_link_locked?: boolean
+  locked?: boolean
+}
+
+interface ReviewOption {
+  text: string
+  image_path?: string | null
+  image_url?: string | null
+}
+
+interface ReviewQuestion {
+  id: number
+  question: string
+  section?: string | null
+  question_type: string
+  rating_max: number | null
+  options: ReviewOption[]
+  correct_index: number | null
+  keyword?: string | null
+  points: number
+  image_url?: string | null
+  selected_index?: number | null
+  answer_text?: string | null
+  earned_points?: number | null
+  is_correct?: boolean | null
+}
+
+interface ReviewAttemptInfo {
+  score: number | null
+  attempt_number: number
+  passing_score: number
+}
+
+interface ReviewData {
+  attempt: ReviewAttemptInfo
+  paket: { id: number; title: string }
+  questions: ReviewQuestion[]
 }
 
 interface LeaderboardEntry {
@@ -166,8 +231,9 @@ export default function LMS() {
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [completedLessonIds, setCompletedLessonIds] = useState<number[]>([])
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null)
-  const [lessonDetail, setLessonDetail] = useState<{ completed: boolean; completed_at: string | null; progress: LessonProgress | null; slides?: { id: number; file_name: string; url: string }[]; quizzes?: CourseQuiz[]; recap?: { id: number; file_name: string | null; file_size: number | null; kind: string | null; description: string | null; url: string | null } | null } | null>(null)
+  const [lessonDetail, setLessonDetail] = useState<{ completed: boolean; completed_at: string | null; progress: LessonProgress | null; slides?: { id: number; file_name: string; url: string }[]; quizzes?: CourseQuiz[]; recap?: { id: number; file_name: string | null; file_size: number | null; kind: string | null; description: string | null; url: string | null } | null; materis?: LessonMateri[] } | null>(null)
   const [lessonProgressMap, setLessonProgressMap] = useState<Record<number, LessonProgress>>({})
+  const [lessonAtt, setLessonAtt] = useState<Record<number, { is_unlocked: boolean; attended: boolean; is_current: boolean; attended_count: number }>>({})
   const [, setDetailLoading] = useState(false)
   const lastActivityRef = useRef(Date.now())
   const autoCompletedRef = useRef<number | null>(null)
@@ -180,6 +246,15 @@ export default function LMS() {
   const [submitting, setSubmitting] = useState(false)
   const [courseQuizzes, setCourseQuizzes] = useState<CourseQuiz[]>([])
   const [quizLoading, setQuizLoading] = useState(false)
+
+  // ---- Quiz review (pembahasan hasil jawaban) ----
+  const [reviewOpen, setReviewOpen] = useState(false)
+  const [reviewLoading, setReviewLoading] = useState(false)
+  const [reviewErr, setReviewErr] = useState<string | null>(null)
+  const [reviewData, setReviewData] = useState<ReviewData | null>(null)
+  const [reviewAttempts, setReviewAttempts] = useState<{ attempt_id: number; attempt_number: number; score: number | null }[]>([])
+  const [reviewSelectedAttempt, setReviewSelectedAttempt] = useState<number | null>(null)
+  const [reviewPaketTitle, setReviewPaketTitle] = useState('')
 
   useEffect(() => {
     setCurrentPage(1)
@@ -229,8 +304,45 @@ export default function LMS() {
     setQuizLoading(true)
     quizApi.pakets().then(res => {
       const all = (res.data.pakets || []) as CourseQuiz[]
-      setCourseQuizzes(all.filter(p => p.course_id === courseId))
+      // Jangan tampilkan paket yang belum punya soal (questions_count 0) ke kandidat.
+      setCourseQuizzes(all.filter(p => p.course_id === courseId && (Number(p.questions_count) || 0) > 0))
     }).catch(() => setCourseQuizzes([])).finally(() => setQuizLoading(false))
+  }
+
+  const loadReviewAttempt = (attemptId: number) => {
+    setReviewSelectedAttempt(attemptId)
+    setReviewLoading(true)
+    setReviewErr(null)
+    setReviewData(null)
+    quizApi.review(attemptId).then(res => setReviewData(res.data))
+      .catch(() => { setReviewErr('Gagal memuat pembahasan.') })
+      .finally(() => setReviewLoading(false))
+  }
+
+  const openReviewForPaket = (paket: CourseQuiz) => {
+    setReviewOpen(true)
+    setReviewLoading(true)
+    setReviewErr(null)
+    setReviewData(null)
+    setReviewAttempts([])
+    setReviewSelectedAttempt(null)
+    setReviewPaketTitle(paket.title)
+    quizApi.paket(paket.id).then(res => {
+      const attempts = ((res.data.attempts || []) as any[])
+        .filter((a: any) => a.status === 'submitted')
+        .sort((a: any, b: any) => (Number(b.score ?? 0) - Number(a.score ?? 0)) || (Number(a.attempt_number) - Number(b.attempt_number)))
+        .map((a: any) => ({ attempt_id: a.attempt_id, attempt_number: a.attempt_number, score: a.score }))
+      setReviewAttempts(attempts)
+      if (attempts.length > 0) {
+        loadReviewAttempt(attempts[0].attempt_id)
+      } else {
+        setReviewLoading(false)
+        setReviewErr('Belum ada percobaan yang dikumpulkan untuk paket ini.')
+      }
+    }).catch(() => {
+      setReviewLoading(false)
+      setReviewErr('Gagal memuat riwayat pengerjaan.')
+    })
   }
 
   const openCourse = (course: Course) => {
@@ -245,6 +357,7 @@ export default function LMS() {
       setLessons(res.data.course?.lessons || [])
       setCompletedLessonIds(res.data.completed_lesson_ids || [])
       setLessonProgressMap(res.data.lesson_progress || {})
+      setLessonAtt(res.data.lesson_attendance || {})
     }).catch(() => {})
   }
 
@@ -271,7 +384,13 @@ export default function LMS() {
     }).catch(() => {})
   }, [])
 
+  const isLessonLocked = (lesson: Lesson) => {
+    const att = lessonAtt[lesson.id]
+    return !!att && !att.is_unlocked
+  }
+
   const openLesson = (lesson: Lesson) => {
+    if (isLessonLocked(lesson)) return
     setSelectedLesson(lesson)
     setLessonTab('materi')
     setDetailLoading(true)
@@ -290,8 +409,9 @@ export default function LMS() {
         completed_at: res.data.completed_at,
         progress: res.data.progress || null,
         slides: (res.data.slides || []).map((s: any) => ({ id: s.id, file_name: s.file_name, url: s.url })),
-        quizzes: res.data.quizzes || [],
+        quizzes: (res.data.quizzes || []).filter((q: any) => (Number(q?.questions_count) || 0) > 0),
         recap: res.data.recap || null,
+        materis: res.data.materis || [],
       })
       if (res.data?.progress) {
         setLessonProgressMap(prev => ({ ...prev, [id]: res.data.progress }))
@@ -304,7 +424,12 @@ export default function LMS() {
     const id = Number(lessonId)
     const lesson = lessons.find(l => l.id === id)
     if (lesson) {
-      if (selectedLesson?.id !== id) {
+      if (lessonAtt[id] && !lessonAtt[id].is_unlocked) {
+        setSelectedLesson(null)
+        setLessonDetail(null)
+        setView('course-detail')
+        navigate(`/siswa-dashboard/lms/${selectedCourse.id}`)
+      } else if (selectedLesson?.id !== id) {
         setSelectedLesson(lesson)
         setLessonTab('materi')
         setLessonDetail(null)
@@ -313,7 +438,7 @@ export default function LMS() {
         loadLessonDetail(id)
       }
     }
-  }, [lessonId, lessons, selectedCourse, selectedLesson])
+  }, [lessonId, lessons, selectedCourse, selectedLesson, lessonAtt, navigate])
 
   useEffect(() => {
     if (view !== 'lesson' || !selectedLesson) return
@@ -424,6 +549,47 @@ export default function LMS() {
     const unlocked = q.is_unlocked
     const best = q.best_score
     const attemptsMaxed = q.attempts_used >= q.max_attempts
+    if (q.locked) {
+      return (
+        <div key={q.id} className="bg-gray-50 rounded-2xl border border-dashed border-gray-300 overflow-hidden">
+          <div className="p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
+                    <Lock size={16} className="text-gray-400" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-gray-500 truncate">{q.title}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mt-4">
+              <span className="flex items-center gap-1 text-[10px] font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-400">
+                <FileQuestion size={11} /> {q.questions_count} Soal
+              </span>
+              <span className="flex items-center gap-1 text-[10px] font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-400">
+                <Clock size={11} /> {q.time_limit_minutes}m
+              </span>
+            </div>
+
+            <div className="mt-4 flex items-start gap-2 bg-amber-50 rounded-xl p-3">
+              <Lock size={13} className="text-amber-500 mt-0.5 shrink-0" />
+              <p className="text-[11px] font-semibold text-amber-700 leading-snug">
+                Paket quiz ini terkunci. Hanya tersedia untuk batch & level yang diajar sensei terkait.
+              </p>
+            </div>
+
+            <button disabled
+              className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold bg-gray-100 text-gray-400 cursor-not-allowed">
+              <Lock size={13} /> Paket Terkunci
+            </button>
+          </div>
+        </div>
+      )
+    }
     return (
       <div key={q.id} onClick={() => navigate(`/siswa-dashboard/quiz/${q.id}`)}
         className="bg-white rounded-2xl border border-gray-200 overflow-hidden cursor-pointer hover:border-[#0E6187]/40 transition-all">
@@ -497,6 +663,306 @@ export default function LMS() {
     )
   }
 
+  const renderAssignmentCard = (a: AssignmentItem) => {
+    const isPastDue = a.due_date && new Date(a.due_date + 'T23:59:59') < new Date()
+    const dueDateObj = a.due_date ? new Date(a.due_date + 'T23:59:59') : null
+    const now = new Date()
+    const hoursLeft = dueDateObj ? Math.floor((dueDateObj.getTime() - now.getTime()) / (1000 * 60 * 60)) : null
+    const daysLeft = hoursLeft !== null ? Math.floor(hoursLeft / 24) : null
+    const hasSubmitted = !!a.submission
+    const isGraded = a.submission?.score !== null
+    const sub = a.submission
+    const pakets = a.pakets || (a.paket ? [a.paket] : []) || []
+
+    return (
+      <div key={a.id} className={`bg-white rounded-md border overflow-hidden transition-all ${
+        isPastDue && !hasSubmitted ? 'border-red-200' : isGraded ? 'border-emerald-200' : 'border-gray-200'
+      }`}>
+        {/* Top accent bar */}
+        <div className={`h-1 ${
+          isGraded ? 'bg-gradient-to-r from-emerald-400 to-emerald-500'
+            : hasSubmitted ? 'bg-gradient-to-r from-amber-400 to-amber-500'
+              : isPastDue ? 'bg-gradient-to-r from-red-400 to-red-500'
+                : 'bg-gradient-to-r from-[#0E6187] to-[#0E6187]'
+        }`} />
+
+        <div className="p-5">
+          {/* Header */}
+          <div className="flex items-start gap-4">
+            <div className={`w-11 h-11 rounded-md flex items-center justify-center shrink-0 ${
+              isGraded ? 'bg-emerald-50 text-emerald-500'
+                : hasSubmitted ? 'bg-amber-50 text-amber-500'
+                  : 'bg-[#0E6187]/10 text-[#0E6187]'
+            }`}>
+              {isGraded ? <Award size={20} /> : hasSubmitted ? <CheckCircle size={20} /> : <ClipboardList size={20} />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-sm font-bold text-gray-900">{a.title}</h3>
+              {a.description && (
+                <div className="text-xs text-gray-400 mt-1 line-clamp-2 [&_*]:inline" dangerouslySetInnerHTML={{ __html: a.description }} />
+              )}
+            </div>
+            {isGraded && sub && (
+              <span className="text-sm font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-md shrink-0">
+                {sub.score}/{a.max_score || '?'}
+              </span>
+            )}
+          </div>
+
+          {/* Meta row */}
+          <div className="flex flex-wrap items-center gap-2 mt-4">
+            {a.max_score && (
+              <span className="flex items-center gap-1.5 bg-gray-100 text-gray-600 px-3 py-1.5 rounded-md text-[11px] font-bold">
+                <Star size={12} /> Skor Maks {a.max_score}
+              </span>
+            )}
+            {a.due_date && (
+              <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-bold ${
+                isPastDue
+                  ? 'bg-red-50 text-red-600'
+                  : daysLeft !== null && daysLeft <= 2
+                    ? 'bg-amber-50 text-amber-600'
+                    : 'bg-[#0E6187]/10 text-[#0E6187]'
+              }`}>
+                <Clock size={12} />
+                {isPastDue
+                  ? 'Tenggat berakhir'
+                  : daysLeft !== null && daysLeft > 0
+                    ? `${daysLeft} hari lagi`
+                    : hoursLeft !== null && hoursLeft > 0
+                      ? `${hoursLeft} jam lagi`
+                      : 'Hari ini'}
+              </span>
+            )}
+            {isPastDue && !hasSubmitted && (
+              <span className="flex items-center gap-1.5 bg-red-50 text-red-500 px-3 py-1.5 rounded-md text-[11px] font-bold">
+                <AlertTriangle size={12} /> Telah berakhir
+              </span>
+            )}
+          </div>
+
+          {/* Quiz terkait dari bank soal */}
+          {pakets.length > 0 && (
+            <div className="flex flex-col gap-2 mt-4">
+              {pakets.map(p => (
+                <button key={p.id} type="button"
+                  onClick={() => navigate(`/siswa-dashboard/quiz/${p.id}`)}
+                  className="flex items-center gap-3 w-full text-left bg-[#0E6187]/[0.06] text-[#0E6187] border border-[#0E6187]/15 px-3 py-2.5 rounded-md text-[11px] font-bold hover:bg-[#0E6187]/10 hover:border-[#0E6187]/30 transition-all group">
+                  <span className="w-8 h-8 rounded-md bg-white flex items-center justify-center shrink-0">
+                    <ListChecks size={14} className="text-[#0E6187]" />
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block truncate">Quiz: {p.title}</span>
+                    <span className="block text-[10px] font-semibold opacity-70 mt-0.5">
+                      {p.questions_count != null && `${p.questions_count} soal · `}Kerjakan quiz untuk menyelesaikan tugas ini
+                    </span>
+                  </span>
+                  <span className="shrink-0 flex items-center gap-1.5 text-[10px] font-black bg-white border border-[#0E6187]/15 text-[#0E6187] px-3 py-1.5 rounded-md group-hover:bg-[#0E6187] group-hover:text-white transition-colors">
+                    <Play size={11} /> Kerjakan
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* File Lampiran Guru */}
+          {a.file_name && (
+            <a href={`${APP_URL}/storage/${a.file_path}`} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-3 mt-4 p-3.5 bg-gray-50 border border-gray-200 rounded-xl hover:border-[#0E6187]/30 hover:bg-[#0E6187]/5 transition-all group">
+              <div className="w-10 h-10 rounded-xl bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+                <FileText size={18} className="text-[#0E6187]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-gray-800 group-hover:text-[#0E6187] transition-colors truncate">{a.file_name}</p>
+                <p className="text-[10px] text-gray-400 mt-0.5">File Lampiran dari Guru</p>
+              </div>
+              <Download size={16} className="text-gray-300 group-hover:text-[#0E6187] shrink-0 transition-colors" />
+            </a>
+          )}
+
+          {/* Submission status / Submit button */}
+          {hasSubmitted ? (
+            <div className="mt-4 p-4 rounded-xl bg-gray-50 border border-gray-200">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <CheckCircle size={16} className="text-emerald-500" />
+                  <span className="text-xs font-bold text-gray-700">Terkumpul</span>
+                </div>
+                {sub ? sub.score !== null ? (
+                  <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
+                    Nilai: {sub.score}/{a.max_score || '?'}
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">Menunggu Penilaian</span>
+                ) : null}
+              </div>
+              {sub?.file_name && (
+                <a href={`${APP_URL}/storage/${sub.file_path}`} target="_blank"
+                  className="flex items-center gap-2 mt-2 p-2.5 bg-white border border-gray-200 rounded-xl hover:border-[#0E6187]/30 transition-all group">
+                  <FileText size={14} className="text-[#0E6187] shrink-0" />
+                  <span className="text-xs font-semibold text-gray-700 group-hover:text-[#0E6187] truncate transition-colors">{sub.file_name}</span>
+                  <Download size={12} className="text-gray-300 group-hover:text-[#0E6187] shrink-0 ml-auto transition-colors" />
+                </a>
+              )}
+              {sub?.feedback && (
+                <p className="text-xs text-gray-500 mt-2 pl-0.5">
+                  <span className="font-bold text-gray-600">Feedback:</span> {sub.feedback}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="mt-4">
+              {isPastDue ? (
+                <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-red-50 border border-red-200">
+                  <AlertTriangle size={16} className="text-red-500 shrink-0" />
+                  <span className="text-xs font-bold text-red-600">Tenggat waktu telah berakhir, tugas tidak dapat dikumpulkan</span>
+                </div>
+              ) : (
+                <button onClick={() => setShowSubmitForm(a.id)}
+                  className="w-full flex items-center justify-center gap-2 text-xs font-bold text-white bg-gradient-to-r from-[#0E6187] to-[#0E6187] px-4 py-3 rounded-xl hover:from-[#0a4f66] hover:to-[#0E6187] transition-all shadow-sm shadow-[#0E6187]/20">
+                  <Upload size={14} /> Kumpulkan Tugas
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  const renderSubmitModal = () => {
+    if (!showSubmitForm) return null
+    const assignment = assignments.find(a => a.id === showSubmitForm)
+    if (!assignment) return null
+    const dueDateObj = assignment.due_date ? new Date(assignment.due_date + 'T23:59:59') : null
+    const now = new Date()
+    const hoursLeft = dueDateObj ? Math.floor((dueDateObj.getTime() - now.getTime()) / (1000 * 60 * 60)) : null
+    const daysLeft = hoursLeft !== null ? Math.floor(hoursLeft / 24) : null
+
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
+          {/* Modal Header */}
+          <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between rounded-t-2xl z-10">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#0E6187]/10 flex items-center justify-center">
+                <Upload size={16} className="text-[#0E6187]" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-gray-900">Kumpulkan Tugas</h3>
+                <p className="text-[10px] text-gray-400 font-medium">{assignment.title}</p>
+              </div>
+            </div>
+            <button onClick={() => { setShowSubmitForm(null); setSubmitNote(''); setSubmitFile(null) }}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Modal Body */}
+          <div className="px-5 py-4 space-y-4">
+            {/* Info tugas */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {assignment.max_score && (
+                <span className="flex items-center gap-1.5 bg-gray-100 text-gray-600 px-2.5 py-1 rounded-lg text-[10px] font-bold">
+                  <Star size={10} /> Maks {assignment.max_score}
+                </span>
+              )}
+              {dueDateObj && (
+                <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold ${
+                  hoursLeft !== null && hoursLeft <= 48
+                    ? 'bg-amber-50 text-amber-600'
+                    : 'bg-[#0E6187]/10 text-[#0E6187]'
+                }`}>
+                  <Clock size={10} />
+                  {daysLeft !== null && daysLeft > 0 ? `${daysLeft} hari lagi` : hoursLeft !== null && hoursLeft > 0 ? `${hoursLeft} jam lagi` : 'Hari ini'}
+                </span>
+              )}
+            </div>
+
+            {/* File guru jika ada */}
+            {assignment.file_name && (
+              <a href={`${APP_URL}/storage/${assignment.file_path}`} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-xl hover:border-[#0E6187]/30 transition-all group">
+                <div className="w-9 h-9 rounded-lg bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+                  <FileText size={16} className="text-[#0E6187]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-bold text-gray-700 truncate group-hover:text-[#0E6187] transition-colors">{assignment.file_name}</p>
+                  <p className="text-[9px] text-gray-400">File dari guru</p>
+                </div>
+                <Download size={14} className="text-gray-300 group-hover:text-[#0E6187] shrink-0" />
+              </a>
+            )}
+
+            {/* Catatan */}
+            <div>
+              <label className="text-[11px] font-bold text-gray-600 block mb-1.5">Catatan <span className="text-gray-400 font-normal">(opsional)</span></label>
+              <textarea value={submitNote} onChange={e => setSubmitNote(e.target.value)}
+                placeholder="Tulis catatan untuk pengumpulan ini..." rows={3}
+                className="w-full text-xs border border-gray-200 rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0E6187] focus:ring-2 focus:ring-[#0E6187]/10 resize-none transition-all placeholder:text-gray-300" />
+            </div>
+
+            {/* File Upload */}
+            <div>
+              <label className="text-[11px] font-bold text-gray-600 block mb-1.5">File Tugas <span className="text-red-400">*</span></label>
+              {submitFile ? (
+                <div className="flex items-center gap-3 p-3 bg-[#0E6187]/5 border-2 border-[#0E6187]/20 rounded-xl">
+                  <div className="w-10 h-10 rounded-xl bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+                    <FileText size={18} className="text-[#0E6187]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-gray-800 truncate">{submitFile.name}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">{(submitFile.size / 1024).toFixed(1)} KB</p>
+                  </div>
+                  <button onClick={() => setSubmitFile(null)}
+                    className="p-2 rounded-lg text-gray-400 hover:bg-white hover:text-red-500 transition-colors">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center gap-2 px-4 py-6 border-2 border-dashed border-gray-200 rounded-xl text-xs text-gray-400 hover:border-[#0E6187]/30 hover:bg-gray-50 cursor-pointer transition-all">
+                  <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center">
+                    <Upload size={18} className="text-gray-300" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[11px] font-bold text-gray-500">Klik atau seret file ke sini</p>
+                    <p className="text-[9px] text-gray-300 mt-0.5">PDF, Word, Excel, PPT, ZIP (maks 50MB)</p>
+                  </div>
+                  <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar" className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) setSubmitFile(f) }} />
+                </label>
+              )}
+            </div>
+          </div>
+
+          {/* Modal Footer */}
+          <div className="sticky bottom-0 bg-white border-t border-gray-100 px-5 py-4 rounded-b-2xl">
+            <div className="flex gap-3">
+              <button onClick={() => { setShowSubmitForm(null); setSubmitNote(''); setSubmitFile(null) }}
+                className="flex-1 text-xs font-bold text-gray-500 bg-gray-100 px-4 py-3 rounded-xl hover:bg-gray-200 transition-colors">
+                Batal
+              </button>
+              <button onClick={() => handleSubmitAssignment(assignment.id)} disabled={submitting || !submitFile}
+                className="flex-[2] text-xs font-bold text-white bg-gradient-to-r from-[#0E6187] to-[#0E6187] px-4 py-3 rounded-xl hover:from-[#0a4f66] hover:to-[#0E6187] disabled:opacity-50 disabled:from-gray-300 disabled:to-gray-300 transition-all shadow-sm shadow-[#0E6187]/20 flex items-center justify-center gap-1.5">
+                {submitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Mengirim...
+                  </>
+                ) : (
+                  <>
+                    <Send size={14} /> Kirim Tugas
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const bottomNav = [
     { label: 'Dashboard', to: '/siswa-dashboard', icon: LayoutDashboard },
     { label: 'Kelas Mendunia', to: '/siswa-dashboard/lms', icon: BookOpen },
@@ -530,10 +996,11 @@ export default function LMS() {
     const progress = completedLessonIds.length
     const total = lessons.length
     const currentIdx = lessons.findIndex(l => l.id === selectedLesson.id)
+    const nextLocked = lessons[currentIdx + 1] ? isLessonLocked(lessons[currentIdx + 1]) : false
     const lessonQuizzes = (lessonDetail?.quizzes && lessonDetail.quizzes.length > 0
       ? lessonDetail.quizzes
       : currentIdx === 0 ? courseQuizzes : [])
-    const materiCount = lessonDetail?.slides?.length || (selectedLesson.content || selectedLesson.video_url || selectedLesson.file_path ? 1 : 0)
+    const materiCount = (lessonDetail?.slides?.length || 0) + (lessonDetail?.materis?.length || 0) + (selectedLesson.content || selectedLesson.video_url || selectedLesson.file_path ? 1 : 0)
     const courseInfo = [selectedCourse.batch?.nama_batch && `Batch ${selectedCourse.batch.nama_batch}`, selectedCourse.level && `Level ${selectedCourse.level}`].filter(Boolean).join(' · ')
     const tabItems = [
       { key: 'materi' as const, label: 'Materi', icon: BookOpen, count: undefined as number | undefined },
@@ -566,25 +1033,30 @@ export default function LMS() {
         <div className="max-w-lg md:max-w-6xl mx-auto px-4 pt-4 pb-4 md:py-6">
           <div className="flex items-start gap-3 md:gap-6">
             {/* ============ Sidebar Rail (Mobile) ============ */}
-            <aside className="md:hidden w-14 shrink-0 sticky top-16 z-20">
-              <div className="bg-white rounded-md border border-slate-200 shadow-sm p-1.5 flex flex-col items-center gap-1">
-                <p className="text-[8px] font-black uppercase tracking-[0.14em] text-slate-300 py-0.5">Menu</p>
+            <aside className="md:hidden w-[4.5rem] shrink-0 sticky top-16 z-20">
+              <div className="bg-white rounded-lg border border-slate-200 shadow-sm shadow-slate-200/60 p-2 flex flex-col gap-1.5">
+                <p className="text-[8px] font-black uppercase tracking-[0.14em] text-slate-300 text-center py-1.5 mb-0.5 border-b border-slate-100">Menu</p>
                 {tabItems.map(tab => {
                   const active = lessonTab === tab.key
                   return (
                     <button key={tab.key} type="button" onClick={() => setLessonTab(tab.key)}
-                      className={`relative w-11 h-11 rounded-md flex flex-col items-center justify-center gap-0.5 transition-all ${
+                      className={`relative flex flex-col items-center justify-center gap-1 rounded-lg py-2.5 transition-all ${
                         active
-                          ? 'bg-[#0E6187] text-white shadow-md shadow-[#0E6187]/25'
+                          ? 'bg-gradient-to-b from-[#0E6187] to-[#0a516d] text-white shadow-md shadow-[#0E6187]/30'
                           : 'text-slate-400 hover:bg-slate-50 hover:text-[#0E6187]'
                       }`}>
-                      <tab.icon size={16} />
-                      <span className="text-[8px] font-bold leading-none whitespace-nowrap">{tab.label}</span>
-                      {tab.count !== undefined && (
-                        <span className={`absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-0.5 rounded-full text-[8px] font-black flex items-center justify-center ${
-                          active ? 'bg-white text-[#0E6187]' : 'bg-[#0E6187] text-white'
-                        }`}>{tab.count}</span>
+                      {active && (
+                        <span className="absolute left-1 top-1/2 -translate-y-1/2 w-[3px] h-9 rounded-full bg-white/90" />
                       )}
+                      <span className="relative">
+                        <tab.icon size={17} />
+                        {tab.count !== undefined && (
+                          <span className={`absolute -top-1.5 -right-2.5 min-w-[15px] h-[15px] px-0.5 rounded-full text-[8px] font-black flex items-center justify-center ring-2 ${
+                            active ? 'bg-white text-[#0E6187] ring-[#0a516d]' : 'bg-[#0E6187] text-white ring-white'
+                          }`}>{tab.count}</span>
+                        )}
+                      </span>
+                      <span className="text-[8.5px] font-bold leading-none whitespace-nowrap">{tab.label}</span>
                     </button>
                   )
                 })}
@@ -754,6 +1226,61 @@ export default function LMS() {
                     <Download size={15} className="text-[#0E6187] shrink-0" />
                   </a>
                 )}
+
+                {(lessonDetail?.materis || []).length > 0 && (
+                  <div className="mx-5 mb-5">
+                    {lessonDetail!.materis!.map(m => (
+                      <div key={m.id} className="mb-4 last:mb-0">
+                        {m.video_url && (
+                          <div className="bg-black rounded-md overflow-hidden">
+                            <TrackedVideo
+                              url={m.video_url}
+                              title={m.title}
+                              progress={lessonDetail?.progress || null}
+                              onHeartbeat={(currentTime, duration) => sendVideoHeartbeat(selectedLesson.id, currentTime, duration)} />
+                          </div>
+                        )}
+                        {m.content ? (
+                          <div className="p-5">
+                            <div className="prose prose-sm max-w-none text-gray-600 leading-relaxed
+                              [&_img]:max-w-full [&_img]:rounded-xl [&_img]:my-4 [&_img]:shadow-sm
+                              [&_iframe]:w-full [&_iframe]:aspect-video [&_iframe]:rounded-xl
+                              [&_a]:text-[#0E6187] [&_a]:underline [&_a]:break-words
+                              [&_h1]:text-lg [&_h1]:font-bold [&_h1]:text-gray-900 [&_h1]:mt-6 [&_h1]:mb-3
+                              [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-gray-900 [&_h2]:mt-5 [&_h2]:mb-2
+                              [&_h3]:text-sm [&_h3]:font-bold [&_h3]:text-gray-900 [&_h3]:mt-4 [&_h3]:mb-2
+                              [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-3 [&_li]:mb-1.5 [&_li]:pl-1
+                              [&_li_ul]:mt-1.5 [&_li_ol]:mt-1.5
+                              [&_blockquote]:border-l-4 [&_blockquote]:border-[#0E6187]/30 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-gray-500"
+                              dangerouslySetInnerHTML={{ __html: cleanQuillHtml(m.content) }} />
+                          </div>
+                        ) : null}
+                        {m.file_path && (
+                          <a href={m.file_url || `${APP_URL}/storage/${m.file_path}`} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-3 bg-[#0E6187]/5 border border-[#0E6187]/10 rounded-md p-3 hover:bg-[#0E6187]/10 transition-colors group">
+                            <div className="w-9 h-9 rounded-md bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+                              <FileText size={16} className="text-[#0E6187]" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-gray-800 truncate group-hover:text-[#0E6187] transition-colors">
+                                {m.title}{m.file_name && m.file_name !== m.title ? ` · ${m.file_name}` : ''}
+                              </p>
+                              <p className="text-[10px] text-gray-400 mt-0.5">
+                                {m.file_name}{m.file_size ? ` - ${m.file_size < 1024 * 1024 ? (m.file_size / 1024).toFixed(1) + ' KB' : (m.file_size / (1024 * 1024)).toFixed(1) + ' MB'}` : ''}
+                              </p>
+                            </div>
+                            <Download size={15} className="text-[#0E6187] shrink-0" />
+                          </a>
+                        )}
+                        {m.slides && m.slides.length > 0 && (
+                          <div className="mt-3">
+                            <LessonSlidesViewer slides={m.slides.map(s => ({ id: s.id, name: s.file_name || 'slide', url: s.url }))} />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -772,44 +1299,62 @@ export default function LMS() {
                     </h3>
                     <span className="text-[10px] font-bold text-gray-400">{lessonQuizzes.length} paket</span>
                   </div>
-                  <div className="p-4 space-y-2.5">
-                    {lessonQuizzes.map(q => {
-                      const unlocked = q.is_unlocked
-                      const attemptsMaxed = q.max_attempts > 0 && q.attempts_used >= q.max_attempts
-                      const best = q.best_score != null ? q.best_score : null
-                      return (
-                        <button key={q.id} type="button"
-                          onClick={() => { if (unlocked && !attemptsMaxed) navigate(`/siswa-dashboard/quiz/${q.id}`) }}
-                          className={`w-full flex items-center gap-3 rounded-md border p-3 text-left bg-white transition-all ${
-                            unlocked && !attemptsMaxed ? 'border-slate-200 hover:border-[#0E6187]/40 hover:shadow-sm' : 'border-slate-100 opacity-80'
-                          }`}>
-                          <div className={`w-9 h-9 rounded-md flex items-center justify-center shrink-0 ${unlocked ? 'bg-[#0E6187]/10 text-[#0E6187]' : 'bg-gray-50 text-gray-300'}`}>
-                            {unlocked ? <ListChecks size={16} /> : <Lock size={14} />}
+                  <div className="p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {lessonQuizzes.map(q => {
+                        const unlocked = q.is_unlocked
+                        const attemptsMaxed = q.max_attempts > 0 && q.attempts_used >= q.max_attempts
+                        const locked = !unlocked
+                        const canDo = unlocked && !attemptsMaxed
+                        const remaining = q.max_attempts > 0 ? Math.max(0, q.max_attempts - (q.attempts_used || 0)) : null
+
+                        const IconComp = canDo ? ListChecks : attemptsMaxed ? CheckCircle : Lock
+                        const cardCls = canDo
+                          ? 'border-slate-200 bg-white hover:border-[#0E6187]/40 hover:shadow-md hover:shadow-[#0E6187]/5'
+                          : 'border-slate-100 bg-slate-50/60'
+                        const iconCls = canDo
+                          ? 'bg-[#0E6187]/10 text-[#0E6187]'
+                          : attemptsMaxed
+                            ? 'bg-amber-50 text-amber-400'
+                            : 'bg-slate-100 text-slate-400'
+                        const statusLabel = canDo ? 'Tersedia' : locked ? (q.is_link_locked ? 'Terkunci' : 'Ditutup') : 'Habis'
+                        const statusCls = canDo
+                          ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                          : locked
+                            ? 'bg-slate-100 text-slate-400 border border-slate-100'
+                            : 'bg-amber-50 text-amber-500 border border-amber-100'
+
+                        return (
+                          <div key={q.id} className={`flex flex-col rounded-lg border transition-all ${cardCls}`}>
+                            <div className="flex items-start gap-2.5 p-3.5 pb-3">
+                              <div className={`w-9 h-9 rounded-md flex items-center justify-center shrink-0 ${iconCls}`}>
+                                <IconComp size={16} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-bold text-slate-800 truncate leading-tight">{q.title}</p>
+                                <p className="text-[10px] text-slate-400 mt-0.5">{q.questions_count} soal</p>
+                              </div>
+                              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold ${statusCls}`}>{statusLabel}</span>
+                            </div>
+                            <div className="mt-auto px-3.5 py-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
+                                <Clock size={11} />
+                                {attemptsMaxed ? 'Percobaan habis' : remaining != null ? `Sisa ${remaining} kali` : `${q.max_attempts ?? 0} percobaan`}
+                              </div>
+                              {canDo ? (
+                                <button type="button"
+                                  onClick={() => navigate(`/siswa-dashboard/quiz/${q.id}`)}
+                                  className="rounded-md bg-[#0E6187] px-3 py-1.5 text-[10px] font-bold text-white shadow-sm shadow-[#0E6187]/20 hover:bg-[#0B4C6B] active:scale-95 transition-all shrink-0">
+                                  Kerjakan
+                                </button>
+                              ) : (
+                                <span className="text-[10px] font-bold text-slate-300">{q.attempts_used ?? 0}/{q.max_attempts ?? 0} kali</span>
+                              )}
+                            </div>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-bold text-gray-900 truncate">{q.title}</p>
-                            <p className="text-[10px] text-gray-400 mt-0.5">
-                              {q.questions_count} soal · {q.max_attempts} percobaan
-                              {attemptsMaxed ? ' (habis)' : ''}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            {best != null && (
-                              <span className={`text-[11px] font-black ${q.passing_score > 0 && best >= q.passing_score ? 'text-emerald-500' : 'text-amber-500'}`}>
-                                {best}%
-                              </span>
-                            )}
-                            {!unlocked ? (
-                              <span className="rounded-md bg-gray-100 px-2 py-1 text-[9px] font-bold text-gray-400">Ditutup</span>
-                            ) : attemptsMaxed ? (
-                              <span className="rounded-md bg-red-50 px-2 py-1 text-[9px] font-bold text-red-500">Habis</span>
-                            ) : (
-                              <span className="rounded-md bg-[#0E6187] px-2.5 py-1 text-[9px] font-bold text-white">Kerjakan</span>
-                            )}
-                          </div>
-                        </button>
-                      )
-                    })}
+                        )
+                      })}
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -847,36 +1392,7 @@ export default function LMS() {
                       <p className="text-xs text-gray-400 mt-1">Tugas akan segera tersedia</p>
                     </div>
                   ) : (
-                    assignments.map(a => {
-                      const isPastDue = a.due_date && new Date(a.due_date + 'T23:59:59') < new Date()
-                      const hasSubmitted = !!a.submission
-                      const isGraded = a.submission?.score !== null
-                      return (
-                        <div key={a.id} className={`flex items-center gap-3 rounded-md border p-3 bg-slate-50 ${
-                          isGraded ? 'border-emerald-200' : hasSubmitted ? 'border-amber-200' : isPastDue ? 'border-red-200' : 'border-slate-100'
-                        }`}>
-                          <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${
-                            isGraded ? 'bg-emerald-50 text-emerald-500' : hasSubmitted ? 'bg-amber-50 text-amber-500' : 'bg-[#0E6187]/10 text-[#0E6187]'
-                          }`}>
-                            {isGraded ? <Award size={14} /> : hasSubmitted ? <CheckCircle size={14} /> : <ClipboardList size={14} />}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-bold text-gray-800 truncate">{a.title}</p>
-                            <p className="text-[10px] text-gray-400 mt-0.5 truncate">
-                              {isGraded && a.submission
-                                ? `Nilai: ${a.submission.score}/${a.max_score ?? '?'}`
-                                : hasSubmitted
-                                  ? 'Sudah dikumpulkan'
-                                  : isPastDue
-                                    ? 'Tenggat berakhir'
-                                    : a.due_date
-                                      ? `Tenggat ${new Date(a.due_date + 'T23:59:59').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}`
-                                      : 'Belum dikerjakan'}
-                            </p>
-                          </div>
-                        </div>
-                      )
-                    })
+                    assignments.map(a => renderAssignmentCard(a))
                   )}
                 </div>
               </div>
@@ -989,14 +1505,17 @@ export default function LMS() {
               </button>
             ) : (
               <button
-                onClick={() => { if (currentIdx < lessons.length - 1) openLesson(lessons[currentIdx + 1]) }}
-                disabled={currentIdx === lessons.length - 1}
+                onClick={() => { if (!nextLocked && currentIdx < lessons.length - 1) openLesson(lessons[currentIdx + 1]) }}
+                disabled={nextLocked || currentIdx === lessons.length - 1}
                 className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-md text-[11px] font-black bg-[#0E6187] text-white hover:bg-[#0E6187]/90 shadow-lg shadow-[#0E6187]/25 disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none active:scale-[0.98] transition-all">
-                Selanjutnya <ChevronRight size={14} />
+                {nextLocked ? <><Lock size={14} /> Terkunci</> : <>Selanjutnya <ChevronRight size={14} /></>}
               </button>
             )}
           </div>
         </nav>
+
+        {/* Submit Assignment Modal */}
+        {renderSubmitModal()}
       </div>
     )
   }
@@ -1102,7 +1621,11 @@ export default function LMS() {
 
   // ==================== COURSE DETAIL VIEW ====================
   if (view === 'course-detail' && selectedCourse) {
-    const isQuizCourse = !selectedCourse.kelas_sensei_id
+    // Sebuah kursus menampilkan daftar pertemuan ("Daftar Pertemuan") bila ia memiliki
+    // materi/pelajaran (lessons), tanpa peduli apakah terhubung ke sensei atau tidak.
+    // Kursus tanpa lessons diperlakukan sebagai kursus quiz (paket soal saja).
+    const hasLessons = (selectedCourse.lessons_count ?? 0) > 0 || lessons.length > 0
+    const isQuizCourse = !hasLessons
     const progress = isQuizCourse ? courseQuizzes.filter(q => q.best_score !== null).length : completedLessonIds.length
     const total = isQuizCourse ? courseQuizzes.length : lessons.length
     const percent = Math.round((progress / Math.max(total, 1)) * 100)
@@ -1190,18 +1713,27 @@ export default function LMS() {
                   <div className="divide-y divide-slate-100">
                     {lessons.map((lesson, idx) => {
                       const isCompleted = completedLessonIds.includes(lesson.id)
+                      const att = lessonAtt[lesson.id]
+                      const locked = !!att && !att.is_unlocked
                       return (
-                        <button key={lesson.id} onClick={() => openLesson(lesson)}
-                          className="w-full text-left flex items-center gap-3 px-4 py-3.5 hover:bg-slate-50 transition-colors group">
+                        <button key={lesson.id}
+                          onClick={() => !locked && openLesson(lesson)}
+                          className={`w-full text-left flex items-center gap-3 px-4 py-3.5 transition-colors group ${
+                            locked ? 'cursor-not-allowed' : 'hover:bg-slate-50'
+                          }`}>
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold ${
-                            isCompleted
-                              ? 'bg-[#0E6187] text-white'
-                              : 'bg-slate-100 text-slate-500'
+                            locked
+                              ? 'bg-slate-100 text-slate-300'
+                              : isCompleted
+                                ? 'bg-[#0E6187] text-white'
+                                : att?.is_current
+                                  ? 'bg-[#0E6187]/10 text-[#0E6187] ring-1 ring-[#0E6187]/30'
+                                  : 'bg-slate-100 text-slate-500'
                           } transition-colors`}>
-                            {isCompleted ? <CheckCircle size={15} /> : idx + 1}
+                            {locked ? <Lock size={14} /> : isCompleted ? <CheckCircle size={15} /> : idx + 1}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-[13px] font-semibold text-slate-800 truncate">{lesson.title}</p>
+                            <p className={`text-[13px] font-semibold truncate ${locked ? 'text-slate-400' : 'text-slate-800'}`}>{lesson.title}</p>
                             <div className="flex items-center gap-2 mt-1">
                               {lesson.video_url && (
                                 <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
@@ -1221,9 +1753,15 @@ export default function LMS() {
                             </div>
                           </div>
                           <div className="shrink-0 flex items-center gap-1.5">
-                            {isCompleted && (
+                            {locked ? (
+                              <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                                <Lock size={10} /> Terkunci
+                              </span>
+                            ) : isCompleted ? (
                               <span className="text-[10px] font-medium text-[#0E6187]">Selesai</span>
-                            )}
+                            ) : att?.is_current ? (
+                              <span className="rounded-full bg-[#0E6187]/10 px-2 py-0.5 text-[10px] font-bold text-[#0E6187]">Buka</span>
+                            ) : null}
                             <ChevronRight size={14} className="text-slate-300" />
                           </div>
                         </button>
@@ -1331,6 +1869,22 @@ export default function LMS() {
                           )}
                         </div>
 
+                        {/* Quiz terkait dari bank soal */}
+                        {a.pakets && a.pakets.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-3">
+                            {a.pakets.map(p => (
+                              <button key={p.id} type="button"
+                                onClick={() => navigate(`/siswa-dashboard/quiz/${p.id}`)}
+                                className="flex items-center gap-1.5 bg-[#0E6187]/[0.06] text-[#0E6187] border border-[#0E6187]/15 px-3 py-1.5 rounded-md text-[11px] font-bold hover:bg-[#0E6187]/10 hover:border-[#0E6187]/30 transition-colors">
+                                <ListChecks size={12} />
+                                Quiz: {p.title}
+                                {p.questions_count != null && <span className="opacity-60 font-semibold">({p.questions_count} soal)</span>}
+                                <Play size={10} />
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
                         {/* File Lampiran Guru */}
                         {a.file_name && (
                           <a href={`${APP_URL}/storage/${a.file_path}`} target="_blank" rel="noopener noreferrer"
@@ -1403,137 +1957,7 @@ export default function LMS() {
       </div>
 
       {/* Submit Assignment Modal */}
-      {showSubmitForm && (() => {
-        const assignment = assignments.find(a => a.id === showSubmitForm)
-        if (!assignment) return null
-        const dueDateObj = assignment.due_date ? new Date(assignment.due_date + 'T23:59:59') : null
-        const now = new Date()
-        const hoursLeft = dueDateObj ? Math.floor((dueDateObj.getTime() - now.getTime()) / (1000 * 60 * 60)) : null
-        const daysLeft = hoursLeft !== null ? Math.floor(hoursLeft / 24) : null
-
-        return (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-            <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
-              {/* Modal Header */}
-              <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between rounded-t-2xl z-10">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-[#0E6187]/10 flex items-center justify-center">
-                    <Upload size={16} className="text-[#0E6187]" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-gray-900">Kumpulkan Tugas</h3>
-                    <p className="text-[10px] text-gray-400 font-medium">{assignment.title}</p>
-                  </div>
-                </div>
-                <button onClick={() => { setShowSubmitForm(null); setSubmitNote(''); setSubmitFile(null) }}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
-                  <X size={18} />
-                </button>
-              </div>
-
-              {/* Modal Body */}
-              <div className="px-5 py-4 space-y-4">
-                {/* Info tugas */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  {assignment.max_score && (
-                    <span className="flex items-center gap-1.5 bg-gray-100 text-gray-600 px-2.5 py-1 rounded-lg text-[10px] font-bold">
-                      <Star size={10} /> Maks {assignment.max_score}
-                    </span>
-                  )}
-                  {dueDateObj && (
-                    <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold ${
-                      hoursLeft !== null && hoursLeft <= 48
-                        ? 'bg-amber-50 text-amber-600'
-                        : 'bg-[#0E6187]/10 text-[#0E6187]'
-                    }`}>
-                      <Clock size={10} />
-                      {daysLeft !== null && daysLeft > 0 ? `${daysLeft} hari lagi` : hoursLeft !== null && hoursLeft > 0 ? `${hoursLeft} jam lagi` : 'Hari ini'}
-                    </span>
-                  )}
-                </div>
-
-                {/* File guru jika ada */}
-                {assignment.file_name && (
-                  <a href={`${APP_URL}/storage/${assignment.file_path}`} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-xl hover:border-[#0E6187]/30 transition-all group">
-                    <div className="w-9 h-9 rounded-lg bg-[#0E6187]/10 flex items-center justify-center shrink-0">
-                      <FileText size={16} className="text-[#0E6187]" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-bold text-gray-700 truncate group-hover:text-[#0E6187] transition-colors">{assignment.file_name}</p>
-                      <p className="text-[9px] text-gray-400">File dari guru</p>
-                    </div>
-                    <Download size={14} className="text-gray-300 group-hover:text-[#0E6187] shrink-0" />
-                  </a>
-                )}
-
-                {/* Catatan */}
-                <div>
-                  <label className="text-[11px] font-bold text-gray-600 block mb-1.5">Catatan <span className="text-gray-400 font-normal">(opsional)</span></label>
-                  <textarea value={submitNote} onChange={e => setSubmitNote(e.target.value)}
-                    placeholder="Tulis catatan untuk pengumpulan ini..." rows={3}
-                    className="w-full text-xs border border-gray-200 rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0E6187] focus:ring-2 focus:ring-[#0E6187]/10 resize-none transition-all placeholder:text-gray-300" />
-                </div>
-
-                {/* File Upload */}
-                <div>
-                  <label className="text-[11px] font-bold text-gray-600 block mb-1.5">File Tugas <span className="text-red-400">*</span></label>
-                  {submitFile ? (
-                    <div className="flex items-center gap-3 p-3 bg-[#0E6187]/5 border-2 border-[#0E6187]/20 rounded-xl">
-                      <div className="w-10 h-10 rounded-xl bg-[#0E6187]/10 flex items-center justify-center shrink-0">
-                        <FileText size={18} className="text-[#0E6187]" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-gray-800 truncate">{submitFile.name}</p>
-                        <p className="text-[10px] text-gray-400 mt-0.5">{(submitFile.size / 1024).toFixed(1)} KB</p>
-                      </div>
-                      <button onClick={() => setSubmitFile(null)}
-                        className="p-2 rounded-lg text-gray-400 hover:bg-white hover:text-red-500 transition-colors">
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="flex flex-col items-center gap-2 px-4 py-6 border-2 border-dashed border-gray-200 rounded-xl text-xs text-gray-400 hover:border-[#0E6187]/30 hover:bg-gray-50 cursor-pointer transition-all">
-                      <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center">
-                        <Upload size={18} className="text-gray-300" />
-                      </div>
-                      <div className="text-center">
-                        <p className="text-[11px] font-bold text-gray-500">Klik atau seret file ke sini</p>
-                        <p className="text-[9px] text-gray-300 mt-0.5">PDF, Word, Excel, PPT, ZIP (maks 50MB)</p>
-                      </div>
-                      <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar" className="hidden"
-                        onChange={e => { const f = e.target.files?.[0]; if (f) setSubmitFile(f) }} />
-                    </label>
-                  )}
-                </div>
-              </div>
-
-              {/* Modal Footer */}
-              <div className="sticky bottom-0 bg-white border-t border-gray-100 px-5 py-4 rounded-b-2xl">
-                <div className="flex gap-3">
-                  <button onClick={() => { setShowSubmitForm(null); setSubmitNote(''); setSubmitFile(null) }}
-                    className="flex-1 text-xs font-bold text-gray-500 bg-gray-100 px-4 py-3 rounded-xl hover:bg-gray-200 transition-colors">
-                    Batal
-                  </button>
-                  <button onClick={() => handleSubmitAssignment(assignment.id)} disabled={submitting || !submitFile}
-                    className="flex-[2] text-xs font-bold text-white bg-gradient-to-r from-[#0E6187] to-[#0E6187] px-4 py-3 rounded-xl hover:from-[#0a4f66] hover:to-[#0E6187] disabled:opacity-50 disabled:from-gray-300 disabled:to-gray-300 transition-all shadow-sm shadow-[#0E6187]/20 flex items-center justify-center gap-1.5">
-                    {submitting ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Mengirim...
-                      </>
-                    ) : (
-                      <>
-                        <Send size={14} /> Kirim Tugas
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )
-      })()}
+      {renderSubmitModal()}
 
       {/* ============ Bottom Nav Bar ============ */}
       <nav className="fixed bottom-3 left-3 right-3 z-40 rounded-2xl border border-slate-200 bg-white/95 shadow-lg shadow-slate-900/10 backdrop-blur lg:hidden">
@@ -1608,6 +2032,23 @@ export default function LMS() {
               <p className="mt-0.5 text-[13px] text-teal-100">Materi pembelajaran dan progress belajar</p>
             </div>
           </div>
+          {courses.length > 0 && (
+            <div className="relative mt-4">
+              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/50" />
+              <input
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Cari kursus kamu..."
+                className="w-full rounded-xl border border-white/15 bg-white/15 py-2.5 pl-10 pr-9 text-xs font-medium text-white placeholder:text-white/50 outline-none transition-all focus:bg-white/20 focus:border-white/30"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white">
+                  <X size={15} />
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </header>
 
@@ -1669,22 +2110,6 @@ export default function LMS() {
           </div>
         ) : (
           <>
-            <div className="relative">
-              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Cari kursus kamu..."
-                className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-9 text-xs font-medium text-gray-800 placeholder:text-gray-400 outline-none transition-all focus:border-[#0E6187] focus:ring-2 focus:ring-[#0E6187]/15"
-              />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                  <X size={15} />
-                </button>
-              )}
-            </div>
-
             {courseCategories.length > 0 && (
               <div className="-mx-4 px-4 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <div className="flex items-center gap-2">

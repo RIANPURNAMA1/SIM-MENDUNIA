@@ -3,11 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, BookOpen, FileText, ListChecks, Plus, ChevronRight, ChevronDown, HelpCircle,
   Download, Clock, ClipboardList, Check, Edit3, X, Trash2, Loader2, Layers, Camera, Upload, ImageIcon,
-  BarChart3, Users,
+  BarChart3, Users, Video, Eye, EyeOff, Activity,
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
-import { guruLmsApi, assignmentApi, guruQuizApi, APP_URL } from '../../services/api'
+import { guruLmsApi, assignmentApi, guruQuizApi, guruMateriApi, APP_URL } from '../../services/api'
 import { getYouTubeEmbedUrl } from '../../utils/youtube'
 import Swal from 'sweetalert2'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
@@ -26,7 +26,8 @@ interface LessonDetail {
   file_size: number | null
   paket_id: number | null
   paket?: { id: number; title: string; status: string; questions_count?: number; attempts_count?: number } | null
-  link_pakets?: { id: number; title: string; status: string; questions_count?: number; attempts_count?: number }[]
+  link_pakets?: { id: number; title: string; status: string; questions_count?: number; attempts_count?: number; pivot?: { status?: string } }[]
+  link_materis?: LmsMateriItem[]
   slides?: { id: number; file_path: string; file_name?: string; url?: string }[]
   sort: number
   status: string
@@ -53,6 +54,14 @@ interface TaskItem {
   due_date: string | null
   max_score: number | null
   submissions_count?: number
+  pakets?: {
+    id: number
+    title: string
+    questions_count?: number
+    time_limit_minutes?: number
+    max_attempts?: number
+    passing_score?: number
+  }[]
 }
 
 interface BankPaket {
@@ -64,6 +73,23 @@ interface BankPaket {
   category?: string | null
   level?: string | null
   batch?: { id: number; nama_batch: string } | null
+}
+
+interface LmsMateriItem {
+  id: number
+  title: string
+  content: string | null
+  video_url: string | null
+  file_path: string | null
+  file_name: string | null
+  file_type: string | null
+  file_size: number | null
+  file_url: string | null
+  status: string
+  sort: number
+  lessons_count?: number
+  course?: { id: number; title: string } | null
+  slides?: { id: number; file_path: string; file_name: string; file_type?: string | null; url?: string }[]
 }
 
 interface PaketQuestion {
@@ -124,6 +150,13 @@ const fmtFileSize = (bytes?: number | null) => {
   return mb >= 1 ? `${mb.toFixed(1)} MB` : `${(bytes / 1024).toFixed(0)} KB`
 }
 
+const hasRealContent = (html?: string | null) => {
+  if (!html) return false
+  const el = document.createElement('div')
+  el.innerHTML = html
+  return (el.textContent || '').trim().length > 0 || !!el.querySelector('img, iframe, video, audio')
+}
+
 const quillModules = {
   toolbar: [
     [{ header: [1, 2, 3, false] }],
@@ -152,15 +185,27 @@ export default function GuruLessonDetail() {
   const [lessonSlides, setLessonSlides] = useState<LessonSlideItem[]>([])
   const lessonQuillRef = useRef<any>(null)
 
-  const [taskForm, setTaskForm] = useState({ title: '', dueDate: '', maxScore: '', description: '' })
+  const [taskForm, setTaskForm] = useState({ title: '', dueDate: '', maxScore: '100', description: '' })
   const [savingTask, setSavingTask] = useState(false)
+  const [showTaskModal, setShowTaskModal] = useState(false)
+  const [taskFile, setTaskFile] = useState<File | null>(null)
+  const [taskPakets, setTaskPakets] = useState<BankPaket[]>([])
+  const [showTaskPaketPicker, setShowTaskPaketPicker] = useState(false)
+  const [taskBankPakets, setTaskBankPakets] = useState<BankPaket[]>([])
+  const [taskBankLoading, setTaskBankLoading] = useState(false)
   const [showQuizManager, setShowQuizManager] = useState(false)
   const [showBankPicker, setShowBankPicker] = useState(false)
   const [bankPakets, setBankPakets] = useState<BankPaket[]>([])
   const [bankLoading, setBankLoading] = useState(false)
   const [bankPickedIds, setBankPickedIds] = useState<number[]>([])
   const [assigningBank, setAssigningBank] = useState(false)
+  const [showMateriPicker, setShowMateriPicker] = useState(false)
+  const [bankMateris, setBankMateris] = useState<LmsMateriItem[]>([])
+  const [materiBankLoading, setMateriBankLoading] = useState(false)
+  const [pickedMateriIds, setPickedMateriIds] = useState<number[]>([])
+  const [assigningMateri, setAssigningMateri] = useState(false)
   const [previewPaketId, setPreviewPaketId] = useState<number | null>(null)
+  const [togglingPaketId, setTogglingPaketId] = useState<number | null>(null)
   const [paketQuestionsMap, setPaketQuestionsMap] = useState<Record<number, PaketQuestion[]>>({})
   const [questionsLoading, setQuestionsLoading] = useState(false)
 
@@ -232,6 +277,61 @@ export default function GuruLessonDetail() {
     }
   }
 
+  const openMateriPicker = () => {
+    setPickedMateriIds([])
+    setShowMateriPicker(true)
+    setMateriBankLoading(true)
+    guruMateriApi.bank()
+      .then(res => {
+        setBankMateris(res.data.materials || [])
+      })
+      .catch(() => setBankMateris([]))
+      .finally(() => setMateriBankLoading(false))
+  }
+
+  const pickMateri = (id: number) => {
+    setPickedMateriIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+
+  const assignMateri = async () => {
+    if (!lesson || pickedMateriIds.length === 0) return
+    setAssigningMateri(true)
+    try {
+      await guruMateriApi.attachLesson(lesson.id, pickedMateriIds)
+      setShowMateriPicker(false)
+      setPickedMateriIds([])
+      await loadLesson(lesson.id)
+      Swal.fire({ icon: 'success', title: `${pickedMateriIds.length} materi dipasang ke pertemuan ini`, timer: 1500, showConfirmButton: false })
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal memasang materi' })
+    } finally {
+      setAssigningMateri(false)
+    }
+  }
+
+  const handleRemoveMateri = async (materiId: number) => {
+    if (!lesson) return
+    const conf = await Swal.fire({
+      title: 'Lepas materi ini?',
+      text: 'Materi tetap tersimpan di bank materi. Materi pertemuan ini akan menghilang untuk siswa.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Lepas',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#dc2626',
+    })
+    if (!conf.isConfirmed) return
+    try {
+      await guruMateriApi.detachLesson(lesson.id, materiId)
+      await loadLesson(lesson.id)
+      Swal.fire({ icon: 'success', title: 'Materi dilepas dari pertemuan', timer: 1500, showConfirmButton: false })
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal melepas materi' })
+    }
+  }
+
+  const lessonMateris = lesson?.link_materis || []
+
   const handleRemovePaket = async (paketId: number) => {
     if (!lesson) return
     const conf = await Swal.fire({
@@ -257,6 +357,27 @@ export default function GuruLessonDetail() {
       Swal.fire({ icon: 'success', title: 'Paket dilepas dari pertemuan', timer: 1400, showConfirmButton: false })
     } catch {
       Swal.fire({ icon: 'error', title: 'Gagal melepas paket soal' })
+    }
+  }
+
+  const handleTogglePaketStatus = async (paket: { id: number; pivot?: { status?: string } }) => {
+    if (!lesson || !paket.pivot) return
+    const next = paket.pivot.status === 'aktif' ? 'nonaktif' : 'aktif'
+    setTogglingPaketId(paket.id)
+    try {
+      await guruLmsApi.setLessonPaketStatus(lesson.id, paket.id, next)
+      await loadLesson(lesson.id)
+      Swal.fire({
+        icon: 'success',
+        title: next === 'aktif' ? 'Quiz diaktifkan' : 'Quiz dinonaktifkan',
+        text: next === 'aktif' ? 'Quiz kini tampil untuk siswa.' : 'Siswa tidak akan melihat/tidak bisa mengerjakan quiz ini.',
+        timer: 1600,
+        showConfirmButton: false,
+      })
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal mengubah status quiz' })
+    } finally {
+      setTogglingPaketId(null)
     }
   }
 
@@ -453,6 +574,28 @@ export default function GuruLessonDetail() {
     }
   }
 
+  const toggleTaskPaketPicker = () => {
+    setShowTaskPaketPicker(v => {
+      const next = !v
+      if (next && taskBankPakets.length === 0) {
+        setTaskBankLoading(true)
+        guruQuizApi.bankPakets()
+          .then(res => setTaskBankPakets(res.data.pakets || []))
+          .catch(() => setTaskBankPakets([]))
+          .finally(() => setTaskBankLoading(false))
+      }
+      return next
+    })
+  }
+
+  const isTaskPaketSelected = (id: number) => taskPakets.some(p => p.id === id)
+
+  const toggleTaskPaket = (p: BankPaket) => {
+    setTaskPakets(prev =>
+      prev.some(x => x.id === p.id) ? prev.filter(x => x.id !== p.id) : [...prev, p]
+    )
+  }
+
   const handleSaveTask = async () => {
     if (!lesson || !taskForm.title.trim()) return
     setSavingTask(true)
@@ -463,8 +606,14 @@ export default function GuruLessonDetail() {
       if (taskForm.description) fd.append('description', taskForm.description)
       if (taskForm.dueDate) fd.append('due_date', taskForm.dueDate)
       if (taskForm.maxScore) fd.append('max_score', taskForm.maxScore)
+      if (taskFile) fd.append('file', taskFile)
+      taskPakets.forEach(p => fd.append('pakets[]', String(p.id)))
       await assignmentApi.store(fd)
-      setTaskForm({ title: '', dueDate: '', maxScore: '', description: '' })
+      setTaskForm({ title: '', dueDate: '', maxScore: '100', description: '' })
+      setTaskFile(null)
+      setTaskPakets([])
+      setShowTaskPaketPicker(false)
+      setShowTaskModal(false)
       await loadTasks(lesson.course_id)
       Swal.fire({ icon: 'success', title: 'Tugas ditambahkan', timer: 1200, showConfirmButton: false })
     } catch {
@@ -550,7 +699,7 @@ export default function GuruLessonDetail() {
 
       <div className="px-4 pt-4 max-w-lg mx-auto space-y-3">
         {/* Lesson header */}
-        <div className="bg-white rounded-2xl border border-[#E5E7EF] p-5">
+        <div className="bg-white rounded-md border border-[#E5E7EF] p-5">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               <h2 className="text-base font-bold text-[#14182B]">{lesson.title}</h2>
@@ -563,7 +712,7 @@ export default function GuruLessonDetail() {
         </div>
 
         {/* Sub menu tabs */}
-        <div className="flex gap-0 bg-white rounded-2xl border border-[#E5E7EF] overflow-hidden">
+        <div className="flex gap-0 bg-white rounded-md border border-[#E5E7EF] overflow-hidden">
           {([
             { key: 'materi' as 'materi', label: 'Materi', icon: BookOpen, count: undefined as number | undefined },
             { key: 'quiz' as 'quiz', label: 'Quiz', icon: HelpCircle, count: quizCount },
@@ -587,7 +736,7 @@ export default function GuruLessonDetail() {
 
         {/* Materi */}
         {lessonTab === 'materi' && (
-        <div className="bg-white rounded-2xl border border-[#E5E7EF] overflow-hidden">
+        <div className="bg-white rounded-md border border-[#E5E7EF] overflow-hidden">
           <div className="px-5 py-4 border-b border-[#E5E7EF] flex items-center justify-between">
             <div className="flex items-center gap-2">
               <BookOpen size={15} className="text-[#0069b0]" />
@@ -632,13 +781,132 @@ export default function GuruLessonDetail() {
               </a>
             )}
             {slides.length > 0 && <LessonSlidesViewer slides={slides} />}
+
+            <div className="border-t border-[#E5E7EF] pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Layers size={14} className="text-[#0069b0]" />
+                  <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Materi dari Bank</h3>
+                  <span className="text-[10px] font-bold text-[#8B90A0]">{lessonMateris.length} materi</span>
+                </div>
+                {canManage && (
+                  <button onClick={openMateriPicker}
+                    className="flex items-center gap-1 text-[10px] font-bold text-[#0069b0] border border-[#0069b0]/30 bg-[#0069b0]/5 px-3 py-1.5 rounded-lg hover:bg-[#0069b0]/10 transition-colors">
+                    <Plus size={11} /> Pilih Materi dari Bank
+                  </button>
+                )}
+              </div>
+
+              {lessonMateris.length === 0 ? (
+                <div className="border border-dashed border-[#E5E7EF] rounded-xl p-5 text-center">
+                  <div className="w-10 h-10 mx-auto rounded-xl bg-[#0069b0]/[0.06] flex items-center justify-center mb-2">
+                    <Layers size={18} className="text-[#0069b0]" />
+                  </div>
+                  <p className="text-xs font-bold text-[#14182B]">Belum ada materi dari bank</p>
+                  <p className="text-[10px] text-[#8B90A0] font-medium mt-0.5">
+                    Pilih materi/modul &amp; video pembelajaran dari bank materi untuk pertemuan ini
+                  </p>
+                  {canManage && (
+                    <button onClick={openMateriPicker}
+                      className="mt-3 inline-flex items-center gap-1 text-[11px] font-bold text-white bg-[#0069b0] px-3.5 py-2 rounded-lg hover:bg-[#004d7a] transition-colors mx-auto">
+                      <Plus size={12} /> Pilih Materi dari Bank
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {lessonMateris.map(m => {
+                    const realContent = hasRealContent(m.content)
+                    const hasIsi = !!m.video_url || realContent || !!m.file_path || (m.slides && m.slides.length > 0)
+                    return (
+                      <div key={m.id} className="border border-[#E5E7EF] rounded-xl overflow-hidden bg-white">
+                        <div className="flex items-center gap-3 px-4 py-3 bg-[#F8F9FB] border-b border-[#E5E7EF]">
+                          <div className="w-9 h-9 rounded-lg bg-[#0069b0]/10 flex items-center justify-center shrink-0">
+                            {m.video_url ? <Video size={15} className="text-[#0069b0]" /> : realContent ? <BookOpen size={15} className="text-[#0069b0]" /> : m.file_path ? <FileText size={15} className="text-[#0069b0]" /> : <Layers size={15} className="text-[#0069b0]" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-[#14182B] truncate">{m.title}</p>
+                            <div className="flex items-center gap-2.5 mt-0.5">
+                              {m.video_url && <span className="text-[10px] text-[#8B90A0] flex items-center gap-1"><Video size={9} /> Video</span>}
+                              {realContent && <span className="text-[10px] text-[#8B90A0] flex items-center gap-1"><BookOpen size={9} /> Materi</span>}
+                              {m.file_name && <span className="text-[10px] text-[#8B90A0] flex items-center gap-1"><FileText size={9} /> PDF</span>}
+                              {m.slides && m.slides.length > 0 && <span className="text-[10px] text-[#8B90A0] flex items-center gap-1"><ImageIcon size={9} /> {m.slides.length} slide</span>}
+                              {m.status !== 'aktif' && (
+                                <span className="text-[9px] font-bold text-amber-600">Nonaktif</span>
+                              )}
+                            </div>
+                          </div>
+                          {canManage && (
+                            <button onClick={() => handleRemoveMateri(m.id)}
+                              className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 transition-colors shrink-0"
+                              title="Lepas materi dari pertemuan">
+                              <Trash2 size={13} className="text-red-500" />
+                            </button>
+                          )}
+                        </div>
+                        <div className="p-4 space-y-3">
+                          {m.video_url && (
+                            <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                              <iframe
+                                src={getYouTubeEmbedUrl(m.video_url) || m.video_url}
+                                className="w-full h-full" allowFullScreen title={m.title} />
+                            </div>
+                          )}
+                          {realContent && (
+                            <div className="text-sm text-[#4B5063] leading-relaxed
+                              [&_img]:max-w-full [&_img]:rounded-lg [&_img]:my-3 [&_img]:shadow-sm
+                              [&_iframe]:w-full [&_iframe]:aspect-video [&_iframe]:rounded-lg
+                              [&_a]:text-[#0069b0] [&_a]:underline [&_a]:break-words
+                              [&_h1]:text-base [&_h1]:font-bold [&_h1]:text-[#14182B] [&_h1]:mt-4 [&_h1]:mb-2
+                              [&_h2]:text-sm [&_h2]:font-bold [&_h2]:text-[#14182B] [&_h2]:mt-3 [&_h2]:mb-1.5
+                              [&_h3]:text-[13px] [&_h3]:font-bold [&_h3]:text-[#14182B] [&_h3]:mt-3 [&_h3]:mb-1
+                              [&_p]:mb-2.5 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-2.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-2.5 [&_li]:mb-1 [&_li]:pl-1
+                              [&_blockquote]:border-l-4 [&_blockquote]:border-[#0069b0]/30 [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-[#8B90A0]"
+                              dangerouslySetInnerHTML={{ __html: m.content }} />
+                          )}
+                          {m.file_path && (
+                            <a href={m.file_url || `${APP_URL}/storage/${m.file_path}`} target="_blank" rel="noopener noreferrer"
+                              className="flex items-center gap-3 border border-[#E5E7EF] rounded-xl p-3 bg-white hover:bg-[#F8F9FB] transition-colors">
+                              <div className="w-9 h-9 rounded-lg bg-rose-50 flex items-center justify-center shrink-0">
+                                <FileText size={16} className="text-rose-500" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-semibold text-[#4B5063] truncate">{m.file_name}</p>
+                                <p className="text-[10px] text-[#8B90A0]">{fmtFileSize(m.file_size)} · PDF</p>
+                              </div>
+                              <span className="text-[11px] font-bold text-[#0069b0] flex items-center gap-1">
+                                <Download size={12} /> Buka
+                              </span>
+                            </a>
+                          )}
+                          {m.slides && m.slides.length > 0 && (
+                            <LessonSlidesViewer
+                              slides={m.slides.map(s => ({
+                                id: s.id,
+                                name: s.file_name || 'slide',
+                                url: s.url || `${APP_URL}/storage/${s.file_path}`,
+                              }))}
+                            />
+                          )}
+                          {!hasIsi && (
+                            <div className="text-xs text-[#8B90A0] border border-dashed border-[#E5E7EF] rounded-lg p-4 text-center">
+                              Materi ini belum memiliki konten.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
         )}
 
         {/* Quiz */}
         {lessonTab === 'quiz' && (
-        <div className="bg-white rounded-2xl border border-[#E5E7EF] overflow-hidden">
+        <div className="bg-white rounded-md border border-[#E5E7EF] overflow-hidden">
           <div className="px-5 py-4 border-b border-[#E5E7EF] flex items-center gap-2">
             <HelpCircle size={15} className="text-[#0069b0]" />
             <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Quiz</h3>
@@ -646,34 +914,68 @@ export default function GuruLessonDetail() {
           <div className="p-5">
             {lessonPakets.length > 0 ? (
               <div className="space-y-3">
-                {lessonPakets.map(paket => (
+                {lessonPakets.map(paket => {
+                    const linkStatus = paket.pivot?.status
+                    return (
                   <div key={paket.id} className="border border-[#E5E7EF] rounded-xl p-4">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
                         <ListChecks size={16} className="text-violet-600" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-[#14182B] truncate">{paket.title}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs font-semibold text-[#14182B] truncate">{paket.title}</p>
+                          {linkStatus && (
+                            <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${
+                              linkStatus === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'
+                            }`}>
+                              {linkStatus === 'aktif' ? 'Aktif' : 'Nonaktif'}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[10px] text-[#8B90A0]">
                           {paket.questions_count != null ? `${paket.questions_count} soal` : 'Paket soal'}
                           {paket.attempts_count != null ? ` · ${paket.attempts_count} percobaan` : ''}
                         </p>
                       </div>
                       {canManage && (
-                        <button onClick={() => handleRemovePaket(paket.id)}
-                          className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 transition-colors shrink-0"
-                          title="Lepas paket dari pertemuan">
-                          <Trash2 size={13} className="text-red-500" />
-                        </button>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {linkStatus && (
+                            <button onClick={() => handleTogglePaketStatus(paket)}
+                              disabled={togglingPaketId === paket.id}
+                              title={linkStatus === 'aktif' ? 'Nonaktifkan quiz untuk siswa' : 'Aktifkan quiz untuk siswa'}
+                              className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border transition-colors disabled:opacity-50 ${
+                                linkStatus === 'aktif'
+                                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                  : 'border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100'
+                              }`}>
+                              {togglingPaketId === paket.id
+                                ? <Loader2 size={11} className="animate-spin" />
+                                : linkStatus === 'aktif' ? <Eye size={11} /> : <EyeOff size={11} />}
+                              {linkStatus === 'aktif' ? 'Nonaktifkan' : 'Aktifkan'}
+                            </button>
+                          )}
+                          <button onClick={() => handleRemovePaket(paket.id)}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 transition-colors shrink-0"
+                            title="Lepas paket dari pertemuan">
+                            <Trash2 size={13} className="text-red-500" />
+                          </button>
+                        </div>
                       )}
                     </div>
                     <button onClick={() => toggleQuizPreview(paket.id)}
                       className="mt-3 inline-flex items-center gap-1 text-[11px] font-bold text-[#0069b0] border border-[#0069b0]/30 bg-[#0069b0]/5 px-3 py-1.5 rounded-lg hover:bg-[#0069b0]/10 transition-colors">
                       Lihat Paket Soal <ChevronDown size={12} className={previewPaketId === paket.id ? 'rotate-180 transition-transform' : 'transition-transform'} />
                     </button>
+                    <button onClick={() => navigate(`/guru-paket-soal/monitor/${paket.id}`, { state: { title: paket.title } })}
+                      className="mt-3 ml-1.5 inline-flex items-center gap-1 text-[11px] font-bold text-red-500 border border-red-200 bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors"
+                      title="Monitor langsung (kamera pengawas + progres pengerjaan)">
+                      <Activity size={12} /> Monitor
+                    </button>
                     {renderQuizPreview(paket.id)}
                   </div>
-                ))}
+                    )
+                  })}
 
                 {canManage && (
                   <button onClick={openBankPicker}
@@ -705,7 +1007,7 @@ export default function GuruLessonDetail() {
 
         {/* Tugas */}
         {lessonTab === 'tugas' && (
-        <div className="bg-white rounded-2xl border border-[#E5E7EF] overflow-hidden">
+        <div className="bg-white rounded-md border border-[#E5E7EF] overflow-hidden">
           <div className="px-5 py-4 border-b border-[#E5E7EF] flex items-center gap-2">
             <ClipboardList size={15} className="text-[#0069b0]" />
             <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Tugas ({tasks.length})</h3>
@@ -721,20 +1023,25 @@ export default function GuruLessonDetail() {
                       <FileText size={14} className="text-[#0069b0]" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-[#4B5063] truncate">{t.title}</p>
-                      <div className="flex items-center gap-2.5 mt-0.5">
-                        {t.due_date && (
-                          <span className="text-[10px] text-[#8B90A0] flex items-center gap-1">
-                            <Clock size={9} /> {t.due_date}
-                          </span>
-                        )}
-                        {t.submissions_count != null && (
-                          <span className="text-[10px] text-[#8B90A0] flex items-center gap-1">
-                            <ClipboardList size={9} /> {t.submissions_count} dikumpulkan
-                          </span>
-                        )}
+                        <p className="text-xs font-semibold text-[#4B5063] truncate">{t.title}</p>
+                        <div className="flex items-center gap-2.5 mt-0.5">
+                          {t.due_date && (
+                            <span className="text-[10px] text-[#8B90A0] flex items-center gap-1">
+                              <Clock size={9} /> {t.due_date}
+                            </span>
+                          )}
+                          {t.submissions_count != null && (
+                            <span className="text-[10px] text-[#8B90A0] flex items-center gap-1">
+                              <ClipboardList size={9} /> {t.submissions_count} dikumpulkan
+                            </span>
+                          )}
+                          {t.pakets && t.pakets.length > 0 && (
+                            <span className="text-[10px] font-bold text-[#0069b0] bg-[#0069b0]/[0.06] px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <ListChecks size={9} /> Quiz: {t.pakets.map(p => p.title).join(', ')}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
                     {canManage && (
                       <button onClick={() => handleDeleteTask(t)}
                         className="p-1.5 rounded-md text-gray-300 hover:bg-red-50 hover:text-red-500 transition-colors shrink-0">
@@ -752,29 +1059,10 @@ export default function GuruLessonDetail() {
             </button>
 
             {canManage && (
-              <div className="mt-4 border-t border-[#E5E7EF] pt-4">
-                <p className="text-[11px] font-bold text-[#4B5063] mb-2">Tambah Tugas Baru</p>
-                <div className="space-y-2">
-                  <input type="text" placeholder="Judul tugas" value={taskForm.title}
-                    onChange={e => setTaskForm(f => ({ ...f, title: e.target.value }))}
-                    className="w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 transition-all" />
-                  <input type="text" placeholder="Deskripsi (opsional)" value={taskForm.description}
-                    onChange={e => setTaskForm(f => ({ ...f, description: e.target.value }))}
-                    className="w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 transition-all" />
-                  <div className="grid grid-cols-2 gap-2">
-                    <input type="date" value={taskForm.dueDate}
-                      onChange={e => setTaskForm(f => ({ ...f, dueDate: e.target.value }))}
-                      className="w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 transition-all" />
-                    <input type="number" placeholder="Skor maks (opsional)" value={taskForm.maxScore}
-                      onChange={e => setTaskForm(f => ({ ...f, maxScore: e.target.value }))}
-                      className="w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 transition-all" />
-                  </div>
-                  <button onClick={handleSaveTask} disabled={savingTask || !taskForm.title.trim()}
-                    className="w-full flex items-center justify-center gap-1.5 bg-[#0069b0]/10 text-[#0069b0] px-3 py-2.5 rounded-xl text-[11px] font-bold hover:bg-[#0069b0]/20 transition-colors disabled:opacity-50">
-                    <Plus size={13} /> {savingTask ? 'Menyimpan...' : 'Tambah Tugas'}
-                  </button>
-                </div>
-              </div>
+              <button onClick={() => { setTaskForm({ title: '', dueDate: '', maxScore: '100', description: '' }); setTaskFile(null); setTaskPakets([]); setShowTaskPaketPicker(false); setShowTaskModal(true) }}
+                className="mt-3 w-full flex items-center justify-center gap-1.5 border border-[#0069b0]/30 bg-[#0069b0]/5 text-[#0069b0] px-3 py-2.5 rounded-xl text-[11px] font-bold hover:bg-[#0069b0]/10 transition-colors">
+                <Plus size={13} /> Tambah Tugas Baru
+              </button>
             )}
           </div>
         </div>
@@ -784,7 +1072,7 @@ export default function GuruLessonDetail() {
         {lessonTab === 'rekap' && (
         <div className="space-y-3">
           {/* Nilai Quiz Siswa */}
-          <div className="bg-white rounded-2xl border border-[#E5E7EF] overflow-hidden">
+          <div className="bg-white rounded-md border border-[#E5E7EF] overflow-hidden">
             <div className="px-5 py-4 border-b border-[#E5E7EF] flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <BarChart3 size={15} className="text-[#0069b0]" />
@@ -847,7 +1135,7 @@ export default function GuruLessonDetail() {
                   </div>
 
                   <div className="overflow-x-auto -mx-5 px-5">
-                    <div className="min-w-[440px] rounded-2xl border border-[#E5E7EF] overflow-hidden">
+                    <div className="min-w-[440px] rounded-md border border-[#E5E7EF] overflow-hidden">
                       <table className="w-full text-left">
                         <thead>
                           <tr className="bg-[#F7F9FC] border-b border-[#E5E7EF]">
@@ -951,7 +1239,7 @@ export default function GuruLessonDetail() {
           </div>
 
           {/* Rekap Dokumen */}
-        <div className="bg-white rounded-2xl border border-[#E5E7EF] overflow-hidden">
+        <div className="bg-white rounded-md border border-[#E5E7EF] overflow-hidden">
           <div className="px-5 py-4 border-b border-[#E5E7EF] flex items-center gap-2">
             <Camera size={15} className="text-[#0069b0]" />
             <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Rekap Pertemuan</h3>
@@ -1065,7 +1353,7 @@ export default function GuruLessonDetail() {
       {/* Edit Materi Modal */}
       {showEditModal && lesson && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[5vh] pb-8 px-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
+          <div className="bg-white rounded-md shadow-2xl w-full max-w-2xl overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
               <h3 className="font-bold text-gray-900">Edit Materi</h3>
               <button onClick={() => setShowEditModal(false)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
@@ -1174,7 +1462,7 @@ export default function GuruLessonDetail() {
       {/* Bank Paket Picker Modal */}
       {showBankPicker && (
         <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onClick={() => setShowBankPicker(false)}>
-          <div className="bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-md max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-[#F0F1F5] sticky top-0 bg-white">
               <div>
                 <h2 className="text-sm font-bold text-[#14182B]">Pilih Paket Soal dari Bank</h2>
@@ -1192,7 +1480,7 @@ export default function GuruLessonDetail() {
                 </div>
               ) : bankPakets.length === 0 ? (
                 <div className="py-12 text-center">
-                  <div className="w-14 h-14 mx-auto rounded-2xl bg-[#0069b0]/[0.06] flex items-center justify-center mb-3">
+                  <div className="w-14 h-14 mx-auto rounded-md bg-[#0069b0]/[0.06] flex items-center justify-center mb-3">
                     <Layers size={26} className="text-[#0069b0]" />
                   </div>
                   <p className="text-sm font-bold text-[#14182B]">Bank kosong</p>
@@ -1252,6 +1540,245 @@ export default function GuruLessonDetail() {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Materi Bank Picker Modal */}
+      {showMateriPicker && (
+        <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onClick={() => setShowMateriPicker(false)}>
+          <div className="bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-md max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-[#F0F1F5] sticky top-0 bg-white">
+              <div>
+                <h2 className="text-sm font-bold text-[#14182B]">Pilih Materi dari Bank</h2>
+                <p className="text-[10px] text-[#8B90A0] font-medium">Centang satu atau lebih materi untuk ditambahkan ke pertemuan ini</p>
+              </div>
+              <button onClick={() => setShowMateriPicker(false)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F4F5F8] hover:bg-[#E5E7EF]">
+                <X size={15} className="text-[#4B5063]" />
+              </button>
+            </div>
+
+            <div className="p-5">
+              {materiBankLoading ? (
+                <div className="flex flex-col items-center justify-center py-14 text-[#8B90A0] text-xs gap-2">
+                  <Loader2 size={24} className="animate-spin text-[#0069b0]" /> Memuat bank materi...
+                </div>
+              ) : bankMateris.length === 0 ? (
+                <div className="py-12 text-center">
+                  <div className="w-14 h-14 mx-auto rounded-md bg-[#0069b0]/[0.06] flex items-center justify-center mb-3">
+                    <Layers size={26} className="text-[#0069b0]" />
+                  </div>
+                  <p className="text-sm font-bold text-[#14182B]">Bank kosong</p>
+                  <p className="text-[11px] text-[#8B90A0] font-medium mt-1">Belum ada materi di bank materi. Buat materi baru dulu?</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {bankMateris.map(m => {
+                    const checked = pickedMateriIds.includes(m.id)
+                    const attached = lessonMateris.some(x => x.id === m.id)
+                    return (
+                      <label key={m.id}
+                        className={`flex items-center gap-3 border rounded-xl px-4 py-3 transition-colors ${attached ? 'border-[#E5E7EF] bg-[#F8F9FB] opacity-70 cursor-not-allowed' : `cursor-pointer ${checked ? 'border-[#0069b0] bg-[#0069b0]/[0.04] ring-1 ring-[#0069b0]/20' : 'border-[#E5E7EF] hover:bg-[#F7F8FA]'}`}`}>
+                        <input type="checkbox" checked={checked || attached} disabled={attached} onChange={() => pickMateri(m.id)}
+                          className="w-4 h-4 rounded border-[#D6D9E1] text-[#0069b0] focus:ring-[#0069b0] shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs font-bold text-[#14182B] truncate">{m.title}</p>
+                            {m.status === 'nonaktif' && (
+                              <span className="text-[9px] font-bold text-amber-600 shrink-0">Nonaktif</span>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-[#8B90A0] font-medium mt-0.5 flex items-center gap-1.5">
+                            {m.video_url && <><Video size={9} /> Video</>}
+                            {m.content && <><BookOpen size={9} /> Materi</>}
+                            {m.file_name && <><FileText size={9} /> PDF</>}
+                            {!m.video_url && !m.content && !m.file_name && <span>Tanpa konten</span>}
+                          </p>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${attached ? 'bg-[#0069b0]/10 text-[#0069b0]' : m.status === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-[#8B90A0]'}`}>
+                          {attached ? 'Sudah terpasang' : m.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
+                        </span>
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {bankMateris.length > 0 && (
+              <div className="px-5 py-4 border-t border-[#F0F1F5] flex items-center justify-end gap-2">
+                <button onClick={() => setShowMateriPicker(false)}
+                  className="px-4 py-2.5 text-[11px] font-bold text-[#4B5063] hover:bg-[#F4F5F8] rounded-lg transition-colors">
+                  Batal
+                </button>
+                <button onClick={assignMateri} disabled={assigningMateri || pickedMateriIds.length === 0}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-bold text-white bg-[#0069b0] rounded-lg hover:bg-[#004d7a] transition-colors disabled:opacity-50">
+                  {assigningMateri ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                  {assigningMateri ? 'Memasang...' : pickedMateriIds.length > 1 ? `Pasang ${pickedMateriIds.length} Materi` : 'Pasang Materi'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Buat Tugas Baru Modal */}
+      {showTaskModal && (
+        <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center bg-black/40" onClick={() => { if (!savingTask) setShowTaskModal(false) }}>
+          <div className="bg-white w-full sm:max-w-lg rounded-t-md sm:rounded-md max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-[#F0F1F5] sticky top-0 bg-white">
+              <div>
+                <h2 className="text-sm font-bold text-[#14182B]">Buat Tugas Baru</h2>
+                <p className="text-[10px] text-[#8B90A0] font-medium mt-0.5">Isi detail tugas untuk kandidat</p>
+              </div>
+              <button onClick={() => { if (!savingTask) setShowTaskModal(false) }} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F4F5F8] hover:bg-[#E5E7EF]">
+                <X size={15} className="text-[#4B5063]" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="text-[11px] font-bold text-[#4B5063]">Judul Tugas <span className="text-red-500">*</span></label>
+                <input type="text" placeholder="Contoh: Tugas Setoran Hafalan" value={taskForm.title}
+                  onChange={e => setTaskForm(f => ({ ...f, title: e.target.value }))}
+                  className="mt-1.5 w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 transition-all" />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-[#4B5063]">Deskripsi</label>
+                <textarea rows={3} placeholder="Deskripsi tugas untuk kandidat" value={taskForm.description}
+                  onChange={e => setTaskForm(f => ({ ...f, description: e.target.value }))}
+                  className="mt-1.5 w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 transition-all resize-none" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-[#4B5063]">Batas Tanggal</label>
+                  <input type="date" value={taskForm.dueDate}
+                    onChange={e => setTaskForm(f => ({ ...f, dueDate: e.target.value }))}
+                    className="mt-1.5 w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 transition-all" />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-[#4B5063]">Skor Maksimal</label>
+                  <input type="number" min={1} max={999} placeholder="100" value={taskForm.maxScore}
+                    onChange={e => setTaskForm(f => ({ ...f, maxScore: e.target.value }))}
+                    className="mt-1.5 w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 transition-all" />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-[#4B5063]">Quiz Terkait (dari Bank Soal)</label>
+                <p className="text-[10px] text-[#8B90A0] font-medium mt-0.5">Kandidat mendapat tugas sekaligus quiz dari bank soal</p>
+
+                {taskPakets.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {taskPakets.map(p => (
+                      <span key={p.id} className="flex items-center gap-1.5 bg-[#0069b0]/[0.06] border border-[#0069b0]/20 text-[#0069b0] text-[11px] font-bold pl-2.5 pr-1.5 py-1 rounded-full">
+                        <ListChecks size={12} />
+                        <span className="max-w-[180px] truncate">{p.title}</span>
+                        <button type="button" onClick={() => toggleTaskPaket(p)}
+                          className="p-0.5 rounded-full hover:bg-[#0069b0]/10 transition-colors">
+                          <X size={11} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <button type="button" onClick={toggleTaskPaketPicker} disabled={taskPakets.length > 0}
+                  className="mt-2 w-full flex items-center justify-center gap-1.5 border-2 border-dashed border-[#0069b0]/40 bg-[#0069b0]/5 text-[#0069b0] px-3 py-2.5 rounded-xl text-[11px] font-bold hover:bg-[#0069b0]/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                  <Plus size={13} /> Pilih Quiz dari Bank Soal
+                </button>
+
+                {showTaskPaketPicker && (
+                  <div className="mt-2 border border-[#E5E7EF] rounded-xl overflow-hidden">
+                    <div className="px-3.5 py-2 bg-[#F8F9FB] border-b border-[#E5E7EF] flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-[#4B5063] uppercase tracking-wide">Pilih Paket Soal</span>
+                      <span className="text-[10px] font-semibold text-[#0069b0]">{taskPakets.length} dipilih</span>
+                    </div>
+                    <div className="max-h-56 overflow-y-auto divide-y divide-[#F0F1F5]">
+                      {taskBankLoading ? (
+                        <div className="flex items-center justify-center gap-2 py-8 text-[11px] text-[#8B90A0] font-medium">
+                          <Loader2 size={15} className="animate-spin text-[#0069b0]" /> Memuat bank soal...
+                        </div>
+                      ) : taskBankPakets.length === 0 ? (
+                        <div className="py-8 text-center">
+                          <p className="text-xs font-bold text-[#4B5063]">Bank soal kosong</p>
+                          <p className="text-[10px] text-[#8B90A0] font-medium mt-0.5">Belum ada paket soal di bank.</p>
+                        </div>
+                      ) : (
+                        taskBankPakets.map(p => {
+                          const sel = isTaskPaketSelected(p.id)
+                          return (
+                            <button key={p.id} type="button" onClick={() => toggleTaskPaket(p)}
+                              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left transition-colors ${sel ? 'bg-[#0069b0]/[0.05]' : 'hover:bg-[#F8F9FB]'}`}>
+                              <span className={`w-[18px] h-[18px] rounded border flex items-center justify-center shrink-0 transition-colors ${sel ? 'border-[#0069b0] bg-[#0069b0]' : 'border-[#D6D9E1] bg-white'}`}>
+                                {sel && <Check size={11} className="text-white" strokeWidth={3} />}
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-xs font-semibold truncate ${sel ? 'text-[#0069b0]' : 'text-[#14182B]'}`}>{p.title}</p>
+                                <p className="text-[10px] text-[#8B90A0] font-medium mt-0.5">
+                                  {p.questions_count != null ? `${p.questions_count} soal` : 'Paket soal'}
+                                  {p.category ? ` · ${p.category}` : ''}
+                                  {p.status === 'nonaktif' && <span className="text-amber-600 font-bold"> · Nonaktif</span>}
+                                </p>
+                              </div>
+                            </button>
+                          )
+                        })
+                      )}
+                    </div>
+                    <div className="px-3.5 py-2 border-t border-[#E5E7EF] bg-white flex justify-end">
+                      <button type="button" onClick={() => setShowTaskPaketPicker(false)}
+                        className="text-[11px] font-bold text-[#0069b0] hover:bg-[#0069b0]/10 px-3.5 py-1.5 rounded-lg transition-colors">
+                        Selesai
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-[#4B5063]">File Lampiran</label>
+                <label
+                  onDragOver={e => e.preventDefault()}
+                  onDrop={e => {
+                    e.preventDefault()
+                    const f = e.dataTransfer.files?.[0]
+                    if (f) setTaskFile(f)
+                  }}
+                  className="mt-1.5 flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-[#E5E7EF] rounded-xl px-4 py-6 text-center cursor-pointer hover:border-[#0069b0]/40 hover:bg-[#0069b0]/[0.02] transition-colors">
+                  <input type="file" className="hidden"
+                    onChange={e => setTaskFile(e.target.files?.[0] || null)} />
+                  {taskFile ? (
+                    <>
+                      <FileText size={18} className="text-[#0069b0]" />
+                      <p className="text-[11px] font-bold text-[#0069b0] max-w-full truncate px-2">{taskFile.name}</p>
+                      <button type="button" onClick={e => { e.preventDefault(); setTaskFile(null) }}
+                        className="text-[10px] font-bold text-red-500 hover:text-red-600">Hapus file</button>
+                    </>
+                  ) : (
+                    <>
+                      <Upload size={18} className="text-[#8B90A0]" />
+                      <p className="text-[11px] font-medium text-[#4B5063]">Seret file ke sini atau klik untuk memilih</p>
+                      <p className="text-[9px] text-[#8B90A0]">PDF, Word, Excel, PPT, Teks, ZIP (maks 50MB)</p>
+                    </>
+                  )}
+                </label>
+              </div>
+            </div>
+
+            <div className="px-5 py-4 border-t border-[#F0F1F5] flex items-center justify-end gap-2">
+              <button onClick={() => { if (!savingTask) setShowTaskModal(false) }}
+                className="px-4 py-2.5 text-[11px] font-bold text-[#4B5063] hover:bg-[#F4F5F8] rounded-lg transition-colors">
+                Batal
+              </button>
+              <button onClick={handleSaveTask} disabled={savingTask || !taskForm.title.trim()}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-bold text-white bg-[#0069b0] rounded-lg hover:bg-[#004d7a] transition-colors disabled:opacity-50">
+                {savingTask ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+                {savingTask ? 'Menyimpan...' : 'Buat Tugas'}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -16,6 +16,7 @@ interface PlayQuestion {
   audio_url?: string | null
   audio_max_plays?: number | null
   selected_index?: number | null
+  answer_text?: string | null
   section?: string | null
 }
 
@@ -96,6 +97,7 @@ export default function QuizPlay() {
   const [attempt, setAttempt] = useState<PlayAttempt | null>(null)
   const [questions, setQuestions] = useState<PlayQuestion[]>([])
   const [selected, setSelected] = useState<Record<number, number | null>>({})
+  const [essayDrafts, setEssayDrafts] = useState<Record<number, string>>({})
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -118,6 +120,8 @@ export default function QuizPlay() {
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const snapshotRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const faceMonitorRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const essayTimersRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({})
+  const isLoadingEssayRef = useRef<Record<number, boolean>>({})
   const shuffledRef = useRef(false)
   const cameraAttachedRef = useRef(false)
   const goneStreakRef = useRef(0)
@@ -152,22 +156,26 @@ export default function QuizPlay() {
       setAttempt(a)
       setTestTitle(navTitle || res.data.paket?.title || res.data.test_name || 'Quiz')
       const pre: Record<number, number | null> = {}
+      const preEssay: Record<number, string> = {}
       let qs: PlayQuestion[] = (data.questions || []).map((q: any) => {
         if (q.selected_index !== undefined && q.selected_index !== null) pre[q.id] = q.selected_index
+        if (q.answer_text !== undefined && q.answer_text !== null) preEssay[q.id] = q.answer_text
         return {
           id: q.id, question: q.question, question_type: q.question_type ?? 'choice', rating_max: q.rating_max ?? null,
           options: q.options, points: q.points,
           image_url: q.image_url ?? null, audio_url: q.audio_url ?? null,
           audio_max_plays: q.audio_max_plays ?? null, selected_index: q.selected_index ?? null,
+          answer_text: q.answer_text ?? null,
           section: q.section ?? null,
         }
       })
       if (!shuffledRef.current) {
-        qs = qs.map(q => ({ ...q, options: q.question_type === 'rating' || (q.selected_index !== null && q.selected_index !== undefined) ? q.options : shuffleArray(q.options) }))
+        qs = qs.map(q => ({ ...q, options: q.question_type === 'rating' || q.question_type === 'essay' || (q.selected_index !== null && q.selected_index !== undefined) ? q.options : shuffleArray(q.options) }))
         shuffledRef.current = true
       }
       setQuestions(qs)
       setSelected(pre)
+      setEssayDrafts(preEssay)
       setCameraActive(false)
       setFaceMissing(false)
       setHeadTurned(false)
@@ -254,14 +262,21 @@ export default function QuizPlay() {
     if (!attemptId || isSubmitting) return
     setIsSubmitting(true)
     stopTimers()
-    quizApi.submit(Number(attemptId)).then(() => {
-      navigate(`/siswa-dashboard/quiz/${paketId}`, { replace: true })
-    }).catch(() => {
-      Swal.fire({ icon: 'error', title: 'Gagal mengumpulkan quiz', text: reason })
-      setIsSubmitting(false)
-      if (reason === 'waktu habis') setRemaining(0)
+    Object.keys(essayTimersRef.current).forEach(k => clearTimeout(essayTimersRef.current[Number(k)]))
+    essayTimersRef.current = {}
+    const essayOrders = questions
+      .filter(q => q.question_type === 'essay')
+      .map(q => quizApi.answer(Number(attemptId), { question_id: q.id, selected_index: null, answer_text: (essayDrafts[q.id] ?? '').trim() || null }))
+    Promise.allSettled(essayOrders).finally(() => {
+      quizApi.submit(Number(attemptId)).then(() => {
+        navigate(`/siswa-dashboard/quiz/${paketId}`, { replace: true })
+      }).catch(() => {
+        Swal.fire({ icon: 'error', title: 'Gagal mengumpulkan quiz', text: reason })
+        setIsSubmitting(false)
+        if (reason === 'waktu habis') setRemaining(0)
+      })
     })
-  }, [attemptId, paketId, isSubmitting, stopTimers, navigate])
+  }, [attemptId, paketId, isSubmitting, stopTimers, navigate, questions, essayDrafts])
 
   useEffect(() => {
     if (!attempt) return
@@ -418,6 +433,20 @@ export default function QuizPlay() {
   }, [sendWarn])
 
   // ── Answer selection ──
+  const updateEssay = (qid: number, val: string) => {
+    setEssayDrafts(d => ({ ...d, [qid]: val }))
+    if (essayTimersRef.current[qid]) clearTimeout(essayTimersRef.current[qid])
+    essayTimersRef.current[qid] = setTimeout(() => {
+      delete essayTimersRef.current[qid]
+      if (!attemptId) return
+      if (isLoadingEssayRef.current[qid]) return
+      isLoadingEssayRef.current[qid] = true
+      quizApi.answer(Number(attemptId), { question_id: qid, selected_index: null, answer_text: val.trim() || null })
+        .catch(() => Swal.fire({ icon: 'warning', title: 'Gagal menyimpan jawaban', text: 'Periksa koneksi Anda' }))
+        .finally(() => isLoadingEssayRef.current[qid] = false)
+    }, 700)
+  }
+
   const selectAnswer = (idx: number) => {
     const q = questions[currentIndex]
     if (!q || !attemptId || isSaving) return
@@ -459,14 +488,19 @@ export default function QuizPlay() {
 
   // ── derived ──
   const lowTime = remaining <= 60
-  const answeredCount = questions.filter(q => selected[q.id] !== undefined && selected[q.id] !== null).length
+  const isAnsweredQ = (q: PlayQuestion) => q.question_type === 'essay'
+    ? !!(essayDrafts[q.id] ?? '').trim()
+    : selected[q.id] !== undefined && selected[q.id] !== null
+  const answeredCount = questions.filter(isAnsweredQ).length
   const currentQuestion = questions[currentIndex]
 
   const sections = useMemo(() => {
     const acc: { name: string; total: number; answered: number; startIndex: number }[] = []
     questions.forEach((q, idx) => {
       const name = (q.section || '').trim()
-      const answered = selected[q.id] !== undefined && selected[q.id] !== null
+      const answered = q.question_type === 'essay'
+        ? !!(essayDrafts[q.id] ?? '').trim()
+        : selected[q.id] !== undefined && selected[q.id] !== null
       const last = acc[acc.length - 1]
       if (last && last.name === name) {
         last.total++
@@ -476,7 +510,7 @@ export default function QuizPlay() {
       }
     })
     return acc
-  }, [questions, selected])
+  }, [questions, selected, essayDrafts])
 
   const currentSectionName = currentQuestion ? (currentQuestion.section || '').trim() : ''
   const sectionLocalIndex = currentIndex
@@ -584,7 +618,7 @@ export default function QuizPlay() {
         <span className="shrink-0 text-[10px] font-semibold text-gray-400">Soal:</span>
         {questions.map((q, idx) => {
           const isActive = idx === currentIndex
-          const isAnswered = selected[q.id] !== undefined && selected[q.id] !== null
+          const isAnswered = isAnsweredQ(q)
           const isFlagged = flagged.has(idx)
           return (
             <button
@@ -633,7 +667,7 @@ export default function QuizPlay() {
             <div className="flex flex-1 flex-col py-4 pl-1">
               {questions.map((q, idx) => {
                 const isActive = idx === currentIndex
-const isAnswered = selected[q.id] !== undefined && selected[q.id] !== null
+const isAnswered = isAnsweredQ(q)
                 const isFlagged = flagged.has(idx)
                 const bgColor = idx === currentIndex ? '#5e8b5d' : isAnswered ? '#474747' : '#5e8b5d'
                 return (
@@ -693,6 +727,24 @@ const isAnswered = selected[q.id] !== undefined && selected[q.id] !== null
               </div>
 
               <div className="flex flex-col gap-2.5 md:gap-3">
+                {currentQuestion.question_type === 'essay' ? (
+                  <div>
+                    <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-gray-500">Jawaban Anda</label>
+                    <textarea
+                      value={essayDrafts[currentQuestion.id] ?? ''}
+                      onChange={e => updateEssay(currentQuestion.id, e.target.value)}
+                      disabled={isSubmitting}
+                      rows={5}
+                      placeholder="Tulis jawaban esai Anda di sini..."
+                      className="w-full rounded border border-gray-300 bg-white p-3 text-sm leading-relaxed text-gray-800 transition-colors focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20 resize-y"
+                    />
+                    <div className="mt-1.5 flex items-center justify-between">
+                      <p className="text-[10px] font-medium text-gray-400">Jawaban tersimpan otomatis · Esai dinilai oleh pengajar</p>
+                      <span className="text-[10px] font-semibold text-gray-400">{(essayDrafts[currentQuestion.id] ?? '').length} karakter</span>
+                    </div>
+                  </div>
+                ) : (
+                <>
                 {currentQuestion.question_type === 'rating' && (
                   <p className="text-[11px] font-bold text-violet-600 uppercase tracking-wide">Skala penilaian 1–{currentQuestion.rating_max || currentQuestion.options.length} — pilih salah satu</p>
                 )}
@@ -721,6 +773,8 @@ const isAnswered = selected[q.id] !== undefined && selected[q.id] !== null
                     </button>
                   )
                 })}
+                </>
+                )}
               </div>
             </div>
           </div>

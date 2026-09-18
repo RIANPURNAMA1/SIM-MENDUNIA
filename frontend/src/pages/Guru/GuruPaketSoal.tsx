@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Plus, X, Trash2, ArrowLeft, HelpCircle, ListChecks, Eye,
   ChevronUp, ChevronDown, Camera, Clock, Repeat, Award, Users,
   BookOpen, Loader2, ImageIcon, UploadCloud, Mic, RotateCcw,
-  LayoutGrid, ShieldCheck, Pencil,
+  LayoutGrid, ShieldCheck, Pencil, Activity,
 } from 'lucide-react'
 import { guruQuizApi, APP_URL } from '../../services/api'
 import Swal from 'sweetalert2'
@@ -53,6 +54,7 @@ interface Question {
   rating_max: number | null
   options: OptionEntry[]
   correct_index: number | null
+  keyword: string | null
   points: number
   sort: number
   image_path: string | null
@@ -119,9 +121,12 @@ interface DetailRow {
   rating_max: number | null
   options: OptionEntry[]
   correct_index: number | null
+  keyword: string | null
   points: number
   sort: number
   selected_index: number | null
+  answer_text: string | null
+  earned_points: number | null
   is_correct: boolean | null
 }
 
@@ -134,9 +139,10 @@ const emptyPaketForm = {
   cover_image: '',
 }
 
-const emptyQuestionForm = { question: '', section_id: '', question_type: 'choice', rating_max: '9', correct_index: '', points: '1', image_path: '', image_url: '', audio_path: '', audio_url: '', audio_max_plays: '2' }
+const emptyQuestionForm = { question: '', section_id: '', question_type: 'choice', rating_max: '9', correct_index: '', points: '1', keyword: '', image_path: '', image_url: '', audio_path: '', audio_url: '', audio_max_plays: '2' }
 
 export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader, defaultBatchId, defaultLevel, initialPaketId }: GuruPaketSoalProps) {
+  const navigate = useNavigate()
   const [pakets, setPakets] = useState<Paket[]>([])
   const [batches, setBatches] = useState<Batch[]>([])
   const [batchLevels, setBatchLevels] = useState<Record<number, string[]>>({})
@@ -180,6 +186,8 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [detail, setDetail] = useState<{ attempt: any; questions: DetailRow[]; siswa: any } | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [grades, setGrades] = useState<Record<number, string>>({})
+  const [savingGrade, setSavingGrade] = useState<number | null>(null)
 
   const fetchMeta = () => {
     guruQuizApi.meta().then(res => {
@@ -425,10 +433,11 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
     setQForm({
       question: q.question,
       section_id: q.section_id ? String(q.section_id) : '',
-      question_type: q.question_type === 'rating' ? 'rating' : 'choice',
+      question_type: q.question_type === 'rating' ? 'rating' : q.question_type === 'essay' ? 'essay' : 'choice',
       rating_max: q.rating_max ? q.rating_max.toString() : '9',
       correct_index: q.correct_index?.toString() ?? '',
       points: q.points.toString(),
+      keyword: q.keyword || '',
       image_path: q.image_path || '', image_url: q.image_url || '',
       audio_path: q.audio_path || '', audio_url: q.audio_url || '',
       audio_max_plays: q.audio_max_plays != null ? q.audio_max_plays.toString() : '',
@@ -517,8 +526,11 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
       return
     }
     const isRating = qForm.question_type === 'rating'
+    const isEssay = qForm.question_type === 'essay'
     let opts: string[]
-    if (isRating) {
+    if (isEssay) {
+      opts = []
+    } else if (isRating) {
       const ratingMax = Math.min(10, Math.max(2, Number(qForm.rating_max) || 9))
       opts = Array.from({ length: ratingMax }, (_, i) => String(i + 1))
     } else {
@@ -539,10 +551,11 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
       const data = {
         question: qForm.question,
         section_id: qForm.section_id ? Number(qForm.section_id) : null,
-        question_type: isRating ? 'rating' : 'choice',
+        question_type: isEssay ? 'essay' : isRating ? 'rating' : 'choice',
         rating_max: isRating ? Number(qForm.rating_max) || 9 : null,
         options: opts,
-        correct_index: isRating ? null : Number(qForm.correct_index),
+        correct_index: isEssay ? null : isRating ? null : Number(qForm.correct_index),
+        keyword: isEssay ? (qForm.keyword.trim() || null) : null,
         points: Number(qForm.points) || 1,
         image_path: qForm.image_path || null,
         audio_path: qForm.audio_path || null,
@@ -634,12 +647,34 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
     setShowDetailModal(true)
     setDetailLoading(true)
     setDetail(null)
+    setGrades({})
     guruQuizApi.attemptDetail(attemptId).then(res => {
       setDetail({ attempt: res.data.attempt, questions: res.data.questions || [], siswa: res.data.siswa })
     }).catch(() => {
       setDetail(null)
       Swal.fire({ icon: 'error', title: 'Gagal memuat detail' })
     }).finally(() => setDetailLoading(false))
+  }
+
+  const saveGrade = async (qid: number) => {
+    if (!detail) return
+    const q = detail.questions.find(x => x.id === qid)
+    if (!q) return
+    const earned = Math.max(0, Math.min(Number(grades[qid] ?? 0) || 0, Number(q.points) || 0))
+    setSavingGrade(qid)
+    try {
+      await guruQuizApi.gradeAttempt(detail.attempt.id, { grades: [{ question_id: qid, earned_points: earned }] })
+      setGrades(g => { const n = { ...g }; delete n[qid]; return n })
+      setDetailLoading(true)
+      const res = await guruQuizApi.attemptDetail(detail.attempt.id)
+      setDetail({ attempt: res.data.attempt, questions: res.data.questions || [], siswa: res.data.siswa })
+      Swal.fire({ icon: 'success', title: 'Nilai esai tersimpan', timer: 1000, showConfirmButton: false })
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal menyimpan nilai' })
+    } finally {
+      setSavingGrade(null)
+      setDetailLoading(false)
+    }
   }
 
   const backToList = () => setView('list')
@@ -776,7 +811,7 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
                 </div>
 
                 {/* actions */}
-                <div className="flex items-center gap-2 mt-4">
+                <div className="flex items-center gap-2 mt-4 flex-wrap">
                   <button onClick={() => openQuestions(p)}
                     className="flex-1 flex items-center justify-center gap-1.5 text-[11px] font-bold text-white bg-[#0069b0] py-2 rounded-lg hover:bg-[#004d7a] transition-colors">
                     <ListChecks size={13} /> Soal ({p.questions_count})
@@ -784,6 +819,11 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
                   <button onClick={() => openResults(p)}
                     className="flex-1 flex items-center justify-center gap-1.5 text-[11px] font-bold text-[#0069b0] bg-[#0069b0]/[0.06] py-2 rounded-lg hover:bg-[#0069b0]/10 transition-colors">
                     <Eye size={13} /> Hasil
+                  </button>
+                  <button onClick={() => navigate(`/guru-paket-soal/monitor/${p.id}`, { state: { title: p.title } })}
+                    className="flex-1 flex items-center justify-center gap-1.5 text-[11px] font-bold text-white bg-[#D93025] py-2 rounded-lg hover:bg-[#b5261b] transition-colors"
+                    title="Monitor langsung (kamera pengawas + progres pengerjaan)">
+                    <Activity size={13} /> Monitor
                   </button>
                   <div className="flex items-center gap-1">
                     <button onClick={() => openEditPaket(p)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-[#F4F5F8] hover:bg-[#E5E7EF] transition-colors" title="Edit">
@@ -897,13 +937,20 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
                   <h2 className="text-sm font-bold text-[#14182B] truncate">Hasil · {activePaket.title}</h2>
                   <p className="text-[11px] text-[#8B90A0] font-medium mt-0.5">{participants.length} peserta mengerjakan</p>
                 </div>
-                {participants.length > 0 && (
+                <div className="flex items-center gap-2 shrink-0">
+                  <button onClick={() => navigate(`/guru-paket-soal/monitor/${activePaket.id}`, { state: { title: activePaket.title } })}
+                    className="inline-flex items-center gap-1 text-[10px] font-bold text-[#0069b0] hover:text-[#004d7a] border border-[#0069b0]/30 rounded-lg px-2.5 py-1.5 hover:bg-[#0069b0]/5 transition-colors shrink-0"
+                    title="Pantau kandidat secara langsung (foto kamera + progres)">
+                    <Activity size={11} /> Monitor Langsung
+                  </button>
+                  {participants.length > 0 && (
                   <button onClick={() => resetAttempts()}
                     className="inline-flex items-center gap-1 text-[10px] font-bold text-red-500 hover:text-red-600 border border-red-200 rounded-lg px-2.5 py-1.5 hover:bg-red-50 transition-colors shrink-0"
                     title="Reset semua percobaan paket ini">
                     <RotateCcw size={11} /> Reset Semua
                   </button>
-                )}
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1189,7 +1236,7 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
                 <p className="text-[10px] text-[#8B90A0] font-medium mt-2">
                   {paketForm.quiz_template === 'jft'
                     ? 'JFT UI: tampilan quiz lengkap dengan pengawasan kamera. Sistem mengambil foto berkala & memberi peringatan.'
-                    : 'Basic: tampilan quiz sederhana tanpa pengawasan kamera. Cocok untuk quiz evaluasi ringan.'}
+                    : 'Basic: tampilan quiz sederhana dengan kamera pengawas & keamanan aktif — foto berkala & peringatan otomatis.'}
                 </p>
               </div>
 
@@ -1321,10 +1368,10 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
 
               <div>
                 <label className="text-[11px] font-bold text-[#4B5063] mb-1.5 block">Tipe Jawaban</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <button type="button" onClick={() => setQForm({ ...qForm, question_type: 'choice' })}
-                    className={`flex items-center gap-2.5 border rounded-xl px-3 py-2.5 text-left transition-colors ${qForm.question_type !== 'rating' ? 'border-[#0069b0] bg-[#0069b0]/[0.04] ring-1 ring-[#0069b0]/20' : 'border-[#E5E7EF] hover:border-[#D6D9E1]'}`}>
-                    <span className={`w-8 h-8 flex items-center justify-center rounded-lg text-[11px] font-bold shrink-0 ${qForm.question_type !== 'rating' ? 'bg-[#0069b0] text-white' : 'bg-[#F4F5F8] text-[#8B90A0]'}`}>A/B/C</span>
+                    className={`flex items-center gap-2.5 border rounded-xl px-3 py-2.5 text-left transition-colors ${qForm.question_type === 'choice' ? 'border-[#0069b0] bg-[#0069b0]/[0.04] ring-1 ring-[#0069b0]/20' : 'border-[#E5E7EF] hover:border-[#D6D9E1]'}`}>
+                    <span className={`w-8 h-8 flex items-center justify-center rounded-lg text-[11px] font-bold shrink-0 ${qForm.question_type === 'choice' ? 'bg-[#0069b0] text-white' : 'bg-[#F4F5F8] text-[#8B90A0]'}`}>A/B/C</span>
                     <span>
                       <span className="block text-[11.5px] font-bold text-[#14182B]">Pilihan Ganda</span>
                       <span className="block text-[9.5px] text-[#8B90A0] font-medium">Opsi A, B, C + kunci jawaban</span>
@@ -1336,6 +1383,14 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
                     <span>
                       <span className="block text-[11.5px] font-bold text-[#14182B]">Skala Rating</span>
                       <span className="block text-[9.5px] text-[#8B90A0] font-medium">Penilaian bebas 1–{qForm.rating_max}</span>
+                    </span>
+                  </button>
+                  <button type="button" onClick={() => setQForm({ ...qForm, question_type: 'essay' })}
+                    className={`flex items-center gap-2.5 border rounded-xl px-3 py-2.5 text-left transition-colors ${qForm.question_type === 'essay' ? 'border-amber-500 bg-amber-50 ring-1 ring-amber-500/20' : 'border-[#E5E7EF] hover:border-[#D6D9E1]'}`}>
+                    <span className={`w-8 h-8 flex items-center justify-center rounded-lg text-[11px] font-bold shrink-0 ${qForm.question_type === 'essay' ? 'bg-amber-500 text-white' : 'bg-[#F4F5F8] text-[#8B90A0]'}`}>TEXT</span>
+                    <span>
+                      <span className="block text-[11.5px] font-bold text-[#14182B]">Esai / Uraian</span>
+                      <span className="block text-[9.5px] text-[#8B90A0] font-medium">Jawaban teks, nilai via kunci</span>
                     </span>
                   </button>
                 </div>
@@ -1357,6 +1412,15 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
                     </div>
                   </div>
                   <p className="text-[10px] text-[#8B90A0] font-medium mt-2">Kandidat memilih 1 sampai {Math.min(10, Math.max(2, Number(qForm.rating_max) || 9))}. Penilaian bebas, tanpa kunci jawaban — poin penuh diberikan jika diisi.</p>
+                </div>
+              ) : qForm.question_type === 'essay' ? (
+                <div>
+                  <label className="text-[11px] font-bold text-[#4B5063] mb-1.5 block">Kunci Jawaban <span className="font-medium text-[#8B90A0]">(opsional)</span></label>
+                  <textarea value={qForm.keyword} onChange={e => setQForm({ ...qForm, keyword: e.target.value })}
+                    placeholder="Contoh: karena, ４月, transportasi umum"
+                    rows={2}
+                    className="w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 resize-none" />
+                  <p className="text-[10px] text-[#8B90A0] font-medium mt-2">Jika diisi, jawaban siswa yang mengandung kata kunci otomatis diberi poin penuh saat submit. Jika dikosongkan, jawaban menunggu penilaian manual di <span className="font-bold">Hasil ▸ Detail Pengerjaan</span>.</p>
                 </div>
               ) : (
                 <div>
@@ -1472,8 +1536,8 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
                       <div key={q.id} className="border border-[#E5E7EF] rounded-xl p-4">
                         <div className="flex items-start justify-between gap-2">
                           <p className="text-[12px] font-bold text-[#14182B] leading-snug">{i + 1}. {q.question}</p>
-                          <span className={`text-[10px] font-bold shrink-0 px-2 py-0.5 rounded-full ${q.is_correct === true ? 'bg-emerald-50 text-emerald-600' : q.is_correct === false ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-[#8B90A0]'}`}>
-                            {q.is_correct === true ? 'BENAR' : q.is_correct === false ? 'SALAH' : 'TIDAK DIJAWAB'}
+                          <span className={`text-[10px] font-bold shrink-0 px-2 py-0.5 rounded-full ${q.question_type === 'essay' && q.is_correct === null && q.answer_text?.trim() ? 'bg-amber-50 text-amber-600' : q.is_correct === true ? 'bg-emerald-50 text-emerald-600' : q.is_correct === false ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-[#8B90A0]'}`}>
+                            {q.question_type === 'essay' && q.is_correct === null && q.answer_text?.trim() ? 'BELUM DINILAI' : q.is_correct === true ? 'BENAR' : q.is_correct === false ? 'SALAH' : 'TIDAK DIJAWAB'}
                           </span>
                         </div>
                         <div className="mt-2 space-y-1.5">
@@ -1493,6 +1557,38 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
                                 Jawaban: <span className="font-bold text-violet-600">{q.selected_index !== null && q.selected_index !== undefined ? optText(q.options[q.selected_index]) : 'Tidak diisi'}</span>
                                 {q.is_correct === true && <span className="ml-2 text-[9px] font-bold text-violet-500">TERISI · POIN DIBERIKAN</span>}
                               </p>
+                            </div>
+                          ) : q.question_type === 'essay' ? (
+                            <div>
+                              <div className="text-[10px] font-bold text-[#4B5063] mb-1.5">Jawaban Siswa</div>
+                              <p className="text-[11px] text-[#14182B] bg-[#F4F5F8] border border-[#E5E7EF] rounded-lg px-3 py-2.5 whitespace-pre-wrap min-h-[44px]">
+                                {q.answer_text?.trim() ? q.answer_text : <span className="text-[#8B90A0]">Tidak diisi</span>}
+                              </p>
+                              {q.keyword && (
+                                <p className="text-[10px] text-amber-600 font-medium mt-1.5"><span className="font-bold">Kata kunci:</span> {q.keyword}</p>
+                              )}
+                              {q.answer_text?.trim() && (
+                                <div className="flex items-center gap-2 mt-3">
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-[#4B5063] block mb-1">Nilai (0–{q.points})</label>
+                                    <input type="number" min={0} max={q.points}
+                                      value={grades[q.id] ?? ''}
+                                      onChange={e => setGrades(g => ({ ...g, [q.id]: e.target.value }))}
+                                      className="w-24 text-xs border border-[#E5E7EF] rounded-lg px-3 py-2 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10"
+                                      placeholder="-" />
+                                  </div>
+                                  <button type="button" disabled={savingGrade !== null || !grades[q.id]?.trim()}
+                                    onClick={() => saveGrade(q.id)}
+                                    className="self-end text-[11px] font-bold text-white bg-[#0069b0] px-3.5 py-2 rounded-lg disabled:opacity-40 hover:bg-[#004d7a]">
+                                    {savingGrade === q.id ? 'Menyimpan...' : 'Simpan Nilai'}
+                                  </button>
+                                  {q.earned_points !== null && q.earned_points !== undefined && (
+                                    <span className={`self-end text-[11px] font-bold px-2 py-1 rounded-full ${q.is_correct === true ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                                      {q.earned_points}/{q.points} poin
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           ) : (q.options.map((opt, oi) => {
                             const isCorrect = q.correct_index === oi

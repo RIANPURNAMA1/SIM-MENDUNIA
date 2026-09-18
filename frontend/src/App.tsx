@@ -127,6 +127,7 @@ import GuruPaketSoal from './pages/Guru/GuruPaketSoal'
 import GuruProfil from './pages/Guru/GuruProfil'
 import GuruPertemuan from './pages/Guru/GuruPertemuan'
 import GuruPertemuanDetail from './pages/Guru/GuruPertemuanDetail'
+import GuruQuizMonitor from './pages/Guru/GuruQuizMonitor'
 
 import GuruLayout from './layouts/GuruLayout'
 import AdminCabangLayout from './layouts/AdminCabangLayout'
@@ -399,6 +400,17 @@ function AppRoutes() {
           <ProtectedRoute roleAllowed="GURU">
             <GuruLayout>
               <GuruPaketSoal />
+            </GuruLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/guru-paket-soal/monitor/:paketId"
+        element={
+          <ProtectedRoute roleAllowed="GURU">
+            <GuruLayout>
+              <GuruQuizMonitor />
             </GuruLayout>
           </ProtectedRoute>
         }

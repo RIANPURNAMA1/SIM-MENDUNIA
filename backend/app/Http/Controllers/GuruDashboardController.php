@@ -746,6 +746,7 @@ class GuruDashboardController extends Controller
         $lesson = Lesson::with([
             'paket' => fn ($q) => $q->withCount('questions')->withCount('attempts'),
             'linkPakets' => fn ($q) => $q->withCount('questions')->withCount('attempts')->orderBy('id'),
+            'linkMateris' => fn ($q) => $q->with('slides'),
             'slides',
             'recap',
             'course',
@@ -1156,6 +1157,33 @@ class GuruDashboardController extends Controller
         return response()->json(['message' => 'Paket soal dilepas dari pertemuan']);
     }
 
+    public function guruSetLinkPaketStatus(Request $request, $id, $paketId)
+    {
+        $user = Auth::guard('sanctum')->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $data = $request->validate([
+            'status' => 'required|in:aktif,nonaktif',
+        ]);
+
+        $lesson = Lesson::findOrFail($id);
+        $this->courseOwnedByGuru($lesson->course_id, $user);
+
+        $exists = $lesson->linkPakets()->where('quiz_paket_id', $paketId)->exists();
+        if (!$exists) {
+            return response()->json(['message' => 'Paket soal tidak terhubung ke pertemuan ini'], 422);
+        }
+
+        $lesson->linkPakets()->updateExistingPivot($paketId, ['status' => $data['status']]);
+
+        return response()->json([
+            'message' => $data['status'] === 'aktif' ? 'Quiz diaktifkan' : 'Quiz dinonaktifkan',
+            'status' => $data['status'],
+        ]);
+    }
+
     // ========== Guru Assignment Management ==========
 
     public function lmsAssignments($courseId)
@@ -1166,6 +1194,7 @@ class GuruDashboardController extends Controller
         $course = Course::findOrFail($courseId);
         $course->can_manage = (int) $course->user_id === (int) $user->id;
         $assignments = LmsAssignment::where('course_id', $courseId)
+            ->with('pakets')
             ->withCount('submissions')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -1181,6 +1210,16 @@ class GuruDashboardController extends Controller
         $assignments->transform(function ($a) {
             if ($a->due_date) {
                 $a->due_date = $a->due_date->format('Y-m-d');
+            }
+            if ($a->pakets) {
+                $a->pakets = $a->pakets->map(fn ($p) => [
+                    'id' => $p->id,
+                    'title' => $p->title,
+                    'questions_count' => $p->questions()->count(),
+                    'time_limit_minutes' => $p->time_limit_minutes,
+                    'max_attempts' => $p->max_attempts,
+                    'passing_score' => (int) $p->passing_score,
+                ])->values();
             }
             return $a;
         });
@@ -1203,6 +1242,8 @@ class GuruDashboardController extends Controller
             'due_date' => 'nullable|date',
             'max_score' => 'nullable|integer|min:1|max:999',
             'status' => 'nullable|in:aktif,nonaktif',
+            'pakets' => 'nullable|array',
+            'pakets.*' => 'exists:quiz_pakets,id',
             'file' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt,jpg,jpeg,png,zip,rar|max:51200',
         ]);
 
@@ -1213,8 +1254,11 @@ class GuruDashboardController extends Controller
             $data['file_name'] = $request->file('file')->getClientOriginalName();
         }
 
-        $assignment = LmsAssignment::create($data);
-        return response()->json(['assignment' => $assignment], 201);
+        $assignment = LmsAssignment::create(collect($data)->except('pakets')->all());
+        if (!empty($data['pakets'])) {
+            $assignment->pakets()->attach(array_unique($data['pakets']));
+        }
+        return response()->json(['assignment' => $assignment->load('pakets')], 201);
     }
 
     public function lmsUpdateAssignment(Request $request, $id)
@@ -1231,6 +1275,8 @@ class GuruDashboardController extends Controller
             'due_date' => 'nullable|date',
             'max_score' => 'nullable|integer|min:1|max:999',
             'status' => 'nullable|in:aktif,nonaktif',
+            'pakets' => 'nullable|array',
+            'pakets.*' => 'exists:quiz_pakets,id',
             'file' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt,jpg,jpeg,png,zip,rar|max:51200',
         ]);
 
@@ -1242,8 +1288,11 @@ class GuruDashboardController extends Controller
             $data['file_name'] = $request->file('file')->getClientOriginalName();
         }
 
-        $assignment->update($data);
-        return response()->json(['assignment' => $assignment->fresh()]);
+        $assignment->update(collect($data)->except('pakets')->all());
+        if (array_key_exists('pakets', $data)) {
+            $assignment->pakets()->sync($data['pakets'] ?? []);
+        }
+        return response()->json(['assignment' => $assignment->fresh()->load('pakets')]);
     }
 
     public function lmsDeleteAssignment($id)

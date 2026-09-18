@@ -43,7 +43,12 @@ class Lesson extends Model
 
     public function linkPakets()
     {
-        return $this->belongsToMany(QuizPaket::class, 'lms_lesson_quiz_pakets', 'lesson_id', 'quiz_paket_id');
+        return $this->belongsToMany(QuizPaket::class, 'lms_lesson_quiz_pakets', 'lesson_id', 'quiz_paket_id')->withPivot('status');
+    }
+
+    public function linkMateris()
+    {
+        return $this->belongsToMany(LmsMaterial::class, 'lms_lesson_materials', 'lesson_id', 'lms_material_id')->orderBy('lms_lesson_materials.sort')->orderBy('lms_lesson_materials.id');
     }
 
     public function recap()

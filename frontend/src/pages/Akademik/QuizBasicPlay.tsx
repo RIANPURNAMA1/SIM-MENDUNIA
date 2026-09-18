@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Clock, ChevronRight, CheckCircle2, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Clock, ChevronRight, CheckCircle2, AlertTriangle, CameraOff } from 'lucide-react'
 import { quizApi } from '../../services/api'
+import { detectFace, faceModelsReady, loadFaceModels, type DetectedFace } from '../../utils/faceDetector'
 import Swal from 'sweetalert2'
 
 interface PlayQuestion {
@@ -15,6 +16,7 @@ interface PlayQuestion {
   audio_url?: string | null
   audio_max_plays?: number | null
   selected_index?: number | null
+  answer_text?: string | null
   section?: string | null
 }
 
@@ -45,20 +47,103 @@ export default function QuizBasicPlay() {
   const [attempt, setAttempt] = useState<PlayAttempt | null>(null)
   const [questions, setQuestions] = useState<PlayQuestion[]>([])
   const [selected, setSelected] = useState<Record<number, number | null>>({})
+  const [essayDrafts, setEssayDrafts] = useState<Record<number, string>>({})
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [remaining, setRemaining] = useState(0)
   const [testTitle, setTestTitle] = useState('')
+  const [warnBanner, setWarnBanner] = useState(false)
+  const [cameraActive, setCameraActive] = useState(false)
+  const [faceMissing, setFaceMissing] = useState(false)
+  const [headTurned, setHeadTurned] = useState(false)
+  const [streamVersion, setStreamVersion] = useState(0)
+  const [monitorMsg, setMonitorMsg] = useState('')
 
   const endTimeRef = useRef(0)
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const essayTimersRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({})
+  const isLoadingEssayRef = useRef<Record<number, boolean>>({})
+  const streamRef = useRef<MediaStream | null>(null)
+  const cameraRef = useRef<HTMLVideoElement | null>(null)
+  const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const snapshotRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const faceMonitorRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const cameraAttachedRef = useRef(false)
+  const goneStreakRef = useRef(0)
+  const turnStreakRef = useRef(0)
+  const offenseRef = useRef(0)
 
   const stopTimers = useCallback(() => {
     if (countdownRef.current) clearInterval(countdownRef.current)
+    if (snapshotRef.current) clearInterval(snapshotRef.current)
+    if (faceMonitorRef.current) clearInterval(faceMonitorRef.current)
     countdownRef.current = null
+    snapshotRef.current = null
+    faceMonitorRef.current = null
   }, [])
+
+  const stopStream = useCallback(() => {
+    streamRef.current?.getTracks().forEach(t => t.stop())
+    streamRef.current = null
+  }, [])
+
+  // ── Camera stream for proctoring snapshots ──
+  const requestCamera = useCallback(async (): Promise<boolean> => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraActive(false)
+      return false
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 } }, audio: false })
+      stopStream()
+      streamRef.current = stream
+      if (cameraRef.current) {
+        cameraRef.current.srcObject = stream
+        cameraRef.current.play().catch(() => {})
+        setCameraActive(true)
+      } else {
+        setCameraActive(false)
+      }
+      setStreamVersion(v => v + 1)
+      return true
+    } catch {
+      setCameraActive(false)
+      return false
+    }
+  }, [stopStream])
+
+  // Request camera with retries — during route transition to play, the previous
+  // page's stream may still hold the device, so getUserMedia can briefly fail.
+  useEffect(() => {
+    let cancelled = false
+    loadFaceModels()
+    const start = async (attempts: number) => {
+      const ok = await requestCamera()
+      if (cancelled) return
+      if (!ok && attempts > 0) {
+        setTimeout(() => start(attempts - 1), 900)
+      }
+    }
+    start(4)
+    return () => {
+      cancelled = true
+      stopStream()
+    }
+  }, [requestCamera, stopStream])
+
+  // ── Attach stream to video once element exists ──
+  useEffect(() => {
+    if (isLoading || !streamRef.current || !cameraRef.current) return
+    cameraAttachedRef.current = true
+    const v = cameraRef.current
+    if (v.srcObject !== streamRef.current) v.srcObject = streamRef.current
+    const onMeta = () => setCameraActive(true)
+    v.addEventListener('loadedmetadata', onMeta)
+    v.play().catch(() => {})
+    return () => v.removeEventListener('loadedmetadata', onMeta)
+  }, [isLoading, streamVersion])
 
   const load = useCallback(() => {
     if (!attemptId) return
@@ -73,18 +158,31 @@ export default function QuizBasicPlay() {
       setAttempt(a)
       setTestTitle(navTitle || res.data.paket?.title || res.data.test_name || 'Quiz')
       const pre: Record<number, number | null> = {}
+      const preEssay: Record<number, string> = {}
       const qs: PlayQuestion[] = (data.questions || []).map((q: any) => {
         if (q.selected_index !== undefined && q.selected_index !== null) pre[q.id] = q.selected_index
+        if (q.answer_text !== undefined && q.answer_text !== null) preEssay[q.id] = q.answer_text
         return {
           id: q.id, question: q.question, question_type: q.question_type ?? 'choice',
           rating_max: q.rating_max ?? null, options: q.options, points: q.points,
           image_url: q.image_url ?? null, audio_url: q.audio_url ?? null,
           audio_max_plays: q.audio_max_plays ?? null, selected_index: q.selected_index ?? null,
+          answer_text: q.answer_text ?? null,
           section: q.section ?? null,
         }
       })
       setQuestions(qs)
       setSelected(pre)
+      setEssayDrafts(preEssay)
+      setCameraActive(false)
+      setFaceMissing(false)
+      setHeadTurned(false)
+      setMonitorMsg('')
+      setWarnBanner(false)
+      goneStreakRef.current = 0
+      turnStreakRef.current = 0
+      offenseRef.current = 0
+      cameraAttachedRef.current = false
 
       const endTime = Date.parse(a.started_at) + a.time_limit_seconds * 1000
       endTimeRef.current = endTime
@@ -104,14 +202,21 @@ export default function QuizBasicPlay() {
     if (!attemptId || isSubmitting) return
     setIsSubmitting(true)
     stopTimers()
-    quizApi.submit(Number(attemptId)).then(() => {
-      navigate(`/siswa-dashboard/quiz/${paketId}`, { replace: true })
-    }).catch(() => {
-      Swal.fire({ icon: 'error', title: 'Gagal mengumpulkan quiz', text: reason })
-      setIsSubmitting(false)
-      if (reason === 'waktu habis') setRemaining(0)
+    Object.keys(essayTimersRef.current).forEach(k => clearTimeout(essayTimersRef.current[Number(k)]))
+    essayTimersRef.current = {}
+    const essayOrders = questions
+      .filter(q => q.question_type === 'essay')
+      .map(q => quizApi.answer(Number(attemptId), { question_id: q.id, selected_index: null, answer_text: (essayDrafts[q.id] ?? '').trim() || null }))
+    Promise.allSettled(essayOrders).finally(() => {
+      quizApi.submit(Number(attemptId)).then(() => {
+        navigate(`/siswa-dashboard/quiz/${paketId}`, { replace: true })
+      }).catch(() => {
+        Swal.fire({ icon: 'error', title: 'Gagal mengumpulkan quiz', text: reason })
+        setIsSubmitting(false)
+        if (reason === 'waktu habis') setRemaining(0)
+      })
     })
-  }, [attemptId, paketId, isSubmitting, stopTimers, navigate])
+  }, [attemptId, paketId, isSubmitting, stopTimers, navigate, questions, essayDrafts])
 
   useEffect(() => {
     if (!attempt) return
@@ -123,8 +228,148 @@ export default function QuizBasicPlay() {
         submitNow('waktu habis')
       }
     }, 1000)
+    snapshotRef.current = setInterval(captureSnapshot, 25000)
+    faceMonitorRef.current = setInterval(runDetection, 600)
     return stopTimers
   }, [attempt, submitNow, stopTimers])
+
+  const captureSnapshot = () => {
+    const video = cameraRef.current
+    if (!video || video.videoWidth === 0 || !attemptId) return
+    const canvas = document.createElement('canvas')
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    canvas.getContext('2d')?.drawImage(video, 0, 0)
+    canvas.toBlob(blob => {
+      if (!blob) return
+      const fd = new FormData()
+      fd.append('photo', new File([blob], `snap-${Date.now()}.jpg`, { type: 'image/jpeg' }))
+      quizApi.uploadWebcam(Number(attemptId), fd).catch(() => {})
+    }, 'image/jpeg', 0.8)
+  }
+
+  // ── Face / presence monitoring (proctoring) ──
+  // Offense 1 → warning banner + backend warn. Offense 2 → pengerjaan dianggap
+  // selesai, dikumpulkan otomatis, lalu kembali ke halaman paket.
+  const handleOffense = useCallback((reason: string) => {
+    if (!attemptId) return
+    offenseRef.current += 1
+    const offense = offenseRef.current
+    if (offense < 2) {
+      setFaceMissing(reason === 'wajah tak terdeteksi')
+      setMonitorMsg(`Kamera pengawas mendeteksi ${reason}. Jika terulang, pengerjaan akan dikumpulkan otomatis.`)
+      quizApi.warn(Number(attemptId)).then(res => {
+        const d = res.data
+        if (d.auto_submitted || d.status === 'submitted') submitNow(reason)
+      }).catch(() => {})
+      return
+    }
+    stopTimers()
+    setMonitorMsg('')
+    Swal.fire({
+      icon: 'warning',
+      title: 'Pengerjaan dikumpulkan otomatis',
+      text: `Kamera pengawas mendeteksi ${reason} secara berulang. Jawaban disimpan dan quiz dianggap selesai.`,
+      confirmButtonColor: '#0069b0',
+      confirmButtonText: 'OK',
+      allowOutsideClick: false,
+    })
+    submitNow(reason)
+  }, [attemptId, submitNow, stopTimers])
+
+  // Draw the detected face bounding box. Green normally, red while head is
+  // turned left/right. Coordinates are mapped from video pixels to the
+  // displayed (object-cover cropped) size of the widget.
+  const drawOverlay = useCallback((face: DetectedFace | null) => {
+    const cv = overlayCanvasRef.current
+    const video = cameraRef.current
+    if (!cv || !video) return
+    if (cv.width !== cv.clientWidth || cv.height !== cv.clientHeight) {
+      cv.width = cv.clientWidth
+      cv.height = cv.clientHeight
+    }
+    const ctx = cv.getContext('2d')
+    if (!ctx) return
+    ctx.clearRect(0, 0, cv.width, cv.height)
+    if (!face) return
+    const vw = video.videoWidth
+    const vh = video.videoHeight
+    if (!vw || !vh) return
+    const cw = cv.width
+    const ch = cv.height
+    const scale = Math.max(cw / vw, ch / vh)
+    const ox = (cw - vw * scale) / 2
+    const oy = (ch - vh * scale) / 2
+    const x = face.x * scale + ox
+    const y = face.y * scale + oy
+    const w = face.width * scale
+    const h = face.height * scale
+    const color = face.turned ? '#ef4444' : '#22c55e'
+    ctx.lineWidth = 2
+    ctx.strokeStyle = color
+    ctx.strokeRect(x, y, w, h)
+    const label = face.turned ? 'MENOLOH' : 'WAJAH'
+    ctx.font = 'bold 8px system-ui, sans-serif'
+    const tw = ctx.measureText(label).width
+    ctx.fillStyle = color
+    ctx.fillRect(x, y - 10, tw + 8, 10)
+    ctx.fillStyle = '#ffffff'
+    ctx.fillText(label, x + 4, y - 3)
+  }, [])
+
+  const runDetection = useCallback(async () => {
+    const video = cameraRef.current
+    if (!video || !streamRef.current) return
+    try {
+      const face = await detectFace(video)
+      drawOverlay(face)
+      setHeadTurned(face?.turned ?? false)
+
+      if (face) {
+        goneStreakRef.current = 0
+        setFaceMissing(false)
+        turnStreakRef.current = face.turned ? turnStreakRef.current + 1 : 0
+        if (turnStreakRef.current >= 4) {
+          turnStreakRef.current = 0
+          handleOffense('Anda menoleh ke samping')
+        }
+      } else {
+        turnStreakRef.current = 0
+        goneStreakRef.current += 1
+        if (goneStreakRef.current >= 6) {
+          goneStreakRef.current = 0
+          handleOffense('wajah tak terdeteksi')
+        }
+      }
+    } catch {
+      if (!faceModelsReady()) return
+      drawOverlay(null)
+      setHeadTurned(false)
+      turnStreakRef.current = 0
+      goneStreakRef.current = 0
+    }
+  }, [drawOverlay, handleOffense])
+
+  // ── Warn on leaving page ──
+  const sendWarn = useCallback(() => {
+    if (!attemptId) return
+    quizApi.warn(Number(attemptId)).then(res => {
+      const d = res.data
+      if (d.auto_submitted || d.status === 'submitted') {
+        submitNow('keluar aplikasi')
+      } else {
+        setWarnBanner(true)
+      }
+    }).catch(() => {})
+  }, [attemptId, submitNow])
+
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') sendWarn()
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => document.removeEventListener('visibilitychange', onVis)
+  }, [sendWarn])
 
   const selectAnswer = (idx: number) => {
     const q = questions[currentIndex]
@@ -142,8 +387,26 @@ export default function QuizBasicPlay() {
       })
   }
 
+  const updateEssay = (qid: number, val: string) => {
+    setEssayDrafts(d => ({ ...d, [qid]: val }))
+    if (essayTimersRef.current[qid]) clearTimeout(essayTimersRef.current[qid])
+    essayTimersRef.current[qid] = setTimeout(() => {
+      delete essayTimersRef.current[qid]
+      if (!attemptId) return
+      if (isLoadingEssayRef.current[qid]) return
+      isLoadingEssayRef.current[qid] = true
+      quizApi.answer(Number(attemptId), { question_id: qid, selected_index: null, answer_text: val.trim() || null })
+        .catch(() => Swal.fire({ icon: 'warning', title: 'Gagal menyimpan jawaban', text: 'Periksa koneksi Anda' }))
+        .finally(() => isLoadingEssayRef.current[qid] = false)
+    }, 700)
+  }
+
+  const isAnsweredQ = (q: PlayQuestion) => q.question_type === 'essay'
+    ? !!(essayDrafts[q.id] ?? '').trim()
+    : selected[q.id] !== undefined && selected[q.id] !== null
+
   const submitManually = () => {
-    const unanswered = questions.length - questions.filter(q => selected[q.id] !== undefined && selected[q.id] !== null).length
+    const unanswered = questions.length - questions.filter(isAnsweredQ).length
     Swal.fire({
       title: 'Kumpulkan quiz?',
       text: unanswered > 0 ? `Masih ada ${unanswered} soal yang belum dijawab. Jawaban yang sudah dipilih akan dinilai.` : 'Semua soal sudah terjawab. Yakin ingin mengumpulkan?',
@@ -173,7 +436,7 @@ export default function QuizBasicPlay() {
   }
 
   const lowTime = remaining <= 60
-  const answeredCount = questions.filter(q => selected[q.id] !== undefined && selected[q.id] !== null).length
+  const answeredCount = questions.filter(isAnsweredQ).length
   const currentQuestion = questions[currentIndex]
   const isFirst = currentIndex === 0
   const isLast = currentIndex === questions.length - 1
@@ -242,7 +505,7 @@ export default function QuizBasicPlay() {
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {g.items.map(({ q, idx }) => {
                     const isActive = idx === currentIndex
-                    const isAnswered = selected[q.id] !== undefined && selected[q.id] !== null
+                    const isAnswered = isAnsweredQ(q)
                     return (
                       <button key={q.id} onClick={() => setCurrentIndex(idx)}
                         className={`relative flex h-8 min-w-[32px] shrink-0 items-center justify-center rounded-md px-1.5 text-[11px] font-bold transition-all ${
@@ -281,11 +544,27 @@ export default function QuizBasicPlay() {
                 <p className="text-[10px] text-[#8B90A0] font-medium">Soal {currentIndex + 1} / {questions.length}</p>
               </div>
             </div>
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md shrink-0 ${lowTime ? 'bg-red-50 border border-red-200' : 'bg-[#F4F5F8]'}`}>
-              <Clock size={13} className={lowTime ? 'text-red-500' : 'text-[#8B90A0]'} />
-              <span className={`text-xs font-bold tabular-nums ${lowTime ? 'text-red-500' : 'text-[#14182B]'}`}>
-                {fmtClock(remaining)}
-              </span>
+            <div className="flex items-center gap-2 shrink-0">
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md ${lowTime ? 'bg-red-50 border border-red-200' : 'bg-[#F4F5F8]'}`}>
+                <Clock size={13} className={lowTime ? 'text-red-500' : 'text-[#8B90A0]'} />
+                <span className={`text-xs font-bold tabular-nums ${lowTime ? 'text-red-500' : 'text-[#14182B]'}`}>
+                  {fmtClock(remaining)}
+                </span>
+              </div>
+              {streamRef.current ? (
+                <div className="relative overflow-hidden rounded-md border border-[#D6D9E1] bg-black shrink-0 h-11 w-16 sm:h-16 sm:w-24">
+                  <video ref={cameraRef} muted playsInline autoPlay className="h-full w-full object-cover" />
+                  <canvas ref={overlayCanvasRef} className="pointer-events-none absolute inset-0 h-full w-full" />
+                  <span className={`absolute bottom-1 right-1 h-2 w-2 rounded-full border border-white/60 ${faceMissing ? 'bg-red-500' : cameraActive ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`} />
+                  <span className={`absolute bottom-0 left-0 right-0 px-1 py-0.5 text-center text-[8px] font-bold text-white ${headTurned ? 'bg-red-500/80' : faceMissing ? 'bg-red-500/80' : cameraActive ? 'bg-black/50' : 'bg-black/60'}`}>
+                    {headTurned ? 'Menoleh' : faceMissing ? 'Tak terdeteksi' : cameraActive ? 'Wajah OK' : 'Menghubungkan kamera...'}
+                  </span>
+                </div>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded bg-red-50 px-2 py-1 text-[10px] font-bold text-red-400 shrink-0">
+                  <CameraOff size={12} /> Kamera mati
+                </span>
+              )}
             </div>
           </div>
 
@@ -300,6 +579,33 @@ export default function QuizBasicPlay() {
           </div>
         </div>
       </div>
+
+      {/* ── Warning banner ── */}
+      {warnBanner && (
+        <div className="flex items-center gap-2 border-b border-orange-200 bg-orange-50 px-4 py-2">
+          <p className="flex-1 text-[11px] font-bold text-orange-600">Deteksi keluar aplikasi. Keluar lagi akan langsung mengumpulkan quiz otomatis.</p>
+          <button onClick={() => setWarnBanner(false)} className="text-xs font-bold text-orange-400 hover:text-orange-600">✕</button>
+        </div>
+      )}
+
+      {/* ── Camera monitor banner ── */}
+      {monitorMsg && (
+        <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2">
+          <p className="flex-1 text-[11px] font-bold text-amber-700">{monitorMsg}</p>
+          <button onClick={() => setMonitorMsg('')} className="text-xs font-bold text-amber-400 hover:text-amber-700">✕</button>
+        </div>
+      )}
+
+      {/* ── Face missing banner ── */}
+      {faceMissing && !monitorMsg && (
+        <div className="flex items-center gap-2 border-b border-red-200 bg-red-50 px-4 py-2">
+          <p className="flex-1 text-[11px] font-bold text-red-600">
+            Kepala/wajah Anda tidak terdeteksi oleh kamera pengawas. Pastikan wajah terlihat jelas di depan kamera.
+          </p>
+          <button onClick={() => { setFaceMissing(false); goneStreakRef.current = 0 }}
+            className="text-xs font-bold text-red-400 hover:text-red-600">✕</button>
+        </div>
+      )}
 
       {/* ── Question navigator (mobile only) ── */}
       <div className="lg:hidden bg-white border-b border-[#E5E7EF] px-4 py-2 overflow-x-auto">
@@ -379,7 +685,24 @@ export default function QuizBasicPlay() {
             </p>
 
             {/* Options */}
-            <div className="mt-5 space-y-2.5">
+            {currentQuestion.question_type === 'essay' ? (
+              <div className="mt-5">
+                <label className="block text-[10px] font-bold uppercase tracking-wide text-[#4B5063] mb-2">Jawaban Anda</label>
+                <textarea
+                  value={essayDrafts[currentQuestion.id] ?? ''}
+                  onChange={e => updateEssay(currentQuestion.id, e.target.value)}
+                  disabled={isSubmitting}
+                  rows={5}
+                  placeholder="Tulis jawaban esai Anda di sini..."
+                  className="w-full text-[13px] leading-relaxed border-2 border-[#F0F1F5] rounded-md px-4 py-3.5 focus:outline-none focus:border-amber-400 focus:bg-amber-50/30 transition-colors resize-y"
+                />
+                <div className="flex items-center justify-between mt-1.5">
+                  <p className="text-[10px] font-medium text-[#8B90A0]">Jawaban tersimpan otomatis · Esai dinilai oleh pengajar</p>
+                  <span className="text-[10px] font-bold text-[#8B90A0]">{(essayDrafts[currentQuestion.id] ?? '').length} karakter</span>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-5 space-y-2.5">
               {currentQuestion.question_type === 'rating' && (
                 <p className="text-[10px] font-bold text-violet-600 uppercase tracking-wide mb-1">
                   Skala penilaian 1–{currentQuestion.rating_max || currentQuestion.options.length} — pilih salah satu
@@ -426,7 +749,8 @@ export default function QuizBasicPlay() {
                   </button>
                 )
               })}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

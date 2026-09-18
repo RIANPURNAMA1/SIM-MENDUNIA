@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Batch;
 use App\Models\Course;
 use App\Models\KelasSensei;
+use App\Models\QuizAnswer;
 use App\Models\QuizAttempt;
 use App\Models\QuizCategory;
 use App\Models\QuizPaket;
@@ -25,6 +26,24 @@ class GuruQuizController extends Controller
     private function ownPaket($id, $userId)
     {
         return QuizPaket::where('user_id', $userId)->findOrFail($id);
+    }
+
+    private function accessiblePaket($id, $userId)
+    {
+        $paket = QuizPaket::findOrFail($id);
+        if ((int) $paket->user_id === (int) $userId) {
+            return $paket;
+        }
+        $linked = \App\Models\Lesson::whereHas('course', fn ($q) => $q->where('user_id', $userId))
+            ->where(function ($q) use ($paket) {
+                $q->where('paket_id', $paket->id)
+                    ->orWhereHas('linkPakets', fn ($sq) => $sq->where('quiz_pakets.id', $paket->id));
+            })
+            ->exists();
+        if ($linked) {
+            return $paket;
+        }
+        abort(404);
     }
 
     private function ownQuestion($id, $userId)
@@ -344,7 +363,7 @@ class GuruQuizController extends Controller
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
-        $paket = $this->ownPaket($id, $user->id);
+        $paket = QuizPaket::findOrFail($id);
         $paket->status = $paket->status === 'aktif' ? 'nonaktif' : 'aktif';
         $paket->save();
 
@@ -477,11 +496,12 @@ class GuruQuizController extends Controller
         $data = $request->validate([
             'question' => 'required|string',
             'section_id' => 'nullable|integer|exists:quiz_sections,id',
-            'question_type' => 'sometimes|string|in:choice,rating',
+            'question_type' => 'sometimes|string|in:choice,rating,essay',
             'rating_max' => 'nullable|integer|min:2|max:10',
             'options' => 'sometimes|array',
             'options.*' => 'required',
             'correct_index' => 'nullable|integer|min:0',
+            'keyword' => 'nullable|string|max:2000',
             'points' => 'nullable|integer|min:1',
             'sort' => 'nullable|integer|min:0',
             'image_path' => 'nullable|string',
@@ -496,7 +516,12 @@ class GuruQuizController extends Controller
         $type = $data['question_type'] ?? 'choice';
         $options = $this->normalizeOptions($data['options'] ?? []);
 
-        if ($type === 'rating') {
+        if ($type === 'essay') {
+            $options = [];
+            $data['correct_index'] = null;
+            $data['rating_max'] = null;
+            $data['keyword'] = !empty(trim((string) ($data['keyword'] ?? ''))) ? trim((string) $data['keyword']) : null;
+        } elseif ($type === 'rating') {
             $ratingMax = (int) ($data['rating_max'] ?? count($options) ?: 9);
             $options = array_map('strval', range(1, $ratingMax));
             $data['correct_index'] = null;
@@ -543,11 +568,12 @@ class GuruQuizController extends Controller
         $data = $request->validate([
             'question' => 'sometimes|string',
             'section_id' => 'nullable|integer|exists:quiz_sections,id',
-            'question_type' => 'sometimes|string|in:choice,rating',
+            'question_type' => 'sometimes|string|in:choice,rating,essay',
             'rating_max' => 'nullable|integer|min:2|max:10',
             'options' => 'sometimes|array',
             'options.*' => 'required',
             'correct_index' => 'nullable|integer|min:0',
+            'keyword' => 'nullable|string|max:2000',
             'points' => 'nullable|integer|min:1',
             'sort' => 'nullable|integer|min:0',
             'image_path' => 'nullable|string',
@@ -561,7 +587,12 @@ class GuruQuizController extends Controller
 
         if (isset($data['question_type'])) {
             $type = $data['question_type'];
-            if ($type === 'rating') {
+            if ($type === 'essay') {
+                $data['options'] = [];
+                $data['correct_index'] = null;
+                $data['rating_max'] = null;
+                $data['keyword'] = !empty(trim((string) ($data['keyword'] ?? ''))) ? trim((string) $data['keyword']) : null;
+            } elseif ($type === 'rating') {
                 $ratingMax = (int) ($data['rating_max'] ?? $question->rating_max ?? count($question->options ?? []));
                 $data['options'] = array_map('strval', range(1, $ratingMax));
                 $data['correct_index'] = null;
@@ -618,7 +649,7 @@ class GuruQuizController extends Controller
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
-        $paket = $this->ownPaket($paketId, $user->id);
+        $paket = $this->accessiblePaket($paketId, $user->id);
 
         $attempts = QuizAttempt::with(['siswa:id,nama,batch,level,batch_id', 'siswa.batchRelasi.cabang'])
             ->where('quiz_paket_id', $paket->id)
@@ -656,6 +687,81 @@ class GuruQuizController extends Controller
         return response()->json([
             'paket' => $paket->loadCount('questions'),
             'participants' => $participants,
+        ]);
+    }
+
+    // Live proctoring monitor: ongoing attempts (or submitted within the last 2 hours)
+    // with the latest webcam snapshot and answer progress. Built for polling (~3s).
+    public function monitor($paketId)
+    {
+        $user = $this->guruUser();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $paket = $this->accessiblePaket($paketId, $user->id)->loadCount('questions');
+
+        $attempts = QuizAttempt::with(['siswa:id,nama,batch,level,batch_id', 'siswa.batchRelasi.cabang', 'answers:id,quiz_attempt_id,selected_index,answer_text,updated_at'])
+            ->where('quiz_paket_id', $paket->id)
+            ->where(function ($q) {
+                $q->where('status', 'in_progress')
+                    ->orWhere('submitted_at', '>', now()->subHours(2));
+            })
+            ->orderByDesc('created_at')
+            ->get();
+
+        $rows = $attempts->map(function ($a) use ($paket) {
+            $siswa = $a->siswa;
+            $answered = $a->answers->filter(function ($ans) {
+                return ($ans->selected_index !== null && (int) $ans->selected_index >= 0)
+                    || ($ans->answer_text !== null && trim($ans->answer_text) !== '');
+            })->count();
+
+            $remaining = null;
+            if ($a->status === 'in_progress' && $a->started_at) {
+                $end = $a->started_at->getTimestamp() + $a->time_limit_seconds;
+                $remaining = max(0, $end - now()->getTimestamp());
+            }
+
+            $last = $a->answers->max('updated_at') ?? $a->updated_at;
+
+            return [
+                'attempt_id' => $a->id,
+                'attempt_number' => $a->attempt_number,
+                'status' => $a->status,
+                'auto_submitted' => (bool) $a->auto_submitted,
+                'score' => $a->score,
+                'warnings' => $a->warnings,
+                'max_warnings' => (int) $paket->max_warnings,
+                'time_limit_seconds' => $a->time_limit_seconds,
+                'remaining_seconds' => $remaining,
+                'started_at' => $a->started_at?->toIso8601String(),
+                'submitted_at' => $a->submitted_at?->toIso8601String(),
+                'answered_count' => $answered,
+                'total_count' => (int) $paket->questions_count,
+                'webcam_photo' => $a->webcam_photo ? asset('storage/' . $a->webcam_photo) : null,
+                'last_activity' => $last?->toIso8601String(),
+                'siswa' => [
+                    'id' => (int) $a->siswa_id,
+                    'nama' => $siswa?->nama ?? 'Tanpa nama',
+                    'cabang' => $siswa?->batchRelasi?->cabang?->nama_cabang,
+                    'batch' => $siswa?->batchRelasi?->nama_batch,
+                    'level' => $siswa?->levelRekap(),
+                ],
+            ];
+        })->values();
+
+        return response()->json([
+            'paket' => [
+                'id' => $paket->id,
+                'title' => $paket->title,
+                'template' => $paket->template,
+                'time_limit_minutes' => $paket->time_limit_minutes,
+                'max_warnings' => (int) $paket->max_warnings,
+                'questions_count' => (int) $paket->questions_count,
+            ],
+            'server_time' => now()->toIso8601String(),
+            'attempts' => $rows,
         ]);
     }
 
@@ -714,12 +820,15 @@ class GuruQuizController extends Controller
                 'rating_max' => $q->rating_max,
                 'options' => $q->options,
                 'correct_index' => $q->correct_index,
+                'keyword' => $q->keyword,
                 'points' => $q->points,
                 'sort' => $q->sort,
                 'image_url' => $q->image_url,
                 'audio_url' => $q->audio_url,
                 'audio_max_plays' => $q->audio_max_plays,
                 'selected_index' => $a?->selected_index,
+                'answer_text' => $a?->answer_text,
+                'earned_points' => $a?->earned_points,
                 'is_correct' => $a?->is_correct,
             ];
         });
@@ -728,6 +837,61 @@ class GuruQuizController extends Controller
             'attempt' => $attempt,
             'questions' => $rows,
             'siswa' => $attempt->siswa,
+        ]);
+    }
+
+    public function gradeAttempt(Request $request, $attemptId)
+    {
+        $user = $this->guruUser();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $attempt = QuizAttempt::with('paket')->where('id', $attemptId)->firstOrFail();
+
+        if ($attempt->paket->user_id !== $user->id) {
+            abort(404);
+        }
+        if ($attempt->status !== 'submitted') {
+            return response()->json(['message' => 'Percobaan belum selesai, tidak bisa dinilai'], 422);
+        }
+
+        $data = $request->validate([
+            'grades' => 'required|array',
+            'grades.*.question_id' => 'required|integer',
+            'grades.*.earned_points' => 'nullable|integer|min:0',
+        ]);
+
+        $questions = $attempt->paket->questions->keyBy('id');
+
+        foreach ($data['grades'] as $g) {
+            $question = $questions->get($g['question_id']);
+            if (!$question || $question->question_type !== 'essay') {
+                continue;
+            }
+
+            $answer = QuizAnswer::where('quiz_attempt_id', $attempt->id)
+                ->where('quiz_question_id', $question->id)
+                ->first();
+            if (!$answer || trim((string) $answer->answer_text) === '') {
+                continue;
+            }
+
+            $earned = max(0, (int) ($g['earned_points'] ?? 0));
+            $points = (int) $question->points;
+
+            $answer->update([
+                'earned_points' => $earned,
+                'is_correct' => $earned >= $points ? true : ($earned > 0 ? null : false),
+            ]);
+        }
+
+        $attempt->recomputeScore();
+        $attempt->refresh();
+
+        return response()->json([
+            'attempt' => $attempt,
+            'message' => 'Nilai esai tersimpan',
         ]);
     }
 }
