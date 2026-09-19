@@ -535,6 +535,7 @@ Route::get('/guru/penilaian-rekap/{kelasId}', [GuruDashboardController::class, '
         Route::post('/attempts/{id}/warn', [QuizController::class, 'warn']);
         Route::post('/attempts/{id}/submit', [QuizController::class, 'submit']);
         Route::post('/attempts/{id}/webcam', [QuizController::class, 'uploadWebcam']);
+        Route::post('/attempts/{id}/audio-play/{questionId}', [QuizController::class, 'recordAudioPlay']);
     });
 
     // Guru Quiz (paket soal + hasil)

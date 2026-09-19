@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { Volume2, VolumeX, X } from 'lucide-react'
+import { Volume2, VolumeX, X, Play, Pause } from 'lucide-react'
 import { quizApi } from '../../services/api'
 import { detectFace, faceModelsReady, loadFaceModels, type DetectedFace } from '../../utils/faceDetector'
 import Swal from 'sweetalert2'
@@ -15,6 +15,7 @@ interface PlayQuestion {
   image_url?: string | null
   audio_url?: string | null
   audio_max_plays?: number | null
+  audio_plays?: number
   selected_index?: number | null
   answer_text?: string | null
   section?: string | null
@@ -38,45 +39,49 @@ const fmtClock = (sec: number) => {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
-function QuestionAudio({ src, maxPlays, plays, onCompleted }: {
+function QuestionAudio({ src, maxPlays, plays, attemptId, questionId, onCompleted }: {
   src: string
   maxPlays: number | null
   plays: number
-  onCompleted: () => void
+  attemptId: number
+  questionId: number
+  onCompleted: (count: number) => void
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
-  const furthestRef = useRef(0)
-  const countedRef = useRef(false)
+  const [playing, setPlaying] = useState(false)
+  const [progress, setProgress] = useState(0)
 
   const locked = maxPlays !== null && plays >= maxPlays
   const remaining = maxPlays !== null ? Math.max(0, maxPlays - plays) : null
 
-  const handlePlay = () => {
-    countedRef.current = false
+  const togglePlay = () => {
+    const a = audioRef.current
+    if (!a || locked || playing) {
+      if (a && !a.paused) a.pause()
+      return
+    }
+    if (a.currentTime >= (a.duration || 0) - 0.1) a.currentTime = 0
+    a.play().catch(() => {})
   }
 
   const handleTimeUpdate = () => {
     const a = audioRef.current
-    if (a && !a.seeking) furthestRef.current = Math.max(furthestRef.current, a.currentTime)
+    if (a && a.duration) setProgress(Math.min(1, a.currentTime / a.duration))
   }
 
-  const handleSeek = () => {
+  const handleEnded = async () => {
     const a = audioRef.current
     if (!a) return
-    // Blokir lompat ke depan: hanya boleh mundur ke posisi yang sudah didengarkan.
-    if (a.currentTime > furthestRef.current + 0.2) {
-      a.currentTime = furthestRef.current
-    }
-  }
-
-  const handleEnded = () => {
-    const a = audioRef.current
-    if (!a) return
-    furthestRef.current = 0
+    setPlaying(false)
     a.currentTime = 0
-    if (!countedRef.current) {
-      countedRef.current = true
-      onCompleted()
+    setProgress(0)
+    if (maxPlays !== null) {
+      try {
+        const { data } = await quizApi.recordAudioPlay(attemptId, questionId)
+        onCompleted(data.audio_plays ?? 0)
+      } catch {
+        onCompleted(plays + 1)
+      }
     }
   }
 
@@ -100,20 +105,35 @@ function QuestionAudio({ src, maxPlays, plays, onCompleted }: {
           Anda sudah mendengarkan audio sebanyak {plays} kali
         </div>
       ) : (
-        <audio
-          key={src}
-          ref={audioRef}
-          src={src}
-          controls
-          preload="auto"
-          className="mt-2 w-full h-9"
-          onPlay={handlePlay}
-          onTimeUpdate={handleTimeUpdate}
-          onSeeking={handleSeek}
-          onSeeked={handleSeek}
-          onEnded={handleEnded}
-        />
+        <div className="mt-2 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={togglePlay}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0069b0] text-white shadow transition hover:bg-[#005a96]"
+            aria-label={playing ? 'Jeda' : 'Putar'}
+          >
+            {playing ? <Pause size={18} /> : <Play size={18} className="ml-0.5" />}
+          </button>
+          <div className="min-w-0 flex-1">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-[#e6f2f8]">
+              <div className="h-full rounded-full bg-[#0069b0] transition-[width] duration-200" style={{ width: `${progress * 100}%` }} />
+            </div>
+            <p className="mt-1 truncate text-[10px] font-medium text-gray-400">
+              {playing ? 'Sedang diputar…' : 'Tekan play untuk mendengar (tidak bisa di-skip)'}
+            </p>
+          </div>
+        </div>
       )}
+      <audio
+        ref={audioRef}
+        src={src}
+        preload="auto"
+        className="hidden"
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onTimeUpdate={handleTimeUpdate}
+        onEnded={handleEnded}
+      />
     </div>
   )
 }
@@ -220,14 +240,17 @@ export default function QuizBasicPlay() {
       setBlockExit(data.block_exit !== false)
       const pre: Record<number, number | null> = {}
       const preEssay: Record<number, string> = {}
+      const preAudio: Record<number, number> = {}
       const qs: PlayQuestion[] = (data.questions || []).map((q: any) => {
         if (q.selected_index !== undefined && q.selected_index !== null) pre[q.id] = q.selected_index
         if (q.answer_text !== undefined && q.answer_text !== null) preEssay[q.id] = q.answer_text
+        if (q.audio_plays !== undefined && q.audio_plays !== null) preAudio[q.id] = q.audio_plays
         return {
           id: q.id, question: q.question, question_type: q.question_type ?? 'choice', rating_max: q.rating_max ?? null,
           options: q.options, points: q.points,
           image_url: q.image_url ?? null, audio_url: q.audio_url ?? null,
-          audio_max_plays: q.audio_max_plays ?? null, selected_index: q.selected_index ?? null,
+          audio_max_plays: q.audio_max_plays ?? null, audio_plays: q.audio_plays ?? 0,
+          selected_index: q.selected_index ?? null,
           answer_text: q.answer_text ?? null,
           section: q.section ?? null,
         }
@@ -236,7 +259,7 @@ export default function QuizBasicPlay() {
       setSelected(pre)
       setEssayDrafts(preEssay)
       setFlagged(new Set())
-      setAudioPlays({})
+      setAudioPlays(preAudio)
       setCameraActive(false)
       setFaceMissing(false)
       setHeadTurned(false)
@@ -849,10 +872,13 @@ export default function QuizBasicPlay() {
                   <p className="text-base font-medium text-gray-900 md:text-lg">{currentQuestion.question}</p>
                   {currentQuestion.audio_url && (
                     <QuestionAudio
+                      key={currentQuestion.id}
                       src={currentQuestion.audio_url}
                       maxPlays={currentQuestion.audio_max_plays ?? null}
                       plays={audioPlays[currentQuestion.id] ?? 0}
-                      onCompleted={() => setAudioPlays(prev => ({ ...prev, [currentQuestion.id]: (prev[currentQuestion.id] ?? 0) + 1 }))}
+                      attemptId={Number(attemptId)}
+                      questionId={currentQuestion.id}
+                      onCompleted={count => setAudioPlays(prev => ({ ...prev, [currentQuestion.id]: count }))}
                     />
                   )}
                   {currentQuestion.points > 0 && (

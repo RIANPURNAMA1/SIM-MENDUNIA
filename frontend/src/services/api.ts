@@ -536,6 +536,7 @@ export const quizApi = {
   warn: (id: number) => api.post(`/quiz/attempts/${id}/warn`),
   submit: (id: number) => api.post(`/quiz/attempts/${id}/submit`),
   uploadWebcam: (id: number, fd: FormData) => api.post(`/quiz/attempts/${id}/webcam`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  recordAudioPlay: (id: number, questionId: number) => api.post(`/quiz/attempts/${id}/audio-play/${questionId}`),
 }
 
 export const lmsAdminApi = {
