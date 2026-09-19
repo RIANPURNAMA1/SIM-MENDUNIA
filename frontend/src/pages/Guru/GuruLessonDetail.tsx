@@ -13,6 +13,7 @@ import Swal from 'sweetalert2'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
 import LessonSlidesViewer from '../../components/LessonSlidesViewer'
 import LessonMediaFields, { LessonSlideItem } from '../../components/LessonMediaFields'
+import QuizMonitorPanel from '../../components/QuizMonitorPanel'
 import GuruPaketSoal from './GuruPaketSoal'
 
 interface LessonDetail {
@@ -289,6 +290,7 @@ export default function GuruLessonDetail() {
   const [pickedMateriIds, setPickedMateriIds] = useState<number[]>([])
   const [assigningMateri, setAssigningMateri] = useState(false)
   const [previewPaketId, setPreviewPaketId] = useState<number | null>(null)
+  const [monitorPaket, setMonitorPaket] = useState<{ id: number; title: string } | null>(null)
   const [togglingPaketId, setTogglingPaketId] = useState<number | null>(null)
   const [paketQuestionsMap, setPaketQuestionsMap] = useState<Record<number, PaketQuestion[]>>({})
   const [questionsLoading, setQuestionsLoading] = useState(false)
@@ -1077,8 +1079,8 @@ export default function GuruLessonDetail() {
                         className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0069b0] bg-[#0069b0]/5 px-3 py-1.5 rounded-md hover:bg-[#0069b0]/10 transition-colors">
                         Lihat Paket Soal <ChevronDown size={12} className={previewPaketId === paket.id ? 'rotate-180 transition-transform' : 'transition-transform'} />
                       </button>
-                      <button onClick={() => navigate(`/guru-paket-soal/monitor/${paket.id}`, { state: { title: paket.title } })}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-red-500 bg-red-50 px-3 py-1.5 rounded-md hover:bg-red-100 transition-colors"
+                      <button onClick={() => setMonitorPaket(monitorPaket?.id === paket.id ? null : { id: paket.id, title: paket.title })}
+                        className={`inline-flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-md transition-colors ${monitorPaket?.id === paket.id ? 'text-red-600 bg-red-100' : 'text-red-500 bg-red-50 hover:bg-red-100'}`}
                         title="Monitor langsung pengerjaan siswa (kamera + progres)">
                         <Activity size={12} /> Monitor
                       </button>
@@ -1097,6 +1099,14 @@ export default function GuruLessonDetail() {
                     </div>
 
                     {renderQuizPreview(paket.id)}
+
+                    {monitorPaket?.id === paket.id && (
+                      <QuizMonitorPanel
+                        paketId={paket.id}
+                        title={paket.title}
+                        onClose={() => setMonitorPaket(null)}
+                      />
+                    )}
                   </div>
                       )
                     })}

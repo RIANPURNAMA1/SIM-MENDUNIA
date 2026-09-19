@@ -227,6 +227,8 @@ export default function DataCourse() {
   const [uploadingImg, setUploadingImg] = useState(false)
   const [showBatchDropdown, setShowBatchDropdown] = useState(false)
   const quillRef = useRef<any>(null)
+  const seededSectionsRef = useRef<Set<number>>(new Set())
+  const activePaketIdRef = useRef<number | null>(null)
 
   const [quizPakets, setQuizPakets] = useState<QuizPaket[]>([])
   const [quizLoading, setQuizLoading] = useState(false)
@@ -736,27 +738,38 @@ export default function DataCourse() {
     ]).catch(() => activeCourse && fetchCourseLessons(activeCourse.id))
   }
 
-  const openQuizQuestions = (paket: QuizPaket, source: 'course' | 'bank' = 'course') => {
+  const openQuizQuestions = (paket: QuizPaket, source: 'course' | 'bank' = 'course', quiet = false) => {
     setQuizSource(source)
     setActiveQuizPaket(paket)
+    activePaketIdRef.current = paket.id
     setView('quiz-questions')
-    setQLoading(true)
+    if (!quiet) setQLoading(true)
     adminQuizApi.questions(paket.id).then(res => {
-      setQuestions(res.data.questions || [])
-    }).catch(() => setQuestions([])).finally(() => setQLoading(false))
+      if (activePaketIdRef.current === paket.id) setQuestions(res.data.questions || [])
+    }).catch(() => {
+      if (activePaketIdRef.current === paket.id) setQuestions([])
+    }).finally(() => {
+      if (activePaketIdRef.current === paket.id) setQLoading(false)
+    })
     adminQuizApi.sections(paket.id).then(async res => {
       const existing = res.data.sections || []
+      if (activePaketIdRef.current !== paket.id) return
       setQuizSections(existing)
-      const existingNames = existing.map((s: SectionItem) => s.name.toLowerCase())
-      for (const name of DEFAULT_SECTIONS) {
-        if (!existingNames.includes(name.toLowerCase())) {
-          try {
-            const sRes = await adminQuizApi.storeSection(paket.id, { name })
-            setQuizSections(prev => [...prev, sRes.data.section])
-          } catch {}
+      if (!seededSectionsRef.current.has(paket.id)) {
+        seededSectionsRef.current.add(paket.id)
+        const existingNames = existing.map((s: SectionItem) => s.name.toLowerCase())
+        for (const name of DEFAULT_SECTIONS) {
+          if (!existingNames.includes(name.toLowerCase())) {
+            try {
+              const sRes = await adminQuizApi.storeSection(paket.id, { name })
+              if (activePaketIdRef.current === paket.id) setQuizSections(prev => [...prev, sRes.data.section])
+            } catch {}
+          }
         }
       }
-    }).catch(() => setQuizSections([]))
+    }).catch(() => {
+      if (activePaketIdRef.current === paket.id) setQuizSections([])
+    })
   }
 
   const openQuizResults = (paket: QuizPaket, source: 'course' | 'bank' = 'course') => {
@@ -1370,13 +1383,64 @@ export default function DataCourse() {
         audio_path: qForm.audio_path || null,
         audio_max_plays: qForm.audio_path ? (Number(qForm.audio_max_plays) || null) : null,
       }
+      const newSectionId: number | null = qForm.section_id ? Number(qForm.section_id) : null
+      const sectObj = quizSections.find(s => s.id === newSectionId) || null
+
       if (editingQuestion) {
-        await adminQuizApi.updateQuestion(editingQuestion.id, data)
+        const res = await adminQuizApi.updateQuestion(editingQuestion.id, data)
+        const saved = res.data.question || {}
+        const patched: Question = {
+          ...saved,
+          section_id: newSectionId,
+          section: sectObj ? { id: sectObj.id, name: sectObj.name } : null,
+          question: qForm.question ?? '',
+          question_type: isEssay ? 'essay' : isRating ? 'rating' : 'choice',
+          rating_max: isRating ? (Number(qForm.rating_max) || 9) : null,
+          options: opts,
+          correct_index: isEssay ? null : isRating ? null : (Number(qForm.correct_index) || null),
+          keyword: isEssay ? (qForm.keyword.trim() || null) : null,
+          points: Number(qForm.points) || 1,
+          image_path: qForm.image_path || null,
+          image_url: qForm.image_url || null,
+          audio_path: qForm.audio_path || null,
+          audio_url: qForm.audio_url || null,
+          audio_max_plays: qForm.audio_path ? (Number(qForm.audio_max_plays) || null) : null,
+        }
+        setQuestions(prev => prev.map(q => q.id === editingQuestion.id ? patched : q))
+        setQuizSections(prev => prev.map(s => {
+          const oldId = editingQuestion.section_id
+          if (oldId === newSectionId) return s
+          if (s.id === oldId) return { ...s, questions_count: Math.max(0, s.questions_count - 1) }
+          if (s.id === newSectionId) return { ...s, questions_count: s.questions_count + 1 }
+          return s
+        }))
       } else {
-        await adminQuizApi.storeQuestion(activeQuizPaket.id, data)
+        const res = await adminQuizApi.storeQuestion(activeQuizPaket.id, data)
+        const saved = res.data.question || {}
+        const created: Question = {
+          ...saved,
+          id: saved.id,
+          section_id: newSectionId,
+          section: sectObj ? { id: sectObj.id, name: sectObj.name } : null,
+          question: qForm.question ?? '',
+          question_type: isEssay ? 'essay' : isRating ? 'rating' : 'choice',
+          rating_max: isRating ? (Number(qForm.rating_max) || 9) : null,
+          options: opts,
+          correct_index: isEssay ? null : isRating ? null : (Number(qForm.correct_index) || null),
+          keyword: isEssay ? (qForm.keyword.trim() || null) : null,
+          points: Number(qForm.points) || 1,
+          sort: saved.sort ?? questions.length,
+          image_path: qForm.image_path || null,
+          image_url: qForm.image_url || null,
+          audio_path: qForm.audio_path || null,
+          audio_url: qForm.audio_url || null,
+          audio_max_plays: qForm.audio_path ? (Number(qForm.audio_max_plays) || null) : null,
+        }
+        setQuestions(prev => [...prev, created])
+        if (newSectionId) setQuizSections(prev => prev.map(s => s.id === newSectionId ? { ...s, questions_count: s.questions_count + 1 } : s))
       }
       setShowQuestionModal(false)
-      openQuizQuestions(activeQuizPaket)
+      openQuizQuestions(activeQuizPaket, undefined, true)
       if (activeCourse) fetchQuizPakets(activeCourse.id)
       Swal.fire({ icon: 'success', title: editingQuestion ? 'Soal diperbarui' : 'Soal ditambahkan', timer: 1200, showConfirmButton: false })
     } catch (e: any) {
@@ -1448,7 +1512,8 @@ export default function DataCourse() {
       try {
         await adminQuizApi.deleteSection(s.id)
         setQuizSections(prev => prev.filter(x => x.id !== s.id))
-        if (String(s.id) === qForm.section_id) setQForm({ ...qForm, section_id: '' })
+        setQForm(prev => String(s.id) === prev.section_id ? { ...prev, section_id: '' } : prev)
+        setQuestions(prev => prev.map(q => q.section_id === s.id ? { ...q, section_id: null, section: null } : q))
         Swal.fire({ icon: 'success', title: 'Bagian dihapus', timer: 1200, showConfirmButton: false })
       } catch (e: any) {
         const msg = e?.response?.data?.message || 'Gagal menghapus bagian'
@@ -1489,7 +1554,9 @@ export default function DataCourse() {
     }).then(res => {
       if (res.isConfirmed && activeQuizPaket) {
         adminQuizApi.deleteQuestion(q.id).then(() => {
-          openQuizQuestions(activeQuizPaket)
+          setQuestions(prev => prev.filter(x => x.id !== q.id))
+          setQuizSections(prev => prev.map(s => s.id === q.section_id ? { ...s, questions_count: Math.max(0, s.questions_count - 1) } : s))
+          openQuizQuestions(activeQuizPaket, undefined, true)
           Swal.fire({ icon: 'success', title: 'Dihapus', timer: 1200, showConfirmButton: false })
         }).catch(() => Swal.fire({ icon: 'error', title: 'Gagal menghapus' }))
       }
