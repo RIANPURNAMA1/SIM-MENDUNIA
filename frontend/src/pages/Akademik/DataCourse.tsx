@@ -195,7 +195,7 @@ const emptyPaketForm = {
 }
 const emptyQuestionForm = { question: '', section_id: '', question_type: 'choice', rating_max: '9', correct_index: '', points: '1', keyword: '', image_path: '', image_url: '', audio_path: '', audio_url: '', audio_max_plays: '2' }
 
-const DEFAULT_SECTIONS = ['Vocabulary', 'Grammar', 'Reading', 'Listening', 'Conversation']
+const DEFAULT_SECTIONS = ['Script and Vocabulary', 'Grammar', 'Reading', 'Listening', 'Conversation', 'Kanji', 'Vocabulary']
 
 export default function DataCourse() {
   const location = useLocation()
@@ -305,6 +305,7 @@ export default function DataCourse() {
   const [showSectionListModal, setShowSectionListModal] = useState(false)
   const [editingQSection, setEditingQSection] = useState<SectionItem | null>(null)
   const [qSectionName, setQSectionName] = useState('')
+  const [qSectionFilter, setQSectionFilter] = useState<'all' | 'none' | number>('all')
   const [savingSection, setSavingSection] = useState(false)
   const [savingQuestion, setSavingQuestion] = useState(false)
 
@@ -866,6 +867,7 @@ export default function DataCourse() {
     if (quiet) return
     setQuizSource(source)
     setQPage(1)
+    setQSectionFilter('all')
     setView('quiz-questions')
     loadQuestionEditor(paket)
     const cid = source === 'bank' ? undefined : (activeCourse?.id ?? paket.course_id ?? undefined)
@@ -919,9 +921,24 @@ export default function DataCourse() {
     })
   })()
 
-  const qTotalPages = Math.max(1, Math.ceil(orderedQuestions.length / qPerPage))
+  const setSectionFilter = (value: 'all' | 'none' | number) => {
+    setQSectionFilter(value)
+    setQPage(1)
+  }
+
+  const filteredQuestions = qSectionFilter === 'all'
+    ? orderedQuestions
+    : orderedQuestions.filter(q => {
+        const qSec = q.section_id ?? null
+        if (qSectionFilter === 'none') return qSec === null
+        return qSec === qSectionFilter
+      })
+
+  const sectionFilterOptions = [...quizSections].sort((a, b) => (a.sort - b.sort) || (a.id - b.id))
+
+  const qTotalPages = Math.max(1, Math.ceil(filteredQuestions.length / qPerPage))
   const safeQPage = Math.min(qPage, qTotalPages)
-  const qPageItems = orderedQuestions.slice((safeQPage - 1) * qPerPage, safeQPage * qPerPage)
+  const qPageItems = filteredQuestions.slice((safeQPage - 1) * qPerPage, safeQPage * qPerPage)
   const questionGroups = qPageItems.reduce<{ section: string; items: Question[] }[]>((acc, q) => {
     const sec = q.section?.name?.trim() || ''
     const last = acc[acc.length - 1]
@@ -1646,6 +1663,7 @@ export default function DataCourse() {
         await adminQuizApi.deleteSection(s.id)
         setQuizSections(prev => prev.filter(x => x.id !== s.id))
         setQForm(prev => String(s.id) === prev.section_id ? { ...prev, section_id: '' } : prev)
+        setQSectionFilter(prev => prev === s.id ? 'all' : prev)
         setQuestions(prev => prev.map(q => q.section_id === s.id ? { ...q, section_id: null, section: null } : q))
         Swal.fire({ icon: 'success', title: 'Bagian dihapus', timer: 1200, showConfirmButton: false })
       } catch (e: any) {
@@ -2433,11 +2451,42 @@ export default function DataCourse() {
                   <h2 className="text-lg font-bold text-slate-800 truncate">{activeQuizPaket.title}</h2>
                   <p className="text-sm text-slate-500 mt-0.5">{questions.length} soal</p>
                 </div>
-                <button onClick={openCreateQuestion} className={primaryBtn}>
-                  <Plus size={16} /> Tambah Soal
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button onClick={openSectionManager}
+                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-[#0E6187] border border-slate-200 hover:border-[#0E6187]/40 bg-white px-3.5 py-2.5 rounded-lg transition-colors">
+                    <Settings2 size={16} /> Kelola Bagian
+                  </button>
+                  <button onClick={openCreateQuestion} className={primaryBtn}>
+                    <Plus size={16} /> Tambah Soal
+                  </button>
+                </div>
               </div>
             </div>
+
+            {!qLoading && questions.length > 0 && (
+              <div className="flex items-center gap-2 overflow-x-auto px-3 py-2.5 bg-white rounded-lg shadow-sm border border-slate-200">
+                <ListChecks size={15} className="text-slate-400 shrink-0" />
+                <button onClick={() => setSectionFilter('all')}
+                  className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${qSectionFilter === 'all' ? 'bg-[#0E6187] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                  Semua
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${qSectionFilter === 'all' ? 'bg-white/25' : 'bg-white'}`}>{questions.length}</span>
+                </button>
+                {sectionFilterOptions.map(s => (
+                  <button key={s.id} onClick={() => setSectionFilter(s.id)}
+                    className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${qSectionFilter === s.id ? 'bg-[#0E6187] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                    {s.name}
+                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${qSectionFilter === s.id ? 'bg-white/25' : 'bg-white'}`}>{s.questions_count ?? 0}</span>
+                  </button>
+                ))}
+                {questions.some(q => q.section_id == null) && (
+                  <button onClick={() => setSectionFilter('none')}
+                    className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${qSectionFilter === 'none' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                    Tanpa Bagian
+                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${qSectionFilter === 'none' ? 'bg-white/25' : 'bg-white'}`}>{questions.filter(q => q.section_id == null).length}</span>
+                  </button>
+                )}
+              </div>
+            )}
 
             {qLoading ? (
               <div className="flex flex-col items-center justify-center py-16 text-slate-400 text-sm gap-2">
@@ -2448,6 +2497,12 @@ export default function DataCourse() {
                 <BookOpen size={28} className="text-slate-300 mx-auto mb-2" />
                 <p className="text-slate-700 font-semibold">Belum ada soal</p>
                 <p className="text-slate-500 text-sm mt-1">Tambahkan minimal 1 soal untuk paket ini</p>
+              </div>
+            ) : filteredQuestions.length === 0 ? (
+              <div className="bg-white rounded-lg shadow-sm border border-dashed border-slate-300 p-14 text-center">
+                <ListChecks size={28} className="text-slate-300 mx-auto mb-2" />
+                <p className="text-slate-700 font-semibold">Tidak ada soal pada bagian ini</p>
+                <p className="text-slate-500 text-sm mt-1">Pilih bagian lain atau klik "Semua" untuk menampilkan seluruh soal</p>
               </div>
             ) : (
               <div className="space-y-3">
