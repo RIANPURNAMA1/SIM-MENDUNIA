@@ -927,3 +927,18 @@ sudo supervisorctl restart mendunia-reverb mendunia-worker:*
 | Session hilang | Pastikan `SESSION_DOMAIN=.mendunia.id` + `SESSION_SECURE_COOKIE=true` |
 | `storage:link` gagal | `sudo ln -s /var/www/sim-mendunia/backend/storage/app/public /var/www/sim-mendunia/backend/public/storage` |
 
+  GNU nano 7.2                          .env
+# ------------------------------------------------------------------
+# PRODUKSI (dikomentari sementara - pakai konfigurasi lokal dulu)
+# Aktifkan saat deploy: hapus tanda # di depan baris di bawah, lalu
+# build ulang frontend.
+# ------------------------------------------------------------------
+# VITE_API_URL=https://sim.mendunia.id/api
+# VITE_APP_URL=https://sim.mendunia.id
+# VITE_MIRAIGO_URL=https://miraigo.mendunia.id/dashboard
+
+# VITE_MIRAIGO_URL=https://miraigo.mendunia.id/dashboard
+VITE_API_URL=https://api.sim.mendunia.id/api
+VITE_APP_URL=https://api.sim.mendunia.id
+
+

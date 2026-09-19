@@ -54,6 +54,8 @@ interface TaskItem {
   due_date: string | null
   max_score: number | null
   submissions_count?: number
+  lesson_id?: number | null
+  lesson?: { id: number; title: string; sort: number } | null
   pakets?: {
     id: number
     title: string
@@ -240,7 +242,7 @@ export default function GuruLessonDetail() {
     setRecapDescription(r?.description || '')
     setRecapFile(null)
   })
-  const loadTasks = (courseId: number) => assignmentApi.list(courseId).then((t: any) => setTasks(t.data.assignments || [])).catch(() => setTasks([]))
+  const loadTasks = (courseId: number, lessonId?: number | null) => assignmentApi.list(courseId, lessonId).then((t: any) => setTasks(t.data.assignments || [])).catch(() => setTasks([]))
 
   const openBankPicker = () => {
     setBankPickedIds([])
@@ -513,7 +515,7 @@ export default function GuruLessonDetail() {
       const l = res.data.lesson
       setLesson(l)
       loadRekapNilai(l.id)
-      return loadTasks(l.course_id)
+      return loadTasks(l.course_id, l.id)
     }).catch(() => {
       Swal.fire({ icon: 'error', title: 'Gagal memuat pertemuan' })
       navigate('/guru-lms')
@@ -602,6 +604,7 @@ export default function GuruLessonDetail() {
     try {
       const fd = new FormData()
       fd.append('course_id', String(lesson.course_id))
+      fd.append('lesson_id', String(lesson.id))
       fd.append('title', taskForm.title)
       if (taskForm.description) fd.append('description', taskForm.description)
       if (taskForm.dueDate) fd.append('due_date', taskForm.dueDate)
@@ -614,7 +617,7 @@ export default function GuruLessonDetail() {
       setTaskPakets([])
       setShowTaskPaketPicker(false)
       setShowTaskModal(false)
-      await loadTasks(lesson.course_id)
+      await loadTasks(lesson.course_id, lesson.id)
       Swal.fire({ icon: 'success', title: 'Tugas ditambahkan', timer: 1200, showConfirmButton: false })
     } catch {
       Swal.fire({ icon: 'error', title: 'Gagal menambah tugas' })
@@ -636,7 +639,7 @@ export default function GuruLessonDetail() {
       if (!r.isConfirmed || !lesson) return
       try {
         await assignmentApi.delete(t.id)
-        await loadTasks(lesson.course_id)
+        await loadTasks(lesson.course_id, lesson.id)
       } catch {
         Swal.fire({ icon: 'error', title: 'Gagal menghapus tugas' })
       }
@@ -1014,7 +1017,7 @@ export default function GuruLessonDetail() {
           </div>
           <div className="p-5">
             {tasks.length === 0 ? (
-              <p className="text-xs text-[#C5C8D4] text-center py-4">Belum ada tugas untuk kursus ini</p>
+              <p className="text-xs text-[#C5C8D4] text-center py-4">Belum ada tugas untuk pertemuan ini</p>
             ) : (
               <div className="space-y-2.5">
                 {tasks.map(t => (

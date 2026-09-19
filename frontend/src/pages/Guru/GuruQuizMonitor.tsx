@@ -82,6 +82,50 @@ const fmtDur = (sec: number) => {
 
 const fmtClock = (sec: number) => `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`
 
+// Foto kamera yang menunggu sampai frame baru benar-benar termuat sebelum
+// ditampilkan, jadi tidak ada flash hitam / patah saat berganti snapshot.
+function CamImage({ src }: { src: string | null }) {
+  const shownRef = useRef<string | null>(null)
+  const [shown, setShown] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!src) {
+      shownRef.current = null
+      setShown(null)
+      return
+    }
+    if (shownRef.current === src) return
+    const img = new Image()
+    img.onload = () => {
+      shownRef.current = src
+      setShown(src)
+    }
+    img.src = src
+  }, [src])
+
+  const pending = !!src && shownRef.current !== src
+
+  if (!shown) {
+    return (
+      <div className="flex h-full w-full items-center justify-center gap-1.5">
+        <CameraOff size={20} className="text-slate-600" />
+        <p className="text-[9px] font-medium text-slate-600">Belum ada foto</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="relative h-full w-full">
+      <img src={shown} alt="Webcam" className="h-full w-full object-cover" />
+      {pending && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#0E6187] border-t-transparent" />
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function GuruQuizMonitor() {
   const { paketId } = useParams()
   const navigate = useNavigate()
@@ -318,16 +362,9 @@ export default function GuruQuizMonitor() {
                 <button key={a.attempt_id} onClick={() => openDetail(a.attempt_id)}
                   className="text-left rounded-2xl border border-white/10 bg-[#16181d] overflow-hidden hover:border-[#0E6187]/60 transition-colors">
                   {/* Webcam */}
-                  <div className="relative aspect-video bg-black">
-                    {a.webcam_photo ? (
-                      <img src={lastSync ? `${a.webcam_photo}?v=${lastSync}` : a.webcam_photo} alt="Webcam" className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full flex-col items-center justify-center gap-1.5">
-                        <CameraOff size={20} className="text-slate-600" />
-                        <p className="text-[9px] font-medium text-slate-600">Belum ada foto</p>
-                      </div>
-                    )}
-                    <span className={`absolute top-2 left-2 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-bold ${a.status === 'in_progress' ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'}`}>
+                  <div className="relative aspect-video bg-black overflow-hidden">
+                    <CamImage src={a.webcam_photo || null} />
+                    <span className={`absolute top-2 left-2 z-20 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-bold ${a.status === 'in_progress' ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'}`}>
                       <span className={`h-1 w-1 rounded-full ${a.status === 'in_progress' ? 'bg-white animate-pulse' : 'bg-white'}`} />
                       {a.status === 'in_progress' ? 'MENGAWASI' : 'SELESAI'}
                     </span>

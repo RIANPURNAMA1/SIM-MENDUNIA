@@ -10,6 +10,7 @@ class LmsAssignment extends Model
 
     protected $fillable = [
         'course_id',
+        'lesson_id',
         'title',
         'description',
         'file_path',
@@ -26,6 +27,11 @@ class LmsAssignment extends Model
     public function course()
     {
         return $this->belongsTo(Course::class, 'course_id');
+    }
+
+    public function lesson()
+    {
+        return $this->belongsTo(Lesson::class, 'lesson_id');
     }
 
     public function submissions()

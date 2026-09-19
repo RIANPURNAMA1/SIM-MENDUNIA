@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
-import { assignmentApi, APP_URL } from '../../services/api'
+import { assignmentApi, guruLmsApi, APP_URL } from '../../services/api'
 import Swal from 'sweetalert2'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
 
@@ -26,6 +26,8 @@ interface Siswa {
 interface Assignment {
   id: number
   course_id: number
+  lesson_id?: number | null
+  lesson?: { id: number; title: string; sort: number } | null
   title: string
   description: string | null
   file_path: string | null
@@ -35,6 +37,12 @@ interface Assignment {
   status: string
   submissions_count: number
   created_at: string
+}
+
+interface Lesson {
+  id: number
+  title: string
+  sort: number
 }
 
 interface Submission {
@@ -58,6 +66,7 @@ export default function GuruLMSAssignment() {
   const [course, setCourse] = useState<Course | null>(null)
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [siswaList, setSiswaList] = useState<Siswa[]>([])
+  const [lessons, setLessons] = useState<Lesson[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null)
@@ -71,6 +80,7 @@ export default function GuruLMSAssignment() {
   const [formDueDate, setFormDueDate] = useState('')
   const [formMaxScore, setFormMaxScore] = useState('')
   const [formFile, setFormFile] = useState<File | null>(null)
+  const [formLessonId, setFormLessonId] = useState('')
   const [saving, setSaving] = useState(false)
 
   // Grade state
@@ -93,6 +103,13 @@ export default function GuruLMSAssignment() {
     loadAssignments()
   }, [courseId])
 
+  useEffect(() => {
+    if (!courseId) return
+    guruLmsApi.lessons(Number(courseId)).then((res: any) => {
+      setLessons(res.data.lessons || [])
+    }).catch(() => setLessons([]))
+  }, [courseId])
+
   const openCreate = () => {
     setEditingAssignment(null)
     setFormTitle('')
@@ -100,6 +117,7 @@ export default function GuruLMSAssignment() {
     setFormDueDate('')
     setFormMaxScore('')
     setFormFile(null)
+    setFormLessonId('')
     setShowForm(true)
   }
 
@@ -110,6 +128,7 @@ export default function GuruLMSAssignment() {
     setFormDueDate(a.due_date || '')
     setFormMaxScore(a.max_score ? String(a.max_score) : '')
     setFormFile(null)
+    setFormLessonId(a.lesson_id ? String(a.lesson_id) : '')
     setShowForm(true)
   }
 
@@ -123,6 +142,7 @@ export default function GuruLMSAssignment() {
       if (formDesc) fd.append('description', formDesc)
       if (formDueDate) fd.append('due_date', formDueDate)
       if (formMaxScore) fd.append('max_score', formMaxScore)
+      if (formLessonId) fd.append('lesson_id', formLessonId)
       if (formFile) fd.append('file', formFile)
 
       if (editingAssignment) {
@@ -403,6 +423,26 @@ export default function GuruLMSAssignment() {
             </div>
           </div>
 
+          {/* Tempatkan di Pertemuan */}
+          <div className="bg-white rounded-2xl border border-[#E5E7EF] p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <ClipboardList size={14} className="text-[#0069b0]" />
+              <label className="text-[11px] font-bold text-[#4B5063]">Tempatkan di Pertemuan</label>
+            </div>
+            <select
+              value={formLessonId}
+              onChange={e => setFormLessonId(e.target.value)}
+              className={`w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 transition-all ${formLessonId ? 'text-[#14182B]' : 'text-[#8B90A0]'}`}>
+              <option value="">Seluruh Kursus (tanpa pertemuan)</option>
+              {lessons.map(l => (
+                <option key={l.id} value={l.id}>Pertemuan {l.sort} · {l.title}</option>
+              ))}
+            </select>
+            <p className="text-[10px] text-[#8B90A0] mt-1.5 font-medium">
+              Pilih pertemuan agar tugas hanya tampil di pertemuan tersebut.
+            </p>
+          </div>
+
           {/* File Upload Dropzone */}
           <div className="bg-white rounded-2xl border border-[#E5E7EF] p-5">
             <div className="flex items-center gap-2 mb-3">
@@ -535,6 +575,13 @@ export default function GuruLMSAssignment() {
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-bold text-[#14182B] truncate">{a.title}</h3>
                   <div className="flex items-center gap-3 mt-1">
+                    {a.lesson ? (
+                      <span className="text-[10px] font-semibold text-[#0069b0] bg-[#0069b0]/[0.06] px-2 py-0.5 rounded-full">
+                        Pertemuan {a.lesson.sort}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-semibold text-[#8B90A0] bg-slate-100 px-2 py-0.5 rounded-full">Seluruh Kursus</span>
+                    )}
                     {a.max_score && <span className="text-[10px] font-semibold text-[#0069b0]">Skor: {a.max_score}</span>}
                     {a.submissions_count > 0 && (
                       <span className="text-[10px] font-semibold text-[#8B90A0]">{a.submissions_count} submission</span>
