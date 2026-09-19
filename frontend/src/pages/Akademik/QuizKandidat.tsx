@@ -60,6 +60,8 @@ interface PaketDetail {
   max_warnings: number
   has_prerequisite_course: boolean
   quiz_template?: string
+  camera_enabled?: boolean
+  block_exit?: boolean
 }
 
 interface LessonPayload {
@@ -362,6 +364,15 @@ function ReviewModal({ open, loading, error, data, attemptLabel, onClose }: {
   )
 }
 
+const CELEBRATION_HTML = `
+    <div style="text-align:center">
+      <img src="/celebrate.svg" alt="Hore!" style="width:160px;margin:0 auto 12px;display:block;filter:drop-shadow(0 4px 12px rgba(255,165,0,.25))" />
+      <p style="font-size:22px;font-weight:800;color:#1a1a2e;margin:0 0 6px">Hore! Kamu Hebat!</p>
+      <p style="font-size:13px;color:#6b7280;margin:0 0 4px">Kuis berhasil dikumpulkan. Semangat terus ya!</p>
+      <p style="font-size:12px;color:#9ca3af;margin:0">Nilai dan pembahasan bisa dilihat di halaman berikutnya.</p>
+    </div>
+  `
+
 export default function QuizKandidat() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -429,6 +440,27 @@ export default function QuizKandidat() {
   const stopStream = useCallback(() => {
     streamRef.current?.getTracks().forEach(t => t.stop())
     streamRef.current = null
+  }, [])
+
+  // ── Celebration sound (Web Audio API – no external file) ──
+  const playTaDa = useCallback(() => {
+    try {
+      const ctx = new AudioContext()
+      const notes = [523.25, 659.25, 783.99, 1046.5]
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+        osc.type = 'sine'
+        osc.frequency.value = freq
+        gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.14)
+        gain.gain.linearRampToValueAtTime(0.28, ctx.currentTime + i * 0.14 + 0.04)
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.14 + 0.48)
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+        osc.start(ctx.currentTime + i * 0.14)
+        osc.stop(ctx.currentTime + i * 0.14 + 0.5)
+      })
+    } catch {}
   }, [])
 
   useEffect(() => {
@@ -731,8 +763,38 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
       .map(q => quizApi.answer(attemptRef.current!, { question_id: q.id, selected_index: null, answer_text: (essayDrafts[q.id] ?? '').trim() || null }))
     Promise.allSettled(essayOrders).finally(() => {
       quizApi.submit(attemptRef.current!).then(res => {
-        setResult(res.data.attempt)
-        setView('result')
+        if (reason === 'manual') {
+          playTaDa()
+          Swal.fire({
+            html: CELEBRATION_HTML,
+            icon: undefined,
+            showConfirmButton: true,
+            confirmButtonColor: '#0E6187',
+            confirmButtonText: 'Lihat Hasil',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            customClass: { popup: 'celebrate-popup' },
+            didOpen: (popup) => {
+              const img = popup.querySelector('img')
+              if (img) {
+                img.animate(
+                  [
+                    { transform: 'scale(0.3) rotate(-15deg)', opacity: 0 },
+                    { transform: 'scale(1.1) rotate(4deg)', opacity: 1 },
+                    { transform: 'scale(1) rotate(0deg)', opacity: 1 },
+                  ],
+                  { duration: 600, easing: 'cubic-bezier(.34,1.56,.64,1)' }
+                )
+              }
+            },
+          }).then(() => {
+            setResult(res.data.attempt)
+            setView('result')
+          })
+        } else {
+          setResult(res.data.attempt)
+          setView('result')
+        }
       }).catch(() => {
         Swal.fire({ icon: 'error', title: 'Gagal mengumpulkan quiz', text: reason })
         setSubmitting(false)
@@ -1479,7 +1541,9 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
 
   if (view === 'rules' && detail) {
     const { paket, attempts } = detail
-    const isProctoring = true
+    const cameraEnabled = paket.camera_enabled !== false
+    const blockExit = paket.block_exit !== false
+    const isProctoring = cameraEnabled || blockExit
     const used = attempts.length
     const inProgress = attempts.find(a => a.status === 'in_progress')
     const remainingAttempts = paket.max_attempts - used
@@ -1491,7 +1555,9 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
         title: isResume ? 'Lanjutkan pengerjaan?' : 'Siap mengerjakan quiz?',
         text: isResume
           ? 'Anda memiliki percobaan yang sedang berjalan. Quiz akan dilanjutkan dari posisi terakhir.'
-          : 'Pastikan koneksi internet stabil dan wajah terlihat jelas di depan kamera selama pengerjaan.',
+          : cameraEnabled
+            ? 'Pastikan koneksi internet stabil dan wajah terlihat jelas di depan kamera selama pengerjaan.'
+            : 'Pastikan koneksi internet stabil selama pengerjaan.',
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#0E6187',
@@ -1507,7 +1573,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
           resumeAttempt(inProgress.attempt_id)
           return
         }
-        if (isProctoring) {
+        if (cameraEnabled) {
           setView('rules')
           setCameraModal(true)
           requestCamera()
@@ -1562,18 +1628,29 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
                   </div>
                   <div>
                     <p className="text-[12px] font-bold text-slate-700">Max {paket.max_warnings} peringatan</p>
-                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">Meninggalkan halaman quiz dapat memicu peringatan. Peringatan terakhir mengumpulkan quiz otomatis.</p>
+                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">Pelanggaran aturan memicu peringatan. Peringatan terakhir mengumpulkan quiz otomatis.</p>
                   </div>
                 </div>
               )}
-              {isProctoring && (
+              {cameraEnabled && (
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-md bg-[#0E6187]/[0.06] flex items-center justify-center shrink-0">
                     <Camera size={15} className="text-[#0E6187]" />
                   </div>
                   <div>
                     <p className="text-[12px] font-bold text-slate-700">Kamera pengawas</p>
-                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">Kamera wajib aktif selama pengerjaan sebagai bentuk kejujuran.</p>
+                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">Kamera wajib aktif selama pengerjaan. Foto diambil berkala sebagai bentuk kejujuran.</p>
+                  </div>
+                </div>
+              )}
+              {blockExit && (
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-md bg-[#0E6187]/[0.06] flex items-center justify-center shrink-0">
+                    <Lock size={15} className="text-[#0E6187]" />
+                  </div>
+                  <div>
+                    <p className="text-[12px] font-bold text-slate-700">Kunci saat keluar / tutup aplikasi</p>
+                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">Keluar atau menutup aplikasi saat quiz berjalan memicu peringatan.</p>
                   </div>
                 </div>
               )}
@@ -1584,7 +1661,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
                   </div>
                   <div>
                     <p className="text-[12px] font-bold text-slate-700">Template Basic</p>
-                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">Kamera pengawas & keamanan aktif selama pengerjaan quiz.</p>
+                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">Tanpa kamera pengawas & tanpa kunci keluar aplikasi selama pengerjaan quiz.</p>
                   </div>
                 </div>
               )}

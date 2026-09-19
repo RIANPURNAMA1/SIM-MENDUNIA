@@ -41,6 +41,8 @@ interface Paket {
   best_score: number
   cover_image: string | null
   cover_url: string | null
+  camera_enabled: boolean
+  block_exit: boolean
   batch?: { id: number; nama_batch: string } | null
   course?: { id: number; title: string } | null
 }
@@ -136,6 +138,7 @@ const emptyPaketForm = {
   title: '', description: '', course_id: '', batch_id: '', level: '', category: '',
   time_limit_minutes: '30', max_attempts: '3', max_warnings: '3',
   passing_score: '0', shuffle_questions: true, quiz_template: 'basic', status: 'nonaktif',
+  camera_enabled: true, block_exit: true,
   cover_image: '',
 }
 
@@ -251,6 +254,8 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
       shuffle_questions: p.shuffle_questions,
       quiz_template: p.quiz_template || 'basic',
       status: p.status,
+      camera_enabled: p.camera_enabled ?? true,
+      block_exit: p.block_exit ?? true,
       cover_image: p.cover_image || '',
     })
     setCoverPreview(p.cover_url || '')
@@ -298,6 +303,8 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
         passing_score: Number(paketForm.passing_score) || 0,
         shuffle_questions: paketForm.shuffle_questions,
         quiz_template: paketForm.quiz_template,
+        camera_enabled: paketForm.camera_enabled,
+        block_exit: paketForm.block_exit,
         status: paketForm.status,
       }
       if (editingPaket) {
@@ -1234,6 +1241,28 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
                     ? 'JFT UI: tampilan quiz lengkap dengan pengawasan kamera. Sistem mengambil foto berkala & memberi peringatan.'
                     : 'Basic: tampilan quiz sederhana dengan kamera pengawas & keamanan aktif — foto berkala & peringatan otomatis.'}
                 </p>
+              </div>
+
+              <div className="flex items-center justify-between bg-[#F4F5F8] rounded-xl px-4 py-3">
+                <div>
+                  <p className="text-[11px] font-bold text-[#4B5063]">Keamanan kamera</p>
+                  <p className="text-[10px] text-[#8B90A0] font-medium">Foto berkala & deteksi wajah selama pengerjaan</p>
+                </div>
+                <button onClick={() => setPaketForm({ ...paketForm, camera_enabled: !paketForm.camera_enabled })}
+                  className={`relative w-10 h-[22px] rounded-full transition-colors ${paketForm.camera_enabled ? 'bg-[#0069b0]' : 'bg-gray-300'}`}>
+                  <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${paketForm.camera_enabled ? 'left-[20px]' : 'left-[2px]'}`} />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between bg-[#F4F5F8] rounded-xl px-4 py-3">
+                <div>
+                  <p className="text-[11px] font-bold text-[#4B5063]">Kunci saat keluar / tutup aplikasi</p>
+                  <p className="text-[10px] text-[#8B90A0] font-medium">Keluar / menutup aplikasi saat quiz berjalan memicu peringatan</p>
+                </div>
+                <button onClick={() => setPaketForm({ ...paketForm, block_exit: !paketForm.block_exit })}
+                  className={`relative w-10 h-[22px] rounded-full transition-colors ${paketForm.block_exit ? 'bg-[#0069b0]' : 'bg-gray-300'}`}>
+                  <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${paketForm.block_exit ? 'left-[20px]' : 'left-[2px]'}`} />
+                </button>
               </div>
 
               <div className="flex items-center justify-between bg-[#F4F5F8] rounded-xl px-4 py-3">

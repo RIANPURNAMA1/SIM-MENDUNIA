@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFD700"/>
+      <stop offset="100%" style="stop-color:#FFA500"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#4CAF50"/>
+      <stop offset="100%" style="stop-color:#2E7D32"/>
+    </linearGradient>
+  </defs>
+  <!-- background circle -->
+  <circle cx="256" cy="256" r="240" fill="#FFF8E1" stroke="#FFD700" stroke-width="6"/>
+  <!-- confetti pieces -->
+  <rect x="80" y="60" width="24" height="12" rx="3" fill="#FF6B6B" transform="rotate(-30 92 66)"/>
+  <rect x="380" y="50" width="20" height="10" rx="3" fill="#4ECDC4" transform="rotate(25 390 55)"/>
+  <rect x="60" y="180" width="18" height="9" rx="3" fill="#45B7D1" transform="rotate(-15 69 184)"/>
+  <rect x="420" y="160" width="22" height="11" rx="3" fill="#96CEB4" transform="rotate(40 431 165)"/>
+  <rect x="100" y="400" width="20" height="10" rx="3" fill="#FFEAA7" transform="rotate(20 110 405)"/>
+  <rect x="390" y="410" width="18" height="9" rx="3" fill="#DDA0DD" transform="rotate(-35 399 414)"/>
+  <!-- stars -->
+  <polygon points="100,100 108,124 132,124 112,140 120,164 100,148 80,164 88,140 68,124 92,124" fill="#FFD700" opacity="0.9"/>
+  <polygon points="400,90 406,108 424,108 410,120 415,138 400,126 385,138 390,120 376,108 394,108" fill="#FF6B6B" opacity="0.8"/>
+  <polygon points="120,380 126,398 144,398 130,410 135,428 120,416 105,428 110,410 96,398 114,398" fill="#4ECDC4" opacity="0.85"/>
+  <polygon points="390,380 396,398 414,398 400,410 405,428 390,416 375,428 380,410 366,398 384,398" fill="#FFD700" opacity="0.9"/>
+  <!-- confetti dots -->
+  <circle cx="160" cy="80" r="8" fill="#FF6B6B" opacity="0.7"/>
+  <circle cx="350" cy="70" r="6" fill="#4ECDC4" opacity="0.7"/>
+  <circle cx="140" cy="420" r="7" fill="#45B7D1" opacity="0.7"/>
+  <circle cx="370" cy="430" r="9" fill="#96CEB4" opacity="0.7"/>
+  <circle cx="70" cy="280" r="6" fill="#FFEAA7" opacity="0.6"/>
+  <circle cx="440" cy="260" r="7" fill="#DDA0DD" opacity="0.6"/>
+  <!-- trophy body -->
+  <path d="M200 200 Q200 160 220 140 L292 140 Q312 160 312 200 L300 300 Q296 320 256 330 Q216 320 212 300 Z" fill="url(#g1)" stroke="#E8A000" stroke-width="3"/>
+  <!-- trophy handles -->
+  <path d="M200 210 Q160 210 155 240 Q150 270 190 275" fill="none" stroke="#E8A000" stroke-width="8" stroke-linecap="round"/>
+  <path d="M312 210 Q352 210 357 240 Q362 270 322 275" fill="none" stroke="#E8A000" stroke-width="8" stroke-linecap="round"/>
+  <!-- trophy stem -->
+  <rect x="244" y="330" width="24" height="30" rx="4" fill="#E8A000"/>
+  <!-- trophy base -->
+  <rect x="215" y="358" width="82" height="16" rx="6" fill="#E8A000"/>
+  <!-- trophy shine -->
+  <path d="M225 170 Q230 155 240 155 L240 260 Q230 255 225 240 Z" fill="white" opacity="0.35"/>
+  <!-- #1 text on trophy -->
+  <text x="256" y="268" text-anchor="middle" font-family="Arial,sans-serif" font-size="48" font-weight="bold" fill="#8B6914">#1</text>
+  <!-- ribbon left -->
+  <path d="M220 370 L195 430 L225 410 L256 435 L256 374" fill="#FF6B6B" opacity="0.9"/>
+  <!-- ribbon right -->
+  <path d="M292 370 L317 430 L287 410 L256 435 L256 374" fill="#4ECDC4" opacity="0.9"/>
+  <!-- smiley face -->
+  <circle cx="256" cy="210" r="32" fill="#FFF8E1" opacity="0.5"/>
+  <circle cx="244" cy="204" r="5" fill="#8B6914"/>
+  <circle cx="268" cy="204" r="5" fill="#8B6914"/>
+  <path d="M240 218 Q256 232 272 218" fill="none" stroke="#8B6914" stroke-width="3" stroke-linecap="round"/>
+</svg>

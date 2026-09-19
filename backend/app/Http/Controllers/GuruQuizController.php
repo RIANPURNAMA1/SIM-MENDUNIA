@@ -220,11 +220,15 @@ class GuruQuizController extends Controller
             'passing_score' => 'nullable|integer|min:0|max:100',
             'shuffle_questions' => 'nullable|boolean',
             'quiz_template' => 'nullable|in:basic,jft',
+            'camera_enabled' => 'nullable|boolean',
+            'block_exit' => 'nullable|boolean',
             'status' => 'nullable|in:aktif,nonaktif',
         ]);
 
         $data['user_id'] = $user->id;
         $data['shuffle_questions'] = $request->boolean('shuffle_questions');
+        $data['camera_enabled'] = $request->boolean('camera_enabled', true);
+        $data['block_exit'] = $request->boolean('block_exit', true);
         $data['passing_score'] = (int) ($data['passing_score'] ?? 0);
         $data['cover_image'] = $data['cover_image'] ?? null;
         $data['template'] = $data['quiz_template'] ?? 'basic';
@@ -258,11 +262,19 @@ class GuruQuizController extends Controller
             'passing_score' => 'nullable|integer|min:0|max:100',
             'shuffle_questions' => 'nullable|boolean',
             'quiz_template' => 'nullable|in:basic,jft',
+            'camera_enabled' => 'nullable|boolean',
+            'block_exit' => 'nullable|boolean',
             'status' => 'nullable|in:aktif,nonaktif',
         ]);
 
         if ($request->has('shuffle_questions')) {
             $data['shuffle_questions'] = $request->boolean('shuffle_questions');
+        }
+        if ($request->has('camera_enabled')) {
+            $data['camera_enabled'] = $request->boolean('camera_enabled');
+        }
+        if ($request->has('block_exit')) {
+            $data['block_exit'] = $request->boolean('block_exit');
         }
         if (array_key_exists('passing_score', $data)) {
             $data['passing_score'] = (int) ($data['passing_score'] ?? 0);
