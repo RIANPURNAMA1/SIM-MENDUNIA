@@ -366,6 +366,11 @@ class GuruQuizController extends Controller
         $paket = QuizPaket::findOrFail($id);
         $paket->status = $paket->status === 'aktif' ? 'nonaktif' : 'aktif';
         $paket->save();
+        // Satu sumber status: sinkronkan pivot semua pertemuan yang menautkan paket ini.
+        $ids = $paket->linkLessons()->allRelatedIds();
+        if ($ids->isNotEmpty()) {
+            $paket->linkLessons()->syncWithoutDetaching($ids->mapWithKeys(fn ($id) => [(int) $id => ['status' => $paket->status]])->all());
+        }
 
         return response()->json(['paket' => $paket->fresh(), 'status' => $paket->status]);
     }

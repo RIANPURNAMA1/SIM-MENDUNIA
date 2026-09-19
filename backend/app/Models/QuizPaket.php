@@ -107,4 +107,9 @@ class QuizPaket extends Model
     {
         return $this->hasMany(QuizAttempt::class);
     }
+
+    public function linkLessons()
+    {
+        return $this->belongsToMany(Lesson::class, 'lms_lesson_quiz_pakets', 'quiz_paket_id', 'lesson_id')->withPivot('status');
+    }
 }
