@@ -201,6 +201,38 @@ export default function DataCourse() {
   const location = useLocation()
   const navigate = useNavigate()
   const isAdminCabang = location.pathname.startsWith('/admin-cabang')
+  const base = isAdminCabang ? '/admin-cabang/lms' : '/lms'
+
+  function parseRoute(path: string) {
+    const rest = path.startsWith('/admin-cabang/lms') ? path.slice('/admin-cabang/lms'.length) : path.slice('/lms'.length)
+    const parts = rest.split('/').filter(Boolean)
+    const r: { view: View; source: 'course' | 'bank'; courseId?: number; paketId?: number } = { view: 'list', source: 'course' }
+    if (parts[0] === 'bank-paket-soal') r.view = 'bank'
+    else if (parts[0] === 'bank-materi') r.view = 'materi-bank'
+    else if (parts[0] === 'course' && parts[1]) {
+      r.courseId = Number(parts[1])
+      if (parts[2] === 'soal' && parts[3]) { r.view = 'quiz-questions'; r.paketId = Number(parts[3]) }
+      else if (parts[2] === 'materi' && parts[3]) { r.view = 'quiz-materi'; r.paketId = Number(parts[3]) }
+      else if (parts[2] === 'hasil' && parts[3]) { r.view = 'quiz-results'; r.paketId = Number(parts[3]) }
+      else r.view = 'quiz'
+    } else if (parts[0] === 'paket' && parts[1]) {
+      r.paketId = Number(parts[1])
+      if (parts[2] === 'materi') { r.view = 'quiz-materi'; r.source = 'bank' }
+      else if (parts[2] === 'hasil') { r.view = 'quiz-results'; r.source = 'bank' }
+      else { r.view = 'quiz-questions'; r.source = 'bank' }
+    }
+    return r
+  }
+
+  function routeTo(viewName: View, source: 'course' | 'bank', courseId?: number, paketId?: number): string {
+    if (viewName === 'bank') return `${base}/bank-paket-soal`
+    if (viewName === 'materi-bank') return `${base}/bank-materi`
+    if (viewName === 'quiz' && courseId) return `${base}/course/${courseId}`
+    if (viewName === 'quiz-questions') return source === 'bank' && paketId ? `${base}/paket/${paketId}/soal` : `${base}/course/${courseId}/soal/${paketId}`
+    if (viewName === 'quiz-materi') return source === 'bank' && paketId ? `${base}/paket/${paketId}/materi` : `${base}/course/${courseId}/materi/${paketId}`
+    if (viewName === 'quiz-results') return source === 'bank' && paketId ? `${base}/paket/${paketId}/hasil` : `${base}/course/${courseId}/hasil/${paketId}`
+    return base
+  }
 
   const [courses, setCourses] = useState<Course[]>([])
   const [batches, setBatches] = useState<Batch[]>([])
@@ -210,7 +242,7 @@ export default function DataCourse() {
   const [filterLevel, setFilterLevel] = useState('')
   const [filterBatch, setFilterBatch] = useState('')
 
-  const [view, setView] = useState<View>(location.pathname.includes('/bank-paket-soal') ? 'bank' : 'list')
+  const [view, setView] = useState<View>(() => parseRoute(location.pathname).view)
   const [activeCourse, setActiveCourse] = useState<Course | null>(null)
 
   const [showCourseModal, setShowCourseModal] = useState(false)
@@ -489,7 +521,57 @@ export default function DataCourse() {
   const quillFormats = ['header', 'bold', 'italic', 'underline', 'strike', 'list', 'link', 'image', 'video']
 
   useEffect(() => { fetchCourses(); fetchQuizMeta(); fetchCategories() }, [])
-  useEffect(() => { if (location.pathname.includes('/bank-paket-soal')) fetchBankPakets() }, [])
+  useEffect(() => {
+    const r = parseRoute(location.pathname)
+    setView(r.view)
+    setQuizSource(r.source)
+
+    if (r.view === 'bank') fetchBankPakets()
+    if (r.view === 'materi-bank') fetchBankMateris()
+
+    if (r.view === 'quiz' && r.courseId && (!activeCourse || activeCourse.id !== r.courseId)) {
+      lmsAdminApi.courses().then(res => {
+        const list: Course[] = res.data.courses || res.data || []
+        const c = list.find((x: Course) => x.id === r.courseId)
+        if (c) {
+          setActiveCourse(c)
+          setCourseTab(c.kelas_sensei_id ? 'lessons' : 'quiz')
+          fetchCourseLessons(c.id)
+          fetchQuizPakets(c.id)
+        }
+      }).catch(() => {})
+    }
+
+    if ((r.view === 'quiz-questions' || r.view === 'quiz-results' || r.view === 'quiz-materi') && r.paketId) {
+      if (r.courseId && (!activeCourse || activeCourse.id !== r.courseId)) {
+        lmsAdminApi.courses().then(res => {
+          const list: Course[] = res.data.courses || res.data || []
+          const c = list.find((x: Course) => x.id === r.courseId)
+          if (c) setActiveCourse(c)
+        }).catch(() => {})
+      }
+      const currentId = r.view === 'quiz-materi' ? materiPaket?.id : activeQuizPaket?.id
+      if (!currentId || currentId !== r.paketId) {
+        adminQuizApi.pakets().then(res => {
+          const p = (res.data.pakets || []).find((x: QuizPaket) => x.id === r.paketId)
+          if (!p) return
+          if (r.view === 'quiz-questions') {
+            setActiveQuizPaket(p)
+            setQPage(1)
+            loadQuestionEditor(p)
+          } else if (r.view === 'quiz-results') {
+            setActiveQuizPaket(p)
+            setRLoading(true)
+            adminQuizApi.results(p.id).then(q => setParticipants(q.data.participants || [])).catch(() => setParticipants([])).finally(() => setRLoading(false))
+          } else {
+            setMateriPaket(p)
+            fetchMateriLessons(p.id)
+          }
+        }).catch(() => {})
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname])
 
   const fetchCategories = () => {
     if (isAdminCabang) { setCategories([]); return }
@@ -592,11 +674,13 @@ export default function DataCourse() {
   }
 
   const openBank = () => {
-    setView('bank')
     setQuizSource('course')
     setBankSearch('')
     setActiveQuizPaket(null)
+    setActiveCourse(null)
+    setView('bank')
     fetchBankPakets()
+    navigate(`${base}/bank-paket-soal`)
   }
 
   const openCreateBankPaket = () => {
@@ -654,6 +738,7 @@ export default function DataCourse() {
     setQuizSearch('')
     fetchCourseLessons(course.id)
     fetchQuizPakets(course.id)
+    navigate(routeTo('quiz', 'course', course.id))
   }
 
   const fetchCourseLessons = (courseId: number) => {
@@ -740,22 +825,7 @@ export default function DataCourse() {
     ]).catch(() => activeCourse && fetchCourseLessons(activeCourse.id))
   }
 
-  const openQuizQuestions = (paket: QuizPaket, source: 'course' | 'bank' = 'course', quiet = false) => {
-    setQuizSource(source)
-    setActiveQuizPaket(paket)
-    activePaketIdRef.current = paket.id
-    setView('quiz-questions')
-    if (!quiet) setQPage(1)
-    if (!quiet) {
-      setQLoading(true)
-      adminQuizApi.questions(paket.id).then(res => {
-        if (activePaketIdRef.current === paket.id) setQuestions(res.data.questions || [])
-      }).catch(() => {
-        if (activePaketIdRef.current === paket.id) setQuestions([])
-      }).finally(() => {
-        if (activePaketIdRef.current === paket.id) setQLoading(false)
-      })
-    }
+  const seedQuizSections = (paket: QuizPaket) => {
     adminQuizApi.sections(paket.id).then(async res => {
       const existing = res.data.sections || []
       if (activePaketIdRef.current !== paket.id) return
@@ -777,6 +847,31 @@ export default function DataCourse() {
     })
   }
 
+  const loadQuestionEditor = (paket: QuizPaket) => {
+    activePaketIdRef.current = paket.id
+    setQLoading(true)
+    adminQuizApi.questions(paket.id).then(res => {
+      if (activePaketIdRef.current === paket.id) setQuestions(res.data.questions || [])
+    }).catch(() => {
+      if (activePaketIdRef.current === paket.id) setQuestions([])
+    }).finally(() => {
+      if (activePaketIdRef.current === paket.id) setQLoading(false)
+    })
+    seedQuizSections(paket)
+  }
+
+  const openQuizQuestions = (paket: QuizPaket, source: 'course' | 'bank' = 'course', quiet = false) => {
+    setActiveQuizPaket(paket)
+    activePaketIdRef.current = paket.id
+    if (quiet) return
+    setQuizSource(source)
+    setQPage(1)
+    setView('quiz-questions')
+    loadQuestionEditor(paket)
+    const cid = source === 'bank' ? undefined : (activeCourse?.id ?? paket.course_id ?? undefined)
+    navigate(routeTo('quiz-questions', source, cid, paket.id))
+  }
+
   const openQuizResults = (paket: QuizPaket, source: 'course' | 'bank' = 'course') => {
     setQuizSource(source)
     setActiveQuizPaket(paket)
@@ -785,21 +880,27 @@ export default function DataCourse() {
     adminQuizApi.results(paket.id).then(res => {
       setParticipants(res.data.participants || [])
     }).catch(() => setParticipants([])).finally(() => setRLoading(false))
+    const cid = source === 'bank' ? undefined : (activeCourse?.id ?? paket.course_id ?? undefined)
+    navigate(routeTo('quiz-results', source, cid, paket.id))
   }
 
   const backToList = () => {
-    setView('list')
     setActiveCourse(null)
     setActiveQuizPaket(null)
-    if (location.pathname.includes('/bank-paket-soal')) {
-      navigate(location.pathname.replace('/bank-paket-soal', '') || '/lms')
-    }
+    setMateriPaket(null)
+    navigate(base)
   }
 
   const backToQuiz = () => {
-    setView(quizSource === 'bank' ? 'bank' : 'quiz')
-    setQuizSource('course')
+    const returnBank = quizSource === 'bank'
     setActiveQuizPaket(null)
+    setQuizSource('course')
+    if (returnBank) {
+      fetchBankPakets()
+      navigate(`${base}/bank-paket-soal`)
+    } else {
+      navigate(activeCourse ? `${base}/course/${activeCourse.id}` : base)
+    }
   }
 
   const qTotalPages = Math.max(1, Math.ceil(questions.length / qPerPage))
@@ -827,16 +928,21 @@ export default function DataCourse() {
     setActiveQuizPaket(null)
     setView('quiz-materi')
     fetchMateriLessons(paket.id)
+    const cid = source === 'bank' ? undefined : (activeCourse?.id ?? paket.course_id ?? undefined)
+    navigate(routeTo('quiz-materi', source, cid, paket.id))
   }
 
   const backFromMateri = () => {
     const returnBank = quizSource === 'bank'
     const cid = activeCourse?.id
     setMateriPaket(null)
-    setView(returnBank ? 'bank' : 'quiz')
     setQuizSource('course')
-    if (returnBank) fetchBankPakets()
-    else if (cid) fetchQuizPakets(cid)
+    if (returnBank) {
+      fetchBankPakets()
+      navigate(`${base}/bank-paket-soal`)
+    } else {
+      navigate(cid ? `${base}/course/${cid}` : base)
+    }
   }
 
   const openCreateLesson = () => {
@@ -976,10 +1082,13 @@ export default function DataCourse() {
 
   const openMateriBank = () => {
     setView('materi-bank')
+    setQuizSource('course')
+    setActiveQuizPaket(null)
     setBankMateriSearch('')
     setEditingMateri(null)
     setShowMateriModal(false)
     fetchBankMateris()
+    navigate(`${base}/bank-materi`)
   }
 
   const openCreateMateri = () => {
@@ -1405,7 +1514,7 @@ export default function DataCourse() {
           question_type: isEssay ? 'essay' : isRating ? 'rating' : 'choice',
           rating_max: isRating ? (Number(qForm.rating_max) || 9) : null,
           options: opts,
-          correct_index: isEssay ? null : isRating ? null : (Number(qForm.correct_index) || null),
+          correct_index: isEssay ? null : isRating ? null : Number(qForm.correct_index),
           keyword: isEssay ? (qForm.keyword.trim() || null) : null,
           points: Number(qForm.points) || 1,
           image_path: qForm.image_path || null,
@@ -1434,7 +1543,7 @@ export default function DataCourse() {
           question_type: isEssay ? 'essay' : isRating ? 'rating' : 'choice',
           rating_max: isRating ? (Number(qForm.rating_max) || 9) : null,
           options: opts,
-          correct_index: isEssay ? null : isRating ? null : (Number(qForm.correct_index) || null),
+          correct_index: isEssay ? null : isRating ? null : Number(qForm.correct_index),
           keyword: isEssay ? (qForm.keyword.trim() || null) : null,
           points: Number(qForm.points) || 1,
           sort: saved.sort ?? questions.length,

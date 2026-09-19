@@ -618,6 +618,86 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/admin-cabang/lms/bank-materi"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <DataCourse />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-cabang/lms/course/:courseId"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <DataCourse />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-cabang/lms/course/:courseId/soal/:paketId"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <DataCourse />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-cabang/lms/course/:courseId/materi/:paketId"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <DataCourse />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-cabang/lms/course/:courseId/hasil/:paketId"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <DataCourse />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-cabang/lms/paket/:paketId/soal"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <DataCourse />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-cabang/lms/paket/:paketId/materi"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <DataCourse />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-cabang/lms/paket/:paketId/hasil"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <DataCourse />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/admin-cabang/quiz"
         element={
           <ProtectedRoute roleAllowed="ADMIN_CABANG">
@@ -986,6 +1066,14 @@ function AppRoutes() {
                 <Route path="/raport" element={<Raport />} />
                 <Route path="/lms" element={<DataCourse />} />
                 <Route path="/lms/bank-paket-soal" element={<DataCourse />} />
+                <Route path="/lms/bank-materi" element={<DataCourse />} />
+                <Route path="/lms/course/:courseId" element={<DataCourse />} />
+                <Route path="/lms/course/:courseId/soal/:paketId" element={<DataCourse />} />
+                <Route path="/lms/course/:courseId/materi/:paketId" element={<DataCourse />} />
+                <Route path="/lms/course/:courseId/hasil/:paketId" element={<DataCourse />} />
+                <Route path="/lms/paket/:paketId/soal" element={<DataCourse />} />
+                <Route path="/lms/paket/:paketId/materi" element={<DataCourse />} />
+                <Route path="/lms/paket/:paketId/hasil" element={<DataCourse />} />
                 <Route path="/paket-soal" element={<AdminQuizPaketSoal />} />
                 <Route path="/lms/:courseId/lessons" element={<DataLesson />} />
                 <Route path="/pertemuan" element={<PertemuanAdmin />} />
