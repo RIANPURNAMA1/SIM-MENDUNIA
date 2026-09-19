@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
-  ArrowLeft, Camera, CameraOff, CheckCircle2, X, RefreshCw, Pause, Play, ShieldAlert, Activity,
+  ArrowLeft, Camera, CheckCircle2, X, RefreshCw, Pause, Play, ShieldAlert,
 } from 'lucide-react'
 import { guruQuizApi, APP_URL } from '../../services/api'
 import { getEcho, leaveChannel } from '../../services/echo'
@@ -31,6 +31,8 @@ interface MonitorAttempt {
   submitted_at: string | null
   answered_count: number
   total_count: number
+  correct_count: number
+  answers_status: string[]
   webcam_photo: string | null
   last_activity: string | null
   siswa: MonitorSiswa
@@ -69,61 +71,17 @@ interface AttemptDetail {
 const optText = (o: OptionEntry) => (typeof o === 'string' ? o : (o?.text ?? ''))
 const optAbsUrl = (o: OptionEntry) => {
   const p = typeof o === 'string' ? null : (o?.image_url || o?.image_path || null)
-  if (!p) return null
+  if (!p) return undefined
   return p.startsWith('http') ? p : `${APP_URL}/storage/${p}`
-}
-
-const fmtDur = (sec: number) => {
-  const h = Math.floor(sec / 3600)
-  const m = Math.floor((sec % 3600) / 60)
-  const s = sec % 60
-  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
 const fmtClock = (sec: number) => `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`
 
-// Foto kamera yang menunggu sampai frame baru benar-benar termuat sebelum
-// ditampilkan, jadi tidak ada flash hitam / patah saat berganti snapshot.
-function CamImage({ src }: { src: string | null }) {
-  const shownRef = useRef<string | null>(null)
-  const [shown, setShown] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!src) {
-      shownRef.current = null
-      setShown(null)
-      return
-    }
-    if (shownRef.current === src) return
-    const img = new Image()
-    img.onload = () => {
-      shownRef.current = src
-      setShown(src)
-    }
-    img.src = src
-  }, [src])
-
-  const pending = !!src && shownRef.current !== src
-
-  if (!shown) {
-    return (
-      <div className="flex h-full w-full items-center justify-center gap-1.5">
-        <CameraOff size={20} className="text-slate-600" />
-        <p className="text-[9px] font-medium text-slate-600">Belum ada foto</p>
-      </div>
-    )
-  }
-
-  return (
-    <div className="relative h-full w-full">
-      <img src={shown} alt="Webcam" className="h-full w-full object-cover" />
-      {pending && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#0E6187] border-t-transparent" />
-        </div>
-      )}
-    </div>
-  )
+const STATUS_UI: Record<string, { cls: string; label: string }> = {
+  benar: { cls: 'bg-emerald-500 border-emerald-400 text-white', label: 'Dijawab benar' },
+  salah: { cls: 'bg-red-500 border-red-400 text-white', label: 'Dijawab salah' },
+  pending: { cls: 'bg-amber-500 border-amber-400 text-white', label: 'Menunggu dinilai' },
+  kosong: { cls: 'bg-white/[0.06] border-white/10 text-slate-500', label: 'Belum dijawab' },
 }
 
 export default function GuruQuizMonitor() {
@@ -345,77 +303,112 @@ export default function GuruQuizMonitor() {
       <div className="mx-auto max-w-7xl px-4 py-4">
         {attempts.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.02] p-12 text-center">
-            <CameraOff size={28} className="text-slate-500 mx-auto mb-3" />
+            <CheckCircle2 size={28} className="text-slate-500 mx-auto mb-3" />
             <p className="text-sm font-bold text-slate-200">Belum ada kandidat mengerjakan</p>
             <p className="text-xs text-slate-500 font-medium mt-1">Kandidat yang mulai mengerjakan quiz ini akan muncul di sini secara otomatis.</p>
           </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-            {attempts.map(a => {
-              const remaining = remOf(a)
-              const lowTime = remaining !== null && remaining <= 60
-              const pct = a.total_count > 0 ? Math.round((a.answered_count / a.total_count) * 100) : 0
-              const stale = a.status === 'in_progress' && a.last_activity
-                ? (now - Date.parse(a.last_activity)) > 90 * 1000
-                : false
-              return (
-                <button key={a.attempt_id} onClick={() => openDetail(a.attempt_id)}
-                  className="text-left rounded-2xl border border-white/10 bg-[#16181d] overflow-hidden hover:border-[#0E6187]/60 transition-colors">
-                  {/* Webcam */}
-                  <div className="relative aspect-video bg-black overflow-hidden">
-                    <CamImage src={a.webcam_photo || null} />
-                    <span className={`absolute top-2 left-2 z-20 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-bold ${a.status === 'in_progress' ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'}`}>
-                      <span className={`h-1 w-1 rounded-full ${a.status === 'in_progress' ? 'bg-white animate-pulse' : 'bg-white'}`} />
-                      {a.status === 'in_progress' ? 'MENGAWASI' : 'SELESAI'}
-                    </span>
-                    {a.auto_submitted && (
-                      <span className="absolute top-2 right-2 rounded bg-orange-500 px-1.5 py-0.5 text-[9px] font-bold text-white">AUTO</span>
-                    )}
-                    {stale && (
-                      <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded bg-black/70 px-1.5 py-0.5 text-[9px] font-bold text-amber-400">
-                        <Activity size={9} /> Tidak aktif
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Info */}
-                  <div className="p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-[12px] font-bold text-white truncate">{a.siswa.nama}</p>
-                      <span className="shrink-0 text-[10px] font-bold text-slate-400 bg-white/5 rounded px-1.5 py-0.5">#{a.attempt_number}</span>
-                    </div>
-                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">
-                      {[a.siswa.batch && `Batch ${a.siswa.batch}`, a.siswa.level !== null && a.siswa.level !== undefined && `Level ${a.siswa.level}`].filter(Boolean).join(' · ') || '-'}
-                    </p>
-
-                    {a.status === 'in_progress' ? (
-                      <>
-                        <div className="mt-2.5 flex items-center justify-between text-[10px] font-bold">
-                          <span className="text-[#7ec3e4]">{a.answered_count}/{a.total_count} soal</span>
-                          <span className={lowTime ? 'text-red-400' : 'text-slate-300'}>{fmtClock(remaining ?? 0)} tersisa</span>
-                        </div>
-                        <div className="mt-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
-                          <div className={`h-full rounded-full transition-all duration-500 ${lowTime ? 'bg-red-500' : 'bg-[#0E6187]'}`} style={{ width: `${pct}%` }} />
-                        </div>
-                        <div className="mt-2 flex items-center justify-between text-[9.5px] font-semibold">
-                          <span className={`inline-flex items-center gap-1 ${a.warnings >= a.max_warnings ? 'text-red-400' : a.warnings > 0 ? 'text-amber-400' : 'text-slate-500'}`}>
-                            <ShieldAlert size={10} /> {a.warnings}/{a.max_warnings} peringatan
+          <div className="rounded-2xl border border-white/10 bg-[#16181d] overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-white/10 bg-white/[0.04] text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    <th className="px-3 py-2.5 whitespace-nowrap">No</th>
+                    <th className="px-3 py-2.5 whitespace-nowrap">Kandidat</th>
+                    <th className="px-3 py-2.5 whitespace-nowrap">Jawaban per Soal</th>
+                    <th className="px-3 py-2.5 whitespace-nowrap text-center">Benar</th>
+                    <th className="px-3 py-2.5 whitespace-nowrap text-center">Peringatan</th>
+                    <th className="px-3 py-2.5 whitespace-nowrap">Waktu</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {attempts.map(a => {
+                    const remaining = remOf(a)
+                    const lowTime = remaining !== null && remaining <= 60
+                    const stale = a.status === 'in_progress' && a.last_activity
+                      ? (now - Date.parse(a.last_activity)) > 90 * 1000
+                      : false
+                    const statuses = Array.from({ length: a.total_count }, (_, i) => a.answers_status[i] || 'kosong')
+                    return (
+                      <tr key={a.attempt_id} onClick={() => openDetail(a.attempt_id)}
+                        className="border-b border-white/5 last:border-0 cursor-pointer transition-colors hover:bg-[#0E6187]/10">
+                        <td className="px-3 py-3 align-top">
+                          <span className="inline-flex w-7 h-7 items-center justify-center rounded-lg bg-white/5 border border-white/10 text-[11px] font-bold text-slate-300">
+                            {a.attempt_number}
                           </span>
-                          <span className="text-slate-500">{fmtDate(a.last_activity)}</span>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="mt-2.5 flex items-center justify-between">
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400">
-                          <CheckCircle2 size={12} /> {Number(a.score) || 0} poin
-                        </span>
-                        {a.submitted_at && <span className="text-[10px] text-slate-500 font-medium">selesai {fmtDate(a.submitted_at)}</span>}
-                      </div>
-                    )}
-                  </div>
-                </button>
-              )
-            })}
+                        </td>
+                        <td className="px-3 py-3 align-top min-w-[180px]">
+                          <div className="flex items-center gap-2">
+                            <p className="text-[12px] font-bold text-white leading-tight">{a.siswa.nama}</p>
+                            {a.status === 'in_progress' ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-1.5 py-0.5 text-[9px] font-bold text-red-400 shrink-0">
+                                <span className="h-1 w-1 rounded-full bg-red-500 animate-pulse" />LAKUKAN
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400 shrink-0">
+                                <CheckCircle2 size={9} />KUMPUL
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-slate-500 font-medium mt-0.5">
+                            {[a.siswa.batch && `Batch ${a.siswa.batch}`, a.siswa.level !== null && a.siswa.level !== undefined && `Level ${a.siswa.level}`].filter(Boolean).join(' · ') || '-'}
+                          </p>
+                          <p className="text-[9.5px] text-slate-500 font-medium mt-1">
+                            {a.status === 'in_progress'
+                              ? `${a.answered_count}/${a.total_count} terjawab${a.auto_submitted ? ' · auto' : ''}`
+                              : `${Number(a.score) || 0} poin${a.auto_submitted ? ' · auto' : ''}`}
+                          </p>
+                          {stale && (
+                            <p className="text-[9.5px] font-bold text-amber-400 mt-0.5">Tidak aktif</p>
+                          )}
+                        </td>
+                        <td className="px-3 py-3 align-top">
+                          <div className="flex flex-wrap gap-1 max-w-[520px]">
+                            {statuses.map((s, i) => {
+                              const ui = STATUS_UI[s] || STATUS_UI.kosong
+                              return (
+                                <span key={i} title={`Soal ${i + 1} — ${ui.label}`}
+                                  className={`h-6 w-6 rounded-md border flex items-center justify-center text-[9px] font-bold ${ui.cls}`}>
+                                  {i + 1}
+                                </span>
+                              )
+                            })}
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 align-top text-center whitespace-nowrap">
+                          <p className="text-[12px] font-bold text-emerald-400">{a.correct_count}/{a.total_count}</p>
+                        </td>
+                        <td className="px-3 py-3 align-top text-center whitespace-nowrap">
+                          <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${a.warnings >= a.max_warnings ? 'bg-red-500/15 text-red-400' : a.warnings > 0 ? 'bg-amber-500/15 text-amber-400' : 'bg-white/5 text-slate-500'}`}>
+                            <ShieldAlert size={10} /> {a.warnings}/{a.max_warnings}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3 align-top whitespace-nowrap">
+                          {a.status === 'in_progress' ? (
+                            <span className={`text-[11px] font-bold ${lowTime ? 'text-red-400' : 'text-slate-300'}`}>
+                              {remaining !== null ? `${fmtClock(remaining)} tersisa` : '0:00 tersisa'}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-500 font-medium">
+                              selesai {fmtDate(a.submitted_at)}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex flex-wrap items-center gap-4 border-t border-white/10 bg-white/[0.03] px-3 py-2.5">
+              {Object.entries(STATUS_UI).map(([k, v]) => (
+                <span key={k} className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400">
+                  <span className={`h-3.5 w-3.5 rounded border ${v.cls}`} />
+                  {v.label}
+                </span>
+              ))}
+              <span className="text-[10px] text-slate-500 font-medium ml-auto">Klik baris untuk melihat detail & menilai esai</span>
+            </div>
           </div>
         )}
       </div>
@@ -457,7 +450,7 @@ export default function GuruQuizMonitor() {
                   {detail.attempt.webcam_photo && (
                     <div>
                       <p className="text-[11px] font-bold text-[#4B5063] mb-2 flex items-center gap-1.5"><Camera size={12} /> Foto Pengerjaan</p>
-                      <img src={detail.attempt.webcam_photo} alt="Webcam" className="w-full rounded-xl border border-[#E5E7EF] max-h-52 object-cover" />
+                      <img src={detail.attempt.webcam_photo ?? undefined} alt="Webcam" className="w-full rounded-xl border border-[#E5E7EF] max-h-52 object-cover" />
                     </div>
                   )}
 

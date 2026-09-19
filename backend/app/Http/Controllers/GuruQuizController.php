@@ -700,8 +700,9 @@ class GuruQuizController extends Controller
         }
 
         $paket = $this->accessiblePaket($paketId, $user->id)->loadCount('questions');
+        $paket->load('questions');
 
-        $attempts = QuizAttempt::with(['siswa:id,nama,batch,level,batch_id', 'siswa.batchRelasi.cabang', 'answers:id,quiz_attempt_id,selected_index,answer_text,updated_at'])
+        $attempts = QuizAttempt::with(['siswa:id,nama,batch,level,batch_id', 'siswa.batchRelasi.cabang', 'answers:id,quiz_attempt_id,quiz_question_id,selected_index,answer_text,is_correct,earned_points,updated_at'])
             ->where('quiz_paket_id', $paket->id)
             ->where(function ($q) {
                 $q->where('status', 'in_progress')
@@ -712,6 +713,24 @@ class GuruQuizController extends Controller
 
         $rows = $attempts->map(function ($a) use ($paket) {
             $siswa = $a->siswa;
+
+            $statuses = $paket->questions->map(function ($q) use ($a) {
+                $ans = $a->answers->firstWhere('quiz_question_id', $q->id);
+                if (($q->question_type ?? 'choice') === 'essay') {
+                    $text = trim((string) ($ans?->answer_text ?? ''));
+                    if ($text === '') return 'kosong';
+                    if ($ans?->is_correct === true) return 'benar';
+                    if ($ans?->is_correct === false) return 'salah';
+                    return 'pending';
+                }
+                if (($q->question_type ?? 'choice') === 'rating') {
+                    return $ans?->selected_index !== null ? 'benar' : 'kosong';
+                }
+                $sel = $ans?->selected_index;
+                if ($sel === null) return 'kosong';
+                return (int) $sel === (int) $q->correct_index ? 'benar' : 'salah';
+            })->values();
+
             $answered = $a->answers->filter(function ($ans) {
                 return ($ans->selected_index !== null && (int) $ans->selected_index >= 0)
                     || ($ans->answer_text !== null && trim($ans->answer_text) !== '');
@@ -739,7 +758,8 @@ class GuruQuizController extends Controller
                 'submitted_at' => $a->submitted_at?->toIso8601String(),
                 'answered_count' => $answered,
                 'total_count' => (int) $paket->questions_count,
-                'webcam_photo' => $a->webcam_photo ? asset('storage/' . $a->webcam_photo) : null,
+                'correct_count' => $statuses->filter(fn ($s) => $s === 'benar')->count(),
+                'answers_status' => $statuses->all(),
                 'last_activity' => $last?->toIso8601String(),
                 'siswa' => [
                     'id' => (int) $a->siswa_id,
