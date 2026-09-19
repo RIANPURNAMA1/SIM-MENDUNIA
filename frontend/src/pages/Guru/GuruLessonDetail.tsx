@@ -1077,10 +1077,15 @@ export default function GuruLessonDetail() {
                         className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0069b0] bg-[#0069b0]/5 px-3 py-1.5 rounded-md hover:bg-[#0069b0]/10 transition-colors">
                         Lihat Paket Soal <ChevronDown size={12} className={previewPaketId === paket.id ? 'rotate-180 transition-transform' : 'transition-transform'} />
                       </button>
+                      <button onClick={() => navigate(`/guru-paket-soal/monitor/${paket.id}`, { state: { title: paket.title } })}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-red-500 bg-red-50 px-3 py-1.5 rounded-md hover:bg-red-100 transition-colors"
+                        title="Monitor langsung pengerjaan siswa (kamera + progres)">
+                        <Activity size={12} /> Monitor
+                      </button>
                       <button onClick={() => openQuizResults(paket)}
                         className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0069b0] bg-[#0069b0]/5 px-3 py-1.5 rounded-md hover:bg-[#0069b0]/10 transition-colors"
                         title="Lihat hasil pengerjaan kandidat + kunci jawaban + waktu pengerjaan">
-                        <BarChart3 size={12} /> Monitor Hasil Quiz
+                        <BarChart3 size={12} /> Hasil Quiz
                       </button>
                       {canManage && (
                         <button onClick={() => handleRemovePaket(paket.id)}
