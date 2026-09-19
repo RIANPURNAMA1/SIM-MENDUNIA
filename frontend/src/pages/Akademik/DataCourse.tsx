@@ -903,9 +903,25 @@ export default function DataCourse() {
     }
   }
 
-  const qTotalPages = Math.max(1, Math.ceil(questions.length / qPerPage))
+  const orderedQuestions = (() => {
+    const secMap = new Map<number, SectionItem>()
+    quizSections.forEach(s => secMap.set(s.id, s))
+    return [...questions].sort((a, b) => {
+      const aSec = a.section_id != null ? secMap.get(a.section_id) : undefined
+      const bSec = b.section_id != null ? secMap.get(b.section_id) : undefined
+      if ((aSec ? 0 : 1) !== (bSec ? 0 : 1)) return (aSec ? 0 : 1) - (bSec ? 0 : 1)
+      if (aSec && bSec) {
+        if (aSec.sort !== bSec.sort) return aSec.sort - bSec.sort
+        if (aSec.id !== bSec.id) return aSec.id - bSec.id
+      }
+      if (Number(a.sort || 0) !== Number(b.sort || 0)) return Number(a.sort || 0) - Number(b.sort || 0)
+      return Number(a.id) - Number(b.id)
+    })
+  })()
+
+  const qTotalPages = Math.max(1, Math.ceil(orderedQuestions.length / qPerPage))
   const safeQPage = Math.min(qPage, qTotalPages)
-  const qPageItems = questions.slice((safeQPage - 1) * qPerPage, safeQPage * qPerPage)
+  const qPageItems = orderedQuestions.slice((safeQPage - 1) * qPerPage, safeQPage * qPerPage)
   const questionGroups = qPageItems.reduce<{ section: string; items: Question[] }[]>((acc, q) => {
     const sec = q.section?.name?.trim() || ''
     const last = acc[acc.length - 1]
@@ -1680,17 +1696,17 @@ export default function DataCourse() {
     })
   }
 
-  const moveQuestion = (index: number, dir: 'up' | 'down') => {
-    const arr = [...questions]
-    const swapIndex = dir === 'up' ? index - 1 : index + 1
-    if (swapIndex < 0 || swapIndex >= arr.length) return
-    const temp = arr[index]
-    arr[index] = { ...arr[swapIndex], sort: arr[index].sort }
-    arr[swapIndex] = { ...temp, sort: arr[swapIndex].sort }
-    setQuestions(arr)
+  const moveQuestion = (q: Question, dir: 'up' | 'down') => {
+    const index = orderedQuestions.findIndex(x => x.id === q.id)
+    const other = dir === 'up' ? orderedQuestions[index - 1] : orderedQuestions[index + 1]
+    if (!other) return
+    if ((q.section_id ?? null) !== (other.section_id ?? null)) return
+    const newQ = { ...q, sort: other.sort }
+    const newOther = { ...other, sort: q.sort }
+    setQuestions(prev => prev.map(x => x.id === q.id ? newQ : x.id === other.id ? newOther : x))
     Promise.all([
-      adminQuizApi.updateQuestion(arr[index].id, { sort: arr[index].sort }),
-      adminQuizApi.updateQuestion(arr[swapIndex].id, { sort: arr[swapIndex].sort }),
+      adminQuizApi.updateQuestion(q.id, { sort: newQ.sort }),
+      adminQuizApi.updateQuestion(other.id, { sort: newOther.sort }),
     ]).catch(() => {})
   }
 
@@ -2443,22 +2459,22 @@ export default function DataCourse() {
                       <span className="text-xs text-slate-400 font-medium">{g.items.length} soal</span>
                     </div>
                     <div className="space-y-3">
-                      {g.items.map(q => {
-                        const i = questions.indexOf(q)
+                      {g.items.map((q, qi) => {
+                        const gi = orderedQuestions.findIndex(x => x.id === q.id)
                         return (
                           <div key={q.id} className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
                             <div className="flex items-start gap-3">
                               <div className="flex flex-col items-center gap-1 mt-1">
-                                <button onClick={() => moveQuestion(i, 'up')} className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20" disabled={i === 0}>
+                                <button onClick={() => moveQuestion(q, 'up')} className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20" disabled={qi === 0}>
                                   <ChevronUp size={16} />
                                 </button>
-                                <button onClick={() => moveQuestion(i, 'down')} className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20" disabled={i === questions.length - 1}>
+                                <button onClick={() => moveQuestion(q, 'down')} className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20" disabled={qi === g.items.length - 1}>
                                   <ChevronDown size={16} />
                                 </button>
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-start justify-between gap-2">
-                                  <span className="text-sm font-bold text-slate-400 shrink-0 mt-0.5">#{i + 1}</span>
+                                  <span className="text-sm font-bold text-slate-400 shrink-0 mt-0.5">#{gi + 1}</span>
                                   <p className="text-[15px] font-semibold text-slate-800 leading-snug flex-1">{q.question}</p>
                                   <div className="flex items-center gap-1.5 shrink-0">
                                     <button onClick={() => openEditQuestion(q)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors" title="Edit">
