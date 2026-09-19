@@ -826,9 +826,7 @@ class GuruQuizController extends Controller
             ->where('id', $attemptId)
             ->firstOrFail();
 
-        if ($attempt->paket->user_id !== $user->id) {
-            abort(404);
-        }
+        $this->accessiblePaket($attempt->quiz_paket_id, $user->id);
 
         $answers = $attempt->answers->keyBy('quiz_question_id');
         $rows = $attempt->paket->questions->map(function ($q) use ($answers) {
@@ -869,9 +867,8 @@ class GuruQuizController extends Controller
 
         $attempt = QuizAttempt::with('paket')->where('id', $attemptId)->firstOrFail();
 
-        if ($attempt->paket->user_id !== $user->id) {
-            abort(404);
-        }
+        $this->accessiblePaket($attempt->quiz_paket_id, $user->id);
+
         if ($attempt->status !== 'submitted') {
             return response()->json(['message' => 'Percobaan belum selesai, tidak bisa dinilai'], 422);
         }

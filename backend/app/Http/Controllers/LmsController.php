@@ -214,6 +214,7 @@ class LmsController extends Controller
             $unlocked = $p->status === 'aktif' && !$linkLocked && !$senseiLocked;
             $attempts = QuizAttempt::where('quiz_paket_id', $p->id)
                 ->where('siswa_id', $siswa->id)
+                ->where('source', 'paket')
                 ->orderBy('attempt_number')
                 ->get();
             $used = $attempts->count();

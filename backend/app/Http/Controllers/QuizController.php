@@ -165,6 +165,29 @@ class QuizController extends Controller
 
     // ========== Paket ==========
 
+    /**
+     * Resolve konteks percobaan ('paket' = quiz dari bank/pertemuan,
+     * 'tugas' = quiz yang ditautkan lewat tugas) dari request.
+     */
+    private function attemptContext(Request $request): array
+    {
+        $source = $request->input('source', 'paket');
+        if (!in_array($source, ['paket', 'tugas'], true)) {
+            $source = 'paket';
+        }
+        $sourceId = $request->input('source_id');
+        return [$source, ($sourceId !== null && $sourceId !== '') ? (int) $sourceId : null];
+    }
+
+    private function scopeAttemptsByContext($query, string $source, ?int $sourceId)
+    {
+        $query->where('source', $source);
+        if ($source === 'tugas') {
+            $query->where('source_id', $sourceId);
+        }
+        return $query;
+    }
+
     public function index()
     {
         $siswa = $this->siswaUser();
@@ -192,6 +215,7 @@ class QuizController extends Controller
             $locked = !$p->diAjarSensei($siswa);
             $attempts = QuizAttempt::where('quiz_paket_id', $p->id)
                 ->where('siswa_id', $siswa->id)
+                ->where('source', 'paket')
                 ->orderBy('attempt_number')
                 ->get();
             $used = $attempts->count();
@@ -222,12 +246,14 @@ class QuizController extends Controller
         return response()->json(['pakets' => $result]);
     }
 
-    public function paketDetail($id)
+    public function paketDetail(Request $request, $id)
     {
         $siswa = $this->siswaUser();
         if (!$siswa) {
             return response()->json(['message' => 'Silakan login sebagai siswa terlebih dahulu.'], 404);
         }
+
+        [$source, $sourceId] = $this->attemptContext($request);
 
         $paket = QuizPaket::aktif()->withCount('questions')->find($id);
         if (!$paket) {
@@ -246,8 +272,12 @@ class QuizController extends Controller
             ], 404);
         }
 
-        $attempts = QuizAttempt::where('quiz_paket_id', $paket->id)
-            ->where('siswa_id', $siswa->id)
+        $attempts = $this->scopeAttemptsByContext(
+            QuizAttempt::where('quiz_paket_id', $paket->id)
+                ->where('siswa_id', $siswa->id),
+            $source,
+            $sourceId
+        )
             ->orderBy('attempt_number')
             ->get()
             ->map(fn ($a) => [
@@ -261,6 +291,7 @@ class QuizController extends Controller
                 'auto_submitted' => $a->auto_submitted,
                 'started_at' => $a->started_at?->toIso8601String(),
                 'submitted_at' => $a->submitted_at?->toIso8601String(),
+                'source' => $a->source,
             ]);
 
         // Lesson prerequisites: if paket linked to a course, include its active
@@ -338,6 +369,8 @@ class QuizController extends Controller
             return response()->json(['message' => 'Siswa tidak ditemukan'], 401);
         }
 
+        [$source, $sourceId] = $this->attemptContext($request);
+
         $paket = QuizPaket::aktif()->findOrFail($id);
         if (!$this->paketVisible($paket, $siswa)) {
             return response()->json(['message' => 'Paket soal tidak tersedia'], 404);
@@ -347,14 +380,20 @@ class QuizController extends Controller
             return response()->json(['message' => 'Selesaikan seluruh materi terlebih dahulu untuk membuka kuis ini'], 422);
         }
 
-        $used = QuizAttempt::where('quiz_paket_id', $paket->id)
-            ->where('siswa_id', $siswa->id)
-            ->count();
+        $used = $this->scopeAttemptsByContext(
+            QuizAttempt::where('quiz_paket_id', $paket->id)
+                ->where('siswa_id', $siswa->id),
+            $source,
+            $sourceId
+        )->count();
 
-        $inProgress = QuizAttempt::where('quiz_paket_id', $paket->id)
-            ->where('siswa_id', $siswa->id)
-            ->where('status', 'in_progress')
-            ->first();
+        $inProgress = $this->scopeAttemptsByContext(
+            QuizAttempt::where('quiz_paket_id', $paket->id)
+                ->where('siswa_id', $siswa->id)
+                ->where('status', 'in_progress'),
+            $source,
+            $sourceId
+        )->first();
 
         if ($inProgress) {
             $this->expireIfTimeUp($inProgress);
@@ -374,6 +413,8 @@ class QuizController extends Controller
         $attempt = QuizAttempt::create([
             'quiz_paket_id' => $paket->id,
             'siswa_id' => $siswa->id,
+            'source' => $source,
+            'source_id' => $source === 'tugas' ? $sourceId : null,
             'attempt_number' => $used + 1,
             'started_at' => now(),
             'time_limit_seconds' => $paket->time_limit_minutes * 60,

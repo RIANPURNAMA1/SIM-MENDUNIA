@@ -150,7 +150,7 @@ export default function QuizPlay() {
       const a = res.data.attempt
       const data = res.data
       if (a?.status === 'submitted' || a?.score !== undefined) {
-        navigate(`/siswa-dashboard/quiz/${paketId}`, { replace: true })
+        navigate(`/siswa-dashboard/quiz/${paketId}${location.search}`, { replace: true })
         return
       }
       setAttempt(a)
@@ -190,7 +190,7 @@ export default function QuizPlay() {
       setRemaining(Math.max(0, Math.floor((endTime - Date.now()) / 1000)))
     }).catch(() => {
       Swal.fire({ icon: 'error', title: 'Gagal memuat percobaan' })
-      navigate(`/siswa-dashboard/quiz/${paketId}`, { replace: true })
+      navigate(`/siswa-dashboard/quiz/${paketId}${location.search}`, { replace: true })
     }).finally(() => setIsLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attemptId, paketId, navigate])
@@ -269,7 +269,7 @@ export default function QuizPlay() {
       .map(q => quizApi.answer(Number(attemptId), { question_id: q.id, selected_index: null, answer_text: (essayDrafts[q.id] ?? '').trim() || null }))
     Promise.allSettled(essayOrders).finally(() => {
       quizApi.submit(Number(attemptId)).then(() => {
-        navigate(`/siswa-dashboard/quiz/${paketId}`, { replace: true })
+        navigate(`/siswa-dashboard/quiz/${paketId}${location.search}`, { replace: true })
       }).catch(() => {
         Swal.fire({ icon: 'error', title: 'Gagal mengumpulkan quiz', text: reason })
         setIsSubmitting(false)
@@ -312,32 +312,29 @@ export default function QuizPlay() {
   }
 
   // ── Face / presence monitoring (proctoring) ──
-  // Offense 1 → warning banner + backend warn. Offense 2 → pengerjaan dianggap
-  // selesai, dikumpulkan otomatis, lalu kembali ke halaman paket.
+  // Setiap offense → warning banner + backend warn. Pengumpulan otomatis
+  // ditentukan backend sesuai "Maks Peringatan" (max_warnings) paket.
   const handleOffense = useCallback((reason: string) => {
     if (!attemptId) return
     offenseRef.current += 1
-    const offense = offenseRef.current
-    if (offense < 2) {
-      setFaceMissing(reason === 'wajah tak terdeteksi')
-      setMonitorMsg(`Kamera pengawas mendeteksi ${reason}. Jika terulang, pengerjaan akan dikumpulkan otomatis.`)
-      quizApi.warn(Number(attemptId)).then(res => {
-        const d = res.data
-        if (d.auto_submitted || d.status === 'submitted') submitNow(reason)
-      }).catch(() => {})
-      return
-    }
-    stopTimers()
-    setMonitorMsg('')
-    Swal.fire({
-      icon: 'warning',
-      title: 'Pengerjaan dikumpulkan otomatis',
-      text: `Kamera pengawas mendeteksi ${reason} secara berulang. Jawaban disimpan dan quiz dianggap selesai.`,
-      confirmButtonColor: '#0E6187',
-      confirmButtonText: 'OK',
-      allowOutsideClick: false,
-    })
-    submitNow(reason)
+    setFaceMissing(reason === 'wajah tak terdeteksi')
+    setMonitorMsg(`Kamera pengawas mendeteksi ${reason}. Jika terulang, pengerjaan akan dikumpulkan otomatis.`)
+    quizApi.warn(Number(attemptId)).then(res => {
+      const d = res.data
+      if (d.auto_submitted || d.status === 'submitted') {
+        stopTimers()
+        setMonitorMsg('')
+        Swal.fire({
+          icon: 'warning',
+          title: 'Pengerjaan dikumpulkan otomatis',
+          text: `Kamera pengawas mendeteksi ${reason} secara berulang. Jawaban disimpan dan quiz dianggap selesai.`,
+          confirmButtonColor: '#0E6187',
+          confirmButtonText: 'OK',
+          allowOutsideClick: false,
+        })
+        submitNow(reason)
+      }
+    }).catch(() => {})
   }, [attemptId, submitNow, stopTimers])
 
   // Draw the detected face bounding box. Green normally, red while head is

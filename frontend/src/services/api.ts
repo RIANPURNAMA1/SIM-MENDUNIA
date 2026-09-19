@@ -528,8 +528,8 @@ export const lmsApi = {
 
 export const quizApi = {
   pakets: () => api.get('/quiz/pakets'),
-  paket: (id: number) => api.get(`/quiz/pakets/${id}`),
-  start: (id: number) => api.post(`/quiz/pakets/${id}/start`),
+  paket: (id: number, params?: { source?: string; source_id?: number }) => api.get(`/quiz/pakets/${id}`, { params }),
+  start: (id: number, params?: { source?: string; source_id?: number }) => api.post(`/quiz/pakets/${id}/start`, null, { params }),
   attempt: (id: number) => api.get(`/quiz/attempts/${id}`),
   review: (id: number) => api.get(`/quiz/attempts/${id}/review`),
   answer: (id: number, data: { question_id: number; selected_index?: number | null; answer_text?: string | null }) => api.post(`/quiz/attempts/${id}/answer`, data),

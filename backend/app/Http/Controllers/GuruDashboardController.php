@@ -868,6 +868,7 @@ class GuruDashboardController extends Controller
         $attempts = collect();
         if ($paketIds->isNotEmpty() && $siswaIds->isNotEmpty()) {
             $attempts = QuizAttempt::where('status', 'submitted')
+                ->where('source', 'paket')
                 ->whereIn('quiz_paket_id', $paketIds)
                 ->whereIn('siswa_id', $siswaIds)
                 ->orderBy('attempt_number')
