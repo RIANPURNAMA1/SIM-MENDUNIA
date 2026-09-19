@@ -1248,9 +1248,22 @@ class GuruDashboardController extends Controller
 
         $lesson->linkPakets()->updateExistingPivot($paketId, ['status' => $data['status']]);
 
+        // Satukan sumber status: status global paket & semua link pertemuan
+        // diubah ke nilai yang sama agar selalu konsisten (guru ↔ /lms).
+        $paket = QuizPaket::find($paketId);
+        if ($paket) {
+            $paket->status = $data['status'];
+            $paket->save();
+            $ids = $paket->linkLessons()->allRelatedIds();
+            if ($ids->isNotEmpty()) {
+                $paket->linkLessons()->syncWithoutDetaching($ids->mapWithKeys(fn ($id) => [(int) $id => ['status' => $data['status']]])->all());
+            }
+        }
+
         return response()->json([
             'message' => $data['status'] === 'aktif' ? 'Quiz diaktifkan' : 'Quiz dinonaktifkan',
             'status' => $data['status'],
+            'paket' => $paket?->fresh(),
         ]);
     }
 
