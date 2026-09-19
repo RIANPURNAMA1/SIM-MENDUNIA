@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Clock, ChevronRight, CheckCircle2, AlertTriangle, CameraOff } from 'lucide-react'
+import { Volume2, VolumeX, X } from 'lucide-react'
 import { quizApi } from '../../services/api'
 import { detectFace, faceModelsReady, loadFaceModels, type DetectedFace } from '../../utils/faceDetector'
 import Swal from 'sweetalert2'
@@ -38,6 +38,48 @@ const fmtClock = (sec: number) => {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
+function QuestionAudio({ src, maxPlays, plays, onPlay }: {
+  src: string
+  maxPlays: number | null
+  plays: number
+  onPlay: () => void
+}) {
+  const locked = maxPlays !== null && plays >= maxPlays
+  const remaining = maxPlays !== null ? Math.max(0, maxPlays - plays) : null
+
+  return (
+    <div className="mt-4 rounded-lg border border-[#c9e2f0] bg-white p-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          {locked ? <VolumeX size={16} className="text-gray-400" /> : <Volume2 size={16} className="text-[#0069b0]" />}
+          <p className={`text-[11px] font-bold ${locked ? 'text-gray-400' : 'text-gray-700'}`}>
+            {locked ? 'Audio tidak tersedia lagi' : 'Putar soal audio'}
+          </p>
+        </div>
+        {remaining !== null && (
+          <span className={`shrink-0 rounded px-2 py-0.5 text-[10px] font-bold ${locked ? 'bg-gray-100 text-gray-400' : 'bg-[#0069b0]/10 text-[#0069b0]'}`}>
+            Sisa putar: {remaining}x
+          </span>
+        )}
+      </div>
+      {locked ? (
+        <div className="mt-2 rounded bg-gray-50 py-3 text-center text-[11px] font-semibold text-gray-400">
+          Anda sudah mendengarkan audio sebanyak {plays} kali
+        </div>
+      ) : (
+        <audio
+          key={src}
+          src={src}
+          controls
+          preload="auto"
+          className="mt-2 w-full h-9"
+          onPlay={onPlay}
+        />
+      )}
+    </div>
+  )
+}
+
 export default function QuizBasicPlay() {
   const { paketId, attemptId } = useParams()
   const navigate = useNavigate()
@@ -52,9 +94,11 @@ export default function QuizBasicPlay() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [flagged, setFlagged] = useState<Set<number>>(new Set())
   const [remaining, setRemaining] = useState(0)
-  const [testTitle, setTestTitle] = useState('')
   const [warnBanner, setWarnBanner] = useState(false)
+  const [testTitle, setTestTitle] = useState('')
+  const [audioPlays, setAudioPlays] = useState<Record<number, number>>({})
   const [cameraActive, setCameraActive] = useState(false)
   const [faceMissing, setFaceMissing] = useState(false)
   const [headTurned, setHeadTurned] = useState(false)
@@ -62,14 +106,14 @@ export default function QuizBasicPlay() {
   const [monitorMsg, setMonitorMsg] = useState('')
 
   const endTimeRef = useRef(0)
-  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const essayTimersRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({})
-  const isLoadingEssayRef = useRef<Record<number, boolean>>({})
   const streamRef = useRef<MediaStream | null>(null)
   const cameraRef = useRef<HTMLVideoElement | null>(null)
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const snapshotRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const faceMonitorRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const essayTimersRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({})
+  const isLoadingEssayRef = useRef<Record<number, boolean>>({})
   const cameraAttachedRef = useRef(false)
   const goneStreakRef = useRef(0)
   const turnStreakRef = useRef(0)
@@ -88,6 +132,64 @@ export default function QuizBasicPlay() {
     streamRef.current?.getTracks().forEach(t => t.stop())
     streamRef.current = null
   }, [])
+
+  // ── Load attempt ──
+  const load = useCallback(() => {
+    if (!attemptId) return
+    setIsLoading(true)
+    quizApi.attempt(Number(attemptId)).then(res => {
+      const a = res.data.attempt
+      const data = res.data
+      if (a?.status === 'submitted' || a?.score !== undefined) {
+        navigate(`/siswa-dashboard/quiz/${paketId}${location.search}`, { replace: true })
+        return
+      }
+      setAttempt(a)
+      setTestTitle(navTitle || res.data.paket?.title || res.data.test_name || 'Quiz')
+      const pre: Record<number, number | null> = {}
+      const preEssay: Record<number, string> = {}
+      const qs: PlayQuestion[] = (data.questions || []).map((q: any) => {
+        if (q.selected_index !== undefined && q.selected_index !== null) pre[q.id] = q.selected_index
+        if (q.answer_text !== undefined && q.answer_text !== null) preEssay[q.id] = q.answer_text
+        return {
+          id: q.id, question: q.question, question_type: q.question_type ?? 'choice', rating_max: q.rating_max ?? null,
+          options: q.options, points: q.points,
+          image_url: q.image_url ?? null, audio_url: q.audio_url ?? null,
+          audio_max_plays: q.audio_max_plays ?? null, selected_index: q.selected_index ?? null,
+          answer_text: q.answer_text ?? null,
+          section: q.section ?? null,
+        }
+      })
+      setQuestions(qs)
+      setSelected(pre)
+      setEssayDrafts(preEssay)
+      setFlagged(new Set())
+      setAudioPlays({})
+      setCameraActive(false)
+      setFaceMissing(false)
+      setHeadTurned(false)
+      setMonitorMsg('')
+      setWarnBanner(false)
+      goneStreakRef.current = 0
+      turnStreakRef.current = 0
+      offenseRef.current = 0
+      cameraAttachedRef.current = false
+
+      const endTime = Date.parse(a.started_at) + a.time_limit_seconds * 1000
+      endTimeRef.current = endTime
+      setRemaining(Math.max(0, Math.floor((endTime - Date.now()) / 1000)))
+    }).catch(() => {
+      Swal.fire({ icon: 'error', title: 'Gagal memuat percobaan' })
+      navigate(`/siswa-dashboard/quiz/${paketId}${location.search}`, { replace: true })
+    }).finally(() => setIsLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attemptId, paketId, navigate])
+
+  useEffect(() => {
+    load()
+    const cleanup = stopTimers
+    return cleanup
+  }, [load, stopTimers])
 
   // ── Camera stream for proctoring snapshots ──
   const requestCamera = useCallback(async (): Promise<boolean> => {
@@ -145,59 +247,7 @@ export default function QuizBasicPlay() {
     return () => v.removeEventListener('loadedmetadata', onMeta)
   }, [isLoading, streamVersion])
 
-  const load = useCallback(() => {
-    if (!attemptId) return
-    setIsLoading(true)
-    quizApi.attempt(Number(attemptId)).then(res => {
-      const a = res.data.attempt
-      const data = res.data
-      if (a?.status === 'submitted' || a?.score !== undefined) {
-        navigate(`/siswa-dashboard/quiz/${paketId}${location.search}`, { replace: true })
-        return
-      }
-      setAttempt(a)
-      setTestTitle(navTitle || res.data.paket?.title || res.data.test_name || 'Quiz')
-      const pre: Record<number, number | null> = {}
-      const preEssay: Record<number, string> = {}
-      const qs: PlayQuestion[] = (data.questions || []).map((q: any) => {
-        if (q.selected_index !== undefined && q.selected_index !== null) pre[q.id] = q.selected_index
-        if (q.answer_text !== undefined && q.answer_text !== null) preEssay[q.id] = q.answer_text
-        return {
-          id: q.id, question: q.question, question_type: q.question_type ?? 'choice',
-          rating_max: q.rating_max ?? null, options: q.options, points: q.points,
-          image_url: q.image_url ?? null, audio_url: q.audio_url ?? null,
-          audio_max_plays: q.audio_max_plays ?? null, selected_index: q.selected_index ?? null,
-          answer_text: q.answer_text ?? null,
-          section: q.section ?? null,
-        }
-      })
-      setQuestions(qs)
-      setSelected(pre)
-      setEssayDrafts(preEssay)
-      setCameraActive(false)
-      setFaceMissing(false)
-      setHeadTurned(false)
-      setMonitorMsg('')
-      setWarnBanner(false)
-      goneStreakRef.current = 0
-      turnStreakRef.current = 0
-      offenseRef.current = 0
-      cameraAttachedRef.current = false
-
-      const endTime = Date.parse(a.started_at) + a.time_limit_seconds * 1000
-      endTimeRef.current = endTime
-      setRemaining(Math.max(0, Math.floor((endTime - Date.now()) / 1000)))
-    }).catch(() => {
-      Swal.fire({ icon: 'error', title: 'Gagal memuat percobaan' })
-      navigate(`/siswa-dashboard/quiz/${paketId}${location.search}`, { replace: true })
-    }).finally(() => setIsLoading(false))
-  }, [attemptId, paketId, navigate, navTitle])
-
-  useEffect(() => {
-    load()
-    return stopTimers
-  }, [load, stopTimers])
-
+  // ── Timer + snapshots ──
   const submitNow = useCallback((reason: string) => {
     if (!attemptId || isSubmitting) return
     setIsSubmitting(true)
@@ -231,6 +281,7 @@ export default function QuizBasicPlay() {
     snapshotRef.current = setInterval(captureSnapshot, 3000)
     faceMonitorRef.current = setInterval(runDetection, 600)
     return stopTimers
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attempt, submitNow, stopTimers])
 
   const captureSnapshot = () => {
@@ -370,6 +421,21 @@ export default function QuizBasicPlay() {
     return () => document.removeEventListener('visibilitychange', onVis)
   }, [sendWarn])
 
+  // ── Answer selection ──
+  const updateEssay = (qid: number, val: string) => {
+    setEssayDrafts(d => ({ ...d, [qid]: val }))
+    if (essayTimersRef.current[qid]) clearTimeout(essayTimersRef.current[qid])
+    essayTimersRef.current[qid] = setTimeout(() => {
+      delete essayTimersRef.current[qid]
+      if (!attemptId) return
+      if (isLoadingEssayRef.current[qid]) return
+      isLoadingEssayRef.current[qid] = true
+      quizApi.answer(Number(attemptId), { question_id: qid, selected_index: null, answer_text: val.trim() || null })
+        .catch(() => Swal.fire({ icon: 'warning', title: 'Gagal menyimpan jawaban', text: 'Periksa koneksi Anda' }))
+        .finally(() => isLoadingEssayRef.current[qid] = false)
+    }, 700)
+  }
+
   const selectAnswer = (idx: number) => {
     const q = questions[currentIndex]
     if (!q || !attemptId || isSaving) return
@@ -386,36 +452,12 @@ export default function QuizBasicPlay() {
       })
   }
 
-  const updateEssay = (qid: number, val: string) => {
-    setEssayDrafts(d => ({ ...d, [qid]: val }))
-    if (essayTimersRef.current[qid]) clearTimeout(essayTimersRef.current[qid])
-    essayTimersRef.current[qid] = setTimeout(() => {
-      delete essayTimersRef.current[qid]
-      if (!attemptId) return
-      if (isLoadingEssayRef.current[qid]) return
-      isLoadingEssayRef.current[qid] = true
-      quizApi.answer(Number(attemptId), { question_id: qid, selected_index: null, answer_text: val.trim() || null })
-        .catch(() => Swal.fire({ icon: 'warning', title: 'Gagal menyimpan jawaban', text: 'Periksa koneksi Anda' }))
-        .finally(() => isLoadingEssayRef.current[qid] = false)
-    }, 700)
-  }
-
-  const isAnsweredQ = (q: PlayQuestion) => q.question_type === 'essay'
-    ? !!(essayDrafts[q.id] ?? '').trim()
-    : selected[q.id] !== undefined && selected[q.id] !== null
-
-  const submitManually = () => {
-    const unanswered = questions.length - questions.filter(isAnsweredQ).length
-    Swal.fire({
-      title: 'Kumpulkan quiz?',
-      text: unanswered > 0 ? `Masih ada ${unanswered} soal yang belum dijawab. Jawaban yang sudah dipilih akan dinilai.` : 'Semua soal sudah terjawab. Yakin ingin mengumpulkan?',
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: '#0069b0',
-      confirmButtonText: 'Ya, Kumpulkan',
-      cancelButtonText: 'Periksa lagi',
-    }).then(res => {
-      if (res.isConfirmed) submitNow('manual')
+  const toggleFlag = (idx: number) => {
+    setFlagged(prev => {
+      const next = new Set(prev)
+      if (next.has(idx)) next.delete(idx)
+      else next.add(idx)
+      return next
     })
   }
 
@@ -434,26 +476,54 @@ export default function QuizBasicPlay() {
     })
   }
 
+  const submitManually = () => {
+    const unanswered = questions.length - questions.filter(isAnsweredQ).length
+    Swal.fire({
+      title: 'Kumpulkan quiz?',
+      text: unanswered > 0 ? `Masih ada ${unanswered} soal yang belum dijawab. Jawaban yang sudah dipilih akan dinilai.` : 'Semua soal sudah terjawab. Yakin ingin mengumpulkan?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#0069b0',
+      confirmButtonText: 'Ya, Kumpulkan',
+      cancelButtonText: 'Periksa lagi',
+    }).then(res => {
+      if (res.isConfirmed) submitNow('manual')
+    })
+  }
+
+  // ── derived ──
   const lowTime = remaining <= 60
+  const isAnsweredQ = (q: PlayQuestion) => q.question_type === 'essay'
+    ? !!(essayDrafts[q.id] ?? '').trim()
+    : selected[q.id] !== undefined && selected[q.id] !== null
   const answeredCount = questions.filter(isAnsweredQ).length
   const currentQuestion = questions[currentIndex]
-  const isFirst = currentIndex === 0
-  const isLast = currentIndex === questions.length - 1
 
-  const groups = questions.reduce<{ section: string; items: { q: PlayQuestion; idx: number }[] }[]>((acc, q, idx) => {
-    const sec = q.section?.trim() || ''
-    const last = acc[acc.length - 1]
-    if (last && last.section === sec) {
-      last.items.push({ q, idx })
-      return acc
-    }
-    acc.push({ section: sec, items: [{ q, idx }] })
+  const sections = useMemo(() => {
+    const acc: { name: string; total: number; answered: number; startIndex: number }[] = []
+    questions.forEach((q, idx) => {
+      const name = (q.section || '').trim()
+      const answered = q.question_type === 'essay'
+        ? !!(essayDrafts[q.id] ?? '').trim()
+        : selected[q.id] !== undefined && selected[q.id] !== null
+      const last = acc[acc.length - 1]
+      if (last && last.name === name) {
+        last.total++
+        if (answered) last.answered++
+      } else {
+        acc.push({ name, total: 1, answered: answered ? 1 : 0, startIndex: idx })
+      }
+    })
     return acc
-  }, [])
+  }, [questions, selected, essayDrafts])
+
+  const currentSectionName = currentQuestion ? (currentQuestion.section || '').trim() : ''
+  const sectionLocalIndex = currentIndex
+  const isLast = currentIndex === questions.length - 1
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#F4F5F8]">
+      <div className="flex h-screen items-center justify-center bg-[#eef4f9]">
         <div className="text-center">
           <div className="w-10 h-10 border-4 border-[#0069b0]/20 border-t-[#0069b0] rounded-full animate-spin mx-auto mb-3" />
           <p className="text-xs font-semibold text-[#8B90A0]">Memuat soal...</p>
@@ -461,12 +531,10 @@ export default function QuizBasicPlay() {
       </div>
     )
   }
-
   if (!attempt || !currentQuestion) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#F4F5F8]">
+      <div className="flex h-screen items-center justify-center bg-[#eef4f9]">
         <div className="text-center px-6">
-          <AlertTriangle size={32} className="text-orange-400 mx-auto mb-2" />
           <p className="text-sm font-bold text-[#14182B]">Soal tidak ditemukan</p>
           <p className="text-[11px] text-[#8B90A0] font-medium mt-1">Attempt tidak valid atau sudah diselesaikan</p>
           <button onClick={() => navigate(`/siswa-dashboard/quiz/${paketId}${location.search}`)}
@@ -479,104 +547,73 @@ export default function QuizBasicPlay() {
   }
 
   return (
-    <div className="flex h-screen bg-[#F4F5F8]">
-      {/* ── Side panel: informasi section ── */}
-      <aside className="hidden lg:flex w-64 shrink-0 flex-col overflow-y-auto bg-white border-r border-[#E5E7EF]">
-        <div className="px-4 py-4">
-          <div className="flex items-center gap-1.5 mb-3">
-            <span className="w-1.5 h-3.5 rounded-full bg-[#0069b0]" />
-            <span className="text-[11px] font-bold uppercase tracking-wide text-[#4B5063]">Navigasi Soal</span>
+    <div className="flex h-screen flex-col overflow-hidden bg-[#eef4f9]">
+      {/* ── Top Header (Dark Blue) ── */}
+      <div className="relative bg-[#0b2c45] px-4 py-2 md:px-6">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col leading-tight">
+            <p className="text-[13px] text-white">
+              <span className="font-normal text-blue-200">Soal: </span>
+              <span className="font-bold">{sectionLocalIndex + 1}</span>
+            </p>
+            <p className="mt-1 text-[13px] font-normal text-blue-200">Bagian:</p>
+            <p className="max-w-[160px] truncate text-[13px] font-semibold text-white">{currentSectionName || '—'}</p>
           </div>
-          <div className="space-y-4">
-            {groups.map(g => (
-              <div key={g.section || '__none'}>
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  {g.section ? (
-                    <>
-                      <span className="w-1.5 h-3.5 rounded-full bg-[#0069b0]" />
-                      <span className="text-[10px] font-bold uppercase tracking-wide text-[#4B5063]">{g.section}</span>
-                      <span className="text-[10px] text-[#8B90A0] font-medium">{g.items.length} soal</span>
-                    </>
-                  ) : (
-                    <span className="text-[10px] text-[#8B90A0] font-medium">{g.items.length} soal</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {g.items.map(({ q, idx }) => {
-                    const isActive = idx === currentIndex
-                    const isAnswered = isAnsweredQ(q)
-                    return (
-                      <button key={q.id} onClick={() => setCurrentIndex(idx)}
-                        className={`relative flex h-8 min-w-[32px] shrink-0 items-center justify-center rounded-md px-1.5 text-[11px] font-bold transition-all ${
-                          isActive
-                            ? 'bg-[#0069b0] text-white shadow-sm'
-                            : isAnswered
-                              ? 'bg-[#0069b0]/10 text-[#0069b0]'
-                              : 'bg-[#F4F5F8] text-[#8B90A0] hover:bg-[#E5E7EF]'
-                        }`}>
-                        {idx + 1}
-                        {isAnswered && !isActive && (
-                          <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </aside>
 
-      <div className="flex flex-1 flex-col min-w-0">
-        {/* ── Header ── */}
-      <div className="bg-white border-b border-[#E5E7EF] px-4 py-3 shadow-sm">
-        <div className="max-w-lg mx-auto">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 min-w-0">
-              <button onClick={exitQuiz}
-                className="w-8 h-8 flex items-center justify-center rounded-md bg-[#F4F5F8] hover:bg-[#E5E7EF] transition-colors shrink-0">
-                <ArrowLeft size={15} className="text-[#4B5063]" />
-              </button>
-              <div className="min-w-0">
-                <p className="text-[11px] font-bold text-[#14182B] truncate">{testTitle}</p>
-                <p className="text-[10px] text-[#8B90A0] font-medium">Soal {currentIndex + 1} / {questions.length}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md ${lowTime ? 'bg-red-50 border border-red-200' : 'bg-[#F4F5F8]'}`}>
-                <Clock size={13} className={lowTime ? 'text-red-500' : 'text-[#8B90A0]'} />
-                <span className={`text-xs font-bold tabular-nums ${lowTime ? 'text-red-500' : 'text-[#14182B]'}`}>
-                  {fmtClock(remaining)}
-                </span>
-              </div>
-              {streamRef.current ? (
-                <div className="relative overflow-hidden rounded-md border border-[#D6D9E1] bg-black shrink-0 h-11 w-16 sm:h-16 sm:w-24">
-                  <video ref={cameraRef} muted playsInline autoPlay className="h-full w-full object-cover" />
+          <div className="flex items-center gap-2">
+            {streamRef.current ? (
+              <div className="fixed bottom-24 right-3 z-40 md:static md:bottom-auto md:right-auto">
+                <div className="relative overflow-hidden rounded-md border border-white/20 bg-black shadow-lg md:shadow-none">
+                  <video ref={cameraRef} muted playsInline autoPlay className="h-28 w-40 object-cover md:h-16 md:w-24" />
                   <canvas ref={overlayCanvasRef} className="pointer-events-none absolute inset-0 h-full w-full" />
                   <span className={`absolute bottom-1 right-1 h-2 w-2 rounded-full border border-white/60 ${faceMissing ? 'bg-red-500' : cameraActive ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`} />
-                  <span className={`absolute bottom-0 left-0 right-0 px-1 py-0.5 text-center text-[8px] font-bold text-white ${headTurned ? 'bg-red-500/80' : faceMissing ? 'bg-red-500/80' : cameraActive ? 'bg-black/50' : 'bg-black/60'}`}>
+                  <span className={`absolute bottom-0 left-0 right-0 px-1 py-0.5 text-center text-[9px] font-bold text-white ${headTurned ? 'bg-red-500/80' : faceMissing ? 'bg-red-500/80' : cameraActive ? 'bg-black/50' : 'bg-black/60'}`}>
                     {headTurned ? 'Menoleh' : faceMissing ? 'Tak terdeteksi' : cameraActive ? 'Wajah OK' : 'Menghubungkan kamera...'}
                   </span>
                 </div>
-              ) : (
-                <span className="inline-flex items-center gap-1 rounded bg-red-50 px-2 py-1 text-[10px] font-bold text-red-400 shrink-0">
-                  <CameraOff size={12} /> Kamera mati
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Progress bar */}
-          <div className="mt-2.5 h-1.5 bg-[#F0F1F5] rounded-full overflow-hidden">
-            <div className="h-full bg-[#0069b0] rounded-full transition-all duration-300"
-              style={{ width: `${questions.length > 0 ? ((currentIndex + 1) / questions.length) * 100 : 0}%` }} />
-          </div>
-          <div className="flex items-center justify-between mt-1.5">
-            <p className="text-[10px] text-[#8B90A0] font-medium">{answeredCount} / {questions.length} terjawab</p>
-            <p className="text-[10px] text-[#8B90A0] font-medium">{currentQuestion.points} poin</p>
+              </div>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded bg-red-500/15 px-2 py-1 text-[10px] font-bold text-red-300">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" /> Kamera mati
+              </span>
+            )}
+            <button
+              onClick={submitManually}
+              disabled={isSubmitting}
+              className="shrink-0 rounded bg-[#8fc3e8] px-3 py-1.5 text-xs font-bold text-[#0b2c45] transition-colors hover:bg-[#a3cff0] disabled:opacity-60 sm:px-4 sm:text-sm"
+            >
+              {isSubmitting ? 'Mengumpulkan...' : 'Kumpulkan'}
+            </button>
+            <button
+              onClick={exitQuiz}
+              className="shrink-0 rounded p-1.5 text-blue-200 transition-colors hover:bg-white/10 hover:text-white"
+              title="Keluar dari quiz"
+            >
+              <X size={16} />
+            </button>
           </div>
         </div>
+
+        {/* Timer */}
+        <div className="mt-2 flex items-center justify-center gap-2 sm:absolute sm:left-1/2 sm:top-1/2 sm:mt-0 sm:-translate-x-1/2 sm:-translate-y-1/2">
+          <svg className="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+          <div className="flex items-baseline gap-2 sm:flex-col sm:gap-0">
+            <p className="text-[11px] tracking-wide text-blue-200">Waktu Tersisa</p>
+            <p className={`text-lg leading-tight font-bold ${lowTime ? 'text-red-400' : 'text-white'}`}>{fmtClock(remaining)}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Subheader (Blue) ── */}
+      <div className="flex items-center justify-between border-b border-[#0a5489] bg-[#0069b0] px-4 py-1.5 md:px-6">
+        <p className="min-w-0 truncate text-[13px] text-white">
+          <span className="font-bold">Tes: </span>
+          <span className="font-normal">{testTitle}</span>
+        </p>
+        <span className="shrink-0 text-[11px] font-semibold text-white/80">{answeredCount}/{questions.length} terjawab</span>
       </div>
 
       {/* ── Warning banner ── */}
@@ -606,178 +643,212 @@ export default function QuizBasicPlay() {
         </div>
       )}
 
-      {/* ── Question navigator (mobile only) ── */}
-      <div className="lg:hidden bg-white border-b border-[#E5E7EF] px-4 py-2 overflow-x-auto">
-        <div className="max-w-lg mx-auto space-y-2.5">
-          {groups.map(g => (
-            <div key={g.section || '__none'}>
-              <div className="flex items-center gap-1.5 mb-1">
-                {g.section ? (
-                  <>
-                    <span className="w-1.5 h-3.5 rounded-full bg-[#0069b0]" />
-                    <span className="text-[10px] font-bold uppercase tracking-wide text-[#4B5063]">{g.section}</span>
-                    <span className="text-[10px] text-[#8B90A0] font-medium">{g.items.length} soal</span>
-                  </>
-                ) : (
-                  <span className="text-[10px] text-[#8B90A0] font-medium">{g.items.length} soal</span>
-                )}
-              </div>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                {g.items.map(({ q, idx }) => {
-                  const isActive = idx === currentIndex
-                  const isAnswered = selected[q.id] !== undefined && selected[q.id] !== null
-                  return (
-                    <button key={q.id} onClick={() => setCurrentIndex(idx)}
-                      className={`relative flex h-8 min-w-[32px] shrink-0 items-center justify-center rounded-md px-1.5 text-[11px] font-bold transition-all ${
-                        isActive
-                          ? 'bg-[#0069b0] text-white shadow-sm'
-                          : isAnswered
-                            ? 'bg-[#0069b0]/10 text-[#0069b0]'
-                            : 'bg-[#F4F5F8] text-[#8B90A0] hover:bg-[#E5E7EF]'
-                      }`}>
-                      {idx + 1}
-                      {isAnswered && !isActive && (
-                        <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-500" />
+      {/* ── Mobile: question navigator ── */}
+      <div className="flex items-center gap-2 overflow-x-auto border-b border-gray-200 bg-white px-3 py-2 md:hidden">
+        <span className="shrink-0 text-[10px] font-semibold text-gray-400">Soal:</span>
+        {questions.map((q, idx) => {
+          const isActive = idx === currentIndex
+          const isAnswered = isAnsweredQ(q)
+          const isFlagged = flagged.has(idx)
+          return (
+            <button
+              key={q.id}
+              onClick={() => setCurrentIndex(idx)}
+              className={`relative flex h-9 min-w-9 shrink-0 items-center justify-center rounded-md px-1 text-xs font-bold transition-all hover:opacity-90 ${
+                isActive
+                  ? 'bg-[#0069b0] text-white'
+                  : isAnswered
+                    ? 'bg-[#0b2c45] text-white'
+                    : 'border border-gray-200 bg-[#eef4f9] text-gray-700'
+              }`}
+            >
+              {idx + 1}
+              {isFlagged && <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-yellow-400" />}
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="flex flex-1 overflow-hidden">
+        {/* ── Left Sidebar Navigator (desktop) ── */}
+        <aside className="relative hidden md:block md:w-[130px] md:shrink-0 md:overflow-y-auto">
+          <div className="flex">
+            <div className="absolute inset-y-0 left-0 w-10 bg-white" />
+            <div className="relative z-10 mr-2 flex w-10 shrink-0 flex-col py-4">
+              {sections.map((section, i) => {
+                const pct = section.total > 0 ? (section.answered / section.total) * 100 : 0
+                return (
+                  <div key={section.name || `sec-${i}`} className="flex flex-col items-center px-2" style={{ flex: section.total }}>
+                    {section.name ? (
+                      <p className={`mb-1 text-[12px] ${section.name === currentSectionName ? 'font-bold text-black' : 'font-medium text-gray-500'}`}>
+                        {section.name.substring(0, 2)}...
+                      </p>
+                    ) : (
+                      <p className="mb-1 text-[12px] text-gray-500">–</p>
+                    )}
+                    <div className="relative w-2.5 flex-1 overflow-hidden rounded-full bg-[#e2e4e8]">
+                      <div className="absolute bottom-0 left-0 w-full rounded-full bg-[#0069b0] transition-all duration-300" style={{ height: `${pct}%` }} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="flex flex-1 flex-col py-4 pl-1">
+              {questions.map((q, idx) => {
+                const isActive = idx === currentIndex
+                const isAnswered = isAnsweredQ(q)
+                const isFlagged = flagged.has(idx)
+                const bgColor = idx === currentIndex ? '#0069b0' : isAnswered ? '#0b2c45' : '#0069b0'
+                return (
+                  <div key={q.id}>
+                    <div className="flex items-center pb-2">
+                      <button
+                        onClick={() => setCurrentIndex(idx)}
+                        className="relative flex h-[28px] w-[56px] items-center justify-center rounded text-[13px] font-bold text-white transition-all hover:opacity-90"
+                        style={{ backgroundColor: bgColor }}
+                      >
+                        <span className="w-full text-center">{idx + 1}</span>
+                        {isFlagged && (
+                          <svg className="absolute right-[14px] top-1 h-[10px] w-[10px] fill-[#fde047] drop-shadow-sm" viewBox="0 0 24 24">
+                            <path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z" />
+                          </svg>
+                        )}
+                      </button>
+                      {isActive && (
+                        <svg className="h-[14px] w-[10px] shrink-0" viewBox="0 0 10 14" fill={bgColor}>
+                          <path d="M0 0L10 7L0 14z" />
+                        </svg>
                       )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </aside>
+
+        {/* ── Main Question Content ── */}
+        <div className="flex-1 overflow-y-auto bg-[#eef4f9] p-3 md:p-6">
+          <div className="mx-auto w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+            <div className="p-4 md:p-6">
+              <div className="mb-5 flex flex-col items-center md:mb-6">
+                <div className="w-full rounded bg-[#e7f2fc] p-4 md:p-6">
+                  {currentQuestion.image_url && (
+                    <div className="mb-4 flex justify-center">
+                      <img src={currentQuestion.image_url} alt="Soal"
+                        className="max-h-56 w-auto max-w-full rounded-lg border border-gray-200 bg-white object-contain" />
+                    </div>
+                  )}
+
+                  <p className="text-base font-medium text-gray-900 md:text-lg">{currentQuestion.question}</p>
+                  {currentQuestion.audio_url && (
+                    <QuestionAudio
+                      src={currentQuestion.audio_url}
+                      maxPlays={currentQuestion.audio_max_plays ?? null}
+                      plays={audioPlays[currentQuestion.id] ?? 0}
+                      onPlay={() => setAudioPlays(prev => ({ ...prev, [currentQuestion.id]: (prev[currentQuestion.id] ?? 0) + 1 }))}
+                    />
+                  )}
+                  {currentQuestion.points > 0 && (
+                    <p className="mt-2 text-[11px] font-semibold text-gray-400">{currentQuestion.points} poin</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2.5 md:gap-3">
+                {currentQuestion.question_type === 'essay' ? (
+                  <div>
+                    <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-gray-500">Jawaban Anda</label>
+                    <textarea
+                      value={essayDrafts[currentQuestion.id] ?? ''}
+                      onChange={e => updateEssay(currentQuestion.id, e.target.value)}
+                      disabled={isSubmitting}
+                      rows={5}
+                      placeholder="Tulis jawaban esai Anda di sini..."
+                      className="w-full rounded border border-gray-300 bg-white p-3 text-sm leading-relaxed text-gray-800 transition-colors focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20 resize-y"
+                    />
+                    <div className="mt-1.5 flex items-center justify-between">
+                      <p className="text-[10px] font-medium text-gray-400">Jawaban tersimpan otomatis · Esai dinilai oleh pengajar</p>
+                      <span className="text-[10px] font-semibold text-gray-400">{(essayDrafts[currentQuestion.id] ?? '').length} karakter</span>
+                    </div>
+                  </div>
+                ) : (
+                <>
+                {currentQuestion.question_type === 'rating' && (
+                  <p className="text-[11px] font-bold text-violet-600 uppercase tracking-wide">Skala penilaian 1–{currentQuestion.rating_max || currentQuestion.options.length} — pilih salah satu</p>
+                )}
+                {currentQuestion.options.map((opt, oi) => {
+                  const isSelected = selected[currentQuestion.id] === oi
+                  const optLabel = typeof opt === 'string' ? opt : (opt?.text ?? '')
+                  const optImg = typeof opt === 'string' ? null : (opt?.image_url || null)
+                  const badgeLabel = currentQuestion.question_type === 'rating' ? optLabel : String.fromCharCode(65 + oi)
+                  return (
+                    <button
+                      key={oi}
+                      onClick={() => selectAnswer(oi)}
+                      disabled={isSaving}
+                      className={`flex w-full items-center gap-3 rounded border p-3 text-left transition-colors disabled:opacity-50 md:gap-4 ${
+                        isSelected ? (currentQuestion.question_type === 'rating' ? 'border-violet-500 bg-violet-50' : 'border-[#0069b0] bg-[#e7f2fc]') : 'border-gray-300 bg-white hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                        isSelected ? (currentQuestion.question_type === 'rating' ? 'bg-violet-500 text-white' : 'bg-[#0069b0] text-white') : 'bg-[#eef4f9] text-gray-600'
+                      }`}>
+                        {badgeLabel}
+                      </span>
+                      {optImg && <img src={optImg} alt="" className="h-14 w-14 shrink-0 rounded-lg border border-gray-200 object-cover md:h-16 md:w-16" />}
+                      {optLabel && <span className="text-sm text-gray-800 md:text-base">{optLabel}</span>}
+                      {isSelected && <span className={`ml-auto ${currentQuestion.question_type === 'rating' ? 'text-violet-500' : 'text-[#0069b0]'}`}>✓</span>}
                     </button>
                   )
                 })}
+                </>
+                )}
               </div>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Main content ── */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-lg mx-auto px-4 py-5">
-          <div className="bg-white rounded-md border border-[#E5E7EF] p-5 shadow-sm">
-            {/* Question number badge */}
-            <div className="flex items-center gap-2 mb-4">
-              <span className="w-8 h-8 flex items-center justify-center rounded-md bg-[#0069b0]/[0.06] text-[11px] font-bold text-[#0069b0]">
-                {currentIndex + 1}
-              </span>
-              <div className="h-px flex-1 bg-[#F0F1F5]" />
-              <span className="text-[10px] font-bold text-[#8B90A0] bg-[#F4F5F8] px-2 py-0.5 rounded-full">
-                {currentQuestion.points} poin
-              </span>
-            </div>
-
-            {/* Question image */}
-            {currentQuestion.image_url && (
-              <div className="mb-4 flex justify-center">
-                <img src={currentQuestion.image_url} alt="Soal"
-                  className="max-h-56 w-auto max-w-full rounded-md border border-[#E5E7EF] object-contain" />
-              </div>
-            )}
-
-            {/* Question text */}
-            {currentQuestion.section && (
-              <div className="mb-2">
-                <span className="inline-block rounded-full bg-[#0069b0]/[0.06] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#0069b0]">
-                  {currentQuestion.section}
-                </span>
-              </div>
-            )}
-            <p className="text-sm font-semibold text-[#14182B] leading-relaxed">
-              {currentQuestion.question}
-            </p>
-
-            {/* Options */}
-            {currentQuestion.question_type === 'essay' ? (
-              <div className="mt-5">
-                <label className="block text-[10px] font-bold uppercase tracking-wide text-[#4B5063] mb-2">Jawaban Anda</label>
-                <textarea
-                  value={essayDrafts[currentQuestion.id] ?? ''}
-                  onChange={e => updateEssay(currentQuestion.id, e.target.value)}
-                  disabled={isSubmitting}
-                  rows={5}
-                  placeholder="Tulis jawaban esai Anda di sini..."
-                  className="w-full text-[13px] leading-relaxed border-2 border-[#F0F1F5] rounded-md px-4 py-3.5 focus:outline-none focus:border-amber-400 focus:bg-amber-50/30 transition-colors resize-y"
-                />
-                <div className="flex items-center justify-between mt-1.5">
-                  <p className="text-[10px] font-medium text-[#8B90A0]">Jawaban tersimpan otomatis · Esai dinilai oleh pengajar</p>
-                  <span className="text-[10px] font-bold text-[#8B90A0]">{(essayDrafts[currentQuestion.id] ?? '').length} karakter</span>
-                </div>
-              </div>
-            ) : (
-              <div className="mt-5 space-y-2.5">
-              {currentQuestion.question_type === 'rating' && (
-                <p className="text-[10px] font-bold text-violet-600 uppercase tracking-wide mb-1">
-                  Skala penilaian 1–{currentQuestion.rating_max || currentQuestion.options.length} — pilih salah satu
-                </p>
-              )}
-              {currentQuestion.options.map((opt, oi) => {
-                const isSelected = selected[currentQuestion.id] === oi
-                const optLabel = typeof opt === 'string' ? opt : (opt?.text ?? '')
-                const optImg = typeof opt === 'string' ? null : (opt?.image_url || null)
-                const badgeLabel = currentQuestion.question_type === 'rating' ? optLabel : String.fromCharCode(65 + oi)
-                return (
-                  <button key={oi} onClick={() => selectAnswer(oi)} disabled={isSaving}
-                    className={`w-full flex items-center gap-3 text-left px-4 py-3.5 rounded-md border-2 transition-all disabled:opacity-50 ${
-                      isSelected
-                        ? currentQuestion.question_type === 'rating'
-                          ? 'border-violet-500 bg-violet-50'
-                          : 'border-[#0069b0] bg-[#0069b0]/[0.04]'
-                        : 'border-[#F0F1F5] bg-white hover:border-[#D6D9E1] hover:bg-[#FAFBFC]'
-                    }`}>
-                    <span className={`w-8 h-8 flex items-center justify-center rounded-md text-[11px] font-bold shrink-0 transition-colors ${
-                      isSelected
-                        ? currentQuestion.question_type === 'rating'
-                          ? 'bg-violet-500 text-white'
-                          : 'bg-[#0069b0] text-white'
-                        : 'bg-[#F4F5F8] text-[#8B90A0]'
-                    }`}>
-                      {badgeLabel}
-                    </span>
-                    {optImg && <img src={optImg} alt="" className="h-14 w-14 shrink-0 rounded-md border border-[#F0F1F5] object-cover" />}
-                    <span className={`text-[13px] flex-1 ${
-                      isSelected
-                        ? currentQuestion.question_type === 'rating'
-                          ? 'font-bold text-violet-600'
-                          : 'font-bold text-[#0069b0]'
-                        : 'font-medium text-[#4B5063]'
-                    }`}>
-                      {optLabel}
-                    </span>
-                    {isSelected && (
-                      <CheckCircle2 size={18} className={`shrink-0 ${
-                        currentQuestion.question_type === 'rating' ? 'text-violet-500' : 'text-[#0069b0]'
-                      }`} />
-                    )}
-                  </button>
-                )
-              })}
-              </div>
-            )}
           </div>
         </div>
       </div>
 
-      {/* ── Footer navigation ── */}
-      <div className="bg-white border-t border-[#E5E7EF] px-4 py-3 shadow-sm">
-        <div className="max-w-lg mx-auto flex items-center gap-3">
-          <button onClick={() => setCurrentIndex(i => Math.max(0, i - 1))} disabled={isFirst}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-md border border-[#E5E7EF] text-[12px] font-bold text-[#4B5063] hover:bg-[#F4F5F8] transition-colors disabled:opacity-40 disabled:pointer-events-none">
-            <ArrowLeft size={14} /> Kembali
+      {/* ── Footer ── */}
+      <div className="flex items-center justify-between gap-2 bg-[#0b2c45] px-3 py-2 md:px-6">
+        <button
+          onClick={() => toggleFlag(currentIndex)}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-[#0c4a73] transition-colors hover:bg-[#0e5c8f] md:h-9 md:w-10"
+          aria-label="Tandai soal"
+        >
+          <svg className={`h-4 w-4 ${flagged.has(currentIndex) ? 'fill-[#fbd34d]' : 'fill-white'}`} viewBox="0 0 24 24">
+            <path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z" />
+          </svg>
+        </button>
+
+        <div className="flex flex-1 items-center justify-end gap-2 md:gap-3">
+          <button
+            onClick={() => setCurrentIndex(i => Math.max(0, i - 1))}
+            disabled={currentIndex === 0}
+            className="rounded bg-[#0c4a73] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0e5c8f] disabled:opacity-50 md:px-5"
+          >
+            &lt; Kembali
           </button>
 
-          <div className="flex-1" />
-
           {!isLast ? (
-            <button onClick={() => setCurrentIndex(i => Math.min(questions.length - 1, i + 1))}
-              className="flex items-center gap-1.5 px-5 py-2.5 rounded-md bg-[#0069b0] text-[12px] font-bold text-white hover:bg-[#004d7a] transition-colors">
-              Selanjutnya <ChevronRight size={14} />
+            <button
+              onClick={() => setCurrentIndex(i => Math.min(questions.length - 1, i + 1))}
+              className="rounded bg-[#0069b0] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#00568f] md:px-5"
+            >
+              Selanjutnya &gt;
             </button>
           ) : (
-            <button onClick={submitManually} disabled={isSubmitting}
-              className="flex items-center gap-1.5 px-5 py-2.5 rounded-md bg-emerald-600 text-[12px] font-bold text-white hover:bg-emerald-700 transition-colors disabled:opacity-50">
-              <CheckCircle2 size={14} />
-              {isSubmitting ? 'Mengumpulkan...' : 'Selesai & Kumpulkan'}
+            <button
+              onClick={submitManually}
+              disabled={isSubmitting}
+              className="rounded bg-[#0069b0] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#00568f] disabled:opacity-60"
+            >
+              {isSubmitting ? 'Mengumpulkan...' : 'Selesai'}
             </button>
           )}
         </div>
-      </div>
       </div>
     </div>
   )

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   BookOpen, Plus, Edit3, Trash2, Search, X, Image as ImageIcon, FileText,
-  ListChecks, Eye, ChevronUp, ChevronDown, Camera, Clock, Repeat,
+  ListChecks, Eye, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Camera, Clock, Repeat,
   Award, Users, UserCheck, Pencil, Loader2, ArrowLeft, Video, UploadCloud, Upload, Mic, RotateCcw,
   Settings, LayoutGrid, ShieldCheck, Link2, Building2, Layers, Settings2,
 } from 'lucide-react'
@@ -262,6 +262,8 @@ export default function DataCourse() {
   const [questions, setQuestions] = useState<Question[]>([])
   const [quizSections, setQuizSections] = useState<SectionItem[]>([])
   const [qLoading, setQLoading] = useState(false)
+  const [qPage, setQPage] = useState(1)
+  const qPerPage = 10
   const [showQuestionModal, setShowQuestionModal] = useState(false)
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null)
   const [qForm, setQForm] = useState({ ...emptyQuestionForm })
@@ -743,14 +745,17 @@ export default function DataCourse() {
     setActiveQuizPaket(paket)
     activePaketIdRef.current = paket.id
     setView('quiz-questions')
-    if (!quiet) setQLoading(true)
-    adminQuizApi.questions(paket.id).then(res => {
-      if (activePaketIdRef.current === paket.id) setQuestions(res.data.questions || [])
-    }).catch(() => {
-      if (activePaketIdRef.current === paket.id) setQuestions([])
-    }).finally(() => {
-      if (activePaketIdRef.current === paket.id) setQLoading(false)
-    })
+    if (!quiet) setQPage(1)
+    if (!quiet) {
+      setQLoading(true)
+      adminQuizApi.questions(paket.id).then(res => {
+        if (activePaketIdRef.current === paket.id) setQuestions(res.data.questions || [])
+      }).catch(() => {
+        if (activePaketIdRef.current === paket.id) setQuestions([])
+      }).finally(() => {
+        if (activePaketIdRef.current === paket.id) setQLoading(false)
+      })
+    }
     adminQuizApi.sections(paket.id).then(async res => {
       const existing = res.data.sections || []
       if (activePaketIdRef.current !== paket.id) return
@@ -797,7 +802,10 @@ export default function DataCourse() {
     setActiveQuizPaket(null)
   }
 
-  const questionGroups = questions.reduce<{ section: string; items: Question[] }[]>((acc, q) => {
+  const qTotalPages = Math.max(1, Math.ceil(questions.length / qPerPage))
+  const safeQPage = Math.min(qPage, qTotalPages)
+  const qPageItems = questions.slice((safeQPage - 1) * qPerPage, safeQPage * qPerPage)
+  const questionGroups = qPageItems.reduce<{ section: string; items: Question[] }[]>((acc, q) => {
     const sec = q.section?.name?.trim() || ''
     const last = acc[acc.length - 1]
     if (last && last.section === sec) { last.items.push(q); return acc }
@@ -2352,6 +2360,14 @@ export default function DataCourse() {
                                     </button>
                                   </div>
                                 </div>
+                                {(() => {
+                                  const qMediaRaw = q.image_url || q.image_path
+                                  const qMediaUrl = qMediaRaw && !qMediaRaw.startsWith('http') ? `${APP_URL}/storage/${qMediaRaw}` : qMediaRaw
+                                  return qMediaUrl ? (
+                                    <img src={qMediaUrl} alt="Gambar soal"
+                                      className="mt-3 max-h-44 rounded-lg border border-slate-200 object-contain" />
+                                  ) : null
+                                })()}
                                 <div className="mt-3 space-y-2">
                                   {q.question_type === 'rating' ? (
                                     <div className="flex items-center gap-2.5 text-sm px-3.5 py-2 rounded-lg bg-violet-50 text-violet-700 font-semibold">
@@ -2384,6 +2400,41 @@ export default function DataCourse() {
                     </div>
                   </div>
                 ))}
+
+                {qTotalPages > 1 && (
+                  <div className="flex items-center justify-between bg-white rounded-lg shadow-sm border border-slate-200 px-4 py-3">
+                    <button
+                      onClick={() => setQPage(safeQPage - 1)}
+                      disabled={safeQPage <= 1}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-[#0E6187] disabled:opacity-40 disabled:hover:text-slate-600 transition-colors">
+                      <ChevronLeft size={14} /> Sebelumnya
+                    </button>
+                    <div className="flex items-center gap-1">
+                      {(() => {
+                        const pages: (number | '…')[] = []
+                        const total = qTotalPages
+                        let start = Math.max(1, safeQPage - 2)
+                        let end = Math.min(total, start + 4)
+                        start = Math.max(1, end - 4)
+                        if (start > 1) pages.push(1, '…')
+                        for (let p = start; p <= end; p++) pages.push(p)
+                        if (end < total) pages.push('…', total)
+                        return pages.map((p, idx) => p === '…'
+                          ? <span key={`e${idx}`} className="px-1 text-xs text-slate-400">…</span>
+                          : <button key={p} onClick={() => setQPage(p as number)}
+                              className={`w-8 h-8 rounded-lg text-xs font-bold transition-colors ${p === safeQPage ? 'bg-[#0E6187] text-white' : 'text-slate-500 hover:bg-slate-100'}`}>
+                              {p}
+                            </button>)
+                      })()}
+                    </div>
+                    <button
+                      onClick={() => setQPage(safeQPage + 1)}
+                      disabled={safeQPage >= qTotalPages}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-[#0E6187] disabled:opacity-40 disabled:hover:text-slate-600 transition-colors">
+                      Berikutnya <ChevronRight size={14} />
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
