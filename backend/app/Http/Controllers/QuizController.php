@@ -129,6 +129,8 @@ class QuizController extends Controller
             'total_count' => $attempt->paket->questions->count(),
             'auto_submitted' => $auto ? true : $attempt->auto_submitted,
         ]);
+
+        WebcamSnapshotUpdated::dispatch((int) $attempt->quiz_paket_id, (int) $attempt->id);
     }
 
     private function expireIfTimeUp(QuizAttempt $attempt)
@@ -588,6 +590,7 @@ class QuizController extends Controller
                 ['quiz_attempt_id' => $attempt->id, 'quiz_question_id' => $question->id],
                 ['answer_text' => $text !== '' ? $text : null, 'selected_index' => null]
             );
+            WebcamSnapshotUpdated::dispatch((int) $attempt->quiz_paket_id, (int) $attempt->id);
             return response()->json([
                 'question_id' => $question->id,
                 'answer_text' => $answer->answer_text,
@@ -605,6 +608,8 @@ class QuizController extends Controller
             ['quiz_attempt_id' => $attempt->id, 'quiz_question_id' => $question->id],
             ['selected_index' => $savedIndex, 'answer_text' => null]
         );
+
+        WebcamSnapshotUpdated::dispatch((int) $attempt->quiz_paket_id, (int) $attempt->id);
 
         return response()->json([
             'question_id' => $question->id,

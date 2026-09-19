@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   BookOpen, Plus, FileText, X, Image as ImageIcon, Download, Trash2,
   ChevronRight, ArrowLeft, Layers, Search, Video, GripVertical, Edit3,
-  ChevronUp, ChevronDown, Upload, FolderOpen, ListChecks, Eye, EyeOff, Trophy, Users, History, HelpCircle, Check, Lock, Activity
+  ChevronUp, ChevronDown, Upload, FolderOpen, ListChecks, Eye, EyeOff, Trophy, Users, History, HelpCircle, Check, Lock, Activity, RefreshCw
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -185,6 +185,25 @@ export default function GuruLMS() {
   const [showRankModal, setShowRankModal] = useState(false)
   const [rankData, setRankData] = useState<RankPaket[]>([])
   const [rankLoading, setRankLoading] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+
+  const handleSyncKelas = async () => {
+    setSyncing(true)
+    try {
+      const res = await guruLmsApi.syncKelas()
+      const data = res.data
+      if (typeof data?.synced === 'number' && data.synced > 0) {
+        Swal.fire({ icon: 'success', title: 'Sinkronisasi Berhasil', text: data.message || `${data.synced} kelas disinkronkan`, timer: 2000, showConfirmButton: false })
+      } else {
+        Swal.fire({ icon: 'info', title: 'Semua Sudah Sinkron', text: data?.message || 'Semua kelas sudah tersinkron ke LMS', timer: 2000, showConfirmButton: false })
+      }
+      fetchCourses()
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal sinkronisasi kelas ke LMS' })
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   const [paketQuestionsMap, setPaketQuestionsMap] = useState<Record<number, any[]>>({})
   const [previewPaketId, setPreviewPaketId] = useState<number | null>(null)
@@ -1647,6 +1666,10 @@ export default function GuruLMS() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <button onClick={handleSyncKelas} disabled={syncing}
+                className="flex items-center gap-1.5 border border-gray-300 text-gray-600 px-4 py-2.5 rounded-lg text-[11px] font-bold bg-white hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50">
+                <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} /> {syncing ? 'Sinkronisasi...' : 'Sinkronisasi'}
+              </button>
               <button onClick={openRankModal}
                 className="flex items-center gap-1.5 border border-[#0069b0] text-[#0069b0] px-4 py-2.5 rounded-lg text-[11px] font-bold bg-white hover:bg-[#0069b0]/5 transition-colors shadow-sm">
                 <Trophy size={14} /> Rank

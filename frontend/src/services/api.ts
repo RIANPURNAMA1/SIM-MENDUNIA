@@ -642,6 +642,7 @@ export const aiSettingApi = {
 
 export const guruLmsApi = {
   courses: () => api.get('/guru/lms-courses'),
+  syncKelas: () => api.post('/guru/lms-sync-kelas'),
   courseDetail: (id: number) => api.get(`/guru/lms-courses/${id}`),
   storeCourse: (data: FormData) => api.post('/guru/lms-courses', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   updateCourse: (id: number, data: FormData) => api.post(`/guru/lms-courses/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),

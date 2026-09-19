@@ -522,6 +522,75 @@ class GuruDashboardController extends Controller
         ]);
     }
 
+    public function lmsSyncKelas()
+    {
+        $user = Auth::guard('sanctum')->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $kelasList = KelasSensei::where('user_id', $user->id)
+            ->with('batchRelasi')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $existingKelasIds = Course::whereNotNull('kelas_sensei_id')
+            ->pluck('kelas_sensei_id')
+            ->filter()
+            ->all();
+
+        $synced = [];
+        $skipped = 0;
+
+        foreach ($kelasList as $kelas) {
+            if (in_array((int) $kelas->id, $existingKelasIds)) {
+                $skipped++;
+                continue;
+            }
+
+            $nextSort = (Course::where('user_id', $user->id)->max('sort') ?? 0) + 1;
+            $nama = $kelas->nama_kelas
+                ?: ($kelas->batchRelasi?->nama_batch
+                    ?: ('Level ' . $kelas->level . ($kelas->batch_id ? ' (Batch #' . $kelas->batch_id . ')' : '')));
+
+            $course = Course::create([
+                'user_id' => $user->id,
+                'batch_id' => $kelas->batch_id,
+                'kelas_sensei_id' => $kelas->id,
+                'title' => $nama,
+                'description' => $kelas->catatan,
+                'level' => $kelas->level,
+                'sort' => $nextSort,
+                'status' => $kelas->status ?? 'aktif',
+            ]);
+
+            $dates = $kelas->daftarPertemuan();
+            $sort = 1;
+            foreach ($dates as $date) {
+                $label = Carbon::parse($date)->translatedFormat('d M Y');
+                Lesson::create([
+                    'course_id' => $course->id,
+                    'title' => "Pertemuan {$sort}",
+                    'content' => '<p><strong>Pertemuan ' . $sort . '</strong><br/>' . e($label) . '</p>',
+                    'sort' => $sort,
+                    'status' => 'aktif',
+                ]);
+                $sort++;
+            }
+
+            $synced[] = $course->id;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => count($synced) > 0
+                ? count($synced) . ' kelas berhasil disinkronkan ke LMS'
+                : 'Semua kelas sudah sinkron dengan LMS',
+            'synced' => count($synced),
+            'skipped' => $skipped,
+        ]);
+    }
+
     public function lmsCourseDetail($id)
     {
         $user = Auth::guard('sanctum')->user();

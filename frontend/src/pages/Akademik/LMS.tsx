@@ -26,7 +26,10 @@ interface Course {
   kelas_sensei_id: number | null
   lessons_count: number
   sort: number
+  status: string
 }
+
+const isCourseOpen = (course: { status?: string }) => (course.status ?? 'aktif') === 'aktif'
 
 interface Lesson {
   id: number
@@ -347,6 +350,16 @@ export default function LMS() {
   }
 
   const openCourse = (course: Course) => {
+    if (!isCourseOpen(course)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Kursus Terkunci',
+        text: 'Kursus "' + course.title + '" sedang ditutup. Silakan hubungi pengajar atau admin.',
+        confirmButtonColor: '#0E6187',
+        confirmButtonText: 'OK'
+      })
+      return
+    }
     setSelectedCourse(course)
     setSelectedLesson(null)
     setLessonDetail(null)
@@ -363,6 +376,16 @@ export default function LMS() {
   }
 
   const handleCourseClick = (course: Course) => {
+    if (!isCourseOpen(course)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Kursus Terkunci',
+        text: 'Kursus "' + course.title + '" sedang ditutup. Silakan hubungi pengajar atau admin.',
+        confirmButtonColor: '#0E6187',
+        confirmButtonText: 'OK'
+      })
+      return
+    }
     openCourse(course)
     navigate(`/siswa-dashboard/lms/${course.id}`)
   }
@@ -2139,12 +2162,12 @@ export default function LMS() {
 <div className="grid grid-cols-2 gap-2.5 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {visibleCourses.map(course => (
 <button key={course.id} onClick={() => handleCourseClick(course)}
-                  className="bg-white rounded-md shadow-sm border border-gray-200 overflow-hidden hover:shadow-md hover:shadow-gray-200/50 hover:border-[#0E6187]/40 transition-all text-left group flex flex-col">
+                  className={`bg-white rounded-md shadow-sm border border-gray-200 overflow-hidden hover:shadow-md hover:shadow-gray-200/50 hover:border-[#0E6187]/40 transition-all text-left group flex flex-col ${!isCourseOpen(course) ? 'opacity-85' : ''}`}>
                   <div className="aspect-[4/3] bg-gradient-to-br from-[#0E6187] to-[#1a3355] flex items-center justify-center relative overflow-hidden shrink-0">
                     {course.image ? (
-                      <img src={`${APP_URL}/storage/${course.image}`} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <img src={`${APP_URL}/storage/${course.image}`} alt="" className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${!isCourseOpen(course) ? 'grayscale' : ''}`} />
                     ) : (
-                      <img src={DEFAULT_COURSE_COVER} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <img src={DEFAULT_COURSE_COVER} alt="" className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${!isCourseOpen(course) ? 'grayscale' : ''}`} />
                     )}
                     <div className="absolute inset-0 bg-[#0E6187]/40" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
@@ -2153,6 +2176,14 @@ export default function LMS() {
                         <span className="inline-block rounded-full bg-white/90 px-2 py-0.5 text-[8px] font-bold text-[#0E6187] shadow-sm">
                           {course.category.name}
                         </span>
+                      </div>
+                    )}
+                    {!isCourseOpen(course) && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/35">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 ring-1 ring-white/40 backdrop-blur">
+                          <Lock size={16} className="text-white" />
+                        </span>
+                        <span className="rounded-full bg-black/50 px-2 py-0.5 text-[8px] sm:text-[9px] font-bold text-white ring-1 ring-white/20">Terkunci</span>
                       </div>
                     )}
                     <span className="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded-full bg-black/35 px-2 py-0.5 text-[8px] sm:text-[9px] font-bold text-white ring-1 ring-white/20 backdrop-blur">
@@ -2174,9 +2205,15 @@ export default function LMS() {
                           Level {course.level}
                         </span>
                       ) : <span />}
+                      {!isCourseOpen(course) ? (
+                        <span className="flex items-center gap-1 text-[9px] sm:text-[10px] font-bold text-slate-400 whitespace-nowrap">
+                          <Lock size={10} /> Terkunci
+                        </span>
+                      ) : (
                       <span className="flex items-center gap-0.5 text-[9px] sm:text-[10px] font-bold text-slate-400 group-hover:text-[#0E6187] whitespace-nowrap transition-colors">
                         Buka <ChevronRight size={10} />
                       </span>
+                      )}
                     </div>
                   </div>
                 </button>
