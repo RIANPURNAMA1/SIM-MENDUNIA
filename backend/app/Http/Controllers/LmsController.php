@@ -386,13 +386,14 @@ class LmsController extends Controller
 
     // ========== Student Assignments ==========
 
-    public function courseAssignments($courseId)
+    public function courseAssignments(Request $request, $courseId)
     {
         $siswa = $this->getSiswa();
         if (!$siswa) return response()->json(['message' => 'Siswa not found'], 404);
 
         $assignments = LmsAssignment::withCount('submissions')
             ->where('course_id', $courseId)
+            ->when($request->filled('lesson_id'), fn ($q) => $q->where('lesson_id', $request->integer('lesson_id')))
             ->aktif()
             ->orderBy('created_at', 'desc')
             ->get();
@@ -420,6 +421,7 @@ class LmsController extends Controller
             return [
                 'id' => $a->id,
                 'course_id' => $a->course_id,
+                'lesson_id' => $a->lesson_id,
                 'title' => $a->title,
                 'description' => $a->description,
                 'file_path' => $a->file_path,

@@ -1186,7 +1186,16 @@ class GuruDashboardController extends Controller
 
     // ========== Guru Assignment Management ==========
 
-    public function lmsAssignments($courseId)
+    private function assertLessonBelongsToCourse($courseId, $lessonId)
+    {
+        if (!$lessonId) return;
+        $lesson = Lesson::find($lessonId);
+        if (!$lesson || (int) $lesson->course_id !== (int) $courseId) {
+            abort(422, 'Pertemuan tidak sesuai dengan kursus tugas ini.');
+        }
+    }
+
+    public function lmsAssignments(Request $request, $courseId)
     {
         $user = Auth::guard('sanctum')->user();
         if (!$user) return response()->json(['message' => 'Unauthenticated'], 401);
@@ -1194,8 +1203,10 @@ class GuruDashboardController extends Controller
         $course = Course::findOrFail($courseId);
         $course->can_manage = (int) $course->user_id === (int) $user->id;
         $assignments = LmsAssignment::where('course_id', $courseId)
+            ->with('lesson')
             ->with('pakets')
             ->withCount('submissions')
+            ->when($request->filled('lesson_id'), fn ($q) => $q->where('lesson_id', $request->integer('lesson_id')))
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -1221,6 +1232,9 @@ class GuruDashboardController extends Controller
                     'passing_score' => (int) $p->passing_score,
                 ])->values();
             }
+            if ($a->lesson) {
+                $a->lesson = ['id' => $a->lesson->id, 'title' => $a->lesson->title, 'sort' => $a->lesson->sort];
+            }
             return $a;
         });
         return response()->json([
@@ -1237,6 +1251,7 @@ class GuruDashboardController extends Controller
 
         $data = $request->validate([
             'course_id' => 'required|exists:lms_courses,id',
+            'lesson_id' => 'nullable|exists:lms_lessons,id',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'due_date' => 'nullable|date',
@@ -1248,6 +1263,7 @@ class GuruDashboardController extends Controller
         ]);
 
         $this->courseOwnedByGuru($data['course_id'], $user);
+        $this->assertLessonBelongsToCourse($data['course_id'], $data['lesson_id'] ?? null);
 
         if ($request->hasFile('file')) {
             $data['file_path'] = $request->file('file')->store('lms/assignments', 'public');
@@ -1275,10 +1291,15 @@ class GuruDashboardController extends Controller
             'due_date' => 'nullable|date',
             'max_score' => 'nullable|integer|min:1|max:999',
             'status' => 'nullable|in:aktif,nonaktif',
+            'lesson_id' => 'nullable|exists:lms_lessons,id',
             'pakets' => 'nullable|array',
             'pakets.*' => 'exists:quiz_pakets,id',
             'file' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt,jpg,jpeg,png,zip,rar|max:51200',
         ]);
+
+        if (array_key_exists('lesson_id', $data)) {
+            $this->assertLessonBelongsToCourse($assignment->course_id, $data['lesson_id']);
+        }
 
         if ($request->hasFile('file')) {
             if ($assignment->file_path) {

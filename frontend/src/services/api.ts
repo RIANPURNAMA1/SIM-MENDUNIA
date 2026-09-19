@@ -519,7 +519,7 @@ export const lmsApi = {
   readProgress: (id: number, data: { seconds: number }) => api.post(`/lms/lessons/${id}/read-progress`, data),
   readComplete: (id: number) => api.post(`/lms/lessons/${id}/read-complete`),
   // Student Assignments
-  courseAssignments: (courseId: number) => api.get(`/lms/courses/${courseId}/assignments`),
+  courseAssignments: (courseId: number, lessonId?: number | null) => api.get(`/lms/courses/${courseId}/assignments`, { params: lessonId ? { lesson_id: lessonId } : undefined }),
   submitAssignment: (assignmentId: number, data: FormData) => api.post(`/lms/assignments/${assignmentId}/submit`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   nilaiLms: () => api.get('/siswa/nilai-lms'),
   evaluations: () => api.get('/siswa/evaluations'),
@@ -566,7 +566,7 @@ export const lmsAdminApi = {
 }
 
 export const assignmentApi = {
-  list: (courseId: number) => api.get(`/guru/assignments/${courseId}`),
+  list: (courseId: number, lessonId?: number | null) => api.get(`/guru/assignments/${courseId}`, { params: lessonId ? { lesson_id: lessonId } : undefined }),
   store: (data: FormData) => api.post('/guru/assignments', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   update: (id: number, data: FormData) => api.post(`/guru/assignments/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   delete: (id: number) => api.delete(`/guru/assignments/${id}`),

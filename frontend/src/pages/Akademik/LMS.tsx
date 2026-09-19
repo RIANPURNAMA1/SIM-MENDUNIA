@@ -55,6 +55,7 @@ interface AssignmentSubmission {
 interface AssignmentItem {
   id: number
   course_id: number
+  lesson_id?: number | null
   title: string
   description: string | null
   file_path: string | null
@@ -1002,10 +1003,11 @@ export default function LMS() {
       : currentIdx === 0 ? courseQuizzes : [])
     const materiCount = (lessonDetail?.slides?.length || 0) + (lessonDetail?.materis?.length || 0) + (selectedLesson.content || selectedLesson.video_url || selectedLesson.file_path ? 1 : 0)
     const courseInfo = [selectedCourse.batch?.nama_batch && `Batch ${selectedCourse.batch.nama_batch}`, selectedCourse.level && `Level ${selectedCourse.level}`].filter(Boolean).join(' · ')
+    const lessonTasks = assignments.filter(a => a.lesson_id === selectedLesson.id)
     const tabItems = [
       { key: 'materi' as const, label: 'Materi', icon: BookOpen, count: undefined as number | undefined },
       { key: 'quiz' as const, label: 'Quiz', icon: ListChecks, count: lessonQuizzes.length || undefined },
-      { key: 'tugas' as const, label: 'Tugas', icon: ClipboardList, count: assignments.length || undefined },
+      { key: 'tugas' as const, label: 'Tugas', icon: ClipboardList, count: lessonTasks.length || undefined },
       { key: 'rekap' as const, label: 'Rekap', icon: FileText, count: lessonDetail?.recap ? 1 : undefined },
     ]
 
@@ -1380,19 +1382,19 @@ export default function LMS() {
                     </span>
                     Tugas
                   </h3>
-                  <span className="text-[10px] font-bold text-gray-400">{assignments.length} tugas</span>
+                  <span className="text-[10px] font-bold text-gray-400">{lessonTasks.length} tugas</span>
                 </div>
                 <div className="p-4 space-y-2.5">
-                  {assignments.length === 0 ? (
+                  {lessonTasks.length === 0 ? (
                     <div className="py-10 text-center">
                       <div className="w-14 h-14 rounded-md bg-gray-50 flex items-center justify-center mx-auto mb-3">
                         <ClipboardList size={26} className="text-gray-300" />
                       </div>
                       <p className="text-sm font-semibold text-gray-500">Belum ada tugas</p>
-                      <p className="text-xs text-gray-400 mt-1">Tugas akan segera tersedia</p>
+                      <p className="text-xs text-gray-400 mt-1">Tugas untuk pertemuan ini belum tersedia</p>
                     </div>
                   ) : (
-                    assignments.map(a => renderAssignmentCard(a))
+                    lessonTasks.map(a => renderAssignmentCard(a))
                   )}
                 </div>
               </div>
@@ -1423,7 +1425,7 @@ export default function LMS() {
                     {[
                       { key: 'materi' as const, label: 'Materi', icon: BookOpen, count: materiCount },
                       { key: 'quiz' as const, label: 'Quiz', icon: ListChecks, count: lessonQuizzes.length },
-                      { key: 'tugas' as const, label: 'Tugas', icon: ClipboardList, count: assignments.length },
+                      { key: 'tugas' as const, label: 'Tugas', icon: ClipboardList, count: lessonTasks.length },
                     ].map(stat => (
                       <div key={stat.key} className="rounded-lg bg-slate-50 border border-slate-100 px-3 py-2.5 text-center">
                         <div className="flex items-center justify-center gap-1 text-[9px] font-bold text-slate-400 uppercase tracking-wide">
