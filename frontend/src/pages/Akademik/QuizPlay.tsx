@@ -46,14 +46,47 @@ const shuffleArray = <T,>(arr: T[]): T[] => {
   return a
 }
 
-function QuestionAudio({ src, maxPlays, plays, onPlay }: {
+function QuestionAudio({ src, maxPlays, plays, onCompleted }: {
   src: string
   maxPlays: number | null
   plays: number
-  onPlay: () => void
+  onCompleted: () => void
 }) {
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const furthestRef = useRef(0)
+  const countedRef = useRef(false)
+
   const locked = maxPlays !== null && plays >= maxPlays
   const remaining = maxPlays !== null ? Math.max(0, maxPlays - plays) : null
+
+  const handlePlay = () => {
+    countedRef.current = false
+  }
+
+  const handleTimeUpdate = () => {
+    const a = audioRef.current
+    if (a && !a.seeking) furthestRef.current = Math.max(furthestRef.current, a.currentTime)
+  }
+
+  const handleSeek = () => {
+    const a = audioRef.current
+    if (!a) return
+    // Blokir lompat ke depan: hanya boleh mundur ke posisi yang sudah didengarkan.
+    if (a.currentTime > furthestRef.current + 0.2) {
+      a.currentTime = furthestRef.current
+    }
+  }
+
+  const handleEnded = () => {
+    const a = audioRef.current
+    if (!a) return
+    furthestRef.current = 0
+    a.currentTime = 0
+    if (!countedRef.current) {
+      countedRef.current = true
+      onCompleted()
+    }
+  }
 
   return (
     <div className="mt-4 rounded-lg border border-[#c9e2f0] bg-white p-3">
@@ -77,11 +110,16 @@ function QuestionAudio({ src, maxPlays, plays, onPlay }: {
       ) : (
         <audio
           key={src}
+          ref={audioRef}
           src={src}
           controls
           preload="auto"
           className="mt-2 w-full h-9"
-          onPlay={onPlay}
+          onPlay={handlePlay}
+          onTimeUpdate={handleTimeUpdate}
+          onSeeking={handleSeek}
+          onSeeked={handleSeek}
+          onEnded={handleEnded}
         />
       )}
     </div>
@@ -783,7 +821,7 @@ const isAnswered = isAnsweredQ(q)
                       src={currentQuestion.audio_url}
                       maxPlays={currentQuestion.audio_max_plays ?? null}
                       plays={audioPlays[currentQuestion.id] ?? 0}
-                      onPlay={() => setAudioPlays(prev => ({ ...prev, [currentQuestion.id]: (prev[currentQuestion.id] ?? 0) + 1 }))}
+                      onCompleted={() => setAudioPlays(prev => ({ ...prev, [currentQuestion.id]: (prev[currentQuestion.id] ?? 0) + 1 }))}
                     />
                   )}
                   {currentQuestion.points > 0 && (
