@@ -575,7 +575,7 @@ export default function GuruLessonDetail() {
     }
     if (!qs || qs.length === 0) {
       return (
-        <div className="mt-3 px-4 py-6 bg-[#F4F5F8] rounded-xl text-center text-[11px] text-[#8B90A0] font-medium">
+        <div className="mt-3 px-4 py-6 bg-[#F4F5F8] rounded-md text-center text-[11px] text-[#8B90A0] font-medium">
           Paket ini belum punya soal. Tambahkan soal lewat halaman Paket Soal (bank) atau pilih paket lain dari bank.
         </div>
       )
@@ -583,14 +583,14 @@ export default function GuruLessonDetail() {
     return (
       <div className="mt-3 space-y-2.5">
         {qs.map((q, i) => (
-          <div key={q.id} className="bg-white rounded-xl border border-[#E5E7EF] p-4">
+          <div key={q.id} className="bg-white rounded-md border border-[#E5E7EF] p-4">
             <p className="text-xs font-bold text-[#14182B] leading-snug">{i + 1}. {q.question}</p>
             {q.section?.name && (
               <span className="mt-2 inline-block rounded-full bg-[#0069b0]/[0.06] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#0069b0]">{q.section.name}</span>
             )}
             <div className="mt-2 space-y-1.5">
               {q.question_type === 'rating' ? (
-                <div className="flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-lg bg-violet-50 text-violet-700 font-bold">
+                <div className="flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-md bg-violet-50 text-violet-700 font-bold">
                   <span className="px-1.5 py-0.5 rounded-full bg-violet-500 text-white text-[9px] font-bold shrink-0">SKALA</span>
                   <span>Rating 1–{q.rating_max || q.options.length}</span>
                   <span className="ml-auto text-[9.5px] font-bold text-violet-400 shrink-0">TANPA KUNCI</span>
@@ -600,7 +600,7 @@ export default function GuruLessonDetail() {
                 const optRaw = typeof opt === 'string' ? null : (opt?.image_url || opt?.image_path || null)
                 const optUrl = optRaw && !optRaw.startsWith('http') ? `${APP_URL}/storage/${optRaw}` : optRaw
                 return (
-                  <div key={oi} className={`flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-lg ${oi === q.correct_index ? 'bg-emerald-50 text-emerald-700 font-bold' : 'bg-[#F4F5F8] text-[#4B5063] font-medium'}`}>
+                  <div key={oi} className={`flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-md ${oi === q.correct_index ? 'bg-emerald-50 text-emerald-700 font-bold' : 'bg-[#F4F5F8] text-[#4B5063] font-medium'}`}>
                     <span className={`w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold shrink-0 ${oi === q.correct_index ? 'bg-emerald-500 text-white' : 'bg-[#E5E7EF] text-[#8B90A0]'}`}>
                       {String.fromCharCode(65 + oi)}
                     </span>
@@ -830,7 +830,7 @@ export default function GuruLessonDetail() {
             { key: 'materi' as 'materi', label: 'Materi', icon: BookOpen, count: undefined as number | undefined },
             { key: 'quiz' as 'quiz', label: 'Quiz', icon: HelpCircle, count: quizCount },
             { key: 'tugas' as 'tugas', label: 'Tugas', icon: ClipboardList, count: tasks.length },
-            { key: 'rekap' as 'rekap', label: 'Rekap Pertemuan', icon: Camera, count: recap ? 1 : undefined },
+            { key: 'rekap' as 'rekap', label: 'Rekap', icon: Camera, count: recap ? 1 : undefined },
           ]).map(tab => (
             <button key={tab.key} onClick={() => switchLessonTab(tab.key)}
               className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-3 text-[11px] font-bold border-b-2 transition-colors ${
@@ -864,7 +864,7 @@ export default function GuruLessonDetail() {
           </div>
           <div className="p-5 space-y-4">
             {lesson.video_url && (
-              <div className="aspect-video bg-black rounded-lg overflow-hidden">
+              <div className="aspect-video bg-black rounded-md overflow-hidden">
                 <iframe
                   src={getYouTubeEmbedUrl(lesson.video_url) || lesson.video_url}
                   className="w-full h-full" allowFullScreen title="Video Materi" />
@@ -880,8 +880,8 @@ export default function GuruLessonDetail() {
             )}
             {lesson.file_path && (
               <a href={`${APP_URL}/storage/${lesson.file_path}`} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-3 border border-[#E5E7EF] rounded-xl p-3 bg-[#F4F5F8]">
-                <div className="w-9 h-9 rounded-lg bg-rose-50 flex items-center justify-center shrink-0">
+                className="flex items-center gap-3 border border-[#E5E7EF] rounded-md p-3 bg-[#F4F5F8]">
+                <div className="w-9 h-9 rounded-md bg-rose-50 flex items-center justify-center shrink-0">
                   <FileText size={16} className="text-rose-500" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -904,15 +904,15 @@ export default function GuruLessonDetail() {
                 </div>
                 {canManage && (
                   <button onClick={openMateriPicker}
-                    className="flex items-center gap-1 text-[10px] font-bold text-[#0069b0] border border-[#0069b0]/30 bg-[#0069b0]/5 px-3 py-1.5 rounded-lg hover:bg-[#0069b0]/10 transition-colors">
+                    className="flex items-center gap-1 text-[10px] font-bold text-[#0069b0] border border-[#0069b0]/30 bg-[#0069b0]/5 px-3 py-1.5 rounded-md hover:bg-[#0069b0]/10 transition-colors">
                     <Plus size={11} /> Pilih Materi dari Bank
                   </button>
                 )}
               </div>
 
               {lessonMateris.length === 0 ? (
-                <div className="border border-dashed border-[#E5E7EF] rounded-xl p-5 text-center">
-                  <div className="w-10 h-10 mx-auto rounded-xl bg-[#0069b0]/[0.06] flex items-center justify-center mb-2">
+                <div className="border border-dashed border-[#E5E7EF] rounded-md p-5 text-center">
+                  <div className="w-10 h-10 mx-auto rounded-md bg-[#0069b0]/[0.06] flex items-center justify-center mb-2">
                     <Layers size={18} className="text-[#0069b0]" />
                   </div>
                   <p className="text-xs font-bold text-[#14182B]">Belum ada materi dari bank</p>
@@ -921,7 +921,7 @@ export default function GuruLessonDetail() {
                   </p>
                   {canManage && (
                     <button onClick={openMateriPicker}
-                      className="mt-3 inline-flex items-center gap-1 text-[11px] font-bold text-white bg-[#0069b0] px-3.5 py-2 rounded-lg hover:bg-[#004d7a] transition-colors mx-auto">
+                      className="mt-3 inline-flex items-center gap-1 text-[11px] font-bold text-white bg-[#0069b0] px-3.5 py-2 rounded-md hover:bg-[#004d7a] transition-colors mx-auto">
                       <Plus size={12} /> Pilih Materi dari Bank
                     </button>
                   )}
@@ -932,9 +932,9 @@ export default function GuruLessonDetail() {
                     const realContent = hasRealContent(m.content)
                     const hasIsi = !!m.video_url || realContent || !!m.file_path || (m.slides && m.slides.length > 0)
                     return (
-                      <div key={m.id} className="border border-[#E5E7EF] rounded-xl overflow-hidden bg-white">
+                      <div key={m.id} className="border border-[#E5E7EF] rounded-md overflow-hidden bg-white">
                         <div className="flex items-center gap-3 px-4 py-3 bg-[#F8F9FB] border-b border-[#E5E7EF]">
-                          <div className="w-9 h-9 rounded-lg bg-[#0069b0]/10 flex items-center justify-center shrink-0">
+                          <div className="w-9 h-9 rounded-md bg-[#0069b0]/10 flex items-center justify-center shrink-0">
                             {m.video_url ? <Video size={15} className="text-[#0069b0]" /> : realContent ? <BookOpen size={15} className="text-[#0069b0]" /> : m.file_path ? <FileText size={15} className="text-[#0069b0]" /> : <Layers size={15} className="text-[#0069b0]" />}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -951,7 +951,7 @@ export default function GuruLessonDetail() {
                           </div>
                           {canManage && (
                             <button onClick={() => handleRemoveMateri(m.id)}
-                              className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 transition-colors shrink-0"
+                              className="w-8 h-8 flex items-center justify-center rounded-md bg-red-50 hover:bg-red-100 transition-colors shrink-0"
                               title="Lepas materi dari pertemuan">
                               <Trash2 size={13} className="text-red-500" />
                             </button>
@@ -959,7 +959,7 @@ export default function GuruLessonDetail() {
                         </div>
                         <div className="p-4 space-y-3">
                           {m.video_url && (
-                            <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                            <div className="aspect-video bg-black rounded-md overflow-hidden">
                               <iframe
                                 src={getYouTubeEmbedUrl(m.video_url) || m.video_url}
                                 className="w-full h-full" allowFullScreen title={m.title} />
@@ -967,8 +967,8 @@ export default function GuruLessonDetail() {
                           )}
                           {realContent && (
                             <div className="text-sm text-[#4B5063] leading-relaxed
-                              [&_img]:max-w-full [&_img]:rounded-lg [&_img]:my-3 [&_img]:shadow-sm
-                              [&_iframe]:w-full [&_iframe]:aspect-video [&_iframe]:rounded-lg
+                              [&_img]:max-w-full [&_img]:rounded-md [&_img]:my-3 [&_img]:shadow-sm
+                              [&_iframe]:w-full [&_iframe]:aspect-video [&_iframe]:rounded-md
                               [&_a]:text-[#0069b0] [&_a]:underline [&_a]:break-words
                               [&_h1]:text-base [&_h1]:font-bold [&_h1]:text-[#14182B] [&_h1]:mt-4 [&_h1]:mb-2
                               [&_h2]:text-sm [&_h2]:font-bold [&_h2]:text-[#14182B] [&_h2]:mt-3 [&_h2]:mb-1.5
@@ -979,8 +979,8 @@ export default function GuruLessonDetail() {
                           )}
                           {m.file_path && (
                             <a href={m.file_url || `${APP_URL}/storage/${m.file_path}`} target="_blank" rel="noopener noreferrer"
-                              className="flex items-center gap-3 border border-[#E5E7EF] rounded-xl p-3 bg-white hover:bg-[#F8F9FB] transition-colors">
-                              <div className="w-9 h-9 rounded-lg bg-rose-50 flex items-center justify-center shrink-0">
+                              className="flex items-center gap-3 border border-[#E5E7EF] rounded-md p-3 bg-white hover:bg-[#F8F9FB] transition-colors">
+                              <div className="w-9 h-9 rounded-md bg-rose-50 flex items-center justify-center shrink-0">
                                 <FileText size={16} className="text-rose-500" />
                               </div>
                               <div className="flex-1 min-w-0">
@@ -1002,7 +1002,7 @@ export default function GuruLessonDetail() {
                             />
                           )}
                           {!hasIsi && (
-                            <div className="text-xs text-[#8B90A0] border border-dashed border-[#E5E7EF] rounded-lg p-4 text-center">
+                            <div className="text-xs text-[#8B90A0] border border-dashed border-[#E5E7EF] rounded-md p-4 text-center">
                               Materi ini belum memiliki konten.
                             </div>
                           )}
@@ -1019,106 +1019,108 @@ export default function GuruLessonDetail() {
 
         {/* Quiz */}
         {lessonTab === 'quiz' && (
-        <div className="bg-white rounded-md border border-[#E5E7EF] overflow-hidden">
-          <div className="px-5 py-4 border-b border-[#E5E7EF] flex items-center gap-2">
-            <HelpCircle size={15} className="text-[#0069b0]" />
-            <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Quiz</h3>
-          </div>
-          <div className="p-5">
-            {lessonPakets.length > 0 ? (
-              <div className="space-y-3">
-                {lessonPakets.map(paket => {
-                    const linkStatus = paket.pivot?.status
-                    return (
-                  <div key={paket.id} className="border border-[#E5E7EF] rounded-xl p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
-                        <ListChecks size={16} className="text-violet-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-xs font-semibold text-[#14182B] truncate">{paket.title}</p>
-                          {linkStatus && (
-                            <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${
-                              linkStatus === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'
-                            }`}>
-                              {linkStatus === 'aktif' ? 'Aktif' : 'Nonaktif'}
-                            </span>
-                          )}
+        <div className="space-y-3">
+          <div className="bg-white rounded-md border border-[#E5E7EF] overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#E5E7EF] flex items-center gap-2">
+              <HelpCircle size={15} className="text-[#0069b0]" />
+              <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Quiz</h3>
+              <span className="text-[10px] font-bold text-[#8B90A0]">{lessonPakets.length} paket</span>
+            </div>
+            <div className="p-5">
+              {lessonPakets.length > 0 ? (
+                <div className="space-y-3">
+                  {lessonPakets.map(paket => {
+                      const linkStatus = paket.pivot?.status
+                      return (
+                  <div key={paket.id} className="border border-[#E5E7EF] rounded-md p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="w-9 h-9 rounded-md bg-violet-50 flex items-center justify-center shrink-0">
+                          <ListChecks size={16} className="text-violet-600" />
                         </div>
-                        <p className="text-[10px] text-[#8B90A0]">
-                          {paket.questions_count != null ? `${paket.questions_count} soal` : 'Paket soal'}
-                          {paket.attempts_count != null ? ` · ${paket.attempts_count} percobaan` : ''}
-                        </p>
-                      </div>
-                      {canManage && (
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {linkStatus && (
-                            <button onClick={() => handleTogglePaketStatus(paket)}
-                              disabled={togglingPaketId === paket.id}
-                              title={linkStatus === 'aktif' ? 'Nonaktifkan quiz untuk siswa' : 'Aktifkan quiz untuk siswa'}
-                              className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border transition-colors disabled:opacity-50 ${
-                                linkStatus === 'aktif'
-                                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                                  : 'border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100'
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs font-semibold text-[#14182B] truncate">{paket.title}</p>
+                            {linkStatus && (
+                              <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${
+                                linkStatus === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'
                               }`}>
-                              {togglingPaketId === paket.id
-                                ? <Loader2 size={11} className="animate-spin" />
-                                : linkStatus === 'aktif' ? <Eye size={11} /> : <EyeOff size={11} />}
-                              {linkStatus === 'aktif' ? 'Nonaktifkan' : 'Aktifkan'}
-                            </button>
-                          )}
-                          <button onClick={() => handleRemovePaket(paket.id)}
-                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 transition-colors shrink-0"
-                            title="Lepas paket dari pertemuan">
-                            <Trash2 size={13} className="text-red-500" />
-                          </button>
+                                {linkStatus === 'aktif' ? 'Aktif' : 'Nonaktif'}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-[#8B90A0] mt-0.5">
+                            {paket.questions_count != null ? `${paket.questions_count} soal` : 'Paket soal'}
+                            {paket.attempts_count != null ? ` · ${paket.attempts_count} percobaan` : ''}
+                          </p>
                         </div>
+                      </div>
+                      {canManage && linkStatus && (
+                        <button onClick={() => handleTogglePaketStatus(paket)}
+                          disabled={togglingPaketId === paket.id}
+                          title={linkStatus === 'aktif' ? 'Nonaktifkan quiz untuk siswa' : 'Aktifkan quiz untuk siswa'}
+                          className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-md border transition-colors disabled:opacity-50 ${
+                            linkStatus === 'aktif'
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                              : 'border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100'
+                          }`}>
+                          {togglingPaketId === paket.id
+                            ? <Loader2 size={11} className="animate-spin" />
+                            : linkStatus === 'aktif' ? <EyeOff size={11} /> : <Eye size={11} />}
+                          {linkStatus === 'aktif' ? 'Nonaktifkan' : 'Aktifkan'}
+                        </button>
                       )}
                     </div>
-                    <button onClick={() => toggleQuizPreview(paket.id)}
-                      className="mt-3 inline-flex items-center gap-1 text-[11px] font-bold text-[#0069b0] border border-[#0069b0]/30 bg-[#0069b0]/5 px-3 py-1.5 rounded-lg hover:bg-[#0069b0]/10 transition-colors">
-                      Lihat Paket Soal <ChevronDown size={12} className={previewPaketId === paket.id ? 'rotate-180 transition-transform' : 'transition-transform'} />
-                    </button>
-                    <button onClick={() => navigate(`/guru-paket-soal/monitor/${paket.id}`, { state: { title: paket.title } })}
-                      className="mt-3 ml-1.5 inline-flex items-center gap-1 text-[11px] font-bold text-red-500 border border-red-200 bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors"
-                      title="Monitor langsung (kamera pengawas + progres pengerjaan)">
-                      <Activity size={12} /> Monitor
-                    </button>
-                    <button onClick={() => openQuizResults(paket)}
-                      className="mt-3 ml-1.5 inline-flex items-center gap-1 text-[11px] font-bold text-[#0069b0] border border-[#0069b0]/30 bg-[#0069b0]/5 px-3 py-1.5 rounded-lg hover:bg-[#0069b0]/10 transition-colors"
-                      title="Lihat hasil pengerjaan kandidat + kunci jawaban + waktu pengerjaan">
-                      <BarChart3 size={12} /> Hasil Quiz
-                    </button>
+
+                    <div className="mt-3 flex items-center gap-1.5">
+                      <button onClick={() => toggleQuizPreview(paket.id)}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0069b0] bg-[#0069b0]/5 px-3 py-1.5 rounded-md hover:bg-[#0069b0]/10 transition-colors">
+                        Lihat Paket Soal <ChevronDown size={12} className={previewPaketId === paket.id ? 'rotate-180 transition-transform' : 'transition-transform'} />
+                      </button>
+                      <button onClick={() => openQuizResults(paket)}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0069b0] bg-[#0069b0]/5 px-3 py-1.5 rounded-md hover:bg-[#0069b0]/10 transition-colors"
+                        title="Lihat hasil pengerjaan kandidat + kunci jawaban + waktu pengerjaan">
+                        <BarChart3 size={12} /> Monitor Hasil Quiz
+                      </button>
+                      {canManage && (
+                        <button onClick={() => handleRemovePaket(paket.id)}
+                          className="w-8 h-8 flex items-center justify-center rounded-md bg-red-50 hover:bg-red-100 transition-colors shrink-0 ml-auto"
+                          title="Lepas paket dari pertemuan">
+                          <Trash2 size={13} className="text-red-500" />
+                        </button>
+                      )}
+                    </div>
+
                     {renderQuizPreview(paket.id)}
                   </div>
-                    )
-                  })}
+                      )
+                    })}
 
-                {canManage && (
-                  <button onClick={openBankPicker}
-                    className="w-full flex items-center justify-center gap-1.5 border border-dashed border-[#0069b0]/40 bg-[#0069b0]/5 text-[#0069b0] px-3 py-2.5 rounded-xl text-[11px] font-bold hover:bg-[#0069b0]/10 transition-colors">
-                    <Plus size={13} /> Tambah Paket dari Bank
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="border border-dashed border-[#E5E7EF] rounded-xl p-6 text-center">
-                <div className="w-11 h-11 mx-auto rounded-xl bg-[#0069b0]/[0.06] flex items-center justify-center mb-2">
-                  <HelpCircle size={20} className="text-[#0069b0]" />
+                  {canManage && (
+                    <button onClick={openBankPicker}
+                      className="w-full flex items-center justify-center gap-1.5 border border-dashed border-[#0069b0]/40 bg-[#0069b0]/5 text-[#0069b0] px-3 py-2.5 rounded-md text-[11px] font-bold hover:bg-[#0069b0]/10 transition-colors">
+                      <Plus size={13} /> Tambah Paket dari Bank
+                    </button>
+                  )}
                 </div>
-                <p className="text-xs font-bold text-[#14182B]">Belum ada quiz</p>
-                <p className="text-[10px] text-[#8B90A0] font-medium mt-0.5">Pilih paket soal dari bank soal untuk pertemuan ini</p>
-                {canManage ? (
-                <button onClick={openBankPicker}
-                  className="mt-3 flex items-center gap-1 text-[11px] font-bold text-white bg-[#0069b0] px-3.5 py-2 rounded-lg hover:bg-[#004d7a] transition-colors mx-auto">
-                  <Plus size={12} /> Pilih Paket Soal dari Bank
-                </button>
               ) : (
-                <p className="mt-3 text-[10px] text-[#C5C8D4] font-medium text-center">Quiz belum tersedia untuk pertemuan ini</p>
+                <div className="border border-dashed border-[#E5E7EF] rounded-md p-6 text-center">
+                  <div className="w-11 h-11 mx-auto rounded-md bg-[#0069b0]/[0.06] flex items-center justify-center mb-2">
+                    <HelpCircle size={20} className="text-[#0069b0]" />
+                  </div>
+                  <p className="text-xs font-bold text-[#14182B]">Belum ada quiz</p>
+                  <p className="text-[10px] text-[#8B90A0] font-medium mt-0.5">Pilih paket soal dari bank soal untuk pertemuan ini</p>
+                  {canManage ? (
+                  <button onClick={openBankPicker}
+                    className="mt-3 flex items-center gap-1 text-[11px] font-bold text-white bg-[#0069b0] px-3.5 py-2 rounded-md hover:bg-[#004d7a] transition-colors mx-auto">
+                    <Plus size={12} /> Pilih Paket Soal dari Bank
+                  </button>
+                ) : (
+                  <p className="mt-3 text-[10px] text-[#C5C8D4] font-medium text-center">Quiz belum tersedia untuk pertemuan ini</p>
+                )}
+                </div>
               )}
-              </div>
-            )}
+            </div>
           </div>
         </div>
         )}
@@ -1136,8 +1138,8 @@ export default function GuruLessonDetail() {
             ) : (
               <div className="space-y-2.5">
                 {tasks.map(t => (
-                  <div key={t.id} className="flex items-center gap-3 border border-[#E5E7EF] rounded-xl p-3 bg-[#F4F5F8]">
-                    <div className="w-8 h-8 rounded-lg bg-[#0069b0]/10 flex items-center justify-center shrink-0">
+                  <div key={t.id} className="flex items-center gap-3 border border-[#E5E7EF] rounded-md p-3 bg-[#F4F5F8]">
+                    <div className="w-8 h-8 rounded-md bg-[#0069b0]/10 flex items-center justify-center shrink-0">
                       <FileText size={14} className="text-[#0069b0]" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -1172,13 +1174,13 @@ export default function GuruLessonDetail() {
             )}
 
             <button onClick={() => navigate(`/guru-lms/assignments/${lesson.course_id}`)}
-              className="mt-3 w-full flex items-center justify-center gap-1.5 border border-[#0069b0]/30 bg-[#0069b0]/5 text-[#0069b0] px-3 py-2.5 rounded-xl text-[11px] font-bold hover:bg-[#0069b0]/10 transition-colors">
+              className="mt-3 w-full flex items-center justify-center gap-1.5 border border-[#0069b0]/30 bg-[#0069b0]/5 text-[#0069b0] px-3 py-2.5 rounded-md text-[11px] font-bold hover:bg-[#0069b0]/10 transition-colors">
               <ListChecks size={13} /> Kelola Semua Tugas
             </button>
 
             {canManage && (
               <button onClick={() => { setTaskForm({ title: '', dueDate: '', maxScore: '100', description: '' }); setTaskFile(null); setTaskPakets([]); setShowTaskPaketPicker(false); setShowTaskModal(true) }}
-                className="mt-3 w-full flex items-center justify-center gap-1.5 border border-[#0069b0]/30 bg-[#0069b0]/5 text-[#0069b0] px-3 py-2.5 rounded-xl text-[11px] font-bold hover:bg-[#0069b0]/10 transition-colors">
+                className="mt-3 w-full flex items-center justify-center gap-1.5 border border-[#0069b0]/30 bg-[#0069b0]/5 text-[#0069b0] px-3 py-2.5 rounded-md text-[11px] font-bold hover:bg-[#0069b0]/10 transition-colors">
                 <Plus size={13} /> Tambah Tugas Baru
               </button>
             )}
@@ -1209,8 +1211,8 @@ export default function GuruLessonDetail() {
                   <Loader2 size={15} className="animate-spin text-[#0069b0]" /> Memuat daftar nilai...
                 </div>
               ) : !rekapNilai || rekapNilai.pakets.length === 0 ? (
-                <div className="border border-dashed border-[#E5E7EF] rounded-xl p-5 text-center">
-                  <div className="w-10 h-10 mx-auto rounded-xl bg-[#0069b0]/[0.06] flex items-center justify-center mb-2">
+                <div className="border border-dashed border-[#E5E7EF] rounded-md p-5 text-center">
+                  <div className="w-10 h-10 mx-auto rounded-md bg-[#0069b0]/[0.06] flex items-center justify-center mb-2">
                     <Users size={18} className="text-[#0069b0]" />
                   </div>
                   <p className="text-xs font-bold text-[#14182B]">Belum ada nilai quiz</p>
@@ -1219,8 +1221,8 @@ export default function GuruLessonDetail() {
                   </p>
                 </div>
               ) : rekapNilai.siswa.length === 0 ? (
-                <div className="border border-dashed border-[#E5E7EF] rounded-xl p-5 text-center">
-                  <div className="w-10 h-10 mx-auto rounded-xl bg-[#0069b0]/[0.06] flex items-center justify-center mb-2">
+                <div className="border border-dashed border-[#E5E7EF] rounded-md p-5 text-center">
+                  <div className="w-10 h-10 mx-auto rounded-md bg-[#0069b0]/[0.06] flex items-center justify-center mb-2">
                     <Users size={18} className="text-[#0069b0]" />
                   </div>
                   <p className="text-xs font-bold text-[#14182B]">Belum ada siswa</p>
@@ -1231,20 +1233,20 @@ export default function GuruLessonDetail() {
               ) : (
                 <>
                   <div className="grid grid-cols-3 gap-2 mb-4">
-                    <div className="rounded-xl bg-[#F4F5F8] border border-[#E5E7EF] p-3 text-center">
+                    <div className="rounded-md bg-[#F4F5F8] border border-[#E5E7EF] p-3 text-center">
                       <p className="text-[9px] font-bold text-[#8B90A0] uppercase tracking-wide">Rata-Rata</p>
                       <p className={`text-lg font-bold mt-1 ${rekapNilaiStats?.overallAvg == null ? 'text-[#C5C8D4]' : 'text-[#0069b0]'}`}>
                         {rekapNilaiStats?.overallAvg ?? '–'}
                       </p>
                     </div>
-                    <div className="rounded-xl bg-emerald-50/50 border border-emerald-100 p-3 text-center">
+                    <div className="rounded-md bg-emerald-50/50 border border-emerald-100 p-3 text-center">
                       <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-wide">Sudah Mengerjakan</p>
                       <p className="text-lg font-bold text-emerald-600 mt-1">
                         {rekapNilaiStats?.done ?? 0}
                         <span className="text-[10px] font-bold text-emerald-400">/{rekapNilaiStats?.total ?? 0}</span>
                       </p>
                     </div>
-                    <div className="rounded-xl bg-[#F4F5F8] border border-[#E5E7EF] p-3 text-center">
+                    <div className="rounded-md bg-[#F4F5F8] border border-[#E5E7EF] p-3 text-center">
                       <p className="text-[9px] font-bold text-[#8B90A0] uppercase tracking-wide">Belum Mengerjakan</p>
                       <p className={`text-lg font-bold mt-1 ${rekapNilaiStats?.notDone ? 'text-amber-600' : 'text-[#C5C8D4]'}`}>
                         {rekapNilaiStats?.notDone ?? 0}
@@ -1297,10 +1299,10 @@ export default function GuruLessonDetail() {
                                   return (
                                     <td key={sc?.paket_id ?? `paket-${si}`} className="py-3 px-2 text-center">
                                       {score == null ? (
-                                        <span className="inline-block px-2.5 py-1 rounded-lg text-[10px] font-bold bg-[#F4F5F8] text-[#B9BDCB]">Belum</span>
+                                        <span className="inline-block px-2.5 py-1 rounded-md text-[10px] font-bold bg-[#F4F5F8] text-[#B9BDCB]">Belum</span>
                                       ) : (
                                         <div className="inline-flex flex-col items-center">
-                                          <span className={`inline-block px-2.5 py-1 rounded-lg text-[11px] font-bold ${color}`}>{score}</span>
+                                          <span className={`inline-block px-2.5 py-1 rounded-md text-[11px] font-bold ${color}`}>{score}</span>
                                           {sc != null && sc.attempts_count > 1 && (
                                             <span className="text-[9px] font-semibold text-[#B9BDCB] mt-0.5">{sc.attempts_count} percobaan</span>
                                           )}
@@ -1313,7 +1315,7 @@ export default function GuruLessonDetail() {
                                   {avg == null ? (
                                     <span className="text-[11px] font-bold text-[#C5C8D4]">–</span>
                                   ) : (
-                                    <span className={`inline-block px-2.5 py-1 rounded-lg text-[11px] font-bold ${
+                                    <span className={`inline-block px-2.5 py-1 rounded-md text-[11px] font-bold ${
                                       avg >= 75 ? 'bg-[#0069b0]/10 text-[#0069b0]'
                                       : avg >= 60 ? 'bg-amber-50 text-amber-600 ring-1 ring-amber-100'
                                       : 'bg-red-50 text-red-500 ring-1 ring-red-100'
@@ -1367,13 +1369,13 @@ export default function GuruLessonDetail() {
               <div className="space-y-3">
                 {recap.kind === 'image' ? (
                   <a href={recap.url} target="_blank" rel="noopener noreferrer"
-                    className="block rounded-xl overflow-hidden border border-[#E5E7EF] bg-[#F4F5F8]">
+                    className="block rounded-md overflow-hidden border border-[#E5E7EF] bg-[#F4F5F8]">
                     <img src={recap.url} alt="Rekap pertemuan" className="w-full max-h-[420px] object-contain" />
                   </a>
                 ) : (
                   <a href={recap.url} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-3 border border-[#E5E7EF] rounded-xl p-3 bg-[#F4F5F8]">
-                    <div className="w-9 h-9 rounded-lg bg-rose-50 flex items-center justify-center shrink-0">
+                    className="flex items-center gap-3 border border-[#E5E7EF] rounded-md p-3 bg-[#F4F5F8]">
+                    <div className="w-9 h-9 rounded-md bg-rose-50 flex items-center justify-center shrink-0">
                       <FileText size={16} className="text-rose-500" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -1386,13 +1388,13 @@ export default function GuruLessonDetail() {
                   </a>
                 )}
                 {recap.description && (
-                  <p className="text-xs text-[#4B5063] leading-relaxed bg-[#F7F9FC] border border-[#E5E7EF] rounded-xl p-4">
+                  <p className="text-xs text-[#4B5063] leading-relaxed bg-[#F7F9FC] border border-[#E5E7EF] rounded-md p-4">
                     {recap.description}
                   </p>
                 )}
                 {canManage && (
                   <button onClick={handleDeleteRecap}
-                    className="flex items-center gap-1.5 text-[11px] font-bold text-red-500 px-3 py-2 rounded-lg hover:bg-red-50 transition-colors">
+                    className="flex items-center gap-1.5 text-[11px] font-bold text-red-500 px-3 py-2 rounded-md hover:bg-red-50 transition-colors">
                     <Trash2 size={13} /> Hapus Rekap
                   </button>
                 )}
@@ -1417,23 +1419,23 @@ export default function GuruLessonDetail() {
 
                 <div className="grid grid-cols-2 gap-2">
                   <button onClick={() => cameraInputRef.current?.click()}
-                    className="flex items-center justify-center gap-1.5 border border-[#0069b0]/30 bg-[#0069b0]/5 text-[#0069b0] px-3 py-3 rounded-xl text-[11px] font-bold hover:bg-[#0069b0]/10 transition-colors">
+                    className="flex items-center justify-center gap-1.5 border border-[#0069b0]/30 bg-[#0069b0]/5 text-[#0069b0] px-3 py-3 rounded-md text-[11px] font-bold hover:bg-[#0069b0]/10 transition-colors">
                     <Camera size={14} /> Ambil Foto Papan
                   </button>
                   <button onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center justify-center gap-1.5 border border-[#0069b0]/30 bg-[#0069b0]/5 text-[#0069b0] px-3 py-3 rounded-xl text-[11px] font-bold hover:bg-[#0069b0]/10 transition-colors">
+                    className="flex items-center justify-center gap-1.5 border border-[#0069b0]/30 bg-[#0069b0]/5 text-[#0069b0] px-3 py-3 rounded-md text-[11px] font-bold hover:bg-[#0069b0]/10 transition-colors">
                     <Upload size={14} /> Unggah Foto / PDF
                   </button>
                 </div>
 
                 {recapFile && (
-                  <div className="flex items-center gap-3 rounded-xl bg-[#F4F5F8] border border-[#E5E7EF] p-3">
+                  <div className="flex items-center gap-3 rounded-md bg-[#F4F5F8] border border-[#E5E7EF] p-3">
                     <ImageIcon size={16} className="text-[#0069b0] shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-[#14182B] truncate">{recapFile.name}</p>
                       <p className="text-[10px] text-[#8B90A0]">{fmtFileSize(recapFile.size)} · {(recapFile.type.startsWith('image/') ? 'Gambar' : 'PDF')}</p>
                     </div>
-                    <button onClick={() => setRecapFile(null)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                    <button onClick={() => setRecapFile(null)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors">
                       <X size={14} />
                     </button>
                   </div>
@@ -1444,18 +1446,18 @@ export default function GuruLessonDetail() {
                   <textarea value={recapDescription} onChange={e => setRecapDescription(e.target.value)}
                     rows={3}
                     placeholder="Tulis ringkasan atau keterangan materu yang dijelaskan di pertemuan ini (opsional)..."
-                    className="w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 transition-all resize-none" />
+                    className="w-full text-xs border border-[#E5E7EF] rounded-md px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 transition-all resize-none" />
                 </div>
 
                 <div className="flex items-center justify-end gap-2">
                   {(recap?.url || recapFile) && (
                     <button onClick={handleDeleteRecap}
-                      className="flex items-center gap-1.5 text-[11px] font-bold text-red-500 px-3.5 py-2.5 rounded-xl hover:bg-red-50 transition-colors">
+                      className="flex items-center gap-1.5 text-[11px] font-bold text-red-500 px-3.5 py-2.5 rounded-md hover:bg-red-50 transition-colors">
                       <Trash2 size={13} /> Hapus
                     </button>
                   )}
                   <button onClick={handleSaveRecap} disabled={savingRecap || (!recapFile && !recapDescription.trim())}
-                    className="flex items-center justify-center gap-1.5 bg-[#0069b0] text-white px-4 py-2.5 rounded-xl text-[11px] font-bold hover:bg-[#004d7a] transition-colors disabled:opacity-50">
+                    className="flex items-center justify-center gap-1.5 bg-[#0069b0] text-white px-4 py-2.5 rounded-md text-[11px] font-bold hover:bg-[#004d7a] transition-colors disabled:opacity-50">
                     {savingRecap ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
                     {savingRecap ? 'Menyimpan...' : 'Simpan Rekap'}
                   </button>
@@ -1471,13 +1473,13 @@ export default function GuruLessonDetail() {
       {/* Hasil Quiz Modal */}
       {hasilPaket && (
         <div className="fixed inset-0 z-[95] flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onClick={() => setHasilPaket(null)}>
-          <div className="bg-white w-full sm:max-w-2xl rounded-t-xl sm:rounded-xl max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="bg-white w-full sm:max-w-2xl rounded-t-xl sm:rounded-md max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-[#F0F1F5] sticky top-0 bg-white z-10">
               <div className="min-w-0">
                 <h2 className="text-sm font-bold text-[#14182B] truncate">Hasil Quiz · {hasilPaket.title}</h2>
                 <p className="text-[10px] text-[#8B90A0] font-medium">{participants.length} kandidat mengerjakan</p>
               </div>
-              <button onClick={() => setHasilPaket(null)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F4F5F8] hover:bg-[#E5E7EF] shrink-0 ml-3">
+              <button onClick={() => setHasilPaket(null)} className="w-8 h-8 flex items-center justify-center rounded-md bg-[#F4F5F8] hover:bg-[#E5E7EF] shrink-0 ml-3">
                 <X size={15} className="text-[#4B5063]" />
               </button>
             </div>
@@ -1489,7 +1491,7 @@ export default function GuruLessonDetail() {
                 </div>
               ) : participants.length === 0 ? (
                 <div className="py-12 text-center">
-                  <div className="w-12 h-12 mx-auto rounded-xl bg-[#0069b0]/[0.06] flex items-center justify-center mb-2">
+                  <div className="w-12 h-12 mx-auto rounded-md bg-[#0069b0]/[0.06] flex items-center justify-center mb-2">
                     <Users size={22} className="text-[#0069b0]" />
                   </div>
                   <p className="text-xs font-bold text-[#14182B]">Belum ada yang mengerjakan</p>
@@ -1549,7 +1551,7 @@ export default function GuruLessonDetail() {
                               </td>
                               <td className="py-3 px-3 text-center">
                                 <button onClick={() => openAttemptDetail(a.attempt_id)}
-                                  className="inline-flex items-center gap-1 text-[10px] font-bold text-[#0069b0] border border-[#0069b0]/30 bg-[#0069b0]/5 px-2.5 py-1.5 rounded-lg hover:bg-[#0069b0]/10 transition-colors">
+                                  className="inline-flex items-center gap-1 text-[10px] font-bold text-[#0069b0] border border-[#0069b0]/30 bg-[#0069b0]/5 px-2.5 py-1.5 rounded-md hover:bg-[#0069b0]/10 transition-colors">
                                   Jawaban <ChevronRight size={11} />
                                 </button>
                               </td>
@@ -1569,7 +1571,7 @@ export default function GuruLessonDetail() {
       {/* Review Jawaban Modal */}
       {showAttemptDetail && (
         <div className="fixed inset-0 z-[98] flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onClick={() => setShowAttemptDetail(false)}>
-          <div className="bg-white w-full sm:max-w-lg rounded-t-xl sm:rounded-xl max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="bg-white w-full sm:max-w-lg rounded-t-xl sm:rounded-md max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-[#F0F1F5] sticky top-0 bg-white z-10">
               <div className="min-w-0">
                 <h2 className="text-sm font-bold text-[#14182B]">Review Jawaban</h2>
@@ -1577,7 +1579,7 @@ export default function GuruLessonDetail() {
                   {detail?.siswa?.nama || 'Kandidat'} · Percobaan #{detail?.attempt?.attempt_number}
                 </p>
               </div>
-              <button onClick={() => setShowAttemptDetail(false)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F4F5F8] hover:bg-[#E5E7EF] shrink-0 ml-3">
+              <button onClick={() => setShowAttemptDetail(false)} className="w-8 h-8 flex items-center justify-center rounded-md bg-[#F4F5F8] hover:bg-[#E5E7EF] shrink-0 ml-3">
                 <X size={15} className="text-[#4B5063]" />
               </button>
             </div>
@@ -1590,18 +1592,18 @@ export default function GuruLessonDetail() {
               ) : (
                 <>
                   <div className="grid grid-cols-3 gap-2">
-                    <div className="bg-[#F4F5F8] rounded-xl p-3 text-center">
+                    <div className="bg-[#F4F5F8] rounded-md p-3 text-center">
                       <p className="text-lg font-bold text-[#14182B]">{Number(detail.attempt.score) || 0}</p>
                       <p className="text-[10px] text-[#8B90A0] font-semibold">Skor</p>
                     </div>
-                    <div className="bg-[#F4F5F8] rounded-xl p-3 text-center">
+                    <div className="bg-[#F4F5F8] rounded-md p-3 text-center">
                       <p className="text-lg font-bold text-[#14182B]">
                         {detail.attempt.correct_count != null && detail.attempt.total_count != null
                           ? `${detail.attempt.correct_count}/${detail.attempt.total_count}` : '–'}
                       </p>
                       <p className="text-[10px] text-[#8B90A0] font-semibold">Benar</p>
                     </div>
-                    <div className="bg-[#F4F5F8] rounded-xl p-3 text-center">
+                    <div className="bg-[#F4F5F8] rounded-md p-3 text-center">
                       <p className="text-lg font-bold text-[#0069b0] flex items-center justify-center gap-1">
                         <Clock size={13} /> {fmtDuration(detail.attempt.started_at, detail.attempt.submitted_at)}
                       </p>
@@ -1615,7 +1617,7 @@ export default function GuruLessonDetail() {
                   {detail.attempt.webcam_photo && (
                     <div>
                       <p className="text-[11px] font-bold text-[#4B5063] mb-2 flex items-center gap-1.5"><Camera size={12} /> Foto Pengerjaan</p>
-                      <img src={detail.attempt.webcam_photo} alt="Webcam" className="w-full rounded-xl border border-[#E5E7EF] max-h-52 object-cover" />
+                      <img src={detail.attempt.webcam_photo} alt="Webcam" className="w-full rounded-md border border-[#E5E7EF] max-h-52 object-cover" />
                     </div>
                   )}
 
@@ -1632,7 +1634,7 @@ export default function GuruLessonDetail() {
                         : badge === 'TERISI' ? 'bg-violet-50 text-violet-600'
                         : 'bg-gray-100 text-[#8B90A0]'
                       return (
-                        <div key={q.id} className="border border-[#E5E7EF] rounded-xl p-4">
+                        <div key={q.id} className="border border-[#E5E7EF] rounded-md p-4">
                           <div className="flex items-start justify-between gap-2">
                             <p className="text-[12px] font-bold text-[#14182B] leading-snug">{i + 1}. {q.question}</p>
                             <span className={`text-[9px] font-bold shrink-0 px-2 py-0.5 rounded-full ${badgeCls}`}>{badge}</span>
@@ -1663,7 +1665,7 @@ export default function GuruLessonDetail() {
                             ) : q.question_type === 'essay' ? (
                               <div>
                                 <p className="text-[10px] font-bold text-[#4B5063] mb-1.5">Jawaban Kandidat</p>
-                                <p className="text-[11px] text-[#14182B] bg-[#F4F5F8] border border-[#E5E7EF] rounded-lg px-3 py-2.5 whitespace-pre-wrap min-h-[44px]">
+                                <p className="text-[11px] text-[#14182B] bg-[#F4F5F8] border border-[#E5E7EF] rounded-md px-3 py-2.5 whitespace-pre-wrap min-h-[44px]">
                                   {q.answer_text?.trim() ? q.answer_text : <span className="text-[#8B90A0]">Tidak diisi</span>}
                                 </p>
                                 {q.keyword && (
@@ -1682,7 +1684,7 @@ export default function GuruLessonDetail() {
                               const isPilih = q.selected_index === oi
                               return (
                                 <div key={oi}
-                                  className={`flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-lg font-medium ${isKunci ? 'bg-emerald-50 text-emerald-700 font-bold' : isPilih ? 'bg-red-50 text-red-500 font-bold' : 'bg-[#F4F5F8] text-[#4B5063]'}`}>
+                                  className={`flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-md font-medium ${isKunci ? 'bg-emerald-50 text-emerald-700 font-bold' : isPilih ? 'bg-red-50 text-red-500 font-bold' : 'bg-[#F4F5F8] text-[#4B5063]'}`}>
                                   <span className={`w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold shrink-0 ${isKunci ? 'bg-emerald-500 text-white' : isPilih ? 'bg-red-500 text-white' : 'bg-[#E5E7EF] text-[#8B90A0]'}`}>
                                     {String.fromCharCode(65 + oi)}
                                   </span>
@@ -1713,7 +1715,7 @@ export default function GuruLessonDetail() {
           <div className="bg-white rounded-md shadow-2xl w-full max-w-2xl overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
               <h3 className="font-bold text-gray-900">Edit Materi</h3>
-              <button onClick={() => setShowEditModal(false)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+              <button onClick={() => setShowEditModal(false)} className="p-1.5 hover:bg-gray-100 rounded-md transition-colors">
                 <X size={18} className="text-gray-400" />
               </button>
             </div>
@@ -1721,16 +1723,16 @@ export default function GuruLessonDetail() {
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">Judul Materi <span className="text-red-500">*</span></label>
                 <input type="text" value={lessonForm.title} onChange={e => setLessonForm(f => ({ ...f, title: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2.5 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]"
                   placeholder="Judul pelajaran" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">URL Video (YouTube)</label>
                 <input type="text" value={lessonForm.video_url} onChange={e => setLessonForm(f => ({ ...f, video_url: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2.5 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]"
                   placeholder="https://youtube.com/..." />
                 {lessonForm.video_url && (
-                  <div className="mt-2 aspect-video bg-black rounded-lg overflow-hidden">
+                  <div className="mt-2 aspect-video bg-black rounded-md overflow-hidden">
                     <iframe src={getYouTubeEmbedUrl(lessonForm.video_url) || lessonForm.video_url}
                       className="w-full h-full" allowFullScreen title="Preview" />
                   </div>
@@ -1773,12 +1775,12 @@ export default function GuruLessonDetail() {
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1.5">Urutan</label>
                   <input type="number" value={lessonForm.sort} onChange={e => setLessonForm(f => ({ ...f, sort: e.target.value }))}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]" />
+                    className="w-full rounded-md border border-gray-300 px-3 py-2.5 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1.5">Status</label>
                   <select value={lessonForm.status} onChange={e => setLessonForm(f => ({ ...f, status: e.target.value }))}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]">
+                    className="w-full rounded-md border border-gray-300 px-3 py-2.5 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]">
                     <option value="aktif">Aktif</option>
                     <option value="nonaktif">Nonaktif</option>
                   </select>
@@ -1787,11 +1789,11 @@ export default function GuruLessonDetail() {
             </div>
             <div className="px-5 py-4 border-t border-gray-200 flex items-center justify-between gap-3">
               <button onClick={() => setShowEditModal(false)}
-                className="rounded-lg border border-gray-300 px-4 py-2.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
+                className="rounded-md border border-gray-300 px-4 py-2.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
                 Batal
               </button>
               <button onClick={handleSaveLesson} disabled={saving || !lessonForm.title.trim()}
-                className="flex items-center gap-1.5 rounded-lg bg-[#0069b0] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#004d7a] transition disabled:opacity-50">
+                className="flex items-center gap-1.5 rounded-md bg-[#0069b0] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#004d7a] transition disabled:opacity-50">
                 {saving ? 'Menyimpan...' : <><Check size={13} /> Simpan Materi</>}
               </button>
             </div>
@@ -1825,7 +1827,7 @@ export default function GuruLessonDetail() {
                 <h2 className="text-sm font-bold text-[#14182B]">Pilih Paket Soal dari Bank</h2>
                 <p className="text-[10px] text-[#8B90A0] font-medium">Centang satu atau lebih paket untuk dijadikan quiz pertemuan ini</p>
               </div>
-              <button onClick={() => setShowBankPicker(false)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F4F5F8] hover:bg-[#E5E7EF]">
+              <button onClick={() => setShowBankPicker(false)} className="w-8 h-8 flex items-center justify-center rounded-md bg-[#F4F5F8] hover:bg-[#E5E7EF]">
                 <X size={15} className="text-[#4B5063]" />
               </button>
             </div>
@@ -1843,7 +1845,7 @@ export default function GuruLessonDetail() {
                   <p className="text-sm font-bold text-[#14182B]">Bank kosong</p>
                   <p className="text-[11px] text-[#8B90A0] font-medium mt-1">Belum ada paket soal di bank. Buat paket baru dulu?</p>
                   <button onClick={() => { setShowBankPicker(false); setShowQuizManager(true) }}
-                    className="mt-4 inline-flex items-center gap-1.5 text-[11px] font-bold text-white bg-[#0069b0] px-4 py-2 rounded-lg hover:bg-[#004d7a] transition-colors">
+                    className="mt-4 inline-flex items-center gap-1.5 text-[11px] font-bold text-white bg-[#0069b0] px-4 py-2 rounded-md hover:bg-[#004d7a] transition-colors">
                     <Plus size={13} /> Buat Paket Soal Baru
                   </button>
                 </div>
@@ -1855,7 +1857,7 @@ export default function GuruLessonDetail() {
                       value={bankSearch}
                       onChange={e => setBankSearch(e.target.value)}
                       placeholder="Cari paket soal berdasarkan judul..."
-                      className="w-full text-xs border border-[#E5E7EF] rounded-xl pl-9 pr-9 py-2.5 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 transition-all"
+                      className="w-full text-xs border border-[#E5E7EF] rounded-md pl-9 pr-9 py-2.5 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 transition-all"
                     />
                     {bankSearch && (
                       <button onClick={() => setBankSearch('')}
@@ -1879,7 +1881,7 @@ export default function GuruLessonDetail() {
                       const attached = lessonPakets.some(x => x.id === p.id)
                       return (
                         <label key={p.id}
-                          className={`flex items-center gap-3 border rounded-xl px-4 py-3 transition-colors ${attached ? 'border-[#E5E7EF] bg-[#F8F9FB] opacity-70 cursor-not-allowed' : `cursor-pointer ${checked ? 'border-[#0069b0] bg-[#0069b0]/[0.04] ring-1 ring-[#0069b0]/20' : 'border-[#E5E7EF] hover:bg-[#F7F8FA]'}`}`}>
+                          className={`flex items-center gap-3 border rounded-md px-4 py-3 transition-colors ${attached ? 'border-[#E5E7EF] bg-[#F8F9FB] opacity-70 cursor-not-allowed' : `cursor-pointer ${checked ? 'border-[#0069b0] bg-[#0069b0]/[0.04] ring-1 ring-[#0069b0]/20' : 'border-[#E5E7EF] hover:bg-[#F7F8FA]'}`}`}>
                           <input type="checkbox" checked={checked || attached} disabled={attached} onChange={() => pickBankPaket(p.id)}
                             className="w-4 h-4 rounded border-[#D6D9E1] text-[#0069b0] focus:ring-[#0069b0] shrink-0" />
                           <div className="min-w-0 flex-1">
@@ -1913,11 +1915,11 @@ export default function GuruLessonDetail() {
             {bankPakets.length > 0 && (
               <div className="px-5 py-4 border-t border-[#F0F1F5] flex items-center justify-end gap-2">
                 <button onClick={() => setShowBankPicker(false)}
-                  className="px-4 py-2.5 text-[11px] font-bold text-[#4B5063] hover:bg-[#F4F5F8] rounded-lg transition-colors">
+                  className="px-4 py-2.5 text-[11px] font-bold text-[#4B5063] hover:bg-[#F4F5F8] rounded-md transition-colors">
                   Batal
                 </button>
                 <button onClick={assignBankPaket} disabled={assigningBank || bankPickedIds.length === 0}
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-bold text-white bg-[#0069b0] rounded-lg hover:bg-[#004d7a] transition-colors disabled:opacity-50">
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-bold text-white bg-[#0069b0] rounded-md hover:bg-[#004d7a] transition-colors disabled:opacity-50">
                   {assigningBank ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
                   {assigningBank ? 'Memasang...' : bankPickedIds.length > 1 ? `Pasang ${bankPickedIds.length} Paket` : 'Pasang Paket'}
                 </button>
@@ -1936,7 +1938,7 @@ export default function GuruLessonDetail() {
                 <h2 className="text-sm font-bold text-[#14182B]">Pilih Materi dari Bank</h2>
                 <p className="text-[10px] text-[#8B90A0] font-medium">Centang satu atau lebih materi untuk ditambahkan ke pertemuan ini</p>
               </div>
-              <button onClick={() => setShowMateriPicker(false)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F4F5F8] hover:bg-[#E5E7EF]">
+              <button onClick={() => setShowMateriPicker(false)} className="w-8 h-8 flex items-center justify-center rounded-md bg-[#F4F5F8] hover:bg-[#E5E7EF]">
                 <X size={15} className="text-[#4B5063]" />
               </button>
             </div>
@@ -1961,7 +1963,7 @@ export default function GuruLessonDetail() {
                     const attached = lessonMateris.some(x => x.id === m.id)
                     return (
                       <label key={m.id}
-                        className={`flex items-center gap-3 border rounded-xl px-4 py-3 transition-colors ${attached ? 'border-[#E5E7EF] bg-[#F8F9FB] opacity-70 cursor-not-allowed' : `cursor-pointer ${checked ? 'border-[#0069b0] bg-[#0069b0]/[0.04] ring-1 ring-[#0069b0]/20' : 'border-[#E5E7EF] hover:bg-[#F7F8FA]'}`}`}>
+                        className={`flex items-center gap-3 border rounded-md px-4 py-3 transition-colors ${attached ? 'border-[#E5E7EF] bg-[#F8F9FB] opacity-70 cursor-not-allowed' : `cursor-pointer ${checked ? 'border-[#0069b0] bg-[#0069b0]/[0.04] ring-1 ring-[#0069b0]/20' : 'border-[#E5E7EF] hover:bg-[#F7F8FA]'}`}`}>
                         <input type="checkbox" checked={checked || attached} disabled={attached} onChange={() => pickMateri(m.id)}
                           className="w-4 h-4 rounded border-[#D6D9E1] text-[#0069b0] focus:ring-[#0069b0] shrink-0" />
                         <div className="min-w-0 flex-1">
@@ -1991,11 +1993,11 @@ export default function GuruLessonDetail() {
             {bankMateris.length > 0 && (
               <div className="px-5 py-4 border-t border-[#F0F1F5] flex items-center justify-end gap-2">
                 <button onClick={() => setShowMateriPicker(false)}
-                  className="px-4 py-2.5 text-[11px] font-bold text-[#4B5063] hover:bg-[#F4F5F8] rounded-lg transition-colors">
+                  className="px-4 py-2.5 text-[11px] font-bold text-[#4B5063] hover:bg-[#F4F5F8] rounded-md transition-colors">
                   Batal
                 </button>
                 <button onClick={assignMateri} disabled={assigningMateri || pickedMateriIds.length === 0}
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-bold text-white bg-[#0069b0] rounded-lg hover:bg-[#004d7a] transition-colors disabled:opacity-50">
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-bold text-white bg-[#0069b0] rounded-md hover:bg-[#004d7a] transition-colors disabled:opacity-50">
                   {assigningMateri ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
                   {assigningMateri ? 'Memasang...' : pickedMateriIds.length > 1 ? `Pasang ${pickedMateriIds.length} Materi` : 'Pasang Materi'}
                 </button>
@@ -2014,7 +2016,7 @@ export default function GuruLessonDetail() {
                 <h2 className="text-sm font-bold text-[#14182B]">Buat Tugas Baru</h2>
                 <p className="text-[10px] text-[#8B90A0] font-medium mt-0.5">Isi detail tugas untuk kandidat</p>
               </div>
-              <button onClick={() => { if (!savingTask) setShowTaskModal(false) }} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F4F5F8] hover:bg-[#E5E7EF]">
+              <button onClick={() => { if (!savingTask) setShowTaskModal(false) }} className="w-8 h-8 flex items-center justify-center rounded-md bg-[#F4F5F8] hover:bg-[#E5E7EF]">
                 <X size={15} className="text-[#4B5063]" />
               </button>
             </div>
@@ -2024,14 +2026,14 @@ export default function GuruLessonDetail() {
                 <label className="text-[11px] font-bold text-[#4B5063]">Judul Tugas <span className="text-red-500">*</span></label>
                 <input type="text" placeholder="Contoh: Tugas Setoran Hafalan" value={taskForm.title}
                   onChange={e => setTaskForm(f => ({ ...f, title: e.target.value }))}
-                  className="mt-1.5 w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 transition-all" />
+                  className="mt-1.5 w-full text-xs border border-[#E5E7EF] rounded-md px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 transition-all" />
               </div>
 
               <div>
                 <label className="text-[11px] font-bold text-[#4B5063]">Deskripsi</label>
                 <textarea rows={3} placeholder="Deskripsi tugas untuk kandidat" value={taskForm.description}
                   onChange={e => setTaskForm(f => ({ ...f, description: e.target.value }))}
-                  className="mt-1.5 w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 transition-all resize-none" />
+                  className="mt-1.5 w-full text-xs border border-[#E5E7EF] rounded-md px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 transition-all resize-none" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -2039,13 +2041,13 @@ export default function GuruLessonDetail() {
                   <label className="text-[11px] font-bold text-[#4B5063]">Batas Tanggal</label>
                   <input type="date" value={taskForm.dueDate}
                     onChange={e => setTaskForm(f => ({ ...f, dueDate: e.target.value }))}
-                    className="mt-1.5 w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 transition-all" />
+                    className="mt-1.5 w-full text-xs border border-[#E5E7EF] rounded-md px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 transition-all" />
                 </div>
                 <div>
                   <label className="text-[11px] font-bold text-[#4B5063]">Skor Maksimal</label>
                   <input type="number" min={1} max={999} placeholder="100" value={taskForm.maxScore}
                     onChange={e => setTaskForm(f => ({ ...f, maxScore: e.target.value }))}
-                    className="mt-1.5 w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 transition-all" />
+                    className="mt-1.5 w-full text-xs border border-[#E5E7EF] rounded-md px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 transition-all" />
                 </div>
               </div>
 
@@ -2069,12 +2071,12 @@ export default function GuruLessonDetail() {
                 )}
 
                 <button type="button" onClick={toggleTaskPaketPicker} disabled={taskPakets.length > 0}
-                  className="mt-2 w-full flex items-center justify-center gap-1.5 border-2 border-dashed border-[#0069b0]/40 bg-[#0069b0]/5 text-[#0069b0] px-3 py-2.5 rounded-xl text-[11px] font-bold hover:bg-[#0069b0]/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                  className="mt-2 w-full flex items-center justify-center gap-1.5 border-2 border-dashed border-[#0069b0]/40 bg-[#0069b0]/5 text-[#0069b0] px-3 py-2.5 rounded-md text-[11px] font-bold hover:bg-[#0069b0]/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                   <Plus size={13} /> Pilih Quiz dari Bank Soal
                 </button>
 
                 {showTaskPaketPicker && (
-                  <div className="mt-2 border border-[#E5E7EF] rounded-xl overflow-hidden">
+                  <div className="mt-2 border border-[#E5E7EF] rounded-md overflow-hidden">
                     <div className="px-3.5 py-2 bg-[#F8F9FB] border-b border-[#E5E7EF] flex items-center justify-between">
                       <span className="text-[10px] font-bold text-[#4B5063] uppercase tracking-wide">Pilih Paket Soal</span>
                       <span className="text-[10px] font-semibold text-[#0069b0]">{taskPakets.length} dipilih</span>
@@ -2113,7 +2115,7 @@ export default function GuruLessonDetail() {
                     </div>
                     <div className="px-3.5 py-2 border-t border-[#E5E7EF] bg-white flex justify-end">
                       <button type="button" onClick={() => setShowTaskPaketPicker(false)}
-                        className="text-[11px] font-bold text-[#0069b0] hover:bg-[#0069b0]/10 px-3.5 py-1.5 rounded-lg transition-colors">
+                        className="text-[11px] font-bold text-[#0069b0] hover:bg-[#0069b0]/10 px-3.5 py-1.5 rounded-md transition-colors">
                         Selesai
                       </button>
                     </div>
@@ -2130,7 +2132,7 @@ export default function GuruLessonDetail() {
                     const f = e.dataTransfer.files?.[0]
                     if (f) setTaskFile(f)
                   }}
-                  className="mt-1.5 flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-[#E5E7EF] rounded-xl px-4 py-6 text-center cursor-pointer hover:border-[#0069b0]/40 hover:bg-[#0069b0]/[0.02] transition-colors">
+                  className="mt-1.5 flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-[#E5E7EF] rounded-md px-4 py-6 text-center cursor-pointer hover:border-[#0069b0]/40 hover:bg-[#0069b0]/[0.02] transition-colors">
                   <input type="file" className="hidden"
                     onChange={e => setTaskFile(e.target.files?.[0] || null)} />
                   {taskFile ? (
@@ -2153,11 +2155,11 @@ export default function GuruLessonDetail() {
 
             <div className="px-5 py-4 border-t border-[#F0F1F5] flex items-center justify-end gap-2">
               <button onClick={() => { if (!savingTask) setShowTaskModal(false) }}
-                className="px-4 py-2.5 text-[11px] font-bold text-[#4B5063] hover:bg-[#F4F5F8] rounded-lg transition-colors">
+                className="px-4 py-2.5 text-[11px] font-bold text-[#4B5063] hover:bg-[#F4F5F8] rounded-md transition-colors">
                 Batal
               </button>
               <button onClick={handleSaveTask} disabled={savingTask || !taskForm.title.trim()}
-                className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-bold text-white bg-[#0069b0] rounded-lg hover:bg-[#004d7a] transition-colors disabled:opacity-50">
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-bold text-white bg-[#0069b0] rounded-md hover:bg-[#004d7a] transition-colors disabled:opacity-50">
                 {savingTask ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
                 {savingTask ? 'Menyimpan...' : 'Buat Tugas'}
               </button>

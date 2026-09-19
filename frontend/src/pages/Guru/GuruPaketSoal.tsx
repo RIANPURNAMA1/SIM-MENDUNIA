@@ -431,7 +431,7 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
   const openEditQuestion = (q: Question) => {
     setEditingQuestion(q)
     setQForm({
-      question: q.question,
+      question: q.question ?? '',
       section_id: q.section_id ? String(q.section_id) : '',
       question_type: q.question_type === 'rating' ? 'rating' : q.question_type === 'essay' ? 'essay' : 'choice',
       rating_max: q.rating_max ? q.rating_max.toString() : '9',
@@ -545,7 +545,7 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
     setSavingQuestion(true)
     try {
       const data = {
-        question: qForm.question,
+        question: qForm.question ?? '',
         section_id: qForm.section_id ? Number(qForm.section_id) : null,
         question_type: isEssay ? 'essay' : isRating ? 'rating' : 'choice',
         rating_max: isRating ? Number(qForm.rating_max) || 9 : null,

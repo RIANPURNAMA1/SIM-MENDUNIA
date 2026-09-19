@@ -406,7 +406,7 @@ $data = $request->validate([
         $question = QuizQuestion::findOrFail($id);
 
         $data = $request->validate([
-            'question' => 'sometimes|string',
+            'question' => 'sometimes|nullable|string',
             'section_id' => 'nullable|integer|exists:quiz_sections,id',
             'question_type' => 'sometimes|string|in:choice,rating,essay',
             'rating_max' => 'nullable|integer|min:2|max:10',

@@ -4,7 +4,7 @@ import {
   BookOpen, Plus, Edit3, Trash2, Search, X, Image as ImageIcon, FileText,
   ListChecks, Eye, ChevronUp, ChevronDown, Camera, Clock, Repeat,
   Award, Users, UserCheck, Pencil, Loader2, ArrowLeft, Video, UploadCloud, Upload, Mic, RotateCcw,
-  Settings, LayoutGrid, ShieldCheck, Link2, Building2, Layers,
+  Settings, LayoutGrid, ShieldCheck, Link2, Building2, Layers, Settings2,
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -1298,7 +1298,7 @@ export default function DataCourse() {
   const openEditQuestion = (q: Question) => {
     setEditingQuestion(q)
     setQForm({
-      question: q.question,
+      question: q.question ?? '',
       section_id: q.section_id ? String(q.section_id) : '',
       question_type: q.question_type === 'rating' ? 'rating' : q.question_type === 'essay' ? 'essay' : 'choice',
       rating_max: q.rating_max ? q.rating_max.toString() : '9',
@@ -1358,7 +1358,7 @@ export default function DataCourse() {
     setSavingQuestion(true)
     try {
       const data = {
-        question: qForm.question,
+        question: qForm.question ?? '',
         section_id: qForm.section_id ? Number(qForm.section_id) : null,
         question_type: isEssay ? 'essay' : isRating ? 'rating' : 'choice',
         rating_max: isRating ? Number(qForm.rating_max) || 9 : null,
@@ -1387,6 +1387,74 @@ export default function DataCourse() {
     } finally {
       setSavingQuestion(false)
     }
+  }
+
+  const openSectionManager = () => {
+    if (!activeQuizPaket) return
+    setEditingQSection(null)
+    setQSectionName('')
+    setShowSectionListModal(true)
+  }
+
+  const openAddSection = () => {
+    setEditingQSection(null)
+    setQSectionName('')
+    setShowSectionModal(true)
+  }
+
+  const openEditSection = (s: SectionItem) => {
+    setEditingQSection(s)
+    setQSectionName(s.name)
+    setShowSectionModal(true)
+  }
+
+  const saveSection = async () => {
+    const name = qSectionName.trim()
+    if (!name) {
+      Swal.fire({ icon: 'warning', title: 'Nama bagian wajib diisi' })
+      return
+    }
+    if (!activeQuizPaket) return
+    setSavingSection(true)
+    try {
+      if (editingQSection) {
+        const res = await adminQuizApi.updateSection(editingQSection.id, { name })
+        setQuizSections(prev => prev.map(s => s.id === editingQSection.id ? res.data.section : s))
+      } else {
+        const res = await adminQuizApi.storeSection(activeQuizPaket.id, { name })
+        setQuizSections(prev => [...prev, res.data.section])
+      }
+      setShowSectionModal(false)
+      Swal.fire({ icon: 'success', title: editingQSection ? 'Bagian diperbarui' : 'Bagian ditambahkan', timer: 1200, showConfirmButton: false })
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || 'Gagal menyimpan bagian'
+      Swal.fire({ icon: 'error', title: 'Gagal menyimpan bagian', text: msg })
+    } finally {
+      setSavingSection(false)
+    }
+  }
+
+  const deleteSection = (s: SectionItem) => {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Hapus bagian ini?',
+      text: `Bagian "${s.name}" akan dihapus.`,
+      showCancelButton: true,
+      confirmButtonText: 'Ya, hapus',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#dc2626',
+    }).then(async result => {
+      if (!result.isConfirmed || !activeQuizPaket) return
+      try {
+        await adminQuizApi.deleteSection(s.id)
+        setQuizSections(prev => prev.filter(x => x.id !== s.id))
+        if (String(s.id) === qForm.section_id) setQForm({ ...qForm, section_id: '' })
+        Swal.fire({ icon: 'success', title: 'Bagian dihapus', timer: 1200, showConfirmButton: false })
+      } catch (e: any) {
+        const msg = e?.response?.data?.message || 'Gagal menghapus bagian'
+        Swal.fire({ icon: 'error', title: 'Gagal menghapus bagian', text: msg })
+      }
+    })
   }
 
   const [uploadingQMedia, setUploadingQMedia] = useState<'image' | 'audio' | null>(null)
@@ -3022,7 +3090,13 @@ export default function DataCourse() {
                   className={`${inputCls} resize-none`} />
               </div>
               <div>
-                <label className={labelCls}>Bagian / Materi Soal <span className="text-slate-400 font-normal">(opsional)</span></label>
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm font-medium text-slate-700">Bagian / Materi Soal <span className="text-slate-400 font-normal">(opsional)</span></label>
+                  <button onClick={openSectionManager}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0E6187] hover:text-[#0A4A66] transition-colors">
+                    <Settings2 size={12} /> Kelola bagian
+                  </button>
+                </div>
                 <select value={qForm.section_id} onChange={e => setQForm({ ...qForm, section_id: e.target.value })}
                   className={inputCls}>
                   <option value="">Tanpa bagian</option>
@@ -3200,6 +3274,84 @@ export default function DataCourse() {
               <button onClick={() => setShowQuestionModal(false)} className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Batal</button>
               <button onClick={saveQuestion} disabled={savingQuestion} className="px-4 py-2.5 bg-[#0E6187] text-white rounded-lg text-sm font-semibold hover:bg-[#0E6187]/90 disabled:opacity-50 transition-colors">
                 {savingQuestion ? 'Menyimpan...' : editingQuestion ? 'Simpan Perubahan' : 'Tambah Soal'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== SECTION LIST MODAL ==================== */}
+      {showSectionListModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4" onClick={() => setShowSectionListModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-slate-800">Kelola Bagian / Materi Soal</h3>
+                <p className="text-xs text-slate-400 mt-0.5">{activeQuizPaket?.title}</p>
+              </div>
+              <button onClick={() => setShowSectionListModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
+                <X size={20} className="text-slate-400" />
+              </button>
+            </div>
+            <div className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold text-slate-500">{quizSections.length} bagian</p>
+                <button onClick={openAddSection}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#0E6187] text-white rounded-lg text-xs font-semibold hover:bg-[#0E6187]/90 transition-colors">
+                  <Plus size={13} /> Tambah Bagian
+                </button>
+              </div>
+              {quizSections.length === 0 ? (
+                <p className="text-center text-xs text-slate-400 py-8">Belum ada bagian. Klik "Tambah Bagian" untuk membuatnya.</p>
+              ) : (
+                <div className="space-y-2">
+                  {quizSections.map(s => (
+                    <div key={s.id} className="flex items-center justify-between gap-2 border border-slate-200 rounded-lg px-3.5 py-2.5 hover:bg-slate-50 transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-slate-700 truncate">{s.name}</p>
+                        <p className="text-[11px] text-slate-400">{s.questions_count ?? 0} soal</p>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button onClick={() => openEditSection(s)} className="p-1.5 text-slate-400 hover:text-[#0E6187] hover:bg-[#0E6187]/10 rounded-lg transition-colors" title="Edit">
+                          <Pencil size={15} />
+                        </button>
+                        <button onClick={() => deleteSection(s)} className="p-1.5 text-red-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Hapus">
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== SECTION ADD/EDIT MODAL ==================== */}
+      {showSectionModal && (
+        <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/40 p-4" onClick={() => setShowSectionModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+              <h3 className="font-semibold text-slate-800">{editingQSection ? 'Edit Bagian' : 'Tambah Bagian'}</h3>
+              <button onClick={() => setShowSectionModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
+                <X size={20} className="text-slate-400" />
+              </button>
+            </div>
+            <div className="p-5">
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Nama Bagian</label>
+              <input
+                value={qSectionName}
+                onChange={e => setQSectionName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') saveSection() }}
+                placeholder="Contoh: Vocabulary, Grammar, Listening..."
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                autoFocus />
+            </div>
+            <div className="px-5 py-4 border-t border-slate-200 flex items-center justify-end gap-2">
+              <button onClick={() => setShowSectionModal(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Batal</button>
+              <button onClick={saveSection} disabled={savingSection} className="px-4 py-2 bg-[#0E6187] text-white rounded-lg text-sm font-semibold hover:bg-[#0E6187]/90 disabled:opacity-50 transition-colors">
+                {savingSection ? 'Menyimpan...' : editingQSection ? 'Simpan Perubahan' : 'Tambah'}
               </button>
             </div>
           </div>
