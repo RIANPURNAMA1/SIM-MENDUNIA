@@ -401,10 +401,6 @@ export default function AdminQuizPaketSoal() {
 
   const saveQuestion = async () => {
     if (!activePaket) return
-    if (!qForm.question.trim()) {
-      Swal.fire({ icon: 'warning', title: 'Soal wajib diisi' })
-      return
-    }
     const isRating = qForm.question_type === 'rating'
     const isEssay = qForm.question_type === 'essay'
     let opts: string[]
@@ -1088,7 +1084,7 @@ export default function AdminQuizPaketSoal() {
 
             <div className="p-6 space-y-4">
               <div>
-                <label className={labelCls}>Pertanyaan <span className="text-red-500">*</span></label>
+                <label className={labelCls}>Pertanyaan <span className="text-slate-400 font-normal">(opsional)</span></label>
                 <textarea value={qForm.question} onChange={e => setQForm({ ...qForm, question: e.target.value })}
                   rows={2} placeholder="Tulis pertanyaan..." className={`${inputCls} resize-none`} />
               </div>

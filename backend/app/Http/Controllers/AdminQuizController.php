@@ -341,20 +341,20 @@ class AdminQuizController extends Controller
     {
         QuizPaket::findOrFail($paketId);
 
-        $data = $request->validate([
-            'question' => 'required|string',
+$data = $request->validate([
+            'question' => 'nullable|string',
             'section_id' => 'nullable|integer|exists:quiz_sections,id',
             'question_type' => 'sometimes|string|in:choice,rating,essay',
             'rating_max' => 'nullable|integer|min:2|max:10',
             'options' => 'sometimes|array',
             'options.*' => 'required',
             'correct_index' => 'nullable|integer|min:0',
-            'keyword' => 'nullable|string|max:2000',
-            'points' => 'nullable|integer|min:1',
-            'sort' => 'nullable|integer|min:0',
+
             'image_path' => 'nullable|string',
             'audio_path' => 'nullable|string',
-            'audio_max_plays' => 'nullable|integer|min:1|max:99',
+            'points' => 'nullable|numeric',
+            'keyword' => 'nullable|string',
+            'is_active' => 'sometimes|boolean',
         ]);
 
         if (!empty($data['section_id']) && !QuizSection::where('id', $data['section_id'])->where('quiz_paket_id', $paketId)->exists()) {
