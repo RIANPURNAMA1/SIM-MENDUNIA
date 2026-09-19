@@ -551,6 +551,7 @@ class QuizController extends Controller
                     'image_url' => $q->image_url,
                     'audio_url' => $q->audio_url,
                     'audio_max_plays' => $q->audio_max_plays,
+                    'audio_plays' => $a?->audio_plays ?? 0,
                     'selected_index' => $a?->selected_index,
                     'answer_text' => $a?->answer_text,
                 ];
@@ -732,6 +733,46 @@ class QuizController extends Controller
         return response()->json([
             'attempt' => $this->resultPayload($attempt),
             'message' => 'Quiz diselesaikan',
+        ]);
+    }
+
+    public function recordAudioPlay(Request $request, $id, $questionId)
+    {
+        $siswa = $this->siswaUser();
+        if (!$siswa) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        $attempt = $this->ownAttempt($id, $siswa->id);
+
+        if ($attempt->status !== 'in_progress') {
+            return response()->json(['message' => 'Percobaan sudah berakhir'], 422);
+        }
+
+        if ($this->isExpired($attempt)) {
+            $this->finalize($attempt, true);
+            return response()->json(['message' => 'Waktu habis'], 422);
+        }
+
+        $question = $attempt->paket->questions()->where('quiz_questions.id', $questionId)->firstOrFail();
+
+        if (!$question->audio_url) {
+            return response()->json(['message' => 'Soal ini bukan soal audio'], 422);
+        }
+
+        $answer = QuizAnswer::firstOrCreate(
+            ['quiz_attempt_id' => $attempt->id, 'quiz_question_id' => $questionId]
+        );
+
+        $answer->increment('audio_plays');
+
+        $maxPlays = $question->audio_max_plays;
+        $plays = $answer->audio_plays;
+
+        return response()->json([
+            'audio_plays' => $plays,
+            'audio_max_plays' => $maxPlays,
+            'locked' => $maxPlays !== null && $plays >= $maxPlays,
         ]);
     }
 

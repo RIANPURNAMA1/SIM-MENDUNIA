@@ -13,12 +13,14 @@ class QuizAnswer extends Model
         'answer_text',
         'earned_points',
         'is_correct',
+        'audio_plays',
     ];
 
     protected $casts = [
         'selected_index' => 'integer',
         'earned_points' => 'integer',
         'is_correct' => 'boolean',
+        'audio_plays' => 'integer',
     ];
 
     public function attempt()
