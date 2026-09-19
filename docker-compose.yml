@@ -45,6 +45,38 @@ services:
       - DB_DATABASE=${DB_DATABASE:-db_mendunia}
       - DB_USERNAME=${DB_USERNAME:-mendunia}
       - DB_PASSWORD=${DB_PASSWORD:-mendunia123}
+      - BROADCAST_CONNECTION=reverb
+      - REVERB_APP_ID=${REVERB_APP_ID:-local-reverb}
+      - REVERB_APP_KEY=${REVERB_APP_KEY:-mendunia-local-key}
+      - REVERB_APP_SECRET=${REVERB_APP_SECRET:-mendunia-local-secret}
+      - REVERB_HOST=reverb
+      - REVERB_PORT=8081
+      - REVERB_SCHEME=http
+    networks:
+      - mendunia
+
+  # ─── Reverb (WebSocket server) ──────────────────────
+  reverb:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mendunia-reverb
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./backend:/var/www/html
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - REVERB_SERVER_HOST=0.0.0.0
+      - REVERB_SERVER_PORT=8081
+      - REVERB_APP_ID=${REVERB_APP_ID:-local-reverb}
+      - REVERB_APP_KEY=${REVERB_APP_KEY:-mendunia-local-key}
+      - REVERB_APP_SECRET=${REVERB_APP_SECRET:-mendunia-local-secret}
+    command: php artisan reverb:start --host=0.0.0.0 --port=8081
     networks:
       - mendunia
 
@@ -56,6 +88,10 @@ services:
       args:
         - VITE_API_URL=http://localhost/api
         - VITE_APP_URL=http://localhost
+        - VITE_REVERB_APP_KEY=${REVERB_APP_KEY:-mendunia-local-key}
+        - VITE_REVERB_HOST=localhost
+        - VITE_REVERB_PORT=8081
+        - VITE_REVERB_SCHEME=http
     container_name: mendunia-nginx
     restart: unless-stopped
     depends_on:

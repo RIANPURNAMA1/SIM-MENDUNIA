@@ -4,6 +4,7 @@ import {
   ArrowLeft, Camera, CameraOff, CheckCircle2, X, RefreshCw, Pause, Play, ShieldAlert, Activity,
 } from 'lucide-react'
 import { guruQuizApi, APP_URL } from '../../services/api'
+import { getEcho, leaveChannel } from '../../services/echo'
 import Swal from 'sweetalert2'
 
 type OptionEntry = string | { text?: string; image_path?: string | null; image_url?: string | null }
@@ -124,6 +125,19 @@ export default function GuruQuizMonitor() {
     }, 3000)
     return () => clearInterval(poll)
   }, [fetchMonitor, paused])
+
+  // Realtime push: saat ada snapshot kamera baru dari siswa, segarkan data
+  // seketika tanpa menunggu polling berikutnya.
+  useEffect(() => {
+    if (!paketId) return
+    const echo = getEcho()
+    if (!echo) return
+    const channel = echo.channel(`quiz-monitor.${paketId}`)
+    channel.listen('.snapshot.updated', () => {
+      if (!paused) fetchMonitor()
+    })
+    return () => leaveChannel(`quiz-monitor.${paketId}`)
+  }, [paketId, paused, fetchMonitor])
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000)
@@ -306,7 +320,7 @@ export default function GuruQuizMonitor() {
                   {/* Webcam */}
                   <div className="relative aspect-video bg-black">
                     {a.webcam_photo ? (
-                      <img src={a.webcam_photo} alt="Webcam" className="h-full w-full object-cover" />
+                      <img src={lastSync ? `${a.webcam_photo}?v=${lastSync}` : a.webcam_photo} alt="Webcam" className="h-full w-full object-cover" />
                     ) : (
                       <div className="flex h-full flex-col items-center justify-center gap-1.5">
                         <CameraOff size={20} className="text-slate-600" />

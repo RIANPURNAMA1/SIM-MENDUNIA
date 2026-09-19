@@ -469,7 +469,153 @@ Tambahkan baris ini:
 
 ---
 
-## 7. Firewall
+## 7. Realtime WebSocket (Reverb) — tanpa Docker
+
+> Fitur kamera realtime (monitor guru) memakai Laravel Reverb yang jalan sebagai proses CLI terpisah, dikelola Supervisor. Koneksi `wss://` dari browser di-proxy lewat Nginx yang sudah punya SSL, jadi **tidak perlu membuka port 8081 ke publik** dan tidak butuh sertifikat khusus Reverb.
+
+```
+Browser ──wss://api.sim.mendunia.id/app/:key──► Nginx (443 SSL)
+                                                        │ upgrade websocket
+                                                        ▼
+                                        Reverb 127.0.0.1:8081 (proses PHP)
+                                                                ▲
+Laravel (PHP-FPM) ──broadcast HTTP─► http://127.0.0.1:8081 ───────┘
+```
+
+### 7.1 Update Backend di VPS
+
+```bash
+cd /var/www/sim-mendunia
+git pull origin main
+cd backend
+composer install --optimize-autoloader --no-dev
+```
+
+### 7.2 Konfigurasi `.env` Backend (production)
+
+Ganti/`tambahkan` blok broadcast di `backend/.env`:
+
+```env
+BROADCAST_CONNECTION=reverb
+
+REVERB_SERVER_HOST=127.0.0.1
+REVERB_SERVER_PORT=8081
+REVERB_APP_ID=reverb-prod-id
+REVERB_APP_KEY=GANTI_KEY_ACAK_PANJANG
+REVERB_APP_SECRET=GANTI_SECRET_ACAK_PANJANG
+REVERB_HOST=127.0.0.1
+REVERB_PORT=8081
+REVERB_SCHEME=http
+```
+
+> `REVERB_HOST/PORT/SCHEME` dipakai untuk arah Laravel→Reverb (internal), jadi tetap `127.0.0.1` & `http`.
+
+```bash
+php artisan config:cache
+php artisan route:cache
+sudo chown -R www-data:www-data storage bootstrap/cache
+```
+
+### 7.3 Nginx — Proxy WebSocket Subdomain API
+
+Buka `/etc/nginx/sites-available/api.sim.mendunia.id`, tambahkan blok di dalam `server {}` SSL (di samping `location /`):
+
+```nginx
+# Realtime WebSocket (Reverb) — proxy ke 127.0.0.1:8081
+location ^~ /app/ {
+    proxy_pass http://127.0.0.1:8081;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_read_timeout 600s;
+}
+```
+
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+### 7.4 Supervisor untuk Reverb (biar hidup terus)
+
+```bash
+sudo nano /etc/supervisor/conf.d/mendunia-reverb.conf
+```
+
+```ini
+[program:mendunia-reverb]
+process_name=%(program_name)s
+command=/usr/bin/php /var/www/sim-mendunia/backend/artisan reverb:start --host=127.0.0.1 --port=8081
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+user=www-data
+redirect_stderr=true
+stdout_logfile=/var/log/supervisor/mendunia-reverb.log
+stdout_logfile_maxbytes=50MB
+stderr_logfile=/var/log/supervisor/mendunia-reverb.log
+```
+
+```bash
+sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl start mendunia-reverb
+sudo supervisorctl status mendunia-reverb
+```
+
+### 7.5 Firewall — jangan buka 8081
+
+Cukup yang sudah ada (80/443). Port 8081 hanya diakses dari `127.0.0.1`, aman:
+
+```bash
+sudo ufw allow 'Nginx Full'
+sudo ufw allow OpenSSH
+sudo ufw enable
+```
+
+### 7.6 Build Frontend `.env` production
+
+`frontend/.env` (di VPS saat build):
+
+```env
+VITE_API_URL=https://api.sim.mendunia.id/api
+VITE_APP_URL=https://api.sim.mendunia.id
+VITE_REVERB_APP_KEY=GANTI_KEY_SAMA_DGN_BACKEND
+VITE_REVERB_HOST=api.sim.mendunia.id
+VITE_REVERB_PORT=443
+VITE_REVERB_SCHEME=https
+```
+
+```bash
+cd /var/www/sim-mendunia/frontend
+npm install
+npm run build
+sudo chown -R www-data:www-data dist
+```
+
+`src/services/echo.ts` otomatis membaca `VITE_REVERB_*` → browser akan connect ke `wss://api.sim.mendunia.id:443/app/GANTI_KEY...` → Nginx proxy → Reverb.
+
+### 7.7 Restart & Verifikasi
+
+```bash
+sudo supervisorctl restart mendunia-reverb mendunia-worker:*
+sudo systemctl reload nginx
+tail -f /var/log/supervisor/mendunia-reverb.log
+```
+
+Tes: buka halaman monitor guru, lalu jalankan ulang quiz di akun siswa — kartu kamera harus berubah instan tanpa tombol Segarkan.
+
+### 7.8 Catatan Penting
+
+- `REVERB_APP_KEY` di frontend & backend **harus sama**.
+- Kalau `proxy_read_timeout 600s` tetap drop, ubah ke `3600s`.
+- Pertama kali setelah `.env` diubah: jalankan `php artisan config:clear` dulu, lalu `php artisan config:cache`.
+
+---
+
+## 8. Firewall
 
 ```bash
 # UFW
@@ -480,7 +626,7 @@ sudo ufw enable
 
 ---
 
-## 8. Checklist Deployment
+## 9. Checklist Deployment
 
 | # | Task | Status |
 |---|------|--------|
@@ -504,10 +650,11 @@ sudo ufw enable
 | 18 | Cron scheduler aktif | ☐ |
 | 19 | Firewall (UFW) diaktifkan | ☐ |
 | 20 | Test login, bayar, upload bukti di production | ☐ |
+| 21 | Reverb WebSocket aktif (`supervisorctl status mendunia-reverb`) | ☐ |
 
 ---
 
-## 9. Perintah Cepat (Full Deploy)
+## 10. Perintah Cepat (Full Deploy)
 
 ```bash
 # ==========================================
@@ -537,14 +684,14 @@ sudo chown -R www-data:www-data dist
 # Restart services
 sudo systemctl restart nginx
 sudo systemctl restart php8.2-fpm
-sudo supervisorctl restart mendunia-worker:*
+sudo supervisorctl restart mendunia-reverb mendunia-worker:*
 ```
 
 > **Catatan:** `php artisan migrate` tidak dijalankan di sini karena database sudah di-import langsung dari `db_sim.sql` saat pertama kali deploy.
 
 ---
 
-## 10. Troubleshooting
+## 11. Troubleshooting
 
 | Masalah | Solusi |
 |---------|--------|
@@ -557,3 +704,226 @@ sudo supervisorctl restart mendunia-worker:*
 | SSL error | `sudo certbot renew --dry-run` + cek DNS propagation |
 | Session hilang | Pastikan `SESSION_DOMAIN=.mendunia.id` + `SESSION_SECURE_COOKIE=true` |
 | `storage:link` gagal | `sudo ln -s /var/www/sim-mendunia/backend/storage/app/public /var/www/sim-mendunia/backend/public/storage` |
+### 7.1 Update Backend di VPS
+
+```bash
+cd /var/www/sim-mendunia
+git pull origin main
+cd backend
+composer install --optimize-autoloader --no-dev
+```
+
+### 7.2 Konfigurasi `.env` Backend (production)
+
+Ganti/`tambahkan` blok broadcast di `backend/.env`:
+
+```env
+BROADCAST_CONNECTION=reverb
+
+REVERB_SERVER_HOST=127.0.0.1
+REVERB_SERVER_PORT=8081
+REVERB_APP_ID=reverb-prod-id
+REVERB_APP_KEY=GANTI_KEY_ACAK_PANJANG
+REVERB_APP_SECRET=GANTI_SECRET_ACAK_PANJANG
+REVERB_HOST=127.0.0.1
+REVERB_PORT=8081
+REVERB_SCHEME=http
+```
+
+> `REVERB_HOST/PORT/SCHEME` dipakai untuk arah Laravel→Reverb (internal), jadi tetap `127.0.0.1` & `http`.
+
+```bash
+php artisan config:cache
+php artisan route:cache
+sudo chown -R www-data:www-data storage bootstrap/cache
+```
+
+### 7.3 Nginx — Proxy WebSocket Subdomain API
+
+Buka `/etc/nginx/sites-available/api.sim.mendunia.id`, tambahkan blok di dalam `server {}` SSL (di samping `location /`):
+
+```nginx
+# Realtime WebSocket (Reverb) — proxy ke 127.0.0.1:8081
+location ^~ /app/ {
+    proxy_pass http://127.0.0.1:8081;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_read_timeout 600s;
+}
+```
+
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+### 7.4 Supervisor untuk Reverb (biar hidup terus)
+
+```bash
+sudo nano /etc/supervisor/conf.d/mendunia-reverb.conf
+```
+
+```ini
+[program:mendunia-reverb]
+process_name=%(program_name)s
+command=/usr/bin/php /var/www/sim-mendunia/backend/artisan reverb:start --host=127.0.0.1 --port=8081
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+user=www-data
+redirect_stderr=true
+stdout_logfile=/var/log/supervisor/mendunia-reverb.log
+stdout_logfile_maxbytes=50MB
+stderr_logfile=/var/log/supervisor/mendunia-reverb.log
+```
+
+```bash
+sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl start mendunia-reverb
+sudo supervisorctl status mendunia-reverb
+```
+
+### 7.5 Firewall — jangan buka 8081
+
+Cukup yang sudah ada (80/443). Port 8081 hanya diakses dari `127.0.0.1`, aman:
+
+```bash
+sudo ufw allow 'Nginx Full'
+sudo ufw allow OpenSSH
+sudo ufw enable
+```
+
+### 7.6 Build Frontend `.env` production
+
+`frontend/.env` (di VPS saat build):
+
+```env
+VITE_API_URL=https://api.sim.mendunia.id/api
+VITE_APP_URL=https://api.sim.mendunia.id
+VITE_REVERB_APP_KEY=GANTI_KEY_SAMA_DGN_BACKEND
+VITE_REVERB_HOST=api.sim.mendunia.id
+VITE_REVERB_PORT=443
+VITE_REVERB_SCHEME=https
+```
+
+```bash
+cd /var/www/sim-mendunia/frontend
+npm install
+npm run build
+sudo chown -R www-data:www-data dist
+```
+
+`src/services/echo.ts` otomatis membaca `VITE_REVERB_*` → browser akan connect ke `wss://api.sim.mendunia.id:443/app/GANTI_KEY...` → Nginx proxy → Reverb.
+
+### 7.7 Restart & Verifikasi
+
+```bash
+sudo supervisorctl restart mendunia-reverb mendunia-worker:*
+sudo systemctl reload nginx
+tail -f /var/log/supervisor/mendunia-reverb.log
+```
+
+Tes: buka halaman monitor guru, lalu jalankan ulang quiz di akun siswa — kartu kamera harus berubah instan tanpa tombol Segarkan.
+
+### 7.8 Catatan Penting
+
+- `REVERB_APP_KEY` di frontend & backend **harus sama**.
+- Kalau `proxy_read_timeout 600s` tetap drop, ubah ke `3600s`.
+- Pertama kali setelah `.env` diubah: jalankan `php artisan config:clear` dulu, lalu `php artisan config:cache`.
+
+---
+
+## 8. Firewall
+
+```bash
+# UFW
+sudo ufw allow 'Nginx Full'
+sudo ufw allow OpenSSH
+sudo ufw enable
+```
+
+---
+
+## 9. Checklist Deployment
+
+| # | Task | Status |
+|---|------|--------|
+| 1 | VPS di-setup (Nginx, PHP 8.2, MySQL, Node.js) | ☐ |
+| 2 | Database `db_mendunia` dibuat di MySQL | ☐ |
+| 3 | User MySQL `mendunia` dengan GRANT ALL dibuat | ☐ |
+| 4 | DNS A Record untuk `sim.mendunia.id` & `api.sim.mendunia.id` | ☐ |
+| 5 | Backend code di-upload ke `/var/www/sim-mendunia/backend` | ☐ |
+| 6 | `composer install --optimize-autoloader --no-dev` | ☐ |
+| 7 | `.env` dikonfigurasi dengan data production | ☐ |
+| 8 | `php artisan key:generate` | ☐ |
+| 9 | `db_sim.sql` di-import ke MySQL | ☐ |
+| 10 | `php artisan storage:link` | ☐ |
+| 11 | `php artisan config:cache && route:cache && view:cache` | ☐ |
+| 12 | Permissions `storage/` & `bootstrap/cache/` ke `www-data` | ☐ |
+| 13 | Frontend di-build dengan `VITE_API_URL` production | ☐ |
+| 14 | `frontend/dist/` di-upload atau di-build di VPS | ☐ |
+| 15 | Nginx config untuk kedua domain | ☐ |
+| 16 | SSL certificate (Let's Encrypt) | ☐ |
+| 17 | Supervisor queue worker aktif | ☐ |
+| 18 | Cron scheduler aktif | ☐ |
+| 19 | Firewall (UFW) diaktifkan | ☐ |
+| 20 | Test login, bayar, upload bukti di production | ☐ |
+| 21 | Reverb WebSocket aktif (`supervisorctl status mendunia-reverb`) | ☐ |
+
+---
+
+## 10. Perintah Cepat (Full Deploy)
+
+```bash
+# ==========================================
+# FULL DEPLOY COMMANDS — COPY PASTE
+# ==========================================
+
+cd /var/www/sim-mendunia/backend
+
+# Pull latest code
+git pull origin main
+
+# Backend
+composer install --optimize-autoloader --no-dev
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+php artisan event:cache
+php artisan storage:link --force
+sudo chown -R www-data:www-data storage bootstrap/cache
+
+# Frontend
+cd /var/www/sim-mendunia/frontend
+npm install
+npm run build
+sudo chown -R www-data:www-data dist
+
+# Restart services
+sudo systemctl restart nginx
+sudo systemctl restart php8.2-fpm
+sudo supervisorctl restart mendunia-reverb mendunia-worker:*
+```
+
+> **Catatan:** `php artisan migrate` tidak dijalankan di sini karena database sudah di-import langsung dari `db_sim.sql` saat pertama kali deploy.
+
+---
+
+## 11. Troubleshooting
+
+| Masalah | Solusi |
+|---------|--------|
+| `502 Bad Gateway` | Cek PHP-FPM: `sudo systemctl status php8.2-fpm` |
+| CORS error | Pastikan `FRONTEND_URL=https://sim.mendunia.id` di `.env` backend |
+| Sanctum 401 | Pastikan `SANCTUM_STATEFUL_DOMAINS` berisi kedua domain |
+| File upload gagal | Cek `client_max_body_size` di Nginx + permissions `storage/` |
+| Queue tidak jalan | `sudo supervisorctl status` + cek log `/var/log/supervisor/` |
+| Database tidak ada tabel | Import `db_sim.sql`: `mysql -u mendunia -p db_mendunia < db_sim.sql` |
+| SSL error | `sudo certbot renew --dry-run` + cek DNS propagation |
+| Session hilang | Pastikan `SESSION_DOMAIN=.mendunia.id` + `SESSION_SECURE_COOKIE=true` |
+| `storage:link` gagal | `sudo ln -s /var/www/sim-mendunia/backend/storage/app/public /var/www/sim-mendunia/backend/public/storage` |
+

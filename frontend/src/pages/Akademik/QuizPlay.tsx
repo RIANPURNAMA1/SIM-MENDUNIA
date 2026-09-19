@@ -288,7 +288,7 @@ export default function QuizPlay() {
         submitNow('waktu habis')
       }
     }, 1000)
-    snapshotRef.current = setInterval(captureSnapshot, 25000)
+    snapshotRef.current = setInterval(captureSnapshot, 3000)
     faceMonitorRef.current = setInterval(runDetection, 600)
     return stopTimers
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -297,16 +297,18 @@ export default function QuizPlay() {
   const captureSnapshot = () => {
     const video = cameraRef.current
     if (!video || video.videoWidth === 0 || !attemptId) return
+    const maxW = 640
+    const scale = Math.min(1, maxW / video.videoWidth)
     const canvas = document.createElement('canvas')
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-    canvas.getContext('2d')?.drawImage(video, 0, 0)
+    canvas.width = Math.round(video.videoWidth * scale)
+    canvas.height = Math.round(video.videoHeight * scale)
+    canvas.getContext('2d')?.drawImage(video, 0, 0, canvas.width, canvas.height)
     canvas.toBlob(blob => {
       if (!blob) return
       const fd = new FormData()
       fd.append('photo', new File([blob], `snap-${Date.now()}.jpg`, { type: 'image/jpeg' }))
       quizApi.uploadWebcam(Number(attemptId), fd).catch(() => {})
-    }, 'image/jpeg', 0.8)
+    }, 'image/jpeg', 0.7)
   }
 
   // ── Face / presence monitoring (proctoring) ──

@@ -9,6 +9,7 @@ use App\Models\QuizQuestion;
 use App\Models\Siswa;
 use App\Models\Lesson;
 use App\Models\LmsProgress;
+use App\Events\WebcamSnapshotUpdated;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -426,12 +427,19 @@ class QuizController extends Controller
             'photo' => 'required|image|mimes:jpg,jpeg,png,webp|max:3072',
         ]);
 
-        if ($attempt->webcam_photo) {
-            Storage::disk('public')->delete($attempt->webcam_photo);
-        }
-
+        $old = $attempt->webcam_photo;
         $path = $request->file('photo')->store('quiz/webcam', 'public');
         $attempt->update(['webcam_photo' => $path]);
+
+        if ($old && $old !== $path) {
+            Storage::disk('public')->delete($old);
+        }
+
+        try {
+            WebcamSnapshotUpdated::dispatch((int) $attempt->quiz_paket_id, (int) $attempt->id);
+        } catch (\Throwable $e) {
+            // Realtime push bersifat opsional: snapshot tetap tersimpan walau server websocket mati.
+        }
 
         return response()->json([
             'message' => 'Foto tersimpan',
