@@ -15,6 +15,7 @@ use App\Models\LmsCategory;
 use App\Models\LmsSubmission;
 use App\Models\LmsProgress;
 use App\Models\LmsSetting;
+use App\Models\Pendaftar;
 use App\Models\QuizAttempt;
 use App\Models\Siswa;
 use Illuminate\Http\Request;
@@ -29,7 +30,30 @@ class LmsController extends Controller
     private function getSiswa()
     {
         $user = Auth::guard('sanctum')->user();
-        return Siswa::where('user_id', $user->id)->first();
+        $siswa = Siswa::where('user_id', $user->id)->first();
+        if ($siswa) {
+            return $siswa;
+        }
+
+        // Kandidat yang pendaftarannya disetujui otomatis dibuatkan record
+        // siswa saat pertama kali mengakses LMS (sinkron dari data pendaftaran).
+        $pendaftar = Pendaftar::where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        if (!$pendaftar || $pendaftar->status_pendaftaran !== 'disetujui') {
+            return null;
+        }
+
+        return Siswa::firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'nama' => $pendaftar->nama,
+                'no_registrasi' => $pendaftar->no_registrasi,
+                'batch_id' => $pendaftar->batch_id,
+                'batch' => $pendaftar->batch?->nama_batch,
+            ]
+        );
     }
 
     private function lessonFallsOnWeekend(Lesson $lesson): bool

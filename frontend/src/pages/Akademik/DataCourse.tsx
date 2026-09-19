@@ -3369,21 +3369,12 @@ export default function DataCourse() {
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>Batch</label>
-                  <select value={paketForm.batch_id} onChange={e => setPaketForm({ ...paketForm, batch_id: e.target.value, level: '' })} className={inputCls}>
-                    <option value="">Semua batch</option>
-                    {batches.map(b => <option key={b.id} value={b.id}>{b.nama_batch}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className={labelCls}>Level</label>
-                  <select value={paketForm.level} onChange={e => setPaketForm({ ...paketForm, level: e.target.value })} className={inputCls}>
-                    <option value="">Semua level</option>
-                    {(paketForm.batch_id ? (batchLevels[Number(paketForm.batch_id)] || []) : []).map(lv => <option key={lv} value={lv}>Level {lv}</option>)}
-                  </select>
-                </div>
+              <div>
+                <label className={labelCls}>Level</label>
+                <select value={paketForm.level} onChange={e => setPaketForm({ ...paketForm, level: e.target.value })} className={inputCls}>
+                  <option value="">Semua level</option>
+                  {[1,2,3,4].map(lv => <option key={lv} value={lv}>Level {lv}</option>)}
+                </select>
               </div>
               <div>
                 <label className={labelCls}>Kategori Paket</label>
