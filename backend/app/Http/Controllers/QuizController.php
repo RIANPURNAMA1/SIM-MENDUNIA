@@ -130,7 +130,11 @@ class QuizController extends Controller
             'auto_submitted' => $auto ? true : $attempt->auto_submitted,
         ]);
 
-        WebcamSnapshotUpdated::dispatch((int) $attempt->quiz_paket_id, (int) $attempt->id);
+        try {
+            WebcamSnapshotUpdated::dispatch((int) $attempt->quiz_paket_id, (int) $attempt->id);
+        } catch (\Throwable $e) {
+            // Realtime push bersifat opsional: hasil tetap tersimpan walau server websocket mati.
+        }
     }
 
     private function expireIfTimeUp(QuizAttempt $attempt)
@@ -238,6 +242,8 @@ class QuizController extends Controller
                 'best_score' => $best === null ? null : (int) $best,
                 'can_start' => !$locked && $used < $p->max_attempts,
                 'quiz_template' => $p->quiz_template,
+                'camera_enabled' => (bool) $p->camera_enabled,
+                'block_exit' => (bool) $p->block_exit,
                 'is_unlocked' => !$locked && $this->paketUnlocked($p, $siswa),
                 'locked' => $locked,
             ];
@@ -353,6 +359,8 @@ class QuizController extends Controller
                 'passing_score' => (int) $paket->passing_score,
                 'max_warnings' => (int) $paket->max_warnings,
                 'quiz_template' => $paket->quiz_template,
+                'camera_enabled' => (bool) $paket->camera_enabled,
+                'block_exit' => (bool) $paket->block_exit,
                 'has_prerequisite_course' => $hasPrerequisiteCourse,
             ],
             'lessons' => $lessons,
@@ -445,6 +453,8 @@ class QuizController extends Controller
                 'max_warnings' => (int) $paket->max_warnings,
             ],
             'template' => $paket->quiz_template,
+            'camera_enabled' => (bool) $paket->camera_enabled,
+            'block_exit' => (bool) $paket->block_exit,
             'questions' => $questions,
         ], 201);
     }
@@ -526,6 +536,8 @@ class QuizController extends Controller
                 'warnings' => $attempt->warnings,
             ],
             'template' => $attempt->paket->quiz_template,
+            'camera_enabled' => (bool) $attempt->paket->camera_enabled,
+            'block_exit' => (bool) $attempt->paket->block_exit,
             'questions' => $questions->map(function ($q) use ($answers) {
                 $a = $answers->get($q->id);
                 return [
@@ -631,7 +643,11 @@ class QuizController extends Controller
                 ['quiz_attempt_id' => $attempt->id, 'quiz_question_id' => $question->id],
                 ['answer_text' => $text !== '' ? $text : null, 'selected_index' => null]
             );
-            WebcamSnapshotUpdated::dispatch((int) $attempt->quiz_paket_id, (int) $attempt->id);
+            try {
+                WebcamSnapshotUpdated::dispatch((int) $attempt->quiz_paket_id, (int) $attempt->id);
+            } catch (\Throwable $e) {
+                // Realtime push bersifat opsional: jawaban tetap tersimpan walau server websocket mati.
+            }
             return response()->json([
                 'question_id' => $question->id,
                 'answer_text' => $answer->answer_text,
@@ -650,7 +666,11 @@ class QuizController extends Controller
             ['selected_index' => $savedIndex, 'answer_text' => null]
         );
 
-        WebcamSnapshotUpdated::dispatch((int) $attempt->quiz_paket_id, (int) $attempt->id);
+        try {
+            WebcamSnapshotUpdated::dispatch((int) $attempt->quiz_paket_id, (int) $attempt->id);
+        } catch (\Throwable $e) {
+            // Realtime push bersifat opsional: jawaban tetap tersimpan walau server websocket mati.
+        }
 
         return response()->json([
             'question_id' => $question->id,

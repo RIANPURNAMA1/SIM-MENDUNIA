@@ -21,6 +21,8 @@ class QuizPaket extends Model
         'passing_score',
         'shuffle_questions',
         'template',
+        'camera_enabled',
+        'block_exit',
         'status',
     ];
 
@@ -30,6 +32,8 @@ class QuizPaket extends Model
         'max_warnings' => 'integer',
         'passing_score' => 'integer',
         'shuffle_questions' => 'boolean',
+        'camera_enabled' => 'boolean',
+        'block_exit' => 'boolean',
     ];
 
     protected $appends = ['cover_url', 'quiz_template'];

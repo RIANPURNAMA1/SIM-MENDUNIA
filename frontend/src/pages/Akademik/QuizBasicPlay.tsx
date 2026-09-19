@@ -80,6 +80,15 @@ function QuestionAudio({ src, maxPlays, plays, onPlay }: {
   )
 }
 
+const CELEBRATION_HTML = `
+    <div style="text-align:center">
+      <img src="/celebrate.svg" alt="Hore!" style="width:160px;margin:0 auto 12px;display:block;filter:drop-shadow(0 4px 12px rgba(255,165,0,.25))" />
+      <p style="font-size:22px;font-weight:800;color:#1a1a2e;margin:0 0 6px">Hore! Kamu Hebat!</p>
+      <p style="font-size:13px;color:#6b7280;margin:0 0 4px">Kuis berhasil dikumpulkan. Semangat terus ya!</p>
+      <p style="font-size:12px;color:#9ca3af;margin:0">Nilai dan pembahasan bisa dilihat di halaman berikutnya.</p>
+    </div>
+  `
+
 export default function QuizBasicPlay() {
   const { paketId, attemptId } = useParams()
   const navigate = useNavigate()
@@ -100,6 +109,8 @@ export default function QuizBasicPlay() {
   const [testTitle, setTestTitle] = useState('')
   const [audioPlays, setAudioPlays] = useState<Record<number, number>>({})
   const [cameraActive, setCameraActive] = useState(false)
+  const [cameraEnabled, setCameraEnabled] = useState(true)
+  const [blockExit, setBlockExit] = useState(true)
   const [faceMissing, setFaceMissing] = useState(false)
   const [headTurned, setHeadTurned] = useState(false)
   const [streamVersion, setStreamVersion] = useState(0)
@@ -133,6 +144,27 @@ export default function QuizBasicPlay() {
     streamRef.current = null
   }, [])
 
+  // ── Celebration sound (Web Audio API – no external file) ──
+  const playTaDa = useCallback(() => {
+    try {
+      const ctx = new AudioContext()
+      const notes = [523.25, 659.25, 783.99, 1046.5]
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+        osc.type = 'sine'
+        osc.frequency.value = freq
+        gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.14)
+        gain.gain.linearRampToValueAtTime(0.28, ctx.currentTime + i * 0.14 + 0.04)
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.14 + 0.48)
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+        osc.start(ctx.currentTime + i * 0.14)
+        osc.stop(ctx.currentTime + i * 0.14 + 0.5)
+      })
+    } catch {}
+  }, [])
+
   // ── Load attempt ──
   const load = useCallback(() => {
     if (!attemptId) return
@@ -146,6 +178,8 @@ export default function QuizBasicPlay() {
       }
       setAttempt(a)
       setTestTitle(navTitle || res.data.paket?.title || res.data.test_name || 'Quiz')
+      setCameraEnabled(data.camera_enabled !== false)
+      setBlockExit(data.block_exit !== false)
       const pre: Record<number, number | null> = {}
       const preEssay: Record<number, string> = {}
       const qs: PlayQuestion[] = (data.questions || []).map((q: any) => {
@@ -219,6 +253,7 @@ export default function QuizBasicPlay() {
   // Request camera with retries — during route transition to play, the previous
   // page's stream may still hold the device, so getUserMedia can briefly fail.
   useEffect(() => {
+    if (!cameraEnabled) return
     let cancelled = false
     loadFaceModels()
     const start = async (attempts: number) => {
@@ -233,7 +268,7 @@ export default function QuizBasicPlay() {
       cancelled = true
       stopStream()
     }
-  }, [requestCamera, stopStream])
+  }, [requestCamera, stopStream, cameraEnabled])
 
   // ── Attach stream to video once element exists ──
   useEffect(() => {
@@ -259,14 +294,43 @@ export default function QuizBasicPlay() {
       .map(q => quizApi.answer(Number(attemptId), { question_id: q.id, selected_index: null, answer_text: (essayDrafts[q.id] ?? '').trim() || null }))
     Promise.allSettled(essayOrders).finally(() => {
       quizApi.submit(Number(attemptId)).then(() => {
-        navigate(`/siswa-dashboard/quiz/${paketId}${location.search}`, { replace: true })
+        if (reason === 'manual') {
+          playTaDa()
+          Swal.fire({
+            html: CELEBRATION_HTML,
+            icon: undefined,
+            showConfirmButton: true,
+            confirmButtonColor: '#0E6187',
+            confirmButtonText: 'Lihat Hasil',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            customClass: { popup: 'celebrate-popup' },
+            didOpen: (popup) => {
+              const img = popup.querySelector('img')
+              if (img) {
+                img.animate(
+                  [
+                    { transform: 'scale(0.3) rotate(-15deg)', opacity: 0 },
+                    { transform: 'scale(1.1) rotate(4deg)', opacity: 1 },
+                    { transform: 'scale(1) rotate(0deg)', opacity: 1 },
+                  ],
+                  { duration: 600, easing: 'cubic-bezier(.34,1.56,.64,1)' }
+                )
+              }
+            },
+          }).then(() => {
+            navigate(`/siswa-dashboard/quiz/${paketId}${location.search}`, { replace: true })
+          })
+        } else {
+          navigate(`/siswa-dashboard/quiz/${paketId}${location.search}`, { replace: true })
+        }
       }).catch(() => {
         Swal.fire({ icon: 'error', title: 'Gagal mengumpulkan quiz', text: reason })
         setIsSubmitting(false)
         if (reason === 'waktu habis') setRemaining(0)
       })
     })
-  }, [attemptId, paketId, isSubmitting, stopTimers, navigate, questions, essayDrafts])
+  }, [attemptId, paketId, isSubmitting, stopTimers, navigate, questions, essayDrafts, playTaDa])
 
   useEffect(() => {
     if (!attempt) return
@@ -278,11 +342,13 @@ export default function QuizBasicPlay() {
         submitNow('waktu habis')
       }
     }, 1000)
-    snapshotRef.current = setInterval(captureSnapshot, 3000)
-    faceMonitorRef.current = setInterval(runDetection, 600)
+    if (cameraEnabled) {
+      snapshotRef.current = setInterval(captureSnapshot, 3000)
+      faceMonitorRef.current = setInterval(runDetection, 600)
+    }
     return stopTimers
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attempt, submitNow, stopTimers])
+  }, [attempt, cameraEnabled, submitNow, stopTimers])
 
   const captureSnapshot = () => {
     const video = cameraRef.current
@@ -414,12 +480,13 @@ export default function QuizBasicPlay() {
   }, [attemptId, submitNow])
 
   useEffect(() => {
+    if (!blockExit) return
     const onVis = () => {
       if (document.visibilityState === 'hidden') sendWarn()
     }
     document.addEventListener('visibilitychange', onVis)
     return () => document.removeEventListener('visibilitychange', onVis)
-  }, [sendWarn])
+  }, [sendWarn, blockExit])
 
   // ── Answer selection ──
   const updateEssay = (qid: number, val: string) => {
@@ -561,7 +628,7 @@ export default function QuizBasicPlay() {
           </div>
 
           <div className="flex items-center gap-2">
-            {streamRef.current ? (
+            {cameraEnabled && (streamRef.current ? (
               <div className="fixed bottom-24 right-3 z-40 md:static md:bottom-auto md:right-auto">
                 <div className="relative overflow-hidden rounded-md border border-white/20 bg-black shadow-lg md:shadow-none">
                   <video ref={cameraRef} muted playsInline autoPlay className="h-28 w-40 object-cover md:h-16 md:w-24" />
@@ -576,7 +643,7 @@ export default function QuizBasicPlay() {
               <span className="inline-flex items-center gap-1.5 rounded bg-red-500/15 px-2 py-1 text-[10px] font-bold text-red-300">
                 <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" /> Kamera mati
               </span>
-            )}
+            ))}
             <button
               onClick={submitManually}
               disabled={isSubmitting}

@@ -81,6 +81,8 @@ interface QuizPaket {
   user_id: number | null
   cover_image: string | null
   cover_url: string | null
+  camera_enabled: boolean
+  block_exit: boolean
   batch?: { id: number; nama_batch: string } | null
   course?: { id: number; title: string } | null
 }
@@ -191,7 +193,9 @@ const primaryBtn = 'inline-flex items-center gap-2 bg-[#0E6187] hover:bg-[#0E618
 const emptyPaketForm = {
   title: '', description: '', course_id: '', batch_id: '', level: '', category: '',
   time_limit_minutes: '30', max_attempts: '3', max_warnings: '3',
-  passing_score: '0', shuffle_questions: true, quiz_template: 'basic', status: 'nonaktif', user_id: '', cover_image: '',
+  passing_score: '0', shuffle_questions: true, quiz_template: 'basic', status: 'nonaktif', user_id: '',
+  camera_enabled: true, block_exit: true,
+  cover_image: '',
 }
 const emptyQuestionForm = { question: '', section_id: '', question_type: 'choice', rating_max: '9', correct_index: '', points: '1', keyword: '', image_path: '', image_url: '', audio_path: '', audio_url: '', audio_max_plays: '2' }
 
@@ -1342,6 +1346,7 @@ export default function DataCourse() {
       max_warnings: p.max_warnings.toString(), passing_score: p.passing_score.toString(),
       shuffle_questions: p.shuffle_questions, quiz_template: p.quiz_template || 'basic',
       status: p.status, user_id: p.user_id?.toString() || '',
+      camera_enabled: p.camera_enabled ?? true, block_exit: p.block_exit ?? true,
       cover_image: p.cover_image || '',
     })
     setCoverPreview(p.cover_url || '')
@@ -1380,6 +1385,7 @@ export default function DataCourse() {
         max_warnings: Number(paketForm.max_warnings) || 3,
         passing_score: Number(paketForm.passing_score) || 0,
         shuffle_questions: paketForm.shuffle_questions, quiz_template: paketForm.quiz_template,
+        camera_enabled: paketForm.camera_enabled, block_exit: paketForm.block_exit,
         status: paketForm.status,
         user_id: paketForm.user_id ? Number(paketForm.user_id) : undefined,
       }
@@ -3076,6 +3082,26 @@ export default function DataCourse() {
                     ? 'JFT UI: tampilan quiz lengkap dengan pengawasan kamera. Sistem mengambil foto berkala & memberi peringatan.'
                     : 'Basic: tampilan quiz sederhana dengan kamera pengawas & keamanan aktif — foto berkala & peringatan otomatis.'}
                 </p>
+              </div>
+              <div className="flex items-center justify-between bg-slate-50 rounded-lg px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-slate-700">Keamanan kamera</p>
+                  <p className="text-xs text-slate-400">Sistem mengambil foto berkala & mendeteksi wajah selama pengerjaan</p>
+                </div>
+                <button onClick={() => setPaketForm({ ...paketForm, camera_enabled: !paketForm.camera_enabled })}
+                  className={`relative w-10 h-[22px] rounded-full transition-colors ${paketForm.camera_enabled ? 'bg-[#0E6187]' : 'bg-slate-300'}`}>
+                  <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${paketForm.camera_enabled ? 'left-[20px]' : 'left-[2px]'}`} />
+                </button>
+              </div>
+              <div className="flex items-center justify-between bg-slate-50 rounded-lg px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-slate-700">Kunci saat keluar / tutup aplikasi</p>
+                  <p className="text-xs text-slate-400">Keluar atau menutup aplikasi saat quiz berjalan memicu peringatan</p>
+                </div>
+                <button onClick={() => setPaketForm({ ...paketForm, block_exit: !paketForm.block_exit })}
+                  className={`relative w-10 h-[22px] rounded-full transition-colors ${paketForm.block_exit ? 'bg-[#0E6187]' : 'bg-slate-300'}`}>
+                  <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${paketForm.block_exit ? 'left-[20px]' : 'left-[2px]'}`} />
+                </button>
               </div>
               <div className="flex items-center justify-between bg-slate-50 rounded-lg px-4 py-3">
                 <div>
