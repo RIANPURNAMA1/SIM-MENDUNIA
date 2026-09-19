@@ -387,7 +387,7 @@ export default function AdminQuizPaketSoal() {
   const openEditQuestion = (q: Question) => {
     setEditingQuestion(q)
     setQForm({
-      question: q.question,
+      question: q.question ?? '',
       question_type: q.question_type === 'rating' ? 'rating' : q.question_type === 'essay' ? 'essay' : 'choice',
       rating_max: q.rating_max ? q.rating_max.toString() : '9',
       correct_index: q.correct_index?.toString() ?? '',
@@ -423,7 +423,7 @@ export default function AdminQuizPaketSoal() {
     setSavingQuestion(true)
     try {
       const data = {
-        question: qForm.question,
+        question: qForm.question ?? '',
         question_type: isEssay ? 'essay' : isRating ? 'rating' : 'choice',
         rating_max: isRating ? Number(qForm.rating_max) || 9 : null,
         options: opts,
