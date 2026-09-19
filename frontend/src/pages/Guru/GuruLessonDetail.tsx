@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, BookOpen, FileText, ListChecks, Plus, ChevronRight, ChevronDown, HelpCircle,
   Download, Clock, ClipboardList, Check, Edit3, X, Trash2, Loader2, Layers, Camera, Upload, ImageIcon,
-  BarChart3, Users, Video, Eye, EyeOff, Activity,
+  BarChart3, Users, Video, Eye, EyeOff, Activity, Search,
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -146,10 +146,91 @@ interface RekapNilaiData {
   siswa: RekapNilaiSiswa[]
 }
 
+interface ResultAttempt {
+  attempt_id: number
+  attempt_number: number
+  status: string
+  score: number | null
+  correct_count: number | null
+  total_count: number | null
+  warnings: number
+  auto_submitted: boolean
+  started_at: string | null
+  submitted_at: string | null
+  webcam_photo: string | null
+}
+
+interface ResultParticipant {
+  siswa_id: number
+  nama: string
+  batch: string | null
+  level: string | null
+  attempts_count: number
+  best_score: number | null
+  attempts: ResultAttempt[]
+}
+
+type AttemptOption = string | { text?: string; image_url?: string | null; image_path?: string | null }
+
+interface AttemptDetailQuestion {
+  id: number
+  question: string
+  question_type: 'choice' | 'rating' | 'essay' | string
+  rating_max?: number | null
+  options: AttemptOption[]
+  correct_index?: number | null
+  keyword?: string | null
+  points?: number | null
+  section?: { id: number; name: string } | null
+  selected_index?: number | null
+  answer_text?: string | null
+  earned_points?: number | null
+  is_correct?: boolean | null
+}
+
+interface AttemptDetailData {
+  attempt: {
+    id: number
+    attempt_number: number
+    status: string
+    score: number | null
+    correct_count?: number | null
+    total_count?: number | null
+    warnings?: number
+    started_at?: string | null
+    submitted_at?: string | null
+    webcam_photo?: string | null
+  }
+  questions: AttemptDetailQuestion[]
+  siswa?: { id: number; nama: string } | null
+}
+
 const fmtFileSize = (bytes?: number | null) => {
   if (!bytes) return ''
   const mb = bytes / 1024 / 1024
   return mb >= 1 ? `${mb.toFixed(1)} MB` : `${(bytes / 1024).toFixed(0)} KB`
+}
+
+const optText = (o?: AttemptOption | undefined | null): string =>
+  typeof o === 'string' ? o : (o?.text ?? '')
+
+const fmtDuration = (startedAt?: string | null, submittedAt?: string | null) => {
+  if (!startedAt) return '—'
+  const start = new Date(startedAt).getTime()
+  const end = submittedAt ? new Date(submittedAt).getTime() : Date.now()
+  const sec = Math.max(0, Math.floor((end - start) / 1000))
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const h = Math.floor(sec / 3600)
+  const m = Math.floor((sec % 3600) / 60)
+  const s = sec % 60
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`
+}
+
+const fmtDateTime = (s?: string | null) => {
+  if (!s) return '—'
+  const d = new Date(s)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 const hasRealContent = (html?: string | null) => {
@@ -201,6 +282,7 @@ export default function GuruLessonDetail() {
   const [bankLoading, setBankLoading] = useState(false)
   const [bankPickedIds, setBankPickedIds] = useState<number[]>([])
   const [assigningBank, setAssigningBank] = useState(false)
+  const [bankSearch, setBankSearch] = useState('')
   const [showMateriPicker, setShowMateriPicker] = useState(false)
   const [bankMateris, setBankMateris] = useState<LmsMateriItem[]>([])
   const [materiBankLoading, setMateriBankLoading] = useState(false)
@@ -222,12 +304,39 @@ export default function GuruLessonDetail() {
   const [rekapNilai, setRekapNilai] = useState<RekapNilaiData | null>(null)
   const [rekapNilaiLoading, setRekapNilaiLoading] = useState(false)
 
+  const [hasilPaket, setHasilPaket] = useState<{ id: number; title: string } | null>(null)
+  const [participants, setParticipants] = useState<ResultParticipant[]>([])
+  const [hasilLoading, setHasilLoading] = useState(false)
+  const [showAttemptDetail, setShowAttemptDetail] = useState(false)
+  const [detail, setDetail] = useState<AttemptDetailData | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+
   const loadRekapNilai = (id: number) => {
     setRekapNilaiLoading(true)
     guruLmsApi.lessonRekapNilai(id)
       .then(res => setRekapNilai(res.data))
       .catch(() => setRekapNilai(null))
       .finally(() => setRekapNilaiLoading(false))
+  }
+
+  const openQuizResults = (paket: { id: number; title: string }) => {
+    setHasilPaket({ id: paket.id, title: paket.title })
+    setParticipants([])
+    setHasilLoading(true)
+    guruQuizApi.results(paket.id)
+      .then(res => setParticipants(res.data.participants || []))
+      .catch(() => setParticipants([]))
+      .finally(() => setHasilLoading(false))
+  }
+
+  const openAttemptDetail = (attemptId: number) => {
+    setDetail(null)
+    setDetailLoading(true)
+    setShowAttemptDetail(true)
+    guruQuizApi.attemptDetail(attemptId)
+      .then(res => setDetail(res.data))
+      .catch(() => setDetail(null))
+      .finally(() => setDetailLoading(false))
   }
 
   const switchLessonTab = (key: typeof lessonTab) => {
@@ -246,6 +355,7 @@ export default function GuruLessonDetail() {
 
   const openBankPicker = () => {
     setBankPickedIds([])
+    setBankSearch('')
     setShowBankPicker(true)
     setBankLoading(true)
     guruQuizApi.bankPakets()
@@ -975,6 +1085,11 @@ export default function GuruLessonDetail() {
                       title="Monitor langsung (kamera pengawas + progres pengerjaan)">
                       <Activity size={12} /> Monitor
                     </button>
+                    <button onClick={() => openQuizResults(paket)}
+                      className="mt-3 ml-1.5 inline-flex items-center gap-1 text-[11px] font-bold text-[#0069b0] border border-[#0069b0]/30 bg-[#0069b0]/5 px-3 py-1.5 rounded-lg hover:bg-[#0069b0]/10 transition-colors"
+                      title="Lihat hasil pengerjaan kandidat + kunci jawaban + waktu pengerjaan">
+                      <BarChart3 size={12} /> Hasil Quiz
+                    </button>
                     {renderQuizPreview(paket.id)}
                   </div>
                     )
@@ -1353,6 +1468,245 @@ export default function GuruLessonDetail() {
         )}
       </div>
 
+      {/* Hasil Quiz Modal */}
+      {hasilPaket && (
+        <div className="fixed inset-0 z-[95] flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onClick={() => setHasilPaket(null)}>
+          <div className="bg-white w-full sm:max-w-2xl rounded-t-xl sm:rounded-xl max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-[#F0F1F5] sticky top-0 bg-white z-10">
+              <div className="min-w-0">
+                <h2 className="text-sm font-bold text-[#14182B] truncate">Hasil Quiz · {hasilPaket.title}</h2>
+                <p className="text-[10px] text-[#8B90A0] font-medium">{participants.length} kandidat mengerjakan</p>
+              </div>
+              <button onClick={() => setHasilPaket(null)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F4F5F8] hover:bg-[#E5E7EF] shrink-0 ml-3">
+                <X size={15} className="text-[#4B5063]" />
+              </button>
+            </div>
+
+            <div className="p-5">
+              {hasilLoading ? (
+                <div className="flex items-center justify-center gap-2 py-14 text-[11px] text-[#8B90A0] font-medium">
+                  <Loader2 size={16} className="animate-spin text-[#0069b0]" /> Memuat hasil...
+                </div>
+              ) : participants.length === 0 ? (
+                <div className="py-12 text-center">
+                  <div className="w-12 h-12 mx-auto rounded-xl bg-[#0069b0]/[0.06] flex items-center justify-center mb-2">
+                    <Users size={22} className="text-[#0069b0]" />
+                  </div>
+                  <p className="text-xs font-bold text-[#14182B]">Belum ada yang mengerjakan</p>
+                  <p className="text-[10px] text-[#8B90A0] font-medium mt-1">Hasil muncul setelah kandidat mengerjakan quiz ini</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <div className="min-w-[600px] rounded-md border border-[#E5E7EF] overflow-hidden">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="bg-[#F7F9FC] border-b border-[#E5E7EF]">
+                          <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide">Kandidat</th>
+                          <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide text-center">Percobaan</th>
+                          <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide text-center">Skor</th>
+                          <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide text-center">Benar/Total</th>
+                          <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide text-center">Waktu Pengerjaan</th>
+                          <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide text-center">Status</th>
+                          <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide text-center">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {participants.map(par =>
+                          par.attempts.map((a, ai) => (
+                            <tr key={a.attempt_id} className="border-b border-[#F0F1F5] last:border-0 hover:bg-[#F7F9FC]/60 transition-colors align-top">
+                              {ai === 0 && (
+                                <td rowSpan={par.attempts.length} className="py-3 px-3">
+                                  <p className="text-xs font-bold text-[#14182B]">{par.nama}</p>
+                                  <p className="text-[9.5px] text-[#8B90A0] font-medium mt-0.5">
+                                    {[par.batch && `Batch ${par.batch}`, par.level != null && `Level ${par.level}`].filter(Boolean).join(' · ') || '-'}
+                                  </p>
+                                  <p className="text-[9.5px] font-bold text-[#0069b0] mt-1">Skor terbaik: {Number(par.best_score) || 0}</p>
+                                </td>
+                              )}
+                              <td className="py-3 px-3 text-center text-[11px] font-bold text-[#4B5063]">#{a.attempt_number}</td>
+                              <td className="py-3 px-3 text-center">
+                                <span className={`text-[11px] font-bold ${a.status === 'submitted' ? 'text-[#0069b0]' : 'text-[#B9BDCB]'}`}>
+                                  {a.status === 'submitted' ? Number(a.score) || 0 : '–'}
+                                </span>
+                              </td>
+                              <td className="py-3 px-3 text-center text-[11px] font-semibold text-[#4B5063]">
+                                {a.correct_count != null && a.total_count != null ? `${a.correct_count}/${a.total_count}` : '–'}
+                              </td>
+                              <td className="py-3 px-3 text-center">
+                                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#4B5063]">
+                                  <Clock size={11} className="text-[#8B90A0]" />
+                                  {fmtDuration(a.started_at, a.submitted_at)}
+                                </span>
+                              </td>
+                              <td className="py-3 px-3 text-center">
+                                <span className={`inline-block text-[9px] font-bold px-2 py-1 rounded-full ${
+                                  a.status === 'submitted'
+                                    ? a.auto_submitted ? 'bg-orange-50 text-orange-600' : 'bg-emerald-50 text-emerald-600'
+                                    : 'bg-[#F4F5F8] text-[#8B90A0]'
+                                }`}>
+                                  {a.status === 'submitted' ? (a.auto_submitted ? 'Dikumpulkan otomatis' : 'Selesai') : 'Sedang dikerjakan'}
+                                </span>
+                              </td>
+                              <td className="py-3 px-3 text-center">
+                                <button onClick={() => openAttemptDetail(a.attempt_id)}
+                                  className="inline-flex items-center gap-1 text-[10px] font-bold text-[#0069b0] border border-[#0069b0]/30 bg-[#0069b0]/5 px-2.5 py-1.5 rounded-lg hover:bg-[#0069b0]/10 transition-colors">
+                                  Jawaban <ChevronRight size={11} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Review Jawaban Modal */}
+      {showAttemptDetail && (
+        <div className="fixed inset-0 z-[98] flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onClick={() => setShowAttemptDetail(false)}>
+          <div className="bg-white w-full sm:max-w-lg rounded-t-xl sm:rounded-xl max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-[#F0F1F5] sticky top-0 bg-white z-10">
+              <div className="min-w-0">
+                <h2 className="text-sm font-bold text-[#14182B]">Review Jawaban</h2>
+                <p className="text-[10px] text-[#8B90A0] font-medium truncate">
+                  {detail?.siswa?.nama || 'Kandidat'} · Percobaan #{detail?.attempt?.attempt_number}
+                </p>
+              </div>
+              <button onClick={() => setShowAttemptDetail(false)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F4F5F8] hover:bg-[#E5E7EF] shrink-0 ml-3">
+                <X size={15} className="text-[#4B5063]" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {detailLoading || !detail ? (
+                <div className="flex items-center justify-center gap-2 py-12 text-[11px] text-[#8B90A0] font-medium">
+                  <Loader2 size={16} className="animate-spin text-[#0069b0]" /> Memuat jawaban...
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-[#F4F5F8] rounded-xl p-3 text-center">
+                      <p className="text-lg font-bold text-[#14182B]">{Number(detail.attempt.score) || 0}</p>
+                      <p className="text-[10px] text-[#8B90A0] font-semibold">Skor</p>
+                    </div>
+                    <div className="bg-[#F4F5F8] rounded-xl p-3 text-center">
+                      <p className="text-lg font-bold text-[#14182B]">
+                        {detail.attempt.correct_count != null && detail.attempt.total_count != null
+                          ? `${detail.attempt.correct_count}/${detail.attempt.total_count}` : '–'}
+                      </p>
+                      <p className="text-[10px] text-[#8B90A0] font-semibold">Benar</p>
+                    </div>
+                    <div className="bg-[#F4F5F8] rounded-xl p-3 text-center">
+                      <p className="text-lg font-bold text-[#0069b0] flex items-center justify-center gap-1">
+                        <Clock size={13} /> {fmtDuration(detail.attempt.started_at, detail.attempt.submitted_at)}
+                      </p>
+                      <p className="text-[10px] text-[#8B90A0] font-semibold">Waktu</p>
+                    </div>
+                  </div>
+                  <p className="text-center text-[10px] text-[#8B90A0] font-medium -mt-2">
+                    Mulai {fmtDateTime(detail.attempt.started_at)} · Selesai {fmtDateTime(detail.attempt.submitted_at)}
+                  </p>
+
+                  {detail.attempt.webcam_photo && (
+                    <div>
+                      <p className="text-[11px] font-bold text-[#4B5063] mb-2 flex items-center gap-1.5"><Camera size={12} /> Foto Pengerjaan</p>
+                      <img src={detail.attempt.webcam_photo} alt="Webcam" className="w-full rounded-xl border border-[#E5E7EF] max-h-52 object-cover" />
+                    </div>
+                  )}
+
+                  <div className="space-y-3">
+                    {detail.questions.map((q, i) => {
+                      const badge = q.question_type === 'rating'
+                        ? (q.selected_index != null ? 'TERISI' : 'TIDAK DIISI')
+                        : q.question_type === 'essay'
+                          ? (q.is_correct === null && q.answer_text?.trim() ? 'BELUM DINILAI' : q.is_correct === true ? 'BENAR' : q.is_correct === false ? 'SALAH' : 'TIDAK DIJAWAB')
+                          : q.is_correct === true ? 'BENAR' : q.is_correct === false ? 'SALAH' : 'TIDAK DIJAWAB'
+                      const badgeCls = badge === 'BENAR' ? 'bg-emerald-50 text-emerald-600'
+                        : badge === 'SALAH' ? 'bg-red-50 text-red-500'
+                        : badge === 'BELUM DINILAI' ? 'bg-amber-50 text-amber-600'
+                        : badge === 'TERISI' ? 'bg-violet-50 text-violet-600'
+                        : 'bg-gray-100 text-[#8B90A0]'
+                      return (
+                        <div key={q.id} className="border border-[#E5E7EF] rounded-xl p-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-[12px] font-bold text-[#14182B] leading-snug">{i + 1}. {q.question}</p>
+                            <span className={`text-[9px] font-bold shrink-0 px-2 py-0.5 rounded-full ${badgeCls}`}>{badge}</span>
+                          </div>
+                          {q.section?.name && (
+                            <span className="mt-1.5 inline-block rounded-full bg-[#0069b0]/[0.06] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#0069b0]">{q.section.name}</span>
+                          )}
+                          <div className="mt-2 space-y-1.5">
+                            {q.question_type === 'rating' ? (
+                              <div>
+                                <div className="flex gap-1 flex-wrap">
+                                  {q.options.map((opt, oi) => {
+                                    const isPilih = q.selected_index === oi
+                                    return (
+                                      <span key={oi} className={`w-8 h-8 flex items-center justify-center rounded-full text-[11px] font-bold border-2 ${isPilih ? 'border-violet-500 bg-violet-500 text-white' : 'border-[#E5E7EF] bg-[#F4F5F8] text-[#8B90A0]'}`}>
+                                        {optText(opt)}
+                                      </span>
+                                    )
+                                  })}
+                                </div>
+                                <p className="text-[10px] text-[#8B90A0] font-medium mt-1.5">
+                                  Jawaban: <span className="font-bold text-violet-600">
+                                    {q.selected_index != null && q.options[q.selected_index]
+                                      ? optText(q.options[q.selected_index]) : 'Tidak diisi'}
+                                  </span>
+                                </p>
+                              </div>
+                            ) : q.question_type === 'essay' ? (
+                              <div>
+                                <p className="text-[10px] font-bold text-[#4B5063] mb-1.5">Jawaban Kandidat</p>
+                                <p className="text-[11px] text-[#14182B] bg-[#F4F5F8] border border-[#E5E7EF] rounded-lg px-3 py-2.5 whitespace-pre-wrap min-h-[44px]">
+                                  {q.answer_text?.trim() ? q.answer_text : <span className="text-[#8B90A0]">Tidak diisi</span>}
+                                </p>
+                                {q.keyword && (
+                                  <p className="text-[10px] text-amber-600 font-medium mt-1.5"><span className="font-bold">Kata kunci:</span> {q.keyword}</p>
+                                )}
+                                {q.points != null && (
+                                  <p className={`inline-block mt-2 text-[10px] font-bold px-2 py-1 rounded-full ${
+                                    q.earned_points != null ? (q.is_correct === true ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600') : 'bg-[#F4F5F8] text-[#8B90A0]'
+                                  }`}>
+                                    {q.earned_points != null ? `Nilai: ${q.earned_points}/${q.points} poin` : 'Belum dinilai'}
+                                  </p>
+                                )}
+                              </div>
+                            ) : (q.options || []).map((opt, oi) => {
+                              const isKunci = q.correct_index === oi
+                              const isPilih = q.selected_index === oi
+                              return (
+                                <div key={oi}
+                                  className={`flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-lg font-medium ${isKunci ? 'bg-emerald-50 text-emerald-700 font-bold' : isPilih ? 'bg-red-50 text-red-500 font-bold' : 'bg-[#F4F5F8] text-[#4B5063]'}`}>
+                                  <span className={`w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold shrink-0 ${isKunci ? 'bg-emerald-500 text-white' : isPilih ? 'bg-red-500 text-white' : 'bg-[#E5E7EF] text-[#8B90A0]'}`}>
+                                    {String.fromCharCode(65 + oi)}
+                                  </span>
+                                  {optText(opt) && <span className="flex-1">{optText(opt)}</span>}
+                                  {isKunci && <span className="text-[9px] font-bold shrink-0">KUNCI</span>}
+                                  {isPilih && <span className="text-[9px] font-bold shrink-0">JAWABAN</span>}
+                                </div>
+                              )
+                            })}
+                          </div>
+                          {q.points != null && q.question_type !== 'essay' && (
+                            <p className="text-[10px] text-[#8B90A0] font-semibold mt-2">Poin: {q.points}</p>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Edit Materi Modal */}
       {showEditModal && lesson && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[5vh] pb-8 px-4 overflow-y-auto">
@@ -1495,8 +1849,32 @@ export default function GuruLessonDetail() {
                 </div>
               ) : (
                 <>
-                  <div className="space-y-2">
-                    {bankPakets.map(p => {
+                  <div className="relative mb-3">
+                    <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8B90A0]" />
+                    <input
+                      value={bankSearch}
+                      onChange={e => setBankSearch(e.target.value)}
+                      placeholder="Cari paket soal berdasarkan judul..."
+                      className="w-full text-xs border border-[#E5E7EF] rounded-xl pl-9 pr-9 py-2.5 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 transition-all"
+                    />
+                    {bankSearch && (
+                      <button onClick={() => setBankSearch('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-[#F4F5F8] hover:bg-[#E5E7EF] transition-colors">
+                        <X size={11} className="text-[#8B90A0]" />
+                      </button>
+                    )}
+                  </div>
+                  {(() => {
+                    const kw = bankSearch.trim().toLowerCase()
+                    const filtered = kw ? bankPakets.filter(p => p.title.toLowerCase().includes(kw)) : bankPakets
+                    return filtered.length === 0 ? (
+                      <div className="py-10 text-center">
+                        <p className="text-xs font-bold text-[#4B5063]">Tidak ada paket yang cocok</p>
+                        <p className="text-[10px] text-[#8B90A0] font-medium mt-0.5">Coba kata kunci lain</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                    {filtered.map(p => {
                       const checked = bankPickedIds.includes(p.id)
                       const attached = lessonPakets.some(x => x.id === p.id)
                       return (
@@ -1525,7 +1903,9 @@ export default function GuruLessonDetail() {
                         </label>
                       )
                     })}
-                  </div>
+                      </div>
+                    )
+                  })()}
                 </>
               )}
             </div>

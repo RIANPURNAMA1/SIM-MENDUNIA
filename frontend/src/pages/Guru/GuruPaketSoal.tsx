@@ -521,10 +521,6 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
 
   const saveQuestion = async () => {
     if (!activePaket) return
-    if (!qForm.question.trim()) {
-      Swal.fire({ icon: 'warning', title: 'Soal wajib diisi' })
-      return
-    }
     const isRating = qForm.question_type === 'rating'
     const isEssay = qForm.question_type === 'essay'
     let opts: string[]
@@ -1276,7 +1272,7 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
 
             <div className="p-5 space-y-4">
               <div>
-                <label className="text-[11px] font-bold text-[#4B5063] mb-1.5 block">Pertanyaan <span className="text-red-400">*</span></label>
+                <label className="text-[11px] font-bold text-[#4B5063] mb-1.5 block">Pertanyaan <span className="text-[#8B90A0] font-medium">(opsional)</span></label>
                 <textarea value={qForm.question} onChange={e => setQForm({ ...qForm, question: e.target.value })}
                   rows={2} placeholder="Tulis pertanyaan..." className="w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 resize-none" />
               </div>
