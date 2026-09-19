@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft, Clock, ListChecks, Award, Camera, ShieldAlert, X, Play,
   AlertTriangle, CheckCircle2, BookOpen, LayoutDashboard, CalendarCheck,
@@ -366,6 +366,13 @@ export default function QuizKandidat() {
   const location = useLocation()
   const navigate = useNavigate()
   const { paketId, lessonId } = useParams()
+  const [searchParams] = useSearchParams()
+  const ctxSource = searchParams.get('source') === 'tugas' ? 'tugas' : 'paket'
+  const ctxSourceId = searchParams.get('source_id') ? Number(searchParams.get('source_id')) : null
+  const ctxParams = (): { source?: string; source_id?: number } | undefined =>
+    ctxSource === 'tugas' && ctxSourceId ? { source: 'tugas', source_id: ctxSourceId } : undefined
+  const ctxQuery = () => (ctxSource === 'tugas' && ctxSourceId ? `?source=tugas&source_id=${ctxSourceId}` : '')
+  const quizUrl = (id: number) => `/siswa-dashboard/quiz/${id}${ctxQuery()}`
   const [view, setView] = useState<View>('list')
   const [pakets, setPakets] = useState<PaketList[]>([])
   const [loading, setLoading] = useState(true)
@@ -477,7 +484,7 @@ export default function QuizKandidat() {
     setCamError(null)
     setActiveLesson(null)
     setLessonProgressMap({})
-    quizApi.paket(id).then(res => {
+    quizApi.paket(id, ctxParams()).then(res => {
       paketTitleRef.current = res.data.paket.title
       setDetail({
         paket: res.data.paket,
@@ -527,7 +534,7 @@ export default function QuizKandidat() {
       refreshDetail()
     } else if (view === 'materi') {
       if (lessonId) {
-        navigate(`/siswa-dashboard/quiz/${detail?.paket.id ?? paketId}`)
+navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
       } else {
         navigate('/siswa-dashboard/lms')
       }
@@ -536,7 +543,7 @@ export default function QuizKandidat() {
 
   const refreshDetail = () => {
     if (!detail) return
-    quizApi.paket(detail.paket.id).then(res => {
+    quizApi.paket(detail.paket.id, ctxParams()).then(res => {
       paketTitleRef.current = res.data.paket.title
       setDetail({
         paket: res.data.paket,
@@ -741,7 +748,7 @@ export default function QuizKandidat() {
     setCameraModal(false)
     const tpl = template || detail?.paket?.quiz_template || 'basic'
     const route = tpl === 'jft' ? 'play' : 'play-basic'
-    navigate(`/siswa-dashboard/quiz/${packageId}/${route}/${attemptId}`, { state: { title: paketTitleRef.current } })
+    navigate(`/siswa-dashboard/quiz/${packageId}/${route}/${attemptId}${ctxQuery()}`, { state: { title: paketTitleRef.current } })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stopTimers, stopStream, navigate])
 
@@ -756,7 +763,7 @@ export default function QuizKandidat() {
       const packageId = detail?.paket.id ?? paketId ?? 0
       const tpl = data.template || detail?.paket?.quiz_template || 'basic'
       const route = tpl === 'jft' ? 'play' : 'play-basic'
-      navigate(`/siswa-dashboard/quiz/${packageId}/${route}/${attemptId}`, { state: { title: paketTitleRef.current } })
+      navigate(`/siswa-dashboard/quiz/${packageId}/${route}/${attemptId}${ctxQuery()}`, { state: { title: paketTitleRef.current } })
     }).catch(() => {
       Swal.fire({ icon: 'error', title: 'Gagal melanjutkan percobaan' })
       goBack()
@@ -767,7 +774,7 @@ export default function QuizKandidat() {
     const packageId = detail?.paket.id
     if (!packageId) return
     setStarting(true)
-    quizApi.start(packageId).then(res => {
+    quizApi.start(packageId, ctxParams()).then(res => {
       const d = res.data
       enterPlay(d.attempt.id, packageId, d.template)
     }).catch(err => {
@@ -1311,7 +1318,7 @@ export default function QuizKandidat() {
 
             {/* Back Button */}
             <div>
-              <button onClick={() => { refreshDetail(); navigate(`/siswa-dashboard/quiz/${detail?.paket.id ?? paketId}`) }}
+              <button onClick={() => { refreshDetail(); navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0))) }}
                 className={`w-full flex items-center justify-center gap-2 text-[13px] font-bold py-3.5 rounded-md transition-colors ${lessonGreen ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-[#0E6187] text-white hover:bg-[#0a4d6b]'}`}>
                 {lessonGreen ? <><Check size={15} /> Selesai Membaca · Kembali ke Materi</> : <><ArrowLeft size={15} /> Kembali ke Daftar Materi</>}
               </button>
@@ -1526,6 +1533,9 @@ export default function QuizKandidat() {
               <div className="flex flex-wrap gap-2 mt-3">
                 {paket.course_title && (
                   <span className="px-2.5 py-1 rounded-md bg-white/10 text-[10px] font-bold text-white/80">{paket.course_title}</span>
+                )}
+                {ctxSource === 'tugas' && (
+                  <span className="px-2.5 py-1 rounded-md bg-amber-400/90 text-[10px] font-bold text-amber-950">Dari Tugas</span>
                 )}
                 <span className="px-2.5 py-1 rounded-md bg-white/10 text-[10px] font-bold text-white/80">{paket.questions_count} soal</span>
               </div>

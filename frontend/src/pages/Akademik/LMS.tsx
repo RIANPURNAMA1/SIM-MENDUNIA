@@ -770,7 +770,7 @@ export default function LMS() {
             <div className="flex flex-col gap-2 mt-4">
               {pakets.map(p => (
                 <button key={p.id} type="button"
-                  onClick={() => navigate(`/siswa-dashboard/quiz/${p.id}`)}
+                  onClick={() => navigate(`/siswa-dashboard/quiz/${p.id}?source=tugas&source_id=${a.id}`)}
                   className="flex items-center gap-3 w-full text-left bg-[#0E6187]/[0.06] text-[#0E6187] border border-[#0E6187]/15 px-3 py-2.5 rounded-md text-[11px] font-bold hover:bg-[#0E6187]/10 hover:border-[#0E6187]/30 transition-all group">
                   <span className="w-8 h-8 rounded-md bg-white flex items-center justify-center shrink-0">
                     <ListChecks size={14} className="text-[#0E6187]" />
@@ -1899,7 +1899,7 @@ export default function LMS() {
                           <div className="flex flex-wrap gap-2 mt-3">
                             {a.pakets.map(p => (
                               <button key={p.id} type="button"
-                                onClick={() => navigate(`/siswa-dashboard/quiz/${p.id}`)}
+                                onClick={() => navigate(`/siswa-dashboard/quiz/${p.id}?source=tugas&source_id=${a.id}`)}
                                 className="flex items-center gap-1.5 bg-[#0E6187]/[0.06] text-[#0E6187] border border-[#0E6187]/15 px-3 py-1.5 rounded-md text-[11px] font-bold hover:bg-[#0E6187]/10 hover:border-[#0E6187]/30 transition-colors">
                                 <ListChecks size={12} />
                                 Quiz: {p.title}

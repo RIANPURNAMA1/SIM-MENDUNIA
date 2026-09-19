@@ -152,7 +152,7 @@ export default function QuizBasicPlay() {
       const a = res.data.attempt
       const data = res.data
       if (a?.status === 'submitted' || a?.score !== undefined) {
-        navigate(`/siswa-dashboard/quiz/${paketId}`, { replace: true })
+        navigate(`/siswa-dashboard/quiz/${paketId}${location.search}`, { replace: true })
         return
       }
       setAttempt(a)
@@ -189,7 +189,7 @@ export default function QuizBasicPlay() {
       setRemaining(Math.max(0, Math.floor((endTime - Date.now()) / 1000)))
     }).catch(() => {
       Swal.fire({ icon: 'error', title: 'Gagal memuat percobaan' })
-      navigate(`/siswa-dashboard/quiz/${paketId}`, { replace: true })
+      navigate(`/siswa-dashboard/quiz/${paketId}${location.search}`, { replace: true })
     }).finally(() => setIsLoading(false))
   }, [attemptId, paketId, navigate, navTitle])
 
@@ -209,7 +209,7 @@ export default function QuizBasicPlay() {
       .map(q => quizApi.answer(Number(attemptId), { question_id: q.id, selected_index: null, answer_text: (essayDrafts[q.id] ?? '').trim() || null }))
     Promise.allSettled(essayOrders).finally(() => {
       quizApi.submit(Number(attemptId)).then(() => {
-        navigate(`/siswa-dashboard/quiz/${paketId}`, { replace: true })
+        navigate(`/siswa-dashboard/quiz/${paketId}${location.search}`, { replace: true })
       }).catch(() => {
         Swal.fire({ icon: 'error', title: 'Gagal mengumpulkan quiz', text: reason })
         setIsSubmitting(false)
@@ -251,32 +251,29 @@ export default function QuizBasicPlay() {
   }
 
   // ── Face / presence monitoring (proctoring) ──
-  // Offense 1 → warning banner + backend warn. Offense 2 → pengerjaan dianggap
-  // selesai, dikumpulkan otomatis, lalu kembali ke halaman paket.
+  // Setiap offense → warning banner + backend warn. Pengumpulan otomatis
+  // ditentukan backend sesuai "Maks Peringatan" (max_warnings) paket.
   const handleOffense = useCallback((reason: string) => {
     if (!attemptId) return
     offenseRef.current += 1
-    const offense = offenseRef.current
-    if (offense < 2) {
-      setFaceMissing(reason === 'wajah tak terdeteksi')
-      setMonitorMsg(`Kamera pengawas mendeteksi ${reason}. Jika terulang, pengerjaan akan dikumpulkan otomatis.`)
-      quizApi.warn(Number(attemptId)).then(res => {
-        const d = res.data
-        if (d.auto_submitted || d.status === 'submitted') submitNow(reason)
-      }).catch(() => {})
-      return
-    }
-    stopTimers()
-    setMonitorMsg('')
-    Swal.fire({
-      icon: 'warning',
-      title: 'Pengerjaan dikumpulkan otomatis',
-      text: `Kamera pengawas mendeteksi ${reason} secara berulang. Jawaban disimpan dan quiz dianggap selesai.`,
-      confirmButtonColor: '#0069b0',
-      confirmButtonText: 'OK',
-      allowOutsideClick: false,
-    })
-    submitNow(reason)
+    setFaceMissing(reason === 'wajah tak terdeteksi')
+    setMonitorMsg(`Kamera pengawas mendeteksi ${reason}. Jika terulang, pengerjaan akan dikumpulkan otomatis.`)
+    quizApi.warn(Number(attemptId)).then(res => {
+      const d = res.data
+      if (d.auto_submitted || d.status === 'submitted') {
+        stopTimers()
+        setMonitorMsg('')
+        Swal.fire({
+          icon: 'warning',
+          title: 'Pengerjaan dikumpulkan otomatis',
+          text: `Kamera pengawas mendeteksi ${reason} secara berulang. Jawaban disimpan dan quiz dianggap selesai.`,
+          confirmButtonColor: '#0069b0',
+          confirmButtonText: 'OK',
+          allowOutsideClick: false,
+        })
+        submitNow(reason)
+      }
+    }).catch(() => {})
   }, [attemptId, submitNow, stopTimers])
 
   // Draw the detected face bounding box. Green normally, red while head is
@@ -472,7 +469,7 @@ export default function QuizBasicPlay() {
           <AlertTriangle size={32} className="text-orange-400 mx-auto mb-2" />
           <p className="text-sm font-bold text-[#14182B]">Soal tidak ditemukan</p>
           <p className="text-[11px] text-[#8B90A0] font-medium mt-1">Attempt tidak valid atau sudah diselesaikan</p>
-          <button onClick={() => navigate(`/siswa-dashboard/quiz/${paketId}`)}
+          <button onClick={() => navigate(`/siswa-dashboard/quiz/${paketId}${location.search}`)}
             className="mt-4 text-[11px] font-bold text-[#0069b0] hover:underline">
             Kembali ke quiz
           </button>

@@ -9,6 +9,8 @@ class QuizAttempt extends Model
     protected $fillable = [
         'quiz_paket_id',
         'siswa_id',
+        'source',
+        'source_id',
         'attempt_number',
         'started_at',
         'submitted_at',

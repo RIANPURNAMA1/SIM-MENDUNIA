@@ -210,6 +210,11 @@ export default function GuruQuizMonitor() {
   const answeredTotal = live.reduce((s, a) => s + a.answered_count, 0)
   const liveCount = live.length
 
+  const finishedDurations = finished
+    .filter(a => a.started_at && a.submitted_at)
+    .map(a => Math.max(0, Math.floor((Date.parse(a.submitted_at!) - Date.parse(a.started_at!)) / 1000)))
+  const fastest = finishedDurations.length ? Math.min(...finishedDurations) : null
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#0f1115]">
@@ -278,22 +283,26 @@ export default function GuruQuizMonitor() {
           </div>
 
           {/* Stats */}
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <div className="rounded-xl bg-[#0E6187]/15 border border-[#0E6187]/30 px-3 py-2">
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+            <div className="rounded-md bg-[#0E6187]/15 border border-[#0E6187]/30 px-3 py-2">
               <p className="text-lg font-bold text-[#7ec3e4] leading-none">{liveCount}</p>
               <p className="text-[10px] text-slate-400 font-medium mt-1">Sedang Mengerjakan</p>
             </div>
-            <div className="rounded-xl bg-white/5 border border-white/10 px-3 py-2">
+            <div className="rounded-md bg-white/5 border border-white/10 px-3 py-2">
               <p className="text-lg font-bold text-white leading-none">{finished.length}</p>
               <p className="text-[10px] text-slate-400 font-medium mt-1">Sudah Kumpul</p>
             </div>
-            <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-3 py-2">
+            <div className="rounded-md bg-red-500/10 border border-red-500/20 px-3 py-2">
               <p className="text-lg font-bold text-red-400 leading-none">{warningsTotal}</p>
               <p className="text-[10px] text-slate-400 font-medium mt-1">Total Peringatan</p>
             </div>
-            <div className="rounded-xl bg-white/5 border border-white/10 px-3 py-2">
+            <div className="rounded-md bg-white/5 border border-white/10 px-3 py-2">
               <p className="text-lg font-bold text-white leading-none">{answeredTotal}/{live.reduce((s, a) => s + a.total_count, 0)}</p>
               <p className="text-[10px] text-slate-400 font-medium mt-1">Soal Terjawab</p>
+            </div>
+            <div className="rounded-md bg-emerald-500/10 border border-emerald-500/20 px-3 py-2">
+              <p className="text-lg font-bold text-emerald-400 leading-none tabular-nums">{fastest !== null ? fmtClock(fastest) : '--:--'}</p>
+              <p className="text-[10px] text-slate-400 font-medium mt-1">Waktu Tercepat</p>
             </div>
           </div>
         </div>
@@ -308,7 +317,7 @@ export default function GuruQuizMonitor() {
             <p className="text-xs text-slate-500 font-medium mt-1">Kandidat yang mulai mengerjakan quiz ini akan muncul di sini secara otomatis.</p>
           </div>
         ) : (
-          <div className="rounded-2xl border border-white/10 bg-[#16181d] overflow-hidden">
+          <div className="rounded-md border border-white/10 bg-[#16181d] overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
@@ -333,7 +342,7 @@ export default function GuruQuizMonitor() {
                       <tr key={a.attempt_id} onClick={() => openDetail(a.attempt_id)}
                         className="border-b border-white/5 last:border-0 cursor-pointer transition-colors hover:bg-[#0E6187]/10">
                         <td className="px-3 py-3 align-top">
-                          <span className="inline-flex w-7 h-7 items-center justify-center rounded-lg bg-white/5 border border-white/10 text-[11px] font-bold text-slate-300">
+                          <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-white/5 border border-white/10 text-[11px] font-bold text-slate-300">
                             {a.attempt_number}
                           </span>
                         </td>
@@ -341,11 +350,11 @@ export default function GuruQuizMonitor() {
                           <div className="flex items-center gap-2">
                             <p className="text-[12px] font-bold text-white leading-tight">{a.siswa.nama}</p>
                             {a.status === 'in_progress' ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-1.5 py-0.5 text-[9px] font-bold text-red-400 shrink-0">
+                              <span className="inline-flex items-center gap-1 rounded-md bg-red-500/15 px-1.5 py-0.5 text-[9px] font-bold text-red-400 shrink-0">
                                 <span className="h-1 w-1 rounded-full bg-red-500 animate-pulse" />LAKUKAN
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400 shrink-0">
+                              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400 shrink-0">
                                 <CheckCircle2 size={9} />KUMPUL
                               </span>
                             )}
@@ -379,7 +388,7 @@ export default function GuruQuizMonitor() {
                           <p className="text-[12px] font-bold text-emerald-400">{a.correct_count}/{a.total_count}</p>
                         </td>
                         <td className="px-3 py-3 align-top text-center whitespace-nowrap">
-                          <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${a.warnings >= a.max_warnings ? 'bg-red-500/15 text-red-400' : a.warnings > 0 ? 'bg-amber-500/15 text-amber-400' : 'bg-white/5 text-slate-500'}`}>
+                          <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md ${a.warnings >= a.max_warnings ? 'bg-red-500/15 text-red-400' : a.warnings > 0 ? 'bg-amber-500/15 text-amber-400' : 'bg-white/5 text-slate-500'}`}>
                             <ShieldAlert size={10} /> {a.warnings}/{a.max_warnings}
                           </span>
                         </td>
@@ -403,7 +412,7 @@ export default function GuruQuizMonitor() {
             <div className="flex flex-wrap items-center gap-4 border-t border-white/10 bg-white/[0.03] px-3 py-2.5">
               {Object.entries(STATUS_UI).map(([k, v]) => (
                 <span key={k} className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400">
-                  <span className={`h-3.5 w-3.5 rounded border ${v.cls}`} />
+                  <span className={`h-3.5 w-3.5 rounded-md border ${v.cls}`} />
                   {v.label}
                 </span>
               ))}
