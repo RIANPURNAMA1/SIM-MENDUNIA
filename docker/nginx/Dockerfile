@@ -3,6 +3,10 @@ FROM node:18-alpine AS frontend-builder
 
 ARG VITE_API_URL=http://localhost/api
 ARG VITE_APP_URL=http://localhost
+ARG VITE_REVERB_APP_KEY=mendunia-local-key
+ARG VITE_REVERB_HOST=localhost
+ARG VITE_REVERB_PORT=8081
+ARG VITE_REVERB_SCHEME=http
 
 WORKDIR /app
 
@@ -10,7 +14,7 @@ COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 
 COPY frontend/ ./
-RUN VITE_API_URL=${VITE_API_URL} VITE_APP_URL=${VITE_APP_URL} npm run build
+RUN VITE_API_URL=${VITE_API_URL} VITE_APP_URL=${VITE_APP_URL} VITE_REVERB_APP_KEY=${VITE_REVERB_APP_KEY} VITE_REVERB_HOST=${VITE_REVERB_HOST} VITE_REVERB_PORT=${VITE_REVERB_PORT} VITE_REVERB_SCHEME=${VITE_REVERB_SCHEME} npm run build
 
 # ─── Stage 2: Nginx ──────────────────────────────────
 FROM nginx:alpine
