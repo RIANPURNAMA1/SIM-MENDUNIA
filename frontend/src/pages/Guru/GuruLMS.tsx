@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   BookOpen, Plus, FileText, X, Image as ImageIcon, Download, Trash2,
   ChevronRight, ArrowLeft, Layers, Search, Video, GripVertical, Edit3,
-  ChevronUp, ChevronDown, Upload, FolderOpen, ListChecks, Eye, EyeOff, Trophy, Users, History, HelpCircle, Check, Lock, Activity, RefreshCw, Volume2
+  ChevronUp, ChevronDown, Upload, FolderOpen, ListChecks, Eye, EyeOff, Trophy, Users, History, HelpCircle, Check, Lock, Activity, RefreshCw, Volume2, CalendarCheck
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -69,6 +69,8 @@ interface Lesson {
   slides?: { id: number; file_path: string; file_name?: string; url?: string }[]
   sort: number
   status: string
+  pertemuan_date?: string | null
+  pertemuan_date_label?: string | null
 }
 
 interface CoursePaket {
@@ -949,6 +951,11 @@ export default function GuruLMS() {
                         <p className={`text-sm font-semibold truncate ${lesson.status === 'aktif' ? 'text-gray-800' : 'text-gray-400'}`}>
                           {lesson.title}
                         </p>
+                        {lesson.pertemuan_date_label && (
+                          <p className="text-[10px] text-gray-400 flex items-center gap-1 mt-0.5">
+                            <CalendarCheck size={10} /> {lesson.pertemuan_date_label}
+                          </p>
+                        )}
                         <div className="flex items-center gap-3 mt-0.5">
                           {lesson.video_url && <span className="text-[10px] text-gray-400 flex items-center gap-1"><Video size={10} /> Video</span>}
                           {lesson.content && <span className="text-[10px] text-gray-400 flex items-center gap-1"><FileText size={10} /> Materi</span>}
