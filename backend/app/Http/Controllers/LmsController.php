@@ -6,6 +6,7 @@ use App\Models\AbsensiSiswa;
 use App\Models\Batch;
 use App\Models\Course;
 use App\Models\CourseFile;
+use App\Models\KelasSensei;
 use App\Models\Lesson;
 use App\Models\LessonRecap;
 use App\Models\LessonSlide;
@@ -151,15 +152,27 @@ class LmsController extends Controller
         }
         $attendedCount = $attendanceQuery->count();
 
-        $lessonAttendance = $course->lessons->values()->map(function ($l, $i) use ($attendedCount, $progresses) {
+        $meetingDates = [];
+        if ($course->kelas_sensei_id) {
+            $kelas = KelasSensei::find($course->kelas_sensei_id);
+            if ($kelas) {
+                $meetingDates = $kelas->daftarPertemuan();
+            }
+        }
+
+        $lessonAttendance = $course->lessons->values()->map(function ($l, $i) use ($attendedCount, $progresses, $meetingDates) {
             $idx = $i + 1;
             $completed = $progresses->get($l->id)?->completed_at !== null;
+            $date = $meetingDates[$i] ?? null;
             return [
                 'lesson_id' => $l->id,
                 'attended' => $idx <= $attendedCount,
                 'is_current' => $idx === $attendedCount + 1,
                 'is_unlocked' => $completed || $idx <= $attendedCount + 1,
                 'attended_count' => $attendedCount,
+                'date' => $date,
+                'date_label' => $date ? \Carbon\Carbon::parse($date)->locale('id')->translatedFormat('d M Y') : null,
+                'day_label' => $date ? \Carbon\Carbon::parse($date)->locale('id')->translatedFormat('l') : null,
             ];
         })->keyBy('lesson_id');
 
