@@ -321,7 +321,7 @@ function ReviewQuestionCard({ q, index }: { q: ReviewQuestion; index: number }) 
   )
 }
 
-function ReviewModal({ open, loading, error, data, attempts, selectedAttempt, onSelectAttempt, onClose }: {
+function ReviewModal({ open, loading, error, data, attempts, selectedAttempt, onSelectAttempt, section, onSection, onClose }: {
   open: boolean
   loading: boolean
   error: string | null
@@ -329,6 +329,8 @@ function ReviewModal({ open, loading, error, data, attempts, selectedAttempt, on
   attempts: { attempt_id: number; attempt_number: number; score: number | null }[]
   selectedAttempt: number | null
   onSelectAttempt: (id: number) => void
+  section: string
+  onSection: (s: string) => void
   onClose: () => void
 }) {
   if (!open) return null
@@ -337,6 +339,22 @@ function ReviewModal({ open, loading, error, data, attempts, selectedAttempt, on
   const wrongCount = data ? data.questions.filter(q => q.is_correct === false).length : 0
   const skipCount = data ? data.questions.length - correctCount - wrongCount : 0
   const attemptLabel = data?.attempt?.attempt_number ? `Percobaan #${data.attempt.attempt_number}` : ''
+
+  // Group soal by section/category (Vocabulary, Grammar, Reading, ...).
+  const sectionsMap: { name: string; count: number }[] = []
+  const seenSections = new Set<string>()
+  data?.questions.forEach(q => {
+    const s = (q.section || '').trim()
+    if (!s) return
+    if (!seenSections.has(s)) {
+      seenSections.add(s)
+      sectionsMap.push({ name: s, count: 0 })
+    }
+    sectionsMap.find(x => x.name === s)!.count++
+  })
+  const filteredQuestions = data
+    ? data.questions.filter(q => section === 'all' || (q.section || '').trim() === section)
+    : []
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4">
@@ -389,6 +407,32 @@ function ReviewModal({ open, loading, error, data, attempts, selectedAttempt, on
                   </button>
                 ))}
               </div>
+              {sectionsMap.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  <button type="button"
+                    onClick={() => onSection('all')}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${
+                      section === 'all' ? 'bg-[#0E6187] text-white' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
+                    }`}>
+                    Semua
+                    <span className={`min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black flex items-center justify-center ${
+                      section === 'all' ? 'bg-white text-[#0E6187]' : 'bg-slate-100 text-slate-500'
+                    }`}>{data.questions.length}</span>
+                  </button>
+                  {sectionsMap.map(s => (
+                    <button key={s.name} type="button"
+                      onClick={() => onSection(s.name)}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${
+                        section === s.name ? 'bg-[#0E6187] text-white' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
+                      }`}>
+                      {s.name}
+                      <span className={`min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black flex items-center justify-center ${
+                        section === s.name ? 'bg-white text-[#0E6187]' : 'bg-slate-100 text-slate-500'
+                      }`}>{s.count}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="grid grid-cols-4 gap-2">
                 <SummaryTile value={`${data.attempt.score ?? 0}`} label="Nilai" accent />
                 <SummaryTile value={`${correctCount}`} label="Benar" />
@@ -398,7 +442,15 @@ function ReviewModal({ open, loading, error, data, attempts, selectedAttempt, on
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {data.questions.map((q, i) => <ReviewQuestionCard key={q.id} q={q} index={i} />)}
+              {filteredQuestions.length > 0 ? (
+                filteredQuestions.map((q, i) => <ReviewQuestionCard key={q.id} q={q} index={i} />)
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <ListChecks size={28} className="text-slate-300" />
+                  <p className="mt-3 text-sm font-bold text-slate-700">Belum ada soal di section ini</p>
+                  <p className="mt-1 text-[11px] text-slate-400">{section}</p>
+                </div>
+              )}
             </div>
 
             <div className="px-4 sm:px-5 py-3 border-t border-slate-100">
@@ -473,6 +525,7 @@ export default function LMS() {
   const [reviewAttempts, setReviewAttempts] = useState<{ attempt_id: number; attempt_number: number; score: number | null }[]>([])
   const [reviewSelectedAttempt, setReviewSelectedAttempt] = useState<number | null>(null)
   const [reviewPaketTitle, setReviewPaketTitle] = useState('')
+  const [reviewSection, setReviewSection] = useState<string>('all')
 
   useEffect(() => {
     setCurrentPage(1)
@@ -544,6 +597,7 @@ export default function LMS() {
     setReviewData(null)
     setReviewAttempts([])
     setReviewSelectedAttempt(null)
+    setReviewSection('all')
     setReviewPaketTitle(paket.title)
     quizApi.paket(paket.id).then(res => {
       const attempts = ((res.data.attempts || []) as any[])
@@ -572,6 +626,8 @@ export default function LMS() {
       attempts={reviewAttempts}
       selectedAttempt={reviewSelectedAttempt}
       onSelectAttempt={loadReviewAttempt}
+      section={reviewSection}
+      onSection={setReviewSection}
       onClose={() => setReviewOpen(false)}
     />
   )
