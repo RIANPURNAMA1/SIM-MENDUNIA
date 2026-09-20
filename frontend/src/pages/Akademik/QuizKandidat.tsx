@@ -4,8 +4,9 @@ import {
   ArrowLeft, Clock, ListChecks, Award, Camera, ShieldAlert, X, Play,
   AlertTriangle, CheckCircle2, BookOpen, LayoutDashboard, CalendarCheck,
   Wallet, User, FileQuestion, Lock, Check, LayoutGrid, XCircle,
+  Image as ImageIcon, Volume2,
 } from 'lucide-react'
-import { quizApi, lmsApi } from '../../services/api'
+import { quizApi, lmsApi, APP_URL } from '../../services/api'
 import { detectFace, loadFaceModels, type DetectedFace } from '../../utils/faceDetector'
 import LessonSlidesViewer from '../../components/LessonSlidesViewer'
 import TrackedVideo from '../../components/TrackedVideo'
@@ -107,6 +108,8 @@ interface ReviewQuestion {
   points: number
   sort: number
   image_url?: string | null
+  audio_url?: string | null
+  audio_max_plays?: number | null
   selected_index?: number | null
   answer_text?: string | null
   earned_points?: number | null
@@ -165,6 +168,11 @@ const fmtClock = (sec: number) => {
   const m = Math.floor(sec / 60)
   const s = sec % 60
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
+const mediaUrl = (u?: string | null): string => {
+  if (!u) return ''
+  return /^https?:\/\//.test(u) ? u : `${APP_URL}/storage/${u}`
 }
 
 function SummaryTile({ value, label, accent }: { value: string; label: string; accent?: boolean }) {
@@ -230,6 +238,23 @@ function ReviewQuestionCard({ q, index }: { q: ReviewQuestion; index: number }) 
         <div
           className="text-[13px] font-medium text-slate-800 leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-1"
           dangerouslySetInnerHTML={{ __html: q.question }} />
+
+        {(q.image_url || q.audio_url) && (
+          <div className="mt-3 space-y-2">
+            {q.image_url && (
+              <div>
+                <span className="inline-flex items-center gap-1 text-[9px] font-bold text-[#0E6187] uppercase tracking-wide mb-1"><ImageIcon size={10} /> Soal Gambar</span>
+                <img src={mediaUrl(q.image_url)} alt="Gambar soal" className="w-full max-h-44 object-contain rounded-md border border-slate-200 bg-slate-50" />
+              </div>
+            )}
+            {q.audio_url && (
+              <div>
+                <span className="inline-flex items-center gap-1 text-[9px] font-bold text-[#0E6187] uppercase tracking-wide mb-1"><Volume2 size={10} /> Soal Suara{q.audio_max_plays != null ? ` · maks ${q.audio_max_plays}x` : ''}</span>
+                <audio src={mediaUrl(q.audio_url)} controls className="w-full h-9" />
+              </div>
+            )}
+          </div>
+        )}
 
         {isEssay ? (
           <div className="mt-3 space-y-2">
