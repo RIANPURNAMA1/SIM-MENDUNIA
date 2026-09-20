@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, BookOpen, FileText, ListChecks, Plus, ChevronRight, ChevronDown, HelpCircle,
   Download, Clock, ClipboardList, Check, Edit3, X, Trash2, Loader2, Layers, Camera, Upload, ImageIcon,
-  BarChart3, Users, Video, Eye, EyeOff, Activity, Search, Volume2,
+  BarChart3, Users, Video, Eye, EyeOff, Activity, Search, Volume2, UploadCloud, Mic, Repeat,
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -107,7 +107,19 @@ interface PaketQuestion {
   image_url?: string | null
   audio_url?: string | null
   audio_max_plays?: number | null
+  keyword?: string | null
+  image_path?: string | null
+  audio_path?: string | null
+  sort?: number | null
 }
+
+interface QuizOptItem {
+  text: string
+  image_path: string | null
+  image_url: string | null
+}
+
+const emptyQuestionForm = { question: '', section_id: '', question_type: 'choice', rating_max: '9', correct_index: '', points: '1', keyword: '', image_path: '', image_url: '', audio_path: '', audio_url: '', audio_max_plays: '2' }
 
 interface RecapData {
   id: number
@@ -307,6 +319,20 @@ export default function GuruLessonDetail() {
   const [togglingPaketId, setTogglingPaketId] = useState<number | null>(null)
   const [paketQuestionsMap, setPaketQuestionsMap] = useState<Record<number, PaketQuestion[]>>({})
   const [questionsLoading, setQuestionsLoading] = useState(false)
+
+  const [showQuestionModal, setShowQuestionModal] = useState(false)
+  const [editingQuestion, setEditingQuestion] = useState<PaketQuestion | null>(null)
+  const [qForm, setQForm] = useState({ ...emptyQuestionForm })
+  const [qOptions, setQOptions] = useState<QuizOptItem[]>([{ text: '', image_path: null, image_url: null }, { text: '', image_path: null, image_url: null }])
+  const [savingQuestion, setSavingQuestion] = useState(false)
+  const [uploadingOptImg, setUploadingOptImg] = useState<number | null>(null)
+  const [uploadingQMedia, setUploadingQMedia] = useState<'image' | 'audio' | null>(null)
+  const [qSections, setQSections] = useState<{ id: number; name: string; questions_count?: number }[]>([])
+  const [qPaketTitle, setQPaketTitle] = useState('')
+  const [editPaketId, setEditPaketId] = useState<number | null>(null)
+  const [showSectionInput, setShowSectionInput] = useState(false)
+  const [newSectionName, setNewSectionName] = useState('')
+  const [savingSection, setSavingSection] = useState(false)
 
   const [recap, setRecap] = useState<RecapData | null>(null)
   const [recapFile, setRecapFile] = useState<File | null>(null)
@@ -580,6 +606,149 @@ export default function GuruLessonDetail() {
     }
   }
 
+  const openEditPaketQuestion = (paketId: number, q: PaketQuestion, paketTitle: string) => {
+    setEditingQuestion(q)
+    setEditPaketId(paketId)
+    setQPaketTitle(paketTitle)
+    setQForm({
+      question: q.question ?? '',
+      section_id: q.section_id != null ? String(q.section_id) : '',
+      question_type: q.question_type === 'rating' ? 'rating' : q.question_type === 'essay' ? 'essay' : 'choice',
+      rating_max: q.rating_max ? q.rating_max.toString() : '9',
+      correct_index: q.correct_index?.toString() ?? '',
+      points: q.points != null ? q.points.toString() : '1',
+      keyword: q.keyword || '',
+      image_path: q.image_path || '', image_url: q.image_url || '',
+      audio_path: q.audio_path || '', audio_url: q.audio_url || '',
+      audio_max_plays: q.audio_max_plays != null ? q.audio_max_plays.toString() : '2',
+    })
+    const seed = q.question_type === 'rating'
+      ? Array.from({ length: q.rating_max || 9 }, (_, i) => String(i + 1))
+      : (q.options || [])
+    setQOptions(seed.map(o => typeof o === 'string'
+      ? { text: o, image_path: null, image_url: null }
+      : { text: o?.text ?? '', image_path: o?.image_path || null, image_url: o?.image_url || null }))
+    setQSections([])
+    setShowSectionInput(false)
+    setNewSectionName('')
+    guruQuizApi.sections(paketId)
+      .then(res => setQSections(res.data.sections || []))
+      .catch(() => setQSections([]))
+    setShowQuestionModal(true)
+  }
+
+  const uploadOptionImage = (file: File | undefined, oi: number) => {
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      Swal.fire({ icon: 'warning', title: 'File harus berupa gambar' }); return
+    }
+    const fd = new FormData()
+    fd.append('file', file)
+    setUploadingOptImg(oi)
+    guruQuizApi.uploadMedia(fd)
+      .then(res => {
+        setQOptions(prev => prev.map((o, i) => i === oi ? { ...o, image_path: res.data.path, image_url: res.data.url } : o))
+      })
+      .catch(() => Swal.fire({ icon: 'error', title: 'Gagal mengunggah gambar opsi' }))
+      .finally(() => setUploadingOptImg(null))
+  }
+
+  const uploadQuestionMedia = (file: File | undefined, type: 'image' | 'audio') => {
+    if (!file) return
+    if (type === 'image' && !file.type.startsWith('image/')) {
+      Swal.fire({ icon: 'warning', title: 'File harus berupa gambar' }); return
+    }
+    if (type === 'audio' && !file.type.startsWith('audio/')) {
+      Swal.fire({ icon: 'warning', title: 'File harus berupa audio' }); return
+    }
+    const fd = new FormData()
+    fd.append('file', file)
+    setUploadingQMedia(type)
+    guruQuizApi.uploadMedia(fd)
+      .then(res => {
+        setQForm(prev => ({
+          ...prev,
+          [`${type}_path`]: res.data.path,
+          [`${type}_url`]: res.data.url,
+        }))
+      })
+      .catch(() => Swal.fire({ icon: 'error', title: 'Gagal mengunggah media' }))
+      .finally(() => setUploadingQMedia(null))
+  }
+
+  const saveEditedQuestion = async () => {
+    if (!editingQuestion) return
+    const isRating = qForm.question_type === 'rating'
+    const isEssay = qForm.question_type === 'essay'
+    let opts: unknown[]
+    if (isEssay) {
+      opts = []
+    } else if (isRating) {
+      const ratingMax = Math.min(10, Math.max(2, Number(qForm.rating_max) || 9))
+      opts = Array.from({ length: ratingMax }, (_, i) => String(i + 1))
+    } else {
+      opts = qOptions
+        .map(o => ({ text: o.text.trim(), image_path: o.image_path || null }))
+        .filter(o => o.text || o.image_path)
+      if (opts.length < 2) {
+        Swal.fire({ icon: 'warning', title: 'Minimal 2 opsi jawaban (isi teks atau unggah gambar)' })
+        return
+      }
+      if (qForm.correct_index === '' || Number(qForm.correct_index) >= opts.length) {
+        Swal.fire({ icon: 'warning', title: 'Pilih jawaban benar yang valid' })
+        return
+      }
+    }
+    setSavingQuestion(true)
+    try {
+      await guruQuizApi.updateQuestion(editingQuestion.id, {
+        question: qForm.question ?? '',
+        section_id: qForm.section_id ? Number(qForm.section_id) : null,
+        question_type: isEssay ? 'essay' : isRating ? 'rating' : 'choice',
+        rating_max: isRating ? Number(qForm.rating_max) || 9 : null,
+        options: opts,
+        correct_index: isEssay ? null : isRating ? null : Number(qForm.correct_index),
+        keyword: isEssay ? (qForm.keyword.trim() || null) : null,
+        points: Number(qForm.points) || 1,
+        image_path: qForm.image_path || null,
+        audio_path: qForm.audio_path || null,
+        audio_max_plays: qForm.audio_path ? (Number(qForm.audio_max_plays) || null) : null,
+      })
+      setShowQuestionModal(false)
+      if (lesson) {
+        const previewPid = previewPaketId
+        const res = await guruLmsApi.lessonPaketQuestions(lesson.id, previewPid!)
+        setPaketQuestionsMap(m => ({ ...m, [previewPid!]: res.data.questions || [] }))
+      }
+      Swal.fire({ icon: 'success', title: 'Soal diperbarui', timer: 1200, showConfirmButton: false })
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal menyimpan soal' })
+    } finally {
+      setSavingQuestion(false)
+    }
+  }
+
+  const createSection = async () => {
+    const name = newSectionName.trim()
+    if (!name) {
+      Swal.fire({ icon: 'warning', title: 'Nama bagian wajib diisi' })
+      return
+    }
+    if (editPaketId == null) return
+    setSavingSection(true)
+    try {
+      const res = await guruQuizApi.storeSection(editPaketId, { name })
+      setQSections(prev => [...prev, res.data.section])
+      setQForm(f => ({ ...f, section_id: String(res.data.section.id) }))
+      setNewSectionName('')
+      setShowSectionInput(false)
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal menambahkan bagian' })
+    } finally {
+      setSavingSection(false)
+    }
+  }
+
   const renderQuizPreview = (paketId: number) => {
     if (previewPaketId !== paketId) return null
     const qs = paketQuestionsMap[paketId]
@@ -601,7 +770,17 @@ export default function GuruLessonDetail() {
       <div className="mt-3 space-y-2.5">
         {qs.map((q, i) => (
           <div key={q.id} className="bg-white rounded-md border border-[#E5E7EF] p-4">
-            <p className="text-xs font-bold text-[#14182B] leading-snug">{i + 1}. {q.question}</p>
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-xs font-bold text-[#14182B] leading-snug">{i + 1}. {q.question}</p>
+              {canManage && (
+                <button
+                  onClick={() => openEditPaketQuestion(paketId, q, lessonPakets.find(p => p.id === paketId)?.title || '')}
+                  className="shrink-0 inline-flex items-center gap-1 text-[10px] font-bold text-[#0069b0] bg-[#0069b0]/5 px-2 py-1 rounded-md hover:bg-[#0069b0]/10 transition-colors"
+                  title="Edit soal ini">
+                  <Edit3 size={11} /> Edit
+                </button>
+              )}
+            </div>
             {q.section?.name && (
               <span className="mt-2 inline-block rounded-full bg-[#0069b0]/[0.06] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#0069b0]">{q.section.name}</span>
             )}
@@ -1188,19 +1367,20 @@ export default function GuruLessonDetail() {
                   {lessonPakets.map(paket => {
                       const linkStatus = paket.pivot?.status
                       return (
-                  <div key={paket.id} className="border border-[#E5E7EF] rounded-md p-4">
+                  <div key={paket.id} className="border border-[#E5E7EF] rounded-md bg-white p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-9 h-9 rounded-md bg-violet-50 flex items-center justify-center shrink-0">
-                          <ListChecks size={16} className="text-violet-600" />
+                        <div className="w-9 h-9 rounded-md bg-[#0069b0]/[0.08] flex items-center justify-center shrink-0">
+                          <ListChecks size={16} className="text-[#0069b0]" />
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <p className="text-xs font-semibold text-[#14182B] truncate">{paket.title}</p>
                             {linkStatus && (
-                              <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${
-                                linkStatus === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'
+                              <span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${
+                                linkStatus === 'aktif' ? 'bg-[#0069b0]/[0.08] text-[#0069b0]' : 'bg-[#F1F2F6] text-[#8B90A0]'
                               }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${linkStatus === 'aktif' ? 'bg-[#0069b0]' : 'bg-[#C5C8D4]'}`} />
                                 {linkStatus === 'aktif' ? 'Aktif' : 'Nonaktif'}
                               </span>
                             )}
@@ -1215,10 +1395,10 @@ export default function GuruLessonDetail() {
                         <button onClick={() => handleTogglePaketStatus(paket)}
                           disabled={togglingPaketId === paket.id}
                           title={linkStatus === 'aktif' ? 'Nonaktifkan quiz untuk siswa' : 'Aktifkan quiz untuk siswa'}
-                          className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-md border transition-colors disabled:opacity-50 ${
+                          className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-md border transition-colors disabled:opacity-50 ${
                             linkStatus === 'aktif'
-                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                              : 'border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100'
+                              ? 'border-[#0069b0]/20 bg-[#0069b0]/5 text-[#0069b0] hover:bg-[#0069b0]/10'
+                              : 'border-[#E5E7EF] bg-white text-[#8B90A0] hover:bg-[#F4F5F8]'
                           }`}>
                           {togglingPaketId === paket.id
                             ? <Loader2 size={11} className="animate-spin" />
@@ -1228,26 +1408,26 @@ export default function GuruLessonDetail() {
                       )}
                     </div>
 
-                    <div className="mt-3 flex items-center gap-1.5">
+                    <div className="mt-3 flex flex-wrap items-center gap-1.5">
                       <button onClick={() => toggleQuizPreview(paket.id)}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0069b0] bg-[#0069b0]/5 px-3 py-1.5 rounded-md hover:bg-[#0069b0]/10 transition-colors">
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#4B5063] bg-[#F4F5F8] border border-[#E5E7EF] px-3 py-1.5 rounded-md hover:bg-[#EDEEF3] transition-colors">
                         Lihat Paket Soal <ChevronDown size={12} className={previewPaketId === paket.id ? 'rotate-180 transition-transform' : 'transition-transform'} />
                       </button>
                       <button onClick={() => navigate(`/guru-paket-soal/monitor/${paket.id}`, { state: { title: paket.title } })}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-red-500 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-md transition-colors"
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#4B5063] bg-[#F4F5F8] border border-[#E5E7EF] px-3 py-1.5 rounded-md hover:bg-[#EDEEF3] transition-colors"
                         title="Monitor langsung pengerjaan siswa (kamera + progres)">
                         <Activity size={12} /> Monitor
                       </button>
                       <button onClick={() => openQuizResults(paket)}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0069b0] bg-[#0069b0]/5 px-3 py-1.5 rounded-md hover:bg-[#0069b0]/10 transition-colors"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-white bg-[#0069b0] px-3 py-1.5 rounded-md hover:bg-[#004d7a] transition-colors"
                         title="Lihat hasil pengerjaan kandidat + kunci jawaban + waktu pengerjaan">
                         <BarChart3 size={12} /> Hasil Quiz
                       </button>
                       {canManage && (
                         <button onClick={() => handleRemovePaket(paket.id)}
-                          className="w-8 h-8 flex items-center justify-center rounded-md bg-red-50 hover:bg-red-100 transition-colors shrink-0 ml-auto"
+                          className="w-8 h-8 flex items-center justify-center rounded-md border border-[#E5E7EF] bg-white text-[#8B90A0] hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors shrink-0 ml-auto"
                           title="Lepas paket dari pertemuan">
-                          <Trash2 size={13} className="text-red-500" />
+                          <Trash2 size={13} />
                         </button>
                       )}
                     </div>
@@ -1914,6 +2094,246 @@ export default function GuruLessonDetail() {
               <button onClick={handleSaveLesson} disabled={saving || !lessonForm.title.trim()}
                 className="flex items-center gap-1.5 rounded-md bg-[#0069b0] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#004d7a] transition disabled:opacity-50">
                 {saving ? 'Menyimpan...' : <><Check size={13} /> Simpan Materi</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Soal Modal */}
+      {showQuestionModal && editingQuestion && (
+        <div className="fixed inset-0 z-[85] flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onClick={() => setShowQuestionModal(false)}>
+          <div className="bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-[#F0F1F5] sticky top-0 bg-white">
+              <div>
+                <h2 className="text-sm font-bold text-[#14182B]">Edit Soal</h2>
+                <p className="text-[10px] text-[#8B90A0] font-medium">{qPaketTitle}</p>
+              </div>
+              <button onClick={() => setShowQuestionModal(false)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F4F5F8] hover:bg-[#E5E7EF]">
+                <X size={15} className="text-[#4B5063]" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="text-[11px] font-bold text-[#4B5063] mb-1.5 block">Pertanyaan <span className="text-[#8B90A0] font-medium">(opsional)</span></label>
+                <textarea value={qForm.question} onChange={e => setQForm({ ...qForm, question: e.target.value })}
+                  rows={2} placeholder="Tulis pertanyaan..." className="w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 resize-none" />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-[#4B5063] mb-1.5 block">Bagian / Materi Soal <span className="text-[#8B90A0] font-medium">(opsional)</span></label>
+                <div className="flex items-center gap-2">
+                  <select value={qForm.section_id} onChange={e => setQForm({ ...qForm, section_id: e.target.value })}
+                    className="w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-3 bg-white focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10">
+                    <option value="">Tanpa bagian</option>
+                    {qSections.map(s => (
+                      <option key={s.id} value={s.id}>{s.name}{s.questions_count ? ` (${s.questions_count})` : ''}</option>
+                    ))}
+                  </select>
+                  <button type="button" onClick={() => setShowSectionInput(v => !v)}
+                    className="shrink-0 px-3 py-3 text-[10px] font-bold text-[#0069b0] border border-[#0069b0]/30 rounded-xl hover:bg-[#0069b0]/5">
+                    <Plus size={13} className="inline mr-0.5" /> Bagian
+                  </button>
+                </div>
+                {showSectionInput && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <input
+                      value={newSectionName}
+                      onChange={e => setNewSectionName(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') createSection() }}
+                      placeholder="Nama bagian baru, mis. Grammar"
+                      className="flex-1 text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10"
+                    />
+                    <button type="button" onClick={createSection} disabled={savingSection || !newSectionName.trim()}
+                      className="shrink-0 inline-flex items-center gap-1 px-3 py-2.5 text-[10px] font-bold text-white bg-[#0069b0] rounded-xl hover:bg-[#004d7a] transition-colors disabled:opacity-50">
+                      {savingSection ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                      Simpan
+                    </button>
+                  </div>
+                )}
+                {qSections.length > 0 && (
+                  <p className="text-[9.5px] font-bold text-[#8B90A0] uppercase tracking-wide mt-2">Bagian di paket ini: {qSections.length}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-[#4B5063] mb-1.5 block">Media Soal <span className="text-[#8B90A0] font-medium">(opsional)</span></label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className={`border border-[#E5E7EF] rounded-xl p-3 ${qForm.image_path ? 'bg-[#F7F8FA]' : ''}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <ImageIcon size={14} className="text-[#8B90A0]" />
+                      <span className="text-[11px] font-bold text-[#4B5063]">Gambar Soal</span>
+                    </div>
+                    {qForm.image_url ? (
+                      <div className="relative">
+                        <img src={qForm.image_url} alt="Pra-preview"
+                          className="w-full h-28 object-contain bg-white border border-[#E5E7EF] rounded-lg" />
+                        <button onClick={() => setQForm({ ...qForm, image_path: '', image_url: '' })}
+                          className="absolute top-1.5 right-1.5 p-1 bg-red-500 text-white rounded-full hover:bg-red-600" title="Hapus gambar">
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className={`flex flex-col items-center justify-center gap-1 h-28 border border-dashed border-[#D6D9E1] rounded-lg cursor-pointer hover:border-[#0069b0] hover:bg-[#F0F6FA] transition-colors ${uploadingQMedia === 'image' ? 'opacity-50 pointer-events-none' : ''}`}>
+                        {uploadingQMedia === 'image' ? <Loader2 size={18} className="animate-spin text-[#0069b0]" /> : <UploadCloud size={18} className="text-[#8B90A0]" />}
+                        <span className="text-[10px] font-medium text-[#8B90A0]">{uploadingQMedia === 'image' ? 'Mengunggah...' : 'Pilih gambar'}</span>
+                        <input type="file" accept="image/*" className="hidden" disabled={!!uploadingQMedia}
+                          onChange={e => { uploadQuestionMedia(e.target.files?.[0], 'image'); e.target.value = '' }} />
+                      </label>
+                    )}
+                  </div>
+                  <div className={`border border-[#E5E7EF] rounded-xl p-3 ${qForm.audio_path ? 'bg-[#F7F8FA]' : ''}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Mic size={14} className="text-[#8B90A0]" />
+                      <span className="text-[11px] font-bold text-[#4B5063]">Suara Soal</span>
+                    </div>
+                    {qForm.audio_url ? (
+                      <div className="space-y-2">
+                        <audio src={qForm.audio_url} controls className="w-full h-9" />
+                        <label className="text-[10px] font-bold text-[#4B5063] block mb-1 flex items-center gap-1">
+                          <Repeat size={11} /> Maksimal putar <span className="text-[#8B90A0] font-medium">(kali mendengarkan)</span>
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input type="number" min={1} max={99} value={qForm.audio_max_plays}
+                            onChange={e => setQForm({ ...qForm, audio_max_plays: e.target.value })}
+                            className="w-24 text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10" />
+                          <button onClick={() => { setQForm({ ...qForm, audio_path: '', audio_url: '', audio_max_plays: '2' }) }}
+                            className="text-[10px] font-bold text-red-400 hover:text-red-500 inline-flex items-center gap-1">
+                            <Trash2 size={11} /> Hapus
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <label className={`flex flex-col items-center justify-center gap-1 h-28 border border-dashed border-[#D6D9E1] rounded-lg cursor-pointer hover:border-[#0069b0] hover:bg-[#F0F6FA] transition-colors ${uploadingQMedia === 'audio' ? 'opacity-50 pointer-events-none' : ''}`}>
+                        {uploadingQMedia === 'audio' ? <Loader2 size={18} className="animate-spin text-[#0069b0]" /> : <UploadCloud size={18} className="text-[#8B90A0]" />}
+                        <span className="text-[10px] font-medium text-[#8B90A0]">{uploadingQMedia === 'audio' ? 'Mengunggah...' : 'Pilih audio (MP3/WAV)'}</span>
+                        <input type="file" accept="audio/*" className="hidden" disabled={!!uploadingQMedia}
+                          onChange={e => { uploadQuestionMedia(e.target.files?.[0], 'audio'); e.target.value = '' }} />
+                      </label>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-[#4B5063] mb-1.5 block">Tipe Jawaban</label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <button type="button" onClick={() => setQForm({ ...qForm, question_type: 'choice' })}
+                    className={`flex items-center gap-2.5 border rounded-xl px-3 py-2.5 text-left transition-colors ${qForm.question_type === 'choice' ? 'border-[#0069b0] bg-[#0069b0]/[0.04] ring-1 ring-[#0069b0]/20' : 'border-[#E5E7EF] hover:border-[#D6D9E1]'}`}>
+                    <span className={`w-8 h-8 flex items-center justify-center rounded-lg text-[11px] font-bold shrink-0 ${qForm.question_type === 'choice' ? 'bg-[#0069b0] text-white' : 'bg-[#F4F5F8] text-[#8B90A0]'}`}>A/B/C</span>
+                    <span>
+                      <span className="block text-[11.5px] font-bold text-[#14182B]">Pilihan Ganda</span>
+                      <span className="block text-[9.5px] text-[#8B90A0] font-medium">Opsi A, B, C + kunci jawaban</span>
+                    </span>
+                  </button>
+                  <button type="button" onClick={() => setQForm({ ...qForm, question_type: 'rating' })}
+                    className={`flex items-center gap-2.5 border rounded-xl px-3 py-2.5 text-left transition-colors ${qForm.question_type === 'rating' ? 'border-violet-500 bg-violet-50 ring-1 ring-violet-500/20' : 'border-[#E5E7EF] hover:border-[#D6D9E1]'}`}>
+                    <span className={`w-8 h-8 flex items-center justify-center rounded-lg text-[11px] font-bold shrink-0 ${qForm.question_type === 'rating' ? 'bg-violet-500 text-white' : 'bg-[#F4F5F8] text-[#8B90A0]'}`}>1-9</span>
+                    <span>
+                      <span className="block text-[11.5px] font-bold text-[#14182B]">Skala Rating</span>
+                      <span className="block text-[9.5px] text-[#8B90A0] font-medium">Penilaian bebas 1–{qForm.rating_max}</span>
+                    </span>
+                  </button>
+                  <button type="button" onClick={() => setQForm({ ...qForm, question_type: 'essay' })}
+                    className={`flex items-center gap-2.5 border rounded-xl px-3 py-2.5 text-left transition-colors ${qForm.question_type === 'essay' ? 'border-amber-500 bg-amber-50 ring-1 ring-amber-500/20' : 'border-[#E5E7EF] hover:border-[#D6D9E1]'}`}>
+                    <span className={`w-8 h-8 flex items-center justify-center rounded-lg text-[11px] font-bold shrink-0 ${qForm.question_type === 'essay' ? 'bg-amber-500 text-white' : 'bg-[#F4F5F8] text-[#8B90A0]'}`}>TEXT</span>
+                    <span>
+                      <span className="block text-[11.5px] font-bold text-[#14182B]">Esai / Uraian</span>
+                      <span className="block text-[9.5px] text-[#8B90A0] font-medium">Jawaban teks, nilai via kunci</span>
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {qForm.question_type === 'rating' ? (
+                <div>
+                  <label className="text-[11px] font-bold text-[#4B5063] mb-1.5 block">Skala Penilaian <span className="text-red-400">*</span></label>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <input type="number" min={2} max={10} value={qForm.rating_max}
+                      onChange={e => setQForm({ ...qForm, rating_max: e.target.value })}
+                      className="w-[90px] text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10" />
+                    <div className="flex gap-1 flex-wrap">
+                      {Array.from({ length: Math.min(10, Math.max(2, Number(qForm.rating_max) || 9)) }, (_, i) => (
+                        <span key={i} className="w-7 h-7 flex items-center justify-center rounded-full bg-violet-50 border border-violet-200 text-[11px] font-bold text-violet-600">
+                          {i + 1}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-[#8B90A0] font-medium mt-2">Kandidat memilih 1 sampai {Math.min(10, Math.max(2, Number(qForm.rating_max) || 9))}. Penilaian bebas, tanpa kunci jawaban — poin penuh diberikan jika diisi.</p>
+                </div>
+              ) : qForm.question_type === 'essay' ? (
+                <div>
+                  <label className="text-[11px] font-bold text-[#4B5063] mb-1.5 block">Kunci Jawaban <span className="font-medium text-[#8B90A0]">(opsional)</span></label>
+                  <textarea value={qForm.keyword} onChange={e => setQForm({ ...qForm, keyword: e.target.value })}
+                    placeholder="Contoh: karena, ４月, transportasi umum"
+                    rows={2}
+                    className="w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 resize-none" />
+                  <p className="text-[10px] text-[#8B90A0] font-medium mt-2">Jika diisi, jawaban siswa yang mengandung kata kunci otomatis diberi poin penuh saat submit. Jika dikosongkan, jawaban menunggu penilaian manual di <span className="font-bold">Hasil ▸ Detail Pengerjaan</span>.</p>
+                </div>
+              ) : (
+                <div>
+                  <label className="text-[11px] font-bold text-[#4B5063] mb-1.5 block">Opsi Jawaban <span className="text-red-400">* (min 2)</span></label>
+                  <div className="space-y-2">
+                    {qOptions.map((opt, oi) => (
+                      <div key={oi} className="flex items-center gap-2">
+                        <button onClick={() => setQForm({ ...qForm, correct_index: String(oi) })}
+                          title="Tandai sebagai jawaban benar"
+                          className={`w-7 h-7 shrink-0 flex items-center justify-center rounded-full border-2 transition-colors ${qForm.correct_index === String(oi) ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-[#E5E7EF] text-[#8B90A0] hover:border-[#0069b0]'}`}>
+                          {String.fromCharCode(65 + oi)}
+                        </button>
+                        <input value={opt.text} onChange={e => { const arr = [...qOptions]; arr[oi] = { ...arr[oi], text: e.target.value }; setQOptions(arr) }}
+                          placeholder={opt.image_path ? `Opsi ${String.fromCharCode(65 + oi)} (gambar)` : `Opsi ${String.fromCharCode(65 + oi)}`}
+                          className="flex-1 text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10" />
+                        <div className="relative shrink-0 h-9 w-9">
+                          <label title="Unggah gambar jawaban"
+                            className={`w-9 h-9 flex items-center justify-center rounded-xl border transition-colors cursor-pointer ${opt.image_path ? 'border-transparent' : 'border-[#E5E7EF] bg-[#F4F5F8] hover:border-[#0069b0] hover:text-[#0069b0] text-[#8B90A0]'} ${uploadingOptImg === oi ? 'opacity-50 pointer-events-none' : ''}`}>
+                            {uploadingOptImg === oi
+                              ? <Loader2 size={14} className="animate-spin text-[#0069b0]" />
+                              : opt.image_path
+                                ? <img src={opt.image_url || ''} className="w-9 h-9 rounded-xl object-cover" alt={`Opsi ${String.fromCharCode(65 + oi)}`} />
+                                : <ImageIcon size={14} />}
+                            <input type="file" accept="image/*" className="hidden" disabled={uploadingOptImg !== null}
+                              onChange={e => { uploadOptionImage(e.target.files?.[0], oi); e.target.value = '' }} />
+                          </label>
+                          {opt.image_path && (
+                            <button onClick={() => setQOptions(prev => prev.map((o, i) => i === oi ? { ...o, image_path: null, image_url: null } : o))}
+                              title="Hapus gambar opsi"
+                              className="absolute -top-1.5 -right-1.5 w-5 h-5 flex items-center justify-center rounded-full bg-red-500 text-white shadow">
+                              <X size={11} />
+                            </button>
+                          )}
+                        </div>
+                        {qOptions.length > 2 && (
+                          <button onClick={() => setQOptions(qOptions.filter((_, idx) => idx !== oi))} className="p-1 text-red-400 hover:text-red-500 shrink-0">
+                            <X size={14} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {qOptions.length < 6 && (
+                    <button onClick={() => setQOptions([...qOptions, { text: '', image_path: null, image_url: null }])}
+                      className="mt-2 flex items-center gap-1 text-[11px] font-bold text-[#0069b0]">
+                      <Plus size={12} /> Tambah opsi
+                    </button>
+                  )}
+                  <p className="text-[10px] text-[#8B90A0] font-medium mt-2">Klik huruf <span className="font-bold text-emerald-500">A/B/C...</span> untuk menandai kunci jawaban. Klik ikon <span className="font-bold text-[#0069b0]">gambar</span> di kanan opsi untuk menjadikan opsi berupa gambar.</p>
+                </div>
+              )}
+
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <label className="text-[11px] font-bold text-[#4B5063] mb-1.5 block">Bobot Skor</label>
+                  <input type="number" min={1} value={qForm.points} onChange={e => setQForm({ ...qForm, points: e.target.value })}
+                    className="w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10" />
+                </div>
+              </div>
+
+              <button onClick={saveEditedQuestion} disabled={savingQuestion}
+                className="w-full text-[12px] font-bold text-white bg-[#0069b0] py-3 rounded-xl hover:bg-[#004d7a] transition-colors disabled:opacity-50">
+                {savingQuestion ? 'Menyimpan...' : 'Simpan Perubahan'}
               </button>
             </div>
           </div>

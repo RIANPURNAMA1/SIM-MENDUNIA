@@ -541,7 +541,7 @@ export const quizApi = {
 }
 
 export const lmsAdminApi = {
-  courses: () => api.get('/admin/lms/courses'),
+  courses: (params?: Record<string, string | number | undefined>) => api.get('/admin/lms/courses', { params }),
   storeCourse: (data: FormData) => api.post('/admin/lms/courses', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   updateCourse: (id: number, data: FormData) => api.post(`/admin/lms/courses/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   deleteCourse: (id: number) => api.delete(`/admin/lms/courses/${id}`),
@@ -708,7 +708,7 @@ export const guruQuizApi = {
 
 export const adminQuizApi = {
   meta: () => api.get('/admin-cabang/quiz/meta'),
-  pakets: (params?: Record<string, string | number>) => api.get('/admin-cabang/quiz/pakets', { params }),
+  pakets: (params?: Record<string, string | number | undefined>) => api.get('/admin-cabang/quiz/pakets', { params }),
   storePaket: (data: Record<string, unknown>) => api.post('/admin-cabang/quiz/pakets', data),
   updatePaket: (id: number, data: Record<string, unknown>) => api.post(`/admin-cabang/quiz/pakets/${id}`, data),
   deletePaket: (id: number) => api.delete(`/admin-cabang/quiz/pakets/${id}`),
@@ -735,6 +735,20 @@ export const adminQuizApi = {
   storeCategory: (data: Record<string, unknown>) => api.post('/admin-cabang/quiz/categories', data),
   updateCategory: (id: number, data: Record<string, unknown>) => api.post(`/admin-cabang/quiz/categories/${id}`, data),
   deleteCategory: (id: number) => api.delete(`/admin-cabang/quiz/categories/${id}`),
+}
+
+export const quizReferenceApi = {
+  guruMeta: () => api.get('/guru/quiz-references/meta'),
+  guruList: () => api.get('/guru/quiz-references'),
+  guruStore: (data: FormData) => api.post('/guru/quiz-references', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  guruDestroy: (id: number) => api.delete(`/guru/quiz-references/${id}`),
+  adminList: (params?: Record<string, string | number>) => api.get('/admin/lms/quiz-references', { params }),
+  adminPendingCount: () => api.get('/admin/lms/quiz-references/pending-count'),
+  adminUpdateStatus: (id: number, data: { status: string; note?: string }) => api.post(`/admin/lms/quiz-references/${id}/status`, data),
+  adminDestroy: (id: number) => api.delete(`/admin/lms/quiz-references/${id}`),
+  adminCategoryStore: (data: { name: string }) => api.post('/admin/lms/quiz-references/categories', data),
+  adminCategoryUpdate: (id: number, data: { name: string }) => api.post(`/admin/lms/quiz-references/categories/${id}`, data),
+  adminCategoryDestroy: (id: number) => api.delete(`/admin/lms/quiz-references/categories/${id}`),
 }
 
 export const paymentSettingApi = {

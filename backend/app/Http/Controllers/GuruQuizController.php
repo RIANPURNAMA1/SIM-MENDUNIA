@@ -55,6 +55,25 @@ class GuruQuizController extends Controller
         return $question;
     }
 
+    private function accessibleQuestion($id, $userId)
+    {
+        $question = QuizQuestion::with('paket')->findOrFail($id);
+        $paket = $question->paket;
+        if ((int) $paket->user_id === (int) $userId) {
+            return $question;
+        }
+        $linked = \App\Models\Lesson::whereHas('course', fn ($q) => $q->where('user_id', $userId))
+            ->where(function ($q) use ($paket) {
+                $q->where('paket_id', $paket->id)
+                    ->orWhereHas('linkPakets', fn ($sq) => $sq->where('quiz_pakets.id', $paket->id));
+            })
+            ->exists();
+        if ($linked) {
+            return $question;
+        }
+        abort(404);
+    }
+
     public function leaderboard()
     {
         $user = $this->guruUser();
@@ -378,11 +397,6 @@ class GuruQuizController extends Controller
         $paket = QuizPaket::findOrFail($id);
         $paket->status = $paket->status === 'aktif' ? 'nonaktif' : 'aktif';
         $paket->save();
-        // Satu sumber status: sinkronkan pivot semua pertemuan yang menautkan paket ini.
-        $ids = $paket->linkLessons()->allRelatedIds();
-        if ($ids->isNotEmpty()) {
-            $paket->linkLessons()->syncWithoutDetaching($ids->mapWithKeys(fn ($id) => [(int) $id => ['status' => $paket->status]])->all());
-        }
 
         return response()->json(['paket' => $paket->fresh(), 'status' => $paket->status]);
     }
@@ -409,7 +423,7 @@ class GuruQuizController extends Controller
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
-        $paket = $this->ownPaket($paketId, $user->id);
+        $paket = $this->accessiblePaket($paketId, $user->id);
 
         return response()->json([
             'sections' => $paket->sections()->withCount('questions')->get(),
@@ -423,7 +437,7 @@ class GuruQuizController extends Controller
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
-        $paket = $this->ownPaket($paketId, $user->id);
+        $paket = $this->accessiblePaket($paketId, $user->id);
 
         $data = $request->validate([
             'name' => 'required|string|max:100',
@@ -582,7 +596,7 @@ $data = $request->validate([
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
-        $question = $this->ownQuestion($id, $user->id);
+        $question = $this->accessibleQuestion($id, $user->id);
 
         $data = $request->validate([
             'question' => 'sometimes|nullable|string',

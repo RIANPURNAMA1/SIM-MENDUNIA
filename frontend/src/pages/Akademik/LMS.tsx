@@ -5,7 +5,7 @@ import {
   FileText, Video, ArrowLeft, Clock, ListChecks, Lock, FileQuestion,
   ClipboardList, Upload, Download, Send, GraduationCap, Star, Award, AlertTriangle, X, XCircle, Trash2,
   CalendarCheck, LayoutDashboard, Wallet, User, Trophy, Search,
-  Image as ImageIcon, Volume2,
+  Image as ImageIcon, Volume2, Calendar, Building2,
 } from 'lucide-react'
 import { lmsApi, quizApi, APP_URL } from '../../services/api'
 import { DEFAULT_COURSE_COVER } from '../../utils/courseCover'
@@ -24,13 +24,21 @@ interface Course {
   level: string | null
   category: { id: number; name: string } | null
   batch: { id: number; nama_batch: string } | null
-  kelas_sensei_id: number | null
+  classes_sensei_id: number | null
   lessons_count: number
   sort: number
   status: string
+  tanggal_mulai?: string | null
+  tanggal_selesai?: string | null
 }
 
 const isCourseOpen = (course: { status?: string }) => (course.status ?? 'aktif') === 'aktif'
+
+const formatBatch = (nama: string | null | undefined) => {
+  if (!nama) return null
+  const t = nama.trim()
+  return /^batch\s/i.test(t) ? t : `Batch ${t}`
+}
 
 interface Lesson {
   id: number
@@ -1026,38 +1034,38 @@ export default function LMS() {
                 : 'bg-gradient-to-r from-[#0E6187] to-[#0E6187]'
         }`} />
 
-        <div className="p-5">
+        <div className="p-4 sm:p-5">
           {/* Header */}
-          <div className="flex items-start gap-4">
-            <div className={`w-11 h-11 rounded-md flex items-center justify-center shrink-0 ${
+          <div className="flex items-start gap-3">
+            <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-md flex items-center justify-center shrink-0 ${
               isGraded ? 'bg-emerald-50 text-emerald-500'
                 : hasSubmitted ? 'bg-amber-50 text-amber-500'
                   : 'bg-[#0E6187]/10 text-[#0E6187]'
             }`}>
-              {isGraded ? <Award size={20} /> : hasSubmitted ? <CheckCircle size={20} /> : <ClipboardList size={20} />}
+              {isGraded ? <Award size={18} /> : hasSubmitted ? <CheckCircle size={18} /> : <ClipboardList size={18} />}
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-bold text-gray-900">{a.title}</h3>
+              <h3 className="text-sm font-bold text-gray-900 leading-snug">{a.title}</h3>
               {a.description && (
                 <div className="text-xs text-gray-400 mt-1 line-clamp-2 [&_*]:inline" dangerouslySetInnerHTML={{ __html: a.description }} />
               )}
+              {isGraded && sub && (
+                <span className="inline-flex items-center gap-1 mt-2 text-xs font-black text-emerald-600 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-md w-fit">
+                  <Award size={11} /> {sub.score}/{a.max_score || '?'}
+                </span>
+              )}
             </div>
-            {isGraded && sub && (
-              <span className="text-sm font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-md shrink-0">
-                {sub.score}/{a.max_score || '?'}
-              </span>
-            )}
           </div>
 
           {/* Meta row */}
-          <div className="flex flex-wrap items-center gap-2 mt-4">
+          <div className="flex flex-wrap items-center gap-1.5 mt-4">
             {a.max_score && (
-              <span className="flex items-center gap-1.5 bg-gray-100 text-gray-600 px-3 py-1.5 rounded-md text-[11px] font-bold">
+              <span className="flex items-center gap-1.5 bg-gray-100 text-gray-600 px-2.5 sm:px-3 py-1.5 rounded-md text-[10px] sm:text-[11px] font-bold">
                 <Star size={12} /> Skor Maks {a.max_score}
               </span>
             )}
             {a.due_date && (
-              <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-bold ${
+              <span className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md text-[10px] sm:text-[11px] font-bold ${
                 isPastDue
                   ? 'bg-red-50 text-red-600'
                   : daysLeft !== null && daysLeft <= 2
@@ -1075,7 +1083,7 @@ export default function LMS() {
               </span>
             )}
             {isPastDue && !hasSubmitted && (
-              <span className="flex items-center gap-1.5 bg-red-50 text-red-500 px-3 py-1.5 rounded-md text-[11px] font-bold">
+              <span className="flex items-center gap-1.5 bg-red-50 text-red-500 px-2.5 sm:px-3 py-1.5 rounded-md text-[10px] sm:text-[11px] font-bold">
                 <AlertTriangle size={12} /> Telah berakhir
               </span>
             )}
@@ -1097,7 +1105,7 @@ export default function LMS() {
                       {p.questions_count != null && `${p.questions_count} soal · `}Kerjakan quiz untuk menyelesaikan tugas ini
                     </span>
                   </span>
-                  <span className="shrink-0 flex items-center gap-1.5 text-[10px] font-black bg-white border border-[#0E6187]/15 text-[#0E6187] px-3 py-1.5 rounded-md group-hover:bg-[#0E6187] group-hover:text-white transition-colors">
+                  <span className="shrink-0 flex items-center gap-1.5 text-[10px] font-black bg-white border border-[#0E6187]/15 text-[#0E6187] px-2.5 sm:px-3 py-1.5 rounded-md group-hover:bg-[#0E6187] group-hover:text-white transition-colors">
                     <Play size={11} /> Kerjakan
                   </span>
                 </button>
@@ -1122,18 +1130,18 @@ export default function LMS() {
 
           {/* Submission status / Submit button */}
           {hasSubmitted ? (
-            <div className="mt-4 p-4 rounded-xl bg-gray-50 border border-gray-200">
-              <div className="flex items-center justify-between mb-2">
+            <div className="mt-4 p-3.5 sm:p-4 rounded-xl bg-gray-50 border border-gray-200">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <CheckCircle size={16} className="text-emerald-500" />
+                  <CheckCircle size={16} className="text-emerald-500 shrink-0" />
                   <span className="text-xs font-bold text-gray-700">Terkumpul</span>
                 </div>
                 {sub ? sub.score !== null ? (
-                  <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
+                  <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full w-fit">
                     Nilai: {sub.score}/{a.max_score || '?'}
                   </span>
                 ) : (
-                  <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">Menunggu Penilaian</span>
+                  <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full w-fit">Menunggu Penilaian</span>
                 ) : null}
               </div>
               {sub?.file_name && (
@@ -1153,9 +1161,9 @@ export default function LMS() {
           ) : (
             <div className="mt-4">
               {isPastDue ? (
-                <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-red-50 border border-red-200">
-                  <AlertTriangle size={16} className="text-red-500 shrink-0" />
-                  <span className="text-xs font-bold text-red-600">Tenggat waktu telah berakhir, tugas tidak dapat dikumpulkan</span>
+                <div className="flex items-start gap-2.5 px-3.5 sm:px-4 py-3 rounded-xl bg-red-50 border border-red-200">
+                  <AlertTriangle size={16} className="text-red-500 shrink-0 mt-0.5" />
+                  <span className="text-xs font-bold text-red-600 leading-snug">Tenggat waktu telah berakhir, tugas tidak dapat dikumpulkan</span>
                 </div>
               ) : (
                 <button onClick={() => setShowSubmitForm(a.id)}
@@ -1341,7 +1349,7 @@ export default function LMS() {
       ? lessonDetail.quizzes
       : currentIdx === 0 ? courseQuizzes : [])
     const materiCount = (lessonDetail?.slides?.length || 0) + (lessonDetail?.materis?.length || 0) + (selectedLesson.content || selectedLesson.video_url || selectedLesson.file_path ? 1 : 0)
-    const courseInfo = [selectedCourse.batch?.nama_batch && `Batch ${selectedCourse.batch.nama_batch}`, selectedCourse.level && `Level ${selectedCourse.level}`].filter(Boolean).join(' · ')
+    const courseInfo = [formatBatch(selectedCourse.batch?.nama_batch), selectedCourse.level && `Level ${selectedCourse.level}`].filter(Boolean).join(' · ')
     const lessonTasks = assignments.filter(a => a.lesson_id === selectedLesson.id)
     const tabItems = [
       { key: 'materi' as const, label: 'Materi', icon: BookOpen, count: undefined as number | undefined },
@@ -1723,7 +1731,7 @@ export default function LMS() {
             <>
               {/* Tugas */}
               <div className="bg-white rounded-md shadow-sm overflow-hidden">
-                <div className="px-5 pt-4 pb-3 border-b border-slate-100 flex items-center justify-between">
+                <div className="px-4 sm:px-5 pt-4 pb-3 border-b border-slate-100 flex items-center justify-between">
                   <h3 className="text-[11px] font-black text-slate-800 flex items-center gap-2">
                     <span className="w-7 h-7 rounded-md bg-[#0E6187]/10 flex items-center justify-center shrink-0">
                       <ClipboardList size={13} className="text-[#0E6187]" />
@@ -1734,12 +1742,12 @@ export default function LMS() {
                 </div>
                 <div className="p-4 space-y-2.5">
                   {lessonTasks.length === 0 ? (
-                    <div className="py-10 text-center">
-                      <div className="w-14 h-14 rounded-md bg-gray-50 flex items-center justify-center mx-auto mb-3">
-                        <ClipboardList size={26} className="text-gray-300" />
+                    <div className="flex flex-col items-center justify-center text-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/60 px-6 py-10">
+                      <div className="w-14 h-14 rounded-xl bg-[#0E6187]/10 flex items-center justify-center mb-3">
+                        <ClipboardList size={26} className="text-[#0E6187]/40" />
                       </div>
-                      <p className="text-sm font-semibold text-gray-500">Belum ada tugas</p>
-                      <p className="text-xs text-gray-400 mt-1">Tugas untuk pertemuan ini belum tersedia</p>
+                      <p className="text-sm font-bold text-slate-500">Belum ada tugas</p>
+                      <p className="text-xs text-slate-400 mt-1 max-w-[240px]">Tugas untuk pertemuan ini belum tersedia, silakan cek kembali nanti</p>
                     </div>
                   ) : (
                     lessonTasks.map(a => renderAssignmentCard(a))
@@ -1987,6 +1995,21 @@ export default function LMS() {
     const percent = Math.round((progress / Math.max(total, 1)) * 100)
     const isComplete = percent === 100 && total > 0
 
+    const sMulai = selectedCourse.tanggal_mulai ? new Date(selectedCourse.tanggal_mulai + 'T00:00:00') : null
+    const sSelesai = selectedCourse.tanggal_selesai ? new Date(selectedCourse.tanggal_selesai + 'T00:00:00') : null
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const scheduleStatus = sMulai && sSelesai
+      ? today > sSelesai
+        ? 'Selesai'
+        : today < sMulai
+          ? 'Belum Dimulai'
+          : 'Sedang Berlangsung'
+      : null
+    const scheduleLabel = sMulai && sSelesai
+      ? `${sMulai.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} – ${sSelesai.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}`
+      : null
+
     return (
       <>
       <div className="min-h-screen bg-[#f2f4f8] pb-24 animate-fade-up">
@@ -2002,10 +2025,34 @@ export default function LMS() {
                 <h1 className="text-sm font-bold text-slate-900 truncate">{selectedCourse.title}</h1>
                 <p className="text-[10px] text-[#0E6187] font-medium truncate">
                   {[
-                    selectedCourse.batch?.nama_batch && `Batch ${selectedCourse.batch.nama_batch}`,
+                    formatBatch(selectedCourse.batch?.nama_batch),
                     selectedCourse.level && `Level ${selectedCourse.level}`,
                   ].filter(Boolean).join(' · ') || 'Kursus'}
                 </p>
+                {scheduleLabel && (
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1">
+                    <span className="flex items-center gap-1 text-[10px] font-medium text-slate-500">
+                      <Calendar size={11} className="text-slate-400" />
+                      {scheduleLabel}
+                    </span>
+                    {scheduleStatus && (
+                      <span className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold ${
+                        scheduleStatus === 'Selesai'
+                          ? 'bg-emerald-50 text-emerald-600'
+                          : scheduleStatus === 'Belum Dimulai'
+                            ? 'bg-amber-50 text-amber-600'
+                            : 'bg-sky-50 text-[#0E6187]'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${
+                          scheduleStatus === 'Selesai' ? 'bg-emerald-500'
+                            : scheduleStatus === 'Belum Dimulai' ? 'bg-amber-500'
+                              : 'bg-[#0E6187]'
+                        }`} />
+                        {scheduleStatus}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="text-right shrink-0">
                 <p className="text-base font-black text-[#0E6187] leading-none">{percent}%</p>
@@ -2403,7 +2450,7 @@ export default function LMS() {
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Cari kursus kamu..."
-                className="w-full rounded-xl border border-white/15 bg-white/15 py-2.5 pl-10 pr-9 text-xs font-medium text-white placeholder:text-white/50 outline-none transition-all focus:bg-white/20 focus:border-white/30"
+                className="w-full rounded-md border border-white/15 bg-white/15 py-2.5 pl-10 pr-9 text-xs font-medium text-white placeholder:text-white/50 outline-none transition-all focus:bg-white/20 focus:border-white/30"
               />
               {searchQuery && (
                 <button onClick={() => setSearchQuery('')}
@@ -2478,11 +2525,11 @@ export default function LMS() {
               <div className="-mx-4 px-4 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <div className="flex items-center gap-2">
                   <button onClick={() => setActiveCategory('all')}
-                    className={`shrink-0 rounded-full px-4 py-1.5 text-[11px] font-bold transition-all ${activeCategory === 'all' ? 'bg-[#0E6187] text-white shadow-md shadow-[#0E6187]/20' : 'bg-white text-slate-500 border border-gray-200 hover:border-gray-300'}`}
+                    className={`shrink-0 rounded-md px-3.5 py-2 text-[11px] font-bold transition-all ${activeCategory === 'all' ? 'bg-[#0E6187] text-white shadow-sm shadow-[#0E6187]/25' : 'bg-white text-slate-500 border border-gray-200 hover:border-gray-300 hover:text-slate-700'}`}
                     type="button">Semua</button>
                   {courseCategories.map(cat => (
                     <button key={cat} onClick={() => setActiveCategory(cat)}
-                      className={`shrink-0 rounded-full px-4 py-1.5 text-[11px] font-bold transition-all ${activeCategory === cat ? 'bg-[#0E6187] text-white shadow-md shadow-[#0E6187]/20' : 'bg-white text-slate-500 border border-gray-200 hover:border-gray-300'}`}
+                      className={`shrink-0 rounded-md px-3.5 py-2 text-[11px] font-bold transition-all ${activeCategory === cat ? 'bg-[#0E6187] text-white shadow-sm shadow-[#0E6187]/25' : 'bg-white text-slate-500 border border-gray-200 hover:border-gray-300 hover:text-slate-700'}`}
                       type="button">{cat}</button>
                   ))}
                 </div>
@@ -2501,55 +2548,53 @@ export default function LMS() {
 <div className="grid grid-cols-2 gap-2.5 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {visibleCourses.map(course => (
 <button key={course.id} onClick={() => handleCourseClick(course)}
-                  className={`bg-white rounded-md shadow-sm border border-gray-200 overflow-hidden hover:shadow-md hover:shadow-gray-200/50 hover:border-[#0E6187]/40 transition-all text-left group flex flex-col ${!isCourseOpen(course) ? 'opacity-85' : ''}`}>
-                  <div className="aspect-[4/3] bg-gradient-to-br from-[#0E6187] to-[#1a3355] flex items-center justify-center relative overflow-hidden shrink-0">
+                  className={`bg-white rounded-md shadow-sm border border-gray-200 overflow-hidden hover:shadow-md hover:shadow-gray-200/60 hover:border-[#0E6187]/40 transition-all text-left group flex flex-col ${!isCourseOpen(course) ? 'opacity-90' : ''}`}>
+                  <div className="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-[#0E6187] to-[#1a3355] shrink-0">
                     {course.image ? (
                       <img src={`${APP_URL}/storage/${course.image}`} alt="" className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${!isCourseOpen(course) ? 'grayscale' : ''}`} />
                     ) : (
                       <img src={DEFAULT_COURSE_COVER} alt="" className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${!isCourseOpen(course) ? 'grayscale' : ''}`} />
                     )}
-                    <div className="absolute inset-0 bg-[#0E6187]/40" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
                     {course.category && (
-                      <div className="absolute top-2 left-2">
-                        <span className="inline-block rounded-full bg-white/90 px-2 py-0.5 text-[8px] font-bold text-[#0E6187] shadow-sm">
-                          {course.category.name}
-                        </span>
-                      </div>
+                      <span className="absolute top-2 left-2 rounded-md bg-white/95 px-2 py-1 text-[9px] font-bold text-[#0E6187] shadow-sm">
+                        {course.category.name}
+                      </span>
                     )}
                     {!isCourseOpen(course) && (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/35">
-                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 ring-1 ring-white/40 backdrop-blur">
-                          <Lock size={16} className="text-white" />
-                        </span>
-                        <span className="rounded-full bg-black/50 px-2 py-0.5 text-[8px] sm:text-[9px] font-bold text-white ring-1 ring-white/20">Terkunci</span>
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                        <div className="flex flex-col items-center gap-1.5">
+                          <span className="flex h-10 w-10 items-center justify-center rounded-md bg-white/20 ring-1 ring-white/40 backdrop-blur">
+                            <Lock size={16} className="text-white" />
+                          </span>
+                          <span className="rounded-md bg-black/60 px-2 py-0.5 text-[9px] font-bold text-white">Terkunci</span>
+                        </div>
                       </div>
                     )}
-                    <span className="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded-full bg-black/35 px-2 py-0.5 text-[8px] sm:text-[9px] font-bold text-white ring-1 ring-white/20 backdrop-blur">
-                      <Play size={9} /> {course.lessons_count} Pel
+                    <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-md bg-black/40 px-2 py-1 text-[9px] font-bold text-white backdrop-blur">
+                      <Play size={9} /> {course.lessons_count} Pelajaran
                     </span>
                   </div>
-                  <div className="p-2.5 sm:p-3 flex flex-col flex-1">
-                    <h3 className="text-[11px] sm:text-[13px] md:text-sm font-bold text-gray-900 leading-snug line-clamp-1 sm:line-clamp-2 group-hover:text-[#0E6187] transition-colors" title={course.title}>
+                  <div className="p-3 sm:p-3.5 flex flex-col flex-1">
+                    <h3 className="text-xs sm:text-sm font-bold text-gray-900 leading-snug line-clamp-2 group-hover:text-[#0E6187] transition-colors" title={course.title}>
                       {course.title}
                     </h3>
                     {course.description && (
-                      <p className="text-[8px] sm:text-[10px] text-gray-400 mt-0.5 line-clamp-1 leading-relaxed [&_*]:inline"
+                      <p className="text-[10px] sm:text-[11px] text-gray-500 mt-1 line-clamp-1 leading-relaxed [&_*]:inline"
                         title={course.description.replace(/<[^>]*>/g, ' ')}
                         dangerouslySetInnerHTML={{ __html: course.description }} />
                     )}
-                    <div className="mt-auto flex items-center justify-between pt-2 gap-2">
-                      {course.level ? (
-                        <span className="px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-bold bg-[#0E6187]/10 text-[#0E6187]">
-                          Level {course.level}
-                        </span>
-                      ) : <span />}
+                    <div className="mt-auto flex items-center justify-between pt-2.5 gap-2">
+                      <span className="min-w-0 flex items-center gap-1 text-[9px] sm:text-[10px] font-medium text-slate-500 truncate">
+                        <Building2 size={10} className="text-slate-400 shrink-0" />
+                        {[formatBatch(course.batch?.nama_batch), course.level && `Level ${course.level}`].filter(Boolean).join(' · ') || 'Kelas Mendunia'}
+                      </span>
                       {!isCourseOpen(course) ? (
                         <span className="flex items-center gap-1 text-[9px] sm:text-[10px] font-bold text-slate-400 whitespace-nowrap">
                           <Lock size={10} /> Terkunci
                         </span>
                       ) : (
-                      <span className="flex items-center gap-0.5 text-[9px] sm:text-[10px] font-bold text-slate-400 group-hover:text-[#0E6187] whitespace-nowrap transition-colors">
+                      <span className="flex items-center gap-0.5 text-[9px] sm:text-[10px] font-bold text-[#0E6187] whitespace-nowrap">
                         Buka <ChevronRight size={10} />
                       </span>
                       )}

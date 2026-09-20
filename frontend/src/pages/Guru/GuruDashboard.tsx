@@ -3,9 +3,9 @@ import {
   Calendar, CheckCircle, X, Plus, Users, User,
   ChevronRight, FileText, Clock,
   QrCode, History, BookOpen, ClipboardList, Camera, MapPin, Notebook,
-  Award, BarChart3,
+  Award, BarChart3, Upload, Link2, Paperclip, Trash2, FileCheck2,
 } from 'lucide-react'
-import api, { guruKelasApi, jadwalLevelApi, APP_URL } from '../../services/api'
+import api, { guruKelasApi, jadwalLevelApi, APP_URL, quizReferenceApi } from '../../services/api'
 import Swal from 'sweetalert2'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
 
@@ -71,6 +71,24 @@ interface BatchNilai {
   }[]
 }
 
+interface RefCategory {
+  id: number
+  name: string
+}
+
+interface MyReference {
+  id: number
+  title: string
+  description: string | null
+  link: string | null
+  file_name: string | null
+  file_url: string | null
+  status: string
+  note: string | null
+  created_at: string
+  category: { id: number; name: string } | null
+}
+
 const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des']
 const monthNamesID = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
@@ -114,6 +132,82 @@ export default function GuruDashboard() {
   const [batchNilaiList, setBatchNilaiList] = useState<BatchNilai[]>([])
   const [expandedLevel, setExpandedLevel] = useState<string | null>(null)
   const [jadwalLevels, setJadwalLevels] = useState<Record<string, { tanggal_mulai: string; tanggal_selesai: string }>>({})
+
+  const [showRefModal, setShowRefModal] = useState(false)
+  const [refForm, setRefForm] = useState({ title: '', category_id: '', link: '', description: '' })
+  const [refFile, setRefFile] = useState<File | null>(null)
+  const [refSaving, setRefSaving] = useState(false)
+  const [refCategories, setRefCategories] = useState<RefCategory[]>([])
+  const [myReferences, setMyReferences] = useState<MyReference[]>([])
+  const [refLoading, setRefLoading] = useState(false)
+
+  const refStatusStyle: Record<string, string> = {
+    pending: 'bg-amber-50 text-amber-600',
+    diproses: 'bg-blue-50 text-blue-600',
+    selesai: 'bg-emerald-50 text-emerald-600',
+    ditolak: 'bg-red-50 text-red-600',
+  }
+
+  const openRefModal = useCallback(async () => {
+    setShowRefModal(true)
+    setRefLoading(true)
+    try {
+      const [metaRes, listRes] = await Promise.all([quizReferenceApi.guruMeta(), quizReferenceApi.guruList()])
+      setRefCategories(metaRes.data.categories || [])
+      setMyReferences(listRes.data.references || [])
+    } catch { } finally {
+      setRefLoading(false)
+    }
+  }, [])
+
+  const handleKirimReferensi = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!refForm.title.trim()) {
+      Swal.fire({ icon: 'warning', title: 'Judul wajib diisi', timer: 2000, showConfirmButton: false })
+      return
+    }
+    if (!refFile && !refForm.link.trim()) {
+      Swal.fire({ icon: 'warning', title: 'Lampirkan file atau isi link', timer: 2000, showConfirmButton: false })
+      return
+    }
+    setRefSaving(true)
+    try {
+      const fd = new FormData()
+      fd.append('title', refForm.title)
+      if (refForm.category_id) fd.append('category_id', refForm.category_id)
+      if (refForm.description) fd.append('description', refForm.description)
+      if (refForm.link.trim()) fd.append('link', refForm.link.trim())
+      if (refFile) fd.append('file', refFile)
+      const res = await quizReferenceApi.guruStore(fd)
+      setMyReferences(prev => [res.data.reference, ...prev])
+      setRefForm({ title: '', category_id: '', link: '', description: '' })
+      setRefFile(null)
+      Swal.fire({ icon: 'success', title: 'Referensi Terkirim', text: 'Menunggu diproses manager', timer: 2000, showConfirmButton: false })
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || e?.response?.data?.errors?.title?.[0] || 'Gagal mengirim referensi'
+      Swal.fire({ icon: 'error', title: 'Gagal', text: msg })
+    } finally {
+      setRefSaving(false)
+    }
+  }
+
+  const handleHapusReferensi = async (ref: MyReference) => {
+    const confirm = await Swal.fire({
+      title: 'Hapus referensi ini?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, hapus',
+      cancelButtonText: 'Batal',
+    })
+    if (!confirm.isConfirmed) return
+    try {
+      await quizReferenceApi.guruDestroy(ref.id)
+      setMyReferences(prev => prev.filter(r => r.id !== ref.id))
+      Swal.fire({ icon: 'success', title: 'Dihapus', timer: 1500, showConfirmButton: false })
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal menghapus' })
+    }
+  }
 
   const absenStatus: 'belum' | 'masuk' | 'pulang' = kelasList.some(k => absenPerKelas[k.id]?.jam_masuk && !absenPerKelas[k.id]?.jam_keluar)
     ? 'masuk'
@@ -571,6 +665,7 @@ export default function GuruDashboard() {
               { icon: History, label: 'Riwayat', href: '/riwayat-absensi-karyawan' },
               { icon: Clock, label: 'Lembur', href: '/lembur-karyawan' },
               { icon: BookOpen, label: 'Kelas Mendunia', href: '/guru-lms' },
+              { icon: Upload, label: 'Referensi Quiz', action: () => openRefModal() },
             ].map((item, i) => (
               <button key={i} onClick={() => item.href ? window.location.href = item.href : item.action?.()}
                 className="flex flex-col items-center gap-2 py-3 rounded-lg hover:bg-[#F4F5F8] transition-colors">
@@ -778,6 +873,124 @@ export default function GuruDashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===== MODAL REFERENSI QUIZ ===== */}
+      {showRefModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowRefModal(false)}>
+          <div className="w-full max-w-lg mx-3 bg-white rounded-xl shadow-xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+              <h3 className="text-sm font-bold text-gray-900">Kirim Referensi Quiz</h3>
+              <button onClick={() => setShowRefModal(false)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="overflow-y-auto p-5 space-y-4 flex-1">
+              <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2.5 text-[11px] text-blue-700 leading-relaxed">
+                Unggah referensi soal (file PDF atau link) beserta nama & kategori. Manager akan membuat soal quiz berdasarkan referensi Anda.
+              </div>
+              {refLoading ? (
+                <div className="text-center py-6 text-sm text-gray-400">Memuat...</div>
+              ) : (
+                <form onSubmit={handleKirimReferensi} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Judul Referensi <span className="text-red-500">*</span></label>
+                    <input value={refForm.title} onChange={e => setRefForm(f => ({ ...f, title: e.target.value }))}
+                      placeholder="cth: Soal Latihan Kata Kerja N5"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Kategori</label>
+                    <select value={refForm.category_id} onChange={e => setRefForm(f => ({ ...f, category_id: e.target.value }))}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]">
+                      <option value="">Tanpa Kategori</option>
+                      {refCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label className="flex items-center gap-1 text-xs font-medium text-gray-700 mb-1">
+                        <Paperclip size={12} /> File Referensi <span className="text-gray-400">(PDF, max 10MB)</span>
+                      </label>
+                      <label className={`flex items-center justify-center gap-2 border-2 border-dashed rounded-lg px-3 py-4 cursor-pointer transition ${refFile ? 'border-emerald-300 bg-emerald-50' : 'border-gray-300 bg-gray-50 hover:border-[#0069b0]'}`}>
+                        <Upload size={16} className={refFile ? 'text-emerald-500' : 'text-[#8B90A0]'} />
+                        <span className={`text-xs font-semibold ${refFile ? 'text-emerald-600' : 'text-gray-500'} truncate`}>
+                          {refFile ? refFile.name : 'Pilih file PDF'}
+                        </span>
+                        <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" className="hidden"
+                          onChange={e => setRefFile(e.target.files?.[0] || null)} />
+                      </label>
+                      {refFile && (
+                        <button type="button" onClick={() => setRefFile(null)}
+                          className="mt-1 text-[11px] text-red-500 hover:text-red-600 font-semibold">Hapus file</button>
+                      )}
+                    </div>
+                    <div>
+                      <label className="flex items-center gap-1 text-xs font-medium text-gray-700 mb-1">
+                        <Link2 size={12} /> Link Referensi <span className="text-gray-400">(opsional)</span>
+                      </label>
+                      <input value={refForm.link} onChange={e => setRefForm(f => ({ ...f, link: e.target.value }))}
+                        placeholder="https://..."
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Catatan <span className="text-gray-400">(Opsional)</span></label>
+                    <textarea value={refForm.description} onChange={e => setRefForm(f => ({ ...f, description: e.target.value }))}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0] resize-none" rows={2}
+                      placeholder="Tambahkan keterangan untuk manager..." />
+                  </div>
+                  <div className="flex justify-end gap-3 pt-1">
+                    <button type="button" onClick={() => setShowRefModal(false)}
+                      className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition">
+                      Tutup
+                    </button>
+                    <button type="submit" disabled={refSaving}
+                      className="rounded-lg bg-[#0069b0] px-4 py-2 text-xs font-semibold text-white hover:bg-[#004d7a] transition disabled:opacity-50 flex items-center gap-1.5">
+                      {refSaving ? 'Mengirim...' : 'Kirim Referensi'}
+                    </button>
+                  </div>
+                </form>
+              )}
+              <div>
+                <h4 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase mb-3">Riwayat Pengajuan Saya</h4>
+                {myReferences.length === 0 ? (
+                  <p className="text-center py-5 text-xs text-[#8B90A0]">Belum ada referensi yang dikirim</p>
+                ) : (
+                  <div className="divide-y divide-[#F0F1F5] rounded-lg border border-[#E5E7EF] overflow-hidden">
+                    {myReferences.map(r => (
+                      <div key={r.id} className="flex items-start gap-3 px-3 py-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-[#0069b0]/[0.06] flex items-center justify-center flex-none">
+                          <FileCheck2 size={14} className="text-[#0069b0]" strokeWidth={1.8} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-[#14182B] truncate">{r.title}</p>
+                          <p className="text-[11px] text-[#8B90A0] font-medium">
+                            {r.category?.name || 'Tanpa kategori'}
+                            {r.file_name ? ` · ${r.file_name}` : ''}
+                            <span className="mx-1">·</span>
+                            {new Date(r.created_at + (r.created_at.includes('T') ? '' : 'T00:00:00')).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </p>
+                          {r.note && <p className="text-[11px] text-rose-500 font-medium mt-0.5">Catatan manager: {r.note}</p>}
+                        </div>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${refStatusStyle[r.status] || 'bg-gray-100 text-gray-500'}`}>
+                            {r.status.charAt(0).toUpperCase() + r.status.slice(1)}
+                          </span>
+                          {r.status === 'pending' && (
+                            <button onClick={() => handleHapusReferensi(r)} className="text-[#8B90A0] hover:text-red-500 transition">
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

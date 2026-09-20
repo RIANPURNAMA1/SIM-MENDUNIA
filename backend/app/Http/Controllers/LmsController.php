@@ -109,6 +109,24 @@ class LmsController extends Controller
 
         $courses = $query->with(['category', 'batch:id,nama_batch'])->get();
 
+        // Periode (tanggal mulai & selesai) per (batch, level) dari jadwal_levels
+        // agar bisa ditampilkan di header LMS siswa bersama statusnya.
+        $jadwalLevels = \App\Models\JadwalLevel::whereIn('batch_id', $courses->pluck('batch_id')->filter()->unique())
+            ->get(['batch_id', 'level', 'tanggal_mulai', 'tanggal_selesai'])
+            ->mapWithKeys(fn ($j) => [$j->batch_id . '-' . (string) $j->level => $j]);
+
+        $courses->each(function ($course) use ($jadwalLevels) {
+            $course->tanggal_mulai = null;
+            $course->tanggal_selesai = null;
+            if ($course->batch_id && $course->level !== null) {
+                $jadwal = $jadwalLevels[$course->batch_id . '-' . (string) $course->level] ?? null;
+                if ($jadwal) {
+                    $course->tanggal_mulai = $jadwal->tanggal_mulai ? $jadwal->tanggal_mulai->format('Y-m-d') : null;
+                    $course->tanggal_selesai = $jadwal->tanggal_selesai ? $jadwal->tanggal_selesai->format('Y-m-d') : null;
+                }
+            }
+        });
+
         return response()->json(['courses' => $courses]);
     }
 
@@ -256,13 +274,13 @@ class LmsController extends Controller
 
         $paketMap = collect();
         if ($lesson->paket) {
-            $paketMap[$lesson->paket->id] = ['paket' => $lesson->paket, 'link_locked' => false];
+            $paketMap[$lesson->paket->id] = ['paket' => $lesson->paket, 'link_locked' => false, 'linked' => false];
         }
         foreach ($lesson->linkPakets as $lp) {
             if (isset($paketMap[$lp->id])) {
                 continue;
             }
-            $paketMap[$lp->id] = ['paket' => $lp, 'link_locked' => ($lp->pivot->status ?? 'aktif') !== 'aktif'];
+            $paketMap[$lp->id] = ['paket' => $lp, 'link_locked' => ($lp->pivot->status ?? 'aktif') !== 'aktif', 'linked' => true];
         }
 
         $quizzes = $paketMap
@@ -270,7 +288,11 @@ class LmsController extends Controller
             $p = $entry['paket'];
             $linkLocked = $entry['link_locked'];
             $senseiLocked = !$p->diAjarSensei($siswa);
-            $unlocked = $p->status === 'aktif' && !$linkLocked && !$senseiLocked;
+            // Paket yang ditautkan ke pertemuan ini (pivot) cukup bergantung pada
+            // status pivot per pertemuan agar status sensei lain tidak membawa-bawa.
+            $unlocked = !$linkLocked
+                && !$senseiLocked
+                && ($entry['linked'] ? true : $p->status === 'aktif');
             $attempts = QuizAttempt::where('quiz_paket_id', $p->id)
                 ->where('siswa_id', $siswa->id)
                 ->where('source', 'paket')
@@ -605,11 +627,49 @@ class LmsController extends Controller
         }
     }
 
-    public function adminCourses()
+    public function adminCourses(Request $request)
     {
-        $courses = Course::withCount(['lessons', 'files'])->with('category')->orderBy('sort')->get();
+        $perPage = $request->filled('per_page') ? (int) $request->per_page : null;
+
+        $query = Course::withCount(['lessons', 'files'])->with('category');
+
+        if ($request->search && !empty($request->search)) {
+            $q = $request->search;
+            $query->where(function ($qq) use ($q) {
+                $qq->where('title', 'like', '%' . $q . '%')
+                    ->orWhere('level', 'like', '%' . $q . '%');
+            });
+        }
+
+        if ($request->level && !empty($request->level)) {
+            $query->where('level', $request->level);
+        }
+
+        if ($request->batch_id && !empty($request->batch_id)) {
+            $query->where('batch_id', $request->batch_id);
+        }
+
+        $query->orderBy('sort')->orderBy('id');
         $batches = Batch::aktif()->orderBy('nama_batch')->get(['id', 'nama_batch', 'warna']);
-        return response()->json(['courses' => $courses, 'batches' => $batches]);
+        $levels = Course::query()->distinct()->pluck('level')->filter()->values();
+
+        if ($perPage) {
+            $courses = $query->paginate($perPage);
+            return response()->json([
+                'courses' => $courses->items(),
+                'batches' => $batches,
+                'levels' => $levels,
+                'pagination' => [
+                    'current_page' => $courses->currentPage(),
+                    'last_page' => $courses->lastPage(),
+                    'per_page' => $courses->perPage(),
+                    'total' => $courses->total(),
+                ],
+            ]);
+        }
+
+        $courses = $query->get();
+        return response()->json(['courses' => $courses, 'batches' => $batches, 'levels' => $levels]);
     }
 
     public function storeCourse(Request $request)
