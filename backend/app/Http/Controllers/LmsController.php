@@ -144,20 +144,39 @@ class LmsController extends Controller
             return [$l->id => $payload];
         });
 
-        $attendedCount = 0;
-        $attendanceQuery = AbsensiSiswa::where('siswa_id', $siswa->id)
-            ->where('status', '!=', 'ALPA');
-        if ($course->kelas_sensei_id) {
-            $attendanceQuery->where('kelas_sensei_id', $course->kelas_sensei_id);
-        }
-        $attendedCount = $attendanceQuery->count();
-
         $meetingDates = [];
+        $kelas = null;
         if ($course->kelas_sensei_id) {
             $kelas = KelasSensei::find($course->kelas_sensei_id);
             if ($kelas) {
                 $meetingDates = $kelas->daftarPertemuan();
             }
+        }
+
+        // Jumlah pertemuan yang benar-benar dihadiri siswa (hadir / masuk).
+        // Absensi via QR/face scan umumnya TIDAK mengisi kolom kelas_sensei_id,
+        // jadi agar tidak salah terkunci, kita cocokkan berdasar TANGGAL pertemuan
+        // dalam rentang kelas, bukan mencocokkan kelas_sensei_id.
+        $attendedCount = 0;
+        if (count($meetingDates) > 0 && $kelas) {
+            $presentDates = AbsensiSiswa::where('siswa_id', $siswa->id)
+                ->where('status', '!=', 'ALPA')
+                ->whereNotNull('jam_masuk')
+                ->whereBetween('tanggal', [$kelas->tanggal_mulai, $kelas->tanggal_selesai])
+                ->pluck('tanggal')
+                ->map(fn ($d) => \Carbon\Carbon::parse($d)->toDateString());
+
+            foreach ($meetingDates as $i => $date) {
+                if ($presentDates->contains($date)) {
+                    $attendedCount = $i + 1; // pertemuan terakhir yang dihadiri
+                }
+            }
+        } else {
+            // Kursus tanpa kelas/pertemuan terjadwal: pakai total absensi hadir sebagai indikator progres.
+            $attendedCount = AbsensiSiswa::where('siswa_id', $siswa->id)
+                ->where('status', '!=', 'ALPA')
+                ->whereNotNull('jam_masuk')
+                ->count();
         }
 
         $lessonAttendance = $course->lessons->values()->map(function ($l, $i) use ($attendedCount, $progresses, $meetingDates) {
