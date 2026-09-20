@@ -3,11 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, BookOpen, FileText, ListChecks, Plus, ChevronRight, ChevronDown, HelpCircle,
   Download, Clock, ClipboardList, Check, Edit3, X, Trash2, Loader2, Layers, Camera, Upload, ImageIcon,
-  BarChart3, Users, Video, Eye, EyeOff, Activity, Search, Volume2, UploadCloud, Mic, Repeat, RotateCcw,
+  BarChart3, Users, Video, Eye, EyeOff, Activity, Search, Volume2, UploadCloud, Mic, Repeat, RotateCcw, Calendar, Minus, Trophy,
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
-import { guruLmsApi, assignmentApi, guruQuizApi, guruMateriApi, APP_URL } from '../../services/api'
+import { guruLmsApi, assignmentApi, guruQuizApi, guruMateriApi, guruKelasApi, absensiSiswaApi, penilaianApi, APP_URL } from '../../services/api'
 import { getYouTubeEmbedUrl } from '../../utils/youtube'
 import Swal from 'sweetalert2'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
@@ -239,6 +239,83 @@ interface AttemptDetailData {
   siswa?: { id: number; nama: string } | null
 }
 
+interface DataSiswaItem {
+  id: number
+  nama: string
+  level: string
+  absensi: Record<string, string>
+}
+
+interface DataSiswaKelas {
+  kelas?: {
+    id: number
+    nama_kelas: string
+    level: string
+    batch_id: number | null
+    batch_relasi?: { id: number; nama_batch: string } | null
+    tanggal_mulai: string
+    tanggal_selesai: string
+  } | null
+  siswa: DataSiswaItem[]
+  dates: string[]
+}
+
+interface PenilaianHarianSiswa {
+  id: number
+  nama: string
+  level: string
+  daily_status: Record<string, { is_terisi: boolean; catatan: string | null }>
+}
+
+interface PenilaianHarianData {
+  kelas?: unknown
+  siswa: PenilaianHarianSiswa[]
+  dates: string[]
+}
+
+interface PenilaianDayComp {
+  id: number
+  nama: string
+}
+
+interface PenilaianDayPertemuan {
+  tanggal: string
+  hari: string
+  pertemuan_ke?: number
+  scores: (number | null)[]
+  sources?: (string | null)[]
+}
+
+interface PenilaianDayCat {
+  nama_kategori: string
+  components: PenilaianDayComp[]
+  pertemuan: PenilaianDayPertemuan[]
+  summary?: {
+    averages?: Record<number, number | null>
+    improvements?: Record<number, number | null>
+    nilai_akhir?: number | null
+    resiko?: string | null
+    resiko_class?: string | null
+  }
+}
+
+interface PenilaianDayData {
+  level: string
+  siswa: string
+  total_pertemuan: number
+  categories: PenilaianDayCat[]
+}
+
+interface RankItem {
+  siswa_id: number
+  nama: string
+  level: string
+  rata_rata: number | null
+  total_nilai: number
+  rank: number | null
+  levels?: { level: string; avg: number | null; total: number }[]
+}
+
 const fmtFileSize = (bytes?: number | null) => {
   if (!bytes) return ''
   const mb = bytes / 1024 / 1024
@@ -277,6 +354,76 @@ const fmtDateTime = (s?: string | null) => {
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+const KEHADIRAN_ABBR: Record<string, string> = {
+  HADIR: 'H',
+  TERLAMBAT: 'T',
+  IZIN: 'I',
+  SAKIT: 'S',
+  ALPA: 'A',
+  LIBUR: 'L',
+  'TIDAK ABSEN PULANG': 'TP',
+}
+
+const KEHADIRAN_BG: Record<string, string> = {
+  HADIR: 'bg-emerald-100 text-emerald-700',
+  TERLAMBAT: 'bg-amber-100 text-amber-700',
+  IZIN: 'bg-blue-100 text-blue-700',
+  SAKIT: 'bg-sky-100 text-sky-700',
+  ALPA: 'bg-rose-100 text-rose-700',
+  LIBUR: 'bg-slate-100 text-slate-700',
+  'TIDAK ABSEN PULANG': 'bg-red-100 text-red-700',
+}
+
+const KEHADIRAN_OPTIONS: { key: string; label: string; sub: string }[] = [
+  { key: 'HADIR', label: 'H', sub: 'Hadir' },
+  { key: 'TERLAMBAT', label: 'T', sub: 'Terlambat' },
+  { key: 'IZIN', label: 'I', sub: 'Izin' },
+  { key: 'SAKIT', label: 'S', sub: 'Sakit' },
+  { key: 'ALPA', label: 'A', sub: 'Alpa' },
+  { key: 'LIBUR', label: 'L', sub: 'Libur' },
+  { key: 'TIDAK ABSEN PULANG', label: 'TP', sub: 'Tidak Absen Pulang' },
+]
+
+const dayAbbr = ['MIN', 'SEN', 'SEL', 'RAB', 'KAM', 'JUM', 'SAB']
+
+const toDate = (dateStr: string) => new Date(dateStr.slice(0, 10) + 'T00:00:00')
+
+const formatDayDate = (dateStr: string) => {
+  const d = toDate(dateStr)
+  return `${dayAbbr[d.getDay()]} ${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`
+}
+
+const formatTanggalShort = (dateStr: string) => {
+  const d = toDate(dateStr)
+  return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`
+}
+
+const formatDateLongIndo = (dateStr: string) => {
+  const d = toDate(dateStr)
+  const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
+  const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+  return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
+}
+
+const RESIKO_STYLE: Record<string, string> = {
+  success: 'bg-emerald-100 text-emerald-700',
+  warning: 'bg-amber-100 text-amber-700',
+  danger: 'bg-rose-100 text-rose-700',
+}
+
+const SCORE_BADGE = (s: number | null): string => {
+  if (s === null) return 'bg-gray-100 text-gray-400'
+  if (s >= 90) return 'bg-emerald-100 text-emerald-700'
+  if (s >= 75) return 'bg-blue-100 text-blue-700'
+  if (s >= 60) return 'bg-amber-100 text-amber-700'
+  return 'bg-rose-100 text-rose-700'
+}
+
+const isWeekend = (dateStr: string) => {
+  const day = toDate(dateStr).getDay()
+  return day === 0 || day === 6
+}
+
 const hasRealContent = (html?: string | null) => {
   if (!html) return false
   const el = document.createElement('div')
@@ -298,7 +445,7 @@ export default function GuruLessonDetail() {
   const { lessonId } = useParams<{ lessonId: string }>()
   const navigate = useNavigate()
   const [lesson, setLesson] = useState<LessonDetail | null>(null)
-  const [lessonTab, setLessonTab] = useState<'materi' | 'quiz' | 'tugas' | 'rekap'>('materi')
+  const [lessonTab, setLessonTab] = useState<'materi' | 'quiz' | 'tugas' | 'rekap' | 'kehadiran' | 'nilai' | 'peringkat'>('materi')
   const [tasks, setTasks] = useState<TaskItem[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -363,6 +510,26 @@ export default function GuruLessonDetail() {
   const [rekapNilai, setRekapNilai] = useState<RekapNilaiData | null>(null)
   const [rekapNilaiLoading, setRekapNilaiLoading] = useState(false)
 
+  const [dataSiswaKelas, setDataSiswaKelas] = useState<DataSiswaKelas | null>(null)
+  const [kehadiranLoading, setKehadiranLoading] = useState(false)
+  const [showAbsenModal, setShowAbsenModal] = useState(false)
+  const [editStatusSiswa, setEditStatusSiswa] = useState<DataSiswaItem | null>(null)
+  const [editStatus, setEditStatus] = useState('')
+  const [savingStatus, setSavingStatus] = useState(false)
+
+  const [penilaianHarian, setPenilaianHarian] = useState<PenilaianHarianData | null>(null)
+  const [penilaianLoading, setPenilaianLoading] = useState(false)
+  const [showPenilaianModal, setShowPenilaianModal] = useState(false)
+  const [penilaianSiswa, setPenilaianSiswa] = useState<PenilaianHarianSiswa | null>(null)
+  const [penilaianData, setPenilaianData] = useState<PenilaianDayData | null>(null)
+  const [penilaianDataLoading, setPenilaianDataLoading] = useState(false)
+  const [scoreInputs, setScoreInputs] = useState<Record<number, string>>({})
+  const [quizSource, setQuizSource] = useState<Record<number, boolean>>({})
+  const [savingPenilaian, setSavingPenilaian] = useState(false)
+
+  const [rankings, setRankings] = useState<RankItem[]>([])
+  const [rankingLoading, setRankingLoading] = useState(false)
+
   const [hasilPaket, setHasilPaket] = useState<{ id: number; title: string } | null>(null)
   const [participants, setParticipants] = useState<ResultParticipant[]>([])
   const [hasilLoading, setHasilLoading] = useState(false)
@@ -424,6 +591,175 @@ export default function GuruLessonDetail() {
   const switchLessonTab = (key: typeof lessonTab) => {
     setLessonTab(key)
     if (key === 'rekap' && lesson) loadRekapNilai(lesson.id)
+    if (key === 'kehadiran' && lesson) loadKehadiran(lesson)
+    if (key === 'nilai' && lesson) loadPenilaianHarian(lesson)
+    if (key === 'peringkat' && lesson) loadRanking(lesson)
+  }
+
+  const loadKehadiran = (lesson: LessonDetail) => {
+    const kelasId = lesson.course?.kelas_sensei_id
+    if (!kelasId) {
+      setDataSiswaKelas(null)
+      return
+    }
+    setKehadiranLoading(true)
+    guruKelasApi.dataSiswa(kelasId)
+      .then(res => setDataSiswaKelas(res.data))
+      .catch(() => setDataSiswaKelas(null))
+      .finally(() => setKehadiranLoading(false))
+  }
+
+  const openStatusModal = (siswa: DataSiswaItem, date: string) => {
+    setEditStatusSiswa(siswa)
+    setEditStatus(siswa.absensi[date] || '')
+    setShowAbsenModal(true)
+  }
+
+  const handleSaveStatus = async () => {
+    if (!lesson || !editStatusSiswa || !lesson.pertemuan_date || !editStatus) return
+    const kelasId = lesson.course?.kelas_sensei_id
+    if (!kelasId) return
+    setSavingStatus(true)
+    try {
+      await absensiSiswaApi.store({
+        siswa_id: editStatusSiswa.id,
+        tanggal: lesson.pertemuan_date.slice(0, 10),
+        status: editStatus,
+        kelas_sensei_id: kelasId,
+      })
+      setDataSiswaKelas(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          siswa: prev.siswa.map(s =>
+            s.id === editStatusSiswa.id
+              ? { ...s, absensi: { ...s.absensi, [lesson.pertemuan_date!.slice(0, 10)]: editStatus } }
+              : s
+          ),
+        }
+      })
+      setShowAbsenModal(false)
+      Swal.fire({ icon: 'success', title: 'Kehadiran diperbarui', timer: 1200, showConfirmButton: false })
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal menyimpan kehadiran' })
+    } finally {
+      setSavingStatus(false)
+    }
+  }
+
+  const loadRanking = (lesson: LessonDetail) => {
+    const batchId = lesson.course?.batch_id
+    if (!batchId) {
+      setRankings([])
+      return
+    }
+    setRankingLoading(true)
+    guruKelasApi.ranking(batchId)
+      .then(res => setRankings(res.data.rankings || []))
+      .catch(() => setRankings([]))
+      .finally(() => setRankingLoading(false))
+  }
+
+  const loadPenilaianHarian = (lesson: LessonDetail) => {
+    const kelasId = lesson.course?.kelas_sensei_id
+    if (!kelasId) {
+      setPenilaianHarian(null)
+      return
+    }
+    setPenilaianLoading(true)
+    guruKelasApi.penilaianHarian(kelasId)
+      .then(res => setPenilaianHarian(res.data))
+      .catch(() => setPenilaianHarian(null))
+      .finally(() => setPenilaianLoading(false))
+  }
+
+  const openPenilaianModal = async (siswa: PenilaianHarianSiswa) => {
+    if (!lesson || !lesson.pertemuan_date || !lesson.course?.level) return
+    if (!lesson.course?.kelas_sensei_id) return
+    const tanggal = lesson.pertemuan_date.slice(0, 10)
+    setPenilaianSiswa(siswa)
+    setShowPenilaianModal(true)
+    setPenilaianData(null)
+    setPenilaianDataLoading(true)
+    setScoreInputs({})
+    setQuizSource({})
+    try {
+      const res = await penilaianApi.dayDetail({
+        siswa_id: siswa.id,
+        level: String(lesson.course.level),
+        kelas_sensei_id: lesson.course.kelas_sensei_id,
+        tanggal,
+      })
+      const data = res.data as PenilaianDayData | null
+      setPenilaianData(data)
+      const inputs: Record<number, string> = {}
+      const qsrc: Record<number, boolean> = {}
+      if (data?.categories) {
+        for (const cat of data.categories) {
+          const lastPt = cat.pertemuan.length > 0 ? cat.pertemuan[cat.pertemuan.length - 1] : null
+          if (lastPt) {
+            const sources = lastPt.sources ?? []
+            cat.components.forEach((comp, idx) => {
+              const val = idx < lastPt.scores.length ? lastPt.scores[idx] : null
+              if (val !== null) inputs[comp.id] = String(val)
+              if (idx < sources.length && sources[idx] === 'quiz') qsrc[comp.id] = true
+            })
+          }
+        }
+      }
+      setScoreInputs(inputs)
+      setQuizSource(qsrc)
+    } catch {
+      setPenilaianData(null)
+    } finally {
+      setPenilaianDataLoading(false)
+    }
+  }
+
+  const handleSavePenilaian = async () => {
+    if (!lesson || !penilaianSiswa || !penilaianData) return
+    if (!lesson.pertemuan_date || !lesson.course?.kelas_sensei_id) return
+    const kelasId = lesson.course.kelas_sensei_id
+    const tanggal = lesson.pertemuan_date.slice(0, 10)
+    setSavingPenilaian(true)
+    try {
+      const scores = Object.entries(scoreInputs)
+        .filter(([, val]) => val !== '')
+        .map(([compId, val]) => ({
+          component_id: Number(compId),
+          nilai: val ? Number(val) : null,
+        }))
+      await penilaianApi.storeStudentAssessment({
+        siswa_id: penilaianSiswa.id,
+        batch_id: lesson.course.batch_id ?? undefined,
+        kelas_sensei_id: kelasId,
+        tanggal,
+        scores,
+      })
+      await guruKelasApi.simpanPenilaianHarian({
+        siswa_id: penilaianSiswa.id,
+        kelas_sensei_id: kelasId,
+        tanggal,
+        is_terisi: true,
+      })
+      setPenilaianHarian(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          siswa: prev.siswa.map(s =>
+            s.id === penilaianSiswa.id
+              ? { ...s, daily_status: { ...s.daily_status, [tanggal]: { is_terisi: true, catatan: null } } }
+              : s
+          ),
+        }
+      })
+      setShowPenilaianModal(false)
+      Swal.fire({ icon: 'success', title: 'Penilaian tersimpan', timer: 1200, showConfirmButton: false })
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal menyimpan penilaian' })
+    } finally {
+      setSavingPenilaian(false)
+    }
   }
 
   const loadLesson = (id: number) => guruLmsApi.lessonDetail(id).then(res => {
@@ -1237,21 +1573,26 @@ export default function GuruLessonDetail() {
         </div>
 
         {/* Sub menu tabs */}
-        <div className="flex gap-0 bg-white rounded-md border border-[#E5E7EF] overflow-hidden">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
           {([
             { key: 'materi' as 'materi', label: 'Materi', icon: BookOpen, count: undefined as number | undefined },
             { key: 'quiz' as 'quiz', label: 'Quiz', icon: HelpCircle, count: quizCount },
             { key: 'tugas' as 'tugas', label: 'Tugas', icon: ClipboardList, count: tasks.length },
             { key: 'rekap' as 'rekap', label: 'Rekap', icon: Camera, count: recap ? 1 : undefined },
+            { key: 'kehadiran' as 'kehadiran', label: 'Kehadiran', icon: Calendar, count: undefined },
+            { key: 'nilai' as 'nilai', label: 'Nilai', icon: BarChart3, count: undefined },
+            { key: 'peringkat' as 'peringkat', label: 'Peringkat', icon: Trophy, count: undefined },
           ]).map(tab => (
             <button key={tab.key} onClick={() => switchLessonTab(tab.key)}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-3 text-[11px] font-bold border-b-2 transition-colors ${
-                lessonTab === tab.key ? 'border-[#0069b0] text-[#0069b0] bg-[#0069b0]/[0.03]' : 'border-transparent text-[#8B90A0] hover:text-[#14182B]'
+              className={`flex items-center gap-2 px-3 py-3 rounded-md border text-[11px] font-bold transition-colors ${
+                lessonTab === tab.key
+                  ? 'border-[#0069b0] text-[#0069b0] bg-[#0069b0]/[0.04]'
+                  : 'border-[#E5E7EF] bg-white text-[#4B5063] hover:border-[#D6D9E1] hover:text-[#14182B]'
               }`}>
-              <tab.icon size={13} />
+              <tab.icon size={15} />
               <span className="truncate">{tab.label}</span>
               {tab.count !== undefined && (
-                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
+                <span className={`ml-auto text-[9px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ${
                   lessonTab === tab.key ? 'bg-[#0069b0]/10 text-[#0069b0]' : 'bg-gray-100 text-[#8B90A0]'
                 }`}>{tab.count}</span>
               )}
@@ -1608,11 +1949,6 @@ export default function GuruLessonDetail() {
               </div>
             )}
 
-            <button onClick={() => navigate(`/guru-lms/assignments/${lesson.course_id}`)}
-              className="mt-3 w-full flex items-center justify-center gap-1.5 border border-[#0069b0]/30 bg-[#0069b0]/5 text-[#0069b0] px-3 py-2.5 rounded-md text-[11px] font-bold hover:bg-[#0069b0]/10 transition-colors">
-              <ListChecks size={13} /> Kelola Semua Tugas
-            </button>
-
             {canManage && (
               <button onClick={() => { setTaskForm({ title: '', dueDate: '', maxScore: '100', description: '' }); setTaskFile(null); setTaskPakets([]); setShowTaskPaketPicker(false); setShowTaskModal(true) }}
                 className="mt-3 w-full flex items-center justify-center gap-1.5 border border-[#0069b0]/30 bg-[#0069b0]/5 text-[#0069b0] px-3 py-2.5 rounded-md text-[11px] font-bold hover:bg-[#0069b0]/10 transition-colors">
@@ -1901,6 +2237,393 @@ export default function GuruLessonDetail() {
             )}
           </div>
         </div>
+        </div>
+        )}
+
+        {/* Kehadiran Siswa */}
+        {lessonTab === 'kehadiran' && (
+        <div className="bg-white rounded-md border border-[#E5E7EF] overflow-hidden">
+          <div className="px-5 py-4 border-b border-[#E5E7EF] flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Calendar size={15} className="text-[#0069b0]" />
+              <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Kehadiran Siswa</h3>
+            </div>
+            {dataSiswaKelas?.kelas && (
+              <span className="text-[10px] font-bold text-[#0069b0] bg-[#0069b0]/[0.06] px-2.5 py-1 rounded-full shrink-0">
+                {dataSiswaKelas.kelas.batch_relasi?.nama_batch || dataSiswaKelas.kelas.nama_kelas}
+                {dataSiswaKelas.kelas.level ? ` · Level ${dataSiswaKelas.kelas.level}` : ''}
+              </span>
+            )}
+          </div>
+          <div className="p-5">
+            {kehadiranLoading ? (
+              <div className="flex items-center justify-center gap-2 py-8 text-[11px] text-[#8B90A0] font-medium">
+                <Loader2 size={15} className="animate-spin text-[#0069b0]" /> Memuat kehadiran siswa...
+              </div>
+            ) : !lesson.course?.kelas_sensei_id ? (
+              <div className="border border-dashed border-[#E5E7EF] rounded-md p-5 text-center">
+                <div className="w-10 h-10 mx-auto rounded-md bg-[#0069b0]/[0.06] flex items-center justify-center mb-2">
+                  <Calendar size={18} className="text-[#0069b0]" />
+                </div>
+                <p className="text-xs font-bold text-[#14182B]">Data kehadiran tidak tersedia</p>
+                <p className="text-[10px] text-[#8B90A0] font-medium mt-0.5">
+                  Kursus ini tidak terhubung dengan kelas (batch) mana pun.
+                </p>
+              </div>
+            ) : !dataSiswaKelas ? (
+              <div className="border border-dashed border-[#E5E7EF] rounded-md p-5 text-center">
+                <div className="w-10 h-10 mx-auto rounded-md bg-[#0069b0]/[0.06] flex items-center justify-center mb-2">
+                  <Users size={18} className="text-[#0069b0]" />
+                </div>
+                <p className="text-xs font-bold text-[#14182B]">Gagal memuat kehadiran</p>
+                <p className="text-[10px] text-[#8B90A0] font-medium mt-0.5">
+                  Tidak dapat mengambil data kehadiran kelas ini.
+                </p>
+              </div>
+            ) : dataSiswaKelas.siswa.length === 0 ? (
+              <div className="border border-dashed border-[#E5E7EF] rounded-md p-5 text-center">
+                <div className="w-10 h-10 mx-auto rounded-md bg-[#0069b0]/[0.06] flex items-center justify-center mb-2">
+                  <Users size={18} className="text-[#0069b0]" />
+                </div>
+                <p className="text-xs font-bold text-[#14182B]">Belum ada siswa</p>
+                <p className="text-[10px] text-[#8B90A0] font-medium mt-0.5">
+                  Tidak ada siswa aktif pada batch kursus ini.
+                </p>
+              </div>
+            ) : (
+              <>
+                {dataSiswaKelas.kelas && (
+                  <p className="text-[10px] font-medium text-[#8B90A0] mb-3">
+                    Periode batch: {formatTanggalShort(dataSiswaKelas.kelas.tanggal_mulai)} – {formatTanggalShort(dataSiswaKelas.kelas.tanggal_selesai)} · {dataSiswaKelas.siswa.length} siswa
+                    {lesson.pertemuan_date && (
+                      <span className="text-[#0069b0] font-bold"> · Kehadiran {formatDayDate(lesson.pertemuan_date)}</span>
+                    )}
+                  </p>
+                )}
+
+                <div className="flex flex-wrap items-center gap-1.5 mb-3">
+                  {Object.entries(KEHADIRAN_ABBR).map(([key, abbr]) => (
+                    <span key={key} className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${KEHADIRAN_BG[key]}`}>
+                      {abbr}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="overflow-x-auto -mx-5 px-5">
+                  <div className="rounded-md border border-[#E5E7EF] overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-[#F0F1F5] bg-[#F7F9FC]">
+                          <th className="text-left px-4 py-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wider">Nama</th>
+                          <th className="text-center px-2 py-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wider w-10">Lv</th>
+                          <th className="text-center px-3 py-3 text-[9px] font-bold uppercase tracking-wider min-w-[80px] bg-[#E3F0F9] text-[#0069b0]">
+                            <div className="flex flex-col items-center leading-tight">
+                              <span>{lesson.pertemuan_date ? formatDayDate(lesson.pertemuan_date) : 'Pertemuan'}</span>
+                              <span className="text-[8px] font-bold uppercase tracking-wide mt-0.5">Pertemuan</span>
+                            </div>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dataSiswaKelas.siswa.map((s, idx) => {
+                          const pertemuanDate = lesson.pertemuan_date ? lesson.pertemuan_date.slice(0, 10) : null
+                          const status = pertemuanDate ? s.absensi[pertemuanDate] : undefined
+                          const statusEl = status ? (
+                            <span className={`inline-flex items-center justify-center w-6 h-6 rounded text-[10px] font-bold ring-2 ring-[#0069b0]/40 ${KEHADIRAN_BG[status] || 'bg-gray-100 text-gray-500'}`}>
+                              {KEHADIRAN_ABBR[status] || status[0]}
+                            </span>
+                          ) : lesson.pertemuan_date && isWeekend(lesson.pertemuan_date) ? (
+                            <span className="inline-flex items-center justify-center w-6 h-6 rounded text-[10px] font-bold bg-slate-100 text-slate-700" title="Libur (Sabtu/Minggu)">
+                              L
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center justify-center w-6 h-6 rounded text-[10px] text-gray-300">-</span>
+                          )
+                          return (
+                            <tr key={s.id} className={`border-t border-[#F0F1F5] ${idx % 2 === 0 ? 'bg-white' : 'bg-[#FAFBFC]'}`}>
+                              <td className="px-4 py-2.5 text-xs font-bold text-[#14182B]">{s.nama}</td>
+                              <td className="text-center px-2 py-2.5 text-[11px] font-semibold text-[#8B90A0]">{s.level || '-'}</td>
+                              <td className="text-center px-3 py-2.5 bg-[#F2F8FC]">
+                                {canManage && pertemuanDate ? (
+                                  <button
+                                    onClick={() => openStatusModal(s, pertemuanDate)}
+                                    className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#0069b0] hover:bg-[#0069b0]/10 bg-transparent px-2 py-1 rounded-md transition-colors"
+                                    title={`Ubah kehadiran ${s.nama}`}
+                                  >
+                                    {statusEl}
+                                    <Edit3 size={11} className="text-[#0069b0]/60" />
+                                  </button>
+                                ) : (
+                                  statusEl
+                                )}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+        )}
+
+        {lessonTab === 'nilai' && (
+        <div className="bg-white rounded-md border border-[#E5E7EF] overflow-hidden">
+          <div className="px-5 py-4 border-b border-[#E5E7EF] flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <BarChart3 size={15} className="text-[#0069b0]" />
+              <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Penilaian Siswa</h3>
+            </div>
+            {lesson.course?.level && (
+              <span className="text-[10px] font-bold text-[#0069b0] bg-[#0069b0]/[0.06] px-2.5 py-1 rounded-full shrink-0">
+                {lesson.course.batch_id ? `Batch ${lesson.course.batch_id}` : ''}
+                {lesson.course.level ? ` · Level ${lesson.course.level}` : ''}
+              </span>
+            )}
+          </div>
+          <div className="p-5">
+            {penilaianLoading ? (
+              <div className="flex items-center justify-center gap-2 py-8 text-[11px] text-[#8B90A0] font-medium">
+                <Loader2 size={15} className="animate-spin text-[#0069b0]" /> Memuat data penilaian...
+              </div>
+            ) : !lesson.course?.kelas_sensei_id ? (
+              <div className="border border-dashed border-[#E5E7EF] rounded-md p-5 text-center">
+                <div className="w-10 h-10 mx-auto rounded-md bg-[#0069b0]/[0.06] flex items-center justify-center mb-2">
+                  <BarChart3 size={18} className="text-[#0069b0]" />
+                </div>
+                <p className="text-xs font-bold text-[#14182B]">Data penilaian tidak tersedia</p>
+                <p className="text-[10px] text-[#8B90A0] font-medium mt-0.5">
+                  Kursus ini tidak terhubung dengan kelas (batch) mana pun.
+                </p>
+              </div>
+            ) : !lesson.course.level ? (
+              <div className="border border-dashed border-[#E5E7EF] rounded-md p-5 text-center">
+                <div className="w-10 h-10 mx-auto rounded-md bg-[#0069b0]/[0.06] flex items-center justify-center mb-2">
+                  <BarChart3 size={18} className="text-[#0069b0]" />
+                </div>
+                <p className="text-xs font-bold text-[#14182B]">Level belum ditentukan</p>
+                <p className="text-[10px] text-[#8B90A0] font-medium mt-0.5">
+                  Atur level kursus terlebih dahulu agar penilaian dapat diisi.
+                </p>
+              </div>
+            ) : !penilaianHarian ? (
+              <div className="border border-dashed border-[#E5E7EF] rounded-md p-5 text-center">
+                <div className="w-10 h-10 mx-auto rounded-md bg-[#0069b0]/[0.06] flex items-center justify-center mb-2">
+                  <Users size={18} className="text-[#0069b0]" />
+                </div>
+                <p className="text-xs font-bold text-[#14182B]">Gagal memuat penilaian</p>
+                <p className="text-[10px] text-[#8B90A0] font-medium mt-0.5">
+                  Tidak dapat mengambil data penilaian kelas ini.
+                </p>
+              </div>
+            ) : penilaianHarian.siswa.length === 0 ? (
+              <div className="border border-dashed border-[#E5E7EF] rounded-md p-5 text-center">
+                <div className="w-10 h-10 mx-auto rounded-md bg-[#0069b0]/[0.06] flex items-center justify-center mb-2">
+                  <Users size={18} className="text-[#0069b0]" />
+                </div>
+                <p className="text-xs font-bold text-[#14182B]">Belum ada siswa</p>
+                <p className="text-[10px] text-[#8B90A0] font-medium mt-0.5">
+                  Tidak ada siswa aktif pada batch kursus ini.
+                </p>
+              </div>
+            ) : (
+              <>
+                {lesson.pertemuan_date && (
+                  <p className="text-[10px] font-medium text-[#8B90A0] mb-3">
+                    Penilaian pertemuan {formatDayDate(lesson.pertemuan_date)} · {penilaianHarian.siswa.length} siswa
+                    <span className="text-[#0069b0] font-bold"> · Klik sel untuk isi atau ubah nilai</span>
+                  </p>
+                )}
+
+                <div className="flex flex-wrap items-center gap-3 mb-3">
+                  <div className="flex items-center gap-1 text-[10px] text-[#8B90A0]">
+                    <Check className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>Terisi</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-[10px] text-[#8B90A0]">
+                    <Minus className="w-3.5 h-3.5 text-slate-300" />
+                    <span>Kosong</span>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto -mx-5 px-5">
+                  <div className="rounded-md border border-[#E5E7EF] overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-[#F0F1F5] bg-[#F7F9FC]">
+                          <th className="text-left px-4 py-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wider">Nama</th>
+                          <th className="text-center px-2 py-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wider w-10">Lv</th>
+                          <th className="text-center px-3 py-3 text-[9px] font-bold uppercase tracking-wider min-w-[80px] bg-[#E3F0F9] text-[#0069b0]">
+                            <div className="flex flex-col items-center leading-tight">
+                              <span>{lesson.pertemuan_date ? formatDayDate(lesson.pertemuan_date) : 'Pertemuan'}</span>
+                              <span className="text-[8px] font-bold uppercase tracking-wide mt-0.5">Pertemuan</span>
+                            </div>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {penilaianHarian.siswa.map((s, idx) => {
+                          const pertemuanDate = lesson.pertemuan_date ? lesson.pertemuan_date.slice(0, 10) : null
+                          const isTerisi = pertemuanDate ? (s.daily_status[pertemuanDate]?.is_terisi ?? false) : false
+                          return (
+                            <tr key={s.id} className={`border-t border-[#F0F1F5] ${idx % 2 === 0 ? 'bg-white' : 'bg-[#FAFBFC]'}`}>
+                              <td className="px-4 py-2.5 text-xs font-bold text-[#14182B]">{s.nama}</td>
+                              <td className="text-center px-2 py-2.5 text-[11px] font-semibold text-[#8B90A0]">{s.level || '-'}</td>
+                              <td className="text-center px-3 py-2.5 bg-[#F2F8FC]">
+                                {canManage && pertemuanDate ? (
+                                  <button
+                                    onClick={() => openPenilaianModal(s)}
+                                    className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#0069b0] hover:bg-[#0069b0]/10 bg-transparent px-2 py-1 rounded-md transition-colors"
+                                    title={isTerisi ? `Lihat/edit penilaian ${s.nama}` : `Isi penilaian ${s.nama}`}
+                                  >
+                                    {isTerisi ? (
+                                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-600">
+                                        <Check className="w-3.5 h-3.5" />
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center justify-center w-6 h-6 rounded text-[10px] text-slate-300">
+                                        -
+                                      </span>
+                                    )}
+                                    <Edit3 size={11} className="text-[#0069b0]/60" />
+                                  </button>
+                                ) : isTerisi ? (
+                                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-600">
+                                    <Check className="w-3.5 h-3.5" />
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center justify-center w-6 h-6 rounded text-[10px] text-slate-300">-</span>
+                                )}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+        )}
+
+        {lessonTab === 'peringkat' && (
+        <div className="bg-white rounded-md border border-[#E5E7EF] overflow-hidden">
+          <div className="px-5 py-4 border-b border-[#E5E7EF] flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Trophy size={15} className="text-[#0069b0]" />
+              <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Peringkat Siswa</h3>
+            </div>
+            {lesson.course?.batch_id && (
+              <span className="text-[10px] font-bold text-[#0069b0] bg-[#0069b0]/[0.06] px-2.5 py-1 rounded-full shrink-0">
+                Batch {lesson.course.batch_id}
+                {lesson.course.level ? ` · Level ${lesson.course.level}` : ''}
+              </span>
+            )}
+          </div>
+          <div className="p-5">
+            {rankingLoading ? (
+              <div className="flex items-center justify-center gap-2 py-8 text-[11px] text-[#8B90A0] font-medium">
+                <Loader2 size={15} className="animate-spin text-[#0069b0]" /> Memuat peringkat...
+              </div>
+            ) : !lesson.course?.batch_id ? (
+              <div className="border border-dashed border-[#E5E7EF] rounded-md p-5 text-center">
+                <div className="w-10 h-10 mx-auto rounded-md bg-[#0069b0]/[0.06] flex items-center justify-center mb-2">
+                  <Trophy size={18} className="text-[#0069b0]" />
+                </div>
+                <p className="text-xs font-bold text-[#14182B]">Peringkat tidak tersedia</p>
+                <p className="text-[10px] text-[#8B90A0] font-medium mt-0.5">
+                  Kursus ini tidak terhubung dengan batch mana pun.
+                </p>
+              </div>
+            ) : rankings.length === 0 ? (
+              <div className="border border-dashed border-[#E5E7EF] rounded-md p-5 text-center">
+                <div className="w-10 h-10 mx-auto rounded-md bg-[#0069b0]/[0.06] flex items-center justify-center mb-2">
+                  <Trophy size={18} className="text-[#0069b0]" />
+                </div>
+                <p className="text-xs font-bold text-[#14182B]">Belum ada data penilaian</p>
+                <p className="text-[10px] text-[#8B90A0] font-medium mt-0.5">
+                  Nilai siswa akan tampil di sini setelah penilaian diisi.
+                </p>
+              </div>
+            ) : (
+              <>
+                {rankings.length >= 2 && (
+                  <div className="mb-4">
+                    <div className="flex items-end justify-center gap-3">
+                      {rankings[1] && (
+                        <div className="flex-1 text-center">
+                          <div className="w-10 h-10 rounded-full border-2 border-[#D6D9E1] bg-white flex items-center justify-center mx-auto mb-1.5">
+                            <span className="text-xs font-bold text-[#8B90A0]">2</span>
+                          </div>
+                          <div className="h-14 bg-[#F4F5F8] rounded-t-lg flex items-center justify-center border border-[#E5E7EF] border-b-0">
+                            <Trophy size={14} className="text-[#B6BAC7]" />
+                          </div>
+                          <p className="text-[10px] font-bold text-[#4B5063] mt-1.5 truncate">{rankings[1].nama}</p>
+                          <p className="text-[10px] font-semibold text-[#8B90A0]">{rankings[1].rata_rata}</p>
+                        </div>
+                      )}
+                      {rankings[0] && (
+                        <div className="flex-1 text-center">
+                          <div className="w-12 h-12 rounded-full border-2 border-[#0069b0] bg-[#0069b0]/5 flex items-center justify-center mx-auto mb-1.5">
+                            <Trophy size={16} className="text-[#0069b0]" />
+                          </div>
+                          <div className="h-20 bg-[#0069b0]/5 rounded-t-lg flex items-center justify-center border border-[#0069b0]/20 border-b-0">
+                            <Trophy size={18} className="text-[#0069b0]" />
+                          </div>
+                          <p className="text-[10px] font-bold text-[#14182B] mt-1.5 truncate">{rankings[0].nama}</p>
+                          <p className="text-[10px] font-semibold text-[#0069b0]">{rankings[0].rata_rata}</p>
+                        </div>
+                      )}
+                      {rankings[2] && (
+                        <div className="flex-1 text-center">
+                          <div className="w-10 h-10 rounded-full border-2 border-amber-300 bg-white flex items-center justify-center mx-auto mb-1.5">
+                            <span className="text-xs font-bold text-amber-500">3</span>
+                          </div>
+                          <div className="h-10 bg-amber-50 rounded-t-lg flex items-center justify-center border border-amber-200 border-b-0">
+                            <Trophy size={12} className="text-amber-400" />
+                          </div>
+                          <p className="text-[10px] font-bold text-[#4B5063] mt-1.5 truncate">{rankings[2].nama}</p>
+                          <p className="text-[10px] font-semibold text-[#8B90A0]">{rankings[2].rata_rata}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="divide-y divide-[#E5E7EF] border border-[#E5E7EF] rounded-md overflow-hidden">
+                  {rankings.map((r, idx) => (
+                    <div key={r.siswa_id} className={`flex items-center gap-3 px-4 py-3 ${idx % 2 === 0 ? 'bg-white' : 'bg-[#FAFBFC]'}`}>
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                        idx === 0 ? 'bg-[#0069b0] text-white' :
+                        idx === 1 ? 'bg-gray-200 text-gray-600' :
+                        idx === 2 ? 'bg-amber-100 text-amber-600' :
+                        'bg-[#F4F5F8] text-[#8B90A0] border border-[#E5E7EF]'
+                      }`}>
+                        <span className="text-[10px] font-bold">{r.rank ?? '-'}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-[#14182B] truncate">{r.nama}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[10px] text-[#8B90A0]">Lv {r.level}</span>
+                          <span className="text-[10px] text-[#8B90A0]">·</span>
+                          <span className="text-[10px] text-[#8B90A0]">{r.total_nilai} nilai</span>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-sm font-bold text-[#14182B]">{r.rata_rata ?? '-'}</span>
+                        <p className="text-[9px] text-[#8B90A0]">rata-rata</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
         )}
       </div>
@@ -2871,6 +3594,185 @@ export default function GuruLessonDetail() {
                 className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-bold text-white bg-[#0069b0] rounded-md hover:bg-[#004d7a] transition-colors disabled:opacity-50">
                 {savingTask ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
                 {savingTask ? 'Menyimpan...' : 'Buat Tugas'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Penilaian Siswa Modal */}
+      {showPenilaianModal && penilaianSiswa && lesson.pertemuan_date && (
+        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/40 p-4" onClick={() => { if (!savingPenilaian) setShowPenilaianModal(false) }}>
+          <div className="bg-white w-full max-w-lg rounded-md overflow-hidden max-h-[92vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-[#F0F1F5] flex items-center justify-between shrink-0">
+              <div>
+                <h3 className="text-sm font-bold text-[#14182B]">Penilaian Siswa</h3>
+                <p className="text-[11px] text-[#8B90A0] font-medium mt-0.5">
+                  {penilaianSiswa.nama} · Level {lesson.course?.level}
+                  {penilaianData ? ` · ${penilaianData.total_pertemuan} pertemuan` : ''}
+                  {lesson.pertemuan_date ? ` · ${formatDateLongIndo(lesson.pertemuan_date)}` : ''}
+                </p>
+              </div>
+              <button onClick={() => { if (!savingPenilaian) setShowPenilaianModal(false) }}
+                className="w-8 h-8 flex items-center justify-center rounded-md bg-[#F4F5F8] hover:bg-[#E5E7EF] shrink-0 ml-3">
+                <X size={15} className="text-[#4B5063]" />
+              </button>
+            </div>
+            <div className="overflow-y-auto p-5 space-y-5">
+              {penilaianDataLoading ? (
+                <div className="flex items-center justify-center gap-2 py-8 text-[11px] text-[#8B90A0] font-medium">
+                  <Loader2 size={15} className="animate-spin text-[#0069b0]" /> Memuat data penilaian...
+                </div>
+              ) : !penilaianData ? (
+                <div className="py-8 text-center text-sm text-rose-500">Gagal memuat data penilaian</div>
+              ) : penilaianData.categories.length === 0 ? (
+                <div className="py-8 text-center">
+                  <BookOpen size={24} className="mx-auto text-[#D5D8E3] mb-2" strokeWidth={1.5} />
+                  <p className="text-sm font-semibold text-[#4B5063]">Belum ada kategori penilaian</p>
+                  <p className="text-xs text-[#8B90A0] mt-1">Tidak ada penilaian untuk level ini</p>
+                </div>
+              ) : (
+                penilaianData.categories.map((cat, ci) => {
+                  return (
+                    <div key={ci}>
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-xs font-bold text-[#4B5063] uppercase tracking-wider">{cat.nama_kategori}</h4>
+                        {cat.summary?.nilai_akhir !== null && cat.summary?.nilai_akhir !== undefined && (
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${RESIKO_STYLE[cat.summary.resiko_class || ''] || 'bg-gray-100 text-gray-500'}`}>
+                            {cat.summary.resiko?.replace(/[^\w\s]/g, '') || '-'}
+                          </span>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        {cat.components.map(comp => (
+                          <div key={comp.id} className="flex items-center gap-3">
+                            <label className="text-sm font-semibold text-[#4B5063] w-28 shrink-0">{comp.nama}</label>
+                            <div className="relative w-full">
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={scoreInputs[comp.id] ?? ''}
+                                onChange={e => setScoreInputs(prev => ({ ...prev, [comp.id]: e.target.value }))}
+                                placeholder="0-100"
+                                className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${quizSource[comp.id] ? 'border-amber-300 bg-amber-50 focus:border-amber-400 focus:ring-amber-400' : 'border-[#E5E7EF] focus:border-[#0069b0] focus:ring-[#0069b0]'}`}
+                              />
+                              {quizSource[comp.id] && (
+                                <span className="absolute -top-2 right-2 rounded bg-amber-500 px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm">
+                                  dari quiz
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {cat.summary?.nilai_akhir !== null && cat.summary?.nilai_akhir !== undefined && (
+                        <div className="mt-2 flex items-center gap-2 text-xs text-[#8B90A0]">
+                          <span>Rata-rata: <strong className="text-[#14182B]">{cat.summary.nilai_akhir?.toFixed(1)}</strong></span>
+                        </div>
+                      )}
+                      <div className="mt-3 overflow-x-auto">
+                        <table className="w-full text-[11px] border-collapse border border-slate-200 [&_th]:border [&_th]:border-slate-200 [&_td]:border [&_td]:border-slate-200">
+                          <thead>
+                            <tr className="bg-amber-700 text-white">
+                              <th className="px-2 py-1 text-left">Tanggal</th>
+                              {cat.components.map(comp => (
+                                <th key={comp.id} className="px-2 py-1 text-center">{comp.nama}</th>
+                              ))}
+                              <th className="px-2 py-1 text-center">Rata-Rata</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {cat.pertemuan.map((pt, pi) => {
+                              const ptScores = pt.scores.filter(s => s !== null)
+                              const ptAvg = ptScores.length > 0 ? ptScores.reduce((a, b) => a + b, 0) / ptScores.length : null
+                              return (
+                                <tr key={pi} className="border-b border-slate-100">
+                                  <td className="px-2 py-1 text-slate-600">{pt.hari}, {pt.tanggal}</td>
+                                  {pt.scores.map((s, j) => (
+                                    <td key={j} className="px-2 py-1 text-center">
+                                      {s !== null ? (
+                                        <span className="inline-flex items-center gap-1">
+                                          <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${SCORE_BADGE(s)}`}>
+                                            {Math.round(s)}
+                                          </span>
+                                          {(pt.sources?.[j] === 'quiz') && (
+                                            <span title="Otomatis dari quiz" className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500" />
+                                          )}
+                                        </span>
+                                      ) : <span className="text-slate-300">-</span>}
+                                    </td>
+                                  ))}
+                                  <td className="px-2 py-1 text-center font-semibold text-slate-700">
+                                    {ptAvg !== null ? ptAvg.toFixed(1) : '-'}
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+            <div className="px-5 py-4 border-t border-[#F0F1F5] flex items-center justify-end gap-2 shrink-0">
+              <button onClick={() => setShowPenilaianModal(false)} disabled={savingPenilaian}
+                className="px-4 py-2.5 text-[11px] font-bold text-[#4B5063] hover:bg-[#F4F5F8] rounded-md transition-colors disabled:opacity-50">
+                Batal
+              </button>
+              <button onClick={handleSavePenilaian} disabled={savingPenilaian || penilaianDataLoading || !penilaianData}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-bold text-white bg-[#0069b0] rounded-md hover:bg-[#004d7a] transition-colors disabled:opacity-50">
+                {savingPenilaian ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                {savingPenilaian ? 'Menyimpan...' : 'Simpan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Ubah Status Kehadiran Modal */}
+      {showAbsenModal && editStatusSiswa && lesson.pertemuan_date && (
+        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/40 p-4" onClick={() => { if (!savingStatus) setShowAbsenModal(false) }}>
+          <div className="bg-white w-full max-w-sm rounded-md overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-[#F0F1F5] flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-[#14182B]">Ubah Kehadiran</h3>
+                <p className="text-[11px] text-[#8B90A0] font-medium mt-0.5">
+                  {editStatusSiswa.nama} · {formatDayDate(lesson.pertemuan_date)}
+                </p>
+              </div>
+              <button onClick={() => { if (!savingStatus) setShowAbsenModal(false) }}
+                className="w-8 h-8 flex items-center justify-center rounded-md bg-[#F4F5F8] hover:bg-[#E5E7EF] shrink-0 ml-3">
+                <X size={15} className="text-[#4B5063]" />
+              </button>
+            </div>
+            <div className="p-5 space-y-2.5">
+              {KEHADIRAN_OPTIONS.map(opt => (
+                <button key={opt.key} onClick={() => setEditStatus(opt.key)}
+                  className={`w-full flex items-center gap-4 px-4 py-3 rounded-md border transition-colors ${
+                    editStatus === opt.key
+                      ? 'border-[#0069b0] bg-[#0069b0]/[0.04]'
+                      : 'border-[#E5E7EF] hover:border-[#D6D9E1]'
+                  }`}>
+                  <span className={`w-9 h-9 rounded-md flex items-center justify-center text-sm font-bold ${KEHADIRAN_BG[opt.key]}`}>
+                    {opt.label}
+                  </span>
+                  <span className="text-sm font-semibold text-[#14182B]">{opt.sub}</span>
+                  {editStatus === opt.key && <Check size={16} className="ml-auto text-[#0069b0]" />}
+                </button>
+              ))}
+            </div>
+            <div className="px-5 py-4 border-t border-[#F0F1F5] flex items-center justify-end gap-2">
+              <button onClick={() => setShowAbsenModal(false)} disabled={savingStatus}
+                className="px-4 py-2.5 text-[11px] font-bold text-[#4B5063] hover:bg-[#F4F5F8] rounded-md transition-colors disabled:opacity-50">
+                Batal
+              </button>
+              <button onClick={handleSaveStatus} disabled={savingStatus || !editStatus}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-bold text-white bg-[#0069b0] rounded-md hover:bg-[#004d7a] transition-colors disabled:opacity-50">
+                {savingStatus ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                {savingStatus ? 'Menyimpan...' : 'Simpan'}
               </button>
             </div>
           </div>

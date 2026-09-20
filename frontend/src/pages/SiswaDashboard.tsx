@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
-  User, CheckCircle, Clock, XCircle, CreditCard, Package, Check, Copy, AlertTriangle,
+  User, Check, Clock, CreditCard, Copy, AlertTriangle,
   ChevronDown, ChevronUp, ChevronLeft, Building2, Upload, Loader, MessageSquare, ChevronRight,
-  LayoutDashboard, Wallet, CalendarCheck, BookOpen, Award, Briefcase, Bell, ClipboardList,
+  LayoutDashboard, Wallet, CalendarCheck, BookOpen, Briefcase, Bell, ClipboardList,
   FileSignature, Megaphone,
   LogOut,
   Lock,
@@ -173,10 +173,6 @@ function maskEmail(email: string) {
 function maskPhone(phone: string) {
   if (!phone || phone.length <= 6) return '•'.repeat(phone ? phone.length : 6)
   return '•'.repeat(phone.length - 6) + phone.slice(-6)
-}
-
-function cap(s: string) {
-  return s ? s.charAt(0).toUpperCase() + s.slice(1) : '-'
 }
 
 function rankStyles(rank: number) {
@@ -398,26 +394,6 @@ export default function SiswaDashboard() {
     )
   }
 
-  const statusColor: Record<string, string> = {
-    pending: 'bg-amber-100 text-amber-700',
-    disetujui: 'bg-emerald-100 text-emerald-700',
-    ditolak: 'bg-red-100 text-red-600',
-  }
-
-  const paymentColor: Record<string, string> = {
-    unpaid: 'bg-slate-100 text-slate-600',
-    processing: 'bg-amber-100 text-amber-700',
-    verified: 'bg-emerald-100 text-emerald-700',
-  }
-
-  const statusIcon: Record<string, typeof Clock> = {
-    pending: Clock,
-    disetujui: CheckCircle,
-    ditolak: XCircle,
-  }
-
-  const StatusIcon = pendaftar ? statusIcon[pendaftar.status_pendaftaran] || Clock : Clock
-
   const isDataLengkap = siswa?.nik && siswa?.alamat && siswa?.jenis_kelamin && siswa?.agama
 
   const showPaymentBanner = pendaftar && pendaftar.status_pembayaran !== 'verified'
@@ -455,7 +431,6 @@ export default function SiswaDashboard() {
     { label: 'Bayar', to: '/siswa-dashboard/pembayaran', icon: Wallet, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
     { label: 'Absensi', to: '/siswa-dashboard/absensi', icon: CalendarCheck, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
     { label: 'Kelas Mendunia', to: '/siswa-dashboard/lms', icon: BookOpen, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
-    { label: 'Nilai', to: '/siswa-dashboard/nilai', icon: Award, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
     { label: 'Matching Job', to: '/siswa-dashboard/matching-job', icon: Briefcase, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
     { label: 'Kontrak', to: '/siswa-dashboard/kontrak', icon: FileSignature, color: 'text-[#0E6187]', bg: 'bg-[#0E6187]/10' },
     { label: 'Akses Miraigo', to: '/siswa-dashboard/miraigo', icon: ExternalLink, color: 'text-[#0B5E42]', bg: 'bg-[#0B5E42]/10' },
@@ -515,8 +490,10 @@ export default function SiswaDashboard() {
             </div>
           </div>
           <div className="mt-6 animate-fade-up delay-100">
-            <p className="text-[13px] font-medium text-teal-100">Selamat datang kembali</p>
-            <h1 className="mt-0.5 text-2xl font-bold">Halo, {firstName}!</h1>
+            <p className="text-[13px] font-medium text-teal-100">
+              <span className="font-bold">ようこそ</span> · Selamat datang kembali
+            </p>
+            <h1 className="mt-0.5 text-2xl font-bold">Halo, {firstName}! <span className="text-teal-100 text-sm align-middle font-medium">こんにちは</span></h1>
             <p className="mt-1 text-[13px] text-teal-100">{dateStr}</p>
           </div>
         </div>
@@ -676,44 +653,6 @@ export default function SiswaDashboard() {
               )
             })}
           </div>
-        </section>
-
-        {/* ============ Status Overview ============ */}
-        <section className="rounded-xl bg-white p-4 shadow-sm animate-fade-up delay-250">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-slate-800">Status</h2>
-            <Link
-              to="/siswa-dashboard"
-              className="flex items-center gap-0.5 text-[11px] font-semibold text-[#0E6187] hover:underline">
-              Lihat Progress <ChevronRight size={12} />
-            </Link>
-          </div>
-          {pendaftar ? (
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-center transition-all hover:bg-slate-100/80 animate-pop-in delay-100">
-                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${statusColor[pendaftar.status_pendaftaran] || 'bg-slate-100 text-slate-600'}`}>
-                  <StatusIcon size={10} /> {cap(pendaftar.status_pendaftaran)}
-                </span>
-                <p className="mt-1.5 text-[10px] font-medium text-slate-400">Pendaftaran</p>
-              </div>
-              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-center transition-all hover:bg-slate-100/80 animate-pop-in delay-150">
-                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${paymentColor[pendaftar.status_pembayaran] || 'bg-slate-100 text-slate-600'}`}>
-                  <CheckCircle size={10} /> {cap(pendaftar.status_pembayaran)}
-                </span>
-                <p className="mt-1.5 text-[10px] font-medium text-slate-400">Pembayaran</p>
-              </div>
-              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-center transition-all hover:bg-slate-100/80 animate-pop-in delay-200">
-                <span className="inline-flex items-center rounded-full bg-[#0E6187]/10 px-2 py-0.5 text-[10px] font-bold text-[#0E6187]">
-                  <Package size={10} /> Program
-                </span>
-                <p className="mt-1.5 text-[10px] font-medium leading-tight text-slate-700">{pendaftar.product?.nama || '-'}</p>
-              </div>
-            </div>
-          ) : (
-            <p className="mt-3 rounded-xl border border-dashed border-slate-200 p-4 text-center text-xs text-slate-400">
-              Belum ada data pendaftaran
-            </p>
-          )}
         </section>
 
         {/* ============ Progress Timeline ============ */}

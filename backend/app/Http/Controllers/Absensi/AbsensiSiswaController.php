@@ -50,7 +50,7 @@ class AbsensiSiswaController extends Controller
             'tanggal' => 'required|date',
             'jam_masuk' => 'nullable',
             'jam_keluar' => 'nullable',
-            'status' => 'required|in:HADIR,TERLAMBAT,IZIN,SAKIT,ALPA,LIBUR',
+            'status' => 'required|in:HADIR,TERLAMBAT,IZIN,SAKIT,ALPA,LIBUR,TIDAK ABSEN PULANG',
             'keterangan' => 'nullable|string',
             'kelas_sensei_id' => 'nullable|exists:kelas_sensei,id',
         ]);
@@ -85,7 +85,7 @@ class AbsensiSiswaController extends Controller
             'kelas_sensei_id' => 'nullable|exists:kelas_sensei,id',
             'data' => 'required|array',
             'data.*.siswa_id' => 'required|exists:siswas,id',
-            'data.*.status' => 'required|in:HADIR,TERLAMBAT,IZIN,SAKIT,ALPA,LIBUR',
+            'data.*.status' => 'required|in:HADIR,TERLAMBAT,IZIN,SAKIT,ALPA,LIBUR,TIDAK ABSEN PULANG',
             'data.*.keterangan' => 'nullable|string',
         ]);
 

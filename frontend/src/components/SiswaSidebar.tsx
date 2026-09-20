@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, User, CalendarCheck, CreditCard, BookOpen, Award, Briefcase, ClipboardList, X, LogOut, Lock, ExternalLink } from 'lucide-react'
+import { LayoutDashboard, User, CalendarCheck, CreditCard, BookOpen, Briefcase, ClipboardList, X, LogOut, Lock, ExternalLink } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
 
@@ -16,7 +16,6 @@ const menu = [
   { to: '/siswa-dashboard/pembayaran', icon: CreditCard, label: 'Pembayaran', locked: false },
   { to: '/siswa-dashboard/absensi', icon: CalendarCheck, label: 'Absensi', locked: true },
   { to: '/siswa-dashboard/lms', icon: BookOpen, label: 'Kelas Mendunia', locked: true },
-  { to: '/siswa-dashboard/nilai', icon: Award, label: 'Nilai', locked: true },
   { to: '/siswa-dashboard/miraigo', icon: ExternalLink, label: 'Akses Miraigo', locked: false },
   { to: '/siswa-dashboard/profil', icon: User, label: 'Profil', locked: false },
 ]

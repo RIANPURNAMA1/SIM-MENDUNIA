@@ -4,6 +4,7 @@ import { Volume2, VolumeX, Play, Pause } from 'lucide-react'
 import { quizApi } from '../../services/api'
 import { detectFace, faceModelsReady, loadFaceModels, type DetectedFace } from '../../utils/faceDetector'
 import Swal from 'sweetalert2'
+import { useForceLightMode } from '../../hooks/useForceLightMode'
 
 interface PlayQuestion {
   id: number
@@ -168,6 +169,7 @@ const CAM_DEAD_MS = 10000   // kamera tidak hidup ≥ 10 dtk → banner + coba u
 const CAM_RETRY_MS = 15000  // interval minimal coba ulang kamera
 
 export default function QuizPlay() {
+  useForceLightMode()
   const { paketId, attemptId } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
