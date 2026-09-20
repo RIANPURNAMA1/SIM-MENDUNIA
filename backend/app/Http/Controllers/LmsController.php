@@ -31,6 +31,32 @@ class LmsController extends Controller
         return Siswa::where('user_id', $user->id)->first();
     }
 
+    private function lessonFallsOnWeekend(Lesson $lesson): bool
+    {
+        $text = preg_replace('/<[^>]+>/', ' ', (string) $lesson->content);
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        if (!preg_match('/(?<!\d)(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})(?!\d)/', $text, $m)) {
+            return false;
+        }
+
+        $months = [
+            'jan' => 1, 'feb' => 2, 'mar' => 3, 'apr' => 4, 'mei' => 5, 'may' => 5,
+            'jun' => 6, 'jul' => 7, 'agu' => 8, 'aug' => 8, 'ags' => 8,
+            'sep' => 9, 'okt' => 10, 'oct' => 10, 'nov' => 11, 'des' => 12, 'dec' => 12,
+        ];
+        $month = $months[strtolower(substr($m[2], 0, 3))] ?? null;
+        if (!$month) {
+            return false;
+        }
+
+        try {
+            return \Carbon\Carbon::create((int) $m[3], $month, (int) $m[1])->isWeekend();
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
     private function progressPayload(Lesson $lesson, ?LmsProgress $progress)
     {
         $videoRequired = !empty($lesson->video_url);
@@ -95,6 +121,11 @@ class LmsController extends Controller
         $course = Course::aktif()->with(['lessons' => function ($q) {
             $q->aktif()->orderBy('sort')->with('slides');
         }])->findOrFail($id);
+
+        $course->setRelation(
+            'lessons',
+            $course->lessons->reject(fn ($lesson) => $this->lessonFallsOnWeekend($lesson))->values()
+        );
 
         $progresses = LmsProgress::where('siswa_id', $siswa->id)
             ->whereIn('lesson_id', $course->lessons->pluck('id'))
