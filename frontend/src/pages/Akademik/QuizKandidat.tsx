@@ -982,7 +982,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
         {camActive && streamRef.current && (
           <div className="max-w-lg mx-auto px-4 pt-3">
             <div className="flex items-center gap-2 bg-white rounded-md border border-[#E5E7EF] px-3 py-2">
-              <video ref={cameraRef} muted playsInline autoPlay className="w-14 h-10 rounded-lg object-cover bg-black" />
+              <video ref={cameraRef} muted playsInline autoPlay className="w-14 h-10 rounded-lg object-cover bg-black" style={{ transform: 'scaleX(-1)' }} />
               <div className="flex-1">
                 <p className="text-[10.5px] font-bold text-[#0E6187]">Kamera pengawas aktif</p>
                 <p className="text-[9.5px] text-slate-400 font-medium">Foto dikirim berkala ke pengawas</p>
@@ -1762,7 +1762,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
               <div className="mt-4">
                 {camActive && streamRef.current ? (
                   <div className="relative">
-                    <video ref={videoRef} muted playsInline autoPlay className="w-full h-52 rounded-md object-cover bg-black" />
+                    <video ref={videoRef} muted playsInline autoPlay className="w-full h-52 rounded-md object-cover bg-black" style={{ transform: 'scaleX(-1)' }} />
                     <canvas ref={modalOverlayRef} className="pointer-events-none absolute inset-0 h-full w-full rounded-md" />
                   </div>
                 ) : (
