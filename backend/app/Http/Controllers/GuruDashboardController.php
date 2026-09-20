@@ -1494,7 +1494,9 @@ class GuruDashboardController extends Controller
         $dates = [];
         $current = $startDate->copy();
         while ($current->lte($endDate)) {
-            $dates[] = $current->format('Y-m-d');
+            if (!$current->isWeekend()) {
+                $dates[] = $current->format('Y-m-d');
+            }
             $current->addDay();
         }
 
@@ -1546,7 +1548,9 @@ class GuruDashboardController extends Controller
         $dates = [];
         $current = $startDate->copy();
         while ($current->lte($endDate)) {
-            $dates[] = $current->format('Y-m-d');
+            if (!$current->isWeekend()) {
+                $dates[] = $current->format('Y-m-d');
+            }
             $current->addDay();
         }
 
@@ -1622,7 +1626,9 @@ class GuruDashboardController extends Controller
         $dates = [];
         $current = $startDate->copy();
         while ($current->lte($endDate)) {
-            $dates[] = $current->format('Y-m-d');
+            if (!$current->isWeekend()) {
+                $dates[] = $current->format('Y-m-d');
+            }
             $current->addDay();
         }
 
