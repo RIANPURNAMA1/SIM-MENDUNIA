@@ -528,7 +528,7 @@ export default function LMS() {
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null)
   const [lessonDetail, setLessonDetail] = useState<{ completed: boolean; completed_at: string | null; progress: LessonProgress | null; slides?: { id: number; file_name: string; url: string }[]; quizzes?: CourseQuiz[]; recap?: { id: number; file_name: string | null; file_size: number | null; kind: string | null; description: string | null; url: string | null } | null; materis?: LessonMateri[] } | null>(null)
   const [lessonProgressMap, setLessonProgressMap] = useState<Record<number, LessonProgress>>({})
-  const [lessonAtt, setLessonAtt] = useState<Record<number, { is_unlocked: boolean; attended: boolean; is_current: boolean; attended_count: number }>>({})
+  const [lessonAtt, setLessonAtt] = useState<Record<number, { is_unlocked: boolean; attended: boolean; is_current: boolean; attended_count: number; date?: string | null; date_label?: string | null; day_label?: string | null }>>({})
   const [, setDetailLoading] = useState(false)
   const lastActivityRef = useRef(Date.now())
   const autoCompletedRef = useRef<number | null>(null)
@@ -2090,6 +2090,11 @@ export default function LMS() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className={`text-[13px] font-semibold truncate ${locked ? 'text-slate-400' : 'text-slate-800'}`}>{lesson.title}</p>
+                            {att?.date_label && (
+                              <p className={`text-[11px] mt-0.5 ${locked ? 'text-slate-300' : 'text-slate-400'}`}>
+                                {att.day_label}, {att.date_label}
+                              </p>
+                            )}
                             <div className="flex items-center gap-2 mt-1">
                               {lesson.video_url && (
                                 <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
