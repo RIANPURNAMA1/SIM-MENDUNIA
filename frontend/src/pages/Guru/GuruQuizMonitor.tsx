@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
-  ArrowLeft, Camera, CheckCircle2, X, RefreshCw, Pause, Play, ShieldAlert,
+  ArrowLeft, Camera, CheckCircle2, X, RefreshCw, Pause, Play, ShieldAlert, Users, ListChecks, Timer,
 } from 'lucide-react'
 import { guruQuizApi, APP_URL } from '../../services/api'
 import { getEcho, leaveChannel } from '../../services/echo'
@@ -270,7 +270,7 @@ export default function GuruQuizMonitor() {
 
             <div className="flex items-center gap-2 shrink-0">
               <button onClick={() => setPaused(p => !p)}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-bold transition-colors ${paused ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-slate-300 hover:bg-white/10'}`}>
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-bold transition-colors ${paused ? 'bg-[#0E6187]/20 text-[#7ec3e4]' : 'bg-white/5 text-slate-300 hover:bg-white/10'}`}>
                 {paused ? <Play size={13} /> : <Pause size={13} />}
                 {paused ? 'Lanjut' : 'Jeda'}
               </button>
@@ -284,25 +284,40 @@ export default function GuruQuizMonitor() {
 
           {/* Stats */}
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
-            <div className="rounded-md bg-[#0E6187]/15 border border-[#0E6187]/30 px-3 py-2">
-              <p className="text-lg font-bold text-[#7ec3e4] leading-none">{liveCount}</p>
-              <p className="text-[10px] text-slate-400 font-medium mt-1">Sedang Mengerjakan</p>
+            <div className="rounded-lg bg-[#16181d] border border-white/10 px-3 py-2.5">
+              <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
+                <Users size={12} className="text-slate-500 shrink-0" />
+                <span className="truncate">Sedang Mengerjakan</span>
+              </div>
+              <p className="text-lg font-bold text-white leading-none mt-2 tabular-nums">{liveCount}</p>
             </div>
-            <div className="rounded-md bg-white/5 border border-white/10 px-3 py-2">
-              <p className="text-lg font-bold text-white leading-none">{finished.length}</p>
-              <p className="text-[10px] text-slate-400 font-medium mt-1">Sudah Kumpul</p>
+            <div className="rounded-lg bg-[#16181d] border border-white/10 px-3 py-2.5">
+              <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
+                <CheckCircle2 size={12} className="text-slate-500 shrink-0" />
+                <span className="truncate">Sudah Kumpul</span>
+              </div>
+              <p className="text-lg font-bold text-white leading-none mt-2 tabular-nums">{finished.length}</p>
             </div>
-            <div className="rounded-md bg-red-500/10 border border-red-500/20 px-3 py-2">
-              <p className="text-lg font-bold text-red-400 leading-none">{warningsTotal}</p>
-              <p className="text-[10px] text-slate-400 font-medium mt-1">Total Peringatan</p>
+            <div className="rounded-lg bg-[#16181d] border border-white/10 px-3 py-2.5">
+              <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
+                <ShieldAlert size={12} className="text-slate-500 shrink-0" />
+                <span className="truncate">Total Peringatan</span>
+              </div>
+              <p className={`text-lg font-bold leading-none mt-2 tabular-nums ${warningsTotal > 0 ? 'text-red-400' : 'text-white'}`}>{warningsTotal}</p>
             </div>
-            <div className="rounded-md bg-white/5 border border-white/10 px-3 py-2">
-              <p className="text-lg font-bold text-white leading-none">{answeredTotal}/{live.reduce((s, a) => s + a.total_count, 0)}</p>
-              <p className="text-[10px] text-slate-400 font-medium mt-1">Soal Terjawab</p>
+            <div className="rounded-lg bg-[#16181d] border border-white/10 px-3 py-2.5">
+              <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
+                <ListChecks size={12} className="text-slate-500 shrink-0" />
+                <span className="truncate">Soal Terjawab</span>
+              </div>
+              <p className="text-lg font-bold text-white leading-none mt-2 tabular-nums">{answeredTotal}/{live.reduce((s, a) => s + a.total_count, 0)}</p>
             </div>
-            <div className="rounded-md bg-emerald-500/10 border border-emerald-500/20 px-3 py-2">
-              <p className="text-lg font-bold text-emerald-400 leading-none tabular-nums">{fastest !== null ? fmtClock(fastest) : '--:--'}</p>
-              <p className="text-[10px] text-slate-400 font-medium mt-1">Waktu Tercepat</p>
+            <div className="rounded-lg bg-[#16181d] border border-white/10 px-3 py-2.5">
+              <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
+                <Timer size={12} className="text-slate-500 shrink-0" />
+                <span className="truncate">Waktu Tercepat</span>
+              </div>
+              <p className="text-lg font-bold text-white leading-none mt-2 tabular-nums">{fastest !== null ? fmtClock(fastest) : '--:--'}</p>
             </div>
           </div>
         </div>
@@ -337,11 +352,11 @@ export default function GuruQuizMonitor() {
                         <p className="text-[12px] font-bold text-white truncate">{a.siswa.nama}</p>
                       </div>
                       {isLive ? (
-                        <span className="inline-flex items-center gap-1 rounded-md bg-red-500/15 px-1.5 py-0.5 text-[9px] font-bold text-red-400 shrink-0">
-                          <span className="h-1 w-1 rounded-full bg-red-500 animate-pulse" />LAKUKAN
+                        <span className="inline-flex items-center gap-1 rounded-md bg-[#0E6187]/15 px-1.5 py-0.5 text-[9px] font-bold text-[#7ec3e4] shrink-0">
+                          <span className="h-1 w-1 rounded-full bg-[#7ec3e4] animate-pulse" />LAKUKAN
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400 shrink-0">
+                        <span className="inline-flex items-center gap-1 rounded-md bg-white/5 px-1.5 py-0.5 text-[9px] font-bold text-slate-300 shrink-0">
                           <CheckCircle2 size={9} />KUMPUL
                         </span>
                       )}
@@ -365,7 +380,7 @@ export default function GuruQuizMonitor() {
 
                     <div className="flex items-center justify-between gap-3 mt-2.5">
                       <div className="flex items-center gap-2 text-[11px] font-bold min-w-0">
-                        <span className="text-emerald-400 whitespace-nowrap">{a.correct_count}/{a.total_count} benar</span>
+                        <span className="text-slate-300 whitespace-nowrap">{a.correct_count}/{a.total_count} benar</span>
                         <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md whitespace-nowrap ${a.warnings >= a.max_warnings ? 'bg-red-500/15 text-red-400' : a.warnings > 0 ? 'bg-amber-500/15 text-amber-400' : 'bg-white/5 text-slate-500'}`}>
                           <ShieldAlert size={10} /> {a.warnings}/{a.max_warnings}
                         </span>
@@ -422,11 +437,11 @@ export default function GuruQuizMonitor() {
                           <div className="flex items-center gap-2">
                             <p className="text-[12px] font-bold text-white leading-tight">{a.siswa.nama}</p>
                             {a.status === 'in_progress' ? (
-                              <span className="inline-flex items-center gap-1 rounded-md bg-red-500/15 px-1.5 py-0.5 text-[9px] font-bold text-red-400 shrink-0">
-                                <span className="h-1 w-1 rounded-full bg-red-500 animate-pulse" />LAKUKAN
+                              <span className="inline-flex items-center gap-1 rounded-md bg-[#0E6187]/15 px-1.5 py-0.5 text-[9px] font-bold text-[#7ec3e4] shrink-0">
+                                <span className="h-1 w-1 rounded-full bg-[#7ec3e4] animate-pulse" />LAKUKAN
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400 shrink-0">
+                              <span className="inline-flex items-center gap-1 rounded-md bg-white/5 px-1.5 py-0.5 text-[9px] font-bold text-slate-300 shrink-0">
                                 <CheckCircle2 size={9} />KUMPUL
                               </span>
                             )}
@@ -457,7 +472,7 @@ export default function GuruQuizMonitor() {
                           </div>
                         </td>
                         <td className="px-3 py-3 align-top text-center whitespace-nowrap">
-                          <p className="text-[12px] font-bold text-emerald-400">{a.correct_count}/{a.total_count}</p>
+                          <p className="text-[12px] font-bold text-slate-200">{a.correct_count}/{a.total_count}</p>
                         </td>
                         <td className="px-3 py-3 align-top text-center whitespace-nowrap">
                           <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md ${a.warnings >= a.max_warnings ? 'bg-red-500/15 text-red-400' : a.warnings > 0 ? 'bg-amber-500/15 text-amber-400' : 'bg-white/5 text-slate-500'}`}>

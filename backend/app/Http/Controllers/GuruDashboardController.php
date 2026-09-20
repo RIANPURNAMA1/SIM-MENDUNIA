@@ -495,8 +495,34 @@ class GuruDashboardController extends Controller
                 ->get();
         }
 
-        $courses->transform(function ($course) use ($user) {
+        $kelasMap = $kelasList->keyBy('id');
+
+        $courses->transform(function ($course) use ($user, $kelasMap) {
             $course->can_manage = (int) $course->user_id === (int) $user->id;
+            $course->tanggal_mulai = null;
+            $course->tanggal_selesai = null;
+            $course->tanggal_mulai_formatted = null;
+            $course->tanggal_selesai_formatted = null;
+            $course->periode_status = $course->status === 'aktif' ? 'Aktif' : 'Nonaktif';
+            if ($course->kelas_sensei_id) {
+                $kelas = $kelasMap->get((int) $course->kelas_sensei_id);
+                if ($kelas) {
+                    $course->tanggal_mulai = $kelas->tanggal_mulai?->toDateString();
+                    $course->tanggal_selesai = $kelas->tanggal_selesai?->toDateString();
+                    $course->tanggal_mulai_formatted = $kelas->tanggal_mulai ? \Carbon\Carbon::parse($kelas->tanggal_mulai)->translatedFormat('d M Y') : null;
+                    $course->tanggal_selesai_formatted = $kelas->tanggal_selesai ? \Carbon\Carbon::parse($kelas->tanggal_selesai)->translatedFormat('d M Y') : null;
+                    if ($kelas->tanggal_mulai && $kelas->tanggal_selesai) {
+                        $today = \Carbon\Carbon::today();
+                        if ($today->gt($kelas->tanggal_selesai)) {
+                            $course->periode_status = 'Selesai';
+                        } elseif ($today->lt($kelas->tanggal_mulai)) {
+                            $course->periode_status = 'Terkunci';
+                        } else {
+                            $course->periode_status = 'Sedang Berlangsung';
+                        }
+                    }
+                }
+            }
             return $course;
         });
 
@@ -1259,24 +1285,14 @@ class GuruDashboardController extends Controller
             return response()->json(['message' => 'Paket soal tidak terhubung ke pertemuan ini'], 422);
         }
 
+        // Status hanya berlaku untuk pertemuan ini (pivot per pertemuan),
+        // supaya menonaktifkan di satu sensei tidak memengaruhi sensei lain
+        // yang juga menautkan paket yang sama pada pertemuannya.
         $lesson->linkPakets()->updateExistingPivot($paketId, ['status' => $data['status']]);
-
-        // Satukan sumber status: status global paket & semua link pertemuan
-        // diubah ke nilai yang sama agar selalu konsisten (guru ↔ /lms).
-        $paket = QuizPaket::find($paketId);
-        if ($paket) {
-            $paket->status = $data['status'];
-            $paket->save();
-            $ids = $paket->linkLessons()->allRelatedIds();
-            if ($ids->isNotEmpty()) {
-                $paket->linkLessons()->syncWithoutDetaching($ids->mapWithKeys(fn ($id) => [(int) $id => ['status' => $data['status']]])->all());
-            }
-        }
 
         return response()->json([
             'message' => $data['status'] === 'aktif' ? 'Quiz diaktifkan' : 'Quiz dinonaktifkan',
             'status' => $data['status'],
-            'paket' => $paket?->fresh(),
         ]);
     }
 

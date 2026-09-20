@@ -106,19 +106,36 @@ class AdminQuizController extends Controller
             });
         }
 
-        if ($request->search) {
+        if ($request->search && !empty($request->search)) {
             $query->where('title', 'like', '%' . $request->search . '%');
         }
 
         $guruNames = \App\Models\Guru::query()->pluck('nama', 'user_id');
-        $pakets = $query->orderByDesc('created_at')->get()->map(function ($p) use ($guruNames) {
+
+        $decorate = function ($p) use ($guruNames) {
             $p->participants = QuizAttempt::where('quiz_paket_id', $p->id)->distinct('siswa_id')->count('siswa_id');
             $p->best_score = (int) QuizAttempt::where('quiz_paket_id', $p->id)
                 ->where('status', 'submitted')
                 ->max('score');
             $p->guru_name = $guruNames[$p->user_id] ?? $p->user?->name ?? '-';
             return $p;
-        });
+        };
+
+        if ($request->filled('per_page')) {
+            $perPage = (int) $request->per_page;
+            $paginated = $query->orderByDesc('created_at')->paginate($perPage)->through($decorate);
+            return response()->json([
+                'pakets' => $paginated->items(),
+                'pagination' => [
+                    'current_page' => $paginated->currentPage(),
+                    'last_page' => $paginated->lastPage(),
+                    'per_page' => $paginated->perPage(),
+                    'total' => $paginated->total(),
+                ],
+            ]);
+        }
+
+        $pakets = $query->orderByDesc('created_at')->get()->map($decorate);
 
         return response()->json(['pakets' => $pakets]);
     }
@@ -284,11 +301,6 @@ class AdminQuizController extends Controller
         $paket = QuizPaket::findOrFail($id);
         $paket->status = $paket->status === 'aktif' ? 'nonaktif' : 'aktif';
         $paket->save();
-        // Satu sumber status: sinkronkan pivot semua pertemuan yang menautkan paket ini.
-        $ids = $paket->linkLessons()->allRelatedIds();
-        if ($ids->isNotEmpty()) {
-            $paket->linkLessons()->syncWithoutDetaching($ids->mapWithKeys(fn ($id) => [(int) $id => ['status' => $paket->status]])->all());
-        }
         return response()->json(['paket' => $paket->fresh(), 'status' => $paket->status]);
     }
 

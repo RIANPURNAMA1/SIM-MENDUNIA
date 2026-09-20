@@ -51,6 +51,7 @@ use App\Http\Controllers\AdminCabangController;
 use App\Http\Controllers\PengeluaranController;
 use App\Http\Controllers\LmsController;
 use App\Http\Controllers\QuizController;
+use App\Http\Controllers\QuizReferenceController;
 use App\Http\Controllers\GuruQuizController;
 use App\Http\Controllers\AdminQuizController;
 use App\Http\Controllers\AdminMateriController;
@@ -486,6 +487,12 @@ Route::get('/guru/penilaian-rekap/{kelasId}', [GuruDashboardController::class, '
     Route::get('/guru/lms-lessons/{id}/pakets/{paketId}/questions', [GuruDashboardController::class, 'guruLessonPaketQuestions']);
     Route::delete('/guru/lms-lessons/{id}/pakets/{paketId}', [GuruDashboardController::class, 'guruDetachLessonPaket']);
 
+    // Guru Quiz References (referensi soal)
+    Route::get('/guru/quiz-references/meta', [QuizReferenceController::class, 'guruMeta']);
+    Route::get('/guru/quiz-references', [QuizReferenceController::class, 'guruIndex']);
+    Route::post('/guru/quiz-references', [QuizReferenceController::class, 'guruStore']);
+    Route::delete('/guru/quiz-references/{id}', [QuizReferenceController::class, 'guruDestroy']);
+
     // Guru LMS Materi (bank materi)
     Route::get('/guru/lms/materi-bank', [GuruMateriController::class, 'bank']);
     Route::post('/guru/lms/materi-bank', [GuruMateriController::class, 'store']);
@@ -597,6 +604,14 @@ Route::get('/guru/penilaian-rekap/{kelasId}', [GuruDashboardController::class, '
         Route::post('/welcome-video', [LmsController::class, 'updateWelcomeVideo'])->middleware('role:MANAGER,HR,ADMIN');
         Route::post('/welcome-video-url', [LmsController::class, 'updateWelcomeVideoUrl'])->middleware('role:MANAGER,HR,ADMIN');
         Route::delete('/welcome-video', [LmsController::class, 'deleteWelcomeVideo'])->middleware('role:MANAGER,HR,ADMIN');
+        // Quiz References (Manager): urutan statis sebelum /{id}
+        Route::get('/quiz-references/pending-count', [QuizReferenceController::class, 'adminPendingCount']);
+        Route::post('/quiz-references/categories', [QuizReferenceController::class, 'adminCategoryStore']);
+        Route::post('/quiz-references/categories/{id}', [QuizReferenceController::class, 'adminCategoryUpdate']);
+        Route::delete('/quiz-references/categories/{id}', [QuizReferenceController::class, 'adminCategoryDestroy']);
+        Route::get('/quiz-references', [QuizReferenceController::class, 'adminIndex']);
+        Route::post('/quiz-references/{id}/status', [QuizReferenceController::class, 'adminUpdateStatus']);
+        Route::delete('/quiz-references/{id}', [QuizReferenceController::class, 'adminDestroy']);
     });
 });
 

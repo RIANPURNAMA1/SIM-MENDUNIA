@@ -29,6 +29,11 @@ interface Course {
   files_count: number
   can_manage?: boolean
   kelas_sensei_id?: number | null
+  tanggal_mulai?: string | null
+  tanggal_selesai?: string | null
+  tanggal_mulai_formatted?: string | null
+  tanggal_selesai_formatted?: string | null
+  periode_status?: string | null
 }
 
 interface KelasOption {
@@ -829,6 +834,26 @@ export default function GuruLMS() {
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${selectedCourse.status === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-500'}`}>
                       {selectedCourse.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
                     </span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    {(selectedCourse.tanggal_mulai_formatted || selectedCourse.tanggal_selesai_formatted) && (
+                      <span className="text-[11px] font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                        {selectedCourse.tanggal_mulai_formatted || '?'} – {selectedCourse.tanggal_selesai_formatted || '?'}
+                      </span>
+                    )}
+                    {selectedCourse.periode_status && (
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        selectedCourse.periode_status === 'Sedang Berlangsung'
+                          ? 'bg-emerald-50 text-emerald-600'
+                          : selectedCourse.periode_status === 'Selesai'
+                            ? 'bg-slate-100 text-slate-500'
+                            : selectedCourse.periode_status === 'Terkunci'
+                              ? 'bg-amber-50 text-amber-600'
+                              : 'bg-gray-100 text-gray-500'
+                      }`}>
+                        {selectedCourse.periode_status}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

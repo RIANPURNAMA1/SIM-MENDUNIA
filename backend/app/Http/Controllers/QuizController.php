@@ -44,11 +44,7 @@ class QuizController extends Controller
 
     private function paketUnlocked(QuizPaket $paket, ?Siswa $siswa): bool
     {
-        // Paket yang statusnya bukan 'aktif' (mis. "Ditutup") tidak boleh dikerjakan.
-        if ($paket->status !== 'aktif') {
-            return false;
-        }
-        return true;
+        return $this->paketBisaDiakses($paket, $siswa);
     }
 
     private function siswaUser()
@@ -71,6 +67,28 @@ class QuizController extends Controller
             return false;
         }
         return $paket->diAjarSensei($siswa);
+    }
+
+    private function paketTerhubungAktif(QuizPaket $paket, ?Siswa $siswa): bool
+    {
+        if (!$siswa) {
+            return false;
+        }
+        return Lesson::whereHas('linkPakets', fn ($q) => $q
+            ->where('quiz_paket_id', $paket->id)
+            ->where('lms_lesson_quiz_pakets.status', 'aktif'))
+            ->aktif()
+            ->exists();
+    }
+
+    private function paketBisaDiakses(QuizPaket $paket, ?Siswa $siswa): bool
+    {
+        if ($paket->status === 'aktif') {
+            return true;
+        }
+        // Status global "nonaktif" tidak boleh mematikan paket yang sudah
+        // ditautkan aktif (pivot per pertemuan) oleh sensei lain.
+        return $this->paketTerhubungAktif($paket, $siswa);
     }
 
     private function ownAttempt($id, $siswaId)
@@ -267,8 +285,8 @@ class QuizController extends Controller
 
         [$source, $sourceId] = $this->attemptContext($request);
 
-        $paket = QuizPaket::aktif()->withCount('questions')->find($id);
-        if (!$paket) {
+        $paket = QuizPaket::withCount('questions')->find($id);
+        if (!$paket || !$this->paketBisaDiakses($paket, $siswa)) {
             return response()->json(['message' => 'Paket soal tidak ditemukan atau sudah ditutup.'], 404);
         }
         if (!$this->paketVisible($paket, $siswa)) {
@@ -385,7 +403,10 @@ class QuizController extends Controller
 
         [$source, $sourceId] = $this->attemptContext($request);
 
-        $paket = QuizPaket::aktif()->findOrFail($id);
+        $paket = QuizPaket::find($id);
+        if (!$paket || !$this->paketBisaDiakses($paket, $siswa)) {
+            return response()->json(['message' => 'Paket soal tidak ditemukan'], 404);
+        }
         if (!$this->paketVisible($paket, $siswa)) {
             return response()->json(['message' => 'Paket soal tidak tersedia'], 404);
         }

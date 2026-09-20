@@ -1,17 +1,18 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Fragment } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   BookOpen, Plus, Edit3, Trash2, Search, X, Image as ImageIcon, FileText,
   ListChecks, Eye, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Camera, Clock, Repeat,
   Award, Users, UserCheck, Pencil, Loader2, ArrowLeft, Video, UploadCloud, Upload, Mic, RotateCcw,
-  Settings, LayoutGrid, ShieldCheck, Link2, Building2, Layers, Settings2,
+  Settings, LayoutGrid, ShieldCheck, Link2, Building2, Layers, Settings2, FileCheck2,
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
-import { lmsAdminApi, adminCabangApi, jadwalLevelApi, adminQuizApi, APP_URL } from '../../services/api'
+import { lmsAdminApi, adminCabangApi, jadwalLevelApi, adminQuizApi, APP_URL, quizReferenceApi } from '../../services/api'
 import { getYouTubeEmbedUrl } from '../../utils/youtube'
 import LessonMediaFields, { LessonSlideItem } from '../../components/LessonMediaFields'
 import Swal from 'sweetalert2'
+import type { Pagination } from '../../types'
 
 interface Course {
   id: number
@@ -41,6 +42,9 @@ interface LmsCategory {
 interface Batch { id: number; nama_batch: string; warna?: string | null }
 interface CourseOption { id: number; title: string }
 interface Category { id: number; name: string }
+
+const COURSE_PER_PAGE = 10
+const BANK_PER_PAGE = 10
 
 interface MateriItem {
   id: number
@@ -245,6 +249,10 @@ export default function DataCourse() {
   const [search, setSearch] = useState('')
   const [filterLevel, setFilterLevel] = useState('')
   const [filterBatch, setFilterBatch] = useState('')
+  const [refPendingCount, setRefPendingCount] = useState(0)
+  const [courseLevels, setCourseLevels] = useState<string[]>([])
+  const [coursePage, setCoursePage] = useState(1)
+  const [coursePagination, setCoursePagination] = useState<Pagination>({ current_page: 1, last_page: 1, total: 0, per_page: COURSE_PER_PAGE })
 
   const [view, setView] = useState<View>(() => parseRoute(location.pathname).view)
   const [activeCourse, setActiveCourse] = useState<Course | null>(null)
@@ -274,6 +282,8 @@ export default function DataCourse() {
   const [bankPakets, setBankPakets] = useState<QuizPaket[]>([])
   const [bankLoading, setBankLoading] = useState(false)
   const [bankSearch, setBankSearch] = useState('')
+  const [bankPage, setBankPage] = useState(1)
+  const [bankPagination, setBankPagination] = useState<Pagination>({ current_page: 1, last_page: 1, total: 0, per_page: BANK_PER_PAGE })
   const [quizSource, setQuizSource] = useState<'course' | 'bank'>('course')
 
   const [showPaketModal, setShowPaketModal] = useState(false)
@@ -315,6 +325,14 @@ export default function DataCourse() {
 
   const [participants, setParticipants] = useState<Participant[]>([])
   const [rLoading, setRLoading] = useState(false)
+  const [rGroupBy, setRGroupBy] = useState<'all' | 'cabang' | 'batch' | 'level' | 'none'>('all')
+  const [rFCabang, setRFCabang] = useState('')
+  const [rFBatch, setRFBatch] = useState('')
+  const [rFLevel, setRFLevel] = useState('')
+  const [rFSearch, setRFSearch] = useState('')
+  const [rPage, setRPage] = useState(1)
+  const [rCollapsed, setRCollapsed] = useState<Record<string, boolean>>({})
+  const R_PER_PAGE = 10
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [detail, setDetail] = useState<{ attempt: any; questions: DetailRow[]; siswa: any } | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
@@ -527,6 +545,25 @@ export default function DataCourse() {
 
   useEffect(() => { fetchCourses(); fetchQuizMeta(); fetchCategories() }, [])
   useEffect(() => {
+    quizReferenceApi.adminPendingCount().then(res => setRefPendingCount(res.data.pending || 0)).catch(() => {})
+  }, [])
+  const courseFilterFirstRef = useRef(true)
+  useEffect(() => {
+    if (courseFilterFirstRef.current) { courseFilterFirstRef.current = false; return }
+    if (view !== 'list' || isAdminCabang) return
+    const t = setTimeout(() => { setCoursePage(1); fetchCourses(1) }, 300)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, filterLevel, filterBatch])
+  const bankSearchFirstRef = useRef(true)
+  useEffect(() => {
+    if (bankSearchFirstRef.current) { bankSearchFirstRef.current = false; return }
+    if (view !== 'bank') return
+    const t = setTimeout(() => { setBankPage(1); fetchBankPakets(1) }, 300)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bankSearch])
+  useEffect(() => {
     const r = parseRoute(location.pathname)
     setView(r.view)
     setQuizSource(r.source)
@@ -567,6 +604,8 @@ export default function DataCourse() {
           } else if (r.view === 'quiz-results') {
             setActiveQuizPaket(p)
             setRLoading(true)
+            setRPage(1)
+            setRCollapsed({})
             adminQuizApi.results(p.id).then(q => setParticipants(q.data.participants || [])).catch(() => setParticipants([])).finally(() => setRLoading(false))
           } else {
             setMateriPaket(p)
@@ -633,13 +672,31 @@ export default function DataCourse() {
     })
   }
 
-  const fetchCourses = () => {
+  const fetchCourses = (page?: number) => {
     setLoading(true)
-    const promise = isAdminCabang ? adminCabangApi.lms() : lmsAdminApi.courses()
-    promise.then(res => {
-      setCourses(res.data.courses || [])
-      setBatches(res.data.batches || [])
-    }).catch(() => {}).finally(() => setLoading(false))
+    const targetPage = page ?? coursePage
+    if (isAdminCabang) {
+      adminCabangApi.lms().then(res => {
+        const list = res.data.courses || []
+        setCourses(list)
+        setBatches(res.data.batches || [])
+        setCoursePagination({ current_page: 1, last_page: 1, total: list.length, per_page: COURSE_PER_PAGE })
+        setCourseLevels(res.data.levels || [])
+      }).catch(() => {}).finally(() => setLoading(false))
+    } else {
+      lmsAdminApi.courses({
+        page: targetPage,
+        per_page: COURSE_PER_PAGE,
+        search: search.trim() || undefined,
+        level: filterLevel || undefined,
+        batch_id: filterBatch || undefined,
+      }).then(res => {
+        setCourses(res.data.courses || [])
+        setBatches(res.data.batches || [])
+        setCoursePagination(res.data.pagination || { current_page: 1, last_page: 1, total: 0, per_page: COURSE_PER_PAGE })
+        if (Array.isArray(res.data.levels)) setCourseLevels(res.data.levels)
+      }).catch(() => {}).finally(() => setLoading(false))
+    }
     const levelPromise = isAdminCabang ? adminCabangApi.jadwalLevel() : jadwalLevelApi.list()
     levelPromise.then(res => {
       const map: Record<number, string[]> = {}
@@ -670,21 +727,23 @@ export default function DataCourse() {
     }).catch(() => setQuizPakets([])).finally(() => setQuizLoading(false))
   }
 
-  const fetchBankPakets = () => {
+  const fetchBankPakets = (page?: number) => {
     setBankLoading(true)
-    adminQuizApi.pakets().then(res => {
+    adminQuizApi.pakets({ page: page ?? bankPage, per_page: BANK_PER_PAGE, search: bankSearch.trim() || undefined }).then(res => {
       const all = res.data.pakets || []
       setBankPakets(all)
+      setBankPagination(res.data.pagination || { current_page: 1, last_page: 1, total: all.length, per_page: BANK_PER_PAGE })
     }).catch(() => setBankPakets([])).finally(() => setBankLoading(false))
   }
 
   const openBank = () => {
     setQuizSource('course')
     setBankSearch('')
+    setBankPage(1)
     setActiveQuizPaket(null)
     setActiveCourse(null)
     setView('bank')
-    fetchBankPakets()
+    fetchBankPakets(1)
     navigate(`${base}/bank-paket-soal`)
   }
 
@@ -883,6 +942,8 @@ export default function DataCourse() {
     setActiveQuizPaket(paket)
     setView('quiz-results')
     setRLoading(true)
+    setRPage(1)
+    setRCollapsed({})
     adminQuizApi.results(paket.id).then(res => {
       setParticipants(res.data.participants || [])
     }).catch(() => setParticipants([])).finally(() => setRLoading(false))
@@ -1304,7 +1365,8 @@ export default function DataCourse() {
         await lmsAdminApi.storeCourse(fd)
       }
       setShowCourseModal(false)
-      fetchCourses()
+      setCoursePage(1)
+      fetchCourses(1)
       Swal.fire({ icon: 'success', title: editingCourse ? 'Kursus diperbarui' : 'Kursus dibuat', timer: 1500, showConfirmButton: false })
     } catch {
       Swal.fire({ icon: 'error', title: 'Gagal menyimpan kursus' })
@@ -1798,9 +1860,10 @@ export default function DataCourse() {
   })
 
   const filteredQuizPakets = quizPakets.filter(p => !quizSearch || p.title.toLowerCase().includes(quizSearch.toLowerCase()))
-  const filteredBankPakets = bankPakets.filter(p => !bankSearch || p.title.toLowerCase().includes(bankSearch.toLowerCase()))
 
-  const uniqueLevels = [...new Set(courses.map(c => c.level).filter(Boolean))] as string[]
+  const uniqueLevels = courseLevels.length > 0
+    ? courseLevels
+    : [...new Set(courses.map(c => c.level).filter(Boolean))] as string[]
   const allBatchLevels: string[] = []
   Object.values(batchLevels).forEach(arr => arr.forEach(l => { if (!allBatchLevels.includes(l)) allBatchLevels.push(l) }))
   const levelOptions = courseForm.batch_id ? [...(batchLevels[Number(courseForm.batch_id)] || [])] : [...allBatchLevels]
@@ -1812,7 +1875,9 @@ export default function DataCourse() {
     return new Date(iso).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
   }
 
-  const renderPaketTable = (pakets: QuizPaket[], source: 'course' | 'bank') => (
+  const renderPaketTable = (pakets: QuizPaket[], source: 'course' | 'bank') => {
+    const noOffset = source === 'bank' ? (bankPagination.current_page - 1) * bankPagination.per_page : 0
+    return (
     <div className="bg-white border-2 border-slate-200 overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm border-collapse">
@@ -1831,7 +1896,7 @@ export default function DataCourse() {
           <tbody className="bg-white">
             {pakets.map((p, idx) => (
               <tr key={p.id} className="hover:bg-[#0E6187]/5 transition-colors">
-                <td className="px-4 py-3 text-sm text-slate-500 border border-slate-200">{idx + 1}</td>
+                <td className="px-4 py-3 text-sm text-slate-500 border border-slate-200">{noOffset + idx + 1}</td>
                 <td className="px-4 py-3 border border-slate-200">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
@@ -1895,6 +1960,175 @@ export default function DataCourse() {
         </table>
       </div>
     </div>
+    )
+  }
+
+  const renderPagination = (pg: Pagination, onPage: (p: number) => void, label = 'data') => {
+    if (pg.last_page <= 1) return null
+    const start = pg.total === 0 ? 0 : (pg.current_page - 1) * pg.per_page + 1
+    const end = Math.min(pg.current_page * pg.per_page, pg.total)
+    return (
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-lg border border-slate-200 px-4 py-2 text-xs text-slate-500">
+        <span>Menampilkan <b className="text-slate-700">{start}-{end}</b> dari <b className="text-slate-700">{pg.total}</b> {label}</span>
+        <div className="flex items-center gap-1">
+          <button
+            disabled={pg.current_page <= 1}
+            onClick={() => onPage(Math.max(1, pg.current_page - 1))}
+            className="rounded border border-slate-300 p-1 text-slate-500 transition hover:bg-slate-100 disabled:opacity-30"
+          >
+            <ChevronLeft size={14} />
+          </button>
+          {Array.from({ length: pg.last_page }, (_, i) => i + 1)
+            .filter((p) => Math.abs(p - pg.current_page) <= 2 || p === 1 || p === pg.last_page)
+            .map((p, i, arr) => (
+              <span key={p} className="inline-flex items-center">
+                {i > 0 && arr[i - 1] !== p - 1 && <span className="px-1 text-slate-300">...</span>}
+                <button
+                  onClick={() => onPage(p)}
+                  className={`min-w-[24px] rounded px-1.5 py-0.5 text-center text-xs font-medium transition ${
+                    p === pg.current_page ? "bg-slate-800 text-white" : "text-slate-500 hover:bg-slate-100"
+                  }`}
+                >
+                  {p}
+                </button>
+              </span>
+            ))}
+          <button
+            disabled={pg.current_page >= pg.last_page}
+            onClick={() => onPage(Math.min(pg.last_page, pg.current_page + 1))}
+            className="rounded border border-slate-300 p-1 text-slate-500 transition hover:bg-slate-100 disabled:opacity-30"
+          >
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const rCabangOf = (par: Participant) => (par.cabang || '').trim() || 'Tanpa Cabang'
+  const rBatchOf = (par: Participant) => (par.batch || '').trim() || 'Tanpa Batch'
+  const rLevelOf = (par: Participant) => {
+    const lv = par.level
+    return (lv !== null && lv !== undefined && lv !== '') ? String(lv) : null
+  }
+
+  const rCabangOpts = [...new Set(participants.map(rCabangOf))].sort((a, b) => a.localeCompare(b))
+  const rBatchOpts = [...new Set(participants.map(rBatchOf))].sort((a, b) => a.localeCompare(b))
+  const rLevelOpts = [...new Set(participants.map(p => rLevelOf(p) ?? 'Tanpa Level'))].sort((a, b) => {
+    const an = Number(a); const bn = Number(b)
+    if (!isNaN(an) && !isNaN(bn)) return an - bn
+    return a.localeCompare(b)
+  })
+
+  const rFiltered = participants.filter(p => {
+    if (rFSearch.trim() && !p.nama.toLowerCase().includes(rFSearch.trim().toLowerCase())) return false
+    if (rFCabang && rCabangOf(p) !== rFCabang) return false
+    if (rFBatch && rBatchOf(p) !== rFBatch) return false
+    if (rFLevel && (rLevelOf(p) ?? 'Tanpa Level') !== rFLevel) return false
+    return true
+  })
+  const rHasFilter = !!(rFCabang || rFBatch || rFLevel || rFSearch.trim())
+
+  const resetResultFilters = () => {
+    setRFCabang(''); setRFBatch(''); setRFLevel(''); setRFSearch('')
+    setRPage(1)
+  }
+
+  const rGroupKey = (par: Participant) => {
+    const cab = rCabangOf(par)
+    const bat = rBatchOf(par)
+    const lvl = rLevelOf(par) ? `Level ${rLevelOf(par)}` : 'Tanpa Level'
+    if (rGroupBy === 'cabang') return cab
+    if (rGroupBy === 'batch') return bat
+    if (rGroupBy === 'level') return lvl
+    return `${cab} · ${bat} · ${lvl}`
+  }
+
+  const rGrouped = (() => {
+    const map = new Map<string, Participant[]>()
+    rFiltered.forEach(p => {
+      const k = rGroupKey(p)
+      if (!map.has(k)) map.set(k, [])
+      map.get(k)!.push(p)
+    })
+    return [...map.entries()].map(([name, items]) => {
+      const scores = items.map(i => Number(i.best_score) || 0)
+      const total = items.length
+      const best = Math.max(0, ...scores)
+      const avg = total > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / total) : 0
+      return {
+        name,
+        items: [...items].sort((a, b) => (Number(b.best_score) || 0) - (Number(a.best_score) || 0)),
+        total,
+        best,
+        avg,
+      }
+    })
+  })()
+
+  const rGroupedMode = rGroupBy !== 'none'
+  const rTotalItems = rGroupedMode ? rGrouped.length : rFiltered.length
+  const rTotalPages = Math.max(1, Math.ceil(rTotalItems / R_PER_PAGE))
+  const rSafePage = Math.min(rPage, rTotalPages)
+  const rPageGroups = rGroupedMode ? rGrouped.slice((rSafePage - 1) * R_PER_PAGE, rSafePage * R_PER_PAGE) : []
+  const rPageParticipants = rGroupedMode ? [] : rFiltered.slice((rSafePage - 1) * R_PER_PAGE, rSafePage * R_PER_PAGE)
+  const rPagination: Pagination = { current_page: rSafePage, last_page: rTotalPages, total: rTotalItems, per_page: R_PER_PAGE }
+
+  const renderParticipantRow = (par: Participant, idx: number) => (
+    <tr key={par.siswa_id} className="bg-white hover:bg-[#0E6187]/5 transition-colors">
+      <td className="px-4 py-3 text-xs font-bold text-slate-400 border border-slate-200">{idx + 1}</td>
+      <td className="px-4 py-3 border border-slate-200">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 border-2 border-[#0E6187] bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+            <span className="text-sm font-black text-[#0E6187]">{par.nama.trim().charAt(0).toUpperCase() || '?'}</span>
+          </div>
+          <p className="font-semibold text-slate-800 truncate">{par.nama}</p>
+        </div>
+      </td>
+      <td className="px-4 py-3 border border-slate-200">
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600">
+          <Building2 size={13} className="text-slate-400 shrink-0" /> {par.cabang || '-'}
+        </span>
+      </td>
+      <td className="px-4 py-3 border border-slate-200">
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600">
+          <Users size={13} className="text-[#0E6187] shrink-0" /> {par.batch || '-'}
+        </span>
+      </td>
+      <td className="px-4 py-3 border border-slate-200">
+        {par.level !== null && par.level !== '' ? (
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600">
+            <Layers size={13} className="text-emerald-500 shrink-0" /> Level {par.level}
+          </span>
+        ) : '-'}
+      </td>
+      <td className="px-4 py-3 border border-slate-200">
+        <div className="flex flex-wrap gap-1.5">
+          {par.attempts.map(a => (
+            <button key={a.attempt_id} onClick={() => openAttemptDetail(a.attempt_id)}
+              title={`${fmtDate(a.started_at)} · ${a.warnings} peringatan`}
+              className="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-300 px-2.5 py-1.5 hover:bg-[#0E6187]/5 hover:border-[#0E6187] transition-colors group">
+              <span className="text-[11px] font-bold text-slate-500">#{a.attempt_number}</span>
+              <span className={`text-xs font-semibold ${a.status === 'submitted' ? 'text-slate-700' : 'text-slate-400'}`}>
+                {a.status === 'submitted' ? (Number(a.score) || 0) + ' poin' : 'Belum selesai'}
+                {a.auto_submitted && <span className="ml-1 text-[9px] font-bold text-orange-500">AUTO</span>}
+              </span>
+              {a.webcam_photo && <Camera size={12} className="text-slate-400 shrink-0" />}
+            </button>
+          ))}
+        </div>
+      </td>
+      <td className="px-4 py-3 text-right border border-slate-200">
+        <p className="text-lg font-black text-[#0E6187]">{Number(par.best_score) || 0}</p>
+        <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">poin</p>
+      </td>
+      <td className="px-4 py-3 text-right whitespace-nowrap border border-slate-200">
+        <button onClick={() => resetAttempts(par.siswa_id, par.nama)}
+          className="inline-flex items-center gap-1.5 text-[11px] font-bold text-red-500 hover:text-white hover:bg-red-500 border-2 border-red-200 px-2.5 py-1.5 transition-colors">
+          <RotateCcw size={12} /> Reset
+        </button>
+      </td>
+    </tr>
   )
 
   // ==================== RENDER ====================
@@ -1903,18 +2137,18 @@ export default function DataCourse() {
       <div className="max-w-7xl mx-auto space-y-5">
 
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#0E6187] text-white shadow-sm">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#0E6187] text-white shadow-sm shrink-0">
               <BookOpen size={22} />
             </div>
-            <div>
+            <div className="min-w-0">
               <h1 className="text-lg font-bold text-slate-800">Data Kursus LMS</h1>
               <p className="text-sm text-slate-500">Kelola kursus, materi pembelajaran, dan quiz kandidat</p>
             </div>
           </div>
           {view === 'list' && !isAdminCabang && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button onClick={openBank} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:border-slate-300 text-[12px]">
                 <ListChecks size={15} /> Bank Paket Soal
               </button>
@@ -1927,8 +2161,24 @@ export default function DataCourse() {
               <button onClick={openCreateCourseCat} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:border-slate-300 text-[12px]">
                 Kelola Kategori
               </button>
+              <button onClick={() => navigate(`${base}/quiz-referensi`)} className="relative inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:border-slate-300 text-[12px]">
+                <FileCheck2 size={15} /> Referensi Quiz
+                {refPendingCount > 0 && (
+                  <span className="absolute -top-2 -right-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow">{refPendingCount}</span>
+                )}
+              </button>
               <button onClick={openCreateCourse} className={primaryBtn}>
                 <Plus size={16} /> Buat Kursus
+              </button>
+            </div>
+          )}
+          {view === 'list' && isAdminCabang && (
+            <div className="flex flex-wrap items-center gap-2">
+              <button onClick={() => navigate(`${base}/quiz-referensi`)} className="relative inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:border-slate-300 text-[12px]">
+                <FileCheck2 size={15} /> Referensi Quiz
+                {refPendingCount > 0 && (
+                  <span className="absolute -top-2 -right-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow">{refPendingCount}</span>
+                )}
               </button>
             </div>
           )}
@@ -2004,7 +2254,58 @@ export default function DataCourse() {
               </div>
             ) : (
               <div className="bg-white border-2 border-slate-200 overflow-hidden">
-                <div className="overflow-x-auto">
+                {/* ===== LIST MOBILE (card) ===== */}
+                <div className="md:hidden divide-y divide-slate-100">
+                  {filteredCourses.map(c => (
+                    <div key={c.id} className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-sm font-semibold text-slate-800 leading-snug">{c.title}</p>
+                        <span className={`shrink-0 inline-block text-[10px] font-semibold px-2 py-0.5 rounded ${c.status === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
+                          {c.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
+                        </span>
+                      </div>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        {c.category && (
+                          <span className="inline-block px-1.5 py-0.5 text-[10px] font-bold bg-indigo-50 text-indigo-600 rounded">
+                            {c.category.name}
+                          </span>
+                        )}
+                        <p className="text-xs text-slate-400">
+                          {[c.batch_id && batches.find(b => b.id === c.batch_id)?.nama_batch, c.level && `Level ${c.level}`].filter(Boolean).join(' · ') || 'Semua kandidat'}
+                        </p>
+                      </div>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">
+                          <FileText size={12} /> {c.lessons_count} File
+                        </span>
+                        <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">
+                          <UploadCloud size={12} /> {(c as any).files_count || 0} Materi
+                        </span>
+                        <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">
+                          <ListChecks size={12} /> Urutan {c.sort}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex items-center gap-2">
+                        <button onClick={() => openCourseDetail(c)}
+                          className="flex-1 inline-flex items-center justify-center gap-1 text-[11px] font-semibold text-white bg-[#0E6187] px-3 py-2 rounded-lg hover:bg-[#0E6187]/90 transition-colors">
+                          <ListChecks size={13} /> Buka
+                        </button>
+                        {!isAdminCabang && (
+                          <>
+                            <button onClick={() => openEditCourse(c)} className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors" title="Edit">
+                              <Pencil size={13} />
+                            </button>
+                            <button onClick={() => deleteCourse(c)} className="px-3 py-2 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors" title="Hapus">
+                              <Trash2 size={13} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* ===== LIST DESKTOP (table) ===== */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-sm border-collapse">
                     <thead className="bg-[#0E6187] text-white">
                       <tr>
@@ -2020,7 +2321,7 @@ export default function DataCourse() {
                     <tbody className="bg-white">
                       {filteredCourses.map((c, idx) => (
                         <tr key={c.id} className="hover:bg-[#0E6187]/5 transition-colors">
-                          <td className="px-4 py-3 text-sm text-slate-500 border border-slate-200">{idx + 1}</td>
+                          <td className="px-4 py-3 text-sm text-slate-500 border border-slate-200">{(coursePagination.current_page - 1) * coursePagination.per_page + idx + 1}</td>
                           <td className="px-4 py-3 border border-slate-200">
                             <div className="min-w-0">
                               <p className="text-slate-800 font-semibold truncate max-w-xs">{c.title}</p>
@@ -2072,6 +2373,7 @@ export default function DataCourse() {
                 </div>
               </div>
             )}
+            {renderPagination(coursePagination, p => { setCoursePage(p); fetchCourses(p) })}
           </>
         )}
 
@@ -2238,7 +2540,7 @@ export default function DataCourse() {
               <div className="flex flex-col items-center justify-center py-20 text-slate-400 text-sm gap-2">
                 <Loader2 size={24} className="animate-spin text-[#0E6187]" /> Memuat paket soal...
               </div>
-            ) : filteredBankPakets.length === 0 ? (
+            ) : bankPakets.length === 0 ? (
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-14 text-center">
                 <div className="w-14 h-14 mx-auto rounded-lg bg-[#0E6187]/10 flex items-center justify-center mb-3">
                   <ListChecks size={28} className="text-[#0E6187]" />
@@ -2249,7 +2551,9 @@ export default function DataCourse() {
                   <Plus size={16} /> Buat Paket Soal
                 </button>
               </div>
-            ) : renderPaketTable(filteredBankPakets, 'bank')}
+            ) : renderPaketTable(bankPakets, 'bank')}
+
+            {renderPagination(bankPagination, p => { setBankPage(p); fetchBankPakets(p) })}
           </div>
         )}
 
@@ -2639,7 +2943,7 @@ export default function DataCourse() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <h2 className="text-lg font-bold text-slate-800 truncate">Hasil · {activeQuizPaket.title}</h2>
-                  <p className="text-sm text-slate-500 mt-0.5">{participants.length} peserta mengerjakan</p>
+                  <p className="text-sm text-slate-500 mt-0.5">{participants.length} peserta mengerjakan{rGroupedMode && rGrouped.length > 1 ? ` · ${rGrouped.length} grup` : ''}{rHasFilter ? ` · filter: ${rFiltered.length}` : ''}</p>
                 </div>
                 {participants.length > 0 && (
                   <button onClick={() => resetAttempts()}
@@ -2648,7 +2952,102 @@ export default function DataCourse() {
                   </button>
                 )}
               </div>
+              {participants.length > 0 && (
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <div className="relative flex-1 min-w-[180px]">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input value={rFSearch} onChange={e => { setRFSearch(e.target.value); setRPage(1) }}
+                      placeholder="Sik nama kandidat..."
+                      className={`${inputCls} pl-9`} />
+                  </div>
+                  <select value={rFCabang} onChange={e => { setRFCabang(e.target.value); setRPage(1) }} className={`${inputCls} sm:w-44`}>
+                    <option value="">Cabang: Semua</option>
+                    {rCabangOpts.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <select value={rFBatch} onChange={e => { setRFBatch(e.target.value); setRPage(1) }} className={`${inputCls} sm:w-40`}>
+                    <option value="">Batch: Semua</option>
+                    {rBatchOpts.map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                  <select value={rFLevel} onChange={e => { setRFLevel(e.target.value); setRPage(1) }} className={`${inputCls} sm:w-36`}>
+                    <option value="">Level: Semua</option>
+                    {rLevelOpts.map(l => <option key={l} value={l}>{l === 'Tanpa Level' ? l : `Level ${l}`}</option>)}
+                  </select>
+                  {rHasFilter && (
+                    <button onClick={resetResultFilters}
+                      className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#0E6187] hover:text-[#0E6187]/80 border border-[#0E6187]/30 rounded-lg px-3 py-2 hover:bg-[#0E6187]/5 transition-colors shrink-0">
+                      <X size={12} /> Batal Filter
+                    </button>
+                  )}
+                </div>
+              )}
+              {participants.length > 0 && (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <label className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Grup berdasarkan</label>
+                  <select value={rGroupBy}
+                    onChange={e => { setRGroupBy(e.target.value as typeof rGroupBy); setRPage(1); setRCollapsed({}) }}
+                    className={`${inputCls} sm:w-64`}>
+                    <option value="all">Cabang · Batch · Level</option>
+                    <option value="cabang">Cabang</option>
+                    <option value="batch">Batch</option>
+                    <option value="level">Level</option>
+                    <option value="none">Tanpa Grup</option>
+                  </select>
+                  {rGroupedMode && rGrouped.length > 1 && (
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setRCollapsed(() => Object.fromEntries(rGrouped.map(g => [g.name, false])))}
+                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-[11px] font-bold text-slate-500 hover:bg-slate-50 transition-colors">
+                        <ChevronDown size={12} /> Buka Semua
+                      </button>
+                      <button onClick={() => setRCollapsed(() => Object.fromEntries(rGrouped.map(g => [g.name, true])))}
+                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-[11px] font-bold text-slate-500 hover:bg-slate-50 transition-colors">
+                        <ChevronUp size={12} /> Tutup Semua
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+
+            {!rLoading && participants.length > 0 && rFiltered.length > 0 && (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="bg-white rounded-lg border border-slate-200 px-4 py-3 flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0E6187]/10 text-[#0E6187] shrink-0">
+                    <Users size={16} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-lg font-black text-slate-800 leading-none">{rFiltered.length}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mt-1">Peserta</p>
+                  </div>
+                </div>
+                <div className="bg-white rounded-lg border border-slate-200 px-4 py-3 flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 shrink-0">
+                    <Award size={16} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-lg font-black text-slate-800 leading-none">{rFiltered.length > 0 ? Math.round(rFiltered.reduce((a, b) => a + (Number(b.best_score) || 0), 0) / rFiltered.length) : 0}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mt-1">Rata-rata</p>
+                  </div>
+                </div>
+                <div className="bg-white rounded-lg border border-slate-200 px-4 py-3 flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 shrink-0">
+                    <Building2 size={16} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-lg font-black text-slate-800 leading-none">{rGroupedMode ? rGrouped.length : new Set(rFiltered.map(rCabangOf)).size}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mt-1">{rGroupedMode ? 'Grup' : 'Cabang'}</p>
+                  </div>
+                </div>
+                <div className="bg-white rounded-lg border border-slate-200 px-4 py-3 flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/10 text-violet-600 shrink-0">
+                    <Layers size={16} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-lg font-black text-slate-800 leading-none">{rFiltered.reduce((a, b) => a + ((Number(b.best_score) || 0) >= 60 ? 1 : 0), 0)}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mt-1">Lulus (≥60)</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {rLoading ? (
               <div className="flex flex-col items-center justify-center py-16 text-slate-400 text-sm gap-2">
@@ -2660,83 +3059,75 @@ export default function DataCourse() {
                 <p className="text-slate-700 font-semibold">Belum ada peserta</p>
                 <p className="text-slate-500 text-sm mt-1">Hasil akan muncul setelah kandidat mengerjakan quiz</p>
               </div>
-            ) : (
-              <div className="bg-white border-2 border-slate-200 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm border-collapse">
-                    <thead>
-                      <tr className="bg-[#0E6187] text-white">
-                        <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide w-10 border border-[#0E6187]">#</th>
-                        <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Nama Kandidat</th>
-                        <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Cabang</th>
-                        <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Batch</th>
-                        <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Level</th>
-                        <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Riwayat Percobaan</th>
-                        <th className="text-right px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Nilai Terbaik</th>
-                        <th className="text-right px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {participants.map((par, idx) => (
-                        <tr key={par.siswa_id} className="bg-white hover:bg-[#0E6187]/5 transition-colors">
-                          <td className="px-4 py-3 text-xs font-bold text-slate-400 border border-slate-200">{idx + 1}</td>
-                          <td className="px-4 py-3 border border-slate-200">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 border-2 border-[#0E6187] bg-[#0E6187]/10 flex items-center justify-center shrink-0">
-                                <span className="text-sm font-black text-[#0E6187]">{par.nama.trim().charAt(0).toUpperCase() || '?'}</span>
-                              </div>
-                              <p className="font-semibold text-slate-800 truncate">{par.nama}</p>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 border border-slate-200">
-                            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600">
-                              <Building2 size={13} className="text-slate-400 shrink-0" /> {par.cabang || '-'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 border border-slate-200">
-                            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600">
-                              <Users size={13} className="text-[#0E6187] shrink-0" /> {par.batch || '-'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 border border-slate-200">
-                            {par.level !== null && par.level !== '' ? (
-                              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600">
-                                <Layers size={13} className="text-emerald-500 shrink-0" /> Level {par.level}
-                              </span>
-                            ) : '-'}
-                          </td>
-                          <td className="px-4 py-3 border border-slate-200">
-                            <div className="flex flex-wrap gap-1.5">
-                              {par.attempts.map(a => (
-                                <button key={a.attempt_id} onClick={() => openAttemptDetail(a.attempt_id)}
-                                  title={`${fmtDate(a.started_at)} · ${a.warnings} peringatan`}
-                                  className="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-300 px-2.5 py-1.5 hover:bg-[#0E6187]/5 hover:border-[#0E6187] transition-colors group">
-                                  <span className="text-[11px] font-bold text-slate-500">#{a.attempt_number}</span>
-                                  <span className={`text-xs font-semibold ${a.status === 'submitted' ? 'text-slate-700' : 'text-slate-400'}`}>
-                                    {a.status === 'submitted' ? (Number(a.score) || 0) + ' poin' : 'Belum selesai'}
-                                    {a.auto_submitted && <span className="ml-1 text-[9px] font-bold text-orange-500">AUTO</span>}
-                                  </span>
-                                  {a.webcam_photo && <Camera size={12} className="text-slate-400 shrink-0" />}
-                                </button>
-                              ))}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-right border border-slate-200">
-                            <p className="text-lg font-black text-[#0E6187]">{Number(par.best_score) || 0}</p>
-                            <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">poin</p>
-                          </td>
-                          <td className="px-4 py-3 text-right whitespace-nowrap border border-slate-200">
-                            <button onClick={() => resetAttempts(par.siswa_id, par.nama)}
-                              className="inline-flex items-center gap-1.5 text-[11px] font-bold text-red-500 hover:text-white hover:bg-red-500 border-2 border-red-200 px-2.5 py-1.5 transition-colors">
-                              <RotateCcw size={12} /> Reset
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+            ) : rFiltered.length === 0 ? (
+              <div className="bg-white rounded-lg shadow-sm border border-dashed border-slate-300 p-14 text-center">
+                <Search size={28} className="text-slate-300 mx-auto mb-2" />
+                <p className="text-slate-700 font-semibold">Belum ada hasil dengan filter ini</p>
+                <p className="text-slate-500 text-sm mt-1">Perubah filter atau klik "Batal Filter" untuk melihat semua peserta</p>
               </div>
+            ) : (
+              <>
+                <div className="bg-white border-2 border-slate-200 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm border-collapse">
+                      <thead>
+                        <tr className="bg-[#0E6187] text-white">
+                          <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide w-10 border border-[#0E6187]">#</th>
+                          <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Nama Kandidat</th>
+                          <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Cabang</th>
+                          <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Batch</th>
+                          <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Level</th>
+                          <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Riwayat Percobaan</th>
+                          <th className="text-right px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Nilai Terbaik</th>
+                          <th className="text-right px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rGroupedMode ? (
+                          rPageGroups.map(group => {
+                            const isCollapsed = !!rCollapsed[group.name]
+                            return (
+                            <Fragment key={group.name}>
+                              <tr className="bg-gradient-to-r from-[#0E6187]/8 to-[#0E6187]/3">
+                                <td colSpan={8} className="p-0 border border-slate-200">
+                                  <button onClick={() => setRCollapsed(c => ({ ...c, [group.name]: !c[group.name] }))}
+                                    className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-[#0E6187]/10 transition-colors">
+                                    <span className="flex items-center gap-2.5 min-w-0">
+                                      <span className={`flex h-8 w-8 items-center justify-center rounded-lg bg-[#0E6187] text-white shrink-0 transition-transform ${isCollapsed ? '' : 'rotate-0'}`}>
+                                        <Building2 size={15} />
+                                      </span>
+                                      <span className="min-w-0">
+                                        <span className="text-sm font-bold text-slate-800 block truncate">{group.name}</span>
+                                        <span className="text-[11px] text-slate-500">{group.total} peserta</span>
+                                      </span>
+                                    </span>
+                                    <span className="flex items-center gap-4 shrink-0">
+                                      <span className="hidden sm:flex items-center gap-3 text-[11px]">
+                                        <span className="text-slate-500">Rata-rata: <b className="text-slate-700">{group.avg}</b></span>
+                                        <span className="text-slate-300">|</span>
+                                        <span className="text-slate-500">Terbaik: <b className="text-[#0E6187]">{group.best}</b></span>
+                                      </span>
+                                      <span className="sm:hidden text-[11px] text-slate-500">
+                                        <b className="text-[#0E6187]">{group.best}</b> poin
+                                      </span>
+                                      <ChevronDown size={16} className={`text-slate-400 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`} />
+                                    </span>
+                                  </button>
+                                </td>
+                              </tr>
+                              {!isCollapsed && group.items.map((par, i) => renderParticipantRow(par, (rSafePage - 1) * R_PER_PAGE + i))}
+                            </Fragment>
+                            )
+                          })
+                        ) : (
+                          rPageParticipants.map((par, idx) => renderParticipantRow(par, (rSafePage - 1) * R_PER_PAGE + idx))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                {renderPagination(rPagination, p => setRPage(p), rGroupedMode ? 'grup' : 'peserta')}
+              </>
             )}
           </div>
         )}

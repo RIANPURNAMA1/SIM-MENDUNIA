@@ -114,6 +114,7 @@ import QuizBasicPlay from './pages/Akademik/QuizBasicPlay'
 import Raport from './pages/Akademik/Raport'
 import SiswaNilai from './pages/Siswa/SiswaNilai'
 import DataCourse from './pages/Akademik/DataCourse'
+import QuizReferensi from './pages/Akademik/QuizReferensi'
 import DataLesson from './pages/Akademik/DataLesson'
 import DataBlog from './pages/Akademik/DataBlog'
 import PertemuanAdmin from './pages/Akademik/PertemuanAdmin'
@@ -608,6 +609,16 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/admin-cabang/lms/quiz-referensi"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <QuizReferensi />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/admin-cabang/lms/bank-paket-soal"
         element={
           <ProtectedRoute roleAllowed="ADMIN_CABANG">
@@ -1065,6 +1076,7 @@ function AppRoutes() {
                 <Route path="/evaluasi-instruktur" element={<EvaluasiInstruktur />} />
                 <Route path="/raport" element={<Raport />} />
                 <Route path="/lms" element={<DataCourse />} />
+                <Route path="/lms/quiz-referensi" element={<QuizReferensi />} />
                 <Route path="/lms/bank-paket-soal" element={<DataCourse />} />
                 <Route path="/lms/bank-materi" element={<DataCourse />} />
                 <Route path="/lms/course/:courseId" element={<DataCourse />} />
