@@ -785,7 +785,7 @@ export default function GuruLMS() {
               className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-gray-700 transition-colors mb-2">
               <ArrowLeft size={14} /> Kembali ke Daftar Kursus
             </button>
-            <div className="flex items-start justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div className="flex items-start gap-3">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0E6187] to-[#1a3355] flex items-center justify-center shrink-0 overflow-hidden relative">
                   {selectedCourse.image ? (
@@ -856,7 +856,7 @@ export default function GuruLMS() {
 
           {/* Tabs */}
           <div className="max-w-5xl mx-auto px-4">
-            <div className="flex gap-0 border-b border-gray-200">
+            <div className="flex gap-0 border-b border-gray-200 overflow-x-auto">
               {([
                 { key: 'lessons' as TabType, label: viaKelas ? 'Daftar Pertemuan' : 'Pelajaran', icon: ListChecks, count: courseLessons.length },
                 ...(!viaKelas ? [
@@ -866,7 +866,7 @@ export default function GuruLMS() {
                 ] : []),
               ]).map(tab => (
                 <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-                  className={`flex items-center gap-1.5 px-4 py-3 text-xs font-bold border-b-2 transition-colors ${
+                  className={`flex items-center gap-1.5 px-4 py-3 text-xs font-bold border-b-2 transition-colors whitespace-nowrap shrink-0 ${
                     activeTab === tab.key
                       ? 'border-[#0069b0] text-[#0069b0]'
                       : 'border-transparent text-gray-400 hover:text-gray-600'
@@ -1025,7 +1025,7 @@ export default function GuruLMS() {
                           {f.file_type && <span className="text-[10px] text-gray-300 uppercase">{f.file_type.split('/').pop()}</span>}
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-1 shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                         <a href={`${APP_URL}/storage/${f.file_path}`} target="_blank" rel="noopener noreferrer"
                           className="p-2 rounded-lg text-gray-400 hover:bg-blue-50 hover:text-blue-600 transition-colors" title="Download">
                           <Download size={14} />
@@ -1098,7 +1098,7 @@ export default function GuruLMS() {
                       const qs = paketQuestionsMap[p.id]
                       return (
                         <div key={p.id} className="px-5 py-4">
-                          <div className="flex items-center gap-3">
+                          <div className="flex flex-wrap items-center gap-3">
                             <div className={`flex items-center justify-center w-9 h-9 rounded-lg shrink-0 ${p.status === 'aktif' ? 'bg-[#0069b0]/10 text-[#0069b0]' : 'bg-gray-100 text-gray-300'}`}>
                               <Trophy size={16} />
                             </div>
@@ -1318,7 +1318,7 @@ export default function GuruLMS() {
                         }}
                         onSlidesChange={setLessonSlides}
                       />
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-xs font-bold text-gray-700 mb-1.5">Urutan</label>
                           <input type="number" value={lessonForm.sort} onChange={e => setLessonForm(f => ({ ...f, sort: e.target.value }))}
@@ -1400,7 +1400,7 @@ export default function GuruLMS() {
                           <input type="text" placeholder="Deskripsi (opsional)" value={taskForm.description}
                             onChange={e => setTaskForm(f => ({ ...f, description: e.target.value }))}
                             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]" />
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <input type="date" value={taskForm.dueDate}
                               onChange={e => setTaskForm(f => ({ ...f, dueDate: e.target.value }))}
                               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]" />
@@ -1541,7 +1541,7 @@ export default function GuruLMS() {
                       className="[&_.ql-editor]:min-h-[120px] [&_.ql-editor]:text-sm [&_.ql-container]:rounded-b-lg [&_.ql-toolbar]:rounded-t-lg [&_.ql-toolbar]:border-gray-300 [&_.ql-container]:border-gray-300" />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-700 mb-1.5">Level</label>
                     <select value={courseForm.level} onChange={e => setCourseForm(f => ({ ...f, level: e.target.value }))}
@@ -1561,7 +1561,7 @@ export default function GuruLMS() {
                     </select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-700 mb-1.5">Urutan</label>
                     <input type="number" value={courseForm.sort} onChange={e => setCourseForm(f => ({ ...f, sort: e.target.value }))}
@@ -1655,9 +1655,9 @@ export default function GuruLMS() {
 
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#0069b0]/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-[#0069b0]/10 flex items-center justify-center shrink-0">
                 <BookOpen size={20} className="text-[#0069b0]" />
               </div>
               <div>
@@ -1665,17 +1665,17 @@ export default function GuruLMS() {
                 <p className="text-[11px] text-gray-400 font-medium">Learning Management System</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button onClick={handleSyncKelas} disabled={syncing}
-                className="flex items-center gap-1.5 border border-gray-300 text-gray-600 px-4 py-2.5 rounded-lg text-[11px] font-bold bg-white hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50">
+                className="flex items-center gap-1.5 border border-gray-300 text-gray-600 px-4 py-2.5 rounded-lg text-[11px] font-bold bg-white hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50 whitespace-nowrap">
                 <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} /> {syncing ? 'Sinkronisasi...' : 'Sinkronisasi'}
               </button>
               <button onClick={handleSyncKehadiran} disabled={syncingKehadiran}
-                className="flex items-center gap-1.5 border border-[#0B5E42] text-[#0B5E42] px-4 py-2.5 rounded-lg text-[11px] font-bold bg-white hover:bg-[#0B5E42]/5 transition-colors shadow-sm disabled:opacity-50">
+                className="flex items-center gap-1.5 border border-[#0B5E42] text-[#0B5E42] px-4 py-2.5 rounded-lg text-[11px] font-bold bg-white hover:bg-[#0B5E42]/5 transition-colors shadow-sm disabled:opacity-50 whitespace-nowrap">
                 <CalendarCheck size={14} className={syncingKehadiran ? 'animate-pulse' : ''} /> {syncingKehadiran ? 'Sinkronisasi Kehadiran...' : 'Sinkronisasi Kehadiran'}
               </button>
               <button onClick={openRankModal}
-                className="flex items-center gap-1.5 border border-[#0069b0] text-[#0069b0] px-4 py-2.5 rounded-lg text-[11px] font-bold bg-white hover:bg-[#0069b0]/5 transition-colors shadow-sm">
+                className="flex items-center gap-1.5 border border-[#0069b0] text-[#0069b0] px-4 py-2.5 rounded-lg text-[11px] font-bold bg-white hover:bg-[#0069b0]/5 transition-colors shadow-sm whitespace-nowrap">
                 <Trophy size={14} /> Rank
               </button>
             </div>
@@ -1738,7 +1738,7 @@ export default function GuruLMS() {
                         <Lock size={9} /> Ditutup
                       </span>
                     )}
-                    <div className="flex items-center gap-1.5">
+<div className="flex flex-wrap items-center gap-1.5">
                       <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-white/20 text-white backdrop-blur-sm">
                         {course.level ? `Level ${course.level}` : 'Umum'}
                       </span>
@@ -1839,7 +1839,7 @@ export default function GuruLMS() {
                     className="[&_.ql-editor]:min-h-[120px] [&_.ql-editor]:text-sm [&_.ql-container]:rounded-b-lg [&_.ql-toolbar]:rounded-t-lg [&_.ql-toolbar]:border-gray-300 [&_.ql-container]:border-gray-300" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1.5">Level</label>
                   <select value={courseForm.level} onChange={e => setCourseForm(f => ({ ...f, level: e.target.value }))}
@@ -1859,7 +1859,7 @@ export default function GuruLMS() {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1.5">Urutan</label>
                   <input type="number" value={courseForm.sort} onChange={e => setCourseForm(f => ({ ...f, sort: e.target.value }))}

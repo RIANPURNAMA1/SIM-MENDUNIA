@@ -442,7 +442,9 @@ export default function GuruLessonDetail() {
     setBankLoading(true)
     guruQuizApi.bankPakets()
       .then(res => {
-        setBankPakets(res.data.pakets || [])
+        const all = res.data.pakets || []
+        const lvl = lesson?.course?.level
+        setBankPakets(lvl ? all.filter((p: BankPaket) => !p.level || String(p.level) === String(lvl)) : all)
       })
       .catch(() => setBankPakets([]))
       .finally(() => setBankLoading(false))
@@ -971,7 +973,11 @@ export default function GuruLessonDetail() {
       if (next && taskBankPakets.length === 0) {
         setTaskBankLoading(true)
         guruQuizApi.bankPakets()
-          .then(res => setTaskBankPakets(res.data.pakets || []))
+          .then(res => {
+            const all = res.data.pakets || []
+            const lvl = lesson?.course?.level
+            setTaskBankPakets(lvl ? all.filter((p: BankPaket) => !p.level || String(p.level) === String(lvl)) : all)
+          })
           .catch(() => setTaskBankPakets([]))
           .finally(() => setTaskBankLoading(false))
       }

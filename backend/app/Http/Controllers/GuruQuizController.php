@@ -128,6 +128,18 @@ class GuruQuizController extends Controller
         return $this->siswaIdsForPairs($pairs);
     }
 
+    /**
+     * Level efektif seorang siswa untuk filter batch:level. Mendahulukan kolom
+     * `level` bila terisi, lalu fallback ke level yang di-resolve oleh
+     * `Siswa::levelRekap()` (kelas/absensi) karena banyak siswa di-import tanpa
+     * kolom level sehingga pencocokan "batch:level" akan gagal.
+     */
+    private function siswaEffectiveLevel(Siswa $siswa): ?int
+    {
+        $level = $siswa->levelRekap();
+        return $level !== null ? (int) $level : null;
+    }
+
     private function siswaIdsForPairs(array $pairs): ?array
     {
         if (empty($pairs)) {
@@ -139,7 +151,13 @@ class GuruQuizController extends Controller
 
         $ids = Siswa::whereIn('batch_id', $batchIds)
             ->get()
-            ->filter(fn ($s) => isset($pairSet["{$s->batch_id}:{$s->level}"]))
+            ->filter(function ($s) use ($pairSet) {
+                if (isset($pairSet["{$s->batch_id}:{$s->level}"])) {
+                    return true;
+                }
+                $resolved = $this->siswaEffectiveLevel($s);
+                return $resolved !== null && isset($pairSet["{$s->batch_id}:{$resolved}"]);
+            })
             ->pluck('id')
             ->map(fn ($id) => (int) $id)
             ->values()
