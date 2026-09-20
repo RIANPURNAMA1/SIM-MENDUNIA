@@ -595,6 +595,7 @@ class QuizController extends Controller
                 'sort' => $q->sort,
                 'image_url' => $q->image_url,
                 'audio_url' => $q->audio_url,
+                'audio_max_plays' => $q->audio_max_plays,
                 'selected_index' => $a?->selected_index,
                 'answer_text' => $a?->answer_text,
                 'earned_points' => $a?->earned_points,
