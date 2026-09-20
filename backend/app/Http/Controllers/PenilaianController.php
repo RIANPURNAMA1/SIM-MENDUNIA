@@ -228,9 +228,11 @@ class PenilaianController extends Controller
                 }
 
                 $scores = [];
+                $sources = [];
                 foreach ($cat->components as $comp) {
                     $a = $items->firstWhere('component_id', $comp->id);
                     $scores[] = $a ? (float) $a->nilai : null;
+                    $sources[] = $a ? ($a->sumber ?? null) : null;
                 }
 
                 $catData['pertemuan'][] = [
@@ -238,6 +240,7 @@ class PenilaianController extends Controller
                     'hari' => $hari,
                     'pertemuan_ke' => $pertemuanKe,
                     'scores' => $scores,
+                    'sources' => $sources,
                 ];
             }
 
@@ -724,6 +727,7 @@ class PenilaianController extends Controller
                 [
                     'user_id' => $user->id,
                     'nilai' => $score['nilai'],
+                    'sumber' => 'manual',
                 ]
             );
             $stored[] = $sa;

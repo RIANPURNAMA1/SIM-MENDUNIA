@@ -54,6 +54,7 @@ interface PertemuanItem {
   hari: string
   pertemuan_ke: number
   scores: (number | null)[]
+  sources?: (string | null)[]
 }
 
 interface CategoryItem {
@@ -175,6 +176,7 @@ export default function GuruDataSiswa() {
   const [penilaianSiswa, setPenilaianSiswa] = useState<SiswaItem | SiswaPenilaian | null>(null)
   const [penilaianTanggal, setPenilaianTanggal] = useState('')
   const [scoreInputs, setScoreInputs] = useState<Record<number, string>>({})
+  const [quizSource, setQuizSource] = useState<Record<number, boolean>>({})
   const [loadingPenilaian, setLoadingPenilaian] = useState(false)
 
   const [showKalenderModal, setShowKalenderModal] = useState(false)
@@ -400,6 +402,7 @@ export default function GuruDataSiswa() {
     setPenilaianData(null)
     setLoadingPenilaian(true)
     setScoreInputs({})
+    setQuizSource({})
     try {
       const res = await penilaianApi.dayDetail({
         siswa_id: siswa.id,
@@ -413,7 +416,7 @@ export default function GuruDataSiswa() {
         for (const cat of res.data.categories) {
           const lastPt = cat.pertemuan.length > 0 ? cat.pertemuan[cat.pertemuan.length - 1] : null
           if (lastPt) {
-            cat.components.forEach((comp, idx) => {
+            cat.components.forEach((comp: ComponentItem, idx: number) => {
               const val = idx < lastPt.scores.length ? lastPt.scores[idx] : null
               if (val !== null) inputs[comp.id] = String(val)
             })
@@ -421,6 +424,18 @@ export default function GuruDataSiswa() {
         }
       }
       setScoreInputs(inputs)
+      const qsrc: Record<number, boolean> = {}
+      if (res.data?.categories) {
+        for (const cat of res.data.categories) {
+          const lastPt = cat.pertemuan.length > 0 ? cat.pertemuan[cat.pertemuan.length - 1] : null
+          if (lastPt) {
+            cat.components.forEach((comp: ComponentItem, idx: number) => {
+              if (idx < (lastPt.sources?.length ?? 0) && lastPt.sources[idx] === 'quiz') qsrc[comp.id] = true
+            })
+          }
+        }
+      }
+      setQuizSource(qsrc)
     } catch {
       setPenilaianData(null)
     } finally {
@@ -1102,15 +1117,22 @@ export default function GuruDataSiswa() {
                         {cat.components.map(comp => (
                           <div key={comp.id} className="flex items-center gap-3">
                             <label className="text-sm font-semibold text-gray-700 w-28 shrink-0">{comp.nama}</label>
-                            <input
-                              type="number"
-                              min="0"
-                              max="100"
-                              value={scoreInputs[comp.id] ?? ''}
-                              onChange={e => setScoreInputs(prev => ({ ...prev, [comp.id]: e.target.value }))}
-                              placeholder="0-100"
-                              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]"
-                            />
+                            <div className="relative w-full">
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={scoreInputs[comp.id] ?? ''}
+                                onChange={e => setScoreInputs(prev => ({ ...prev, [comp.id]: e.target.value }))}
+                                placeholder="0-100"
+                                className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${quizSource[comp.id] ? 'border-amber-300 bg-amber-50 focus:border-amber-400 focus:ring-amber-400' : 'border-gray-300 focus:border-[#0069b0] focus:ring-[#0069b0]'}`}
+                              />
+                              {quizSource[comp.id] && (
+                                <span className="absolute -top-2 right-2 rounded bg-amber-500 px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm">
+                                  dari quiz
+                                </span>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -1140,8 +1162,13 @@ export default function GuruDataSiswa() {
                                   {pt.scores.map((s, j) => (
                                     <td key={j} className="px-2 py-1 text-center">
                                       {s !== null ? (
-                                        <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${SCORE_BADGE(s)}`}>
-                                          {Math.round(s)}
+                                        <span className="inline-flex items-center gap-1">
+                                          <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${SCORE_BADGE(s)}`}>
+                                            {Math.round(s)}
+                                          </span>
+                                          {(pt.sources?.[j] === 'quiz') && (
+                                            <span title="Otomatis dari quiz" className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500" />
+                                          )}
                                         </span>
                                       ) : <span className="text-slate-300">-</span>}
                                     </td>

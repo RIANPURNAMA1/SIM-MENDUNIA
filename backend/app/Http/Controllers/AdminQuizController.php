@@ -776,6 +776,12 @@ $data = $request->validate([
         $attempt->recomputeScore();
         $attempt->refresh();
 
+        try {
+            app(\App\Services\QuizAssessmentSync::class)->syncAttempt($attempt);
+        } catch (\Throwable $e) {
+            // Sinkronisasi nilai opsional: penyimpanan nilai esai tetap berhasil.
+        }
+
         return response()->json([
             'attempt' => $attempt,
             'message' => 'Nilai esai tersimpan',

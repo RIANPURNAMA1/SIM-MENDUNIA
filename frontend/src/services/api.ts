@@ -503,6 +503,7 @@ export const pertemuanApi = {
   detail: (kelasId: number) => api.get(`/guru/pertemuan/kelas/${kelasId}`),
   store: (kelasId: number, data: FormData) =>
     api.post(`/guru/pertemuan/kelas/${kelasId}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  syncNilai: (kelasId: number) => api.post(`/guru/pertemuan/kelas/${kelasId}/sync-nilai`),
   ringkasan: () => api.get('/guru/pertemuan/ringkasan'),
   adminKelas: () => api.get('/admin/pertemuan/kelas'),
   adminCabangKelas: () => api.get('/admin-cabang/pertemuan/kelas'),

@@ -77,6 +77,7 @@ export default function GuruPertemuanDetail({ readOnly = false, backPath = '/gur
   const [fotoPreview, setFotoPreview] = useState<string | null>(null)
   const [hapusFoto, setHapusFoto] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [syncing, setSyncing] = useState(false)
 
   const load = useCallback(async () => {
     if (!kelasId) return
@@ -153,6 +154,29 @@ export default function GuruPertemuanDetail({ readOnly = false, backPath = '/gur
   const modalItem = modalDate ? pertemuan.find(p => p.tanggal === modalDate) : null
   const persen = kelas && kelas.total_pertemuan > 0 ? Math.round((terisi / kelas.total_pertemuan) * 100) : 0
 
+  const syncNilai = async () => {
+    if (!kelasId) return
+    const conf = await Swal.fire({
+      title: 'Tarik nilai quiz ke Penilaian Siswa?',
+      text: 'Nilai terbaik siswa dari paket Ulangan Harian/Mingguan di kelas ini akan ditulis ke komponen "Ulangan" pada tanggal pertemuan bersangkutan. Nilai manual yang sudah terisi akan tertimpa.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, sinkronkan',
+      cancelButtonText: 'Batal',
+    })
+    if (!conf.isConfirmed) return
+    setSyncing(true)
+    try {
+      const res = await pertemuanApi.syncNilai(Number(kelasId))
+      Swal.fire({ icon: 'success', title: 'Selesai', text: res.data.message, timer: 2500, showConfirmButton: false })
+      await load()
+    } catch (e: any) {
+      Swal.fire({ icon: 'error', title: 'Gagal sinkronisasi', text: e?.response?.data?.message || 'Terjadi kesalahan' })
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -202,6 +226,13 @@ export default function GuruPertemuanDetail({ readOnly = false, backPath = '/gur
         <h2 className="text-sm font-black text-slate-800 flex items-center gap-2">
           <ListChecks size={15} className="text-[#0E6187]" /> Daftar Riwayat Pertemuan
         </h2>
+        {canEdit && (
+          <button onClick={syncNilai} disabled={syncing}
+            className="flex items-center gap-1.5 rounded-lg bg-[#0E6187] px-3 py-2 text-[11px] font-bold text-white shadow transition hover:bg-[#0c4f70] disabled:opacity-50">
+            <Activity size={13} className={syncing ? 'animate-spin' : ''} />
+            {syncing ? 'Menyinkronkan…' : 'Tarik Nilai Quiz → Penilaian'}
+          </button>
+        )}
       </div>
 
       <div className="space-y-3">

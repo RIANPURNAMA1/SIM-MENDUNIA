@@ -317,8 +317,80 @@ export default function GuruQuizMonitor() {
             <p className="text-xs text-slate-500 font-medium mt-1">Kandidat yang mulai mengerjakan quiz ini akan muncul di sini secara otomatis.</p>
           </div>
         ) : (
-          <div className="rounded-md border border-white/10 bg-[#16181d] overflow-hidden">
-            <div className="overflow-x-auto">
+          <>
+            {/* Mobile cards */}
+            <div className="md:hidden space-y-2">
+              {attempts.map(a => {
+                const remaining = remOf(a)
+                const lowTime = remaining !== null && remaining <= 60
+                const stale = a.status === 'in_progress' && a.last_activity
+                  ? (now - Date.parse(a.last_activity)) > 90 * 1000
+                  : false
+                const isLive = a.status === 'in_progress'
+                const statuses = Array.from({ length: a.total_count }, (_, i) => a.answers_status[i] || 'kosong')
+                return (
+                  <div key={a.attempt_id} onClick={() => openDetail(a.attempt_id)}
+                    className="rounded-lg border border-white/10 bg-[#16181d] p-3.5 cursor-pointer active:bg-[#0E6187]/10 transition-colors">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-white/5 border border-white/10 text-[11px] font-bold text-slate-300 shrink-0">#{a.attempt_number}</span>
+                        <p className="text-[12px] font-bold text-white truncate">{a.siswa.nama}</p>
+                      </div>
+                      {isLive ? (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-red-500/15 px-1.5 py-0.5 text-[9px] font-bold text-red-400 shrink-0">
+                          <span className="h-1 w-1 rounded-full bg-red-500 animate-pulse" />LAKUKAN
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400 shrink-0">
+                          <CheckCircle2 size={9} />KUMPUL
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-500 font-medium mt-1">
+                      {[a.siswa.batch && `Batch ${a.siswa.batch}`, a.siswa.level !== null && a.siswa.level !== undefined && `Level ${a.siswa.level}`].filter(Boolean).join(' · ') || '-'}
+                      {isLive ? ` · ${a.answered_count}/${a.total_count} terjawab${a.auto_submitted ? ' · auto' : ''}` : ` · ${Number(a.score) || 0} poin${a.auto_submitted ? ' · auto' : ''}`}
+                    </p>
+
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {statuses.map((s, i) => {
+                        const ui = STATUS_UI[s] || STATUS_UI.kosong
+                        return (
+                          <span key={i} title={`Soal ${i + 1} — ${ui.label}`}
+                            className={`h-6 w-6 rounded-md border flex items-center justify-center text-[9px] font-bold ${ui.cls}`}>
+                            {i + 1}
+                          </span>
+                        )
+                      })}
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 mt-2.5">
+                      <div className="flex items-center gap-2 text-[11px] font-bold min-w-0">
+                        <span className="text-emerald-400 whitespace-nowrap">{a.correct_count}/{a.total_count} benar</span>
+                        <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md whitespace-nowrap ${a.warnings >= a.max_warnings ? 'bg-red-500/15 text-red-400' : a.warnings > 0 ? 'bg-amber-500/15 text-amber-400' : 'bg-white/5 text-slate-500'}`}>
+                          <ShieldAlert size={10} /> {a.warnings}/{a.max_warnings}
+                        </span>
+                      </div>
+                      {isLive ? (
+                        <span className={`text-[11px] font-bold text-right whitespace-nowrap ${lowTime ? 'text-red-400' : 'text-slate-300'}`}>
+                          {remaining !== null ? `${fmtClock(remaining)} tersisa` : '0:00 tersisa'}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-500 font-medium text-right whitespace-nowrap">
+                          selesai {fmtDate(a.submitted_at)}
+                        </span>
+                      )}
+                    </div>
+                    {stale && (
+                      <p className="text-[9.5px] font-bold text-amber-400 mt-1.5">Tidak aktif</p>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block rounded-md border border-white/10 bg-[#16181d] overflow-hidden">
+              <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
                   <tr className="border-b border-white/10 bg-white/[0.04] text-[10px] font-bold uppercase tracking-wider text-slate-400">
@@ -409,16 +481,18 @@ export default function GuruQuizMonitor() {
                 </tbody>
               </table>
             </div>
-            <div className="flex flex-wrap items-center gap-4 border-t border-white/10 bg-white/[0.03] px-3 py-2.5">
+            </div>
+
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2.5">
               {Object.entries(STATUS_UI).map(([k, v]) => (
                 <span key={k} className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400">
                   <span className={`h-3.5 w-3.5 rounded-md border ${v.cls}`} />
                   {v.label}
                 </span>
               ))}
-              <span className="text-[10px] text-slate-500 font-medium ml-auto">Klik baris untuk melihat detail & menilai esai</span>
+              <span className="text-[10px] text-slate-500 font-medium md:ml-auto">Klik untuk melihat detail & menilai esai</span>
             </div>
-          </div>
+          </>
         )}
       </div>
 

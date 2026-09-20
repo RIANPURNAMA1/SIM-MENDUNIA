@@ -225,6 +225,30 @@ class PertemuanController extends Controller
         ]);
     }
 
+    public function syncNilai(int $kelasId)
+    {
+        $user = Auth::guard('sanctum')->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $kelas = KelasSensei::find($kelasId);
+        if (!$kelas) {
+            return response()->json(['message' => 'Kelas tidak ditemukan'], 404);
+        }
+        if ((int) $kelas->user_id !== (int) $user->id) {
+            return response()->json(['message' => 'Hanya sensei pemilik kelas yang dapat menarik nilai quiz'], 403);
+        }
+
+        $result = app(\App\Services\QuizAssessmentSync::class)->syncKelas($kelasId);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Sinkronisasi selesai: ' . $result['attempts'] . ' percobaan quiz diproses, ' . $result['penilaian'] . ' data penilaian ditulis.',
+            'data' => $result,
+        ]);
+    }
+
     public function ringkasan()
     {
         $user = Auth::guard('sanctum')->user();

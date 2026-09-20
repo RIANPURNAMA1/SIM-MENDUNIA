@@ -845,7 +845,7 @@ $data = $request->validate([
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
-        $attempt = QuizAttempt::with(['paket.user', 'siswa:id,nama'])
+        $attempt = QuizAttempt::with(['paket.user', 'paket.questions.section', 'siswa:id,nama'])
             ->where('id', $attemptId)
             ->firstOrFail();
 
@@ -864,6 +864,8 @@ $data = $request->validate([
                 'keyword' => $q->keyword,
                 'points' => $q->points,
                 'sort' => $q->sort,
+                'section_id' => $q->section_id,
+                'section' => $q->section ? ['id' => $q->section->id, 'name' => $q->section->name] : null,
                 'image_url' => $q->image_url,
                 'audio_url' => $q->audio_url,
                 'audio_max_plays' => $q->audio_max_plays,
@@ -874,9 +876,19 @@ $data = $request->validate([
             ];
         });
 
+        $sections = $attempt->paket->sections()->withCount('questions')->orderBy('sort')->get()
+            ->map(fn ($s) => ['id' => $s->id, 'name' => $s->name, 'count' => (int) $s->questions_count])
+            ->values();
+
+        $unsectioned = $attempt->paket->questions->whereNull('section_id')->count();
+        if ($unsectioned > 0) {
+            $sections->push(['id' => null, 'name' => 'Umum', 'count' => $unsectioned]);
+        }
+
         return response()->json([
             'attempt' => $attempt,
             'questions' => $rows,
+            'sections' => $sections,
             'siswa' => $attempt->siswa,
         ]);
     }
@@ -928,6 +940,12 @@ $data = $request->validate([
 
         $attempt->recomputeScore();
         $attempt->refresh();
+
+        try {
+            app(\App\Services\QuizAssessmentSync::class)->syncAttempt($attempt);
+        } catch (\Throwable $e) {
+            // Sinkronisasi nilai opsional: penyimpanan nilai esai tetap berhasil.
+        }
 
         return response()->json([
             'attempt' => $attempt,
