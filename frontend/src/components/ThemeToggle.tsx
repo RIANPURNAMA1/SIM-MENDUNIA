@@ -16,7 +16,7 @@ export default function ThemeToggle({ floating = false, className = '' }: ThemeT
         onClick={toggle}
         aria-label={label}
         title={label}
-        className={`fixed bottom-5 right-5 z-[60] flex h-11 w-11 items-center justify-center rounded-full bg-[#0E6187] text-white shadow-lg transition hover:opacity-90 ${className}`}
+        className={`fixed bottom-24 right-5 z-[60] flex h-11 w-11 items-center justify-center rounded-full bg-[#0E6187] text-white shadow-lg transition hover:opacity-90 ${className}`}
       >
         {isDark ? <Sun size={20} /> : <Moon size={20} />}
       </button>
