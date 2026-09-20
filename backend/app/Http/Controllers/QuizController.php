@@ -135,6 +135,12 @@ class QuizController extends Controller
         } catch (\Throwable $e) {
             // Realtime push bersifat opsional: hasil tetap tersimpan walau server websocket mati.
         }
+
+        try {
+            app(\App\Services\QuizAssessmentSync::class)->syncAttempt($attempt);
+        } catch (\Throwable $e) {
+            // Sinkronisasi nilai ke penilaian tidak boleh menggagalkan submit quiz.
+        }
     }
 
     private function expireIfTimeUp(QuizAttempt $attempt)

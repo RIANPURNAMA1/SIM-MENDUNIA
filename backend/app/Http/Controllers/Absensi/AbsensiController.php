@@ -2001,6 +2001,7 @@ class AbsensiController extends Controller
                     [
                         'user_id' => $user->id,
                         'nilai' => $nilai,
+                        'sumber' => 'manual',
                     ]
                 );
             } else {

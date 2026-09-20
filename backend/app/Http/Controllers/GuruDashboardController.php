@@ -1744,6 +1744,7 @@ class GuruDashboardController extends Controller
                     [
                         'user_id' => $user->id,
                         'nilai' => $score['nilai'] ?? null,
+                        'sumber' => 'manual',
                     ]
                 );
             }

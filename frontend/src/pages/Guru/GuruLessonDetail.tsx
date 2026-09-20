@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, BookOpen, FileText, ListChecks, Plus, ChevronRight, ChevronDown, HelpCircle,
   Download, Clock, ClipboardList, Check, Edit3, X, Trash2, Loader2, Layers, Camera, Upload, ImageIcon,
-  BarChart3, Users, Video, Eye, EyeOff, Activity, Search,
+  BarChart3, Users, Video, Eye, EyeOff, Activity, Search, Volume2,
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -13,7 +13,6 @@ import Swal from 'sweetalert2'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
 import LessonSlidesViewer from '../../components/LessonSlidesViewer'
 import LessonMediaFields, { LessonSlideItem } from '../../components/LessonMediaFields'
-import QuizMonitorPanel from '../../components/QuizMonitorPanel'
 import GuruPaketSoal from './GuruPaketSoal'
 
 interface LessonDetail {
@@ -98,11 +97,16 @@ interface LmsMateriItem {
 interface PaketQuestion {
   id: number
   question: string
-  question_type: 'choice' | 'rating'
+  question_type: 'choice' | 'rating' | 'essay' | string
   rating_max: number | null
-  options: string[]
+  options: AttemptOption[]
   correct_index: number | null
   points: number | null
+  section_id?: number | null
+  section?: { id: number; name: string } | null
+  image_url?: string | null
+  audio_url?: string | null
+  audio_max_plays?: number | null
 }
 
 interface RecapData {
@@ -182,7 +186,11 @@ interface AttemptDetailQuestion {
   correct_index?: number | null
   keyword?: string | null
   points?: number | null
+  section_id?: number | null
   section?: { id: number; name: string } | null
+  image_url?: string | null
+  audio_url?: string | null
+  audio_max_plays?: number | null
   selected_index?: number | null
   answer_text?: string | null
   earned_points?: number | null
@@ -203,6 +211,7 @@ interface AttemptDetailData {
     webcam_photo?: string | null
   }
   questions: AttemptDetailQuestion[]
+  sections?: { id: number | null; name: string; count: number }[]
   siswa?: { id: number; nama: string } | null
 }
 
@@ -214,6 +223,11 @@ const fmtFileSize = (bytes?: number | null) => {
 
 const optText = (o?: AttemptOption | undefined | null): string =>
   typeof o === 'string' ? o : (o?.text ?? '')
+
+const mediaUrl = (u?: string | null): string => {
+  if (!u) return ''
+  return /^https?:\/\//.test(u) ? u : `${APP_URL}/storage/${u}`
+}
 
 const fmtDuration = (startedAt?: string | null, submittedAt?: string | null) => {
   if (!startedAt) return '—'
@@ -290,7 +304,6 @@ export default function GuruLessonDetail() {
   const [pickedMateriIds, setPickedMateriIds] = useState<number[]>([])
   const [assigningMateri, setAssigningMateri] = useState(false)
   const [previewPaketId, setPreviewPaketId] = useState<number | null>(null)
-  const [monitorPaket, setMonitorPaket] = useState<{ id: number; title: string } | null>(null)
   const [togglingPaketId, setTogglingPaketId] = useState<number | null>(null)
   const [paketQuestionsMap, setPaketQuestionsMap] = useState<Record<number, PaketQuestion[]>>({})
   const [questionsLoading, setQuestionsLoading] = useState(false)
@@ -312,6 +325,7 @@ export default function GuruLessonDetail() {
   const [showAttemptDetail, setShowAttemptDetail] = useState(false)
   const [detail, setDetail] = useState<AttemptDetailData | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [reviewSection, setReviewSection] = useState('__all__')
 
   const loadRekapNilai = (id: number) => {
     setRekapNilaiLoading(true)
@@ -334,6 +348,7 @@ export default function GuruLessonDetail() {
   const openAttemptDetail = (attemptId: number) => {
     setDetail(null)
     setDetailLoading(true)
+    setReviewSection('__all__')
     setShowAttemptDetail(true)
     guruQuizApi.attemptDetail(attemptId)
       .then(res => setDetail(res.data))
@@ -590,6 +605,22 @@ export default function GuruLessonDetail() {
             {q.section?.name && (
               <span className="mt-2 inline-block rounded-full bg-[#0069b0]/[0.06] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#0069b0]">{q.section.name}</span>
             )}
+            {(q.image_url || q.audio_url) && (
+              <div className="mt-2 space-y-2">
+                {q.image_url && (
+                  <div>
+                    <span className="inline-flex items-center gap-1 text-[9px] font-bold text-[#0069b0] uppercase tracking-wide mb-1"><ImageIcon size={10} /> Soal Gambar</span>
+                    <img src={mediaUrl(q.image_url)} alt="Gambar soal" className="w-full max-h-44 object-contain rounded-md border border-[#E5E7EF] bg-[#F4F5F8]" />
+                  </div>
+                )}
+                {q.audio_url && (
+                  <div>
+                    <span className="inline-flex items-center gap-1 text-[9px] font-bold text-[#0069b0] uppercase tracking-wide mb-1"><Volume2 size={10} /> Soal Suara{q.audio_max_plays != null ? ` · maks ${q.audio_max_plays}x` : ''}</span>
+                    <audio src={mediaUrl(q.audio_url)} controls className="w-full h-9" />
+                  </div>
+                )}
+              </div>
+            )}
             <div className="mt-2 space-y-1.5">
               {q.question_type === 'rating' ? (
                 <div className="flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-md bg-violet-50 text-violet-700 font-bold">
@@ -792,6 +823,129 @@ export default function GuruLessonDetail() {
         }
       })()
     : null
+
+  const reviewSections: { id: number | null; name: string; count: number }[] = (() => {
+    if (!detail) return []
+    if (detail.sections && detail.sections.length) return detail.sections
+    const map = new Map<string, number>()
+    detail.questions.forEach(q => {
+      const name = q.section?.name?.trim() || 'Umum'
+      map.set(name, (map.get(name) || 0) + 1)
+    })
+    return Array.from(map.entries()).map(([name, count]) => ({ id: null, name, count }))
+  })()
+  const activeReviewSection = reviewSection === '__all__' ? null : reviewSection
+  const reviewQuestions = detail
+    ? (activeReviewSection == null
+        ? detail.questions
+        : detail.questions.filter(q => (q.section?.name?.trim() || 'Umum') === activeReviewSection))
+    : []
+  const reviewSectionOrder = new Map<string, number>()
+  reviewSections.forEach((s, i) => reviewSectionOrder.set(s.name, i))
+  const reviewNumbered = reviewQuestions
+    .map(q => ({ q, no: 0, sec: q.section?.name?.trim() || 'Umum' }))
+    .sort((a, b) => (reviewSectionOrder.get(a.sec) ?? 9999) - (reviewSectionOrder.get(b.sec) ?? 9999))
+  reviewNumbered.forEach((item, i) => { item.no = i + 1 })
+  const reviewGroups: { name: string; items: { q: AttemptDetailQuestion; no: number }[] }[] = []
+  reviewNumbered.forEach(item => {
+    const last = reviewGroups[reviewGroups.length - 1]
+    if (last && last.name === item.sec) last.items.push(item)
+    else reviewGroups.push({ name: item.sec, items: [item] })
+  })
+  const reviewTotal = detail?.questions.length || 0
+
+  const renderReviewQuestion = ({ q, no }: { q: AttemptDetailQuestion; no: number }) => {
+    const badge = q.question_type === 'rating'
+      ? (q.selected_index != null ? 'TERISI' : 'TIDAK DIISI')
+      : q.question_type === 'essay'
+        ? (q.is_correct === null && q.answer_text?.trim() ? 'BELUM DINILAI' : q.is_correct === true ? 'BENAR' : q.is_correct === false ? 'SALAH' : 'TIDAK DIJAWAB')
+        : q.is_correct === true ? 'BENAR' : q.is_correct === false ? 'SALAH' : 'TIDAK DIJAWAB'
+    const badgeCls = badge === 'BENAR' ? 'bg-emerald-50 text-emerald-600'
+      : badge === 'SALAH' ? 'bg-red-50 text-red-500'
+      : badge === 'BELUM DINILAI' ? 'bg-amber-50 text-amber-600'
+      : badge === 'TERISI' ? 'bg-violet-50 text-violet-600'
+      : 'bg-gray-100 text-[#8B90A0]'
+    return (
+      <div key={q.id} className="border border-[#E5E7EF] rounded-md p-4">
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-[12px] font-bold text-[#14182B] leading-snug">{no}. {q.question}</p>
+          <span className={`text-[9px] font-bold shrink-0 px-2 py-0.5 rounded-full ${badgeCls}`}>{badge}</span>
+        </div>
+        {(q.image_url || q.audio_url) && (
+          <div className="mt-2 space-y-2">
+            {q.image_url && (
+              <div>
+                <span className="inline-flex items-center gap-1 text-[9px] font-bold text-[#0069b0] uppercase tracking-wide mb-1"><ImageIcon size={10} /> Soal Gambar</span>
+                <img src={mediaUrl(q.image_url)} alt="Gambar soal" className="w-full max-h-44 object-contain rounded-md border border-[#E5E7EF] bg-[#F4F5F8]" />
+              </div>
+            )}
+            {q.audio_url && (
+              <div>
+                <span className="inline-flex items-center gap-1 text-[9px] font-bold text-[#0069b0] uppercase tracking-wide mb-1"><Volume2 size={10} /> Soal Suara</span>
+                <audio src={mediaUrl(q.audio_url)} controls className="w-full h-9" />
+              </div>
+            )}
+          </div>
+        )}
+        <div className="mt-2 space-y-1.5">
+          {q.question_type === 'rating' ? (
+            <div>
+              <div className="flex gap-1 flex-wrap">
+                {q.options.map((opt, oi) => {
+                  const isPilih = q.selected_index === oi
+                  return (
+                    <span key={oi} className={`w-8 h-8 flex items-center justify-center rounded-full text-[11px] font-bold border-2 ${isPilih ? 'border-violet-500 bg-violet-500 text-white' : 'border-[#E5E7EF] bg-[#F4F5F8] text-[#8B90A0]'}`}>
+                      {optText(opt)}
+                    </span>
+                  )
+                })}
+              </div>
+              <p className="text-[10px] text-[#8B90A0] font-medium mt-1.5">
+                Jawaban: <span className="font-bold text-violet-600">
+                  {q.selected_index != null && q.options[q.selected_index]
+                    ? optText(q.options[q.selected_index]) : 'Tidak diisi'}
+                </span>
+              </p>
+            </div>
+          ) : q.question_type === 'essay' ? (
+            <div>
+              <p className="text-[10px] font-bold text-[#4B5063] mb-1.5">Jawaban Kandidat</p>
+              <p className="text-[11px] text-[#14182B] bg-[#F4F5F8] border border-[#E5E7EF] rounded-md px-3 py-2.5 whitespace-pre-wrap min-h-[44px]">
+                {q.answer_text?.trim() ? q.answer_text : <span className="text-[#8B90A0]">Tidak diisi</span>}
+              </p>
+              {q.keyword && (
+                <p className="text-[10px] text-amber-600 font-medium mt-1.5"><span className="font-bold">Kata kunci:</span> {q.keyword}</p>
+              )}
+              {q.points != null && (
+                <p className={`inline-block mt-2 text-[10px] font-bold px-2 py-1 rounded-full ${
+                  q.earned_points != null ? (q.is_correct === true ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600') : 'bg-[#F4F5F8] text-[#8B90A0]'
+                }`}>
+                  {q.earned_points != null ? `Nilai: ${q.earned_points}/${q.points} poin` : 'Belum dinilai'}
+                </p>
+              )}
+            </div>
+          ) : (q.options || []).map((opt, oi) => {
+            const isKunci = q.correct_index === oi
+            const isPilih = q.selected_index === oi
+            return (
+              <div key={oi}
+                className={`flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-md font-medium ${isKunci ? 'bg-emerald-50 text-emerald-700 font-bold' : isPilih ? 'bg-red-50 text-red-500 font-bold' : 'bg-[#F4F5F8] text-[#4B5063]'}`}>
+                <span className={`w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold shrink-0 ${isKunci ? 'bg-emerald-500 text-white' : isPilih ? 'bg-red-500 text-white' : 'bg-[#E5E7EF] text-[#8B90A0]'}`}>
+                  {String.fromCharCode(65 + oi)}
+                </span>
+                {optText(opt) && <span className="flex-1">{optText(opt)}</span>}
+                {isKunci && <span className="text-[9px] font-bold shrink-0">KUNCI</span>}
+                {isPilih && <span className="text-[9px] font-bold shrink-0">JAWABAN</span>}
+              </div>
+            )
+          })}
+        </div>
+        {q.points != null && q.question_type !== 'essay' && (
+          <p className="text-[10px] text-[#8B90A0] font-semibold mt-2">Poin: {q.points}</p>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-[#F4F5F8] pb-24">
@@ -1079,8 +1233,8 @@ export default function GuruLessonDetail() {
                         className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0069b0] bg-[#0069b0]/5 px-3 py-1.5 rounded-md hover:bg-[#0069b0]/10 transition-colors">
                         Lihat Paket Soal <ChevronDown size={12} className={previewPaketId === paket.id ? 'rotate-180 transition-transform' : 'transition-transform'} />
                       </button>
-                      <button onClick={() => setMonitorPaket(monitorPaket?.id === paket.id ? null : { id: paket.id, title: paket.title })}
-                        className={`inline-flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-md transition-colors ${monitorPaket?.id === paket.id ? 'text-red-600 bg-red-100' : 'text-red-500 bg-red-50 hover:bg-red-100'}`}
+                      <button onClick={() => navigate(`/guru-paket-soal/monitor/${paket.id}`, { state: { title: paket.title } })}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-red-500 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-md transition-colors"
                         title="Monitor langsung pengerjaan siswa (kamera + progres)">
                         <Activity size={12} /> Monitor
                       </button>
@@ -1099,14 +1253,6 @@ export default function GuruLessonDetail() {
                     </div>
 
                     {renderQuizPreview(paket.id)}
-
-                    {monitorPaket?.id === paket.id && (
-                      <QuizMonitorPanel
-                        paketId={paket.id}
-                        title={paket.title}
-                        onClose={() => setMonitorPaket(null)}
-                      />
-                    )}
                   </div>
                       )
                     })}
@@ -1636,86 +1782,44 @@ export default function GuruLessonDetail() {
                     </div>
                   )}
 
+                  {reviewSections.length > 0 && (
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+                      <button
+                        onClick={() => setReviewSection('__all__')}
+                        className={`shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full border transition-colors ${
+                          reviewSection === '__all__' ? 'bg-[#0069b0] border-[#0069b0] text-white' : 'bg-white border-[#E5E7EF] text-[#4B5063] hover:border-[#0069b0]'
+                        }`}>
+                        Semua <span className="opacity-70">{reviewTotal}</span>
+                      </button>
+                      {reviewSections.map(s => (
+                        <button key={s.name}
+                          onClick={() => setReviewSection(s.name)}
+                          className={`shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full border transition-colors ${
+                            reviewSection === s.name ? 'bg-[#0069b0] border-[#0069b0] text-white' : 'bg-white border-[#E5E7EF] text-[#4B5063] hover:border-[#0069b0]'
+                          }`}>
+                          {s.name} <span className="opacity-70">{s.count}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="space-y-3">
-                    {detail.questions.map((q, i) => {
-                      const badge = q.question_type === 'rating'
-                        ? (q.selected_index != null ? 'TERISI' : 'TIDAK DIISI')
-                        : q.question_type === 'essay'
-                          ? (q.is_correct === null && q.answer_text?.trim() ? 'BELUM DINILAI' : q.is_correct === true ? 'BENAR' : q.is_correct === false ? 'SALAH' : 'TIDAK DIJAWAB')
-                          : q.is_correct === true ? 'BENAR' : q.is_correct === false ? 'SALAH' : 'TIDAK DIJAWAB'
-                      const badgeCls = badge === 'BENAR' ? 'bg-emerald-50 text-emerald-600'
-                        : badge === 'SALAH' ? 'bg-red-50 text-red-500'
-                        : badge === 'BELUM DINILAI' ? 'bg-amber-50 text-amber-600'
-                        : badge === 'TERISI' ? 'bg-violet-50 text-violet-600'
-                        : 'bg-gray-100 text-[#8B90A0]'
-                      return (
-                        <div key={q.id} className="border border-[#E5E7EF] rounded-md p-4">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="text-[12px] font-bold text-[#14182B] leading-snug">{i + 1}. {q.question}</p>
-                            <span className={`text-[9px] font-bold shrink-0 px-2 py-0.5 rounded-full ${badgeCls}`}>{badge}</span>
+                    {reviewQuestions.length === 0 ? (
+                      <p className="text-center text-[11px] text-[#8B90A0] font-medium py-8">Tidak ada soal pada kategori ini.</p>
+                    ) : activeReviewSection != null ? (
+                      reviewNumbered.map(renderReviewQuestion)
+                    ) : (
+                      reviewGroups.map(g => (
+                        <div key={g.name} className="space-y-3">
+                          <div className="flex items-center gap-2 pt-1">
+                            <span className="text-[10px] font-bold uppercase tracking-wide text-[#0069b0]">{g.name}</span>
+                            <span className="text-[9px] font-bold text-[#8B90A0] bg-[#F4F5F8] rounded-full px-1.5 py-0.5">{g.items.length}</span>
+                            <div className="flex-1 h-px bg-[#E5E7EF]" />
                           </div>
-                          {q.section?.name && (
-                            <span className="mt-1.5 inline-block rounded-full bg-[#0069b0]/[0.06] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#0069b0]">{q.section.name}</span>
-                          )}
-                          <div className="mt-2 space-y-1.5">
-                            {q.question_type === 'rating' ? (
-                              <div>
-                                <div className="flex gap-1 flex-wrap">
-                                  {q.options.map((opt, oi) => {
-                                    const isPilih = q.selected_index === oi
-                                    return (
-                                      <span key={oi} className={`w-8 h-8 flex items-center justify-center rounded-full text-[11px] font-bold border-2 ${isPilih ? 'border-violet-500 bg-violet-500 text-white' : 'border-[#E5E7EF] bg-[#F4F5F8] text-[#8B90A0]'}`}>
-                                        {optText(opt)}
-                                      </span>
-                                    )
-                                  })}
-                                </div>
-                                <p className="text-[10px] text-[#8B90A0] font-medium mt-1.5">
-                                  Jawaban: <span className="font-bold text-violet-600">
-                                    {q.selected_index != null && q.options[q.selected_index]
-                                      ? optText(q.options[q.selected_index]) : 'Tidak diisi'}
-                                  </span>
-                                </p>
-                              </div>
-                            ) : q.question_type === 'essay' ? (
-                              <div>
-                                <p className="text-[10px] font-bold text-[#4B5063] mb-1.5">Jawaban Kandidat</p>
-                                <p className="text-[11px] text-[#14182B] bg-[#F4F5F8] border border-[#E5E7EF] rounded-md px-3 py-2.5 whitespace-pre-wrap min-h-[44px]">
-                                  {q.answer_text?.trim() ? q.answer_text : <span className="text-[#8B90A0]">Tidak diisi</span>}
-                                </p>
-                                {q.keyword && (
-                                  <p className="text-[10px] text-amber-600 font-medium mt-1.5"><span className="font-bold">Kata kunci:</span> {q.keyword}</p>
-                                )}
-                                {q.points != null && (
-                                  <p className={`inline-block mt-2 text-[10px] font-bold px-2 py-1 rounded-full ${
-                                    q.earned_points != null ? (q.is_correct === true ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600') : 'bg-[#F4F5F8] text-[#8B90A0]'
-                                  }`}>
-                                    {q.earned_points != null ? `Nilai: ${q.earned_points}/${q.points} poin` : 'Belum dinilai'}
-                                  </p>
-                                )}
-                              </div>
-                            ) : (q.options || []).map((opt, oi) => {
-                              const isKunci = q.correct_index === oi
-                              const isPilih = q.selected_index === oi
-                              return (
-                                <div key={oi}
-                                  className={`flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-md font-medium ${isKunci ? 'bg-emerald-50 text-emerald-700 font-bold' : isPilih ? 'bg-red-50 text-red-500 font-bold' : 'bg-[#F4F5F8] text-[#4B5063]'}`}>
-                                  <span className={`w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold shrink-0 ${isKunci ? 'bg-emerald-500 text-white' : isPilih ? 'bg-red-500 text-white' : 'bg-[#E5E7EF] text-[#8B90A0]'}`}>
-                                    {String.fromCharCode(65 + oi)}
-                                  </span>
-                                  {optText(opt) && <span className="flex-1">{optText(opt)}</span>}
-                                  {isKunci && <span className="text-[9px] font-bold shrink-0">KUNCI</span>}
-                                  {isPilih && <span className="text-[9px] font-bold shrink-0">JAWABAN</span>}
-                                </div>
-                              )
-                            })}
-                          </div>
-                          {q.points != null && q.question_type !== 'essay' && (
-                            <p className="text-[10px] text-[#8B90A0] font-semibold mt-2">Poin: {q.points}</p>
-                          )}
+                          {g.items.map(renderReviewQuestion)}
                         </div>
-                      )
-                    })}
+                      ))
+                    )}
                   </div>
                 </>
               )}

@@ -13,6 +13,7 @@ class StudentAssessment extends Model
         'user_id',
         'tanggal',
         'nilai',
+        'sumber',
     ];
 
     protected $casts = [

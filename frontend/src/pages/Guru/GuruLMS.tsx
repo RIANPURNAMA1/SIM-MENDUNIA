@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   BookOpen, Plus, FileText, X, Image as ImageIcon, Download, Trash2,
   ChevronRight, ArrowLeft, Layers, Search, Video, GripVertical, Edit3,
-  ChevronUp, ChevronDown, Upload, FolderOpen, ListChecks, Eye, EyeOff, Trophy, Users, History, HelpCircle, Check, Lock, Activity, RefreshCw
+  ChevronUp, ChevronDown, Upload, FolderOpen, ListChecks, Eye, EyeOff, Trophy, Users, History, HelpCircle, Check, Lock, Activity, RefreshCw, Volume2
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -1165,6 +1165,22 @@ export default function GuruLMS() {
                                   <p className="text-xs font-bold text-gray-800 leading-snug">{i + 1}. {q.question}</p>
                                   {q.section?.name && (
                                     <span className="mt-2 inline-block rounded-full bg-[#0069b0]/[0.06] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#0069b0]">{q.section.name}</span>
+                                  )}
+                                  {(q.image_url || q.audio_url) && (
+                                    <div className="mt-2 space-y-2">
+                                      {q.image_url && (
+                                        <div>
+                                          <span className="inline-flex items-center gap-1 text-[9px] font-bold text-[#0069b0] uppercase tracking-wide mb-1"><ImageIcon size={10} /> Soal Gambar</span>
+                                          <img src={/^https?:\/\//.test(q.image_url) ? q.image_url : `${APP_URL}/storage/${q.image_url}`} alt="Gambar soal" className="w-full max-h-44 object-contain rounded-md border border-gray-200 bg-white" />
+                                        </div>
+                                      )}
+                                      {q.audio_url && (
+                                        <div>
+                                          <span className="inline-flex items-center gap-1 text-[9px] font-bold text-[#0069b0] uppercase tracking-wide mb-1"><Volume2 size={10} /> Soal Suara{q.audio_max_plays != null ? ` · maks ${q.audio_max_plays}x` : ''}</span>
+                                          <audio src={/^https?:\/\//.test(q.audio_url) ? q.audio_url : `${APP_URL}/storage/${q.audio_url}`} controls className="w-full h-8" />
+                                        </div>
+                                      )}
+                                    </div>
                                   )}
                                   <div className="mt-2 space-y-1.5">
                                     {q.question_type === 'rating' ? (
