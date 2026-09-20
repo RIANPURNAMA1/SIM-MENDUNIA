@@ -787,13 +787,26 @@ class GuruDashboardController extends Controller
         $course->can_manage = (int) $course->user_id === (int) $user->id;
         $lessons = $course->lessons()->with('paket', 'linkPakets', 'slides')->orderBy('sort')->get();
 
-        $lessons->transform(function ($lesson) {
+        // Tanggal & hari setiap pertemuan (berdasar jadwal kelas), selaras dengan dashboard siswa.
+        $meetingDates = [];
+        if ($course->kelas_sensei_id) {
+            $kelas = KelasSensei::find($course->kelas_sensei_id);
+            if ($kelas) {
+                $meetingDates = $kelas->daftarPertemuan();
+            }
+        }
+
+        $lessonList = $lessons->values();
+        foreach ($lessonList as $i => $lesson) {
             $lesson->slides->transform(function ($s) {
                 $s->url = asset('storage/' . $s->file_path);
                 return $s;
             });
-            return $lesson;
-        });
+            // Sesuai index (sort) dengan tanggal pertemuan kelas, e.g. "Selasa, 01 Sep 2026".
+            $date = $meetingDates[$i] ?? null;
+            $lesson->pertemuan_date = $date;
+            $lesson->pertemuan_date_label = $date ? \Carbon\Carbon::parse($date)->locale('id')->translatedFormat('l, d M Y') : null;
+        }
 
         $pakets = QuizPaket::where('course_id', $courseId)
             ->with('course:id,title')
