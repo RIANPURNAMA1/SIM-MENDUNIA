@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   BookOpen, Play, Check, CheckCircle, ChevronLeft, ChevronRight,
   FileText, Video, ArrowLeft, Clock, ListChecks, Lock, FileQuestion,
-  ClipboardList, Upload, Download, Send, GraduationCap, Star, Award, AlertTriangle, X, Trash2,
+  ClipboardList, Upload, Download, Send, GraduationCap, Star, Award, AlertTriangle, X, XCircle, Trash2,
   CalendarCheck, LayoutDashboard, Wallet, User, Trophy, Search,
 } from 'lucide-react'
 import { lmsApi, quizApi, APP_URL } from '../../services/api'
@@ -200,6 +200,220 @@ const cleanQuillHtml = (html: string) =>
     .replace(/&nbsp;/g, ' ')
     .replace(/<p(?:\s[^>]*)?>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>/gi, '')
 
+// ==================== QUIZ REVIEW (Pembahasan Hasil) ====================
+function SummaryTile({ value, label, accent }: { value: string; label: string; accent?: boolean }) {
+  return (
+    <div className={`rounded-md px-2 py-2.5 text-center ${accent ? 'bg-[#0E6187]/10' : 'bg-slate-50'}`}>
+      <p className={`text-base font-black tabular-nums ${accent ? 'text-[#0E6187]' : 'text-slate-700'}`}>{value}</p>
+      <p className="text-[9.5px] font-bold text-slate-400 mt-0.5">{label}</p>
+    </div>
+  )
+}
+
+function ReviewLine({ label, value, tone }: { label: string; value: string; tone: 'good' | 'bad' | 'muted' }) {
+  const cls = tone === 'good'
+    ? 'border-emerald-100 bg-emerald-50/50 text-emerald-700'
+    : tone === 'bad'
+      ? 'border-red-100 bg-red-50/50 text-red-600'
+      : 'border-slate-100 bg-slate-50 text-slate-500'
+  return (
+    <div className={`rounded-lg border px-3 py-2.5 ${cls}`}>
+      <p className="text-[9.5px] font-black uppercase tracking-wide opacity-70">{label}</p>
+      <p className="text-[12px] font-medium mt-1 break-words whitespace-pre-wrap">{value}</p>
+    </div>
+  )
+}
+
+function ReviewQuestionCard({ q, index }: { q: ReviewQuestion; index: number }) {
+  const isRating = q.question_type === 'rating'
+  const isEssay = q.question_type === 'essay'
+  const answered = isEssay
+    ? Boolean(q.answer_text && String(q.answer_text).trim() !== '')
+    : q.selected_index !== undefined && q.selected_index !== null
+  const correct = q.is_correct === true
+  const wrong = q.is_correct === false
+  const status = !answered ? 'empty' : correct ? 'correct' : wrong ? 'wrong' : 'empty'
+
+  const statusCfg = {
+    correct: { label: 'Benar', cls: 'bg-emerald-50 text-emerald-600 border-emerald-100' },
+    wrong: { label: 'Salah', cls: 'bg-red-50 text-red-500 border-red-100' },
+    empty: { label: 'Kosong', cls: 'bg-slate-100 text-slate-400 border-slate-100' },
+  }[status]
+
+  const headerCls = status === 'correct'
+    ? 'border-emerald-50 bg-emerald-50/50'
+    : status === 'wrong'
+      ? 'border-red-50 bg-red-50/50'
+      : 'bg-slate-50/60'
+
+  const letter = (i: number) => String.fromCharCode(65 + i)
+
+  return (
+    <div className={`rounded-lg border ${status === 'correct' ? 'border-emerald-100' : status === 'wrong' ? 'border-red-100' : 'border-slate-100'} bg-white overflow-hidden`}>
+      <div className={`px-3.5 py-2.5 flex items-center gap-2.5 border-b ${headerCls}`}>
+        <span className="w-6 h-6 rounded-md bg-white border border-slate-200 text-[11px] font-black text-slate-700 flex items-center justify-center shrink-0">
+          {index + 1}
+        </span>
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border ${statusCfg.cls}`}>
+          {status === 'correct' ? <Check size={12} /> : status === 'wrong' ? <XCircle size={12} /> : <AlertTriangle size={12} />} {statusCfg.label}
+        </span>
+        <span className="ml-auto text-[10px] font-bold text-slate-300">{q.points} poin</span>
+      </div>
+
+      <div className="p-3.5">
+        <div
+          className="text-[13px] font-medium text-slate-800 leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-1"
+          dangerouslySetInnerHTML={{ __html: q.question }} />
+
+        {isEssay ? (
+          <div className="mt-3 space-y-2">
+            <ReviewLine label="Jawaban Anda" value={q.answer_text || 'Tidak dijawab'} tone={answered ? (correct ? 'good' : 'bad') : 'muted'} />
+            {q.keyword && <ReviewLine label="Kunci Jawaban" value={q.keyword} tone="good" />}
+            <p className="text-[11px] font-bold text-slate-500">
+              Poin: <span className="text-slate-800">{q.earned_points ?? 0} / {q.points}</span>
+            </p>
+          </div>
+        ) : isRating ? (
+          <div className="mt-3 space-y-2">
+            <ReviewLine
+              label="Jawaban Anda"
+              value={q.selected_index != null ? `Rating ${q.selected_index}${q.rating_max ? ' / ' + q.rating_max : ''}` : 'Tidak dijawab'}
+              tone={answered ? 'good' : 'muted'} />
+            <p className="text-[11px] font-semibold text-slate-500">Soal penilaian skala — nilai ditentukan instruktur.</p>
+          </div>
+        ) : (
+          <div className="mt-2 space-y-1.5">
+            {q.options.map((opt, oi) => {
+              const isCorrectOpt = q.correct_index != null && oi === q.correct_index
+              const isSelected = oi === q.selected_index
+              const isWrongPick = isSelected && !isCorrectOpt
+              const cls = isCorrectOpt
+                ? 'border-emerald-300 bg-emerald-50'
+                : isWrongPick
+                  ? 'border-red-300 bg-red-50'
+                  : 'border-slate-200 bg-white'
+              return (
+                <div key={oi} className={`flex items-center gap-2 px-3 py-2 rounded-md border text-xs font-medium text-slate-700 ${cls}`}>
+                  <span className="w-5 h-5 rounded bg-white border border-slate-200 flex items-center justify-center text-[10px] font-black shrink-0">
+                    {letter(oi)}
+                  </span>
+                  <span className="flex-1 min-w-0 flex items-center gap-2">
+                    {opt.text && <span>{opt.text}</span>}
+                    {opt.image_url && <img src={opt.image_url} alt="" className="h-12 rounded object-contain bg-white" />}
+                  </span>
+                  {isCorrectOpt && (
+                    <span className="inline-flex items-center gap-1 text-[9px] font-black text-emerald-600 px-1.5 py-0.5 rounded bg-emerald-100/70 shrink-0">
+                      <Check size={10} /> Kunci Jawaban
+                    </span>
+                  )}
+                  {isWrongPick && (
+                    <span className="inline-flex items-center gap-1 text-[9px] font-black text-red-500 px-1.5 py-0.5 rounded bg-red-100/70 shrink-0">
+                      <XCircle size={10} /> Jawaban Anda
+                    </span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ReviewModal({ open, loading, error, data, attempts, selectedAttempt, onSelectAttempt, onClose }: {
+  open: boolean
+  loading: boolean
+  error: string | null
+  data: ReviewData | null
+  attempts: { attempt_id: number; attempt_number: number; score: number | null }[]
+  selectedAttempt: number | null
+  onSelectAttempt: (id: number) => void
+  onClose: () => void
+}) {
+  if (!open) return null
+
+  const correctCount = data ? data.questions.filter(q => q.is_correct === true).length : 0
+  const wrongCount = data ? data.questions.filter(q => q.is_correct === false).length : 0
+  const skipCount = data ? data.questions.length - correctCount - wrongCount : 0
+  const attemptLabel = data?.attempt?.attempt_number ? `Percobaan #${data.attempt.attempt_number}` : ''
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4">
+      <div className="w-full max-w-2xl max-h-[92vh] bg-white rounded-t-2xl sm:rounded-2xl overflow-hidden flex flex-col">
+        <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <span className="w-9 h-9 rounded-lg bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+              <FileQuestion size={17} className="text-[#0E6187]" />
+            </span>
+            <div>
+              <h2 className="text-sm font-black text-slate-800">Pembahasan Quiz</h2>
+              <p className="text-[11px] text-slate-400 font-medium">{data?.paket.title || 'Quiz'}{attemptLabel ? ` · ${attemptLabel}` : ''}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="flex-1 flex items-center justify-center py-20">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-8 h-8 border-2 border-[#0E6187]/20 border-t-[#0E6187] rounded-full animate-spin" />
+              <p className="text-[11px] font-semibold text-slate-400">Memuat pembahasan...</p>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="flex-1 flex flex-col items-center justify-center py-20 px-6 text-center">
+            <AlertTriangle size={28} className="text-amber-500" />
+            <p className="mt-3 text-sm font-bold text-slate-700">Tidak dapat membuka pembahasan</p>
+            <p className="mt-1 text-[11px] text-slate-400">{error}</p>
+            <button onClick={onClose}
+              className="mt-5 px-5 py-2 rounded-lg bg-[#0E6187] text-white text-xs font-bold hover:bg-[#0a4d6b] transition-colors">
+              Tutup
+            </button>
+          </div>
+        ) : data ? (
+          <>
+            <div className="px-4 sm:px-5 py-3 border-b border-slate-100">
+              <div className="flex flex-wrap gap-2 mb-2">
+                {attempts.map(a => (
+                  <button key={a.attempt_id} type="button"
+                    onClick={() => onSelectAttempt(a.attempt_id)}
+                    className={`px-2.5 py-1 rounded-md text-[10px] font-bold border transition-all ${
+                      selectedAttempt === a.attempt_id
+                        ? 'bg-[#0E6187] text-white border-[#0E6187]'
+                        : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
+                    }`}>
+                    Percobaan #{a.attempt_number} · {a.score ?? 0}%
+                  </button>
+                ))}
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                <SummaryTile value={`${data.attempt.score ?? 0}`} label="Nilai" accent />
+                <SummaryTile value={`${correctCount}`} label="Benar" />
+                <SummaryTile value={`${wrongCount}`} label="Salah" />
+                <SummaryTile value={`${skipCount}`} label="Kosong" />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {data.questions.map((q, i) => <ReviewQuestionCard key={q.id} q={q} index={i} />)}
+            </div>
+
+            <div className="px-4 sm:px-5 py-3 border-t border-slate-100">
+              <button onClick={onClose}
+                className="w-full py-2.5 rounded-lg bg-[#0E6187] text-white text-xs font-bold hover:bg-[#0a4d6b] transition-colors">
+                Tutup Pembahasan
+              </button>
+            </div>
+          </>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
 export default function LMS() {
   const { user } = useAuth()
   const location = useLocation()
@@ -348,6 +562,19 @@ export default function LMS() {
       setReviewErr('Gagal memuat riwayat pengerjaan.')
     })
   }
+
+  const renderReviewModal = () => (
+    <ReviewModal
+      open={reviewOpen}
+      loading={reviewLoading}
+      error={reviewErr}
+      data={reviewData}
+      attempts={reviewAttempts}
+      selectedAttempt={reviewSelectedAttempt}
+      onSelectAttempt={loadReviewAttempt}
+      onClose={() => setReviewOpen(false)}
+    />
+  )
 
   const openCourse = (course: Course) => {
     if (!isCourseOpen(course)) {
@@ -682,6 +909,14 @@ export default function LMS() {
               </>
             )}
           </button>
+
+          {unlocked && q.attempts_used > 0 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); openReviewForPaket(q) }}
+              className="mt-2 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold bg-[#0E6187]/10 text-[#0E6187] hover:bg-[#0E6187]/15 transition-all">
+              <FileQuestion size={13} /> Review Hasil Quiz
+            </button>
+          )}
         </div>
       </div>
     )
@@ -1361,20 +1596,29 @@ export default function LMS() {
                               </div>
                               <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold ${statusCls}`}>{statusLabel}</span>
                             </div>
-                            <div className="mt-auto px-3.5 py-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                            <div className="mt-auto px-3.5 py-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
                               <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
                                 <Clock size={11} />
                                 {attemptsMaxed ? 'Percobaan habis' : remaining != null ? `Sisa ${remaining} kali` : `${q.max_attempts ?? 0} percobaan`}
                               </div>
-                              {canDo ? (
-                                <button type="button"
-                                  onClick={() => navigate(`/siswa-dashboard/quiz/${q.id}`)}
-                                  className="rounded-md bg-[#0E6187] px-3 py-1.5 text-[10px] font-bold text-white shadow-sm shadow-[#0E6187]/20 hover:bg-[#0B4C6B] active:scale-95 transition-all shrink-0">
-                                  Kerjakan
-                                </button>
-                              ) : (
-                                <span className="text-[10px] font-bold text-slate-300">{q.attempts_used ?? 0}/{q.max_attempts ?? 0} kali</span>
-                              )}
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {q.attempts_used > 0 && (
+                                  <button type="button"
+                                    onClick={(e) => { e.stopPropagation(); openReviewForPaket(q) }}
+                                    className="rounded-md bg-[#0E6187]/10 px-3 py-1.5 text-[10px] font-bold text-[#0E6187] hover:bg-[#0E6187]/15 active:scale-95 transition-all shrink-0">
+                                    Review Hasil
+                                  </button>
+                                )}
+                                {canDo ? (
+                                  <button type="button"
+                                    onClick={() => navigate(`/siswa-dashboard/quiz/${q.id}`)}
+                                    className="rounded-md bg-[#0E6187] px-3 py-1.5 text-[10px] font-bold text-white shadow-sm shadow-[#0E6187]/20 hover:bg-[#0B4C6B] active:scale-95 transition-all shrink-0">
+                                    Kerjakan
+                                  </button>
+                                ) : (
+                                  <span className="text-[10px] font-bold text-slate-300">{q.attempts_used ?? 0}/{q.max_attempts ?? 0} kali</span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         )
@@ -1541,6 +1785,9 @@ export default function LMS() {
 
         {/* Submit Assignment Modal */}
         {renderSubmitModal()}
+
+        {/* Quiz Review Modal (Pembahasan Hasil) */}
+        {renderReviewModal()}
       </div>
     )
   }
@@ -1640,6 +1887,9 @@ export default function LMS() {
             })}
           </div>
         </nav>
+
+        {/* Quiz Review Modal (Pembahasan Hasil) */}
+        {renderReviewModal()}
       </div>
     )
   }
@@ -1983,6 +2233,9 @@ export default function LMS() {
 
       {/* Submit Assignment Modal */}
       {renderSubmitModal()}
+
+      {/* Quiz Review Modal (Pembahasan Hasil) */}
+      {renderReviewModal()}
 
       {/* ============ Bottom Nav Bar ============ */}
       <nav className="fixed bottom-3 left-3 right-3 z-40 rounded-2xl border border-slate-200 bg-white/95 shadow-lg shadow-slate-900/10 backdrop-blur lg:hidden">

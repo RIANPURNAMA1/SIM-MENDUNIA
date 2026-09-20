@@ -113,16 +113,12 @@ class LmsController extends Controller
         });
 
         $attendedCount = 0;
+        $attendanceQuery = AbsensiSiswa::where('siswa_id', $siswa->id)
+            ->where('status', '!=', 'ALPA');
         if ($course->kelas_sensei_id) {
-            $attendedCount = AbsensiSiswa::where('siswa_id', $siswa->id)
-                ->where('kelas_sensei_id', $course->kelas_sensei_id)
-                ->whereNotNull('jam_masuk')
-                ->count();
-        } else {
-            $attendedCount = AbsensiSiswa::where('siswa_id', $siswa->id)
-                ->whereNotNull('jam_masuk')
-                ->count();
+            $attendanceQuery->where('kelas_sensei_id', $course->kelas_sensei_id);
         }
+        $attendedCount = $attendanceQuery->count();
 
         $lessonAttendance = $course->lessons->values()->map(function ($l, $i) use ($attendedCount, $progresses) {
             $idx = $i + 1;
