@@ -113,12 +113,16 @@ class SiswaDashboardController extends Controller
             ->take(8)
             ->get();
 
+        // Sólo entradas de participantes del mismo batch del candidato
+        $batchSiswaIds = $batchId ? Siswa::where('batch_id', $batchId)->pluck('id') : [];
+
         $result = [];
         foreach ($packets as $paket) {
             $bestRows = QuizAttempt::query()
                 ->where('quiz_paket_id', $paket->id)
                 ->where('status', 'submitted')
                 ->whereNotNull('score')
+                ->when($batchId, fn ($q) => $q->whereIn('siswa_id', $batchSiswaIds))
                 ->selectRaw('siswa_id, MAX(score) as best_score, MIN(COALESCE(submitted_at, started_at)) as first_best_at')
                 ->groupBy('siswa_id')
                 ->orderByDesc('best_score')
@@ -161,6 +165,7 @@ class SiswaDashboardController extends Controller
                     $higher = QuizAttempt::where('quiz_paket_id', $paket->id)
                         ->where('status', 'submitted')
                         ->where('score', '>', $myBest)
+                        ->when($batchId, fn ($q) => $q->whereIn('siswa_id', $batchSiswaIds))
                         ->distinct()
                         ->count('siswa_id');
                     $myRank = $higher + 1;

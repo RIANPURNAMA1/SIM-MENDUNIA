@@ -30,7 +30,10 @@ interface Course {
   status: string
   tanggal_mulai?: string | null
   tanggal_selesai?: string | null
+  has_password?: boolean
 }
+
+const passwordCourseKey = (courseId: number) => `lms_password_course_${courseId}`
 
 const isCourseOpen = (course: { status?: string }) => (course.status ?? 'aktif') === 'aktif'
 
@@ -676,19 +679,55 @@ export default function LMS() {
       })
       return
     }
-    setSelectedCourse(course)
-    setSelectedLesson(null)
-    setLessonDetail(null)
-    setView('course-detail')
-    setLoadedCourseId(course.id)
-    loadAssignmentsForCourse(course.id)
-    loadCourseQuizzes(course.id)
-    lmsApi.courseDetail(course.id).then(res => {
-      setLessons(res.data.course?.lessons || [])
-      setCompletedLessonIds(res.data.completed_lesson_ids || [])
-      setLessonProgressMap(res.data.lesson_progress || {})
-      setLessonAtt(res.data.lesson_attendance || {})
-    }).catch(() => {})
+    const doOpen = () => {
+      setSelectedCourse(course)
+      setSelectedLesson(null)
+      setLessonDetail(null)
+      setView('course-detail')
+      setLoadedCourseId(course.id)
+      loadAssignmentsForCourse(course.id)
+      loadCourseQuizzes(course.id)
+      const cachedPassword = course.has_password ? localStorage.getItem(passwordCourseKey(course.id)) || undefined : undefined
+      lmsApi.courseDetail(course.id, cachedPassword).then(res => {
+        setLessons(res.data.course?.lessons || [])
+        setCompletedLessonIds(res.data.completed_lesson_ids || [])
+        setLessonProgressMap(res.data.lesson_progress || {})
+        setLessonAtt(res.data.lesson_attendance || {})
+      }).catch(() => {
+        if (course.has_password) {
+          localStorage.removeItem(passwordCourseKey(course.id))
+          setSelectedCourse(null)
+          setView('courses')
+          Swal.fire({
+            icon: 'error',
+            title: 'Password Kursus Salah',
+            text: 'Password yang dimasukkan tidak sesuai. Coba lagi dengan password yang benar.',
+            confirmButtonColor: '#0E6187',
+            confirmButtonText: 'OK'
+          })
+        }
+      })
+    }
+    if (course.has_password && !localStorage.getItem(passwordCourseKey(course.id))) {
+      Swal.fire({
+        icon: 'question',
+        title: 'Kursus Terkunci',
+        text: 'Kursus "' + course.title + '" dilindungi password. Masukkan password untuk melanjutkan.',
+        input: 'password',
+        inputPlaceholder: 'Masukkan password kursus',
+        confirmButtonText: 'Buka Kursus',
+        cancelButtonText: 'Batal',
+        showCancelButton: true,
+        confirmButtonColor: '#0E6187',
+      }).then((result) => {
+        if (result.isConfirmed && result.value) {
+          localStorage.setItem(passwordCourseKey(course.id), String(result.value))
+          doOpen()
+        }
+      })
+    } else {
+      doOpen()
+    }
   }
 
   const handleCourseClick = (course: Course) => {
@@ -2561,6 +2600,11 @@ export default function LMS() {
                         {course.category.name}
                       </span>
                     )}
+                    {course.has_password && isCourseOpen(course) && (
+                      <span className="absolute top-2 right-2 flex items-center gap-1 rounded-md bg-black/50 px-2 py-1 text-[9px] font-bold text-white shadow-sm backdrop-blur">
+                        <Lock size={9} /> Terkunci
+                      </span>
+                    )}
                     {!isCourseOpen(course) && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                         <div className="flex flex-col items-center gap-1.5">
@@ -2585,11 +2629,15 @@ export default function LMS() {
                         dangerouslySetInnerHTML={{ __html: course.description }} />
                     )}
                     <div className="mt-auto flex items-center justify-between pt-2.5 gap-2">
-                      <span className="min-w-0 flex items-center gap-1 text-[9px] sm:text-[10px] font-medium text-slate-500 truncate">
+                      <span className="min-w-0 flex-1 flex items-center gap-1 text-[9px] sm:text-[10px] font-medium text-slate-500 truncate">
                         <Building2 size={10} className="text-slate-400 shrink-0" />
-                        {[formatBatch(course.batch?.nama_batch), course.level && `Level ${course.level}`].filter(Boolean).join(' · ') || 'Kelas Mendunia'}
+                        <span className="truncate">{[formatBatch(course.batch?.nama_batch), course.level && `Level ${course.level}`].filter(Boolean).join(' · ') || 'Kelas Mendunia'}</span>
                       </span>
-                      {!isCourseOpen(course) ? (
+                      {course.has_password ? (
+                        <span className="flex items-center gap-1 rounded-md bg-amber-50 text-amber-700 px-1.5 py-0.5 text-[9px] sm:text-[10px] font-bold whitespace-nowrap">
+                          <Lock size={10} /> Terkunci
+                        </span>
+                      ) : !isCourseOpen(course) ? (
                         <span className="flex items-center gap-1 text-[9px] sm:text-[10px] font-bold text-slate-400 whitespace-nowrap">
                           <Lock size={10} /> Terkunci
                         </span>

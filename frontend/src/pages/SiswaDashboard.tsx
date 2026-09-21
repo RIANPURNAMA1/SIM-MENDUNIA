@@ -2,13 +2,12 @@ import { useState, useEffect, useRef, FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   User, Check, Clock, CreditCard, Copy, AlertTriangle,
-  ChevronDown, ChevronUp, ChevronLeft, Building2, Upload, Loader, MessageSquare, ChevronRight,
+  ChevronDown, ChevronUp, Building2, Upload, Loader, MessageSquare, ChevronRight,
   LayoutDashboard, Wallet, CalendarCheck, BookOpen, Briefcase, Bell, ClipboardList,
   FileSignature, Megaphone,
   LogOut,
   Lock,
   ExternalLink,
-  Trophy,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 import { useAuth } from '../contexts/AuthContext'
@@ -95,27 +94,6 @@ interface BankAccount {
   is_active: boolean
 }
 
-interface LeaderboardEntry {
-  rank: number
-  siswa_id: number
-  nama: string
-  batch: string | null
-  cabang: string | null
-  level: number | null
-  best_score: number
-}
-
-interface QuizLeaderboard {
-  paket_id: number
-  title: string
-  course: string | null
-  level: string | null
-  max_score: number | null
-  entries: LeaderboardEntry[]
-  my_score: number | null
-  my_rank: number | null
-}
-
 interface CheckoutData {
   pendaftar: {
     id: number
@@ -175,13 +153,6 @@ function maskPhone(phone: string) {
   return '•'.repeat(phone.length - 6) + phone.slice(-6)
 }
 
-function rankStyles(rank: number) {
-  if (rank === 1) return 'bg-amber-400 text-white'
-  if (rank === 2) return 'bg-slate-300 text-slate-700'
-  if (rank === 3) return 'bg-orange-300 text-white'
-  return 'bg-slate-100 text-slate-500'
-}
-
 export default function SiswaDashboard() {
   const { user, logout } = useAuth()
   const location = useLocation()
@@ -208,8 +179,6 @@ export default function SiswaDashboard() {
   const [success, setSuccess] = useState(false)
 
   const [evaluations, setEvaluations] = useState<Record<string, { evaluasi: string | null; user?: { name: string } }>>({})
-  const [quizLeaderboard, setQuizLeaderboard] = useState<QuizLeaderboard[]>([])
-  const [leaderboardPage, setLeaderboardPage] = useState(1)
   const [courseAlerts, setCourseAlerts] = useState<{ id: number; title: string; alert: string; category?: { name: string } | null }[]>([])
 
   useEffect(() => {
@@ -220,7 +189,6 @@ export default function SiswaDashboard() {
         setSiswa(res.data.siswa)
         setMatchingJob(res.data.matching_job || null)
         setJadwalLevels(res.data.jadwal_levels || {})
-        setQuizLeaderboard(res.data.quiz_leaderboard || [])
         if (p && p.status_pembayaran === 'unpaid') {
           setShowPaymentModal(true)
         }
@@ -448,11 +416,6 @@ export default function SiswaDashboard() {
   const batchId = siswa?.batch_id || pendaftar?.batch_id
   const lmsLocked = !batchId || Object.keys(jadwalLevels).length === 0
 
-  const lbPerPage = 3
-  const lbTotalPages = Math.max(1, Math.ceil(quizLeaderboard.length / lbPerPage))
-  const lbPage = Math.min(leaderboardPage, lbTotalPages)
-  const lbItems = quizLeaderboard.slice((lbPage - 1) * lbPerPage, lbPage * lbPerPage)
-
   return (
     <div className="min-h-screen bg-[#f0f2f5] pb-24">
       {/* ============ Top App Bar ============ */}
@@ -504,21 +467,21 @@ export default function SiswaDashboard() {
         {courseAlerts.length > 0 && (
           <div className="space-y-3">
             {courseAlerts.map(c => (
-              <div key={c.id} className="rounded-xl border border-[#0E6187]/25 bg-gradient-to-r from-[#E7F3FB] to-white p-4 shadow-sm animate-fade-up delay-150">
+              <div key={c.id} className="rounded-xl border border-[#0E6187]/25 bg-gradient-to-r from-[#E7F3FB] to-white dark:from-[#16202f] dark:to-[#1e293b] p-4 shadow-sm animate-fade-up delay-150">
                 <div className="flex items-start gap-3">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0E6187] shadow-sm">
                     <Megaphone size={16} className="text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-bold text-[#0E6187]">{c.title}</p>
+                      <p className="text-sm font-bold text-[#0E6187] dark:text-[#38BDF8]">{c.title}</p>
                       {c.category?.name && (
-                        <span className="shrink-0 rounded-full bg-[#0E6187]/10 px-2 py-0.5 text-[9px] font-bold text-[#0E6187]">
+                        <span className="shrink-0 rounded-full bg-[#0E6187]/10 px-2 py-0.5 text-[9px] font-bold text-[#0E6187] dark:text-[#38BDF8]">
                           {c.category.name}
                         </span>
                       )}
                     </div>
-                    <p className="mt-0.5 text-xs font-medium text-slate-600 leading-relaxed">{c.alert}</p>
+                    <p className="mt-0.5 text-xs font-medium text-slate-600 dark:text-slate-300 leading-relaxed">{c.alert}</p>
                     <Link to={`/siswa-dashboard/lms/${c.id}`}
                       className="mt-2 inline-flex items-center gap-1 rounded-lg bg-[#0E6187] px-3 py-1.5 text-[10px] font-bold text-white transition-all hover:bg-[#0a5588] hover:shadow active:scale-95">
                       Buka Kursus <ChevronRight size={10} />
@@ -691,102 +654,6 @@ export default function SiswaDashboard() {
                 ) : null
               )}
             </div>
-          </section>
-        )}
-
-        {/* ============ Klasemen Quiz ============ */}
-        {quizLeaderboard.length > 0 && (
-          <section className="rounded-xl bg-white p-4 shadow-sm animate-fade-up delay-300">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold text-slate-800">Klasemen Quiz</h2>
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600">
-                <Trophy size={11} /> Nilai tertinggi
-              </span>
-            </div>
-            <p className="mt-0.5 text-[11px] text-slate-400">Peringkat nilai terbaik setiap paket soal</p>
-            <div className="mt-3 space-y-3">
-              {lbItems.map(lb => (
-                <div key={lb.paket_id} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
-                      <Trophy size={13} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-bold text-slate-800">{lb.title}</p>
-                      <p className="text-[10px] text-slate-400">
-                        {[lb.course, lb.level && `Level ${lb.level}`].filter(Boolean).join(' · ') || 'Quiz'}
-                      </p>
-                    </div>
-                    {lb.max_score != null && (
-                      <span className="shrink-0 text-[10px] font-bold text-slate-400">Max {lb.max_score} poin</span>
-                    )}
-                  </div>
-                  <div className="mt-2 space-y-1">
-                    {lb.entries.map(e => {
-                      const isMe = e.siswa_id === siswa?.id
-                      return (
-                        <div key={e.siswa_id} className={`flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 ${
-                          isMe ? 'bg-[#0E6187]/10 ring-1 ring-[#0E6187]/30' : 'bg-white'
-                        }`}>
-                          <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${rankStyles(e.rank)}`}>
-                            {e.rank}
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <p className={`truncate text-[11px] font-semibold ${isMe ? 'text-[#0E6187]' : 'text-slate-700'}`}>
-                              {e.nama}{isMe && <span className="ml-1 text-[9px] font-bold text-[#0E6187]">(Kamu)</span>}
-                            </p>
-                            <p className="text-[9.5px] text-slate-400">
-                              {[e.cabang, e.batch, e.level != null && `Level ${e.level}`].filter(Boolean).join(' · ') || '-'}
-                            </p>
-                          </div>
-                          <span className="shrink-0 rounded-md bg-slate-800 px-2 py-0.5 text-[10px] font-bold text-white">{e.best_score}</span>
-                        </div>
-                      )
-                    })}
-                    {lb.my_rank != null && lb.my_score != null && !lb.entries.some(e => e.siswa_id === siswa?.id) && (
-                      <div className="flex items-center gap-2.5 rounded-lg bg-[#0E6187]/10 ring-1 ring-[#0E6187]/30 px-2.5 py-1.5">
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-700 text-[10px] font-bold text-white">#{lb.my_rank}</span>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-[11px] font-semibold text-[#0E6187]">
-                            {siswa?.nama || 'Kamu'} <span className="text-[9px] font-bold">(Kamu)</span>
-                          </p>
-                          <p className="text-[9.5px] text-slate-400">Peringkat #{lb.my_rank} dari keseluruhan peserta</p>
-                        </div>
-                        <span className="shrink-0 rounded-md bg-slate-800 px-2 py-0.5 text-[10px] font-bold text-white">{lb.my_score}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-            {lbTotalPages > 1 && (
-              <div className="mt-3 flex items-center justify-between rounded-lg bg-slate-50 px-2 py-1.5">
-                <button
-                  onClick={() => setLeaderboardPage(Math.max(1, lbPage - 1))}
-                  disabled={lbPage === 1}
-                  className="flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-semibold text-slate-600 transition-colors hover:bg-white disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent">
-                  <ChevronLeft size={13} /> Sebelumnya
-                </button>
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: lbTotalPages }, (_, i) => i + 1).map(n => (
-                    <button
-                      key={n}
-                      onClick={() => setLeaderboardPage(n)}
-                      className={`flex h-6 w-6 items-center justify-center rounded-md text-[11px] font-bold transition-colors ${
-                        n === lbPage ? 'bg-[#0E6187] text-white' : 'text-slate-500 hover:bg-white'
-                      }`}>
-                      {n}
-                    </button>
-                  ))}
-                </div>
-                <button
-                  onClick={() => setLeaderboardPage(Math.min(lbTotalPages, lbPage + 1))}
-                  disabled={lbPage === lbTotalPages}
-                  className="flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-semibold text-slate-600 transition-colors hover:bg-white disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent">
-                  Berikutnya <ChevronRight size={13} />
-                </button>
-              </div>
-            )}
           </section>
         )}
 

@@ -105,8 +105,13 @@ type EditableField = keyof Pick<Kandidat,
   'status_kandidat'
 >
 
-const inputCls = "w-full min-w-[70px] px-1.5 py-0.5 border border-blue-400 rounded bg-blue-50 text-xs text-slate-700 outline-none focus:ring-1 focus:ring-blue-500"
-const selectCls = "w-full min-w-[70px] px-1 py-0.5 border border-blue-400 rounded bg-blue-50 text-xs text-slate-700 outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
+const EDITABLE_FIELDS: EditableField[] = [
+  'nik', 'nama', 'jenis_kelamin', 'tempat_lahir', 'tanggal_lahir',
+  'alamat', 'desa', 'kecamatan', 'kabupaten', 'provinsi', 'pendidikan_terakhir',
+  'tahun_lulus', 'tinggi_badan', 'berat_badan', 'goldar', 'ukuran_baju',
+  'status_pernikahan', 'email', 'no_hp', 'nama_ortu', 'no_hp_ortu', 'keterangan',
+  'status_kandidat',
+]
 
 export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'cabang' } = {}) {
   const isCabang = variant === 'cabang'
@@ -154,6 +159,8 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
   const [batchModalKandidat, setBatchModalKandidat] = useState<Kandidat | null>(null)
   const [editForm, setEditForm] = useState<Partial<Kandidat>>({})
   const [saving, setSaving] = useState(false)
+  const [showEdit, setShowEdit] = useState(false)
+  const [editError, setEditError] = useState('')
   const [detailKandidat, setDetailKandidat] = useState<Kandidat | null>(null)
   const [detailDokumen, setDetailDokumen] = useState<any[]>([])
   const [detailDokumenLoading, setDetailDokumenLoading] = useState(false)
@@ -485,12 +492,27 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
 
   function startEdit(k: Kandidat) {
     setEditingId(k.id)
-    setEditForm({ ...k })
+    const f: Partial<Kandidat> = {}
+    const months: Record<string, string> = { Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06', Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12' }
+    for (const key of EDITABLE_FIELDS) {
+      let v = (k as unknown as Record<string, unknown>)[key]
+      if (key === 'tanggal_lahir' && typeof v === 'string' && v && v !== '-') {
+        const parts = v.split(' ')
+        const m = parts.length === 3 ? months[parts[1]] : null
+        if (m) v = `${parts[2]}-${m}-${parts[0].padStart(2, '0')}`
+      }
+      f[key] = (typeof v === 'string' ? v : v == null ? '' : String(v)) as never
+    }
+    setEditForm(f)
+    setEditError('')
+    setShowEdit(true)
   }
 
   function cancelEdit() {
     setEditingId(null)
     setEditForm({})
+    setShowEdit(false)
+    setEditError('')
   }
 
   async function saveEdit() {
@@ -498,14 +520,17 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
     setSaving(true)
     try {
       const payload: Record<string, unknown> = {}
-      for (const [k, v] of Object.entries(editForm as Record<string, unknown>)) {
-        if (v === '' || v === undefined) payload[k] = null
-        else payload[k] = v
+      for (const key of EDITABLE_FIELDS) {
+        const v = (editForm as Record<string, unknown>)[key]
+        if (v === '' || v === undefined || v === null) payload[key] = null
+        else payload[key] = v
       }
       await (isCabang ? adminCabangApi.updateKandidat(editingId, payload) : pendaftarApi.updateKandidat(editingId, payload))
-      setKandidatList(prev => prev.map(k => k.id === editingId ? { ...k, ...editForm } as Kandidat : k))
       setEditingId(null)
       setEditForm({})
+      setShowEdit(false)
+      setEditError('')
+      fetchData(search)
       Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Data kandidat berhasil diperbarui.', confirmButtonColor: '#0E6187', timer: 2000, timerProgressBar: true, showConfirmButton: false })
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } }; message?: string }
@@ -514,7 +539,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
         ? Object.entries(validationErrors).map(([f, msgs]) => `${f}: ${msgs.join(', ')}`).join('\n')
         : (axiosErr?.response?.data?.message || axiosErr?.message || String(err))
       console.error('saveEdit error:', detail, err)
-      Swal.fire({ icon: 'error', title: 'Gagal', text: detail, confirmButtonColor: '#0E6187' })
+      setEditError(detail)
     } finally {
       setSaving(false)
     }
@@ -939,34 +964,6 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
         <span className={`h-1.5 w-1.5 rounded-full ${status === 'Disetujui' ? 'bg-emerald-500' : status === 'Ditolak' ? 'bg-red-500' : 'bg-amber-500'}`} />
         {s.label}
       </span>
-    )
-  }
-
-  function CellEdit({ field, type }: { field: EditableField; type?: 'text' | 'select' | 'number' | 'date' }) {
-    const val = editForm[field] ?? ''
-    if (type === 'select') {
-      const opts: Record<string, string[]> = {
-        jenis_kelamin: ['L', 'P'],
-        goldar: ['A', 'B', 'AB', 'O'],
-        ukuran_baju: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
-        status_pernikahan: ['Belum Nikah', 'Nikah', 'Cerai'],
-        pendidikan_terakhir: ['SD/Sederajat', 'SMP/Sederajat', 'SMA/Sederajat', 'D1-D3', 'S1', 'S2'],
-        status_kandidat: ['Calon Kandidat', 'Kandidat Aktif', 'Proses Belajar', 'Mengundurkan Diri', 'Lulus Pendidikan'],
-      }
-      return (
-        <select className={selectCls} value={val} onChange={e => updateField(field, e.target.value)}>
-          <option value="">-</option>
-          {(opts[field] || []).map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
-      )
-    }
-    return (
-      <input
-        type={type || 'text'}
-        className={inputCls}
-        value={val}
-        onChange={e => updateField(field, e.target.value)}
-      />
     )
   }
 
@@ -1787,33 +1784,31 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                             </td>
                           )}
                           <td className="border border-slate-200 px-4 py-3 text-xs font-mono font-semibold text-black whitespace-nowrap">
-                            {isEditing ? <CellEdit field="nik" /> : k.nik || <span className="text-gray-400">-</span>}
+                            {k.nik || <span className="text-gray-400">-</span>}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-mono font-semibold text-black whitespace-nowrap">
                             {k.no_registrasi || <span className="text-gray-400">-</span>}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 max-w-[200px] overflow-hidden">
-                            {isEditing ? <CellEdit field="nama" /> : (
-                              <div className="flex items-center gap-2 min-w-0">
-                                {(() => {
-                                  const pid = k.matching_job?.penempatan_kandidat_id
-                                  const foto = pid ? fotoMap[pid] : null
-                                  return foto ? (
-                                    <img src={foto} alt={k.nama} className="h-8 w-8 rounded-full object-cover flex-none"
-                                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
-                                  ) : (
-                                    <img
-                                      src={`https://ui-avatars.com/api/?name=${encodeURIComponent(k.nama)}&background=e5e7eb&color=6b7280&size=32`}
-                                      className="h-8 w-8 rounded-full object-cover flex-none"
-                                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                                    />
-                                  )
-                                })()}
-                                <div className="min-w-0">
-                                  <div className={`font-semibold truncate ${k.level_status_keluar ? 'text-red-600' : 'text-black'}`}>{k.nama}</div>
-                                </div>
+                            <div className="flex items-center gap-2 min-w-0">
+                              {(() => {
+                                const pid = k.matching_job?.penempatan_kandidat_id
+                                const foto = pid ? fotoMap[pid] : null
+                                return foto ? (
+                                  <img src={foto} alt={k.nama} className="h-8 w-8 rounded-full object-cover flex-none"
+                                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+                                ) : (
+                                  <img
+                                    src={`https://ui-avatars.com/api/?name=${encodeURIComponent(k.nama)}&background=e5e7eb&color=6b7280&size=32`}
+                                    className="h-8 w-8 rounded-full object-cover flex-none"
+                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                                  />
+                                )
+                              })()}
+                              <div className="min-w-0">
+                                <div className={`font-semibold truncate ${k.level_status_keluar ? 'text-red-600' : 'text-black'}`}>{k.nama}</div>
                               </div>
-                            )}
+                            </div>
                           </td>
                           <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
                             <button onClick={() => openBatchModal(k)}
@@ -1828,63 +1823,58 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                             {k.cabang_nama || <span className="text-gray-400">-</span>}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black text-center">
-                            {isEditing ? <CellEdit field="jenis_kelamin" type="select" /> : (k.jenis_kelamin === 'L' ? 'L' : k.jenis_kelamin === 'P' ? 'P' : '-')}
+                            {k.jenis_kelamin === 'L' ? 'L' : k.jenis_kelamin === 'P' ? 'P' : '-'}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black whitespace-nowrap">
-                            {isEditing ? (
-                              <div className="flex gap-1">
-                                <CellEdit field="tempat_lahir" />
-                                <CellEdit field="tanggal_lahir" type="date" />
-                              </div>
-                            ) : (k.tempat_lahir !== '-' && k.tanggal_lahir !== '-' ? `${k.tempat_lahir}, ${k.tanggal_lahir}` : '-')}
+                            {k.tempat_lahir !== '-' && k.tanggal_lahir !== '-' ? `${k.tempat_lahir}, ${k.tanggal_lahir}` : '-'}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black max-w-[250px]">
-                            {isEditing ? <CellEdit field="alamat" /> : <span className="truncate block" title={k.alamat}>{k.alamat || '-'}</span>}
+                            <span className="truncate block" title={k.alamat}>{k.alamat || '-'}</span>
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black whitespace-nowrap">
-                            {isEditing ? <CellEdit field="desa" /> : k.desa || <span className="text-gray-400">-</span>}
+                            {k.desa || <span className="text-gray-400">-</span>}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black whitespace-nowrap">
-                            {isEditing ? <CellEdit field="kecamatan" /> : k.kecamatan || <span className="text-gray-400">-</span>}
+                            {k.kecamatan || <span className="text-gray-400">-</span>}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black whitespace-nowrap">
-                            {isEditing ? <CellEdit field="kabupaten" /> : k.kabupaten || <span className="text-gray-400">-</span>}
+                            {k.kabupaten || <span className="text-gray-400">-</span>}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black whitespace-nowrap">
-                            {isEditing ? <CellEdit field="provinsi" /> : k.provinsi || <span className="text-gray-400">-</span>}
+                            {k.provinsi || <span className="text-gray-400">-</span>}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black whitespace-nowrap">
-                            {isEditing ? <CellEdit field="pendidikan_terakhir" type="select" /> : k.pendidikan_terakhir || <span className="text-gray-400">-</span>}
+                            {k.pendidikan_terakhir || <span className="text-gray-400">-</span>}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black text-center">
-                            {isEditing ? <CellEdit field="tahun_lulus" /> : k.tahun_lulus || <span className="text-gray-400">-</span>}
+                            {k.tahun_lulus || <span className="text-gray-400">-</span>}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black text-center">
-                            {isEditing ? <CellEdit field="tinggi_badan" type="number" /> : (k.tinggi_badan || <span className="text-gray-400">-</span>)}
+                            {k.tinggi_badan || <span className="text-gray-400">-</span>}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black text-center">
-                            {isEditing ? <CellEdit field="berat_badan" type="number" /> : (k.berat_badan || <span className="text-gray-400">-</span>)}
+                            {k.berat_badan || <span className="text-gray-400">-</span>}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black text-center">
-                            {isEditing ? <CellEdit field="goldar" type="select" /> : k.goldar || <span className="text-gray-400">-</span>}
+                            {k.goldar || <span className="text-gray-400">-</span>}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black text-center">
-                            {isEditing ? <CellEdit field="ukuran_baju" type="select" /> : k.ukuran_baju || <span className="text-gray-400">-</span>}
+                            {k.ukuran_baju || <span className="text-gray-400">-</span>}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black">
-                            {isEditing ? <CellEdit field="status_pernikahan" type="select" /> : k.status_pernikahan || <span className="text-gray-400">-</span>}
+                            {k.status_pernikahan || <span className="text-gray-400">-</span>}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-mono font-semibold text-black whitespace-nowrap">
-                            {isEditing ? <CellEdit field="email" /> : k.email}
+                            {k.email}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-mono font-semibold text-black whitespace-nowrap">
-                            {isEditing ? <CellEdit field="no_hp" /> : k.no_hp || <span className="text-gray-400">-</span>}
+                            {k.no_hp || <span className="text-gray-400">-</span>}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black">
-                            {isEditing ? <CellEdit field="nama_ortu" /> : k.nama_ortu || <span className="text-gray-400">-</span>}
+                            {k.nama_ortu || <span className="text-gray-400">-</span>}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-mono font-semibold text-black whitespace-nowrap">
-                            {isEditing ? <CellEdit field="no_hp_ortu" /> : k.no_hp_ortu || <span className="text-gray-400">-</span>}
+                            {k.no_hp_ortu || <span className="text-gray-400">-</span>}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-center whitespace-nowrap">
                             {k.kontrak ? (
@@ -1914,9 +1904,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                             )}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
-                            {isEditing ? (
-                              <CellEdit field="status_kandidat" type="select" />
-                            ) : (() => {
+                            {(() => {
                               const sk = k.status_kandidat || 'Calon Kandidat'
                               const skMap: Record<string, { bg: string; border: string; text: string; dot: string }> = {
                                   'Calon Kandidat': { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', dot: 'bg-blue-500' },
@@ -1935,29 +1923,14 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                             })()}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black max-w-[180px]">
-                            {isEditing ? <CellEdit field="keterangan" /> : (
-                              <div className="flex flex-col gap-1">
-                                {k.level_status_keluar ? <span className="inline-block w-fit rounded bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">KELUAR</span> : null}
-                                {k.is_cuti ? <span className="inline-block w-fit rounded bg-yellow-400 px-2 py-0.5 text-[10px] font-bold text-black">CUTI</span> : null}
-                                {k.keterangan && k.keterangan !== '-' && String(k.keterangan) !== '0' ? <span className="truncate block" title={k.keterangan}>{k.keterangan}</span> : <span className="text-gray-400">-</span>}
-                              </div>
-                            )}
+                            <div className="flex flex-col gap-1">
+                              {k.level_status_keluar ? <span className="inline-block w-fit rounded bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">KELUAR</span> : null}
+                              {k.is_cuti ? <span className="inline-block w-fit rounded bg-yellow-400 px-2 py-0.5 text-[10px] font-bold text-black">CUTI</span> : null}
+                              {k.keterangan && k.keterangan !== '-' && String(k.keterangan) !== '0' ? <span className="truncate block" title={k.keterangan}>{k.keterangan}</span> : <span className="text-gray-400">-</span>}
+                            </div>
                            </td>
                            <td className={`sticky right-0 z-10 border border-slate-200 px-3 py-3 text-center shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] ${isEditing ? 'bg-blue-50/50' : 'bg-white'}`}>
-                            {isEditing ? (
-                              <div className="flex justify-center gap-1">
-                                <button onClick={saveEdit} disabled={saving}
-                                  className="rounded-lg border border-emerald-200 bg-emerald-50 p-1.5 text-emerald-600 transition hover:bg-emerald-100 disabled:opacity-50" title="Simpan">
-                                  <Check size={14} />
-                                </button>
-                                <button onClick={cancelEdit}
-                                  className="rounded-lg border border-red-200 bg-red-50 p-1.5 text-red-500 transition hover:bg-red-100" title="Batal">
-                                  <X size={14} />
-                                </button>
-                              </div>
-                            ) : (
-                              <>
-                                <div className="relative flex justify-center" ref={actionRef}>
+                            <div className="relative flex justify-center" ref={actionRef}>
                                   <button
                                     onMouseDown={e => e.stopPropagation()}
                                     onClick={(e) => {
@@ -2169,8 +2142,6 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                                   </div>,
                                   document.body
                                 )}
-                              </>
-                            )}
                           </td>
                         </tr>
                       )
@@ -2502,6 +2473,98 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
       )}
 
       {/* Tambah Data Modal */}
+      {/* Edit Modal */}
+      {showEdit && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 pt-10 pb-10" onClick={cancelEdit}>
+          <div className="w-full max-w-4xl rounded-xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-white">
+                  <Edit3 size={18} />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">Edit Data Kandidat</h2>
+                  <p className="text-xs text-slate-500">Perbarui data kandidat</p>
+                </div>
+              </div>
+              <button onClick={cancelEdit} className="rounded-lg p-1.5 hover:bg-slate-100 transition">
+                <X size={18} className="text-slate-400" />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); saveEdit() }} autoComplete="off" className="px-6 py-5 max-h-[70vh] overflow-y-auto">
+              {editError && (
+                <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <p className="font-semibold mb-1">Gagal menyimpan:</p>
+                  <pre className="whitespace-pre-wrap text-xs">{editError}</pre>
+                </div>
+              )}
+
+              <h3 className="mb-3 text-sm font-bold text-slate-700 uppercase tracking-wide">Data Diri</h3>
+              <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <FormField label="Nama Lengkap" value={String(editForm.nama ?? '')} onChange={v => updateField('nama', v)} placeholder="Nama lengkap" maxLength={255} />
+                <FormField label="Email" value={String(editForm.email ?? '')} onChange={v => updateField('email', v)} type="email" placeholder="email@contoh.com" />
+                <FormField label="NIK" value={String(editForm.nik ?? '')} onChange={v => updateField('nik', v)} placeholder="Nomor NIK (maks. 50)" maxLength={50} />
+                <FormField label="No. HP" value={String(editForm.no_hp ?? '')} onChange={v => updateField('no_hp', v)} placeholder="No. HP (maks. 20)" maxLength={20} />
+                <FormSelect label="Jenis Kelamin" value={String(editForm.jenis_kelamin ?? '')} onChange={v => updateField('jenis_kelamin', v)}
+                  options={[{ value: 'L', label: 'Laki-laki' }, { value: 'P', label: 'Perempuan' }]} />
+                <FormField label="Tempat Lahir" value={String(editForm.tempat_lahir ?? '')} onChange={v => updateField('tempat_lahir', v)} placeholder="Kota kelahiran (maks. 255)" maxLength={255} />
+                <FormField label="Tanggal Lahir" value={String(editForm.tanggal_lahir ?? '')} onChange={v => updateField('tanggal_lahir', v)} type="date" />
+                <FormSelect label="Status Nikah" value={String(editForm.status_pernikahan ?? '')} onChange={v => updateField('status_pernikahan', v)}
+                  options={[{ value: 'Belum Nikah', label: 'Belum Nikah' }, { value: 'Nikah', label: 'Nikah' }, { value: 'Cerai', label: 'Cerai' }]} />
+              </div>
+
+              <h3 className="mb-3 text-sm font-bold text-slate-700 uppercase tracking-wide">Alamat</h3>
+              <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="sm:col-span-2 lg:col-span-3">
+                  <FormField label="Alamat" value={String(editForm.alamat ?? '')} onChange={v => updateField('alamat', v)} placeholder="Alamat lengkap" />
+                </div>
+                <FormField label="Desa" value={String(editForm.desa ?? '')} onChange={v => updateField('desa', v)} placeholder="Nama desa (maks. 255)" maxLength={255} />
+                <FormField label="Kecamatan" value={String(editForm.kecamatan ?? '')} onChange={v => updateField('kecamatan', v)} placeholder="Nama kecamatan (maks. 255)" maxLength={255} />
+                <FormField label="Kab./Kota" value={String(editForm.kabupaten ?? '')} onChange={v => updateField('kabupaten', v)} placeholder="Nama kabupaten/kota (maks. 255)" maxLength={255} />
+                <FormField label="Provinsi" value={String(editForm.provinsi ?? '')} onChange={v => updateField('provinsi', v)} placeholder="Nama provinsi (maks. 255)" maxLength={255} />
+              </div>
+
+              <h3 className="mb-3 text-sm font-bold text-slate-700 uppercase tracking-wide">Pendidikan & Data Fisik</h3>
+              <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <FormSelect label="Pendidikan Terakhir" value={String(editForm.pendidikan_terakhir ?? '')} onChange={v => updateField('pendidikan_terakhir', v)}
+                  options={[{ value: 'SD/Sederajat', label: 'SD/Sederajat' }, { value: 'SMP/Sederajat', label: 'SMP/Sederajat' }, { value: 'SMA/Sederajat', label: 'SMA/Sederajat' }, { value: 'D1-D3', label: 'D1-D3' }, { value: 'S1', label: 'S1' }, { value: 'S2', label: 'S2' }]} />
+                <FormField label="Tahun Lulus" value={String(editForm.tahun_lulus ?? '')} onChange={v => updateField('tahun_lulus', v)} placeholder="Contoh: 2023 (4 digit)" maxLength={4} />
+                <FormField label="Tinggi Badan (cm)" value={String(editForm.tinggi_badan ?? '')} onChange={v => updateField('tinggi_badan', v)} type="number" placeholder="cm" />
+                <FormField label="Berat Badan (kg)" value={String(editForm.berat_badan ?? '')} onChange={v => updateField('berat_badan', v)} type="number" placeholder="kg" />
+                <FormSelect label="Golongan Darah" value={String(editForm.goldar ?? '')} onChange={v => updateField('goldar', v)}
+                  options={[{ value: 'A', label: 'A' }, { value: 'B', label: 'B' }, { value: 'AB', label: 'AB' }, { value: 'O', label: 'O' }]} />
+                <FormSelect label="Ukuran Baju" value={String(editForm.ukuran_baju ?? '')} onChange={v => updateField('ukuran_baju', v)}
+                  options={[{ value: 'XS', label: 'XS' }, { value: 'S', label: 'S' }, { value: 'M', label: 'M' }, { value: 'L', label: 'L' }, { value: 'XL', label: 'XL' }, { value: 'XXL', label: 'XXL' }]} />
+              </div>
+
+              <h3 className="mb-3 text-sm font-bold text-slate-700 uppercase tracking-wide">Keluarga & Lainnya</h3>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <FormField label="Nama Orang Tua/Wali" value={String(editForm.nama_ortu ?? '')} onChange={v => updateField('nama_ortu', v)} placeholder="Nama orang tua (maks. 255)" maxLength={255} />
+                <FormField label="No. Tlp Orang Tua" value={String(editForm.no_hp_ortu ?? '')} onChange={v => updateField('no_hp_ortu', v)} placeholder="No. tlp orang tua (maks. 20)" maxLength={20} />
+                <FormSelect label="Status Kandidat" value={String(editForm.status_kandidat ?? '')} onChange={v => updateField('status_kandidat', v)}
+                  options={[{ value: 'Calon Kandidat', label: 'Calon Kandidat' }, { value: 'Kandidat Aktif', label: 'Kandidat Aktif' }, { value: 'Proses Belajar', label: 'Proses Belajar' }, { value: 'Mengundurkan Diri', label: 'Mengundurkan Diri' }, { value: 'Lulus Pendidikan', label: 'Lulus Pendidikan' }]} />
+                <div className="sm:col-span-2 lg:col-span-3">
+                  <FormField label="Keterangan" value={String(editForm.keterangan ?? '')} onChange={v => updateField('keterangan', v)} placeholder="Keterangan tambahan (maks. 500)" maxLength={500} />
+                </div>
+              </div>
+            </form>
+
+            <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-3.5">
+              <button type="button" onClick={cancelEdit}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                Batal
+              </button>
+              <button type="button" onClick={saveEdit} disabled={saving}
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                {saving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
+                {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showTambah && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 pt-10 pb-10" onClick={() => { setShowTambah(false); setTambahSuccess(null) }}>
           <div className="w-full max-w-4xl rounded-xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>

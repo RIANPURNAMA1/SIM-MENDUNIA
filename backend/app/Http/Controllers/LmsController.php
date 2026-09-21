@@ -140,6 +140,7 @@ class LmsController extends Controller
             ->mapWithKeys(fn ($j) => [$j->batch_id . '-' . (string) $j->level => $j]);
 
         $courses->each(function ($course) use ($jadwalLevels) {
+            $course->has_password = !empty($course->password_course);
             $course->tanggal_mulai = null;
             $course->tanggal_selesai = null;
             if ($course->batch_id && $course->level !== null) {
@@ -154,7 +155,7 @@ class LmsController extends Controller
         return response()->json(['courses' => $courses]);
     }
 
-    public function courseDetail($id)
+    public function courseDetail(Request $request, $id)
     {
         $siswa = $this->getSiswa();
         if (!$siswa) {
@@ -164,6 +165,13 @@ class LmsController extends Controller
         $course = Course::aktif()->with(['lessons' => function ($q) {
             $q->aktif()->orderBy('sort')->with('slides');
         }])->findOrFail($id);
+
+        if (!empty($course->password_course)) {
+            $password = (string) $request->header('X-Password-Course', $request->query('password_course', ''));
+            if (!hash_equals((string) $course->password_course, $password)) {
+                return response()->json(['message' => 'Password kursus salah atau belum dimasukkan.'], 403);
+            }
+        }
 
         $course->setRelation(
             'lessons',
@@ -680,6 +688,7 @@ class LmsController extends Controller
 
         if ($perPage) {
             $courses = $query->paginate($perPage);
+            $courses->getCollection()->each(fn ($c) => $c->makeVisible('password_course'));
             return response()->json([
                 'courses' => $courses->items(),
                 'batches' => $batches,
@@ -694,6 +703,7 @@ class LmsController extends Controller
         }
 
         $courses = $query->get();
+        $courses->each(fn ($c) => $c->makeVisible('password_course'));
         return response()->json(['courses' => $courses, 'batches' => $batches, 'levels' => $levels]);
     }
 
@@ -709,6 +719,7 @@ class LmsController extends Controller
             'status' => 'nullable|in:aktif,nonaktif',
             'alert' => 'nullable|string|max:1000',
             'alert_active' => 'nullable|boolean',
+            'password_course' => 'nullable|string|max:255',
             'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
@@ -718,7 +729,7 @@ class LmsController extends Controller
 
         $data['user_id'] = Auth::guard('sanctum')->id();
 
-        $course = Course::create($data);
+        $course = Course::create($data)->makeVisible('password_course');
         return response()->json(['course' => $course->loadCount('lessons')], 201);
     }
 
@@ -736,6 +747,7 @@ class LmsController extends Controller
             'status' => 'nullable|in:aktif,nonaktif',
             'alert' => 'nullable|string|max:1000',
             'alert_active' => 'nullable|boolean',
+            'password_course' => 'nullable|string|max:255',
             'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
@@ -747,7 +759,7 @@ class LmsController extends Controller
         }
 
         $course->update($data);
-        return response()->json(['course' => $course->fresh()->loadCount('lessons')]);
+        return response()->json(['course' => $course->fresh()->makeVisible('password_course')->loadCount('lessons')]);
     }
 
     public function deleteCourse($id)

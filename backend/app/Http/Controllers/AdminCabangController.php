@@ -1922,6 +1922,7 @@ class AdminCabangController extends Controller
 
         if ($perPage) {
             $courses = $query->orderBy('sort')->orderBy('id')->paginate($perPage);
+            $courses->getCollection()->each(fn ($c) => $c->makeVisible('password_course'));
             return response()->json([
                 'success' => true,
                 'courses' => $courses->items(),
@@ -1937,6 +1938,7 @@ class AdminCabangController extends Controller
         }
 
         $courses = $query->orderBy('sort')->get();
+        $courses->each(fn ($c) => $c->makeVisible('password_course'));
 
         return response()->json([
             'success' => true,

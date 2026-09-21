@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, Fragment } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   BookOpen, Plus, Edit3, Trash2, Search, X, Image as ImageIcon, FileText,
-  ListChecks, Eye, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Camera, Clock, Repeat,
+  ListChecks, Eye, EyeOff, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Camera, Clock, Repeat,
   Award, Users, UserCheck, Pencil, Loader2, ArrowLeft, Video, UploadCloud, Upload, Mic, RotateCcw,
   Settings, LayoutGrid, ShieldCheck, Link2, Building2, Layers, Settings2, FileCheck2,
 } from 'lucide-react'
@@ -35,6 +35,7 @@ interface Course {
   files_count: number
   alert?: string | null
   alert_active?: boolean
+  password_course?: string | null
 }
 
 interface LmsCategory {
@@ -265,7 +266,7 @@ export default function DataCourse() {
   const [showCourseModal, setShowCourseModal] = useState(false)
   const [editingCourse, setEditingCourse] = useState<Course | null>(null)
   const [savingCourse, setSavingCourse] = useState(false)
-  const [courseForm, setCourseForm] = useState({ title: '', description: '', level: '', batch_id: '', category_id: '', sort: '0', status: 'aktif', alert: '', alert_active: true })
+  const [courseForm, setCourseForm] = useState({ title: '', description: '', level: '', batch_id: '', category_id: '', sort: '0', status: 'aktif', alert: '', alert_active: true, password_course: '' })
   const [categories, setCategories] = useState<LmsCategory[]>([])
   const [showCourseCatModal, setShowCourseCatModal] = useState(false)
   const [courseCatForm, setCourseCatForm] = useState({ name: '', sort: '0' })
@@ -275,6 +276,7 @@ export default function DataCourse() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [uploadingImg, setUploadingImg] = useState(false)
   const [showBatchDropdown, setShowBatchDropdown] = useState(false)
+  const [showPasswordCourse, setShowPasswordCourse] = useState(false)
   const quillRef = useRef<any>(null)
   const questionQuillRef = useRef<any>(null)
   const seededSectionsRef = useRef<Set<number>>(new Set())
@@ -1391,9 +1393,10 @@ export default function DataCourse() {
   // ==================== COURSE CRUD ====================
   const openCreateCourse = () => {
     setEditingCourse(null)
-    setCourseForm({ title: '', description: '', level: '', batch_id: '', category_id: '', sort: '0', status: 'aktif', alert: '', alert_active: true })
+    setCourseForm({ title: '', description: '', level: '', batch_id: '', category_id: '', sort: '0', status: 'aktif', alert: '', alert_active: true, password_course: '' })
     setImageFile(null)
     setImagePreview(null)
+    setShowPasswordCourse(false)
     setShowCourseModal(true)
   }
 
@@ -1409,9 +1412,11 @@ export default function DataCourse() {
       status: course.status,
       alert: course.alert || '',
       alert_active: course.alert_active !== false && course.alert_active !== 0,
+      password_course: course.password_course || '',
     })
     setImageFile(null)
     setImagePreview(course.image ? `${APP_URL}/storage/${course.image}` : null)
+    setShowPasswordCourse(false)
     setShowCourseModal(true)
   }
 
@@ -1431,6 +1436,7 @@ export default function DataCourse() {
       fd.append('status', courseForm.status)
       fd.append('alert', courseForm.alert)
       fd.append('alert_active', courseForm.alert_active ? '1' : '0')
+      fd.append('password_course', courseForm.password_course)
       if (imageFile) fd.append('image', imageFile)
       if (editingCourse) {
         await lmsAdminApi.updateCourse(editingCourse.id, fd)
@@ -3372,6 +3378,28 @@ export default function DataCourse() {
                     </div>
                   )}
                 </div>
+              </div>
+              <div>
+                <label className={labelCls}>Password Kursus (opsional)</label>
+                <div className="relative">
+                  <input
+                    type={showPasswordCourse ? 'text' : 'password'}
+                    value={courseForm.password_course}
+                    onChange={e => setCourseForm({ ...courseForm, password_course: e.target.value })}
+                    className={`${inputCls} pr-10`}
+                    placeholder="Masukkan password untuk akses kursus"
+                    autoComplete="off"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordCourse(!showPasswordCourse)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    title={showPasswordCourse ? 'Sembunyikan' : 'Tampilkan'}
+                  >
+                    {showPasswordCourse ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                <p className="mt-1.5 text-[11px] text-slate-400">Kosongkan jika kursus terbuka tanpa password. Siswa akan diminta memasukkan password ini saat membuka kursus.</p>
               </div>
               <div>
                 <label className={labelCls}>Alert Kursus (opsional)</label>

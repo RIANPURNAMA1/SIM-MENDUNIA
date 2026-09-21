@@ -21,6 +21,11 @@ class Course extends Model
         'status',
         'alert',
         'alert_active',
+        'password_course',
+    ];
+
+    protected $hidden = [
+        'password_course',
     ];
 
     public function category()
