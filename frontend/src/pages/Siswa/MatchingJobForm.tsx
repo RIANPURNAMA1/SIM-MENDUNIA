@@ -627,9 +627,14 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
   }
 
   const matchWilayahName = (a: string, b: string) => {
-    const x = a.toLowerCase().replace(/^(kabupaten|kota)\s+/i, '')
-    const y = b.toLowerCase().replace(/^(kabupaten|kota)\s+/i, '')
-    return x === y || x.includes(y) || y.includes(x)
+    const norm = (s: string) => (s || '').toLowerCase().replace(/^(kabupaten|kab\.|kota|kotamadya)\s+/i, '').replace(/[^a-z0-9]+/g, ' ').trim()
+    const x = norm(a)
+    const y = norm(b)
+    if (!x || !y) return false
+    if (x === y) return true
+    const tx = x.split(' ')
+    const ty = y.split(' ')
+    return tx.length === ty.length && tx.every(t => ty.includes(t))
   }
 
   const clearErrors = (keys: string[]) => {
@@ -1687,18 +1692,18 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
                     {provinsiList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </Field>
-                <Field label="Kabupaten / Kota" error={errors.alamatKabupaten}>
+                <Field label="Kab./Kota" error={errors.alamatKabupaten}>
                   <select
                     className={inputCls}
                     value={findIdByName(kabupatenList, form.alamatKabupaten)}
-                    disabled={!form.alamatProvinsi || wilayahLoading.kabupaten}
+                    disabled={!findIdByName(provinsiList, form.alamatProvinsi) || wilayahLoading.kabupaten}
                     onChange={e => {
                       const id = e.target.value
                       const found = kabupatenList.find(k => k.id === id)
                       setForm(f => ({ ...f, alamatKabupaten: found?.name || '', alamatKecamatan: '', alamatDesa: '' }))
                     }}
                   >
-                    <option value="">{!form.alamatProvinsi ? 'Pilih Provinsi dulu' : wilayahLoading.kabupaten ? 'Memuat...' : 'Pilih Kabupaten/Kota'}</option>
+                    <option value="">{!findIdByName(provinsiList, form.alamatProvinsi) ? 'Pilih Provinsi dulu' : wilayahLoading.kabupaten ? 'Memuat...' : 'Pilih Kab./Kota'}</option>
                     {kabupatenList.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
                   </select>
                 </Field>
@@ -1706,29 +1711,29 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
                   <select
                     className={inputCls}
                     value={findIdByName(kecamatanList, form.alamatKecamatan)}
-                    disabled={!form.alamatKabupaten || wilayahLoading.kecamatan}
+                    disabled={!findIdByName(kabupatenList, form.alamatKabupaten) || wilayahLoading.kecamatan}
                     onChange={e => {
                       const id = e.target.value
                       const found = kecamatanList.find(k => k.id === id)
                       setForm(f => ({ ...f, alamatKecamatan: found?.name || '', alamatDesa: '' }))
                     }}
                   >
-                    <option value="">{!form.alamatKabupaten ? 'Pilih Kabupaten dulu' : wilayahLoading.kecamatan ? 'Memuat...' : 'Pilih Kecamatan'}</option>
+                    <option value="">{!findIdByName(kabupatenList, form.alamatKabupaten) ? 'Pilih Kab./Kota dulu' : wilayahLoading.kecamatan ? 'Memuat...' : 'Pilih Kecamatan'}</option>
                     {kecamatanList.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
                   </select>
                 </Field>
-                <Field label="Desa / Kelurahan" error={errors.alamatDesa}>
+                <Field label="Desa" error={errors.alamatDesa}>
                   <select
                     className={inputCls}
                     value={findIdByName(desaList, form.alamatDesa)}
-                    disabled={!form.alamatKecamatan || wilayahLoading.desa}
+                    disabled={!findIdByName(kecamatanList, form.alamatKecamatan) || wilayahLoading.desa}
                     onChange={e => {
                       const id = e.target.value
                       const found = desaList.find(d => d.id === id)
                       setForm(f => ({ ...f, alamatDesa: found?.name || '' }))
                     }}
                   >
-                    <option value="">{!form.alamatKecamatan ? 'Pilih Kecamatan dulu' : wilayahLoading.desa ? 'Memuat...' : 'Pilih Desa/Kelurahan'}</option>
+                    <option value="">{!findIdByName(kecamatanList, form.alamatKecamatan) ? 'Pilih Kecamatan dulu' : wilayahLoading.desa ? 'Memuat...' : 'Pilih Desa'}</option>
                     {desaList.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
                 </Field>
