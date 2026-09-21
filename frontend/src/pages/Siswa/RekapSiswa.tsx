@@ -92,10 +92,11 @@ export default function RekapSiswaPage() {
       izin: acc.izin + r.izin,
       sakit: acc.sakit + r.sakit,
       alpa: acc.alpa + r.alpa,
+      tidakAbsenPulang: acc.tidakAbsenPulang + r.tidak_absen_pulang,
       total_hadir: acc.total_hadir + r.total_hadir,
       total: acc.total + r.total,
     }),
-    { hadir: 0, terlambat: 0, izin: 0, sakit: 0, alpa: 0, total_hadir: 0, total: 0 }
+    { hadir: 0, terlambat: 0, izin: 0, sakit: 0, alpa: 0, tidakAbsenPulang: 0, total_hadir: 0, total: 0 }
   );
 
   const totalPages = Math.max(1, Math.ceil(rekap.length / perPage));
@@ -229,6 +230,7 @@ export default function RekapSiswaPage() {
                 <th className="border border-slate-200 px-4 py-3 text-center font-medium text-blue-700">IZIN</th>
                 <th className="border border-slate-200 px-4 py-3 text-center font-medium text-sky-700">SAKIT</th>
                 <th className="border border-slate-200 px-4 py-3 text-center font-medium text-rose-700">ALPA</th>
+                <th className="border border-slate-200 px-4 py-3 text-center font-medium text-purple-700">TIDAK ABSEN PULANG</th>
                 <th className="border border-slate-200 px-4 py-3 text-center font-medium text-slate-700">Total Hadir</th>
                 <th className="border border-slate-200 px-4 py-3 text-center font-medium text-slate-700">%</th>
                 <th className="border border-slate-200 px-4 py-3 text-center font-medium text-slate-700">Total</th>
@@ -236,12 +238,21 @@ export default function RekapSiswaPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={15} className="border border-slate-200 px-4 py-12 text-center text-sm text-slate-400">Memuat data...</td></tr>
+                <tr><td colSpan={16} className="border border-slate-200 px-4 py-12 text-center text-sm text-slate-400">Memuat data...</td></tr>
               ) : rekap.length === 0 ? (
-                <tr><td colSpan={15} className="border border-slate-200 px-4 py-12 text-center text-sm text-slate-400">Belum ada data rekap untuk periode ini</td></tr>              ) : pagedList.map((item, idx) => (
-                <tr key={item.id} className="hover:bg-slate-50">
+                <tr><td colSpan={16} className="border border-slate-200 px-4 py-12 text-center text-sm text-slate-400">Belum ada data rekap untuk periode ini</td></tr>              ) : pagedList.map((item, idx) => {
+                const isUndur = item.status_kandidat === 'Mengundurkan Diri';
+                return (
+                <tr key={item.id} className={`${isUndur ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-slate-50'}`}>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-slate-500">{(safePage - 1) * perPage + idx + 1}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm font-medium text-slate-800">{item.nama}</td>
+                  <td className="border border-slate-200 px-4 py-3 text-sm font-medium text-slate-800">
+                    {item.nama}
+                    {isUndur && (
+                      <span className="ml-2 inline-block rounded bg-red-100 px-1.5 py-0.5 align-middle text-[10px] font-bold text-red-700">
+                        Mengundurkan Diri
+                      </span>
+                    )}
+                  </td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">{item.batch}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-center text-slate-600">{item.level ?? '-'}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">{formatDateShort(item.kelas_tanggal_mulai)}</td>
@@ -252,11 +263,13 @@ export default function RekapSiswaPage() {
                   <td className="border border-slate-200 px-4 py-3 text-sm text-center font-medium text-blue-700">{item.izin}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-center font-medium text-sky-700">{item.sakit}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-center font-medium text-rose-700">{item.alpa}</td>
+                  <td className="border border-slate-200 px-4 py-3 text-sm text-center font-medium text-purple-700">{item.tidak_absen_pulang}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-center font-semibold text-slate-800">{item.total_hadir}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-center font-semibold text-slate-800">{item.persentase}%</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-center text-slate-600">{item.total}</td>
                 </tr>
-              ))}
+              );
+              })}
             </tbody>
             {rekap.length > 0 && (
               <tfoot>
@@ -267,6 +280,7 @@ export default function RekapSiswaPage() {
                   <td className="border border-slate-200 px-4 py-3 text-sm text-center text-blue-700">{totals.izin}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-center text-sky-700">{totals.sakit}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-center text-rose-700">{totals.alpa}</td>
+                  <td className="border border-slate-200 px-4 py-3 text-sm text-center text-purple-700">{totals.tidakAbsenPulang}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-center text-slate-800">{totals.total_hadir}</td>
                   <td className="border border-slate-200 px-4 py-3 text-sm text-center text-slate-800">
                     {totals.total > 0 ? ((totals.total_hadir / totals.total) * 100).toFixed(1) : 0}%

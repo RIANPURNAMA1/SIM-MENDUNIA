@@ -501,6 +501,7 @@ export const guruKelasApi = {
 
 export const pertemuanApi = {
   detail: (kelasId: number) => api.get(`/guru/pertemuan/kelas/${kelasId}`),
+  detailTanggal: (kelasId: number, tanggal: string) => api.get(`/guru/pertemuan/kelas/${kelasId}/detail/${tanggal}`),
   store: (kelasId: number, data: FormData) =>
     api.post(`/guru/pertemuan/kelas/${kelasId}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   syncNilai: (kelasId: number) => api.post(`/guru/pertemuan/kelas/${kelasId}/sync-nilai`),

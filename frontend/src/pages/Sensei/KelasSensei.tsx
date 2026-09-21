@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "react-router-dom";
-import { BookOpen, Search, RotateCcw, Plus, Trash2, X, Pencil } from "lucide-react";
+import { BookOpen, Search, RotateCcw, Plus, Trash2, X, Pencil, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { kelasSenseiApi, guruApi, jadwalLevelApi, adminCabangApi } from "../../services/api";
 import type { KelasSenseiData, Guru } from "../../types";
 
@@ -41,6 +41,8 @@ export default function KelasSenseiPage() {
   const [filterSensei, setFilterSensei] = useState("");
   const [filterBatch, setFilterBatch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
 
   const [showModal, setShowModal] = useState(false);
   const [showBatchDropdown, setShowBatchDropdown] = useState(false);
@@ -156,10 +158,13 @@ export default function KelasSenseiPage() {
   };
 
   const resetFilter = () => {
-    setStartDate(""); setEndDate(""); setFilterSensei(""); setFilterBatch(""); setFilterStatus("");
+    setStartDate(""); setEndDate(""); setFilterSensei(""); setFilterBatch(""); setFilterStatus(""); setPage(1);
   };
 
-  const applyFilter = () => fetchData();
+  const applyFilter = () => {
+    setPage(1);
+    fetchData();
+  };
 
   const statusBadge = (status: string) => (
     <span className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-semibold ${STATUS_STYLE[status] || "bg-slate-100 text-slate-500"}`}>
@@ -183,6 +188,10 @@ export default function KelasSenseiPage() {
     () => (filterStatus ? data.filter((d) => effectiveStatus(d) === filterStatus) : data),
     [data, filterStatus]
   );
+
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / perPage));
+  const safePage = Math.min(page, totalPages);
+  const pagedData = filteredData.slice((safePage - 1) * perPage, safePage * perPage);
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
@@ -224,7 +233,7 @@ export default function KelasSenseiPage() {
               <option key={b.id} value={b.id}>{b.nama_batch}</option>
             ))}
           </select>
-          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+          <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }} className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
             <option value="">Semua Status</option>
             <option value="aktif">Aktif</option>
             <option value="proses">Proses Pembelajaran</option>
@@ -255,6 +264,8 @@ export default function KelasSenseiPage() {
               <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold">Absen Terisi</th>
               <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold">Alpa</th>
               <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold">Izin</th>
+              <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold">Tidak Absen Pulang</th>
+              <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold">Pulang Lebih Awal</th>
               <th className="border border-slate-200 px-3 py-2.5 font-semibold">Status</th>
               <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold w-16">Aksi</th>
             </tr>
@@ -263,14 +274,14 @@ export default function KelasSenseiPage() {
             {loading ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <tr key={i}>
-                  <td colSpan={12} className="border border-slate-200 px-3 py-3">
+                  <td colSpan={14} className="border border-slate-200 px-3 py-3">
                     <div className="h-3 w-full rounded bg-slate-200/70" />
                   </td>
                 </tr>
               ))
             ) : filteredData.length === 0 ? (
               <tr>
-                <td colSpan={12} className="border border-slate-200 px-4 py-10 text-center">
+                <td colSpan={14} className="border border-slate-200 px-4 py-10 text-center">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
                     <BookOpen size={24} />
                   </div>
@@ -278,9 +289,9 @@ export default function KelasSenseiPage() {
                 </td>
               </tr>
             ) : (
-              filteredData.map((item, idx) => (
+              pagedData.map((item, idx) => (
                 <tr key={item.id} className="bg-white transition hover:bg-slate-50">
-                  <td className="border border-slate-200 px-3 py-2.5 text-center text-slate-400">{idx + 1}</td>
+                  <td className="border border-slate-200 px-3 py-2.5 text-center text-slate-400">{(safePage - 1) * perPage + idx + 1}</td>
                   <td className="border border-slate-200 px-3 py-2.5">
                     <div className="flex flex-col">
                       <span className="flex items-center gap-1.5 font-semibold text-slate-800">
@@ -302,6 +313,8 @@ export default function KelasSenseiPage() {
                   <td className="border border-slate-200 px-3 py-2.5 text-center font-medium">{item.jumlah_absen}</td>
                   <td className="border border-slate-200 px-3 py-2.5 text-center font-medium">{item.jumlah_alpa}</td>
                   <td className="border border-slate-200 px-3 py-2.5 text-center font-medium">{item.jumlah_izin}</td>
+                  <td className="border border-slate-200 px-3 py-2.5 text-center font-medium text-rose-600">{item.jumlah_tidak_absen_pulang}</td>
+                  <td className="border border-slate-200 px-3 py-2.5 text-center font-medium text-amber-600">{item.jumlah_pulang_lebih_awal}</td>
                   <td className="border border-slate-200 px-3 py-2.5">{statusBadge(effectiveStatus(item))}</td>
                   <td className="border border-slate-200 px-3 py-2.5 text-center">
                     <div className="flex items-center justify-center gap-1">
@@ -319,6 +332,68 @@ export default function KelasSenseiPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {!loading && filteredData.length > 0 && (
+        <div className="mt-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3 text-sm text-slate-500">
+            <span>Per halaman</span>
+            <select value={perPage} onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
+              className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+              {[10, 25, 50, 100].map(n => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+            <span>Menampilkan {pagedData.length} dari {filteredData.length} data</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setPage(1)} disabled={safePage <= 1}
+              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none">
+              <ChevronsLeft size={16} />
+            </button>
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage <= 1}
+              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none">
+              <ChevronLeft size={16} />
+            </button>
+            {(() => {
+              const pages: (number | '...')[] = [];
+              if (totalPages <= 7) {
+                for (let i = 1; i <= totalPages; i++) pages.push(i);
+              } else {
+                pages.push(1);
+                if (safePage > 3) pages.push('...');
+                const start = Math.max(2, safePage - 1);
+                const end = Math.min(totalPages - 1, safePage + 1);
+                for (let i = start; i <= end; i++) pages.push(i);
+                if (safePage < totalPages - 2) pages.push('...');
+                pages.push(totalPages);
+              }
+              return pages.map((p, i) =>
+                p === '...' ? (
+                  <span key={`dots-${i}`} className="px-1 text-sm text-slate-300">...</span>
+                ) : (
+                  <button key={p} onClick={() => setPage(p)}
+                    className={`min-w-[32px] rounded-md border px-2 py-1.5 text-sm font-medium transition ${
+                      p === safePage
+                        ? 'border-slate-200 bg-slate-800 text-white'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}>
+                    {p}
+                  </button>
+                )
+              );
+            })()}
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}
+              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none">
+              <ChevronRight size={16} />
+            </button>
+            <button onClick={() => setPage(totalPages)} disabled={safePage >= totalPages}
+              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none">
+              <ChevronsRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modal Tambah */}
       {showModal && (

@@ -4,8 +4,9 @@
 <meta charset="UTF-8">
 <style>
     @page { margin: 1cm; }
-    body { font-family: Arial, sans-serif; font-size: 11px; }
+    body { font-family: Arial, sans-serif; font-size: 11px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     table { border-collapse: collapse; width: 100%; }
+    tr[style*="FECACA"] { background-color: #FECACA !important; }
     th { background-color: #4472C4; color: #fff; font-weight: bold; font-size: 10px; padding: 6px 5px; border: 1px solid #000; text-align: center; }
     td { border: 1px solid #000; padding: 5px; }
     .title { font-size: 16px; font-weight: bold; margin-bottom: 4px; }
@@ -27,6 +28,7 @@
                 <th>IZIN</th>
                 <th>SAKIT</th>
                 <th>ALPA</th>
+                <th>TIDAK ABSEN PULANG</th>
                 <th>Total Hadir</th>
                 <th>%</th>
                 <th>Total</th>

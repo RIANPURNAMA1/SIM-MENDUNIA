@@ -463,6 +463,7 @@ Route::get('/guru/penilaian-rekap/{kelasId}', [GuruDashboardController::class, '
 
     // Riwayat Pertemuan (per pertemuan berdasarkan jadwal kelas)
     Route::get('/guru/pertemuan/kelas/{kelasId}', [PertemuanController::class, 'index']);
+    Route::get('/guru/pertemuan/kelas/{kelasId}/detail/{tanggal}', [PertemuanController::class, 'detailTanggal']);
     Route::post('/guru/pertemuan/kelas/{kelasId}', [PertemuanController::class, 'store']);
     Route::post('/guru/pertemuan/kelas/{kelasId}/sync-nilai', [PertemuanController::class, 'syncNilai']);
     Route::get('/guru/pertemuan/ringkasan', [PertemuanController::class, 'ringkasan']);

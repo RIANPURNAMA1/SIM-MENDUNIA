@@ -584,6 +584,9 @@ class KehadiranSenseiController extends Controller
                 }, $overlapSelesai->copy()->addSecond());
             });
 
+            $kelasItem->jumlah_tidak_absen_pulang = $absenQuery->where('status', 'TIDAK ABSEN PULANG')->count();
+            $kelasItem->jumlah_pulang_lebih_awal = $absenQuery->where('status', 'PULANG LEBIH AWAL')->count();
+
             return $kelasItem;
         });
 
@@ -659,6 +662,9 @@ class KehadiranSenseiController extends Controller
                     return true;
                 }, $overlapSelesai->copy()->addSecond());
             });
+
+            $kelasItem->jumlah_tidak_absen_pulang = $absenQuery->where('status', 'TIDAK ABSEN PULANG')->count();
+            $kelasItem->jumlah_pulang_lebih_awal = $absenQuery->where('status', 'PULANG LEBIH AWAL')->count();
 
             return $kelasItem;
         });

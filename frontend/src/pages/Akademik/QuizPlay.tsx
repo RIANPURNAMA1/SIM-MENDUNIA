@@ -6,6 +6,11 @@ import { detectFace, faceModelsReady, loadFaceModels, type DetectedFace } from '
 import Swal from 'sweetalert2'
 import { useForceLightMode } from '../../hooks/useForceLightMode'
 
+const cleanQuillHtml = (html: string) =>
+  html
+    .replace(/&nbsp;/g, ' ')
+    .replace(/<p(?:\s[^>]*)?>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>/gi, '')
+
 interface PlayQuestion {
   id: number
   question: string
@@ -907,7 +912,7 @@ const isAnswered = isAnsweredQ(q)
                     </div>
                   )}
                   
-                  <p className="text-base font-medium text-gray-900 md:text-lg">{currentQuestion.question}</p>
+                  <div className="text-base font-medium text-gray-900 md:text-lg [&_img]:max-w-full [&_img]:mx-auto [&_img]:rounded-lg [&_img]:border [&_img]:border-gray-200 [&_img]:bg-white [&_img]:my-2 [&_p]:my-1" dangerouslySetInnerHTML={{ __html: cleanQuillHtml(currentQuestion.question) }} />
                   {currentQuestion.audio_url && (
                     <QuestionAudio
                       key={currentQuestion.id}

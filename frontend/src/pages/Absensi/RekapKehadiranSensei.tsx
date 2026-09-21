@@ -403,6 +403,8 @@ export default function RekapKehadiranSenseiPage() {
                   <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">Absen Terisi</th>
                   <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">Alpa</th>
                   <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">Izin</th>
+                  <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">Tidak Absen Pulang</th>
+                  <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">Pulang Lebih Awal</th>
                   <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">Status</th>
                 </tr>
               </thead>
@@ -420,6 +422,8 @@ export default function RekapKehadiranSenseiPage() {
                     <td className="border border-slate-200 px-3 py-2 text-center text-xs font-semibold">{row.absen_terisi}</td>
                     <td className="border border-slate-200 px-3 py-2 text-center text-xs font-semibold text-rose-600">{row.alpa}</td>
                     <td className="border border-slate-200 px-3 py-2 text-center text-xs font-semibold text-amber-600">{row.izin}</td>
+                    <td className="border border-slate-200 px-3 py-2 text-center text-xs font-semibold text-rose-600">{row.tidak_absen_pulang ?? 0}</td>
+                    <td className="border border-slate-200 px-3 py-2 text-center text-xs font-semibold text-amber-600">{row.pulang_lebih_awal ?? 0}</td>
                     <td className="border border-slate-200 px-3 py-2 text-center">
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${row.status === 'aktif' ? 'bg-emerald-100 text-emerald-700' : row.status === 'selesai' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}`}>
                         {row.status === 'aktif' ? 'Aktif' : row.status === 'selesai' ? 'Selesai' : row.status}

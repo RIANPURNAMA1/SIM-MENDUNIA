@@ -189,7 +189,10 @@ class AbsensiSiswaController extends Controller
         $start_date = $request->start_date ?? now()->startOfMonth()->toDateString();
         $end_date = $request->end_date ?? now()->endOfMonth()->toDateString();
 
-        $query = Siswa::where('status', 'AKTIF');
+        $query = Siswa::where(function ($q) {
+            $q->where('status', 'AKTIF')
+                ->orWhere('status_kandidat', 'Mengundurkan Diri');
+        });
 
         if ($request->filled('cabang_id')) {
             $query->whereHas('batchRelasi', function ($q) use ($request) {
@@ -222,6 +225,7 @@ class AbsensiSiswaController extends Controller
             $izin = $siswa->absensi->where('status', 'IZIN')->count();
             $sakit = $siswa->absensi->where('status', 'SAKIT')->count();
             $alpa = $siswa->absensi->where('status', 'ALPA')->count();
+            $tidakAbsenPulang = $siswa->absensi->where('status', 'TIDAK ABSEN PULANG')->count();
 
             $totalHadir = $hadir + $terlambat;
             $total = $siswa->absensi->count();
@@ -242,9 +246,11 @@ class AbsensiSiswaController extends Controller
                 'izin' => $izin,
                 'sakit' => $sakit,
                 'alpa' => $alpa,
+                'tidak_absen_pulang' => $tidakAbsenPulang,
                 'total_hadir' => $totalHadir,
                 'total' => $total,
                 'persentase' => $total > 0 ? round(($totalHadir / $total) * 100, 1) : 0,
+                'status_kandidat' => $siswa->status_kandidat,
             ];
         })->toArray();
 
@@ -289,7 +295,9 @@ class AbsensiSiswaController extends Controller
         $rows = '';
         $no = 1;
         foreach ($rekap as $r) {
-            $rows .= '<tr>
+            $isUndur = !empty($r['status_kandidat']) && $r['status_kandidat'] === 'Mengundurkan Diri';
+            $rowStyle = $isUndur ? ' style="background-color:#FECACA;"' : '';
+            $rows .= '<tr'.$rowStyle.'>
                 <td style="border:1px solid #000;padding:6px;text-align:center;font-size:11px;">'.$no++.'</td>
                 <td style="border:1px solid #000;padding:6px;font-size:11px;">'.($r['nama'] ?? '-').'</td>
                 <td style="border:1px solid #000;padding:6px;text-align:center;font-size:11px;">'.($r['kelas'] ?? '-').'</td>
@@ -298,6 +306,7 @@ class AbsensiSiswaController extends Controller
                 <td style="border:1px solid #000;padding:6px;text-align:center;font-size:11px;">'.$r['izin'].'</td>
                 <td style="border:1px solid #000;padding:6px;text-align:center;font-size:11px;">'.$r['sakit'].'</td>
                 <td style="border:1px solid #000;padding:6px;text-align:center;font-size:11px;">'.$r['alpa'].'</td>
+                <td style="border:1px solid #000;padding:6px;text-align:center;font-size:11px;">'.($r['tidak_absen_pulang'] ?? 0).'</td>
                 <td style="border:1px solid #000;padding:6px;text-align:center;font-weight:bold;font-size:11px;">'.$r['total_hadir'].'</td>
                 <td style="border:1px solid #000;padding:6px;text-align:center;font-weight:bold;font-size:11px;">'.$r['persentase'].'%</td>
                 <td style="border:1px solid #000;padding:6px;text-align:center;font-size:11px;">'.$r['total'].'</td>
@@ -329,6 +338,7 @@ class AbsensiSiswaController extends Controller
                     <th>IZIN</th>
                     <th>SAKIT</th>
                     <th>ALPA</th>
+                    <th>TIDAK ABSEN PULANG</th>
                     <th>Total Hadir</th>
                     <th>%</th>
                     <th>Total</th>
@@ -356,7 +366,9 @@ class AbsensiSiswaController extends Controller
         $rows = '';
         $no = 1;
         foreach ($rekap as $r) {
-            $rows .= '<tr>
+            $isUndur = !empty($r['status_kandidat']) && $r['status_kandidat'] === 'Mengundurkan Diri';
+            $rowStyle = $isUndur ? ' background-color:#FECACA;' : '';
+            $rows .= '<tr style="border:1px solid #000;'.$rowStyle.'>
                 <td style="border:1px solid #000;padding:5px;text-align:center;font-size:10px;">'.$no++.'</td>
                 <td style="border:1px solid #000;padding:5px;font-size:10px;">'.($r['nama'] ?? '-').'</td>
                 <td style="border:1px solid #000;padding:5px;text-align:center;font-size:10px;">'.($r['kelas'] ?? '-').'</td>
@@ -365,6 +377,7 @@ class AbsensiSiswaController extends Controller
                 <td style="border:1px solid #000;padding:5px;text-align:center;font-size:10px;">'.$r['izin'].'</td>
                 <td style="border:1px solid #000;padding:5px;text-align:center;font-size:10px;">'.$r['sakit'].'</td>
                 <td style="border:1px solid #000;padding:5px;text-align:center;font-size:10px;">'.$r['alpa'].'</td>
+                <td style="border:1px solid #000;padding:5px;text-align:center;font-size:10px;">'.($r['tidak_absen_pulang'] ?? 0).'</td>
                 <td style="border:1px solid #000;padding:5px;text-align:center;font-weight:bold;font-size:10px;">'.$r['total_hadir'].'</td>
                 <td style="border:1px solid #000;padding:5px;text-align:center;font-weight:bold;font-size:10px;">'.$r['persentase'].'%</td>
                 <td style="border:1px solid #000;padding:5px;text-align:center;font-size:10px;">'.$r['total'].'</td>

@@ -92,6 +92,8 @@
                             <th scope="col" class="text-center">Absen Terisi</th>
                             <th scope="col" class="text-center">Alpa</th>
                             <th scope="col" class="text-center">Izin</th>
+                            <th scope="col" class="text-center">Tidak Absen Pulang</th>
+                            <th scope="col" class="text-center">Pulang Lebih Awal</th>
                             <th scope="col">Status</th>
                             <th scope="col" class="text-center" style="width: 80px;">Aksi</th>
                         </tr>
@@ -117,6 +119,8 @@
                                 <td class="text-center">{{ $kelasItem->jumlah_absen }}</td>
                                 <td class="text-center">{{ $kelasItem->jumlah_alpa ?? 0 }}</td>
                                 <td class="text-center">{{ $kelasItem->jumlah_izin ?? 0 }}</td>
+                                <td class="text-center">{{ $kelasItem->jumlah_tidak_absen_pulang ?? 0 }}</td>
+                                <td class="text-center">{{ $kelasItem->jumlah_pulang_lebih_awal ?? 0 }}</td>
                                 <td>
                                     @php
                                         $badgeClass = [

@@ -1510,6 +1510,8 @@ class AdminCabangController extends Controller
 
             $kelasItem->jumlah_absen = $absenQuery->count();
             $kelasItem->jumlah_alpa = $absenQuery->where('status', 'ALPA')->count();
+            $kelasItem->jumlah_tidak_absen_pulang = $absenQuery->where('status', 'TIDAK ABSEN PULANG')->count();
+            $kelasItem->jumlah_pulang_lebih_awal = $absenQuery->where('status', 'PULANG LEBIH AWAL')->count();
 
             $izinSensei = \App\Models\Izin::where('user_id', $kelasItem->user_id)
                 ->where('status', 'DISETUJUI')
@@ -1624,8 +1626,11 @@ class AdminCabangController extends Controller
         $start_date = $request->start_date ?? now()->startOfMonth()->toDateString();
         $end_date = $request->end_date ?? now()->endOfMonth()->toDateString();
 
-        $query = Siswa::where('status', 'AKTIF')
-            ->whereIn('batch_id', $batchIds);
+        $query = Siswa::whereIn('batch_id', $batchIds)
+            ->where(function ($q) {
+                $q->where('status', 'AKTIF')
+                    ->orWhere('status_kandidat', 'Mengundurkan Diri');
+            });
 
         if ($request->filled('cabang_id') && in_array($request->cabang_id, $this->getBranchIds())) {
             $query->whereHas('batchRelasi', function ($q) use ($request) {
@@ -1658,6 +1663,7 @@ class AdminCabangController extends Controller
             $izin = $siswa->absensi->where('status', 'IZIN')->count();
             $sakit = $siswa->absensi->where('status', 'SAKIT')->count();
             $alpa = $siswa->absensi->where('status', 'ALPA')->count();
+            $tidakAbsenPulang = $siswa->absensi->where('status', 'TIDAK ABSEN PULANG')->count();
             $totalHadir = $hadir + $terlambat;
             $total = $siswa->absensi->count();
             $level = $siswa->levelRekap($start_date, $end_date);
@@ -1677,9 +1683,11 @@ class AdminCabangController extends Controller
                 'izin' => $izin,
                 'sakit' => $sakit,
                 'alpa' => $alpa,
+                'tidak_absen_pulang' => $tidakAbsenPulang,
                 'total_hadir' => $totalHadir,
                 'total' => $total,
                 'persentase' => $total > 0 ? round(($totalHadir / $total) * 100, 1) : 0,
+                'status_kandidat' => $siswa->status_kandidat,
             ];
         })->toArray();
 
@@ -1787,12 +1795,27 @@ class AdminCabangController extends Controller
             ? Carbon::parse($request->week)->startOfWeek(Carbon::MONDAY)
             : Carbon::now()->startOfWeek(Carbon::MONDAY);
 
+        // Hari kolom mengikuti jadwal kelas (hari kerja antara tanggal mulai & selesai).
+        // Kalau kelas belum terpilih, gunakan hari kerja pekan berjalan.
+        if ($kelas && $kelas->tanggal_mulai && $kelas->tanggal_selesai) {
+            $cursor = Carbon::parse($kelas->tanggal_mulai)->startOfDay();
+            $akhir = Carbon::parse($kelas->tanggal_selesai)->startOfDay();
+            while ($cursor->lte($akhir)) {
+                if ($cursor->dayOfWeek !== Carbon::SATURDAY && $cursor->dayOfWeek !== Carbon::SUNDAY) {
+                    if (!\App\Models\HariLibur::apakahLibur($cursor->toDateString())) {
+                        $days[] = $cursor->toDateString();
+                    }
+                }
+                $cursor->addDay();
+            }
+        } else {
+            for ($i = 0; $i < 5; $i++) {
+                $days[] = $weekStart->copy()->addDays($i)->toDateString();
+            }
+        }
+
         $prevWeek = $weekStart->copy()->subWeek()->toDateString();
         $nextWeek = $weekStart->copy()->addWeek()->toDateString();
-
-        for ($i = 0; $i < 5; $i++) {
-            $days[] = $weekStart->copy()->addDays($i)->toDateString();
-        }
 
         if ($kelas) {
             $students = Siswa::with('kelasRelasi')
@@ -1809,20 +1832,22 @@ class AdminCabangController extends Controller
             $studentIds = $students->pluck('id');
             $componentIds = $categories->pluck('components')->flatten()->pluck('id');
 
-            $existing = StudentAssessment::whereIn('siswa_id', $studentIds)
-                ->whereIn('component_id', $componentIds)
-                ->where('batch_id', $batchId)
-                ->whereBetween('tanggal', [$days[0], $days[4]])
-                ->select('siswa_id', 'tanggal')
-                ->distinct()
-                ->get();
+            if (!empty($days)) {
+                $existing = StudentAssessment::whereIn('siswa_id', $studentIds)
+                    ->whereIn('component_id', $componentIds)
+                    ->where('batch_id', $batchId)
+                    ->whereBetween('tanggal', [$days[0], $days[count($days) - 1]])
+                    ->select('siswa_id', 'tanggal')
+                    ->distinct()
+                    ->get();
 
-            foreach ($students as $s) {
-                foreach ($days as $d) {
-                    $key = $s->id . '_' . $d;
-                    $assessmentCheck[$key] = $existing->contains(fn($a) =>
-                        $a->siswa_id === $s->id && $a->tanggal === $d
-                    );
+                foreach ($students as $s) {
+                    foreach ($days as $d) {
+                        $key = $s->id . '_' . $d;
+                        $assessmentCheck[$key] = $existing->contains(fn($a) =>
+                            $a->siswa_id === $s->id && $a->tanggal === $d
+                        );
+                    }
                 }
             }
         }
@@ -1885,8 +1910,30 @@ class AdminCabangController extends Controller
             });
         }
 
-        if ($request->search) {
-            $query->where('nama', 'like', '%' . $request->search . '%');
+        if ($request->search && !empty($request->search)) {
+            $q = $request->search;
+            $query->where(function ($qq) use ($q) {
+                $qq->where('title', 'like', '%' . $q . '%')
+                    ->orWhere('level', 'like', '%' . $q . '%');
+            });
+        }
+
+        $perPage = $request->filled('per_page') ? (int) $request->per_page : null;
+
+        if ($perPage) {
+            $courses = $query->orderBy('sort')->orderBy('id')->paginate($perPage);
+            return response()->json([
+                'success' => true,
+                'courses' => $courses->items(),
+                'batches' => $batches,
+                'levels' => $levels,
+                'pagination' => [
+                    'current_page' => $courses->currentPage(),
+                    'last_page' => $courses->lastPage(),
+                    'per_page' => $courses->perPage(),
+                    'total' => $courses->total(),
+                ],
+            ]);
         }
 
         $courses = $query->orderBy('sort')->get();

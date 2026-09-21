@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useLocation } from "react-router-dom"
-import { Notebook, ChevronLeft, ChevronRight, Check, Minus } from "lucide-react"
+import { Notebook, Check, Minus } from "lucide-react"
 import { penilaianApi, adminCabangApi } from "../../services/api"
 
 interface Guru {
@@ -94,9 +94,6 @@ export default function PenilaianPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [days, setDays] = useState<string[]>([]);
   const [assessmentCheck, setAssessmentCheck] = useState<Record<string, boolean>>({});
-  const [weekStart, setWeekStart] = useState("");
-  const [prevWeek, setPrevWeek] = useState("");
-  const [nextWeek, setNextWeek] = useState("");
 
   const [loading, setLoading] = useState(false);
 
@@ -117,7 +114,6 @@ export default function PenilaianPage() {
         if (filterBatch) params.batch_id = filterBatch;
         if (filterGuru) params.guru_id = filterGuru;
         if (filterLevel) params.level = filterLevel;
-        if (weekStart) params.week = weekStart;
       }
       const res = isAdminCabang ? await adminCabangApi.penilaian(params) : await penilaianApi.matrix(params);
       const d = res.data;
@@ -130,9 +126,6 @@ export default function PenilaianPage() {
       setCategories(d.categories || []);
       setDays(d.days || []);
       setAssessmentCheck(d.assessment_check || {});
-      setWeekStart(d.week_start || "");
-      setPrevWeek(d.prev_week || "");
-      setNextWeek(d.next_week || "");
     } catch (err) {
       console.error(err);
     } finally {
@@ -194,15 +187,6 @@ export default function PenilaianPage() {
     if (filterBatch) params.batch_id = filterBatch;
     if (filterGuru) params.guru_id = filterGuru;
     if (val) params.level = val;
-    fetchMatrix(params);
-  };
-
-  const navigateWeek = (target: string) => {
-    const params: Record<string, string> = { week: target };
-    if (filterCabang) params.cabang_id = filterCabang;
-    if (filterBatch) params.batch_id = filterBatch;
-    if (filterGuru) params.guru_id = filterGuru;
-    if (filterLevel) params.level = filterLevel;
     fetchMatrix(params);
   };
 
@@ -313,20 +297,10 @@ export default function PenilaianPage() {
 
       {kelas && categories.length > 0 && (
         <>
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-3">
             <h6 className="text-sm font-semibold text-slate-700">
               {days.length > 0 ? `${formatDate(days[0])} - ${formatDate(days[days.length - 1])} ${new Date(days[0] + "T00:00:00").getFullYear()}` : ""}
             </h6>
-            <div className="flex items-center gap-1">
-              <button onClick={() => navigateWeek(prevWeek)}
-                className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50">
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <button onClick={() => navigateWeek(nextWeek)}
-                className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50">
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
           </div>
 
           {/* Table */}

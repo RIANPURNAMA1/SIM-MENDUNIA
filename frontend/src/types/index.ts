@@ -477,6 +477,8 @@ export interface KelasSenseiData {
   jumlah_absen: number
   jumlah_alpa: number
   jumlah_izin: number
+  jumlah_tidak_absen_pulang: number
+  jumlah_pulang_lebih_awal: number
   user?: {
     id: number
     name: string
@@ -558,9 +560,11 @@ nama: string
   izin: number
   sakit: number
   alpa: number
+  tidak_absen_pulang: number
   total_hadir: number
   total: number
   persentase: number
+  status_kandidat?: string | null
 }
 
 export interface DetailResponse {

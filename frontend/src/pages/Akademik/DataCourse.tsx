@@ -14,6 +14,11 @@ import LessonMediaFields, { LessonSlideItem } from '../../components/LessonMedia
 import Swal from 'sweetalert2'
 import type { Pagination } from '../../types'
 
+const cleanQuillHtml = (html: string) =>
+  html
+    .replace(/&nbsp;/g, ' ')
+    .replace(/<p(?:\s[^>]*)?>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>/gi, '')
+
 interface Course {
   id: number
   title: string
@@ -271,6 +276,7 @@ export default function DataCourse() {
   const [uploadingImg, setUploadingImg] = useState(false)
   const [showBatchDropdown, setShowBatchDropdown] = useState(false)
   const quillRef = useRef<any>(null)
+  const questionQuillRef = useRef<any>(null)
   const seededSectionsRef = useRef<Set<number>>(new Set())
   const activePaketIdRef = useRef<number | null>(null)
 
@@ -543,6 +549,67 @@ export default function DataCourse() {
   }
   const quillFormats = ['header', 'bold', 'italic', 'underline', 'strike', 'list', 'link', 'image', 'video']
 
+  const questionQuillModules = {
+    toolbar: {
+      container: [
+        [{ header: [1, 2, 3, false] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ list: 'ordered' }, { list: 'bullet' }],
+        ['link', 'image', 'file'],
+        ['clean'],
+      ],
+      handlers: {
+        image: () => {
+          const input = document.createElement('input')
+          input.type = 'file'
+          input.accept = 'image/*'
+          input.onchange = async () => {
+            const file = input.files?.[0]
+            if (!file) return
+            setUploadingImg(true)
+            try {
+              const fd = new FormData()
+              fd.append('file', file)
+              const res = await lmsAdminApi.upload(fd)
+              const quill = questionQuillRef.current?.getEditor()
+              const range = quill?.getSelection()
+              quill?.insertEmbed(range?.index || 0, 'image', res.data.url)
+            } catch {
+              Swal.fire({ icon: 'error', title: 'Gagal upload gambar' })
+            } finally {
+              setUploadingImg(false)
+            }
+          }
+          input.click()
+        },
+        file: () => {
+          const input = document.createElement('input')
+          input.type = 'file'
+          input.accept = '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt'
+          input.onchange = async () => {
+            const file = input.files?.[0]
+            if (!file) return
+            setUploadingImg(true)
+            try {
+              const fd = new FormData()
+              fd.append('file', file)
+              const res = await lmsAdminApi.upload(fd)
+              const quill = questionQuillRef.current?.getEditor()
+              const range = quill?.getSelection(true)
+              quill?.insertText(range?.index || 0, ` ${file.name} `, 'link', res.data.url)
+              quill?.setSelection((range?.index || 0) + file.name.length + 2)
+            } catch {
+              Swal.fire({ icon: 'error', title: 'Gagal upload file' })
+            } finally {
+              setUploadingImg(false)
+            }
+          }
+          input.click()
+        },
+      },
+    },
+  }
+
   useEffect(() => { fetchCourses(); fetchQuizMeta(); fetchCategories() }, [])
   useEffect(() => {
     quizReferenceApi.adminPendingCount().then(res => setRefPendingCount(res.data.pending || 0)).catch(() => {})
@@ -550,7 +617,7 @@ export default function DataCourse() {
   const courseFilterFirstRef = useRef(true)
   useEffect(() => {
     if (courseFilterFirstRef.current) { courseFilterFirstRef.current = false; return }
-    if (view !== 'list' || isAdminCabang) return
+    if (view !== 'list') return
     const t = setTimeout(() => { setCoursePage(1); fetchCourses(1) }, 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -676,11 +743,17 @@ export default function DataCourse() {
     setLoading(true)
     const targetPage = page ?? coursePage
     if (isAdminCabang) {
-      adminCabangApi.lms().then(res => {
+      adminCabangApi.lms({
+        page: targetPage,
+        per_page: COURSE_PER_PAGE,
+        search: search.trim() || undefined,
+        level: filterLevel || undefined,
+        batch_id: filterBatch || undefined,
+      }).then(res => {
         const list = res.data.courses || []
         setCourses(list)
         setBatches(res.data.batches || [])
-        setCoursePagination({ current_page: 1, last_page: 1, total: list.length, per_page: COURSE_PER_PAGE })
+        setCoursePagination(res.data.pagination || { current_page: 1, last_page: 1, total: list.length, per_page: COURSE_PER_PAGE })
         setCourseLevels(res.data.levels || [])
       }).catch(() => {}).finally(() => setLoading(false))
     } else {
@@ -2840,7 +2913,7 @@ export default function DataCourse() {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-start justify-between gap-2">
                                   <span className="text-sm font-bold text-slate-400 shrink-0 mt-0.5">#{gi + 1}</span>
-                                  <p className="text-[15px] font-semibold text-slate-800 leading-snug flex-1">{q.question}</p>
+                                  <div className="text-[15px] font-semibold text-slate-800 leading-snug flex-1 min-w-0 line-clamp-2 [&_*]:inline [&_img]:h-6 [&_img]:w-auto [&_img]:align-middle" dangerouslySetInnerHTML={{ __html: cleanQuillHtml(q.question) }} />
                                   <div className="flex items-center gap-1.5 shrink-0">
                                     <button onClick={() => openEditQuestion(q)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors" title="Edit">
                                       <Pencil size={14} className="text-slate-600" />
@@ -3791,9 +3864,12 @@ export default function DataCourse() {
             <div className="p-5 space-y-4">
               <div>
                 <label className={labelCls}>Pertanyaan <span className="text-slate-400 font-normal">(opsional)</span></label>
-                <textarea value={qForm.question} onChange={e => setQForm({ ...qForm, question: e.target.value })}
-                  rows={2} placeholder="Tulis pertanyaan..."
-                  className={`${inputCls} resize-none`} />
+                <div className="rounded-lg border border-slate-200 overflow-hidden bg-white">
+                  <ReactQuill ref={questionQuillRef} value={qForm.question}
+                    onChange={v => setQForm({ ...qForm, question: v })}
+                    modules={questionQuillModules} formats={quillFormats} theme="snow"
+                    placeholder="Tulis pertanyaan..." />
+                </div>
               </div>
               <div>
                 <div className="flex items-center justify-between">
@@ -4145,7 +4221,8 @@ export default function DataCourse() {
                     {detail.questions.map((q, i) => (
                       <div key={q.id} className="border border-slate-200 rounded-lg p-4">
                         <div className="flex items-start justify-between gap-2">
-                          <p className="text-sm font-bold text-slate-800 leading-snug">{i + 1}. {q.question}</p>
+                          <p className="text-sm font-bold text-slate-800 leading-snug shrink-0">{i + 1}.</p>
+                          <div className="text-sm font-bold text-slate-800 leading-snug min-w-0 flex-1 [&_img]:max-h-40 [&_img]:rounded [&_img]:my-1" dangerouslySetInnerHTML={{ __html: cleanQuillHtml(q.question) }} />
                           <span className={`text-[10px] font-bold shrink-0 px-2 py-0.5 rounded-full ${q.question_type === 'essay' && q.is_correct === null && q.answer_text?.trim() ? 'bg-amber-50 text-amber-600' : q.is_correct === true ? 'bg-emerald-50 text-emerald-600' : q.is_correct === false ? 'bg-red-50 text-red-500' : 'bg-slate-100 text-slate-500'}`}>
                             {q.question_type === 'essay' && q.is_correct === null && q.answer_text?.trim() ? 'BELUM DINILAI' : q.is_correct === true ? 'BENAR' : q.is_correct === false ? 'SALAH' : 'TIDAK DIJAWAB'}
                           </span>

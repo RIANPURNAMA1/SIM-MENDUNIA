@@ -429,16 +429,31 @@ class PenilaianController extends Controller
         $assessmentCheck = [];
         $kelasaData = null;
 
+        // Hari kolom mengikuti jadwal kelas (hari kerja antara tanggal mulai & selesai).
+        // Kalau kelas belum terpilih, gunakan hari kerja pekan berjalan.
         $weekStart = $request->week
             ? Carbon::parse($request->week)->startOfWeek(Carbon::MONDAY)
             : Carbon::now()->startOfWeek(Carbon::MONDAY);
 
+        if ($kelas && $kelas->tanggal_mulai && $kelas->tanggal_selesai) {
+            $cursor = Carbon::parse($kelas->tanggal_mulai)->startOfDay();
+            $akhir = Carbon::parse($kelas->tanggal_selesai)->startOfDay();
+            while ($cursor->lte($akhir)) {
+                if ($cursor->dayOfWeek !== Carbon::SATURDAY && $cursor->dayOfWeek !== Carbon::SUNDAY) {
+                    if (!\App\Models\HariLibur::apakahLibur($cursor->toDateString())) {
+                        $days[] = $cursor->toDateString();
+                    }
+                }
+                $cursor->addDay();
+            }
+        } else {
+            for ($i = 0; $i < 5; $i++) {
+                $days[] = $weekStart->copy()->addDays($i)->toDateString();
+            }
+        }
+
         $prevWeek = $weekStart->copy()->subWeek()->toDateString();
         $nextWeek = $weekStart->copy()->addWeek()->toDateString();
-
-        for ($i = 0; $i < 5; $i++) {
-            $days[] = $weekStart->copy()->addDays($i)->toDateString();
-        }
 
         if ($kelas) {
             $kelasaData = [
@@ -473,19 +488,21 @@ class PenilaianController extends Controller
                 }
             }
 
-            $existing = StudentAssessment::whereIn('siswa_id', $studentIds)
-                ->whereIn('component_id', $allComponentIds)
-                ->where('batch_id', $batchId)
-                ->whereBetween('tanggal', [$days[0], $days[4]])
-                ->select('siswa_id', 'tanggal')
-                ->distinct()
-                ->get()
-                ->keyBy(fn($a) => $a->siswa_id . '_' . $a->tanggal);
+            if (!empty($days)) {
+                $existing = StudentAssessment::whereIn('siswa_id', $studentIds)
+                    ->whereIn('component_id', $allComponentIds)
+                    ->where('batch_id', $batchId)
+                    ->whereBetween('tanggal', [$days[0], $days[count($days) - 1]])
+                    ->select('siswa_id', 'tanggal')
+                    ->distinct()
+                    ->get()
+                    ->keyBy(fn($a) => $a->siswa_id . '_' . $a->tanggal);
 
-            foreach ($students as $s) {
-                foreach ($days as $d) {
-                    $key = $s['id'] . '_' . $d;
-                    $assessmentCheck[$key] = isset($existing[$key]);
+                foreach ($students as $s) {
+                    foreach ($days as $d) {
+                        $key = $s['id'] . '_' . $d;
+                        $assessmentCheck[$key] = isset($existing[$key]);
+                    }
                 }
             }
         }

@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\KelasSensei;
 use App\Models\KelasPertemuan;
+use App\Models\AbsensiSiswa;
 use App\Models\QuizPaket;
+use App\Models\QuizAttempt;
+use App\Models\StudentAssessment;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -142,6 +145,173 @@ class PertemuanController extends Controller
             'ulangan_harian_paket' => $p->ulanganHarianPaket ? ['id' => $p->ulanganHarianPaket->id, 'title' => $p->ulanganHarianPaket->title, 'category' => $p->ulanganHarianPaket->category] : null,
             'ulangan_mingguan_paket_id' => $p->ulangan_mingguan_paket_id,
             'ulangan_mingguan_paket' => $p->ulanganMingguanPaket ? ['id' => $p->ulanganMingguanPaket->id, 'title' => $p->ulanganMingguanPaket->title, 'category' => $p->ulanganMingguanPaket->category] : null,
+        ];
+    }
+
+    /**
+     * Detail SATU pertemuan (per tanggal): riwayat yang diisi sensei, kehadiran
+     * kandidat pada hari itu, hasil quiz, dan penilaian siswa.
+     */
+    public function detailTanggal(int $kelasId, string $tanggal)
+    {
+        $user = Auth::guard('sanctum')->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        if (!strtotime($tanggal)) {
+            return response()->json(['message' => 'Format tanggal tidak valid'], 422);
+        }
+
+        $kelas = KelasSensei::with('batchRelasi', 'user')->find($kelasId);
+        if (!$kelas) {
+            return response()->json(['message' => 'Kelas tidak ditemukan'], 404);
+        }
+        if (!$this->bolehLihat($kelas, $user)) {
+            return response()->json(['message' => 'Tidak memiliki akses ke kelas ini'], 403);
+        }
+
+        $pertemuanKe = null;
+        foreach ($this->hariKerjaList($kelas) as $item) {
+            if ($item['tanggal'] === $tanggal) {
+                $pertemuanKe = $item['pertemuan_ke'];
+                break;
+            }
+        }
+
+        $record = KelasPertemuan::with('latihanPaket', 'ulanganHarianPaket', 'ulanganMingguanPaket')
+            ->where('kelas_sensei_id', $kelas->id)
+            ->where('tanggal', $tanggal)
+            ->first();
+
+        // --- Kehadiran kandidat (siswa) pada tanggal pertemuan ---
+        $kehadiran = AbsensiSiswa::with('siswa:id,nama,no_registrasi,level')
+            ->where('kelas_sensei_id', $kelas->id)
+            ->where('tanggal', $tanggal)
+            ->orderBy('status')
+            ->orderBy('id')
+            ->get()
+            ->map(fn ($a) => [
+                'siswa_id' => $a->siswa_id,
+                'nama' => $a->siswa?->nama,
+                'no_registrasi' => $a->siswa?->no_registrasi,
+                'jam_masuk' => $a->jam_masuk,
+                'jam_keluar' => $a->jam_keluar,
+                'status' => $a->status,
+                'keterangan' => $a->keterangan,
+            ])
+            ->values();
+
+        $ringkasanKehadiran = [
+            'HADIR' => 0,
+            'TERLAMBAT' => 0,
+            'IZIN' => 0,
+            'SAKIT' => 0,
+            'ALPA' => 0,
+        ];
+        foreach ($kehadiran as $row) {
+            $st = strtoupper((string) ($row['status'] ?? ''));
+            if (array_key_exists($st, $ringkasanKehadiran)) {
+                $ringkasanKehadiran[$st]++;
+            } else {
+                $ringkasanKehadiran['LAINNYA'] = ($ringkasanKehadiran['LAINNYA'] ?? 0) + 1;
+            }
+        }
+        $ringkasanKehadiran['terisi'] = $kehadiran->count();
+        $ringkasanKehadiran['total_siswa'] = $kelas->batch_id
+            ? \App\Models\Siswa::where('batch_id', $kelas->batch_id)->where('status', 'AKTIF')->count()
+            : 0;
+
+        // --- Hasil quiz (latihan / ulangan harian / ulangan mingguan) ---
+        $paketIds = array_values(array_filter([
+            $record?->latihan_paket_id,
+            $record?->ulangan_harian_paket_id,
+            $record?->ulangan_mingguan_paket_id,
+        ]));
+
+        $attemptsByPaket = collect();
+        if ($paketIds) {
+            $attemptsByPaket = QuizAttempt::with('siswa:id,nama,no_registrasi')
+                ->whereIn('quiz_paket_id', $paketIds)
+                ->where('status', 'submitted')
+                ->get()
+                ->groupBy('quiz_paket_id');
+        }
+
+        $quiz = [
+            'latihan' => $this->quizSectionPengayaan($record?->latihanPaket, $attemptsByPaket->get($record?->latihan_paket_id)),
+            'ulangan_harian' => $this->quizSectionPengayaan($record?->ulanganHarianPaket, $attemptsByPaket->get($record?->ulangan_harian_paket_id)),
+            'ulangan_mingguan' => $this->quizSectionPengayaan($record?->ulanganMingguanPaket, $attemptsByPaket->get($record?->ulangan_mingguan_paket_id)),
+        ];
+
+        // --- Penilaian siswa pada tanggal pertemuan (component per kelas/batch) ---
+        $penilaian = StudentAssessment::with('component', 'siswa:id,nama')
+            ->where('batch_id', $kelas->batch_id)
+            ->where('tanggal', $tanggal)
+            ->orderBy('component_id')
+            ->get()
+            ->map(fn ($sa) => [
+                'id' => $sa->id,
+                'komponen' => $sa->component?->sub_komponen,
+                'siswa_id' => $sa->siswa_id,
+                'nama' => $sa->siswa?->nama,
+                'nilai' => $sa->nilai !== null ? (float) $sa->nilai : null,
+                'sumber' => $sa->sumber,
+            ])
+            ->values();
+
+        return response()->json([
+            'kelas' => [
+                'id' => $kelas->id,
+                'nama_kelas' => $kelas->nama_kelas,
+                'batch' => $kelas->batchRelasi?->nama_batch,
+                'level' => $kelas->level,
+                'sensei' => $kelas->user?->name,
+            ],
+            'tanggal' => $tanggal,
+            'pertemuan_ke' => $pertemuanKe,
+            'tanggal_label' => Carbon::parse($tanggal)->translatedFormat('d F Y'),
+            'data' => $record ? $this->pertemuanPayload($record) : null,
+            'kehadiran' => $kehadiran,
+            'ringkasan_kehadiran' => $ringkasanKehadiran,
+            'quiz' => $quiz,
+            'penilaian' => $penilaian,
+        ]);
+    }
+
+    private function quizSectionPengayaan(?QuizPaket $paket, $attempts): array
+    {
+        if (!$paket) {
+            return [
+                'paket_id' => null,
+                'title' => null,
+                'category' => null,
+                'ada' => false,
+                'count' => 0,
+                'rata_rata' => null,
+                'attempts' => [],
+            ];
+        }
+
+        $rows = $attempts ? $attempts->values() : collect();
+        $count = $rows->count();
+        $avg = $count ? round(collect($rows->pluck('score')->filter())->avg(), 1) : null;
+
+        return [
+            'paket_id' => $paket->id,
+            'title' => $paket->title,
+            'category' => $paket->category,
+            'ada' => true,
+            'count' => $count,
+            'rata_rata' => $avg,
+            'attempts' => $rows->map(fn ($at) => [
+                'siswa_id' => $at->siswa_id,
+                'nama' => $at->siswa?->nama,
+                'score' => $at->score,
+                'correct_count' => $at->correct_count,
+                'total_count' => $at->total_count,
+                'submitted_at' => $at->submitted_at ? $at->submitted_at->format('d/m/Y H:i') : null,
+            ])->values(),
         ];
     }
 

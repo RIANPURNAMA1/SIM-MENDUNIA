@@ -249,8 +249,10 @@ class RekapKehadiranSenseiController extends Controller
                     return true;
                 });
                 $absenTerisi = $harKerja->count();
-                $alpa = $harKerja->whereIn('status', ['ALPA', 'TIDAK ABSEN PULANG'])->count();
+                $alpa = $harKerja->where('status', 'ALPA')->count();
                 $izin = $harKerja->whereIn('status', ['LIBUR'])->count();
+                $tidakAbsenPulang = $harKerja->where('status', 'TIDAK ABSEN PULANG')->count();
+                $pulangLebihAwal = $harKerja->where('status', 'PULANG LEBIH AWAL')->count();
 
                 return [
                     'id' => $kelas->id,
@@ -264,6 +266,8 @@ class RekapKehadiranSenseiController extends Controller
                     'absen_terisi' => $absenTerisi,
                     'alpa' => $alpa,
                     'izin' => $izin,
+                    'tidak_absen_pulang' => $tidakAbsenPulang,
+                    'pulang_lebih_awal' => $pulangLebihAwal,
                     'sensei' => $kelas->user->name ?? '-',
                     'batch_nama' => $kelas->batchRelasi->nama_batch ?? '-',
                     'status' => Carbon::now()->toDateString() > $tglSelesai->toDateString() ? 'selesai' : $kelas->status,

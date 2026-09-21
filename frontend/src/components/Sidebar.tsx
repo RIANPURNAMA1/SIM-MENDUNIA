@@ -147,7 +147,6 @@ const navItems: NavItem[] = [
       { label: "Data Coupon", icon: "CreditCard", href: "/data-coupon" },
       { label: "Batch", icon: "Layers", href: "/batches" },
       { label: "Jadwal Level", icon: "Calendar", href: "/jadwal-level" },
-      { label: "Riwayat Pertemuan", icon: "Calendar", href: "/pertemuan" },
       { label: "Pengaturan Pembayaran", icon: "CreditCard", href: "/pengaturan-pembayaran" },
       { label: "Monitoring Notifikasi", icon: "MessageSquare", href: "/notifikasi-wa" },
       { label: "Template Notifikasi", icon: "FileText", href: "/template-notifikasi" },
@@ -168,6 +167,7 @@ const navItems: NavItem[] = [
     children: [
       { label: "Data Sensei", icon: "Presentation", href: "/guru" },
       { label: "Kelas Sensei", icon: "BookOpen", href: "/kelas-sensei" },
+      { label: "Riwayat Pertemuan", icon: "Calendar", href: "/pertemuan" },
       { label: "Rekap Siswa", icon: "BarChart3", href: "/rekap-siswa" },
       { label: "Penilaian Siswa", icon: "Notebook", href: "/penilaian" },
       { label: "Evaluasi Instruktur", icon: "ClipboardCheck", href: "/evaluasi-instruktur" },
