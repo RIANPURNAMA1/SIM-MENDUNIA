@@ -297,14 +297,32 @@ class GuruDashboardController extends Controller
             ]);
         }
 
-        // Tentukan status berdasarkan shift
-        $shifts = $user->shifts;
+        // Tentukan status berdasarkan SHIFT AKTIF (harus sesuai jadwal shift user)
+        $service = app(\App\Services\ShiftResolutionService::class);
+        $shift = $service->resolveActiveShift($user, $now, $today);
+
+        if ($shift && $shift->status === 'NONAKTIF') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Shift Anda sedang dinonaktifkan. Absensi tidak dapat dilakukan.',
+            ], 403);
+        }
+
         $jamMasukShift = '09:00:00';
         $toleransi = 0;
-        if ($shifts && $shifts->isNotEmpty()) {
-            $defaultShift = $shifts->first();
-            $jamMasukShift = $defaultShift->jam_masuk;
-            $toleransi = $defaultShift->toleransi ?? 0;
+        $shiftId = $shift->id ?? null;
+
+        if ($shift) {
+            $jamMasukShift = $shift->jam_masuk;
+            $toleransi = $shift->toleransi ?? 0;
+        } elseif ($user->shifts->isEmpty()) {
+            // Tanpa shift sama sekali → gunakan default lama (kompatibilitas)
+        } else {
+            // Punya shift, tapi tidak ada yang aktif pada jam ini
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada shift yang aktif pada jam ini. Absen masuk tidak dapat dilakukan.',
+            ], 422);
         }
 
         $jamMasukParse = \Carbon\Carbon::parse($jamMasukShift);
@@ -319,6 +337,7 @@ class GuruDashboardController extends Controller
         $absen = AbsensiSensei::create([
             'kelas_sensei_id' => $request->kelas_id,
             'user_id' => $user->id,
+            'shift_id' => $shiftId,
             'tanggal' => $today,
             'jam_masuk' => $now->toTimeString(),
             'status' => $status,
@@ -397,22 +416,27 @@ class GuruDashboardController extends Controller
             ]);
         }
 
-        // Tentukan jam pulang dari shift
-        $shifts = $user->shifts;
-        $jamPulangShift = '17:00:00';
-        $jamMasukShift = '09:00:00';
-        if ($shifts && $shifts->isNotEmpty()) {
-            $defaultShift = $shifts->first();
-            $jamPulangShift = $defaultShift->jam_pulang;
-            $jamMasukShift = $defaultShift->jam_masuk;
+        // Tentukan jam pulang dari shift yang TERKUNCI saat absen masuk
+        $jamPulangParse = null;
+        $jamMasukParse = null;
+
+        if ($absen->shift) {
+            [, $jamPulangParse] = app(\App\Services\ShiftResolutionService::class)
+                ->window($absen->shift, \Carbon\Carbon::parse($absen->tanggal));
+        } elseif ($user->shifts->isNotEmpty()) {
+            $defaultShift = $user->shifts->first();
+            $jamPulangParse = \Carbon\Carbon::parse($defaultShift->jam_pulang);
+            $jamMasukParse = \Carbon\Carbon::parse($defaultShift->jam_masuk);
+
+            // Handle shift malam
+            if ($jamPulangParse->lt($jamMasukParse)) {
+                $jamPulangParse->addDay();
+            }
         }
 
-        $jamPulangParse = \Carbon\Carbon::parse($jamPulangShift);
-        $jamMasukParse = \Carbon\Carbon::parse($jamMasukShift);
-
-        // Handle shift malam
-        if ($jamPulangParse->lt($jamMasukParse)) {
-            $jamPulangParse->addDay();
+        // Tanpa shift sama sekali → default lama
+        if (! $jamPulangParse) {
+            $jamPulangParse = \Carbon\Carbon::parse('17:00:00');
         }
 
         // Batas akhir = jam pulang + 7 jam

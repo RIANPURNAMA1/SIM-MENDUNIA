@@ -14,6 +14,7 @@ class AbsensiSensei extends Model
 
     protected $fillable = [
         'kelas_sensei_id',
+        'shift_id',
         'user_id',
         'tanggal',
         'jam_masuk',
@@ -31,6 +32,11 @@ class AbsensiSensei extends Model
     protected $casts = [
         'tanggal' => 'date:Y-m-d',
     ];
+
+    public function shift()
+    {
+        return $this->belongsTo(Shift::class, 'shift_id');
+    }
 
     public function kelasSensei()
     {
