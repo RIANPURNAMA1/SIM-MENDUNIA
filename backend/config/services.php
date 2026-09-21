@@ -40,6 +40,22 @@ return [
         'api_url' => env('STARSAPI_URL', 'https://api.starsender.online/api/send'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | WhatsApp Gateway (Baileys) — pengganti StarSender
+    |--------------------------------------------------------------------------
+    | Konfigurasi default gateway internal. Nilai dapat di-override per-installasi
+    | lewat tabel notification_settings (key: wa_gateway_base_url, wa_gateway_token,
+    | wa_gateway_default_device, wa_gateway_webhook_secret).
+    */
+    'wa_gateway' => [
+        'base_url' => env('WA_GATEWAY_BASE_URL', 'http://localhost:4300'),
+        'token' => env('WA_GATEWAY_TOKEN', 'mendunia-gateway-token'),
+        'webhook_secret' => env('WA_GATEWAY_WEBHOOK_SECRET', 'mendunia-gateway-secret'),
+        'default_device' => env('WA_GATEWAY_DEFAULT_DEVICE'),
+        'timeout' => (int) env('WA_GATEWAY_TIMEOUT', 10),
+    ],
+
     'groq' => [
         'api_key' => env('GROQ_API_KEY'),
         'model' => env('GROQ_MODEL', 'openai/gpt-oss-120b'),

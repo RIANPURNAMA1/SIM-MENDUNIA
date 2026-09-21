@@ -12,6 +12,7 @@ use App\Models\BatchKategoriDeadline;
 use App\Models\EmailNotification;
 use App\Services\EmailService;
 use App\Services\WhatsAppService;
+use App\Services\WaGatewayClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
@@ -288,8 +289,10 @@ class WaSettingController extends Controller
             'email_payment_success' => 'Pembayaran berhasil (Email)',
             'email_payment_rejected' => 'Pembayaran ditolak (Email)',
             'email_full_payment' => 'Tagihan lunas (Email)',
-            'starsender_api_key' => 'API Key StarSender',
-            'starsender_api_url' => 'API URL StarSender',
+            'wa_gateway_base_url' => 'WhatsApp Gateway: Base URL service (Baileys)',
+            'wa_gateway_token' => 'WhatsApp Gateway: Token API',
+            'wa_gateway_default_device' => 'WhatsApp Gateway: Device default (slug)',
+            'wa_gateway_webhook_secret' => 'WhatsApp Gateway: Secret webhook',
             'landing_page' => 'Halaman landing/website publik ditampilkan',
         ];
 
@@ -503,41 +506,56 @@ class WaSettingController extends Controller
         ]);
 
         $to = $request->to_phone;
-        $apiKey = NotificationSetting::getValue('starsender_api_key', config('services.starsender.api_key', env('STARSAPI_KEY')));
-        $apiUrl = NotificationSetting::getValue('starsender_api_url', config('services.starsender.api_url', env('STARSAPI_URL', 'https://api.starsender.online/api/send')));
+        $gateway = new WaGatewayClient();
+        $baseUrl = $gateway->baseUrl();
 
         try {
+            $devices = $gateway->devices();
+            $connected = array_filter($devices, fn ($d) => ($d['status'] ?? null) === 'connected');
+            $slug = $request->input('device') ?: $gateway->resolveDeviceSlug();
+
+            if (!$slug) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak ada device WhatsApp yang terhubung. Buka menu "WhatsApp Gateway" lalu scan QR terlebih dahulu.',
+                    'config' => [
+                        'base_url' => $baseUrl,
+                        'devices' => $devices,
+                    ],
+                ], 500);
+            }
+
             $wa = new WhatsAppService();
             $sent = $wa->sendMessage($to, "✅ Uji coba WhatsApp dari SIM Mendunia berhasil!\n\nWaktu: " . now()->format('d F Y H:i:s') . "\n\n- Sistem SIM Mendunia");
 
             if ($sent) {
                 return response()->json([
                     'success' => true,
-                    'message' => "WhatsApp uji coba berhasil dikirim ke {$to}",
+                    'message' => "WhatsApp uji coba berhasil dikirim ke {$to} via device '{$slug}'",
                     'config' => [
-                        'api_url' => $apiUrl,
-                        'api_key' => $apiKey ? substr($apiKey, 0, 8) . '***' : null,
+                        'base_url' => $baseUrl,
+                        'device' => $slug,
+                        'connected_devices' => count($connected),
                     ],
                 ]);
             }
 
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal mengirim WhatsApp. Periksa konfigurasi API StarSender.',
+                'message' => "Gagal mengirim WhatsApp. Pastikan device '{$slug}' terhubung.",
                 'config' => [
-                    'api_url' => $apiUrl,
-                    'api_key' => $apiKey ? substr($apiKey, 0, 8) . '***' : null,
+                    'base_url' => $baseUrl,
+                    'device' => $slug,
                 ],
             ], 500);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Test WhatsApp gagal: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal mengirim WhatsApp: ' . $e->getMessage(),
+                'message' => 'Gagal terhubung ke WhatsApp Gateway: ' . $e->getMessage(),
                 'config' => [
-                    'api_url' => $apiUrl,
-                    'api_key' => $apiKey ? substr($apiKey, 0, 8) . '***' : null,
+                    'base_url' => $baseUrl,
                 ],
             ], 500);
         }

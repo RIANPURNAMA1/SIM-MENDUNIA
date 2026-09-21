@@ -316,7 +316,7 @@ export default function DataNotifikasiSetting() {
     }
   }
 
-  const waGlobalSettings = globalSettings.filter(s => s.key.startsWith('wa_') || s.key.startsWith('starsender_'))
+  const waGlobalSettings = globalSettings.filter(s => s.key.startsWith('wa_'))
   const emailGlobalSettings = globalSettings.filter(s => s.key.startsWith('email_'))
   const websiteGlobalSettings = globalSettings.filter(s => s.key === 'landing_page')
 
@@ -350,19 +350,31 @@ export default function DataNotifikasiSetting() {
             placeholder="admin@example.com"
             className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20" />
         )}
-        {setting.key === 'starsender_api_key' && (
+        {setting.key === 'wa_gateway_base_url' && (
           <input type="text" value={setting.value || ''}
             onChange={e => handleGlobalValueChange(setting.key, e.target.value)}
-            placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            placeholder="http://localhost:4300"
             className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm w-96 font-mono focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20" />
         )}
-        {setting.key === 'starsender_api_url' && (
+        {setting.key === 'wa_gateway_token' && (
           <input type="text" value={setting.value || ''}
             onChange={e => handleGlobalValueChange(setting.key, e.target.value)}
-            placeholder="https://api.starsender.online/api/send"
+            placeholder="token-rahasia-gateway"
             className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm w-96 font-mono focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20" />
         )}
-        {setting.key.startsWith('starsender_') || setting.key === 'wa_pembayaran_admin_phones' || setting.key === 'wa_pendaftaran_admin_phones' || setting.key === 'email_pembayaran_admin_addresses' ? (
+        {setting.key === 'wa_gateway_webhook_secret' && (
+          <input type="text" value={setting.value || ''}
+            onChange={e => handleGlobalValueChange(setting.key, e.target.value)}
+            placeholder="secret-webhook-gateway"
+            className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm w-96 font-mono focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20" />
+        )}
+        {setting.key === 'wa_gateway_default_device' && (
+          <input type="text" value={setting.value || ''}
+            onChange={e => handleGlobalValueChange(setting.key, e.target.value)}
+            placeholder="slug-device (atur dari halaman WhatsApp Gateway)"
+            className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm w-96 font-mono focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20" />
+        )}
+        {setting.key.startsWith('wa_gateway_') || setting.key === 'wa_pembayaran_admin_phones' || setting.key === 'wa_pendaftaran_admin_phones' || setting.key === 'email_pembayaran_admin_addresses' ? (
           <span className="w-11" />
         ) : (
           <button onClick={() => handleGlobalToggle(setting.key, !setting.is_enabled)}
@@ -448,7 +460,7 @@ export default function DataNotifikasiSetting() {
           </div>
           <div>
             <h2 className="font-semibold text-slate-800">Uji Coba WhatsApp</h2>
-            <p className="text-xs text-slate-500">Kirim WhatsApp tes untuk memastikan konfigurasi StarSender berfungsi</p>
+            <p className="text-xs text-slate-500">Kirim WhatsApp tes untuk memastikan WhatsApp Gateway berfungsi</p>
           </div>
         </div>
       </div>
@@ -489,8 +501,8 @@ export default function DataNotifikasiSetting() {
             <Webhook size={20} className="text-violet-600" />
           </div>
           <div>
-            <h2 className="font-semibold text-slate-800">Uji Coba Webhook StarSender</h2>
-            <p className="text-xs text-slate-500">Simulasikan payload yang dikirim StarSender ke endpoint webhook & lihat hasil pemrosesannya</p>
+            <h2 className="font-semibold text-slate-800">Uji Coba Webhook WhatsApp Gateway</h2>
+            <p className="text-xs text-slate-500">Simulasikan pesan masuk (balasan admin) ke endpoint webhook & lihat hasil pemrosesannya</p>
           </div>
         </div>
       </div>
@@ -498,7 +510,7 @@ export default function DataNotifikasiSetting() {
         <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2.5 text-xs text-slate-600">
           <span className="font-semibold text-slate-700">Webhook URL:</span>{' '}
           <code className="text-[#0E6187] font-mono">https://api.sim.mendunia.id/api/wa-webhook</code>
-          <span className="block mt-0.5 text-slate-400">Paste URL ini di panel StarSender → Incoming Webhook / Callback untuk meneruskan pesan masuk.</span>
+          <span className="block mt-0.5 text-slate-400">Pesan masuk dari WhatsApp Gateway otomatis diteruskan ke URL ini. Gunakan simulator di bawah untuk menguji alur balasan.</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -529,7 +541,7 @@ export default function DataNotifikasiSetting() {
         <div className="flex items-center gap-2">
           <label className="inline-flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
             <input type="checkbox" checked={testWhUsePayload} onChange={e => setTestWhUsePayload(e.target.checked)} className="rounded border-slate-300" />
-            Gunakan payload StarSender kustom (JSON)
+            Gunakan payload webhook kustom (JSON)
           </label>
         </div>
         {testWhUsePayload && (
@@ -628,7 +640,7 @@ export default function DataNotifikasiSetting() {
       <p className="font-medium mb-2">Cara kerja notifikasi otomatis:</p>
       <ul className="list-disc list-inside space-y-1.5 text-xs">
         <li>Pengingat dikirim setiap hari jam 09:00 via <code className="bg-blue-100 px-1 rounded">php artisan app:reminder-pembayaran</code></li>
-        <li>WhatsApp menggunakan API StarSender — atur API Key & URL di menu "Notifikasi WhatsApp"</li>
+        <li>WhatsApp dikirim melalui WhatsApp Gateway internal (Baileys) — atur Base URL & Token di menu "Notifikasi WhatsApp"</li>
         <li>Email memerlukan konfigurasi SMTP — atur pada menu "Notifikasi Email" (menggantikan konfigurasi <code className="bg-blue-100 px-1 rounded">.env</code>)</li>
         <li>Jika SMTP belum dikonfigurasi, email akan di-log saja (tidak terkirim)</li>
         <li>Pengingat tidak akan dikirim jika kategori sudah lunas</li>
@@ -688,7 +700,7 @@ export default function DataNotifikasiSetting() {
         <>
           {renderSettingPanel(
             'Pengaturan WhatsApp',
-            'Aktifkan/nonaktifkan notifikasi WhatsApp & konfigurasi StarSender',
+            'Aktifkan/nonaktifkan notifikasi WhatsApp & konfigurasi WhatsApp Gateway',
             <MessageSquare size={20} className="text-emerald-600" />,
             'bg-emerald-500/10',
             'text-emerald-600',

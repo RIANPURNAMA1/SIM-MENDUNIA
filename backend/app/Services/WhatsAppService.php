@@ -2,22 +2,19 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class WhatsAppService
 {
-    protected $apiKey;
-    protected $apiUrl;
+    protected WaGatewayClient $gateway;
 
     public function __construct()
     {
-        $this->apiKey = \App\Models\NotificationSetting::getValue('starsender_api_key', config('services.starsender.api_key', env('STARSAPI_KEY')));
-        $this->apiUrl = \App\Models\NotificationSetting::getValue('starsender_api_url', config('services.starsender.api_url', env('STARSAPI_URL', 'https://api.starsender.online/api/send')));
+        $this->gateway = new WaGatewayClient();
     }
 
     /**
-     * Kirim pesan WhatsApp (text)
+     * Kirim pesan WhatsApp (text) melalui gateway internal (Baileys).
      */
     public function sendMessage($to, $message, $delay = 0)
     {
@@ -28,34 +25,13 @@ class WhatsAppService
             return false;
         }
 
-        if (!$this->apiKey || !$this->apiUrl) {
-            Log::warning('WhatsAppService: API key atau URL tidak dikonfigurasi.');
+        if (!$this->gateway->isConfigured()) {
+            Log::warning('WhatsAppService: gateway WhatsApp belum dikonfigurasi (atur di Pengaturan Notifikasi).');
             return false;
-        }
-
-        $payload = [
-            'messageType' => 'text',
-            'to' => $to,
-            'body' => $message,
-        ];
-
-        if ($delay > 0) {
-            $payload['delay'] = $delay;
         }
 
         try {
-            $response = Http::withHeaders([
-                'Content-Type' => 'application/json',
-                'Authorization' => $this->apiKey,
-            ])->post($this->apiUrl, $payload);
-
-            if ($response->successful()) {
-                Log::info('WhatsApp terkirim ke: ' . $to);
-                return true;
-            }
-
-            Log::error('Gagal kirim WhatsApp ke: ' . $to . ' - ' . $response->body());
-            return false;
+            return $this->gateway->sendText($to, (string) $message);
         } catch (\Exception $e) {
             Log::error('Error kirim WhatsApp: ' . $e->getMessage());
             return false;
@@ -63,9 +39,9 @@ class WhatsAppService
     }
 
     /**
-     * Kirim pesan WhatsApp (media + caption)
+     * Kirim pesan WhatsApp (media + caption) melalui gateway internal (Baileys).
      */
-    public function sendMediaMessage($to, $fileUrl, $caption = '', $delay = 0)
+    public function sendMediaMessage($to, $fileUrl, $caption = '', $delay = 0, $type = 'image')
     {
         $to = $this->formatPhoneNumber($to);
 
@@ -74,38 +50,13 @@ class WhatsAppService
             return false;
         }
 
-        if (!$this->apiKey || !$this->apiUrl) {
-            Log::warning('WhatsAppService: API key atau URL tidak dikonfigurasi.');
+        if (!$this->gateway->isConfigured()) {
+            Log::warning('WhatsAppService: gateway WhatsApp belum dikonfigurasi (atur di Pengaturan Notifikasi).');
             return false;
-        }
-
-        $payload = [
-            'messageType' => 'media',
-            'to' => $to,
-            'file' => $fileUrl,
-        ];
-
-        if ($caption) {
-            $payload['body'] = $caption;
-        }
-
-        if ($delay > 0) {
-            $payload['delay'] = $delay;
         }
 
         try {
-            $response = Http::withHeaders([
-                'Content-Type' => 'application/json',
-                'Authorization' => $this->apiKey,
-            ])->post($this->apiUrl, $payload);
-
-            if ($response->successful()) {
-                Log::info('WhatsApp media terkirim ke: ' . $to);
-                return true;
-            }
-
-            Log::error('Gagal kirim WhatsApp media ke: ' . $to . ' - ' . $response->body());
-            return false;
+            return $this->gateway->sendMedia($to, $fileUrl, (string) $caption, $type);
         } catch (\Exception $e) {
             Log::error('Error kirim WhatsApp media: ' . $e->getMessage());
             return false;

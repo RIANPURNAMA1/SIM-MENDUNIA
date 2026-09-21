@@ -43,6 +43,7 @@ import LogLogin from './pages/LogLogin'
 import Pengaturan from './pages/Pengaturan/Pengaturan'
 import PengaturanShift from './pages/Karyawan/PengaturanShift'
 import PengaturanWa from './pages/Pengaturan/PengaturanWa'
+import WaGateway from './pages/Pengaturan/WaGateway'
 import CompanyProfile from './pages/Pengaturan/CompanyProfile'
 import PengaturanPembayaran from './pages/Pengaturan/PengaturanPembayaran'
 import DataKandidat from './pages/Pendaftaran/DataKandidat'
@@ -1108,6 +1109,7 @@ function AppRoutes() {
                 <Route path="/pengaturan" element={<Pengaturan />} />
                 <Route path="/pengaturan-shift" element={<PengaturanShift />} />
                 <Route path="/pengaturan-wa" element={<PengaturanWa />} />
+                <Route path="/wa-gateway" element={<WaGateway />} />
                 <Route path="/pengaturan-perusahaan" element={<CompanyProfile />} />
                 <Route path="/data-kandidat" element={<DataKandidat />} />
                 <Route path="/data-kandidat/job-matching/:id" element={<AdminJobMatchingKandidat />} />

@@ -628,6 +628,20 @@ export const waSettingApi = {
   testWebhook: (data: { from?: string; message?: string; payload?: string; execute?: boolean }) => api.post('/wa-settings/test-webhook', data),
 }
 
+export const waGatewayApi = {
+  status: () => api.get('/wa-gateway'),
+  devices: () => api.get('/wa-gateway/devices'),
+  create: (name: string) => api.post('/wa-gateway/devices', { name }),
+  show: (slug: string) => api.get(`/wa-gateway/devices/${slug}`),
+  qr: (slug: string) => api.get(`/wa-gateway/devices/${slug}/qr`),
+  rename: (slug: string, name: string) => api.patch(`/wa-gateway/devices/${slug}`, { name }),
+  send: (slug: string, data: { to: string; message?: string; fileUrl?: string; caption?: string; type?: string }) =>
+    api.post(`/wa-gateway/devices/${slug}/send`, data),
+  logout: (slug: string) => api.post(`/wa-gateway/devices/${slug}/logout`),
+  reconnect: (slug: string) => api.post(`/wa-gateway/devices/${slug}/reconnect`),
+  destroy: (slug: string) => api.delete(`/wa-gateway/devices/${slug}`),
+}
+
 export const siteApi = {
   getLandingStatus: () => api.get('/site/landing-status'),
 }

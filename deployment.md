@@ -10,12 +10,20 @@
 ┌─────────────────────────────────────────────────────┐
 │                       VPS                            │
 │                                                      │
+│  /var/www/SIM-MENDUNIA/                              │
+│  ├── backend/     ──► Laravel (PHP-FPM)             │
+│  ├── frontend/    ──► dist/ (static React)          │
+│  ├── wa-gateway/  ──► Node.js 4300 (Baileys,       │
+│  │                     internal, via 127.0.0.1)     │
+│  └── docs/        ──► dokumentasi project           │
+│                                                      │
 │  Nginx (443/80)                                      │
 │  ├── sim.mendunia.id ──► frontend/dist/ (static)     │
-│  └── api.sim.mendunia.id ──► Laravel (PHP-FPM)       │
+│  └── api.sim.mendunia.id ──► backend/public          │
 │                                                      │
 │  MySQL 8.0 ──► db_mendunia                           │
-│  Supervisor ──► queue:work + scheduler               │
+│  Supervisor ──► queue:work + scheduler + reverb      │
+│  systemd ─────► mendunia-wa-gateway (node)           │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -100,13 +108,23 @@ Buat A Record di DNS provider:
 
 ### 2.1 Clone & Setup
 
+Struktur folder di VPS:
+
+```
+/var/www/SIM-MENDUNIA/
+├── backend/      # Laravel API
+├── frontend/     # React + Vite
+├── wa-gateway/   # WhatsApp gateway (Node.js + Baileys)
+└── docs/         # Dokumentasi project
+```
+
 ```bash
 # Buat direktori
-sudo mkdir -p /var/www/sim-mendunia
-sudo chown $USER:$USER /var/www/sim-mendunia
+sudo mkdir -p /var/www/SIM-MENDUNIA/{backend,frontend,wa-gateway,docs}
+sudo chown $USER:$USER /var/www/SIM-MENDUNIA
 
 # Clone repo (atau upload via SCP/SFTP)
-cd /var/www/sim-mendunia
+cd /var/www/SIM-MENDUNIA
 git clone https://github.com/RIANPURNAMA1/SIM-MENDUNIA.git .
 
 # Pastikan db_sim.sql ada di project root
@@ -248,7 +266,7 @@ sudo chmod -R 775 /var/www/SIM-MENDUNIA/backend/bootstrap/cache
 Jika build di **lokal**, upload `dist/` ke VPS. Jika build di **VPS**:
 
 ```bash
-cd /var/www/sim-mendunia/frontend
+cd /var/www/SIM-MENDUNIA/frontend
 npm install
 ```
 
@@ -276,6 +294,57 @@ sudo chmod -R 755 /var/www/SIM-MENDUNIA/frontend/dist
 
 ---
 
+## 3.5 Deploy WA Gateway (Node.js + Baileys)
+
+> Panduan lengkap ada di **`wa-gateway/DEPLOYMENT.md`** (service systemd, konfigurasi
+> token, sesi, backup, update). Berikut ringkasannya.
+
+```bash
+# Install & jalankan
+cd /var/www/SIM-MENDUNIA/wa-gateway
+cp .env.example .env          # isi GATEWAY_TOKEN & BACKEND_WEBHOOK_SECRET
+npm ci --omit=dev
+
+# Jalankan sebagai service systemd (biar auto-restart)
+sudo nano /etc/systemd/system/mendunia-wa-gateway.service
+```
+
+```ini
+[Unit]
+Description=SIM Mendunia WhatsApp Gateway (Baileys)
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/SIM-MENDUNIA/wa-gateway
+ExecStart=/usr/bin/node src/server.js
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/www/SIM-MENDUNIA/wa-gateway/server.log
+StandardError=append:/var/www/SIM-MENDUNIA/wa-gateway/server.log
+Environment=SESSION_DIR=/var/www/SIM-MENDUNIA/wa-gateway/sessions
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now mendunia-wa-gateway
+sudo chown -R www-data:www-data /var/www/SIM-MENDUNIA/wa-gateway/sessions
+sudo systemctl status mendunia-wa-gateway
+
+# Pastikan token & secret SAMA dgn backend/.env:
+#   WA_GATEWAY_BASE_URL=http://127.0.0.1:4300
+#   WA_GATEWAY_TOKEN=<GATEWAY_TOKEN>
+#   WA_GATEWAY_WEBHOOK_SECRET=<BACKEND_WEBHOOK_SECRET>
+```
+
+> Port 4300 tidak perlu dibuka ke publik (hanya diakses backend via `127.0.0.1`).
+
+---
+
 ## 4. Konfigurasi Nginx
 
 ### 4.1 Frontend — `sim.mendunia.id`
@@ -297,7 +366,7 @@ server {
     listen [::]:443 ssl http2;
     server_name sim.mendunia.id www.sim.mendunia.id;
 
-    root /var/www/sim-mendunia/frontend/dist;
+    root /var/www/SIM-MENDUNIA/frontend/dist;
     index index.html;
 
     # SSL
@@ -346,7 +415,7 @@ server {
     listen [::]:443 ssl http2;
     server_name api.sim.mendunia.id;
 
-    root /var/www/sim-mendunia/backend/public;
+    root /var/www/SIM-MENDUNIA/backend/public;
     index index.php;
 
     # SSL
@@ -464,7 +533,7 @@ sudo crontab -e
 Tambahkan baris ini:
 
 ```cron
-* * * * * cd /var/www/sim-mendunia/backend && php artisan schedule:run >> /dev/null 2>&1
+* * * * * cd /var/www/SIM-MENDUNIA/backend && php artisan schedule:run >> /dev/null 2>&1
 ```
 
 ---
@@ -485,7 +554,7 @@ Laravel (PHP-FPM) ──broadcast HTTP─► http://127.0.0.1:8081 ────�
 ### 7.1 Update Backend di VPS
 
 ```bash
-cd /var/www/sim-mendunia
+cd /var/www/SIM-MENDUNIA
 git pull origin main
 cd backend
 composer install --optimize-autoloader --no-dev
@@ -546,7 +615,7 @@ sudo nano /etc/supervisor/conf.d/mendunia-reverb.conf
 ```ini
 [program:mendunia-reverb]
 process_name=%(program_name)s
-command=/usr/bin/php /var/www/sim-mendunia/backend/artisan reverb:start --host=127.0.0.1 --port=8081
+command=/usr/bin/php /var/www/SIM-MENDUNIA/backend/artisan reverb:start --host=127.0.0.1 --port=8081
 autostart=true
 autorestart=true
 stopasgroup=true
@@ -589,7 +658,7 @@ VITE_REVERB_SCHEME=https
 ```
 
 ```bash
-cd /var/www/sim-mendunia/frontend
+cd /var/www/SIM-MENDUNIA/frontend
 npm install
 npm run build
 sudo chown -R www-data:www-data dist
@@ -634,7 +703,7 @@ sudo ufw enable
 | 2 | Database `db_mendunia` dibuat di MySQL | ☐ |
 | 3 | User MySQL `mendunia` dengan GRANT ALL dibuat | ☐ |
 | 4 | DNS A Record untuk `sim.mendunia.id` & `api.sim.mendunia.id` | ☐ |
-| 5 | Backend code di-upload ke `/var/www/sim-mendunia/backend` | ☐ |
+| 5 | Backend code di-upload ke `/var/www/SIM-MENDUNIA/backend` | ☐ |
 | 6 | `composer install --optimize-autoloader --no-dev` | ☐ |
 | 7 | `.env` dikonfigurasi dengan data production | ☐ |
 | 8 | `php artisan key:generate` | ☐ |
@@ -651,6 +720,10 @@ sudo ufw enable
 | 19 | Firewall (UFW) diaktifkan | ☐ |
 | 20 | Test login, bayar, upload bukti di production | ☐ |
 | 21 | Reverb WebSocket aktif (`supervisorctl status mendunia-reverb`) | ☐ |
+| 22 | `wa-gateway/` terpasang (`npm ci --omit=dev`) di `/var/www/SIM-MENDUNIA/wa-gateway` | ☐ |
+| 23 | Service `mendunia-wa-gateway` (systemd) aktif & auto-start | ☐ |
+| 24 | `WA_GATEWAY_TOKEN` & `WA_GATEWAY_WEBHOOK_SECRET` sinkron backend ↔ gateway | ☐ |
+| 25 | `docs/` (dokumentasi) tersedia di `/var/www/SIM-MENDUNIA/docs` | ☐ |
 
 ---
 
@@ -661,7 +734,7 @@ sudo ufw enable
 # FULL DEPLOY COMMANDS — COPY PASTE
 # ==========================================
 
-cd /var/www/sim-mendunia/backend
+cd /var/www/SIM-MENDUNIA/backend
 
 # Pull latest code
 git pull origin main
@@ -676,7 +749,7 @@ php artisan storage:link --force
 sudo chown -R www-data:www-data storage bootstrap/cache
 
 # Frontend
-cd /var/www/sim-mendunia/frontend
+cd /var/www/SIM-MENDUNIA/frontend
 npm install
 npm run build
 sudo chown -R www-data:www-data dist
@@ -703,11 +776,11 @@ sudo supervisorctl restart mendunia-reverb mendunia-worker:*
 | Database tidak ada tabel | Import `db_sim.sql`: `mysql -u mendunia -p db_mendunia < db_sim.sql` |
 | SSL error | `sudo certbot renew --dry-run` + cek DNS propagation |
 | Session hilang | Pastikan `SESSION_DOMAIN=.mendunia.id` + `SESSION_SECURE_COOKIE=true` |
-| `storage:link` gagal | `sudo ln -s /var/www/sim-mendunia/backend/storage/app/public /var/www/sim-mendunia/backend/public/storage` |
+| `storage:link` gagal | `sudo ln -s /var/www/SIM-MENDUNIA/backend/storage/app/public /var/www/SIM-MENDUNIA/backend/public/storage` |
 ### 7.1 Update Backend di VPS
 
 ```bash
-cd /var/www/sim-mendunia
+cd /var/www/SIM-MENDUNIA
 git pull origin main
 cd backend
 composer install --optimize-autoloader --no-dev
@@ -768,7 +841,7 @@ sudo nano /etc/supervisor/conf.d/mendunia-reverb.conf
 ```ini
 [program:mendunia-reverb]
 process_name=%(program_name)s
-command=/usr/bin/php /var/www/sim-mendunia/backend/artisan reverb:start --host=127.0.0.1 --port=8081
+command=/usr/bin/php /var/www/SIM-MENDUNIA/backend/artisan reverb:start --host=127.0.0.1 --port=8081
 autostart=true
 autorestart=true
 stopasgroup=true
@@ -811,7 +884,7 @@ VITE_REVERB_SCHEME=https
 ```
 
 ```bash
-cd /var/www/sim-mendunia/frontend
+cd /var/www/SIM-MENDUNIA/frontend
 npm install
 npm run build
 sudo chown -R www-data:www-data dist
@@ -856,7 +929,7 @@ sudo ufw enable
 | 2 | Database `db_mendunia` dibuat di MySQL | ☐ |
 | 3 | User MySQL `mendunia` dengan GRANT ALL dibuat | ☐ |
 | 4 | DNS A Record untuk `sim.mendunia.id` & `api.sim.mendunia.id` | ☐ |
-| 5 | Backend code di-upload ke `/var/www/sim-mendunia/backend` | ☐ |
+| 5 | Backend code di-upload ke `/var/www/SIM-MENDUNIA/backend` | ☐ |
 | 6 | `composer install --optimize-autoloader --no-dev` | ☐ |
 | 7 | `.env` dikonfigurasi dengan data production | ☐ |
 | 8 | `php artisan key:generate` | ☐ |
@@ -873,6 +946,10 @@ sudo ufw enable
 | 19 | Firewall (UFW) diaktifkan | ☐ |
 | 20 | Test login, bayar, upload bukti di production | ☐ |
 | 21 | Reverb WebSocket aktif (`supervisorctl status mendunia-reverb`) | ☐ |
+| 22 | `wa-gateway/` terpasang (`npm ci --omit=dev`) di `/var/www/SIM-MENDUNIA/wa-gateway` | ☐ |
+| 23 | Service `mendunia-wa-gateway` (systemd) aktif & auto-start | ☐ |
+| 24 | `WA_GATEWAY_TOKEN` & `WA_GATEWAY_WEBHOOK_SECRET` sinkron backend ↔ gateway | ☐ |
+| 25 | `docs/` (dokumentasi) tersedia di `/var/www/SIM-MENDUNIA/docs` | ☐ |
 
 ---
 
@@ -883,7 +960,7 @@ sudo ufw enable
 # FULL DEPLOY COMMANDS — COPY PASTE
 # ==========================================
 
-cd /var/www/sim-mendunia/backend
+cd /var/www/SIM-MENDUNIA/backend
 
 # Pull latest code
 git pull origin main
@@ -898,7 +975,7 @@ php artisan storage:link --force
 sudo chown -R www-data:www-data storage bootstrap/cache
 
 # Frontend
-cd /var/www/sim-mendunia/frontend
+cd /var/www/SIM-MENDUNIA/frontend
 npm install
 npm run build
 sudo chown -R www-data:www-data dist
@@ -925,7 +1002,7 @@ sudo supervisorctl restart mendunia-reverb mendunia-worker:*
 | Database tidak ada tabel | Import `db_sim.sql`: `mysql -u mendunia -p db_mendunia < db_sim.sql` |
 | SSL error | `sudo certbot renew --dry-run` + cek DNS propagation |
 | Session hilang | Pastikan `SESSION_DOMAIN=.mendunia.id` + `SESSION_SECURE_COOKIE=true` |
-| `storage:link` gagal | `sudo ln -s /var/www/sim-mendunia/backend/storage/app/public /var/www/sim-mendunia/backend/public/storage` |
+| `storage:link` gagal | `sudo ln -s /var/www/SIM-MENDUNIA/backend/storage/app/public /var/www/SIM-MENDUNIA/backend/public/storage` |
 
   GNU nano 7.2                          .env
 # ------------------------------------------------------------------

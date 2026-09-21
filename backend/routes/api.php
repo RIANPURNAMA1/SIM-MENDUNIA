@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\ProjectListsController;
 use App\Http\Controllers\WaWebhookController;
+use App\Http\Controllers\WaGatewayController;
 use App\Http\Controllers\KaryawanController;
 use App\Http\Controllers\DivisiController;
 use App\Http\Controllers\CabangController;
@@ -88,6 +89,9 @@ Route::get('/tasks', [TaskController::class, 'index']);
 Route::post('/tasks/store', [TaskController::class, 'store']);
 
 Route::post('/wa-webhook', [WaWebhookController::class, 'handle']);
+
+// Webhook dari service WhatsApp Gateway internal (Baileys) — diverifikasi via X-Webhook-Secret
+Route::post('/wa-gateway/webhook', [WaGatewayController::class, 'webhook']);
 
 // Absensi Karyawan (mobile-friendly)
 Route::prefix('absensi-karyawan')->middleware('auth:sanctum')->group(function () {
@@ -740,6 +744,20 @@ Route::middleware(['auth:sanctum', 'role:HR,MANAGER,ACCOUNTING,ADMIN_CABANG'])->
     Route::get('/{id}', [PengeluaranController::class, 'show']);
     Route::put('/{id}', [PengeluaranController::class, 'update']);
     Route::delete('/{id}', [PengeluaranController::class, 'destroy']);
+});
+
+// ========== WhatsApp Gateway (Baileys) — manajemen device & QR ==========
+Route::middleware(['auth:sanctum'])->prefix('wa-gateway')->group(function () {
+    Route::get('/', [WaGatewayController::class, 'status']);
+    Route::get('/devices', [WaGatewayController::class, 'devices']);
+    Route::post('/devices', [WaGatewayController::class, 'store']);
+    Route::get('/devices/{slug}', [WaGatewayController::class, 'show']);
+    Route::get('/devices/{slug}/qr', [WaGatewayController::class, 'qr']);
+    Route::patch('/devices/{slug}', [WaGatewayController::class, 'rename']);
+    Route::post('/devices/{slug}/send', [WaGatewayController::class, 'send']);
+    Route::post('/devices/{slug}/logout', [WaGatewayController::class, 'logout']);
+    Route::post('/devices/{slug}/reconnect', [WaGatewayController::class, 'reconnect']);
+    Route::delete('/devices/{slug}', [WaGatewayController::class, 'destroy']);
 });
 
 // ========== WhatsApp Notification Log ==========

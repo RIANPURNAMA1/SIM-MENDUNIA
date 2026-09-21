@@ -1,0 +1,23 @@
+{
+  "name": "mendunia-wa-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "WhatsApp Gateway berbasis Baileys untuk SIM Mendunia (scan QR, multi device, REST API)",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.9",
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "pino": "^9.6.0",
+    "qrcode": "^1.5.4"
+  }
+}

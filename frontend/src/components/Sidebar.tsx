@@ -261,6 +261,11 @@ const navItems: NavItem[] = [
     ],
   },
   {
+    label: "WhatsApp Gateway",
+    icon: "MessageCircle",
+    href: "/wa-gateway",
+  },
+  {
     label: "Pengaturan",
     icon: "Settings",
     href: "/notifikasi-wa-setting",

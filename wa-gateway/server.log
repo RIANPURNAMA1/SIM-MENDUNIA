@@ -1,0 +1,2 @@
+[gateway] SIM Mendunia WA Gateway berjalan di http://0.0.0.0:4399
+[webhook] Gagal kirim event "status": connect ECONNREFUSED ::1:9999; connect ECONNREFUSED 127.0.0.1:9999
