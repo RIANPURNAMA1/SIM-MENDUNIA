@@ -85,6 +85,13 @@ interface BatchOption {
   warna: string | null
 }
 
+interface Wilayah {
+  id: string
+  name: string
+}
+
+const API_WILAYAH_BASE = 'https://cdn.jsdelivr.net/gh/izzulabadi/api-wilayah-indonesia-2026@v1.0.4/api'
+
 interface PembayaranItemData {
   kategori_id: number
   nama: string
@@ -161,6 +168,11 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
   const [saving, setSaving] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
   const [editError, setEditError] = useState('')
+  const [provinsiList, setProvinsiList] = useState<Wilayah[]>([])
+  const [kabupatenList, setKabupatenList] = useState<Wilayah[]>([])
+  const [kecamatanList, setKecamatanList] = useState<Wilayah[]>([])
+  const [desaList, setDesaList] = useState<Wilayah[]>([])
+  const [wilayahLoading, setWilayahLoading] = useState({ provinsi: false, kabupaten: false, kecamatan: false, desa: false })
   const [detailKandidat, setDetailKandidat] = useState<Kandidat | null>(null)
   const [detailDokumen, setDetailDokumen] = useState<any[]>([])
   const [detailDokumenLoading, setDetailDokumenLoading] = useState(false)
@@ -284,6 +296,84 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
     setSearch(e.target.value)
     setPage(1)
   }
+
+  const loadWilayahProvinsi = useCallback(() => {
+    setWilayahLoading(p => ({ ...p, provinsi: true }))
+    fetch(`${API_WILAYAH_BASE}/provinces.json`)
+      .then(r => r.json())
+      .then((data: Wilayah[]) => setProvinsiList(data))
+      .catch(() => setProvinsiList([]))
+      .finally(() => setWilayahLoading(p => ({ ...p, provinsi: false })))
+  }, [])
+
+  const loadWilayahKabupaten = useCallback((provId: string) => {
+    setKabupatenList([])
+    setKecamatanList([])
+    setDesaList([])
+    if (!provId) return
+    setWilayahLoading(p => ({ ...p, kabupaten: true }))
+    fetch(`${API_WILAYAH_BASE}/regencies/${provId}.json`)
+      .then(r => r.json())
+      .then((data: Wilayah[]) => setKabupatenList(data))
+      .catch(() => setKabupatenList([]))
+      .finally(() => setWilayahLoading(p => ({ ...p, kabupaten: false })))
+  }, [])
+
+  const loadWilayahKecamatan = useCallback((kabId: string) => {
+    setKecamatanList([])
+    setDesaList([])
+    if (!kabId) return
+    setWilayahLoading(p => ({ ...p, kecamatan: true }))
+    fetch(`${API_WILAYAH_BASE}/districts/${kabId}.json`)
+      .then(r => r.json())
+      .then((data: Wilayah[]) => setKecamatanList(data))
+      .catch(() => setKecamatanList([]))
+      .finally(() => setWilayahLoading(p => ({ ...p, kecamatan: false })))
+  }, [])
+
+  const loadWilayahDesa = useCallback((kecId: string) => {
+    setDesaList([])
+    if (!kecId) return
+    setWilayahLoading(p => ({ ...p, desa: true }))
+    fetch(`${API_WILAYAH_BASE}/villages/${kecId}.json`)
+      .then(r => r.json())
+      .then((data: Wilayah[]) => setDesaList(data))
+      .catch(() => setDesaList([]))
+      .finally(() => setWilayahLoading(p => ({ ...p, desa: false })))
+  }, [])
+
+  const findWilayahIdByName = (list: Wilayah[], name: string | null): string => {
+    if (!name || name === '-') return ''
+    const found = list.find(i => i.name.toLowerCase() === name.toLowerCase())
+    return found ? found.id : ''
+  }
+
+  useEffect(() => {
+    if (!showEdit) return
+    setProvinsiList([])
+    setKabupatenList([])
+    setKecamatanList([])
+    setDesaList([])
+    loadWilayahProvinsi()
+  }, [showEdit, loadWilayahProvinsi])
+
+  useEffect(() => {
+    if (!showEdit) return
+    const provId = findWilayahIdByName(provinsiList, editForm.provinsi ?? null)
+    if (provId) loadWilayahKabupaten(provId)
+  }, [editForm.provinsi, provinsiList, showEdit, loadWilayahKabupaten])
+
+  useEffect(() => {
+    if (!showEdit) return
+    const kabId = findWilayahIdByName(kabupatenList, editForm.kabupaten ?? null)
+    if (kabId) loadWilayahKecamatan(kabId)
+  }, [editForm.kabupaten, kabupatenList, showEdit, loadWilayahKecamatan])
+
+  useEffect(() => {
+    if (!showEdit) return
+    const kecId = findWilayahIdByName(kecamatanList, editForm.kecamatan ?? null)
+    if (kecId) loadWilayahDesa(kecId)
+  }, [editForm.kecamatan, kecamatanList, showEdit, loadWilayahDesa])
 
   const loadDokumen = useCallback(async (k: Kandidat) => {
     const pid = k.matching_job?.penempatan_kandidat_id
@@ -2519,10 +2609,79 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                 <div className="sm:col-span-2 lg:col-span-3">
                   <FormField label="Alamat" value={String(editForm.alamat ?? '')} onChange={v => updateField('alamat', v)} placeholder="Alamat lengkap" />
                 </div>
-                <FormField label="Desa" value={String(editForm.desa ?? '')} onChange={v => updateField('desa', v)} placeholder="Nama desa (maks. 255)" maxLength={255} />
-                <FormField label="Kecamatan" value={String(editForm.kecamatan ?? '')} onChange={v => updateField('kecamatan', v)} placeholder="Nama kecamatan (maks. 255)" maxLength={255} />
-                <FormField label="Kab./Kota" value={String(editForm.kabupaten ?? '')} onChange={v => updateField('kabupaten', v)} placeholder="Nama kabupaten/kota (maks. 255)" maxLength={255} />
-                <FormField label="Provinsi" value={String(editForm.provinsi ?? '')} onChange={v => updateField('provinsi', v)} placeholder="Nama provinsi (maks. 255)" maxLength={255} />
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">Provinsi</label>
+                  <select
+                    value={findWilayahIdByName(provinsiList, editForm.provinsi ?? null)}
+                    onChange={e => {
+                      const id = e.target.value
+                      const found = provinsiList.find(p => p.id === id)
+                      updateField('provinsi', found?.name || '')
+                      updateField('kabupaten', '')
+                      updateField('kecamatan', '')
+                      updateField('desa', '')
+                      if (id) loadWilayahKabupaten(id)
+                    }}
+                    disabled={wilayahLoading.provinsi}
+                    className={`w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-700 outline-none transition ${wilayahLoading.provinsi ? 'cursor-wait' : ''} border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500`}
+                  >
+                    <option value="">{wilayahLoading.provinsi ? 'Memuat...' : 'Pilih Provinsi'}</option>
+                    {provinsiList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">Kab./Kota</label>
+                  <select
+                    value={findWilayahIdByName(kabupatenList, editForm.kabupaten ?? null)}
+                    onChange={e => {
+                      const id = e.target.value
+                      const found = kabupatenList.find(k => k.id === id)
+                      updateField('kabupaten', found?.name || '')
+                      updateField('kecamatan', '')
+                      updateField('desa', '')
+                      if (id) loadWilayahKecamatan(id)
+                    }}
+                    disabled={!findWilayahIdByName(provinsiList, editForm.provinsi ?? null) || wilayahLoading.kabupaten}
+                    className={`w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-700 outline-none transition ${wilayahLoading.kabupaten ? 'cursor-wait' : ''} border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400`}
+                  >
+                    <option value="">{!findWilayahIdByName(provinsiList, editForm.provinsi ?? null) ? 'Pilih Provinsi dulu' : wilayahLoading.kabupaten ? 'Memuat...' : 'Pilih Kab./Kota'}</option>
+                    {kabupatenList.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">Kecamatan</label>
+                  <select
+                    value={findWilayahIdByName(kecamatanList, editForm.kecamatan ?? null)}
+                    onChange={e => {
+                      const id = e.target.value
+                      const found = kecamatanList.find(k => k.id === id)
+                      updateField('kecamatan', found?.name || '')
+                      updateField('desa', '')
+                      if (id) loadWilayahDesa(id)
+                    }}
+                    disabled={!findWilayahIdByName(kabupatenList, editForm.kabupaten ?? null) || wilayahLoading.kecamatan}
+                    className={`w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-700 outline-none transition ${wilayahLoading.kecamatan ? 'cursor-wait' : ''} border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400`}
+                  >
+                    <option value="">{!findWilayahIdByName(kabupatenList, editForm.kabupaten ?? null) ? 'Pilih Kab./Kota dulu' : wilayahLoading.kecamatan ? 'Memuat...' : 'Pilih Kecamatan'}</option>
+                    {kecamatanList.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">Desa</label>
+                  <select
+                    value={findWilayahIdByName(desaList, editForm.desa ?? null)}
+                    onChange={e => {
+                      const id = e.target.value
+                      const found = desaList.find(d => d.id === id)
+                      updateField('desa', found?.name || '')
+                    }}
+                    disabled={!findWilayahIdByName(kecamatanList, editForm.kecamatan ?? null) || wilayahLoading.desa}
+                    className={`w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-700 outline-none transition ${wilayahLoading.desa ? 'cursor-wait' : ''} border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400`}
+                  >
+                    <option value="">{!findWilayahIdByName(kecamatanList, editForm.kecamatan ?? null) ? 'Pilih Kecamatan dulu' : wilayahLoading.desa ? 'Memuat...' : 'Pilih Desa'}</option>
+                    {desaList.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                </div>
               </div>
 
               <h3 className="mb-3 text-sm font-bold text-slate-700 uppercase tracking-wide">Pendidikan & Data Fisik</h3>

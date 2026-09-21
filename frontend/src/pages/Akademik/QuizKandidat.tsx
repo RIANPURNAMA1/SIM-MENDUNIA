@@ -654,8 +654,9 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
     setCamError(null)
     loadFaceModels()
     try {
+      // Resolusi ditekan agar perangkat bawah tidak berat saat decoding & deteksi wajah.
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 360 }, frameRate: { ideal: 15, max: 30 } },
+        video: { facingMode: 'user', width: { ideal: 320, max: 480 }, height: { ideal: 240, max: 360 }, frameRate: { ideal: 10, max: 15 } },
         audio: false,
       })
       stopStream()

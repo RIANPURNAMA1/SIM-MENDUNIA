@@ -129,6 +129,7 @@ import GuruProfil from './pages/Guru/GuruProfil'
 import GuruPertemuan from './pages/Guru/GuruPertemuan'
 import GuruPertemuanDetail from './pages/Guru/GuruPertemuanDetail'
 import GuruQuizMonitor from './pages/Guru/GuruQuizMonitor'
+import CourseQuizMonitor from './pages/Akademik/CourseQuizMonitor'
 
 import GuruLayout from './layouts/GuruLayout'
 import AdminCabangLayout from './layouts/AdminCabangLayout'
@@ -679,6 +680,16 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/admin-cabang/lms/course/:courseId/monitor"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <CourseQuizMonitor />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/admin-cabang/lms/paket/:paketId/soal"
         element={
           <ProtectedRoute roleAllowed="ADMIN_CABANG">
@@ -1083,6 +1094,7 @@ function AppRoutes() {
                 <Route path="/lms/course/:courseId/soal/:paketId" element={<DataCourse />} />
                 <Route path="/lms/course/:courseId/materi/:paketId" element={<DataCourse />} />
                 <Route path="/lms/course/:courseId/hasil/:paketId" element={<DataCourse />} />
+                <Route path="/lms/course/:courseId/monitor" element={<CourseQuizMonitor />} />
                 <Route path="/lms/paket/:paketId/soal" element={<DataCourse />} />
                 <Route path="/lms/paket/:paketId/materi" element={<DataCourse />} />
                 <Route path="/lms/paket/:paketId/hasil" element={<DataCourse />} />

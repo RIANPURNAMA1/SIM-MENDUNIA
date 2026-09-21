@@ -694,6 +694,7 @@ Route::prefix('admin-cabang')->middleware(['auth:sanctum'])->group(function () {
         Route::post('/materi/{id}', [AdminQuizController::class, 'updateMateri']);
         Route::delete('/materi/{id}', [AdminQuizController::class, 'deleteMateri']);
         Route::get('/pakets/{id}/results', [AdminQuizController::class, 'results']);
+        Route::get('/courses/{courseId}/monitor', [AdminQuizController::class, 'courseMonitor']);
         Route::post('/pakets/{id}/reset-attempts', [AdminQuizController::class, 'resetAttempts']);
         Route::get('/attempts/{id}', [AdminQuizController::class, 'attemptDetail']);
         Route::post('/attempts/{id}/grade', [AdminQuizController::class, 'gradeAttempt']);

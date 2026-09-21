@@ -726,6 +726,7 @@ export const adminQuizApi = {
   updateQuestion: (id: number, data: Record<string, unknown>) => api.post(`/admin-cabang/quiz/questions/${id}`, data),
   deleteQuestion: (id: number) => api.delete(`/admin-cabang/quiz/questions/${id}`),
   results: (paketId: number) => api.get(`/admin-cabang/quiz/pakets/${paketId}/results`),
+  courseMonitor: (courseId: number, params?: { paket_id?: number; date?: string }) => api.get(`/admin-cabang/quiz/courses/${courseId}/monitor`, { params }),
   resetAttempts: (paketId: number, siswaId?: number) => api.post(`/admin-cabang/quiz/pakets/${paketId}/reset-attempts`, { siswa_id: siswaId }),
   attemptDetail: (attemptId: number) => api.get(`/admin-cabang/quiz/attempts/${attemptId}`),
   gradeAttempt: (attemptId: number, data: { grades: { question_id: number; earned_points: number }[] }) => api.post(`/admin-cabang/quiz/attempts/${attemptId}/grade`, data),

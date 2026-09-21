@@ -686,6 +686,186 @@ $data = $request->validate([
         ]);
     }
 
+    // Live proctoring monitor untuk SATU KURSUS LMS, mencakup SEMUA batch.
+    // Mirip GuruQuizController::monitor tetapi tidak dibatasi kelas sensei:
+    // untuk ADMIN/MANAGER/HR global (semua cabang), untuk ADMIN_CABANG
+    // dibatasi batch cabangnya. Dibangun untuk polling ~3s.
+    public function courseMonitor(Request $request, $courseId)
+    {
+        $user = $this->adminUser();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $course = Course::with('batch:id,nama_batch')->findOrFail($courseId);
+
+        $date = $request->query('date');
+        $date = $date && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) ? $date : now()->toDateString();
+
+        $batchIds = null;
+        if (!$this->isGlobal()) {
+            $ids = $this->getBranchBatchIds();
+            $batchIds = empty($ids) ? null : $ids;
+        }
+
+        $pakets = QuizPaket::where('course_id', $course->id)
+            ->withCount('questions')
+            ->orderBy('id')
+            ->get();
+
+        $selectedId = (int) $request->query('paket_id');
+        $paket = $pakets->firstWhere('id', $selectedId) ?? $pakets->first();
+
+        if (!$paket) {
+            return response()->json([
+                'course' => [
+                    'id' => $course->id,
+                    'title' => $course->title,
+                    'level' => $course->level,
+                    'batch_name' => $course->batch?->nama_batch,
+                ],
+                'pakets' => [],
+                'paket' => null,
+                'server_time' => now()->toIso8601String(),
+                'date' => $date,
+                'dates' => [],
+                'attempts' => [],
+            ]);
+        }
+
+        $paket->load('questions');
+
+        $scope = fn ($q) => $q->whereHas('siswa', fn ($sq) => $sq->whereIn('batch_id', $batchIds));
+
+        $attempts = QuizAttempt::with(['siswa:id,nama,batch,level,batch_id', 'siswa.batchRelasi.cabang', 'answers:id,quiz_attempt_id,quiz_question_id,selected_index,answer_text,is_correct,earned_points,updated_at'])
+            ->where('quiz_paket_id', $paket->id)
+            ->when($batchIds !== null, $scope)
+            ->where(function ($q) use ($date) {
+                $q->where(function ($q2) use ($date) {
+                    $q2->where('status', 'in_progress')->whereDate('created_at', $date);
+                })->orWhere(function ($q2) use ($date) {
+                    $q2->whereNotNull('submitted_at')->whereDate('submitted_at', $date);
+                });
+            })
+            ->orderByDesc('created_at')
+            ->get();
+
+        $dates = QuizAttempt::where('quiz_paket_id', $paket->id)
+            ->when($batchIds !== null, $scope)
+            ->selectRaw('DATE(COALESCE(submitted_at, created_at)) as day, COUNT(*) as cnt')
+            ->groupBy('day')
+            ->orderByDesc('day')
+            ->get()
+            ->map(fn ($r) => [
+                'date' => (string) $r->day,
+                'count' => (int) $r->cnt,
+                'is_today' => (string) $r->day === now()->toDateString(),
+            ]);
+
+        $rows = $attempts->map(function ($a) use ($paket) {
+            $siswa = $a->siswa;
+
+            $statuses = $paket->questions->map(function ($q) use ($a) {
+                $ans = $a->answers->firstWhere('quiz_question_id', $q->id);
+                if (($q->question_type ?? 'choice') === 'essay') {
+                    $text = trim((string) ($ans?->answer_text ?? ''));
+                    if ($text === '') return 'kosong';
+                    if ($ans?->is_correct === true) return 'benar';
+                    if ($ans?->is_correct === false) return 'salah';
+                    return 'pending';
+                }
+                if (($q->question_type ?? 'choice') === 'rating') {
+                    return $ans?->selected_index !== null ? 'benar' : 'kosong';
+                }
+                $sel = $ans?->selected_index;
+                if ($sel === null) return 'kosong';
+                return (int) $sel === (int) $q->correct_index ? 'benar' : 'salah';
+            })->values();
+
+            $answered = $a->answers->filter(function ($ans) {
+                return ($ans->selected_index !== null && (int) $ans->selected_index >= 0)
+                    || ($ans->answer_text !== null && trim($ans->answer_text) !== '');
+            })->count();
+
+            $remaining = null;
+            if ($a->status === 'in_progress' && $a->started_at) {
+                $end = $a->started_at->getTimestamp() + $a->time_limit_seconds;
+                $remaining = max(0, $end - now()->getTimestamp());
+            }
+
+            $last = $a->answers->max('updated_at') ?? $a->updated_at;
+
+            return [
+                'attempt_id' => $a->id,
+                'attempt_number' => $a->attempt_number,
+                'status' => $a->status,
+                'auto_submitted' => (bool) $a->auto_submitted,
+                'score' => $a->score,
+                'warnings' => $a->warnings,
+                'max_warnings' => (int) $paket->max_warnings,
+                'time_limit_seconds' => $a->time_limit_seconds,
+                'remaining_seconds' => $remaining,
+                'started_at' => $a->started_at?->toIso8601String(),
+                'submitted_at' => $a->submitted_at?->toIso8601String(),
+                'answered_count' => $answered,
+                'total_count' => (int) $paket->questions_count,
+                'correct_count' => $statuses->filter(fn ($s) => $s === 'benar')->count(),
+                'answers_status' => $statuses->all(),
+                'last_activity' => $last?->toIso8601String(),
+                'paket_id' => (int) $paket->id,
+                'siswa' => [
+                    'id' => (int) $a->siswa_id,
+                    'nama' => $siswa?->nama ?? 'Tanpa nama',
+                    'cabang' => $siswa?->batchRelasi?->cabang?->nama_cabang,
+                    'batch' => $siswa?->batchRelasi?->nama_batch,
+                    'level' => $siswa?->levelRekap(),
+                ],
+            ];
+        })->values();
+
+        // Ringkasan live / kumpul hari ini per paket, untuk chip pemilih paket.
+        $paketSummary = $pakets->map(function ($p) use ($batchIds, $scope) {
+            return [
+                'id' => $p->id,
+                'title' => $p->title,
+                'template' => $p->template,
+                'questions_count' => (int) $p->questions_count,
+                'live_today' => (int) QuizAttempt::where('quiz_paket_id', $p->id)
+                    ->where('status', 'in_progress')
+                    ->whereDate('created_at', now()->toDateString())
+                    ->when($batchIds !== null, $scope)
+                    ->count(),
+                'submitted_today' => (int) QuizAttempt::where('quiz_paket_id', $p->id)
+                    ->whereNotNull('submitted_at')
+                    ->whereDate('submitted_at', now()->toDateString())
+                    ->when($batchIds !== null, $scope)
+                    ->count(),
+            ];
+        })->values();
+
+        return response()->json([
+            'course' => [
+                'id' => $course->id,
+                'title' => $course->title,
+                'level' => $course->level,
+                'batch_name' => $course->batch?->nama_batch,
+            ],
+            'pakets' => $paketSummary,
+            'paket' => [
+                'id' => $paket->id,
+                'title' => $paket->title,
+                'template' => $paket->template,
+                'time_limit_minutes' => $paket->time_limit_minutes,
+                'max_warnings' => (int) $paket->max_warnings,
+                'questions_count' => (int) $paket->questions_count,
+            ],
+            'server_time' => now()->toIso8601String(),
+            'date' => $date,
+            'dates' => $dates,
+            'attempts' => $rows,
+        ]);
+    }
+
     public function resetAttempts(Request $request, $paketId)
     {
         $paket = QuizPaket::findOrFail($paketId);

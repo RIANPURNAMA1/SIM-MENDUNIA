@@ -322,8 +322,9 @@ export default function QuizBasicPlay() {
     }
     try {
       // Resolusi + FPS ditekan agar perangkat bawah tidak berat saat decoding
-      // & deteksi wajah. 480p/15fps sudah cukup untuk proctoring.
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 360 }, frameRate: { ideal: 15, max: 30 } }, audio: false })
+      // & deteksi wajah. 320p/15fps sudah cukup untuk proctoring; max dipatok
+      // keras agar browser tidak naik ke resolusi lebih tinggi di device kencang.
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 320, max: 480 }, height: { ideal: 240, max: 360 }, frameRate: { ideal: 10, max: 15 } }, audio: false })
       stopStream()
       streamRef.current = stream
       if (cameraRef.current) {
@@ -434,7 +435,7 @@ export default function QuizBasicPlay() {
       }
     }, 1000)
     if (cameraEnabled) {
-      snapshotRef.current = setInterval(captureSnapshot, 3000)
+      snapshotRef.current = setInterval(captureSnapshot, 5000)
       faceMonitorRef.current = setInterval(runDetection, 1000)
     }
     return stopTimers
@@ -444,7 +445,7 @@ export default function QuizBasicPlay() {
   const captureSnapshot = () => {
     const video = cameraRef.current
     if (!video || video.videoWidth === 0 || !attemptId) return
-    const maxW = 480
+    const maxW = 320
     const scale = Math.min(1, maxW / video.videoWidth)
     const canvas = document.createElement('canvas')
     canvas.width = Math.round(video.videoWidth * scale)
@@ -455,7 +456,7 @@ export default function QuizBasicPlay() {
       const fd = new FormData()
       fd.append('photo', new File([blob], `snap-${Date.now()}.jpg`, { type: 'image/jpeg' }))
       quizApi.uploadWebcam(Number(attemptId), fd).catch(() => {})
-    }, 'image/jpeg', 0.6)
+    }, 'image/jpeg', 0.5)
   }
 
   // ── Face / presence monitoring (proctoring) ──

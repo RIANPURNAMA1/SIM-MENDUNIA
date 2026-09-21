@@ -4,7 +4,7 @@ import {
   BookOpen, Plus, Edit3, Trash2, Search, X, Image as ImageIcon, FileText,
   ListChecks, Eye, EyeOff, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Camera, Clock, Repeat,
   Award, Users, UserCheck, Pencil, Loader2, ArrowLeft, Video, UploadCloud, Upload, Mic, RotateCcw,
-  Settings, LayoutGrid, ShieldCheck, Link2, Building2, Layers, Settings2, FileCheck2,
+  Settings, LayoutGrid, ShieldCheck, Link2, Building2, Layers, Settings2, FileCheck2, Radio,
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -1026,6 +1026,15 @@ export default function DataCourse() {
     navigate(routeTo('quiz-results', source, cid, paket.id))
   }
 
+  const openQuizMonitor = (paket: QuizPaket) => {
+    const cid = activeCourse?.id ?? paket.course_id ?? undefined
+    navigate(`${base}/course/${cid}/monitor?paket=${paket.id}`, { state: { title: activeCourse?.title } })
+  }
+
+  const openQuizMonitorById = (cid: number) => {
+    navigate(`${base}/course/${cid}/monitor`, { state: { title: activeCourse?.title } })
+  }
+
   const backToList = () => {
     setActiveCourse(null)
     setActiveQuizPaket(null)
@@ -2024,6 +2033,12 @@ export default function DataCourse() {
                       className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0E6187] bg-[#0E6187]/[0.08] px-2 py-1.5 hover:bg-[#0E6187]/15 transition-colors">
                       <Eye size={13} /> Hasil
                     </button>
+                    {source === 'course' && (
+                      <button onClick={() => openQuizMonitor(p)}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-600 bg-red-50 px-2 py-1.5 hover:bg-red-100 transition-colors">
+                        <Radio size={13} /> Monitoring
+                      </button>
+                    )}
                     <div className="w-px h-4 bg-slate-200 mx-1"></div>
                     <button onClick={() => openEditPaket(p)} className="p-1.5 hover:bg-slate-100 transition-colors" title="Edit">
                       <Pencil size={13} className="text-slate-600" />
@@ -2475,6 +2490,10 @@ export default function DataCourse() {
                       {' · '}{activeCourse.kelas_sensei_id ? `${courseLessons.length} pertemuan · ` : ''}{quizPakets.length} paket soal
                     </p>
                   </div>
+                  <button onClick={() => openQuizMonitorById(activeCourse.id)}
+                    className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-red-500 px-3 py-2 text-[12px] font-bold text-white hover:bg-red-600 transition-colors shrink-0">
+                    <Radio size={14} /> Monitoring
+                  </button>
                 </div>
                 {activeCourse.kelas_sensei_id ? (
                   <div className="mt-4 border-b border-slate-200 flex gap-1">

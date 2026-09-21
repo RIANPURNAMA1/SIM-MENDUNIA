@@ -342,16 +342,6 @@ export default function DataDiri() {
     return !!(s?.[field] || u?.[field])
   }
 
-  function findIdByName(list: Wilayah[], name: string | null): string {
-    if (!name) return ''
-    const found = list.find(i => i.name.toLowerCase() === name.toLowerCase())
-    return found ? found.id : ''
-  }
-
-  const provinsiId = findIdByName(provinsiList, formAlamat.provinsi)
-  const kabupatenId = findIdByName(kabupatenList, formAlamat.kabupaten)
-  const kecamatanId = findIdByName(kecamatanList, formAlamat.kecamatan)
-
   return (
     <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-4">
       <div className={`${cardClass} p-4 sm:p-5`}>
@@ -485,19 +475,19 @@ export default function DataDiri() {
                 <label className={labelClass}>Provinsi</label>
                 <div className="relative">
                   <select
-                    value={provinsiId}
+                    value={formAlamat.provinsi}
                     onChange={e => {
-                      const id = e.target.value
-                      const found = provinsiList.find(p => p.id === id)
-                      setFormAlamat({ ...formAlamat, provinsi: found?.name || '', kabupaten: '', kecamatan: '', desa: '' })
-                      if (id) fetchKabupaten(id)
+                      const name = e.target.value
+                      const found = provinsiList.find(p => p.name === name)
+                      setFormAlamat({ ...formAlamat, provinsi: name, kabupaten: '', kecamatan: '', desa: '' })
+                      if (found) fetchKabupaten(found.id)
                     }}
                     className={selectClass}
                     disabled={wilayahLoading.provinsi}
                   >
                     <option value="">{wilayahLoading.provinsi ? 'Memuat...' : 'Pilih Provinsi'}</option>
                     {provinsiList.map(p => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
+                      <option key={p.id} value={p.name}>{p.name}</option>
                     ))}
                   </select>
                   <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -509,19 +499,19 @@ export default function DataDiri() {
                 <label className={labelClass}>Kabupaten/Kota</label>
                 <div className="relative">
                   <select
-                    value={kabupatenId}
+                    value={formAlamat.kabupaten}
                     onChange={e => {
-                      const id = e.target.value
-                      const found = kabupatenList.find(k => k.id === id)
-                      setFormAlamat({ ...formAlamat, kabupaten: found?.name || '', kecamatan: '', desa: '' })
-                      if (id) fetchKecamatan(id)
+                      const name = e.target.value
+                      const found = kabupatenList.find(k => k.name === name)
+                      setFormAlamat({ ...formAlamat, kabupaten: name, kecamatan: '', desa: '' })
+                      if (found) fetchKecamatan(found.id)
                     }}
                     className={selectClass}
                     disabled={!formAlamat.provinsi || wilayahLoading.kabupaten}
                   >
                     <option value="">{!formAlamat.provinsi ? 'Pilih Provinsi dulu' : wilayahLoading.kabupaten ? 'Memuat...' : 'Pilih Kabupaten/Kota'}</option>
                     {kabupatenList.map(k => (
-                      <option key={k.id} value={k.id}>{k.name}</option>
+                      <option key={k.id} value={k.name}>{k.name}</option>
                     ))}
                   </select>
                   <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -533,19 +523,19 @@ export default function DataDiri() {
                 <label className={labelClass}>Kecamatan</label>
                 <div className="relative">
                   <select
-                    value={kecamatanId}
+                    value={formAlamat.kecamatan}
                     onChange={e => {
-                      const id = e.target.value
-                      const found = kecamatanList.find(k => k.id === id)
-                      setFormAlamat({ ...formAlamat, kecamatan: found?.name || '', desa: '' })
-                      if (id) fetchDesa(id)
+                      const name = e.target.value
+                      const found = kecamatanList.find(k => k.name === name)
+                      setFormAlamat({ ...formAlamat, kecamatan: name, desa: '' })
+                      if (found) fetchDesa(found.id)
                     }}
                     className={selectClass}
                     disabled={!formAlamat.kabupaten || wilayahLoading.kecamatan}
                   >
                     <option value="">{!formAlamat.kabupaten ? 'Pilih Kabupaten dulu' : wilayahLoading.kecamatan ? 'Memuat...' : 'Pilih Kecamatan'}</option>
                     {kecamatanList.map(k => (
-                      <option key={k.id} value={k.id}>{k.name}</option>
+                      <option key={k.id} value={k.name}>{k.name}</option>
                     ))}
                   </select>
                   <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -557,18 +547,16 @@ export default function DataDiri() {
                 <label className={labelClass}>Desa/Kelurahan</label>
                 <div className="relative">
                   <select
-                    value={findIdByName(desaList, formAlamat.desa)}
+                    value={formAlamat.desa}
                     onChange={e => {
-                      const id = e.target.value
-                      const found = desaList.find(d => d.id === id)
-                      setFormAlamat({ ...formAlamat, desa: found?.name || '' })
+                      setFormAlamat({ ...formAlamat, desa: e.target.value })
                     }}
                     className={selectClass}
                     disabled={!formAlamat.kecamatan || wilayahLoading.desa}
                   >
                     <option value="">{!formAlamat.kecamatan ? 'Pilih Kecamatan dulu' : wilayahLoading.desa ? 'Memuat...' : 'Pilih Desa/Kelurahan'}</option>
                     {desaList.map(d => (
-                      <option key={d.id} value={d.id}>{d.name}</option>
+                      <option key={d.id} value={d.name}>{d.name}</option>
                     ))}
                   </select>
                   <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
