@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { waSettingApi, aiSettingApi } from '../../services/api'
+import { waSettingApi, aiSettingApi, cabangApi } from '../../services/api'
 import {
   Settings,
   Bell,
@@ -18,6 +18,9 @@ import {
   Bot,
   KeyRound,
   Activity,
+  Plus,
+  Trash2,
+  Building2,
 } from 'lucide-react'
 
 interface GlobalSetting {
@@ -25,6 +28,17 @@ interface GlobalSetting {
   description: string
   is_enabled: boolean
   value?: string
+}
+
+interface CabangOption {
+  id: number
+  nama_cabang: string
+  kode_cabang?: string
+}
+
+interface CabangAdminRow {
+  phone: string
+  cabang_id: string
 }
 
 interface MailSetting {
@@ -81,6 +95,9 @@ export default function DataNotifikasiSetting() {
 
   const [activeTab, setActiveTab] = useState<TabId>('wa')
 
+  const [cabangList, setCabangList] = useState<CabangOption[]>([])
+  const [cabangAdminRows, setCabangAdminRows] = useState<CabangAdminRow[]>([])
+
   const [testEmail, setTestEmail] = useState('')
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; config?: any } | null>(null)
@@ -103,13 +120,23 @@ export default function DataNotifikasiSetting() {
   const loadInitialData = async () => {
     setLoading(true)
     try {
-      const [globalRes, mailRes, aiRes] = await Promise.all([
+      const [globalRes, mailRes, aiRes, cabangRes] = await Promise.all([
         waSettingApi.getGlobalSettings(),
         waSettingApi.getMailSettings(),
         aiSettingApi.get().catch(() => null),
+        cabangApi.list().catch(() => []),
       ])
       setGlobalSettings(globalRes.data)
       setMailSettings(mailRes.data)
+      const cabangs = (cabangRes as any)?.data?.data ?? []
+      setCabangList(cabangs)
+      const rowsSetting = (globalRes.data as GlobalSetting[]).find(s => s.key === 'wa_admin_cabang_phones')
+      try {
+        const parsed = JSON.parse(rowsSetting?.value || '[]')
+        setCabangAdminRows(Array.isArray(parsed) ? parsed : [])
+      } catch {
+        setCabangAdminRows([])
+      }
       if (aiRes) {
         setAiSettings(aiRes.data)
         setAiProvider(aiRes.data.provider)
@@ -238,6 +265,24 @@ export default function DataNotifikasiSetting() {
     setGlobalSettings(prev => prev.map(s => s.key === key ? { ...s, value } : s))
   }
 
+  const syncCabangAdminRows = (rows: CabangAdminRow[]) => {
+    setCabangAdminRows(rows)
+    handleGlobalValueChange('wa_admin_cabang_phones', JSON.stringify(rows))
+  }
+
+  const updateCabangAdminRow = (index: number, patch: Partial<CabangAdminRow>) => {
+    const rows = cabangAdminRows.map((r, i) => i === index ? { ...r, ...patch } : r)
+    syncCabangAdminRows(rows)
+  }
+
+  const addCabangAdminRow = () => {
+    syncCabangAdminRows([...cabangAdminRows, { phone: '', cabang_id: '' }])
+  }
+
+  const removeCabangAdminRow = (index: number) => {
+    syncCabangAdminRows(cabangAdminRows.filter((_, i) => i !== index))
+  }
+
   const handleMailValueChange = (key: string, value: string) => {
     setMailSettings(prev => prev.map(s => s.key === key ? { ...s, value } : s))
   }
@@ -320,71 +365,122 @@ export default function DataNotifikasiSetting() {
   const emailGlobalSettings = globalSettings.filter(s => s.key.startsWith('email_'))
   const websiteGlobalSettings = globalSettings.filter(s => s.key === 'landing_page')
 
-  const renderSettingRow = (setting: GlobalSetting) => (
-    <div key={setting.key} className="px-6 py-4 flex items-center justify-between gap-4">
-      <div className="flex items-center gap-3">
-        {setting.key.includes('email') ? <Mail size={16} className="text-blue-500" /> :
-          setting.key === 'landing_page' ? <Globe size={16} className={setting.is_enabled ? "text-emerald-500" : "text-slate-400"} /> :
-          setting.is_enabled ? <Bell size={16} className="text-emerald-500" /> : <BellOff size={16} className="text-slate-400" />}
-        <div>
-          <p className="text-sm font-medium text-slate-700">{setting.description}</p>
-          <p className="text-xs text-slate-400 font-mono">{setting.key}</p>
-        </div>
-      </div>
-      <div className="flex items-center gap-4">
-        {setting.key === 'wa_pembayaran_admin_phones' && (
-          <input type="text" value={setting.value || ''}
-            onChange={e => handleGlobalValueChange(setting.key, e.target.value)}
-            placeholder="628xxxxxxxxxx"
-            className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20" />
-        )}
-        {setting.key === 'wa_pendaftaran_admin_phones' && (
-          <input type="text" value={setting.value || ''}
-            onChange={e => handleGlobalValueChange(setting.key, e.target.value)}
-            placeholder="628xxxxxxxxxx"
-            className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20" />
-        )}
-        {setting.key === 'email_pembayaran_admin_addresses' && (
-          <input type="text" value={setting.value || ''}
-            onChange={e => handleGlobalValueChange(setting.key, e.target.value)}
-            placeholder="admin@example.com"
-            className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20" />
-        )}
-        {setting.key === 'wa_gateway_base_url' && (
-          <input type="text" value={setting.value || ''}
-            onChange={e => handleGlobalValueChange(setting.key, e.target.value)}
-            placeholder="http://localhost:4300"
-            className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm w-96 font-mono focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20" />
-        )}
-        {setting.key === 'wa_gateway_token' && (
-          <input type="text" value={setting.value || ''}
-            onChange={e => handleGlobalValueChange(setting.key, e.target.value)}
-            placeholder="token-rahasia-gateway"
-            className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm w-96 font-mono focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20" />
-        )}
-        {setting.key === 'wa_gateway_webhook_secret' && (
-          <input type="text" value={setting.value || ''}
-            onChange={e => handleGlobalValueChange(setting.key, e.target.value)}
-            placeholder="secret-webhook-gateway"
-            className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm w-96 font-mono focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20" />
-        )}
-        {setting.key === 'wa_gateway_default_device' && (
-          <input type="text" value={setting.value || ''}
-            onChange={e => handleGlobalValueChange(setting.key, e.target.value)}
-            placeholder="slug-device (atur dari halaman WhatsApp Gateway)"
-            className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm w-96 font-mono focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20" />
-        )}
-        {setting.key.startsWith('wa_gateway_') || setting.key === 'wa_pembayaran_admin_phones' || setting.key === 'wa_pendaftaran_admin_phones' || setting.key === 'email_pembayaran_admin_addresses' ? (
-          <span className="w-11" />
-        ) : (
-          <button onClick={() => handleGlobalToggle(setting.key, !setting.is_enabled)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${setting.is_enabled ? 'bg-emerald-500' : 'bg-slate-300'}`}>
-            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${setting.is_enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+  const valueSettingMap: Record<string, { type: 'text' | 'password'; placeholder: string; wide?: boolean }> = {
+    wa_pembayaran_admin_phones: { type: 'text', placeholder: '628xxxxxxxxxx', wide: true },
+    wa_pendaftaran_admin_phones: { type: 'text', placeholder: '628xxxxxxxxxx', wide: true },
+    email_pembayaran_admin_addresses: { type: 'text', placeholder: 'admin@example.com', wide: true },
+    wa_gateway_base_url: { type: 'text', placeholder: 'http://localhost:4300' },
+    wa_gateway_token: { type: 'password', placeholder: 'token-rahasia-gateway' },
+    wa_gateway_webhook_secret: { type: 'password', placeholder: 'secret-webhook-gateway' },
+    wa_gateway_default_device: { type: 'text', placeholder: 'slug-device (atur dari halaman WhatsApp Gateway)' },
+  }
+
+  const renderSettingRow = (setting: GlobalSetting) => {
+    const valueMeta = valueSettingMap[setting.key]
+
+    if (setting.key === 'wa_admin_cabang_phones') {
+      return (
+        <div key={setting.key} className="px-6 py-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Building2 size={16} className="text-emerald-500" />
+              <div>
+                <p className="text-sm font-medium text-slate-700">Nomor HP admin cabang (per cabang)</p>
+                <p className="text-xs text-slate-400 font-mono mt-0.5">{setting.key}</p>
+              </div>
+            </div>
+          </div>
+          <p className="mt-2 text-xs text-slate-500">
+            Pilih cabang lalu isi nomor HP admin. Saat ada pendaftaran/tagihan dari batch cabang tsb, notifikasi otomatis
+            juga dikirim ke nomor ini.
+          </p>
+
+          <div className="mt-3 space-y-2">
+            {cabangAdminRows.length === 0 && (
+              <p className="text-xs text-slate-400 italic">Belum ada nomor admin cabang. Klik "Tambah" untuk memulai.</p>
+            )}
+            {cabangAdminRows.map((row, index) => (
+              <div key={index} className="flex flex-col sm:flex-row gap-2">
+                <select
+                  value={row.cabang_id}
+                  onChange={e => updateCabangAdminRow(index, { cabang_id: e.target.value })}
+                  className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 bg-white sm:w-64">
+                  <option value="">— Pilih Cabang —</option>
+                  <option value="all">Semua Cabang</option>
+                  {cabangList.map(c => (
+                    <option key={c.id} value={String(c.id)}>{c.nama_cabang}</option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  value={row.phone}
+                  onChange={e => updateCabangAdminRow(index, { phone: e.target.value })}
+                  placeholder="628xxxxxxxxxx"
+                  autoComplete="new-password"
+                  className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 bg-white"
+                />
+                <button onClick={() => removeCabangAdminRow(index)}
+                  className="inline-flex items-center justify-center px-3 py-2 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors">
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <button onClick={addCabangAdminRow}
+            className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-dashed border-emerald-300 text-emerald-600 text-sm font-medium hover:bg-emerald-50 transition-colors">
+            <Plus size={15} /> Tambah
           </button>
-        )}
+        </div>
+      )
+    }
+
+    if (valueMeta) {
+      return (
+        <div key={setting.key} className="px-6 py-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-slate-700">{setting.description}</p>
+              <p className="text-xs text-slate-400 font-mono mt-0.5">{setting.key}</p>
+            </div>
+          </div>
+          <div className="mt-3">
+            <input
+              type={valueMeta.type}
+              value={setting.value || ''}
+              onChange={e => handleGlobalValueChange(setting.key, e.target.value)}
+              placeholder={valueMeta.placeholder}
+              autoComplete="new-password"
+              className={`px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 bg-white ${valueMeta.wide ? 'w-full' : 'w-full md:w-96 font-mono'}`}
+            />
+            {setting.key === 'wa_pendaftaran_admin_phones' && (
+              <p className="mt-1.5 text-[11px] text-slate-400">
+                Notifikasi pendaftaran baru & tagihan baru juga otomatis dikirim ke admin cabang sesuai batch program.
+              </p>
+            )}
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <div key={setting.key} className="px-6 py-4 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          {setting.key.includes('email') ? <Mail size={16} className="text-blue-500" /> :
+            setting.key === 'landing_page' ? <Globe size={16} className={setting.is_enabled ? "text-emerald-500" : "text-slate-400"} /> :
+            setting.is_enabled ? <Bell size={16} className="text-emerald-500" /> : <BellOff size={16} className="text-slate-400" />}
+          <div>
+            <p className="text-sm font-medium text-slate-700">{setting.description}</p>
+            <p className="text-xs text-slate-400 font-mono">{setting.key}</p>
+          </div>
+        </div>
+        <button onClick={() => handleGlobalToggle(setting.key, !setting.is_enabled)}
+          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${setting.is_enabled ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${setting.is_enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+        </button>
       </div>
-    </div>
-  )
+    )
+  }
 
   const renderSettingPanel = (title: string, subtitle: string, icon: React.ReactNode, iconBg: string, iconColor: string, rows: GlobalSetting[], onSave: () => void, savingFlag: boolean) => (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -698,6 +794,19 @@ export default function DataNotifikasiSetting() {
       {/* ===== Notifikasi WhatsApp ===== */}
       {activeTab === 'wa' && (
         <>
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-sm text-emerald-700">
+            <div className="flex items-start gap-2.5">
+              <MessageSquare size={16} className="mt-0.5 shrink-0" />
+              <div>
+                <p className="font-medium">Notifikasi diarahkan ke cabang yang sesuai</p>
+                <p className="mt-0.5 text-xs text-emerald-600">
+                  Saat ada pendaftaran baru / tagihan baru, selain dikirim ke nomor admin follow up di atas,
+                  sistem otomatis mencari batch program → cabang → lalu mengirim ke <span className="font-semibold">nomor admin cabang</span>
+                  (user role Admin Cabang yang ditugaskan pada cabang tersebut). Nama cabang ikut dicantumkan di dalam pesan.
+                </p>
+              </div>
+            </div>
+          </div>
           {renderSettingPanel(
             'Pengaturan WhatsApp',
             'Aktifkan/nonaktifkan notifikasi WhatsApp & konfigurasi WhatsApp Gateway',

@@ -883,6 +883,7 @@ class PendaftaranController extends Controller
             $waService->sendRegistrationApprovedNotification($pendaftar->fresh()->load('product'));
             $noInvoice = 'INV/' . str_pad($pendaftar->id, 5, '0', STR_PAD_LEFT) . '/' . $pendaftar->created_at->format('Ym');
             $waService->sendNewBillNotification($pendaftar->fresh()->load(['product', 'user']), $noInvoice);
+            $waService->sendNewBillToAdmin($pendaftar->fresh()->load(['product', 'user', 'batch.cabang']), $noInvoice);
         } catch (\Exception $e) {
             \Log::error('Gagal kirim notifikasi WA approve: ' . $e->getMessage());
         }

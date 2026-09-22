@@ -147,6 +147,64 @@ class WhatsAppService
     }
 
     /**
+     * Kirim notifikasi tagihan baru (wa_new_bill) ke admin follow up + admin cabang batch.
+     * Tujuan admin cabang dicari dari batch -> cabang -> user role ADMIN_CABANG.
+     */
+    public function sendNewBillToAdmin($pendaftar, $noInvoice)
+    {
+        $settingKey = 'wa_new_bill';
+        if (!\App\Models\NotificationSetting::isEnabled($settingKey)) {
+            Log::info("Notifikasi {$settingKey} dinonaktifkan.");
+            return false;
+        }
+
+        $pendaftar->loadMissing(['batch.cabang', 'product', 'user']);
+        $cabang = $pendaftar->batch?->cabang;
+        $cabangNama = $cabang?->nama_cabang ?? '-';
+
+        $adminPhones = $this->getAdminPhones('wa_pendaftaran_admin_phones');
+        $cabangPhones = $this->getAdminCabangPhones($cabang?->id);
+        $recipients = array_values(array_unique(array_merge($adminPhones, $cabangPhones)));
+
+        if (empty($recipients)) {
+            Log::warning('Tidak ada nomor admin untuk notifikasi tagihan baru.');
+            return false;
+        }
+
+        $nama = $pendaftar->nama;
+        $program = $pendaftar->product?->nama ?? '-';
+        $batchNama = $pendaftar->batch?->nama_batch ?? '-';
+        $noReg = $pendaftar->no_registrasi ?? '-';
+        $totalTagihan = $this->getTotalTagihan($pendaftar);
+        $totalFormat = 'Rp ' . number_format($totalTagihan, 0, ',', '.');
+        $tanggal = now()->translatedFormat('d F Y H:i');
+        $invoiceUrl = env('FRONTEND_URL', 'http://localhost:5173') . '/pendaftar/' . $pendaftar->id . '/invoice';
+
+        $message = "🧾 *NOTIFIKASI TAGIHAN BARU*\n\n"
+            . "Halo Admin,\n\n"
+            . "Ada tagihan baru yang dibuat.\n\n"
+            . "👤 Nama: {$nama}\n"
+            . "📚 Program: {$program}\n"
+            . "🎓 Batch: {$batchNama}\n"
+            . "🏢 Cabang: {$cabangNama}\n"
+            . "🗂️ No. Registrasi: {$noReg}\n"
+            . "🧾 Invoice: {$noInvoice}\n"
+            . "💰 Total Tagihan: {$totalFormat}\n"
+            . "🕒 Waktu: {$tanggal}\n\n"
+            . "🔗 Lihat Invoice:\n{$invoiceUrl}\n\n"
+            . "- Sistem SIM Mendunia";
+
+        $results = [];
+        foreach ($recipients as $phone) {
+            $sent = $this->sendMessage($phone, $message);
+            $this->logNotification($pendaftar->id ?? null, 'new_bill_admin', $phone, $message, $sent);
+            $results[] = $sent;
+        }
+
+        return in_array(true, $results);
+    }
+
+    /**
      * Kirim notifikasi verifikasi pembayaran ke kandidat
      */
     public function sendPaymentVerifiedNotification($pendaftar, $kategoriNama, $status)
@@ -539,6 +597,48 @@ class WhatsAppService
     }
 
     /**
+     * Ambil nomor HP admin cabang untuk cabang tertentu.
+     * Sumber 1 : pengaturan manual "wa_admin_cabang_phones" (JSON [{phone, cabang_id}]).
+     * Sumber 2 : user role ADMIN_CABANG yang cabang_ids-nya memuat cabang ini (auto-detect).
+     */
+    private function getAdminCabangPhones($cabangId): array
+    {
+        $phones = [];
+
+        $setting = \App\Models\NotificationSetting::where('key', 'wa_admin_cabang_phones')->first();
+        $rows = json_decode((string) ($setting?->value ?? ''), true);
+        if (is_array($rows)) {
+            foreach ($rows as $row) {
+                $rowCabang = (string) ($row['cabang_id'] ?? '');
+                $match = $rowCabang === 'all' || $rowCabang === '' || $rowCabang === (string) $cabangId;
+                if ($match) {
+                    $hp = trim((string) ($row['phone'] ?? ''));
+                    if ($hp) {
+                        $phones[] = $hp;
+                    }
+                }
+            }
+        }
+
+        if (!$cabangId) {
+            return array_values(array_unique($phones));
+        }
+
+        $users = \App\Models\User::where('role', 'ADMIN_CABANG')->get();
+        foreach ($users as $user) {
+            $cabangIds = array_map('strval', (array) ($user->cabang_ids ?? []));
+            if (in_array((string) $cabangId, $cabangIds, true)) {
+                $hp = trim((string) ($user->no_hp ?? ''));
+                if ($hp) {
+                    $phones[] = $hp;
+                }
+            }
+        }
+
+        return array_values(array_unique($phones));
+    }
+
+    /**
      * Kirim notifikasi berdasarkan status absensi
      * Cegah duplikat: setiap jenis notifikasi hanya dikirim 1x per hari per user
      */
@@ -766,7 +866,13 @@ class WhatsAppService
         }
 
         $adminPhones = $this->getAdminPhones('wa_pendaftaran_admin_phones');
-        if (empty($adminPhones)) {
+
+        $pendaftar->loadMissing('batch.cabang');
+        $cabangNama = $pendaftar->batch?->cabang?->nama_cabang ?? '-';
+        $cabangPhones = $this->getAdminCabangPhones($pendaftar->batch?->cabang?->id);
+        $recipients = array_values(array_unique(array_merge($adminPhones, $cabangPhones)));
+
+        if (empty($recipients)) {
             Log::warning('Tidak ada nomor admin untuk notifikasi pendaftaran baru.');
             return false;
         }
@@ -795,6 +901,7 @@ class WhatsAppService
             'nama' => $nama,
             'program' => $program,
             'batch' => $batchNama,
+            'cabang' => $cabangNama,
             'no_registrasi' => $noReg,
             'total_transfer' => number_format($totalTransfer, 0, ',', '.'),
             'tanggal' => $tanggal,
@@ -813,6 +920,7 @@ class WhatsAppService
                 . "Ada pendaftar baru di *{$companyName}*.\n\n"
                 . "👤 Nama: {$nama}\n"
                 . "📚 Program: {$program} ({$batchNama})\n"
+                . "🏢 Cabang: {$cabangNama}\n"
                 . "🗂️ No. Registrasi: {$noReg}\n"
                 . "💰 Total Transfer: Rp " . number_format($totalTransfer, 0, ',', '.') . "\n"
                 . "📱 No. WhatsApp: {$pendaftar->telepon}\n"
@@ -822,7 +930,7 @@ class WhatsAppService
         }
 
         $results = [];
-        foreach ($adminPhones as $phone) {
+        foreach ($recipients as $phone) {
             $sent = $this->sendMessage($phone, $message);
             $this->logNotification($pendaftar->id ?? null, 'registration_admin', $phone, $message, $sent);
             $results[] = $sent;
