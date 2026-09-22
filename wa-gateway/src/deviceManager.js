@@ -18,6 +18,23 @@ const pinoLogger = pino({ level: 'warn' })
 const DEVICE_META_FILE = 'device.json'
 const REGISTRY_FILE = 'registry.json'
 
+const DISCONNECT_NAMES = {
+  [DisconnectReason.connectionClosed]: 'connectionClosed (428)',
+  [DisconnectReason.connectionLost]: 'connectionLost / timedOut (408)',
+  [DisconnectReason.connectionReplaced]: 'connectionReplaced (440)',
+  [DisconnectReason.loggedOut]: 'loggedOut (401)',
+  [DisconnectReason.badSession]: 'badSession (500)',
+  [DisconnectReason.restartRequired]: 'restartRequired (515)',
+  [DisconnectReason.multideviceMismatch]: 'multideviceMismatch (411)',
+  [DisconnectReason.forbidden]: 'forbidden (403)',
+  [DisconnectReason.unavailableService]: 'unavailableService (503)',
+}
+
+const UNABLE_TO_RECOVER = new Set([
+  DisconnectReason.badSession,
+  DisconnectReason.multideviceMismatch,
+])
+
 function slugify(name) {
   const slug = String(name || '')
     .toLowerCase()
@@ -231,6 +248,7 @@ class DeviceState {
     this.lastConnectedAt = null
     this.sock = null
     this.loggedOut = false
+    this.connecting = false
     this.connectTimer = null
     this.reconnectAttempt = 0
     this.sendQueue = []
@@ -314,6 +332,8 @@ class DeviceState {
   }
 
   async buildSocket() {
+    if (this.connecting || this.sock) return
+    this.connecting = true
     const sessionPath = this.getSessionPath()
     fs.mkdirSync(sessionPath, { recursive: true })
 
@@ -322,88 +342,136 @@ class DeviceState {
     this.qrImage = null
     await notifier.status(this.slug, 'connecting', { name: this.name, phone: this.phone })
 
-    const { state, saveCreds } = await useMultiFileAuthState(sessionPath)
-    const socket = makeWASocket({
-      logger: pinoLogger,
-      browser: Browsers.appropriate('SIM Mendunia'),
-      auth: {
-        creds: state.creds,
-        keys: makeCacheableSignalKeyStore(state.keys, pinoLogger),
-      },
-      printQRInTerminal: false,
-      syncFullHistory: false,
-      markOnlineOnConnect: false,
-    })
+    try {
+      const { state, saveCreds } = await useMultiFileAuthState(sessionPath)
+      const socket = makeWASocket({
+        logger: pinoLogger,
+        browser: Browsers.appropriate('SIM Mendunia'),
+        auth: {
+          creds: state.creds,
+          keys: makeCacheableSignalKeyStore(state.keys, pinoLogger),
+        },
+        printQRInTerminal: false,
+        syncFullHistory: false,
+        markOnlineOnConnect: false,
+      })
 
-    socket.ev.on('creds.update', saveCreds)
+      socket.ev.on('creds.update', saveCreds)
 
-    socket.ev.on('connection.update', async (update) => {
-      const { connection, lastDisconnect, qr } = update
+      socket.ev.on('connection.update', async (update) => {
+        const { connection, lastDisconnect, qr } = update
 
-      if (qr) {
-        this.status = 'qr'
-        this.qr = qr || null
-        try {
-          this.qrImage = await QRCode.toDataURL(qr, {
-            width: 320,
-            margin: 1,
-            errorCorrectionLevel: 'M',
-          })
-        } catch {
-          this.qrImage = null
-        }
-        await notifier.qr(this.slug, this.qr)
-        return
-      }
-
-      if (connection === 'open') {
-        this.status = 'connected'
-        this.qr = null
-        this.qrImage = null
-        this.phone = phoneFromJid(socket.user?.id)
-        this.lastConnectedAt = new Date().toISOString()
-        this.reconnectAttempt = 0
-        this.sock = socket
-        this.saveMeta()
-        await notifier.status(this.slug, 'connected', { name: this.name, phone: this.phone })
-        return
-      }
-
-      if (connection === 'close') {
-        const statusCode = lastDisconnect?.error?.output?.statusCode
-        this.sock = null
-
-        if (statusCode === DisconnectReason.loggedOut) {
-          this.loggedOut = true
-          this.status = 'loggedOut'
-          this.phone = null
-          await notifier.status(this.slug, 'loggedOut', { name: this.name })
+        if (qr) {
+          this.status = 'qr'
+          this.qr = qr || null
+          try {
+            this.qrImage = await QRCode.toDataURL(qr, {
+              width: 320,
+              margin: 1,
+              errorCorrectionLevel: 'M',
+            })
+          } catch {
+            this.qrImage = null
+          }
+          await notifier.qr(this.slug, this.qr)
           return
         }
 
-        this.status = 'disconnected'
-        if (!this.loggedOut) {
-          await notifier.status(this.slug, 'disconnected', { name: this.name })
-          this.scheduleReconnect()
+        if (connection === 'open') {
+          this.status = 'connected'
+          this.qr = null
+          this.qrImage = null
+          this.phone = phoneFromJid(socket.user?.id)
+          this.lastConnectedAt = new Date().toISOString()
+          this.reconnectAttempt = 0
+          this.sock = socket
+          this.saveMeta()
+          await notifier.status(this.slug, 'connected', { name: this.name, phone: this.phone })
+          return
         }
-      }
-    })
 
-    socket.ev.on('messages.upsert', async ({ messages }) => {
-      for (const msg of messages || []) {
-        await this.handleIncoming(msg)
-      }
-    })
+        if (connection === 'close') {
+          const statusCode = lastDisconnect?.error?.output?.statusCode
+          const reasonName = DISCONNECT_NAMES[statusCode] || `unknown(${statusCode})`
+          const reasonMsg =
+            lastDisconnect?.error?.message || lastDisconnect?.error?.output?.payload?.message || ''
+          console.warn(
+            `[device ${this.slug}] Terputus: ${reasonName}${reasonMsg ? ` - ${reasonMsg}` : ''}`
+          )
+          this.sock = null
 
-    this.sock = socket
+          if (statusCode === DisconnectReason.loggedOut) {
+            this.loggedOut = true
+            this.status = 'loggedOut'
+            this.phone = null
+            await notifier.status(this.slug, 'loggedOut', { name: this.name })
+            return
+          }
+
+          if (statusCode === DisconnectReason.connectionReplaced) {
+            this.status = 'replaced'
+            await notifier.status(this.slug, 'replaced', { name: this.name, phone: this.phone })
+            return
+          }
+
+          if (UNABLE_TO_RECOVER.has(statusCode)) {
+            this.clearSession()
+            this.status = 'disconnected'
+            this.phone = null
+            console.warn(
+              `[device ${this.slug}] Sesi tidak bisa dipakai ulang, silakan scan QR baru`
+            )
+            await notifier.status(this.slug, 'disconnected', {
+              name: this.name,
+              loggedOut: true,
+              reset: true,
+            })
+            return
+          }
+
+          this.status = 'disconnected'
+          if (!this.loggedOut) {
+            await notifier.status(this.slug, 'disconnected', { name: this.name })
+            this.scheduleReconnect(statusCode === DisconnectReason.restartRequired ? 1000 : null)
+          }
+        }
+      })
+
+      socket.ev.on('messages.upsert', async ({ messages }) => {
+        for (const msg of messages || []) {
+          await this.handleIncoming(msg)
+        }
+      })
+
+      this.sock = socket
+    } finally {
+      this.connecting = false
+    }
   }
 
-  scheduleReconnect() {
-    const backoff = Math.min(2000 + this.reconnectAttempt * 1000, 30000)
+  clearSession() {
+    const dir = this.getSessionPath()
+    try {
+      if (fs.existsSync(dir)) {
+        for (const entry of fs.readdirSync(dir)) {
+          if (entry === DEVICE_META_FILE) continue
+          const p = path.join(dir, entry)
+          const stat = fs.statSync(p)
+          if (stat.isDirectory()) fs.rmSync(p, { recursive: true, force: true })
+          else fs.rmSync(p, { force: true })
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  scheduleReconnect(delay) {
+    const backoff = delay ?? Math.min(2000 + this.reconnectAttempt * 1000, 30000)
     this.reconnectAttempt += 1
     if (this.connectTimer) clearTimeout(this.connectTimer)
     this.connectTimer = setTimeout(async () => {
-      if (this.loggedOut) return
+      if (this.loggedOut || this.connecting || this.sock) return
       try {
         await this.buildSocket()
       } catch (err) {

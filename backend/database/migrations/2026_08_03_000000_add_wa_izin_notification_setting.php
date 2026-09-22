@@ -10,7 +10,7 @@ return new class extends Migration
         DB::table('notification_settings')->updateOrInsert(
             ['key' => 'wa_izin'],
             [
-                'is_enabled' => true,
+                'is_enabled' => false,
                 'description' => 'Notifikasi WA pengajuan izin ke manager',
                 'created_at' => now(),
                 'updated_at' => now(),
