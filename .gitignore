@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# WA Gateway - sesi & kredensial (JANGAN di-commit)
+wa-gateway/sessions/
+
+# Build output
+frontend/dist/
+wa-gateway/dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
