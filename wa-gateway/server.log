@@ -1,8 +1,40 @@
+node:internal/modules/package_json_reader:301
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
 
-> mendunia-wa-gateway@1.0.0 start
-> node src/server.js
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'express' imported from C:\Users\Admin\Documents\PROJECT\PROJECT TERINTEGRASI\SIM-MENDUNIA\wa-gateway\src\server.js
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:991:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:719:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:736:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:765:52)
+    at #resolve (node:internal/modules/esm/loader:701:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:621:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:160:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
 
-[gateway] SIM Mendunia WA Gateway berjalan di http://0.0.0.0:4300
-[gateway] 1 sesi tersimpan ditemukan, mencoba koneksi ulang...
-{"level":50,"time":1790063096289,"pid":5932,"hostname":"DESKTOP-276U3RK","node":{"tag":"stream:error","attrs":{},"content":[{"tag":"conflict","attrs":{"type":"replaced"}}]},"msg":"stream errored out"}
-{"level":50,"time":1790063153488,"pid":5932,"hostname":"DESKTOP-276U3RK","err":{"type":"Error","message":"Timed Out","stack":"Error: Timed Out\n    at file:///C:/Users/Admin/Documents/PROJECT/PROJECT%20TERINTEGRASI/SIM-MENDUNIA/wa-gateway/node_modules/@whiskeysockets/baileys/lib/Utils/generics.js:131:32","data":{"stack":"Error\n    at promiseTimeout (file:///C:/Users/Admin/Documents/PROJECT/PROJECT%20TERINTEGRASI/SIM-MENDUNIA/wa-gateway/node_modules/@whiskeysockets/baileys/lib/Utils/generics.js:126:19)\n    at waitForMessage (file:///C:/Users/Admin/Documents/PROJECT/PROJECT%20TERINTEGRASI/SIM-MENDUNIA/wa-gateway/node_modules/@whiskeysockets/baileys/lib/Socket/socket.js:115:34)\n    at query (file:///C:/Users/Admin/Documents/PROJECT/PROJECT%20TERINTEGRASI/SIM-MENDUNIA/wa-gateway/node_modules/@whiskeysockets/baileys/lib/Socket/socket.js:138:45)\n    at fetchProps (file:///C:/Users/Admin/Documents/PROJECT/PROJECT%20TERINTEGRASI/SIM-MENDUNIA/wa-gateway/node_modules/@whiskeysockets/baileys/lib/Socket/chats.js:631:34)\n    at executeInitQueries (file:///C:/Users/Admin/Documents/PROJECT/PROJECT%20TERINTEGRASI/SIM-MENDUNIA/wa-gateway/node_modules/@whiskeysockets/baileys/lib/Socket/chats.js:762:28)\n    at EventEmitter.<anonymous> (file:///C:/Users/Admin/Documents/PROJECT/PROJECT%20TERINTEGRASI/SIM-MENDUNIA/wa-gateway/node_modules/@whiskeysockets/baileys/lib/Socket/chats.js:859:17)\n    at EventEmitter.emit (node:events:520:35)\n    at EventEmitter.<anonymous> (file:///C:/Users/Admin/Documents/PROJECT/PROJECT%20TERINTEGRASI/SIM-MENDUNIA/wa-gateway/node_modules/@whiskeysockets/baileys/lib/Utils/event-buffer.js:35:16)\n    at EventEmitter.emit (node:events:508:28)\n    at Object.emit (file:///C:/Users/Admin/Documents/PROJECT/PROJECT%20TERINTEGRASI/SIM-MENDUNIA/wa-gateway/node_modules/@whiskeysockets/baileys/lib/Utils/event-buffer.js:83:23)"},"isBoom":true,"isServer":false,"output":{"statusCode":408,"payload":{"statusCode":408,"error":"Request Time-out","message":"Timed Out"},"headers":{}}},"msg":"unexpected error in 'init queries'"}
+Node.js v24.14.0
+node:events:486
+      throw er; // Unhandled 'error' event
+     [device test-sambungkan] Terputus: unknown(undefined)
+[device test-sambungkan] Terputus: loggedOut (401) - Intentional Logout
+[device test-sambungkan] Terputus: connectionLost / timedOut (408) - QR refs attempts ended
+t app.listen (C:\Users\Admin\Documents\PROJECT\PROJECT TERINTEGRASI\SIM-MENDUNIA\wa-gateway\node_modules\express\lib\application.js:635:24)
+    at file:///C:/Users/Admin/Documents/PROJECT/PROJECT%20TERINTEGRASI/SIM-MENDUNIA/wa-gateway/src/server.js:135:5
+    at ModuleJob.run (node:internal/modules/esm/module_job:430:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:661:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1984:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 4300
+}
+
+Node.js v24.14.0

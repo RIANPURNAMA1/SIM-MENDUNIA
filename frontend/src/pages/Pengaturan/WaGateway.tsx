@@ -203,19 +203,6 @@ export default function WaGateway() {
     }
   }
 
-  const handleReconnect = async (device: GatewayDevice) => {
-    setBusySlug(device.slug)
-    setError('')
-    try {
-      await waGatewayApi.reconnect(device.slug)
-      await load(true)
-    } catch (err: any) {
-      setError(err?.response?.data?.error || err?.response?.data?.message || 'Gagal menghubungkan ulang device')
-    } finally {
-      setBusySlug(null)
-    }
-  }
-
   const handleRename = async (slug: string) => {
     if (!renameValue.trim()) return
     setBusySlug(slug)
@@ -504,7 +491,7 @@ export default function WaGateway() {
                       </button>
                     )}
                     {device.status !== 'connected' && device.hasSession && (
-                      <button onClick={() => handleReconnect(device)} disabled={isBusy}
+                      <button onClick={() => handleScan(device)} disabled={isBusy}
                         className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50">
                         {isBusy ? <Loader2 size={13} className="animate-spin" /> : <Power size={13} />} Sambungkan
                       </button>

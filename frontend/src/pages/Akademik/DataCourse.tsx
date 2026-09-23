@@ -14,8 +14,8 @@ import LessonMediaFields, { LessonSlideItem } from '../../components/LessonMedia
 import Swal from 'sweetalert2'
 import type { Pagination } from '../../types'
 
-const cleanQuillHtml = (html: string) =>
-  html
+const cleanQuillHtml = (html: string | null | undefined) =>
+  (html ?? '')
     .replace(/&nbsp;/g, ' ')
     .replace(/<p(?:\s[^>]*)?>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>/gi, '')
 

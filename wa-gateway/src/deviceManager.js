@@ -316,6 +316,11 @@ class DeviceState {
   }
 
   async reconnect() {
+    // Jika sesi sudah logout dari WhatsApp (401), creds lama sudah tidak valid.
+    // Hapus sesi agar gateway membuat pasangan baru & menampilkan QR scan ulang.
+    if (this.loggedOut) {
+      this.clearSession()
+    }
     this.loggedOut = false
     if (this.connectTimer) {
       clearTimeout(this.connectTimer)
@@ -328,6 +333,7 @@ class DeviceState {
     }
     this.sock = null
     this.reconnectAttempt = 0
+    this.connecting = false
     await this.buildSocket()
   }
 

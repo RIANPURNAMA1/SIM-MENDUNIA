@@ -6,8 +6,8 @@ import { detectFace, faceModelsReady, loadFaceModels, type DetectedFace } from '
 import Swal from 'sweetalert2'
 import { useForceLightMode } from '../../hooks/useForceLightMode'
 
-const cleanQuillHtml = (html: string) =>
-  html
+const cleanQuillHtml = (html: string | null | undefined) =>
+  (html ?? '')
     .replace(/&nbsp;/g, ' ')
     .replace(/<p(?:\s[^>]*)?>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>/gi, '')
 

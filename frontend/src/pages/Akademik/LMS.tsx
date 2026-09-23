@@ -209,8 +209,8 @@ function rankStylesLms(rank: number) {
   return 'bg-slate-100 text-slate-500'
 }
 
-const cleanQuillHtml = (html: string) =>
-  html
+const cleanQuillHtml = (html: string | null | undefined) =>
+  (html ?? '')
     .replace(/&nbsp;/g, ' ')
     .replace(/<p(?:\s[^>]*)?>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>/gi, '')
 

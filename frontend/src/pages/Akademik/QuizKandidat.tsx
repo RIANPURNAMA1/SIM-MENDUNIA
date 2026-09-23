@@ -12,8 +12,8 @@ import LessonSlidesViewer from '../../components/LessonSlidesViewer'
 import TrackedVideo from '../../components/TrackedVideo'
 import Swal from 'sweetalert2'
 
-const cleanQuillHtml = (html: string) =>
-  html
+const cleanQuillHtml = (html: string | null | undefined) =>
+  (html ?? '')
     .replace(/&nbsp;/g, ' ')
     .replace(/<p(?:\s[^>]*)?>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>/gi, '')
 
