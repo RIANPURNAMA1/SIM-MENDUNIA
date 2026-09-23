@@ -76,7 +76,7 @@ interface MonitorData {
 
 interface DetailQuestion {
   id: number
-  question: string
+  question: string | null
   question_type: string
   rating_max: number | null
   options: OptionEntry[]
@@ -98,6 +98,10 @@ interface AttemptDetail {
   questions: DetailQuestion[]
 }
 
+const cleanQuillHtml = (html: string | null | undefined) =>
+  (html ?? '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/<p(?:\s[^>]*)?>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>/gi, '')
 const optText = (o: OptionEntry) => (typeof o === 'string' ? o : (o?.text ?? ''))
 const optAbsUrl = (o: OptionEntry) => {
   const p = typeof o === 'string' ? null : (o?.image_url || o?.image_path || null)
@@ -701,7 +705,11 @@ export default function CourseQuizMonitor() {
                     {detail.questions.map((q, i) => (
                       <div key={q.id} className="border border-[#E5E7EF] rounded-xl p-4">
                         <div className="flex items-start justify-between gap-2">
-                          <p className="text-[12px] font-bold text-[#14182B] leading-snug">{i + 1}. {q.question}</p>
+                          <div className="flex gap-1.5 items-baseline min-w-0 flex-1">
+                            <p className="text-[12px] font-bold text-[#14182B] leading-snug shrink-0">{i + 1}.</p>
+                            <div className="text-[12px] font-bold text-[#14182B] leading-snug min-w-0 flex-1 [&_*]:inline [&_img]:max-h-40 [&_img]:rounded [&_img]:my-1 [&_img]:align-middle"
+                              dangerouslySetInnerHTML={{ __html: cleanQuillHtml(q.question) }} />
+                          </div>
                           <span className={`text-[10px] font-bold shrink-0 px-2 py-0.5 rounded-full ${q.question_type === 'essay' && q.is_correct === null && q.answer_text?.trim() ? 'bg-amber-50 text-amber-600' : q.is_correct === true ? 'bg-emerald-50 text-emerald-600' : q.is_correct === false ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-[#8B90A0]'}`}>
                             {q.question_type === 'essay' && q.is_correct === null && q.answer_text?.trim() ? 'BELUM DINILAI' : q.is_correct === true ? 'BENAR' : q.is_correct === false ? 'SALAH' : 'TIDAK DIJAWAB'}
                           </span>
