@@ -877,7 +877,7 @@ sudo ufw enable
 ```env
 VITE_API_URL=https://api.sim.mendunia.id/api
 VITE_APP_URL=https://api.sim.mendunia.id
-VITE_REVERB_APP_KEY=GANTI_KEY_SAMA_DGN_BACKEND
+VITE_REVERB_APP_KEY=d9f827130812a6b8c20971d106e7a2f19f28cb24f6a1c937edf14f1504e8a9c8
 VITE_REVERB_HOST=api.sim.mendunia.id
 VITE_REVERB_PORT=443
 VITE_REVERB_SCHEME=https

@@ -2009,11 +2009,13 @@ export default function DataCourse() {
                 <td className="px-4 py-3 text-center text-sm font-semibold text-[#0E6187] border border-slate-200">{Number(p.best_score) || '-'}</td>
                 <td className="px-4 py-3 text-center border border-slate-200">
                   <div className="flex items-center justify-center gap-1.5">
-                    <button onClick={() => togglePaket(p)}
-                      className={`relative w-10 h-[22px] border border-slate-300 transition-colors shrink-0 ${p.status === 'aktif' ? 'bg-emerald-500' : 'bg-slate-200'}`}
-                      title={p.status === 'aktif' ? 'Tutup paket' : 'Buka paket'}>
-                      <span className={`absolute top-[2px] w-[16px] h-[16px] bg-white shadow transition-all ${p.status === 'aktif' ? 'left-[20px]' : 'left-[2px]'}`} />
-                    </button>
+                    {!isAdminCabang && (
+                      <button onClick={() => togglePaket(p)}
+                        className={`relative w-10 h-[22px] border border-slate-300 transition-colors shrink-0 ${p.status === 'aktif' ? 'bg-emerald-500' : 'bg-slate-200'}`}
+                        title={p.status === 'aktif' ? 'Tutup paket' : 'Buka paket'}>
+                        <span className={`absolute top-[2px] w-[16px] h-[16px] bg-white shadow transition-all ${p.status === 'aktif' ? 'left-[20px]' : 'left-[2px]'}`} />
+                      </button>
+                    )}
                     <span className={`text-[11px] font-semibold ${p.status === 'aktif' ? 'text-emerald-600' : 'text-slate-500'}`}>
                       {p.status === 'aktif' ? 'Dibuka' : 'Ditutup'}
                     </span>
@@ -2039,13 +2041,17 @@ export default function DataCourse() {
                         <Radio size={13} /> Monitoring
                       </button>
                     )}
-                    <div className="w-px h-4 bg-slate-200 mx-1"></div>
-                    <button onClick={() => openEditPaket(p)} className="p-1.5 hover:bg-slate-100 transition-colors" title="Edit">
-                      <Pencil size={13} className="text-slate-600" />
-                    </button>
-                    <button onClick={() => deletePaket(p)} className="p-1.5 bg-red-50 hover:bg-red-100 transition-colors" title="Hapus">
-                      <Trash2 size={13} className="text-red-500" />
-                    </button>
+                    {!isAdminCabang && (
+                      <>
+                        <div className="w-px h-4 bg-slate-200 mx-1"></div>
+                        <button onClick={() => openEditPaket(p)} className="p-1.5 hover:bg-slate-100 transition-colors" title="Edit">
+                          <Pencil size={13} className="text-slate-600" />
+                        </button>
+                        <button onClick={() => deletePaket(p)} className="p-1.5 bg-red-50 hover:bg-red-100 transition-colors" title="Hapus">
+                          <Trash2 size={13} className="text-red-500" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -2217,10 +2223,12 @@ export default function DataCourse() {
         <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">poin</p>
       </td>
       <td className="px-4 py-3 text-right whitespace-nowrap border border-slate-200">
-        <button onClick={() => resetAttempts(par.siswa_id, par.nama)}
-          className="inline-flex items-center gap-1.5 text-[11px] font-bold text-red-500 hover:text-white hover:bg-red-500 border-2 border-red-200 px-2.5 py-1.5 transition-colors">
-          <RotateCcw size={12} /> Reset
-        </button>
+        {!isAdminCabang && (
+          <button onClick={() => resetAttempts(par.siswa_id, par.nama)}
+            className="inline-flex items-center gap-1.5 text-[11px] font-bold text-red-500 hover:text-white hover:bg-red-500 border-2 border-red-200 px-2.5 py-1.5 transition-colors">
+            <RotateCcw size={12} /> Reset
+          </button>
+        )}
       </td>
     </tr>
   )
@@ -2277,7 +2285,7 @@ export default function DataCourse() {
             </div>
           )}
           <div className="flex items-center gap-2">
-            {view === 'quiz' && activeCourse && (
+            {view === 'quiz' && activeCourse && !isAdminCabang && (
               !activeCourse.kelas_sensei_id || courseTab === 'quiz' ? (
                 <>
                   <button onClick={openCreatePaket} className={primaryBtn}>
@@ -2293,17 +2301,17 @@ export default function DataCourse() {
                 </button>
               )
             )}
-            {view === 'quiz-materi' && (
+            {view === 'quiz-materi' && !isAdminCabang && (
               <button onClick={openCreateLesson} className={primaryBtn}>
                 <Plus size={16} /> Tambah Materi
               </button>
             )}
-            {view === 'bank' && (
+            {view === 'bank' && !isAdminCabang && (
               <button onClick={openCreateBankPaket} className={primaryBtn}>
                 <Plus size={16} /> Buat Paket Soal
               </button>
             )}
-            {view === 'materi-bank' && (
+            {view === 'materi-bank' && !isAdminCabang && (
               <button onClick={openCreateMateri} className={primaryBtn}>
                 <Plus size={16} /> Buat Materi
               </button>
@@ -2533,25 +2541,29 @@ export default function DataCourse() {
                     </div>
                     <p className="text-slate-800 font-semibold">Belum ada pertemuan</p>
                     <p className="text-slate-500 text-sm mt-1">Tambahkan pertemuan & materi pembelajaran untuk kursus "{activeCourse.title}"</p>
-                    <button onClick={openCreateCourseLesson} className={`${primaryBtn} mt-5`}>
-                      <Plus size={16} /> Tambah Pertemuan
-                    </button>
+                    {!isAdminCabang && (
+                      <button onClick={openCreateCourseLesson} className={`${primaryBtn} mt-5`}>
+                        <Plus size={16} /> Tambah Pertemuan
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="divide-y divide-slate-100">
                     {courseLessons.map((lesson, idx) => (
                       <div key={lesson.id} className="flex items-center gap-3 px-5 py-4 hover:bg-slate-50/60 transition-colors group">
-                        <div className="flex flex-col items-center gap-0.5">
-                          <button onClick={() => moveCourseLesson(idx, 'up')} disabled={idx === 0}
-                            className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20">
-                            <ChevronUp size={14} />
-                          </button>
-                          <span className="text-[10px] font-bold text-slate-400 w-5 text-center">{idx + 1}</span>
-                          <button onClick={() => moveCourseLesson(idx, 'down')} disabled={idx === courseLessons.length - 1}
-                            className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20">
-                            <ChevronDown size={14} />
-                          </button>
-                        </div>
+                        {!isAdminCabang && (
+                          <div className="flex flex-col items-center gap-0.5">
+                            <button onClick={() => moveCourseLesson(idx, 'up')} disabled={idx === 0}
+                              className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20">
+                              <ChevronUp size={14} />
+                            </button>
+                            <span className="text-[10px] font-bold text-slate-400 w-5 text-center">{idx + 1}</span>
+                            <button onClick={() => moveCourseLesson(idx, 'down')} disabled={idx === courseLessons.length - 1}
+                              className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20">
+                              <ChevronDown size={14} />
+                            </button>
+                          </div>
+                        )}
                         <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${lesson.status === 'aktif' ? 'bg-[#0E6187]/10 text-[#0E6187]' : 'bg-slate-100 text-slate-300'}`}>
                           {lesson.video_url ? <Video size={16} /> : lesson.slides?.length ? <ImageIcon size={16} /> : <FileText size={16} />}
                         </div>
@@ -2567,14 +2579,16 @@ export default function DataCourse() {
                             </span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => openEditCourseLesson(lesson)} className="p-2 rounded-lg text-slate-400 hover:bg-amber-50 hover:text-amber-600 transition-colors" title="Edit">
-                            <Edit3 size={14} />
-                          </button>
-                          <button onClick={() => deleteCourseLesson(lesson)} className="p-2 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors" title="Hapus">
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
+                        {!isAdminCabang && (
+                          <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => openEditCourseLesson(lesson)} className="p-2 rounded-lg text-slate-400 hover:bg-amber-50 hover:text-amber-600 transition-colors" title="Edit">
+                              <Edit3 size={14} />
+                            </button>
+                            <button onClick={() => deleteCourseLesson(lesson)} className="p-2 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors" title="Hapus">
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -2601,9 +2615,11 @@ export default function DataCourse() {
                     </div>
                     <p className="text-slate-800 font-semibold">Belum ada paket soal</p>
                     <p className="text-slate-500 text-sm mt-1">Buat paket soal MCQ untuk kursus "{activeCourse.title}"</p>
-                    <button onClick={openCreatePaket} className={`${primaryBtn} mt-5`}>
-                      <Plus size={16} /> Buat Paket Soal
-                    </button>
+                    {!isAdminCabang && (
+                      <button onClick={openCreatePaket} className={`${primaryBtn} mt-5`}>
+                        <Plus size={16} /> Buat Paket Soal
+                      </button>
+                    )}
                   </div>
                 ) : renderPaketTable(filteredQuizPakets, 'course')}
               </>
@@ -2779,25 +2795,29 @@ export default function DataCourse() {
                 </div>
                 <p className="text-slate-800 font-semibold">Belum ada materi</p>
                 <p className="text-slate-500 text-sm mt-1">Tambahkan materi/modul & video pembelajaran untuk kursus ini</p>
-                <button onClick={openCreateLesson} className={`${primaryBtn} mt-5`}>
-                  <Plus size={16} /> Tambah Materi
-                </button>
+                {!isAdminCabang && (
+                  <button onClick={openCreateLesson} className={`${primaryBtn} mt-5`}>
+                    <Plus size={16} /> Tambah Materi
+                  </button>
+                )}
               </div>
             ) : (
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
                 <div className="divide-y divide-slate-100">
                   {materiLessons.map((lesson, idx) => (
                     <div key={lesson.id} className="flex items-center gap-3 px-5 py-4">
-                      <div className="flex flex-col">
-                        <button onClick={() => moveLesson(idx, 'up')} disabled={idx === 0}
-                          className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20">
-                          <ChevronUp size={14} />
-                        </button>
-                        <button onClick={() => moveLesson(idx, 'down')} disabled={idx === materiLessons.length - 1}
-                          className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20">
-                          <ChevronDown size={14} />
-                        </button>
-                      </div>
+                      {!isAdminCabang && (
+                        <div className="flex flex-col">
+                          <button onClick={() => moveLesson(idx, 'up')} disabled={idx === 0}
+                            className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20">
+                            <ChevronUp size={14} />
+                          </button>
+                          <button onClick={() => moveLesson(idx, 'down')} disabled={idx === materiLessons.length - 1}
+                            className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20">
+                            <ChevronDown size={14} />
+                          </button>
+                        </div>
+                      )}
                       <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold text-white ${
                         lesson.status === 'aktif' ? 'bg-[#0E6187]' : 'bg-slate-300'
                       }`}>
@@ -2831,14 +2851,18 @@ export default function DataCourse() {
                           </span>
                         </div>
                       </div>
-                      <button onClick={() => openEditLesson(lesson)}
-                        className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors" title="Edit">
-                        <Edit3 size={15} className="text-slate-600" />
-                      </button>
-                      <button onClick={() => handleDeleteLesson(lesson)}
-                        className="w-9 h-9 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 transition-colors" title="Hapus">
-                        <Trash2 size={15} className="text-red-500" />
-                      </button>
+                      {!isAdminCabang && (
+                        <>
+                          <button onClick={() => openEditLesson(lesson)}
+                            className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors" title="Edit">
+                            <Edit3 size={15} className="text-slate-600" />
+                          </button>
+                          <button onClick={() => handleDeleteLesson(lesson)}
+                            className="w-9 h-9 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 transition-colors" title="Hapus">
+                            <Trash2 size={15} className="text-red-500" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -2859,15 +2883,17 @@ export default function DataCourse() {
                   <h2 className="text-lg font-bold text-slate-800 truncate">{activeQuizPaket.title}</h2>
                   <p className="text-sm text-slate-500 mt-0.5">{questions.length} soal</p>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <button onClick={openSectionManager}
-                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-[#0E6187] border border-slate-200 hover:border-[#0E6187]/40 bg-white px-3.5 py-2.5 rounded-lg transition-colors">
-                    <Settings2 size={16} /> Kelola Bagian
-                  </button>
-                  <button onClick={openCreateQuestion} className={primaryBtn}>
-                    <Plus size={16} /> Tambah Soal
-                  </button>
-                </div>
+                {!isAdminCabang && (
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button onClick={openSectionManager}
+                      className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-[#0E6187] border border-slate-200 hover:border-[#0E6187]/40 bg-white px-3.5 py-2.5 rounded-lg transition-colors">
+                      <Settings2 size={16} /> Kelola Bagian
+                    </button>
+                    <button onClick={openCreateQuestion} className={primaryBtn}>
+                      <Plus size={16} /> Tambah Soal
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -2927,26 +2953,30 @@ export default function DataCourse() {
                         return (
                           <div key={q.id} className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
                             <div className="flex items-start gap-3">
-                              <div className="flex flex-col items-center gap-1 mt-1">
-                                <button onClick={() => moveQuestion(q, 'up')} className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20" disabled={qi === 0}>
-                                  <ChevronUp size={16} />
-                                </button>
-                                <button onClick={() => moveQuestion(q, 'down')} className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20" disabled={qi === g.items.length - 1}>
-                                  <ChevronDown size={16} />
-                                </button>
-                              </div>
+                              {!isAdminCabang && (
+                                <div className="flex flex-col items-center gap-1 mt-1">
+                                  <button onClick={() => moveQuestion(q, 'up')} className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20" disabled={qi === 0}>
+                                    <ChevronUp size={16} />
+                                  </button>
+                                  <button onClick={() => moveQuestion(q, 'down')} className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20" disabled={qi === g.items.length - 1}>
+                                    <ChevronDown size={16} />
+                                  </button>
+                                </div>
+                              )}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-start justify-between gap-2">
                                   <span className="text-sm font-bold text-slate-400 shrink-0 mt-0.5">#{gi + 1}</span>
                                   <div className="text-[15px] font-semibold text-slate-800 leading-snug flex-1 min-w-0 line-clamp-2 [&_*]:inline [&_img]:h-6 [&_img]:w-auto [&_img]:align-middle" dangerouslySetInnerHTML={{ __html: cleanQuillHtml(q.question) }} />
-                                  <div className="flex items-center gap-1.5 shrink-0">
-                                    <button onClick={() => openEditQuestion(q)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors" title="Edit">
-                                      <Pencil size={14} className="text-slate-600" />
-                                    </button>
-                                    <button onClick={() => deleteQuestion(q)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 transition-colors" title="Hapus">
-                                      <Trash2 size={14} className="text-red-500" />
-                                    </button>
-                                  </div>
+                                  {!isAdminCabang && (
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      <button onClick={() => openEditQuestion(q)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors" title="Edit">
+                                        <Pencil size={14} className="text-slate-600" />
+                                      </button>
+                                      <button onClick={() => deleteQuestion(q)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 transition-colors" title="Hapus">
+                                        <Trash2 size={14} className="text-red-500" />
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
                                 {(() => {
                                   const qMediaRaw = q.image_url || q.image_path
@@ -3043,7 +3073,7 @@ export default function DataCourse() {
                   <h2 className="text-lg font-bold text-slate-800 truncate">Hasil · {activeQuizPaket.title}</h2>
                   <p className="text-sm text-slate-500 mt-0.5">{participants.length} peserta mengerjakan{rGroupedMode && rGrouped.length > 1 ? ` · ${rGrouped.length} grup` : ''}{rHasFilter ? ` · filter: ${rFiltered.length}` : ''}</p>
                 </div>
-                {participants.length > 0 && (
+                {participants.length > 0 && !isAdminCabang && (
                   <button onClick={() => resetAttempts()}
                     className="inline-flex items-center gap-1.5 text-[11px] font-bold text-red-500 hover:text-red-600 border border-red-200 rounded-lg px-3 py-2 hover:bg-red-50 transition-colors shrink-0">
                     <RotateCcw size={12} /> Reset Semua
