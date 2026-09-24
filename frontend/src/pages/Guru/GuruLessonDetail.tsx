@@ -9,6 +9,7 @@ import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
 import { guruLmsApi, assignmentApi, guruQuizApi, guruMateriApi, guruKelasApi, absensiSiswaApi, penilaianApi, APP_URL } from '../../services/api'
 import { getYouTubeEmbedUrl } from '../../utils/youtube'
+import { cleanQuillHtml } from '../../utils/quillHtml'
 import Swal from 'sweetalert2'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
 import LessonSlidesViewer from '../../components/LessonSlidesViewer'
@@ -1176,7 +1177,7 @@ export default function GuruLessonDetail() {
         {qs.map((q, i) => (
           <div key={q.id} className="bg-white rounded-md border border-[#E5E7EF] p-4">
             <div className="flex items-start justify-between gap-3">
-              <p className="text-xs font-bold text-[#14182B] leading-snug">{i + 1}. {q.question}</p>
+              <p className="text-xs font-bold text-[#14182B] leading-snug"><span className="font-black">{i + 1}.</span>{' '}<span className="[&_*]:inline [&_img]:max-h-40 [&_img]:rounded [&_img]:my-1 inline" dangerouslySetInnerHTML={{ __html: cleanQuillHtml(q.question) }} /></p>
               {canManage && (
                 <button
                   onClick={() => openEditPaketQuestion(paketId, q, lessonPakets.find(p => p.id === paketId)?.title || '')}

@@ -10,6 +10,7 @@ import 'react-quill-new/dist/quill.snow.css'
 import { guruLmsApi, lmsAdminApi, guruKelasApi, guruQuizApi, assignmentApi, APP_URL } from '../../services/api'
 import { DEFAULT_COURSE_COVER } from '../../utils/courseCover'
 import { getYouTubeEmbedUrl } from '../../utils/youtube'
+import { cleanQuillHtml } from '../../utils/quillHtml'
 import Swal from 'sweetalert2'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
 import GuruPaketSoal from './GuruPaketSoal'
@@ -1098,16 +1099,16 @@ export default function GuruLMS() {
                       const qs = paketQuestionsMap[p.id]
                       return (
                         <div key={p.id} className="px-5 py-4">
-                          <div className="flex flex-wrap items-center gap-3">
+                          <div className="flex items-center gap-3">
                             <div className={`flex items-center justify-center w-9 h-9 rounded-lg shrink-0 ${p.status === 'aktif' ? 'bg-[#0069b0]/10 text-[#0069b0]' : 'bg-gray-100 text-gray-300'}`}>
                               <Trophy size={16} />
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className={`text-sm font-semibold truncate ${p.status === 'aktif' ? 'text-gray-800' : 'text-gray-400'}`}>{p.title}</p>
                               <div className="flex items-center gap-3 mt-0.5">
-                                <span className="text-[10px] text-gray-400 flex items-center gap-1"><HelpCircle size={10} /> {p.questions_count} soal</span>
-                                <span className="text-[10px] text-gray-400 flex items-center gap-1"><Users size={10} /> {p.attempts_count} percobaan</span>
-                                <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                                <span className="text-[10px] text-gray-400 flex items-center gap-1 whitespace-nowrap"><HelpCircle size={10} /> {p.questions_count} soal</span>
+                                <span className="text-[10px] text-gray-400 flex items-center gap-1 whitespace-nowrap"><Users size={10} /> {p.attempts_count} percobaan</span>
+                                <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap ${
                                   p.status === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'
                                 }`}>
                                   <span className={`w-1 h-1 rounded-full ${p.status === 'aktif' ? 'bg-emerald-500' : 'bg-gray-400'}`} />
@@ -1120,16 +1121,19 @@ export default function GuruLMS() {
                                 title={p.status === 'aktif' ? 'Nonaktifkan paket' : 'Aktifkan paket'}>
                                 <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${p.status === 'aktif' ? 'left-[20px]' : 'left-[2px]'}`} />
                               </button>
-                              <button onClick={() => navigate(`/guru-paket-soal/monitor/${p.id}`, { state: { title: p.title } })}
-                                className="flex items-center gap-1 text-[11px] font-bold text-red-500 bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors shrink-0"
-                                title="Monitor langsung (kamera pengawas + progres pengerjaan)">
-                                <Activity size={12} /> Monitor
-                              </button>
-                              <button onClick={() => toggleCoursePaketPreview(p.id)}
-                                className="flex items-center gap-1 text-[11px] font-bold text-[#0069b0] bg-[#0069b0]/[0.06] px-3 py-1.5 rounded-lg hover:bg-[#0069b0]/[0.1] transition-colors shrink-0">
-                                Lihat Paket Soal
-                                <ChevronDown size={12} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
-                              </button>
+                          </div>
+
+                          <div className="mt-3 flex flex-wrap items-center gap-2">
+                            <button onClick={() => navigate(`/guru-paket-soal/monitor/${p.id}`, { state: { title: p.title } })}
+                              className="flex flex-1 items-center justify-center gap-1.5 text-[11px] font-bold text-red-500 bg-red-50 px-3 py-2 rounded-lg hover:bg-red-100 transition-colors sm:flex-none"
+                              title="Monitor langsung (kamera pengawas + progres pengerjaan)">
+                              <Activity size={12} /> Monitor
+                            </button>
+                            <button onClick={() => toggleCoursePaketPreview(p.id)}
+                              className="flex flex-1 items-center justify-center gap-1.5 text-[11px] font-bold text-[#0069b0] bg-[#0069b0]/[0.06] px-3 py-2 rounded-lg hover:bg-[#0069b0]/[0.1] transition-colors sm:flex-none">
+                              Lihat Paket Soal
+                              <ChevronDown size={12} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+                            </button>
                           </div>
 
                           {open && (
@@ -1146,7 +1150,7 @@ export default function GuruLMS() {
                               )}
                               {qs && qs.length > 0 && qs.map((q, i) => (
                                 <div key={q.id} className="bg-gray-50 rounded-xl border border-gray-100 p-4">
-                                  <p className="text-xs font-bold text-gray-800 leading-snug">{i + 1}. {q.question}</p>
+                                  <p className="text-xs font-bold text-gray-800 leading-snug"><span className="font-black">{i + 1}.</span>{' '}<span className="[&_*]:inline [&_img]:max-h-40 [&_img]:rounded [&_img]:my-1 inline" dangerouslySetInnerHTML={{ __html: cleanQuillHtml(q.question) }} /></p>
                                   {q.section?.name && (
                                     <span className="mt-2 inline-block rounded-full bg-[#0069b0]/[0.06] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#0069b0]">{q.section.name}</span>
                                   )}
