@@ -477,7 +477,11 @@ try {
         ]);
 
         if ($paket->shuffle_questions) {
-            $questions = $questions->shuffle()->values();
+            $questions = $questions
+                ->groupBy(fn ($q) => $q['section'] ?? '')
+                ->values()
+                ->shuffle()
+                ->flatMap(fn ($group) => $group->shuffle());
         }
 
         return response()->json([
@@ -557,7 +561,10 @@ try {
         }
 
         $answers = $attempt->answers()->get()->keyBy('quiz_question_id');
-        $questions = $attempt->paket->questions->values();
+        $questions = $attempt->paket->questions
+            ->groupBy(fn ($q) => $q->section->name ?? '')
+            ->values()
+            ->flatMap(fn ($group) => $group->values());
 
         $remaining = max(0, (int) $attempt->time_limit_seconds - (int) $attempt->started_at->diffInSeconds(now(), true));
 
