@@ -5,6 +5,7 @@ import { quizApi } from '../../services/api'
 import { detectFace, faceModelsReady, loadFaceModels, type DetectedFace } from '../../utils/faceDetector'
 import Swal from 'sweetalert2'
 import { useForceLightMode } from '../../hooks/useForceLightMode'
+import DraggableCamera from '../../components/quiz/DraggableCamera'
 
 const cleanQuillHtml = (html: string | null | undefined) =>
   (html ?? '')
@@ -763,22 +764,20 @@ export default function QuizBasicPlay() {
           </div>
 
           <div className="flex items-center gap-2">
-            {cameraEnabled && (streamRef.current ? (
-              <div className="fixed bottom-24 right-3 z-40 md:static md:bottom-auto md:right-auto">
-                <div className="relative overflow-hidden rounded-md border border-white/20 bg-black shadow-lg md:shadow-none">
-                  <video ref={cameraRef} muted playsInline autoPlay className="h-28 w-40 object-cover md:h-16 md:w-24" style={{ transform: 'scaleX(-1)' }} />
-                  <canvas ref={overlayCanvasRef} className="pointer-events-none absolute inset-0 h-full w-full" />
-                  <span className={`absolute bottom-1 right-1 h-2 w-2 rounded-full border border-white/60 ${faceMissing ? 'bg-red-500' : cameraActive ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`} />
-                  <span className={`absolute bottom-0 left-0 right-0 px-1 py-0.5 text-center text-[9px] font-bold text-white ${headTurned ? 'bg-red-500/80' : faceMissing ? 'bg-red-500/80' : cameraActive ? 'bg-black/50' : 'bg-black/60'}`}>
-                    {headTurned ? 'Menoleh' : faceMissing ? 'Tak terdeteksi' : cameraActive ? 'Wajah OK' : 'Menghubungkan kamera...'}
-                  </span>
-                </div>
-              </div>
-            ) : (
+            {cameraEnabled && streamRef.current && (
+              <DraggableCamera
+                cameraRef={cameraRef}
+                overlayCanvasRef={overlayCanvasRef}
+                cameraActive={cameraActive}
+                faceMissing={faceMissing}
+                headTurned={headTurned}
+              />
+            )}
+            {cameraEnabled && !streamRef.current && (
               <span className="inline-flex items-center gap-1.5 rounded bg-red-500/15 px-2 py-1 text-[10px] font-bold text-red-300">
                 <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" /> Kamera mati
               </span>
-            ))}
+            )}
             <button
               onClick={submitManually}
               disabled={isSubmitting}
