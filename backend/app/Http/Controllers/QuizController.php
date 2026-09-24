@@ -11,6 +11,7 @@ use App\Models\Lesson;
 use App\Models\LmsProgress;
 use App\Events\WebcamSnapshotUpdated;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
@@ -477,11 +478,7 @@ try {
         ]);
 
         if ($paket->shuffle_questions) {
-            $questions = $questions
-                ->groupBy(fn ($q) => $q['section'] ?? '')
-                ->values()
-                ->shuffle()
-                ->flatMap(fn ($group) => $group->shuffle());
+            $questions = $this->shuffleQuestionsBySection($questions, (int) $attempt->id);
         }
 
         return response()->json([
@@ -497,6 +494,25 @@ try {
             'block_exit' => (bool) $paket->block_exit,
             'questions' => $questions,
         ], 201);
+    }
+
+    private function shuffleQuestionsBySection(Collection $questions, int $seed): Collection
+    {
+        $groupKey = fn ($q) => is_array($q) ? ($q['section'] ?? '') : ($q->section->name ?? '');
+
+        $groups = $questions
+            ->groupBy($groupKey)
+            ->values()
+            ->sortBy(fn ($group) => crc32("{$seed}:sec:{$groupKey($group->first())}"));
+
+        $result = [];
+        foreach ($groups as $group) {
+            $ordered = $group->sortBy(fn ($q) => crc32("{$seed}:q:" . (is_array($q) ? $q['id'] : $q->id)));
+            foreach ($ordered as $q) {
+                $result[] = $q;
+            }
+        }
+        return collect($result);
     }
 
     public function uploadWebcam(Request $request, $attemptId)
@@ -561,10 +577,12 @@ try {
         }
 
         $answers = $attempt->answers()->get()->keyBy('quiz_question_id');
-        $questions = $attempt->paket->questions
-            ->groupBy(fn ($q) => $q->section->name ?? '')
-            ->values()
-            ->flatMap(fn ($group) => $group->values());
+        $questions = $attempt->paket->shuffle_questions
+            ? $this->shuffleQuestionsBySection($attempt->paket->questions, (int) $attempt->id)
+            : $attempt->paket->questions
+                ->groupBy(fn ($q) => $q->section->name ?? '')
+                ->values()
+                ->flatMap(fn ($group) => $group->values());
 
         $remaining = max(0, (int) $attempt->time_limit_seconds - (int) $attempt->started_at->diffInSeconds(now(), true));
 
