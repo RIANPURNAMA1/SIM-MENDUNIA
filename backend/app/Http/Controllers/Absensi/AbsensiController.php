@@ -769,16 +769,12 @@ class AbsensiController extends Controller
         // VALIDASI 2: Geolocation - cek apakah siswa dalam radius cabang
         if ($request->filled('lat') && $request->filled('long')) {
             if ($cabang->latitude && $cabang->longitude && $cabang->radius) {
-                $jarak = $this->calculateDistance(
-                    $request->lat,
-                    $request->long,
-                    $cabang->latitude,
-                    $cabang->longitude
-                );
-                if ($jarak > $cabang->radius) {
+                $titik = $cabang->titikDalamJangkauan((float) $request->lat, (float) $request->long);
+                if (!$titik) {
+                    $terdekat = $cabang->titikTerdekat((float) $request->lat, (float) $request->long);
                     return response()->json([
                         'message' => 'Anda berada di luar radius cabang ' . $cabang->nama_cabang .
-                                    ' (Jarak: ' . round($jarak) . 'm, Radius: ' . $cabang->radius . 'm)',
+                                    ' (Jarak: ' . round($terdekat['jarak']) . 'm, Radius: ' . $terdekat['radius'] . 'm)',
                     ], 422);
                 }
             }
@@ -970,16 +966,11 @@ class AbsensiController extends Controller
         }
 
         // 5. Validasi jarak
-        $jarak = $this->calculateDistance(
-            $request->latitude,
-            $request->longitude,
-            $cabang->latitude,
-            $cabang->longitude
-        );
+        $terdekat = $cabang->titikTerdekat((float) $request->latitude, (float) $request->longitude);
 
-        if ($jarak > $cabang->radius) {
+        if (!$cabang->titikDalamJangkauan((float) $request->latitude, (float) $request->longitude)) {
             return response()->json([
-                'message' => 'Gagal! Jarak Anda '.round($jarak).'m. Di luar radius '.$cabang->radius.'m.',
+                'message' => 'Gagal! Jarak Anda '.round($terdekat['jarak']).'m. Di luar radius titik lokasi cabang.',
             ], 422);
         }
 
@@ -1115,16 +1106,11 @@ class AbsensiController extends Controller
             return response()->json(['message' => 'Cabang tidak ditemukan'], 422);
         }
 
-        $jarak = $this->calculateDistance(
-            $request->latitude,
-            $request->longitude,
-            $cabang->latitude,
-            $cabang->longitude
-        );
+        $terdekat = $cabang->titikTerdekat((float) $request->latitude, (float) $request->longitude);
 
-        if ($jarak > $cabang->radius) {
+        if (!$cabang->titikDalamJangkauan((float) $request->latitude, (float) $request->longitude)) {
             return response()->json([
-                'message' => 'Di luar radius! Jarak: '.round($jarak).'m',
+                'message' => 'Di luar radius! Jarak: '.round($terdekat['jarak']).'m',
             ], 422);
         }
 
@@ -1293,17 +1279,6 @@ class AbsensiController extends Controller
         return null;
     }
 
-    private function calculateDistance($lat1, $lon1, $lat2, $lon2)
-    {
-        $earthRadius = 6371000;
-        $dLat = deg2rad($lat2 - $lat1);
-        $dLon = deg2rad($lon2 - $lon1);
-        $a = sin($dLat / 2) * sin($dLat / 2) + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon / 2) * sin($dLon / 2);
-        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-
-        return $earthRadius * $c;
-    }
-
     private function resolveCabangForUser($user, $latitude, $longitude)
     {
         $cabangIds = $user->cabang_ids ?? [];
@@ -1322,13 +1297,7 @@ class AbsensiController extends Controller
             if (!$cabang->latitude || !$cabang->longitude || !$cabang->radius) {
                 continue;
             }
-            $jarak = $this->calculateDistance(
-                $latitude,
-                $longitude,
-                $cabang->latitude,
-                $cabang->longitude
-            );
-            if ($jarak <= $cabang->radius) {
+            if ($cabang->titikDalamJangkauan((float) $latitude, (float) $longitude)) {
                 return $cabang;
             }
         }
@@ -1637,17 +1606,11 @@ class AbsensiController extends Controller
         $logJarak = [];
 
         foreach ($daftarCabang as $cb) {
-            $jarak = $this->calculateDistance(
-                $request->latitude,
-                $request->longitude,
-                $cb->latitude,
-                $cb->longitude
-            );
-
-            $jarakMeter = round($jarak);
+            $titikTerdekat = $cb->titikTerdekat((float) $request->latitude, (float) $request->longitude);
+            $jarakMeter = $titikTerdekat ? round($titikTerdekat['jarak']) : 0;
             $logJarak[] = $cb->nama_cabang.' ('.$jarakMeter.'m)';
 
-            if ($jarak <= $cb->radius) {
+            if ($cb->titikDalamJangkauan((float) $request->latitude, (float) $request->longitude)) {
                 $cabangTerdeteksi = $cb;
                 break;
             }

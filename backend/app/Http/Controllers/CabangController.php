@@ -111,6 +111,11 @@ class CabangController extends Controller
             'latitude'     => 'required|numeric',
             'longitude'    => 'required|numeric',
             'radius'       => 'required|numeric',
+            'locations'    => 'nullable|array',
+            'locations.*.label'     => 'nullable|string|max:100',
+            'locations.*.latitude'  => 'required|numeric',
+            'locations.*.longitude' => 'required|numeric',
+            'locations.*.radius'    => 'required|numeric|min:1',
             'alamat'       => 'nullable',
         ]);
 
@@ -138,6 +143,11 @@ class CabangController extends Controller
             'latitude'     => 'required|numeric',
             'longitude'    => 'required|numeric',
             'radius'       => 'required|numeric',
+            'locations'    => 'nullable|array',
+            'locations.*.label'     => 'nullable|string|max:100',
+            'locations.*.latitude'  => 'required|numeric',
+            'locations.*.longitude' => 'required|numeric',
+            'locations.*.radius'    => 'required|numeric|min:1',
             'alamat'       => 'nullable',
         ]);
 

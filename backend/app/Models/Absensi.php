@@ -108,21 +108,8 @@ public function cabang()
     {
         if (!$this->lat_masuk || !$this->user->cabang) return null;
 
-        return $this->calculateDistance(
-            $this->lat_masuk,
-            $this->long_masuk,
-            $this->user->cabang->latitude,
-            $this->user->cabang->longitude
-        );
-    }
+        $titikTerdekat = $this->user->cabang->titikTerdekat((float) $this->lat_masuk, (float) $this->long_masuk);
 
-    private function calculateDistance($lat1, $lon1, $lat2, $lon2)
-    {
-        $earthRadius = 6371000; // meter
-        $dLat = deg2rad($lat2 - $lat1);
-        $dLon = deg2rad($lon2 - $lon1);
-        $a = sin($dLat / 2) * sin($dLat / 2) + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon / 2) * sin($dLon / 2);
-        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-        return $earthRadius * $c;
+        return $titikTerdekat ? $titikTerdekat['jarak'] : null;
     }
 }

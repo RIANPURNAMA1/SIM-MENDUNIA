@@ -304,13 +304,13 @@ class LmsController extends Controller
 
         $paketMap = collect();
         if ($lesson->paket) {
-            $paketMap[$lesson->paket->id] = ['paket' => $lesson->paket, 'link_locked' => false, 'linked' => false];
+            $paketMap[$lesson->paket->id] = ['paket' => $lesson->paket, 'link_locked' => false, 'linked' => false, 'is_pembahasan' => false];
         }
         foreach ($lesson->linkPakets as $lp) {
             if (isset($paketMap[$lp->id])) {
                 continue;
             }
-            $paketMap[$lp->id] = ['paket' => $lp, 'link_locked' => ($lp->pivot->status ?? 'aktif') !== 'aktif', 'linked' => true];
+            $paketMap[$lp->id] = ['paket' => $lp, 'link_locked' => ($lp->pivot->status ?? 'aktif') !== 'aktif', 'linked' => true, 'is_pembahasan' => (bool) ($lp->pivot->is_pembahasan ?? false)];
         }
 
         $quizzes = $paketMap
@@ -346,11 +346,12 @@ class LmsController extends Controller
                 'passing_score' => (int) $p->passing_score,
                 'attempts_used' => $used,
                 'best_score' => $best === null ? null : (int) $best,
-                'can_start' => $unlocked && $used < $p->max_attempts,
+                'can_start' => $unlocked && ($p->max_attempts === 0 || $used < $p->max_attempts),
                 'is_unlocked' => $unlocked,
                 'is_link_locked' => $linkLocked,
                 'locked' => $senseiLocked,
                 'quiz_template' => $p->quiz_template,
+                'is_pembahasan' => (bool) ($entry['is_pembahasan'] ?? false),
                 'in_progress_attempt_id' => $inProgress?->id,
             ];
         })->values();
@@ -369,6 +370,36 @@ class LmsController extends Controller
             'completed' => $progress && $progress->completed_at !== null,
             'completed_at' => $progress?->completed_at,
             'progress' => $this->progressPayload($lesson, $progress),
+        ]);
+    }
+
+    /**
+     * Pembahasan quiz: lihat semua soal + kunci jawaban paket yang ditautkan
+     * ke pertemuan dengan mode pembahasan (is_pembahasan = true).
+     * Tidak memakai attempt/penilaian — murni untuk belajar.
+     */
+    public function pembahasan($id, $paketId)
+    {
+        $siswa = $this->getSiswa();
+        if (!$siswa) {
+            return response()->json(['message' => 'Siswa not found'], 404);
+        }
+
+        $lesson = Lesson::aktif()->with('linkPakets')->findOrFail($id);
+
+        $linked = $lesson->linkPakets
+            ->filter(fn ($p) => (int) $p->id === (int) $paketId && ($p->pivot->is_pembahasan ?? false))
+            ->first();
+
+        if (!$linked) {
+            abort(404);
+        }
+
+        $paket = QuizPaket::with('questions.section:id,name')->findOrFail($paketId);
+
+        return response()->json([
+            'paket' => $paket,
+            'questions' => $paket->questions,
         ]);
     }
 
@@ -875,7 +906,7 @@ class LmsController extends Controller
     public function upload(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|mimes:jpg,jpeg,png,gif,webp,svg,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,mp4,webm|max:51200',
+            'file' => 'required|file|mimes:jpg,jpeg,png,gif,webp,svg,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,mp4,webm',
         ]);
 
         $path = $request->file('file')->store('lms/uploads', 'public');

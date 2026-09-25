@@ -260,13 +260,7 @@ class GuruDashboardController extends Controller
             if ($cabangs && $cabangs->isNotEmpty()) {
                 $inRadius = false;
                 foreach ($cabangs as $cabang) {
-                    $jarak = $this->calculateDistance(
-                        $request->lat,
-                        $request->long,
-                        $cabang->latitude,
-                        $cabang->longitude
-                    );
-                    if ($jarak <= $cabang->radius) {
+                    if ($cabang->titikDalamJangkauan((float) $request->lat, (float) $request->long)) {
                         $inRadius = true;
                         break;
                     }
@@ -377,13 +371,7 @@ class GuruDashboardController extends Controller
             if ($cabangs && $cabangs->isNotEmpty()) {
                 $inRadius = false;
                 foreach ($cabangs as $cabang) {
-                    $jarak = $this->calculateDistance(
-                        $request->lat,
-                        $request->long,
-                        $cabang->latitude,
-                        $cabang->longitude
-                    );
-                    if ($jarak <= $cabang->radius) {
+                    if ($cabang->titikDalamJangkauan((float) $request->lat, (float) $request->long)) {
                         $inRadius = true;
                         break;
                     }
@@ -1366,6 +1354,7 @@ class GuruDashboardController extends Controller
 
         $data = $request->validate([
             'quiz_paket_id' => 'required|exists:quiz_pakets,id',
+            'is_pembahasan' => 'sometimes|boolean',
         ]);
 
         $lesson = Lesson::findOrFail($id);
@@ -1377,6 +1366,10 @@ class GuruDashboardController extends Controller
         }
 
         $lesson->linkPakets()->syncWithoutDetaching([$paket->id]);
+
+        if (isset($data['is_pembahasan'])) {
+            $lesson->linkPakets()->updateExistingPivot($paket->id, ['is_pembahasan' => (bool) $data['is_pembahasan']]);
+        }
 
         return response()->json(['message' => 'Paket soal ditambahkan', 'quiz_paket_id' => $paket->id]);
     }
@@ -1428,6 +1421,34 @@ class GuruDashboardController extends Controller
         return response()->json([
             'message' => $data['status'] === 'aktif' ? 'Quiz diaktifkan' : 'Quiz dinonaktifkan',
             'status' => $data['status'],
+        ]);
+    }
+
+    public function guruSetPaketPembahasan(Request $request, $id, $paketId)
+    {
+        $user = Auth::guard('sanctum')->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $data = $request->validate([
+            'is_pembahasan' => 'required|boolean',
+        ]);
+
+        $lesson = Lesson::findOrFail($id);
+        $this->courseOwnedByGuru($lesson->course_id, $user);
+
+        $exists = $lesson->linkPakets()->where('quiz_paket_id', $paketId)->exists();
+        if (!$exists) {
+            return response()->json(['message' => 'Paket soal tidak terhubung ke pertemuan ini'], 422);
+        }
+
+        $enabled = (bool) $data['is_pembahasan'];
+        $lesson->linkPakets()->updateExistingPivot($paketId, ['is_pembahasan' => $enabled]);
+
+        return response()->json([
+            'message' => $enabled ? 'Mode pembahasan diaktifkan' : 'Mode pembahasan dimatikan',
+            'is_pembahasan' => $enabled,
         ]);
     }
 
@@ -1685,17 +1706,6 @@ class GuruDashboardController extends Controller
     }
 
     // ========== Student Assignment (via Guru endpoint for now, or in LmsController) ==========
-
-    private function calculateDistance($lat1, $lon1, $lat2, $lon2)
-    {
-        $earthRadius = 6371000;
-        $dLat = deg2rad($lat2 - $lat1);
-        $dLon = deg2rad($lon2 - $lon1);
-        $a = sin($dLat / 2) * sin($dLat / 2) + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon / 2) * sin($dLon / 2);
-        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-
-        return $earthRadius * $c;
-    }
 
     public function dataSiswa($kelasId)
     {

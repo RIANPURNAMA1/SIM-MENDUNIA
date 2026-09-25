@@ -1246,3 +1246,21 @@ non Form
 jadi gini fitur quiz nya itu jadi ada bank quiz nah di situ ada materi materi quiz per kategory nya
 
 fitur sensei buat gini mereka pengajuan penggajian dari absensi mereka di fitur dashboard guru nah gtu
+
+
+
+- tambah fitur pas beres mengerjakan paket muncul alert selamat jika nilai di atas kkm dan beri semnagat jika di bawah kkm 
+- rekap perkategory dari hasil ceklis papper 
+- fitur mempercepat dalam inputan menambahkan paket soal
+- tambah pengumuman atau info hasil dari rekap pengerjaan papper
+ -hasil simulasi jft dapat sertifikat
+ 
+
+
+ notif pendaftaran
+ -ubah mendunia.id jadi lembaga pelatihan sukses mendunia 
+ -alert di halaman cekout yang mohon transfer harus lebih mengancam 
+ - /pendaftaran ada notif verifikasi dan counter nya
+ - tambah nama rek pengirim bank nya no 
+ -di verifikasi pembyaran tambah info nama pengirim dan bank apa
+  - kata kata pesan di konfirmasi 

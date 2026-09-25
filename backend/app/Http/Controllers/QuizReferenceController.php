@@ -56,14 +56,14 @@ class QuizReferenceController extends Controller
 
         $data = $request->validate([
             'title' => 'required|string|max:255',
-            'category_id' => 'nullable|exists:quiz_categories,id',
-            'description' => 'nullable|string|max:2000',
+            'category_id' => 'required|exists:quiz_categories,id',
+            'description' => 'nullable|string|max:65535',
             'link' => 'nullable|url|max:500',
             'file' => self::FILE_RULES,
         ]);
 
-        if (!$request->hasFile('file') && empty($data['link'])) {
-            return response()->json(['message' => 'Lampirkan file (PDF) atau isi link referensi terlebih dahulu'], 422);
+        if (!$request->hasFile('file') && empty($data['link']) && empty($data['description'])) {
+            return response()->json(['message' => 'Lampirkan file (PDF), isi link, atau tulis soal di kolom teks referensi terlebih dahulu'], 422);
         }
 
         $payload = [

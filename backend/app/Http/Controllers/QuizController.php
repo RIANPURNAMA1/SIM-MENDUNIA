@@ -273,7 +273,7 @@ try {
                 'passing_score' => (int) $p->passing_score,
                 'attempts_used' => $used,
                 'best_score' => $best === null ? null : (int) $best,
-                'can_start' => !$locked && $used < $p->max_attempts,
+                'can_start' => !$locked && ($p->max_attempts === 0 || $used < $p->max_attempts),
                 'quiz_template' => $p->quiz_template,
                 'in_progress_attempt_id' => $inProgress?->id,
                 'camera_enabled' => (bool) $p->camera_enabled,
@@ -451,7 +451,7 @@ try {
             }
         }
 
-        if ($used >= $paket->max_attempts) {
+        if ($paket->max_attempts > 0 && $used >= $paket->max_attempts) {
             return response()->json(['message' => 'Batas percobaan telah tercapai'], 422);
         }
 
@@ -863,7 +863,7 @@ try {
                 return [
                     'text' => (string) ($o['text'] ?? ''),
                     'image_path' => $path,
-                    'image_url' => $path ? asset('storage/' . $path) : null,
+                    'image_url' => $path ? (str_starts_with($path, 'http') ? $path : asset('storage/' . $path)) : null,
                 ];
             }
             return ['text' => (string) $o, 'image_path' => null, 'image_url' => null];

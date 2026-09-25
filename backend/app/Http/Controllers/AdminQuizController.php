@@ -151,9 +151,9 @@ class AdminQuizController extends Controller
             'level' => 'nullable|string|max:10',
             'category' => 'nullable|string|max:50',
             'time_limit_minutes' => 'required|integer|min:1|max:180',
-            'max_attempts' => 'required|integer|min:1|max:10',
+            'max_attempts' => 'required|integer|min:0|max:10',
             'max_warnings' => 'required|integer|min:1|max:10',
-            'passing_score' => 'nullable|integer|min:0|max:100',
+            'passing_score' => 'nullable|integer|min:0|max:200',
             'shuffle_questions' => 'nullable|boolean',
             'quiz_template' => 'nullable|in:basic,jft',
             'camera_enabled' => 'nullable|boolean',
@@ -190,9 +190,9 @@ class AdminQuizController extends Controller
             'level' => 'nullable|string|max:10',
             'category' => 'nullable|string|max:50',
             'time_limit_minutes' => 'sometimes|integer|min:1|max:180',
-            'max_attempts' => 'sometimes|integer|min:1|max:10',
+            'max_attempts' => 'sometimes|integer|min:0|max:10',
             'max_warnings' => 'sometimes|integer|min:1|max:10',
-            'passing_score' => 'nullable|integer|min:0|max:100',
+            'passing_score' => 'nullable|integer|min:0|max:200',
             'shuffle_questions' => 'nullable|boolean',
             'quiz_template' => 'nullable|in:basic,jft',
             'camera_enabled' => 'nullable|boolean',
@@ -246,7 +246,7 @@ class AdminQuizController extends Controller
     public function uploadMedia(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|max:10240',
+            'file' => 'required|file',
         ]);
 
         $file = $request->file('file');
@@ -428,6 +428,105 @@ $data = $request->validate([
         $question = QuizQuestion::create($data);
 
         return response()->json(['question' => $question], 201);
+    }
+
+    public function storeQuestionsBulk(Request $request, $paketId)
+    {
+        QuizPaket::findOrFail($paketId);
+
+        $request->validate([
+            'questions' => 'required|array|min:1|max:500',
+            'questions.*.question' => 'nullable|string',
+            'questions.*.section' => 'nullable|string|max:100',
+            'questions.*.section_id' => 'nullable|integer',
+            'questions.*.question_type' => 'nullable|in:choice,rating,essay',
+            'questions.*.rating_max' => 'nullable|integer|min:2|max:10',
+            'questions.*.options' => 'nullable|array',
+            'questions.*.correct_index' => 'nullable|integer|min:0',
+            'questions.*.keyword' => 'nullable|string',
+            'questions.*.points' => 'nullable|numeric',
+            'questions.*.image_path' => 'nullable|string',
+            'questions.*.audio_path' => 'nullable|string',
+            'questions.*.audio_max_plays' => 'nullable|integer|min:1|max:99',
+        ]);
+
+        $sort = (int) QuizQuestion::where('quiz_paket_id', $paketId)->max('sort') + 1;
+        $created = 0;
+        $errors = [];
+
+        foreach ($request->questions as $q) {
+            try {
+                $type = $q['question_type'] ?? 'choice';
+                $questionText = !empty(trim((string) ($q['question'] ?? ''))) ? trim((string) $q['question']) : null;
+
+                $sectionId = null;
+                if (!empty($q['section_id'])) {
+                    $sectionId = (int) $q['section_id'];
+                    if (!QuizSection::where('id', $sectionId)->where('quiz_paket_id', $paketId)->exists()) {
+                        $sectionId = null;
+                    }
+                }
+                if ($sectionId === null && !empty(trim((string) ($q['section'] ?? '')))) {
+                    $name = trim((string) $q['section']);
+                    $section = QuizSection::where('quiz_paket_id', $paketId)->where('name', $name)->first();
+                    if (!$section) {
+                        $section = QuizSection::create([
+                            'quiz_paket_id' => $paketId,
+                            'name' => $name,
+                            'sort' => ((int) QuizSection::where('quiz_paket_id', $paketId)->max('sort')) + 1,
+                        ]);
+                    }
+                    $sectionId = $section->id;
+                }
+
+                $options = $this->normalizeOptions($q['options'] ?? []);
+                $data = [
+                    'quiz_paket_id' => $paketId,
+                    'question_type' => $type,
+                    'section_id' => $sectionId,
+                    'image_path' => !empty($q['image_path']) ? $q['image_path'] : null,
+                    'audio_path' => !empty($q['audio_path']) ? $q['audio_path'] : null,
+                    'audio_max_plays' => !empty($q['audio_path']) && !empty($q['audio_max_plays']) ? (int) $q['audio_max_plays'] : null,
+                    'sort' => $sort++,
+                ];
+
+                if ($type === 'essay') {
+                    $data['options'] = [];
+                    $data['correct_index'] = null;
+                    $data['rating_max'] = null;
+                    $data['keyword'] = !empty(trim((string) ($q['keyword'] ?? ''))) ? trim((string) $q['keyword']) : null;
+                } elseif ($type === 'rating') {
+                    $ratingMax = (int) ($q['rating_max'] ?? 9);
+                    $ratingMax = max(2, min(10, $ratingMax));
+                    $data['options'] = array_map('strval', range(1, $ratingMax));
+                    $data['correct_index'] = null;
+                    $data['rating_max'] = $ratingMax;
+                } else {
+                    $options = array_values(array_filter($options, fn ($o) => $o['text'] !== '' || $o['image_path'] !== null));
+                    if (count($options) < 2) {
+                        $errors[] = 'Soal "' . mb_substr((string) ($questionText ?? '(tanpa teks)'), 0, 40) . '": minimal 2 opsi jawaban (dilewati)';
+                        continue;
+                    }
+                    $data['options'] = array_slice($options, 0, 6);
+                    $data['correct_index'] = isset($q['correct_index']) && (int) $q['correct_index'] < count($data['options']) ? (int) $q['correct_index'] : null;
+                    $data['rating_max'] = null;
+                }
+
+                $data['question'] = $questionText;
+                $data['points'] = max(0, (int) ($q['points'] ?? 1));
+
+                QuizQuestion::create($data);
+                $created++;
+            } catch (\Throwable $e) {
+                $errors[] = 'Gagal menyimpan: ' . $e->getMessage();
+            }
+        }
+
+        return response()->json([
+            'message' => $created . ' soal berhasil ditambahkan',
+            'created' => $created,
+            'errors' => $errors,
+        ], 200);
     }
 
     public function updateQuestion(Request $request, $id)

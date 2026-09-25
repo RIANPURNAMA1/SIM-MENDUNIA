@@ -384,9 +384,9 @@ class GuruQuizController extends Controller
             'level' => 'nullable|string|max:10',
             'category' => 'nullable|string|max:50',
             'time_limit_minutes' => 'required|integer|min:1|max:180',
-            'max_attempts' => 'required|integer|min:1|max:10',
+            'max_attempts' => 'required|integer|min:0|max:10',
             'max_warnings' => 'required|integer|min:1|max:10',
-            'passing_score' => 'nullable|integer|min:0|max:100',
+            'passing_score' => 'nullable|integer|min:0|max:200',
             'shuffle_questions' => 'nullable|boolean',
             'quiz_template' => 'nullable|in:basic,jft',
             'camera_enabled' => 'nullable|boolean',
@@ -426,9 +426,9 @@ class GuruQuizController extends Controller
             'level' => 'nullable|string|max:10',
             'category' => 'nullable|string|max:50',
             'time_limit_minutes' => 'sometimes|integer|min:1|max:180',
-            'max_attempts' => 'sometimes|integer|min:1|max:10',
+            'max_attempts' => 'sometimes|integer|min:0|max:10',
             'max_warnings' => 'sometimes|integer|min:1|max:10',
-            'passing_score' => 'nullable|integer|min:0|max:100',
+            'passing_score' => 'nullable|integer|min:0|max:200',
             'shuffle_questions' => 'nullable|boolean',
             'quiz_template' => 'nullable|in:basic,jft',
             'camera_enabled' => 'nullable|boolean',
@@ -487,7 +487,7 @@ class GuruQuizController extends Controller
     public function uploadMedia(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|max:10240',
+            'file' => 'required|file',
         ]);
 
         $file = $request->file('file');

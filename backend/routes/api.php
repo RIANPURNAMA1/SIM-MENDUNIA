@@ -491,6 +491,7 @@ Route::get('/guru/penilaian-rekap/{kelasId}', [GuruDashboardController::class, '
     Route::post('/guru/lms-lessons/{id}/pakets', [GuruDashboardController::class, 'guruAttachLessonPaket']);
     Route::patch('/guru/lms-lessons/{id}/pakets/{paketId}/status', [GuruDashboardController::class, 'guruSetLinkPaketStatus']);
     Route::post('/guru/lms-lessons/{id}/pakets/{paketId}/penilaian', [GuruDashboardController::class, 'guruSetPaketPenilaian']);
+    Route::post('/guru/lms-lessons/{id}/pakets/{paketId}/pembahasan', [GuruDashboardController::class, 'guruSetPaketPembahasan']);
     Route::get('/guru/lms-lessons/{id}/pakets/{paketId}/questions', [GuruDashboardController::class, 'guruLessonPaketQuestions']);
     Route::delete('/guru/lms-lessons/{id}/pakets/{paketId}', [GuruDashboardController::class, 'guruDetachLessonPaket']);
 
@@ -528,6 +529,7 @@ Route::get('/guru/penilaian-rekap/{kelasId}', [GuruDashboardController::class, '
         Route::get('/courses', [LmsController::class, 'courses']);
         Route::get('/courses/{id}', [LmsController::class, 'courseDetail']);
         Route::get('/lessons/{id}', [LmsController::class, 'lessonDetail']);
+        Route::get('/lessons/{id}/pakets/{paketId}/pembahasan', [LmsController::class, 'pembahasan']);
         Route::post('/lessons/{id}/video-progress', [LmsController::class, 'lessonVideoProgress']);
         Route::post('/lessons/{id}/read-progress', [LmsController::class, 'lessonReadProgress']);
         Route::post('/lessons/{id}/read-complete', [LmsController::class, 'lessonReadComplete']);
@@ -687,6 +689,7 @@ Route::prefix('admin-cabang')->middleware(['auth:sanctum'])->group(function () {
         Route::post('/assign-bank', [AdminQuizController::class, 'assignBank']);
         Route::get('/pakets/{id}/questions', [AdminQuizController::class, 'questions']);
         Route::post('/pakets/{id}/questions', [AdminQuizController::class, 'storeQuestion']);
+        Route::post('/pakets/{id}/questions-bulk', [AdminQuizController::class, 'storeQuestionsBulk']);
         Route::get('/pakets/{id}/sections', [AdminQuizController::class, 'sections']);
         Route::post('/pakets/{id}/sections', [AdminQuizController::class, 'storeSection']);
         Route::post('/sections/{id}', [AdminQuizController::class, 'updateSection']);
