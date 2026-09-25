@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, BookOpen, FileText, ListChecks, Plus, ChevronRight, ChevronDown, HelpCircle,
   Download, Clock, ClipboardList, Check, Edit3, X, Trash2, Loader2, Layers, Camera, Upload, ImageIcon,
-  BarChart3, Users, Video, Eye, EyeOff, Activity, Search, Volume2, UploadCloud, Mic, Repeat, RotateCcw, Calendar, Minus, Trophy,
+  BarChart3, Users, Video, Eye, EyeOff, Activity, Search, Volume2, UploadCloud, Mic, Repeat, RotateCcw, Calendar, Minus, Trophy, Sparkles,
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -22,7 +22,8 @@ interface LessonPaketItem {
   status: string
   questions_count?: number
   attempts_count?: number
-  pivot?: { status?: string; penilaian_ulangan?: boolean }
+  quiz_template?: string
+  pivot?: { status?: string; penilaian_ulangan?: boolean; is_pembahasan?: boolean }
 }
 
 interface LessonDetail {
@@ -38,7 +39,7 @@ interface LessonDetail {
   file_size: number | null
   paket_id: number | null
   paket?: { id: number; title: string; status: string; questions_count?: number; attempts_count?: number } | null
-  link_pakets?: { id: number; title: string; status: string; questions_count?: number; attempts_count?: number; pivot?: { status?: string; penilaian_ulangan?: boolean } }[]
+  link_pakets?: { id: number; title: string; status: string; questions_count?: number; attempts_count?: number; quiz_template?: string; pivot?: { status?: string; penilaian_ulangan?: boolean; is_pembahasan?: boolean } }[]
   link_materis?: LmsMateriItem[]
   slides?: { id: number; file_path: string; file_name?: string; url?: string }[]
   sort: number
@@ -459,6 +460,7 @@ export default function GuruLessonDetail() {
   const [removeLessonPdf, setRemoveLessonPdf] = useState(false)
   const [lessonSlides, setLessonSlides] = useState<LessonSlideItem[]>([])
   const lessonQuillRef = useRef<any>(null)
+  const questionQuillRef = useRef<any>(null)
 
   const [taskForm, setTaskForm] = useState({ title: '', dueDate: '', maxScore: '100', description: '' })
   const [savingTask, setSavingTask] = useState(false)
@@ -469,6 +471,7 @@ export default function GuruLessonDetail() {
   const [taskBankPakets, setTaskBankPakets] = useState<BankPaket[]>([])
   const [taskBankLoading, setTaskBankLoading] = useState(false)
   const [showQuizManager, setShowQuizManager] = useState(false)
+  const [bankPickerMode, setBankPickerMode] = useState<'quiz' | 'pembahasan'>('quiz')
   const [showBankPicker, setShowBankPicker] = useState(false)
   const [bankPakets, setBankPakets] = useState<BankPaket[]>([])
   const [bankLoading, setBankLoading] = useState(false)
@@ -772,7 +775,8 @@ export default function GuruLessonDetail() {
   })
   const loadTasks = (courseId: number, lessonId?: number | null) => assignmentApi.list(courseId, lessonId).then((t: any) => setTasks(t.data.assignments || [])).catch(() => setTasks([]))
 
-  const openBankPicker = () => {
+  const openBankPicker = (mode: 'quiz' | 'pembahasan' = 'quiz') => {
+    setBankPickerMode(mode)
     setBankPickedIds([])
     setBankSearch('')
     setShowBankPicker(true)
@@ -793,20 +797,40 @@ export default function GuruLessonDetail() {
 
   const assignBankPaket = async () => {
     if (!lesson || bankPickedIds.length === 0) return
+    const isPembahasan = bankPickerMode === 'pembahasan'
     setAssigningBank(true)
     try {
       for (const id of bankPickedIds) {
-        await guruLmsApi.attachLessonPaket(lesson.id, id)
+        await guruLmsApi.attachLessonPaket(lesson.id, id, isPembahasan)
       }
       setShowBankPicker(false)
       setBankPickedIds([])
       await loadLesson(lesson.id)
       loadRekapNilai(lesson.id)
-      Swal.fire({ icon: 'success', title: `${bankPickedIds.length} paket soal dipasang ke pertemuan ini`, timer: 1500, showConfirmButton: false })
+      Swal.fire({ icon: 'success', title: isPembahasan ? `${bankPickedIds.length} paket dijadikan pembahasan` : `${bankPickedIds.length} paket soal dipasang ke pertemuan ini`, timer: 1500, showConfirmButton: false })
     } catch {
-      Swal.fire({ icon: 'error', title: 'Gagal memasang paket soal' })
+      Swal.fire({ icon: 'error', title: isPembahasan ? 'Gagal menambahkan pembahasan' : 'Gagal memasang paket soal' })
     } finally {
       setAssigningBank(false)
+    }
+  }
+
+  const removePembahasan = async (paketId: number) => {
+    if (!lesson) return
+    const res = await Swal.fire({
+      title: 'Lepas pembahasan?',
+      text: 'Paket ini tidak lagi tampil sebagai pembahasan untuk siswa.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, lepas',
+      cancelButtonText: 'Batal',
+    })
+    if (!res.isConfirmed) return
+    try {
+      await guruLmsApi.detachLessonPaket(lesson.id, paketId)
+      await loadLesson(lesson.id)
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal melepas pembahasan' })
     }
   }
 
@@ -1082,6 +1106,67 @@ export default function GuruLessonDetail() {
       .finally(() => setUploadingQMedia(null))
   }
 
+  const questionQuillModules = {
+    toolbar: {
+      container: [
+        [{ header: [1, 2, 3, false] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ list: 'ordered' }, { list: 'bullet' }],
+        ['link', 'image', 'file'],
+        ['clean'],
+      ],
+      handlers: {
+        image: () => {
+          const input = document.createElement('input')
+          input.type = 'file'
+          input.accept = 'image/*'
+          input.onchange = async () => {
+            const file = input.files?.[0]
+            if (!file) return
+            setUploadingQMedia('image')
+            try {
+              const fd = new FormData()
+              fd.append('file', file)
+              const res = await guruQuizApi.uploadMedia(fd)
+              const quill = questionQuillRef.current?.getEditor()
+              const range = quill?.getSelection()
+              quill?.insertEmbed(range?.index || 0, 'image', res.data.url)
+            } catch {
+              Swal.fire({ icon: 'error', title: 'Gagal upload gambar' })
+            } finally {
+              setUploadingQMedia(null)
+            }
+          }
+          input.click()
+        },
+        file: () => {
+          const input = document.createElement('input')
+          input.type = 'file'
+          input.accept = '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt'
+          input.onchange = async () => {
+            const file = input.files?.[0]
+            if (!file) return
+            setUploadingQMedia('image')
+            try {
+              const fd = new FormData()
+              fd.append('file', file)
+              const res = await guruQuizApi.uploadMedia(fd)
+              const quill = questionQuillRef.current?.getEditor()
+              const range = quill?.getSelection(true)
+              quill?.insertText(range?.index || 0, ` ${file.name} `, 'link', res.data.url)
+              quill?.setSelection((range?.index || 0) + file.name.length + 2)
+            } catch {
+              Swal.fire({ icon: 'error', title: 'Gagal upload file' })
+            } finally {
+              setUploadingQMedia(null)
+            }
+          }
+          input.click()
+        },
+      },
+    },
+  }
+
   const saveEditedQuestion = async () => {
     if (!editingQuestion) return
     const isRating = qForm.question_type === 'rating'
@@ -1177,7 +1262,10 @@ export default function GuruLessonDetail() {
         {qs.map((q, i) => (
           <div key={q.id} className="bg-white rounded-md border border-[#E5E7EF] p-4">
             <div className="flex items-start justify-between gap-3">
-              <p className="text-xs font-bold text-[#14182B] leading-snug"><span className="font-black">{i + 1}.</span>{' '}<span className="[&_*]:inline [&_img]:max-h-40 [&_img]:rounded [&_img]:my-1 inline" dangerouslySetInnerHTML={{ __html: cleanQuillHtml(q.question) }} /></p>
+              <div className="text-xs font-bold text-[#14182B] leading-snug min-w-0">
+                <span className="font-black">{i + 1}.</span>{' '}
+                <span className="[&_p]:my-0.5 [&_h1]:text-xs [&_h2]:text-xs [&_h3]:text-xs [&_h4]:text-xs [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-bold [&_h4]:font-bold [&_ol]:list-decimal [&_ol]:pl-4 [&_ul]:list-disc [&_ul]:pl-4 [&_img]:max-h-40 [&_img]:rounded [&_img]:my-1.5 [&_img]:border [&_img]:border-[#E5E7EF] inline-block" dangerouslySetInnerHTML={{ __html: cleanQuillHtml(q.question) }} />
+              </div>
               {canManage && (
                 <button
                   onClick={() => openEditPaketQuestion(paketId, q, lessonPakets.find(p => p.id === paketId)?.title || '')}
@@ -1393,9 +1481,10 @@ export default function GuruLessonDetail() {
 
   const canManage = !!lesson.course?.can_manage
   const slides = (lesson.slides || []).map(s => ({ id: s.id, name: s.file_name || 'slide', url: s.url || `${APP_URL}/storage/${s.file_path}` }))
+  const pembahasanPakets: LessonPaketItem[] = (lesson.link_pakets || []).filter(p => !!p.pivot?.is_pembahasan)
   const lessonPakets: LessonPaketItem[] = [
     ...(lesson.paket ? [{ ...lesson.paket, pivot: undefined as LessonPaketItem['pivot'] }] : []),
-    ...(lesson.link_pakets || []),
+    ...(lesson.link_pakets || []).filter(p => !p.pivot?.is_pembahasan),
   ]
     .filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i)
   const quizCount = lessonPakets.length > 0 ? lessonPakets.length : undefined
@@ -1603,6 +1692,7 @@ export default function GuruLessonDetail() {
 
         {/* Materi */}
         {lessonTab === 'materi' && (
+        <>
         <div className="bg-white rounded-md border border-[#E5E7EF] overflow-hidden">
           <div className="px-5 py-4 border-b border-[#E5E7EF] flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -1769,6 +1859,86 @@ export default function GuruLessonDetail() {
             </div>
           </div>
         </div>
+
+        {/* Pembahasan dari Bank Paket Soal */}
+        <div className="bg-white rounded-md border border-[#E5E7EF] overflow-hidden">
+          <div className="px-5 py-4 border-b border-[#E5E7EF] flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Sparkles size={15} className="text-[#0069b0]" />
+              <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Pembahasan dari Bank Paket Soal</h3>
+              <span className="text-[10px] font-bold text-[#8B90A0]">{pembahasanPakets.length} paket</span>
+            </div>
+            {canManage && (
+              <button onClick={() => openBankPicker('pembahasan')}
+                className="flex items-center gap-1 text-[10px] font-bold text-[#0069b0] border border-[#0069b0]/30 bg-[#0069b0]/5 px-3 py-1.5 rounded-md hover:bg-[#0069b0]/10 transition-colors">
+                <Plus size={11} /> Tambah dari Bank Paket Soal
+              </button>
+            )}
+          </div>
+          <div className="p-5">
+            <p className="text-[10px] text-[#8B90A0] font-medium mb-3">
+              Paket soal dari bank yang ditampilkan untuk pembahasan (bukan ujian) — siswa bisa membahas kunci jawaban sesuai template quiz paket.
+            </p>
+
+            {pembahasanPakets.length === 0 ? (
+              <div className="border border-dashed border-[#E5E7EF] rounded-md p-5 text-center">
+                <div className="w-10 h-10 mx-auto rounded-md bg-[#0069b0]/[0.06] flex items-center justify-center mb-2">
+                  <Sparkles size={18} className="text-[#0069b0]" />
+                </div>
+                <p className="text-xs font-bold text-[#14182B]">Belum ada pembahasan quiz</p>
+                <p className="text-[10px] text-[#8B90A0] font-medium mt-0.5">
+                  Pilih paket soal dari bank paket soal untuk dijadikan pembahasan
+                </p>
+                {canManage && (
+                  <button onClick={() => openBankPicker('pembahasan')}
+                    className="mt-3 inline-flex items-center gap-1 text-[11px] font-bold text-white bg-[#0069b0] px-3.5 py-2 rounded-md hover:bg-[#004d7a] transition-colors mx-auto">
+                    <Plus size={12} /> Tambah dari Bank Paket Soal
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {pembahasanPakets.map(p => (
+                  <div key={p.id} className="border border-[#E5E7EF] rounded-md overflow-hidden bg-white">
+                    <div className="flex items-center gap-3 px-4 py-3 bg-[#F8F9FB] border-b border-[#E5E7EF]">
+                      <div className="w-9 h-9 rounded-md bg-[#0069b0]/10 flex items-center justify-center shrink-0">
+                        <Sparkles size={15} className="text-[#0069b0]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-[#14182B] truncate">{p.title}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[10px] text-[#8B90A0] font-medium">
+                            {p.questions_count != null ? `${p.questions_count} soal` : 'Paket soal'}
+                          </span>
+                          <span className="inline-flex items-center gap-1 text-[9px] font-bold text-[#8B90A0] bg-white border border-[#E5E7EF] px-1.5 py-0.5 rounded-full">
+                            {p.quiz_template === 'jft' ? 'JFT UI' : 'Basic'}
+                          </span>
+                        </div>
+                      </div>
+                      {canManage && (
+                        <button onClick={() => removePembahasan(p.id)}
+                          className="w-8 h-8 flex items-center justify-center rounded-md bg-red-50 hover:bg-red-100 transition-colors shrink-0"
+                          title="Lepas pembahasan">
+                          <Trash2 size={13} className="text-red-500" />
+                        </button>
+                      )}
+                    </div>
+                    <div className="p-3 flex items-center gap-2">
+                      <button onClick={() => navigate(`/guru-lms/lesson/${lesson.id}/pembahasan/${p.id}`)}
+                        className="inline-flex items-center gap-1.5 text-[11px] font-bold text-white bg-[#0069b0] px-3.5 py-2 rounded-md hover:bg-[#004d7a] transition-colors">
+                        <Eye size={13} /> Lihat Pembahasan
+                      </button>
+                      <span className="text-[10px] text-[#8B90A0] font-medium">
+                        Siswa melihat soal + kunci jawaban tanpa penilaian
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        </>
         )}
 
         {/* Quiz */}
@@ -1874,7 +2044,7 @@ export default function GuruLessonDetail() {
                     })}
 
                   {canManage && (
-                    <button onClick={openBankPicker}
+                    <button onClick={() => openBankPicker('quiz')}
                       className="w-full flex items-center justify-center gap-1.5 border border-dashed border-[#0069b0]/40 bg-[#0069b0]/5 text-[#0069b0] px-3 py-2.5 rounded-md text-[11px] font-bold hover:bg-[#0069b0]/10 transition-colors">
                       <Plus size={13} /> Tambah Paket dari Bank
                     </button>
@@ -1888,7 +2058,7 @@ export default function GuruLessonDetail() {
                   <p className="text-xs font-bold text-[#14182B]">Belum ada quiz</p>
                   <p className="text-[10px] text-[#8B90A0] font-medium mt-0.5">Pilih paket soal dari bank soal untuk pertemuan ini</p>
                   {canManage ? (
-                  <button onClick={openBankPicker}
+                  <button onClick={() => openBankPicker('quiz')}
                     className="mt-3 flex items-center gap-1 text-[11px] font-bold text-white bg-[#0069b0] px-3.5 py-2 rounded-md hover:bg-[#004d7a] transition-colors mx-auto">
                     <Plus size={12} /> Pilih Paket Soal dari Bank
                   </button>
@@ -3011,8 +3181,13 @@ export default function GuruLessonDetail() {
             <div className="p-5 space-y-4">
               <div>
                 <label className="text-[11px] font-bold text-[#4B5063] mb-1.5 block">Pertanyaan <span className="text-[#8B90A0] font-medium">(opsional)</span></label>
-                <textarea value={qForm.question} onChange={e => setQForm({ ...qForm, question: e.target.value })}
-                  rows={2} placeholder="Tulis pertanyaan..." className="w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 resize-none" />
+                <div className="rounded-xl border border-[#E5E7EF] overflow-hidden bg-white">
+                  <ReactQuill ref={questionQuillRef} value={qForm.question}
+                    onChange={v => setQForm({ ...qForm, question: v })}
+                    modules={questionQuillModules} formats={quillFormats} theme="snow"
+                    placeholder="Tulis pertanyaan..." />
+                </div>
+                {uploadingQMedia && <p className="flex items-center gap-1.5 text-[10px] font-semibold text-[#0069b0] mt-1.5"><Loader2 size={11} className="animate-spin" /> Mengunggah media...</p>}
               </div>
 
               <div>
@@ -3257,8 +3432,8 @@ export default function GuruLessonDetail() {
           <div className="bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-md max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-[#F0F1F5] sticky top-0 bg-white">
               <div>
-                <h2 className="text-sm font-bold text-[#14182B]">Pilih Paket Soal dari Bank</h2>
-                <p className="text-[10px] text-[#8B90A0] font-medium">Centang satu atau lebih paket untuk dijadikan quiz pertemuan ini</p>
+                <h2 className="text-sm font-bold text-[#14182B]">{bankPickerMode === 'pembahasan' ? 'Pilih Paket Soal dari Bank (Pembahasan)' : 'Pilih Paket Soal dari Bank'}</h2>
+                <p className="text-[10px] text-[#8B90A0] font-medium">{bankPickerMode === 'pembahasan' ? 'Paket dipilih untuk ditampilkan sebagai pembahasan (bukan ujian)' : 'Centang satu atau lebih paket untuk dijadikan quiz pertemuan ini'}</p>
               </div>
               <button onClick={() => setShowBankPicker(false)} className="w-8 h-8 flex items-center justify-center rounded-md bg-[#F4F5F8] hover:bg-[#E5E7EF]">
                 <X size={15} className="text-[#4B5063]" />
@@ -3311,7 +3486,9 @@ export default function GuruLessonDetail() {
                       <div className="space-y-2">
                     {filtered.map(p => {
                       const checked = bankPickedIds.includes(p.id)
-                      const attached = lessonPakets.some(x => x.id === p.id)
+                      const asQuiz = lessonPakets.some(x => x.id === p.id)
+                      const asPembahasan = pembahasanPakets.some(x => x.id === p.id)
+                      const attached = bankPickerMode === 'pembahasan' ? (asPembahasan || asQuiz) : (asQuiz || asPembahasan)
                       return (
                         <label key={p.id}
                           className={`flex items-center gap-3 border rounded-md px-4 py-3 transition-colors ${attached ? 'border-[#E5E7EF] bg-[#F8F9FB] opacity-70 cursor-not-allowed' : `cursor-pointer ${checked ? 'border-[#0069b0] bg-[#0069b0]/[0.04] ring-1 ring-[#0069b0]/20' : 'border-[#E5E7EF] hover:bg-[#F7F8FA]'}`}`}>
@@ -3333,7 +3510,7 @@ export default function GuruLessonDetail() {
                             </p>
                           </div>
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${attached ? 'bg-[#0069b0]/10 text-[#0069b0]' : p.status === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-[#8B90A0]'}`}>
-                            {attached ? 'Sudah terpasang' : p.status === 'aktif' ? 'Dibuka' : 'Ditutup'}
+                            {asPembahasan ? 'Sudah jadi pembahasan' : asQuiz ? 'Sudah jadi quiz' : p.status === 'aktif' ? 'Dibuka' : 'Ditutup'}
                           </span>
                         </label>
                       )
@@ -3354,7 +3531,11 @@ export default function GuruLessonDetail() {
                 <button onClick={assignBankPaket} disabled={assigningBank || bankPickedIds.length === 0}
                   className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-bold text-white bg-[#0069b0] rounded-md hover:bg-[#004d7a] transition-colors disabled:opacity-50">
                   {assigningBank ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
-                  {assigningBank ? 'Memasang...' : bankPickedIds.length > 1 ? `Pasang ${bankPickedIds.length} Paket` : 'Pasang Paket'}
+                  {assigningBank
+                    ? 'Memasang...'
+                    : bankPickerMode === 'pembahasan'
+                      ? (bankPickedIds.length > 1 ? `Jadikan ${bankPickedIds.length} Paket Pembahasan` : 'Jadikan Pembahasan')
+                      : (bankPickedIds.length > 1 ? `Pasang ${bankPickedIds.length} Paket` : 'Pasang Paket')}
                 </button>
               </div>
             )}

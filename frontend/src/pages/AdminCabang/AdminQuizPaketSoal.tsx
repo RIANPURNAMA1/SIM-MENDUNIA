@@ -265,7 +265,7 @@ export default function AdminQuizPaketSoal() {
         level: paketForm.level || null,
         category: paketForm.category || null,
         time_limit_minutes: Number(paketForm.time_limit_minutes) || 30,
-        max_attempts: Number(paketForm.max_attempts) || 3,
+        max_attempts: Number(paketForm.max_attempts || 3),
         max_warnings: Number(paketForm.max_warnings) || 3,
         passing_score: Number(paketForm.passing_score) || 0,
         shuffle_questions: paketForm.shuffle_questions,
@@ -978,9 +978,21 @@ export default function AdminQuizPaketSoal() {
                     onChange={e => setPaketForm({ ...paketForm, time_limit_minutes: e.target.value })} className={inputCls} />
                 </div>
                 <div>
-                  <label className={`${labelCls} flex items-center gap-1`}><Repeat size={14} /> Maks Percobaan</label>
-                  <input type="number" min={1} max={10} value={paketForm.max_attempts}
-                    onChange={e => setPaketForm({ ...paketForm, max_attempts: e.target.value })} className={inputCls} />
+                  <div className="flex items-center justify-between">
+                    <label className={`${labelCls} flex items-center gap-1`}><Repeat size={14} /> Maks Percobaan</label>
+                    <button
+                      onClick={() => setPaketForm({ ...paketForm, max_attempts: Number(paketForm.max_attempts) === 0 ? '3' : '0' })}
+                      title="Tanpa batas (unlimited)"
+                      className={`relative w-10 h-[22px] rounded-full transition-colors ${Number(paketForm.max_attempts) === 0 ? 'bg-[#0E6187]' : 'bg-slate-300'}`}>
+                      <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${Number(paketForm.max_attempts) === 0 ? 'left-[20px]' : 'left-[2px]'}`} />
+                    </button>
+                  </div>
+                  {Number(paketForm.max_attempts) === 0 ? (
+                    <p className="text-xs font-semibold text-[#0E6187] mt-1">Tanpa batas (unlimited)</p>
+                  ) : (
+                    <input type="number" min={1} max={10} value={paketForm.max_attempts}
+                      onChange={e => setPaketForm({ ...paketForm, max_attempts: e.target.value })} className={inputCls} />
+                  )}
                 </div>
               </div>
 
@@ -991,8 +1003,8 @@ export default function AdminQuizPaketSoal() {
                     onChange={e => setPaketForm({ ...paketForm, max_warnings: e.target.value })} className={inputCls} />
                 </div>
                 <div>
-                  <label className={labelCls}>Nilai Lulus (0-100)</label>
-                  <input type="number" min={0} max={100} value={paketForm.passing_score}
+                  <label className={labelCls}>Nilai Lulus (0-200)</label>
+                  <input type="number" min={0} max={200} value={paketForm.passing_score}
                     onChange={e => setPaketForm({ ...paketForm, passing_score: e.target.value })} className={inputCls} />
                 </div>
               </div>

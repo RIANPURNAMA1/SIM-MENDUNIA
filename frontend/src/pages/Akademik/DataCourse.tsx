@@ -5,6 +5,7 @@ import {
   ListChecks, Eye, EyeOff, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Camera, Clock, Repeat,
   Award, Users, UserCheck, Pencil, Loader2, ArrowLeft, Video, UploadCloud, Upload, Mic, RotateCcw,
   Settings, LayoutGrid, ShieldCheck, Link2, Building2, Layers, Settings2, FileCheck2, Radio,
+  ClipboardPaste,
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -18,6 +19,134 @@ const cleanQuillHtml = (html: string | null | undefined) =>
   (html ?? '')
     .replace(/&nbsp;/g, ' ')
     .replace(/<p(?:\s[^>]*)?>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>/gi, '')
+
+interface ImportOpt {
+  text: string
+  image_path: string | null
+}
+
+interface ImportQ {
+  section: string
+  question: string
+  image_path: string | null
+  audio_path: string | null
+  audio_max_plays: number | null
+  options: ImportOpt[]
+  correct_index: number | null
+  points: number
+}
+
+const stripPoin = (s: string) => {
+  const m = s.match(/\[(\d+)\s*poin\]\s*$/i) || s.match(/\((\d+)\s*poin\)\s*$/i)
+  if (m && m.index !== undefined) {
+    return { text: s.slice(0, m.index).trimEnd(), points: parseInt(m[1], 10) }
+  }
+  return { text: s, points: 0 }
+}
+
+const stripMedia = (s: string) => {
+  let text = s
+  let image_path: string | null = null
+  let audio_path: string | null = null
+  let audio_max_plays: number | null = null
+  const img = text.match(/\[gambar:([^\]]+)\]/i)
+  if (img) {
+    image_path = img[1].trim()
+    text = text.replace(img[0], '').trim()
+  }
+  const aud = text.match(/\[audio:([^\]]+)\]/i)
+  if (aud) {
+    audio_path = aud[1].trim()
+    text = text.replace(aud[0], '').trim()
+  }
+  const plays = text.match(/\[maks:(\d+)\]/i)
+  if (plays) {
+    audio_max_plays = parseInt(plays[1], 10)
+    text = text.replace(plays[0], '').trim()
+  }
+  return { text, image_path, audio_path, audio_max_plays }
+}
+
+const parseQuestionImport = (text: string): ImportQ[] => {
+  const rows = text.split(/\r?\n/)
+  const isTsv = text.includes('\t')
+  const result: ImportQ[] = []
+
+  const emptyQ = (section: string): ImportQ => ({
+    section, question: '', image_path: null, audio_path: null, audio_max_plays: null,
+    options: [], correct_index: null, points: 1,
+  })
+
+  if (isTsv) {
+    for (const row of rows) {
+      const cells = row.split('\t').map(c => c.trim())
+      if (cells.length < 5) continue
+      const n = cells.length
+      const soal = cells[0]
+      if (!soal) continue
+      const optTexts = cells.slice(1, n - 3).filter(Boolean)
+      const kunci = cells[n - 3]
+      const section = cells[n - 2]
+      const bobot = parseInt(cells[n - 1], 10)
+      let correct_index: number | null = null
+      const kunciLetter = kunci.trim().toUpperCase().charCodeAt(0) - 65
+      if (optTexts.length > 0 && kunciLetter >= 0 && kunciLetter < optTexts.length) {
+        correct_index = kunciLetter
+      } else {
+        const idx = optTexts.findIndex(o => o.toLowerCase() === kunci.trim().toLowerCase())
+        correct_index = idx >= 0 ? idx : null
+      }
+      result.push({
+        ...emptyQ(section),
+        question: soal,
+        options: optTexts.map(t => ({ text: t, image_path: null })),
+        correct_index,
+        points: isNaN(bobot) ? 1 : bobot,
+      })
+    }
+    return result
+  }
+
+  let current: ImportQ | null = null
+  let section = ''
+  const push = () => {
+    if (current && current.question) result.push(current)
+    current = null
+  }
+
+  for (const raw of rows) {
+    const line = raw.trim()
+    if (!line) continue
+    if (line.startsWith('##')) {
+      push()
+      section = line.replace(/^#+\s*/, '').trim()
+      continue
+    }
+    const opt = line.match(/^([!*]?)\s*([A-Ha-h])[.)\-:]\s*(.+)$/)
+    if (opt) {
+      if (!current) current = emptyQ(section)
+      const p = stripPoin(opt[3].trim())
+      const media = stripMedia(p.text)
+      current.options.push({ text: media.image_path ? '' : media.text, image_path: media.image_path })
+      if (opt[1]) current.correct_index = current.options.length - 1
+      if (p.points) current.points = p.points
+      continue
+    }
+    push()
+    const { text, points } = stripPoin(line)
+    const media = stripMedia(text)
+    current = {
+      ...emptyQ(section),
+      question: media.text,
+      image_path: media.image_path,
+      audio_path: media.audio_path,
+      audio_max_plays: media.audio_max_plays,
+      points: points || 1,
+    }
+  }
+  push()
+  return result
+}
 
 interface Course {
   id: number
@@ -44,6 +173,50 @@ interface LmsCategory {
   sort: number
   courses_count: number
 }
+
+const importSample = `## Vocabulary
+Arti kata "watashi" adalah...
+*a. saya
+b. kamu
+c. dia
+d. kami   [2 poin]
+
+Bentuk lampau dari "taberu" adalah...
+a. taberu
+*b. tabeta
+c. tabemasu
+d. tabete
+
+## Grammar
+Partikel penanda subjek adalah...
+*a. wa
+b. wo
+c. ni
+d. de
+
+Urutan kalimat bahasa Jepang yang benar adalah...
+a. S-O-V
+*b. S-P-O
+c. O-S-P
+d. P-S-O
+
+## Example dari Excel
+Kalimat "Ohayou" diucapkan saat...
+a. malam
+b. subuh
+*c. pagi
+d. sore   [3 poin]
+
+## Listening
+Pilih gambar yang benar [gambar:https://contoh.com/soal-audio.jpg]
+*a. [gambar:https://contoh.com/opsi-a.png]
+b. [gambar:https://contoh.com/opsi-b.png]
+c. [gambar:https://contoh.com/opsi-c.png]
+
+Dengarkan audio berikut lalu jawab [audio:https://contoh.com/audio.mp3] [maks:2]
+a. jawaban 1
+*b. jawaban 2
+c. jawaban 3`
 
 interface Batch { id: number; nama_batch: string; warna?: string | null }
 interface CourseOption { id: number; title: string }
@@ -322,6 +495,16 @@ export default function DataCourse() {
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null)
   const [qForm, setQForm] = useState({ ...emptyQuestionForm })
   const [qOptions, setQOptions] = useState<QuizOpt[]>([{ text: '', image_path: null, image_url: null }, { text: '', image_path: null, image_url: null }])
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [importText, setImportText] = useState('')
+  const [importType, setImportType] = useState<'choice' | 'rating' | 'essay'>('choice')
+  const [importParse, setImportParse] = useState<ImportQ[]>([])
+  const [savingImport, setSavingImport] = useState(false)
+  const [importError, setImportError] = useState('')
+  const [importingMedia, setImportingMedia] = useState<'gambar' | 'audio' | null>(null)
+  const importTextRef = useRef<HTMLTextAreaElement>(null)
+  const importImgInputRef = useRef<HTMLInputElement>(null)
+  const importAudioInputRef = useRef<HTMLInputElement>(null)
   const [uploadingOptImg, setUploadingOptImg] = useState<number | null>(null)
   const [showSectionModal, setShowSectionModal] = useState(false)
   const [showSectionListModal, setShowSectionListModal] = useState(false)
@@ -1531,7 +1714,7 @@ export default function DataCourse() {
         batch_id: paketForm.batch_id ? Number(paketForm.batch_id) : null,
         level: paketForm.level || null, category: paketForm.category || null,
         time_limit_minutes: Number(paketForm.time_limit_minutes) || 30,
-        max_attempts: Number(paketForm.max_attempts) || 3,
+        max_attempts: Number(paketForm.max_attempts || 3),
         max_warnings: Number(paketForm.max_warnings) || 3,
         passing_score: Number(paketForm.passing_score) || 0,
         shuffle_questions: paketForm.shuffle_questions, quiz_template: paketForm.quiz_template,
@@ -1756,6 +1939,96 @@ export default function DataCourse() {
       Swal.fire({ icon: 'error', title: 'Gagal menyimpan soal', text: msg })
     } finally {
       setSavingQuestion(false)
+    }
+  }
+
+  const openImportModal = () => {
+    setImportText('')
+    setImportParse([])
+    setImportType('choice')
+    setImportError('')
+    setShowImportModal(true)
+  }
+
+  const onImportTextChange = (val: string) => {
+    setImportText(val)
+    setImportParse(parseQuestionImport(val))
+    setImportError('')
+  }
+
+  const removeImportQ = (i: number) => {
+    setImportParse(p => p.filter((_, x) => x !== i))
+  }
+
+  const insertImportMedia = (url: string, type: 'gambar' | 'audio') => {
+    const ta = importTextRef.current
+    const start = ta?.selectionStart ?? importText.length
+    const end = ta?.selectionEnd ?? importText.length
+    const tag = type === 'gambar' ? `[gambar:${url}]` : `[audio:${url}]`
+    const next = importText.slice(0, start) + tag + importText.slice(end)
+    const pos = start + tag.length
+    onImportTextChange(next)
+    requestAnimationFrame(() => {
+      if (ta) {
+        ta.focus()
+        ta.setSelectionRange(pos, pos)
+      }
+    })
+  }
+
+  const onImportFile = (file: File | undefined, type: 'gambar' | 'audio') => {
+    if (!file) return
+    const ok = type === 'gambar' ? file.type.startsWith('image/') : file.type.startsWith('audio/')
+    if (!ok) {
+      Swal.fire({ icon: 'warning', title: `File harus berupa ${type === 'gambar' ? 'gambar' : 'audio'}` })
+      return
+    }
+    const fd = new FormData()
+    fd.append('file', file)
+    setImportingMedia(type)
+    adminQuizApi.uploadMedia(fd)
+      .then(res => insertImportMedia(res.data.url, type))
+      .catch(() => Swal.fire({ icon: 'error', title: `Gagal mengunggah ${type === 'gambar' ? 'gambar' : 'audio'}` }))
+      .finally(() => setImportingMedia(null))
+  }
+
+  const saveImport = async () => {
+    if (!activeQuizPaket) return
+    if (importParse.length === 0) {
+      setImportError('Belum ada soal untuk disimpan')
+      return
+    }
+    setSavingImport(true)
+    setImportError('')
+    const isChoice = importType === 'choice'
+    try {
+      const questions = importParse.map(q => ({
+        question: q.question,
+        section: q.section || null,
+        question_type: importType,
+        rating_max: importType === 'rating' ? 9 : null,
+        options: isChoice ? q.options.map(o => o.image_path ? { text: o.text || '', image_path: o.image_path } : o.text) : [],
+        correct_index: isChoice ? q.correct_index : null,
+        keyword: null,
+        points: q.points,
+        image_path: q.image_path,
+        audio_path: q.audio_path,
+        audio_max_plays: q.audio_max_plays,
+      }))
+      const res = await adminQuizApi.storeQuestionsBulk(activeQuizPaket.id, { questions })
+      setShowImportModal(false)
+      openQuizQuestions(activeQuizPaket, undefined, true)
+      if (activeCourse) fetchQuizPakets(activeCourse.id)
+      const errCount = (res.data?.errors as never[] | undefined)?.length || 0
+      const title = `${res.data?.created ?? 0} soal ditambahkan${errCount ? ` (${errCount} dilewati)` : ''}`
+      Swal.fire({ icon: errCount ? 'warning' : 'success', title, timer: 1800, showConfirmButton: false })
+    } catch (e: any) {
+      const msg = e?.response?.data?.message
+        || (e?.response?.data?.errors ? String(Object.values(e.response.data.errors as Record<string, unknown>[])[0]) : null)
+        || 'Pastikan format paste benar'
+      setImportError(typeof msg === 'string' ? msg : 'Gagal menyimpan soal. Periksa kembali format paste.')
+    } finally {
+      setSavingImport(false)
     }
   }
 
@@ -2889,6 +3162,10 @@ export default function DataCourse() {
                       className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-[#0E6187] border border-slate-200 hover:border-[#0E6187]/40 bg-white px-3.5 py-2.5 rounded-lg transition-colors">
                       <Settings2 size={16} /> Kelola Bagian
                     </button>
+                    <button onClick={openImportModal}
+                      className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#0E6187] hover:bg-[#0E6187]/5 border border-[#0E6187]/30 px-3.5 py-2.5 rounded-lg transition-colors">
+                      <ClipboardPaste size={16} /> Import Banyak
+                    </button>
                     <button onClick={openCreateQuestion} className={primaryBtn}>
                       <Plus size={16} /> Tambah Soal
                     </button>
@@ -2966,7 +3243,7 @@ export default function DataCourse() {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-start justify-between gap-2">
                                   <span className="text-sm font-bold text-slate-400 shrink-0 mt-0.5">#{gi + 1}</span>
-                                  <div className="text-[15px] font-semibold text-slate-800 leading-snug flex-1 min-w-0 line-clamp-2 [&_*]:inline [&_img]:h-6 [&_img]:w-auto [&_img]:align-middle" dangerouslySetInnerHTML={{ __html: cleanQuillHtml(q.question) }} />
+                                  <div className="text-[15px] font-semibold text-slate-800 leading-snug flex-1 min-w-0 [&_p]:my-0.5 [&_h1]:text-base [&_h2]:text-base [&_h3]:text-base [&_h4]:text-base [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-bold [&_h4]:font-bold [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5 [&_img]:max-h-40 [&_img]:rounded-lg [&_img]:my-1.5 [&_img]:border [&_img]:border-slate-200" dangerouslySetInnerHTML={{ __html: cleanQuillHtml(q.question) }} />
                                   {!isAdminCabang && (
                                     <div className="flex items-center gap-1.5 shrink-0">
                                       <button onClick={() => openEditQuestion(q)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors" title="Edit">
@@ -3546,9 +3823,21 @@ export default function DataCourse() {
                     onChange={e => setPaketForm({ ...paketForm, time_limit_minutes: e.target.value })} className={inputCls} />
                 </div>
                 <div>
-                  <label className={labelCls}>Maks Percobaan</label>
-                  <input type="number" min={1} max={10} value={paketForm.max_attempts}
-                    onChange={e => setPaketForm({ ...paketForm, max_attempts: e.target.value })} className={inputCls} />
+                  <div className="flex items-center justify-between">
+                    <label className={labelCls}>Maks Percobaan</label>
+                    <button
+                      onClick={() => setPaketForm({ ...paketForm, max_attempts: Number(paketForm.max_attempts) === 0 ? '3' : '0' })}
+                      title="Tanpa batas (unlimited)"
+                      className={`relative w-10 h-[22px] rounded-full transition-colors ${Number(paketForm.max_attempts) === 0 ? 'bg-[#0E6187]' : 'bg-slate-300'}`}>
+                      <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${Number(paketForm.max_attempts) === 0 ? 'left-[20px]' : 'left-[2px]'}`} />
+                    </button>
+                  </div>
+                  {Number(paketForm.max_attempts) === 0 ? (
+                    <p className="text-sm font-semibold text-[#0E6187] mt-2">Tanpa batas (unlimited)</p>
+                  ) : (
+                    <input type="number" min={1} max={10} value={paketForm.max_attempts}
+                      onChange={e => setPaketForm({ ...paketForm, max_attempts: e.target.value })} className={inputCls} />
+                  )}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -3558,8 +3847,8 @@ export default function DataCourse() {
                     onChange={e => setPaketForm({ ...paketForm, max_warnings: e.target.value })} className={inputCls} />
                 </div>
                 <div>
-                  <label className={labelCls}>Nilai Lulus (0-100)</label>
-                  <input type="number" min={0} max={100} value={paketForm.passing_score}
+                  <label className={labelCls}>Nilai Lulus (0-200)</label>
+                  <input type="number" min={0} max={200} value={paketForm.passing_score}
                     onChange={e => setPaketForm({ ...paketForm, passing_score: e.target.value })} className={inputCls} />
                 </div>
               </div>
@@ -3919,6 +4208,123 @@ export default function DataCourse() {
               <button onClick={() => setShowMateriModal(false)} className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Batal</button>
               <button onClick={handleSaveMateri} disabled={savingMateri} className="px-4 py-2.5 bg-[#0E6187] text-white rounded-lg text-sm font-semibold hover:bg-[#0E6187]/90 disabled:opacity-50 transition-colors">
                 {savingMateri ? 'Menyimpan...' : editingMateri ? 'Simpan Perubahan' : 'Buat Materi'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== BULK IMPORT MODAL ==================== */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[8vh] pb-8 px-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-slate-800">Import Banyak Soal</h3>
+                <p className="text-xs text-slate-400">{activeQuizPaket?.title}</p>
+              </div>
+              <button onClick={() => setShowImportModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
+                <X size={20} className="text-slate-400" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className={labelCls}>Jenis soal</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['choice', 'rating', 'essay'] as const).map(t => (
+                    <button key={t} type="button" onClick={() => setImportType(t)}
+                      className={`py-2.5 rounded-lg text-sm font-semibold border transition-colors ${importType === t ? 'bg-[#0E6187] text-white border-[#0E6187]' : 'bg-white text-slate-600 border-slate-200 hover:border-[#0E6187]/40'}`}>
+                      {t === 'choice' ? 'Pilihan Ganda' : t === 'rating' ? 'Skala 1-9' : 'Esai'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <label className={labelCls}>Paste soal <span className="text-slate-400 font-normal">(1 soal per baris, awalan a./b./c. = opsi, prefix * = kunci)</span></label>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <button type="button" onClick={() => importImgInputRef.current?.click()} disabled={!!importingMedia}
+                      className="text-xs font-semibold text-violet-600 hover:text-violet-700 border border-violet-200 hover:border-violet-400 bg-white px-2 py-1 rounded-md transition-colors disabled:opacity-50">
+                      {importingMedia === 'gambar' ? 'Mengunggah...' : 'Upload Gambar'}
+                    </button>
+                    <button type="button" onClick={() => importAudioInputRef.current?.click()} disabled={!!importingMedia}
+                      className="text-xs font-semibold text-amber-600 hover:text-amber-700 border border-amber-200 hover:border-amber-400 bg-white px-2 py-1 rounded-md transition-colors disabled:opacity-50">
+                      {importingMedia === 'audio' ? 'Mengunggah...' : 'Upload Audio'}
+                    </button>
+                    <button type="button" onClick={() => onImportTextChange(importSample)}
+                      className="text-xs font-semibold text-[#0E6187] hover:text-[#0A4A66] hover:underline transition-colors">
+                      Isi Contoh
+                    </button>
+                  </div>
+                </div>
+                <input ref={importImgInputRef} type="file" accept="image/*" className="hidden"
+                  onChange={e => { onImportFile(e.target.files?.[0], 'gambar'); e.target.value = '' }} />
+                <input ref={importAudioInputRef} type="file" accept="audio/*" className="hidden"
+                  onChange={e => { onImportFile(e.target.files?.[0], 'audio'); e.target.value = '' }} />
+                <textarea ref={importTextRef} value={importText} onChange={e => onImportTextChange(e.target.value)}
+                  rows={12} placeholder={'## Vocabulary\nArti kata "watashi" adalah...\n*a. saya\nb. kamu\nc. dia\nd. kami   [2 poin]\n\nKalimat "Ohayou" diucapkan saat...\na. pagi\n*b. siang\nc. malam\n\n[gambar:URL] dan [audio:URL] menyisip otomatis di posisi kursor'}
+                  className={inputCls + ' font-mono resize-y'} />
+                <div className="mt-2 rounded-lg bg-slate-50 border border-slate-200 p-3 text-xs text-slate-500 leading-relaxed">
+                  <p className="font-semibold text-slate-600 mb-1">Panduan:</p>
+                  <p>• <span className="font-mono">## Nama bagian</span> untuk mengelompokkan soal (opsional)</p>
+                  <p>• Opsi diawali <span className="font-mono">a.</span> / <span className="font-mono">b.</span> / <span className="font-mono">c.</span> dst; beri <span className="font-mono">*</span> di depan opsi yang benar</p>
+                  <p>• Di akhir soal/opsi boleh gunakan <span className="font-mono">[2 poin]</span> untuk bobot skor</p>
+                  <p>• Media soal: <span className="font-mono">[gambar:URL]</span>, <span className="font-mono">[audio:URL]</span>, dan <span className="font-mono">[maks:2]</span> untuk batas putar audio</p>
+                  <p>• Posisikan kursor di baris yang diinginkan lalu klik <span className="font-semibold">Upload Gambar/Audio</span> untuk menyisip tag secara otomatis</p>
+                  <p>• Opsi berupa gambar: <span className="font-mono">*a. [gambar:URL]</span> (opsi ini jadi gambar, bukan teks)</p>
+                  <p>• Bisa juga tempel dari Excel/Google Sheets: <span className="font-mono">soal [TAB] opsiA [TAB] opsiB [TAB] opsiC [TAB] kunci [TAB] bagian [TAB] bobot</span></p>
+                </div>
+              </div>
+
+              {importParse.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-2">Pratinjau ({importParse.length} soal)</p>
+                  <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                    {importParse.map((q, i) => (
+                      <div key={i} className="flex items-start gap-2.5 border border-slate-200 rounded-lg px-3 py-2.5">
+                        <span className="w-6 h-6 flex items-center justify-center rounded-lg bg-[#0E6187]/10 text-[#0E6187] text-xs font-bold shrink-0">{i + 1}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[11px] font-bold text-[#0E6187] bg-[#0E6187]/5 px-1.5 py-0.5 rounded">{q.section || 'Tanpa bagian'}</span>
+                            {q.image_path && <span className="text-[11px] font-bold text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded">Gambar</span>}
+                            {q.audio_path && <span className="text-[11px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">Audio{q.audio_max_plays ? ` · ${q.audio_max_plays}x` : ''}</span>}
+                            <span className="text-[11px] font-semibold text-slate-400">{q.points} poin</span>
+                          </div>
+                          <p className="text-sm font-semibold text-slate-800 mt-0.5 line-clamp-2">{q.question || '(tanpa teks)'}</p>
+                          {q.options.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {q.options.map((o, oi) => (
+                                <span key={oi}
+                                  className={`flex items-center gap-1.5 text-[11px] px-1.5 py-0.5 rounded font-medium ${q.correct_index === oi ? 'bg-emerald-100 text-emerald-700 font-bold' : 'bg-slate-100 text-slate-600'}`}>
+                                  {String.fromCharCode(65 + oi)}.
+                                  {o.image_path ? (
+                                    <img src={o.image_path} alt={o.image_path}
+                                      className="h-7 w-7 object-cover rounded border border-slate-200" />
+                                  ) : (
+                                    <span>{o.text}</span>
+                                  )}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <button type="button" onClick={() => removeImportQ(i)}
+                          className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 shrink-0">
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {importError && (
+                <p className="text-sm font-semibold text-red-500">{importError}</p>
+              )}
+
+              <button onClick={saveImport} disabled={savingImport || importParse.length === 0}
+                className="w-full py-3 rounded-lg text-sm font-semibold text-white bg-[#0E6187] hover:bg-[#0E6187]/90 disabled:opacity-50 transition-colors">
+                {savingImport ? 'Menyimpan...' : `Simpan ${importParse.length} Soal ${importType === 'choice' ? '(Pilihan Ganda)' : importType === 'rating' ? '(Skala 1-9)' : '(Esai)'}`}
               </button>
             </div>
           </div>

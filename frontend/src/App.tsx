@@ -112,6 +112,7 @@ import LMS from './pages/Akademik/LMS'
 import QuizKandidat from './pages/Akademik/QuizKandidat'
 import QuizPlay from './pages/Akademik/QuizPlay'
 import QuizBasicPlay from './pages/Akademik/QuizBasicPlay'
+import QuizPembahasan from './pages/Akademik/QuizPembahasan'
 import Raport from './pages/Akademik/Raport'
 import SiswaNilai from './pages/Siswa/SiswaNilai'
 import DataCourse from './pages/Akademik/DataCourse'
@@ -296,6 +297,7 @@ function AppRoutes() {
         <Route path="lms" element={<LMS />} />
         <Route path="lms/:courseId" element={<LMS />} />
         <Route path="lms/:courseId/materi/:lessonId" element={<LMS />} />
+        <Route path="lms/:courseId/materi/:lessonId/pembahasan/:paketId" element={<QuizPembahasan source="siswa" />} />
         <Route path="lms/:courseId/quiz" element={<LMS />} />
         <Route path="quiz" element={<Navigate to="/siswa-dashboard/lms" replace />} />
         <Route path="quiz/:paketId" element={<QuizKandidat />} />
@@ -370,6 +372,17 @@ function AppRoutes() {
           <ProtectedRoute roleAllowed="GURU">
             <GuruLayout>
               <GuruLessonDetail />
+            </GuruLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/guru-lms/lesson/:lessonId/pembahasan/:paketId"
+        element={
+          <ProtectedRoute roleAllowed="GURU">
+            <GuruLayout>
+              <QuizPembahasan source="guru" />
             </GuruLayout>
           </ProtectedRoute>
         }

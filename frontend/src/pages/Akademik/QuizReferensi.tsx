@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import {
   FileCheck2, Search, Plus, Pencil, Trash2, ExternalLink, Paperclip, Link2,
   Loader2, FolderCog, ArrowLeft, X, CheckCircle, XCircle, Clock, ListChecks,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Eye,
 } from 'lucide-react'
 import { quizReferenceApi } from '../../services/api'
 import Swal from 'sweetalert2'
@@ -51,6 +51,10 @@ function fmtSize(bytes: number | null) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
+function stripHtml(html: string | null | undefined) {
+  return (html ?? '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
 export default function QuizReferensi() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -71,6 +75,7 @@ export default function QuizReferensi() {
   const [catForm, setCatForm] = useState({ name: '' })
   const [editingCat, setEditingCat] = useState<RefCategory | null>(null)
   const [savingCat, setSavingCat] = useState(false)
+  const [viewRef, setViewRef] = useState<RefItem | null>(null)
 
   const load = (status = filter, q = search, p = page) => {
     setLoading(true)
@@ -313,7 +318,7 @@ export default function QuizReferensi() {
                             </a>
                           ) : null}
                         </div>
-                        {r.description && <p className="mt-1 text-[11px] text-slate-400 line-clamp-1">{r.description}</p>}
+                        {r.description && <p className="mt-1 text-[11px] text-slate-400 line-clamp-1">{stripHtml(r.description)}</p>}
                         {r.note && <p className="mt-1 text-[11px] font-medium text-rose-500">Catatan: {r.note}</p>}
                       </td>
                       <td className="px-4 py-3 border border-slate-100">
@@ -332,6 +337,10 @@ export default function QuizReferensi() {
                       <td className="px-4 py-3 text-center border border-slate-100">{statusBadge(r.status)}</td>
                       <td className="px-4 py-3 border border-slate-100">
                         <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                          <button onClick={() => setViewRef(r)} title="Lihat referensi"
+                            className="rounded-lg bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-500 hover:bg-[#0E6187] hover:text-white transition">
+                            <Eye size={12} />
+                          </button>
                           {r.status === 'pending' && (
                             <button onClick={() => setStatus(r, 'diproses')}
                               className="rounded-lg bg-blue-600 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-blue-500 transition">Proses</button>
@@ -436,6 +445,56 @@ export default function QuizReferensi() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Lihat Referensi */}
+      {viewRef && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setViewRef(null)}>
+          <div className="w-full max-w-2xl mx-3 bg-white rounded-xl shadow-xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2"><Eye size={16} /> Lihat Referensi</h3>
+              <button onClick={() => setViewRef(null)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="overflow-y-auto p-5 space-y-4 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h4 className="text-base font-bold text-slate-800">{viewRef.title}</h4>
+                {statusBadge(viewRef.status)}
+              </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                <span>Sensei: <b className="text-slate-700">{viewRef.user?.name || '-'}</b></span>
+                <span>Kategori: <b className="text-slate-700">{viewRef.category?.name || 'Tanpa kategori'}</b></span>
+                <span>Tanggal: <b className="text-slate-700">{new Date(viewRef.created_at + (viewRef.created_at.includes('T') ? '' : 'T00:00:00')).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</b></span>
+              </div>
+              {(viewRef.file_url || viewRef.link) && (
+                <div className="flex flex-wrap gap-2">
+                  {viewRef.file_url && (
+                    <a href={viewRef.file_url} target="_blank" rel="noreferrer"
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-[12px] font-semibold text-[#0E6187] hover:border-[#0E6187] transition">
+                      <Paperclip size={13} /> Download File
+                    </a>
+                  )}
+                  {viewRef.link && (
+                    <a href={viewRef.link} target="_blank" rel="noreferrer"
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-[12px] font-semibold text-[#0E6187] hover:border-[#0E6187] transition">
+                      <Link2 size={13} /> Buka Link
+                    </a>
+                  )}
+                </div>
+              )}
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400 mb-2">Isi Soal / Referensi</p>
+                {viewRef.description ? (
+                  <div className="blog-content rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"
+                    dangerouslySetInnerHTML={{ __html: viewRef.description }} />
+                ) : (
+                  <p className="text-xs text-slate-400">Tidak ada teks referensi.</p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -832,3 +832,24 @@ html.dark .force-light .shadow-lg {
 }
 .blog-content strong { font-weight: 700; }
 .blog-content em { font-style: italic; }
+
+/* ---- Referensi quiz rich text editor (Quill) ---- */
+.ref-quill .ql-toolbar.ql-snow {
+  border: none;
+  border-bottom: 1px solid #e2e8f0;
+  border-radius: 0;
+}
+.ref-quill .ql-container.ql-snow {
+  border: none;
+  min-height: 170px;
+}
+.ref-quill .ql-editor {
+  min-height: 170px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.ref-quill .ql-editor p { margin: 0 0 0.5em; }
+.ref-quill .ql-editor.ql-blank::before {
+  color: #94a3b8;
+  font-style: normal;
+}

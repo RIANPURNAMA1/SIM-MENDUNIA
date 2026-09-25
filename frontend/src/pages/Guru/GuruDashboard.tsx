@@ -8,6 +8,8 @@ import {
 import api, { guruKelasApi, jadwalLevelApi, APP_URL, quizReferenceApi } from '../../services/api'
 import Swal from 'sweetalert2'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
+import ReactQuill from 'react-quill-new'
+import 'react-quill-new/dist/quill.snow.css'
 
 interface GuruData {
   id: number
@@ -108,6 +110,17 @@ function formatDateShort(dateStr: string) {
   return `${dayNames[d.getDay()].slice(0, 3)} ${d.getDate().toString().padStart(2, '0')}`
 }
 
+const quillModules = {
+  toolbar: [
+    [{ header: [1, 2, 3, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ list: 'ordered' }, { list: 'bullet' }],
+    ['link', 'clean'],
+  ],
+}
+
+const quillFormats = ['header', 'bold', 'italic', 'underline', 'strike', 'list', 'bullet', 'ordered', 'link']
+
 export default function GuruDashboard() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [kelasList, setKelasList] = useState<KelasItem[]>([])
@@ -166,8 +179,13 @@ export default function GuruDashboard() {
       Swal.fire({ icon: 'warning', title: 'Judul wajib diisi', timer: 2000, showConfirmButton: false })
       return
     }
-    if (!refFile && !refForm.link.trim()) {
-      Swal.fire({ icon: 'warning', title: 'Lampirkan file atau isi link', timer: 2000, showConfirmButton: false })
+    if (!refForm.category_id) {
+      Swal.fire({ icon: 'warning', title: 'Kategori wajib dipilih', timer: 2000, showConfirmButton: false })
+      return
+    }
+    const hasTextRef = refForm.description.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
+    if (!refFile && !refForm.link.trim() && !hasTextRef) {
+      Swal.fire({ icon: 'warning', title: 'Isi soal di kolom teks, lampirkan file, atau isi link', timer: 2500, showConfirmButton: false })
       return
     }
     setRefSaving(true)
@@ -358,7 +376,7 @@ export default function GuruDashboard() {
         const base64 = await new Promise<string>((resolve) => {
           reader.onloadend = () => resolve(reader.result as string)
         })
-        const payload: Record<string, unknown> = {
+        const payload: { kelas_id: number; foto: string; lat?: number; long?: number } = {
           kelas_id: kelasId,
           foto: base64,
         }
@@ -889,7 +907,7 @@ export default function GuruDashboard() {
             </div>
             <div className="overflow-y-auto p-5 space-y-4 flex-1">
               <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2.5 text-[11px] text-blue-700 leading-relaxed">
-                Unggah referensi soal (file PDF atau link) beserta nama & kategori. Manager akan membuat soal quiz berdasarkan referensi Anda.
+                Kirim referensi soal (tulis langsung di kolom teks, unggah file PDF, atau isi link) beserta judul &amp; kategori. Manager akan membuat soal quiz berdasarkan referensi Anda.
               </div>
               {refLoading ? (
                 <div className="text-center py-6 text-sm text-gray-400">Memuat...</div>
@@ -902,10 +920,10 @@ export default function GuruDashboard() {
                       className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]" />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Kategori</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Kategori <span className="text-red-500">*</span></label>
                     <select value={refForm.category_id} onChange={e => setRefForm(f => ({ ...f, category_id: e.target.value }))}
                       className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]">
-                      <option value="">Tanpa Kategori</option>
+                      <option value="">Pilih Kategori...</option>
                       {refCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                   </div>
@@ -937,10 +955,16 @@ export default function GuruDashboard() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Catatan <span className="text-gray-400">(Opsional)</span></label>
-                    <textarea value={refForm.description} onChange={e => setRefForm(f => ({ ...f, description: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0] resize-none" rows={2}
-                      placeholder="Tambahkan keterangan untuk manager..." />
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Soal / Referensi Teks <span className="text-gray-400">(Opsional)</span></label>
+                    <div className="ref-quill overflow-hidden rounded-lg border border-gray-300 focus-within:border-[#0069b0] focus-within:ring-1 focus-within:ring-[#0069b0]">
+                      <ReactQuill
+                        theme="snow"
+                        value={refForm.description}
+                        onChange={value => setRefForm(f => ({ ...f, description: value }))}
+                        modules={quillModules}
+                        formats={quillFormats}
+                        placeholder="Tulis soal-soal yang ingin diajukan langsung di sini (boleh diberi format/bold/daftar)..." />
+                    </div>
                   </div>
                   <div className="flex justify-end gap-3 pt-1">
                     <button type="button" onClick={() => setShowRefModal(false)}

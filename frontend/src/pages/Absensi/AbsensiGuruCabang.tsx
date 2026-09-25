@@ -5,6 +5,13 @@ import {
 import { cabangApi } from '../../services/api'
 import type { Cabang } from '../../types'
 
+interface TitikLokasi {
+  label: string
+  latitude: string
+  longitude: string
+  radius: string
+}
+
 interface CabangForm {
   kode_cabang: string
   nama_cabang: string
@@ -12,6 +19,7 @@ interface CabangForm {
   latitude: string
   longitude: string
   radius: string
+  locations: TitikLokasi[]
   alamat: string
 }
 
@@ -22,6 +30,7 @@ const emptyForm: CabangForm = {
   latitude: '',
   longitude: '',
   radius: '100',
+  locations: [],
   alamat: '',
 }
 
@@ -79,6 +88,12 @@ export default function AbsensiGuruCabang() {
       latitude: String(item.latitude || ''),
       longitude: String(item.longitude || ''),
       radius: String(item.radius || '100'),
+      locations: (item.locations || []).map((loc) => ({
+        label: loc.label || '',
+        latitude: String(loc.latitude ?? ''),
+        longitude: String(loc.longitude ?? ''),
+        radius: String(loc.radius ?? ''),
+      })),
       alamat: item.alamat || '',
     })
     setError('')
@@ -90,11 +105,20 @@ export default function AbsensiGuruCabang() {
     setSaving(true)
     setError('')
     try {
+      const locations = form.locations
+        .filter((loc) => loc.latitude.trim() !== '' && loc.longitude.trim() !== '' && loc.radius.trim() !== '')
+        .map((loc) => ({
+          label: loc.label.trim() || null,
+          latitude: parseFloat(loc.latitude),
+          longitude: parseFloat(loc.longitude),
+          radius: parseInt(loc.radius),
+        }))
       const payload = {
         ...form,
         latitude: parseFloat(form.latitude),
         longitude: parseFloat(form.longitude),
         radius: parseInt(form.radius),
+        locations: locations.length > 0 ? locations : null,
       }
       if (editItem) {
         await cabangApi.update(editItem.id, payload)
@@ -141,6 +165,44 @@ export default function AbsensiGuruCabang() {
           ...prev,
           latitude: pos.coords.latitude.toString(),
           longitude: pos.coords.longitude.toString(),
+        }))
+      },
+      () => {},
+    )
+  }
+
+  const addLocation = () => {
+    setForm((prev) => ({
+      ...prev,
+      locations: [...prev.locations, { label: '', latitude: '', longitude: '', radius: '100' }],
+    }))
+  }
+
+  const updateLocation = (idx: number, field: keyof TitikLokasi, value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      locations: prev.locations.map((loc, i) => (i === idx ? { ...loc, [field]: value } : loc)),
+    }))
+  }
+
+  const removeLocation = (idx: number) => {
+    setForm((prev) => ({
+      ...prev,
+      locations: prev.locations.filter((_, i) => i !== idx),
+    }))
+  }
+
+  const getCurrentLocationFor = (idx: number) => {
+    if (!navigator.geolocation) return
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setForm((prev) => ({
+          ...prev,
+          locations: prev.locations.map((loc, i) =>
+            i === idx
+              ? { ...loc, latitude: pos.coords.latitude.toString(), longitude: pos.coords.longitude.toString() }
+              : loc,
+          ),
         }))
       },
       () => {},
@@ -266,6 +328,11 @@ export default function AbsensiGuruCabang() {
                     </td>
                     <td className="border border-slate-200 px-4 py-3 text-center text-sm text-slate-600">
                       {item.radius ? `${item.radius}m` : '-'}
+                      {item.locations && item.locations.length > 0 && (
+                        <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[10px] font-semibold">
+                          +{item.locations.length} titik
+                        </span>
+                      )}
                     </td>
                     <td className="border border-slate-200 px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-1">
@@ -425,6 +492,94 @@ export default function AbsensiGuruCabang() {
                   >
                     <Crosshair size={12} />
                     Ambil lokasi saat ini
+                  </button>
+                </div>
+
+                <div className="border-t border-dashed border-gray-200 pt-3">
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Titik Lokasi Absensi Lainnya
+                  </label>
+                  <p className="text-[11px] text-gray-400 mb-2">
+                    Tambahkan koordinat lain agar absensi juga bisa dilakukan dari titik tersebut.
+                  </p>
+                  <div className="space-y-2">
+                    {form.locations.length === 0 && (
+                      <p className="text-[11px] text-gray-400">Belum ada titik lokasi tambahan.</p>
+                    )}
+                    {form.locations.map((loc, idx) => (
+                      <div key={idx} className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-slate-500 uppercase">Titik {idx + 1}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeLocation(idx)}
+                            className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            title="Hapus titik"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <div>
+                            <label className="block text-[11px] font-medium text-gray-500 mb-0.5">Latitude</label>
+                            <input
+                              type="number"
+                              step="any"
+                              value={loc.latitude}
+                              onChange={(e) => updateLocation(idx, 'latitude', e.target.value)}
+                              placeholder="-6.2088"
+                              className="w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-medium text-gray-500 mb-0.5">Longitude</label>
+                            <input
+                              type="number"
+                              step="any"
+                              value={loc.longitude}
+                              onChange={(e) => updateLocation(idx, 'longitude', e.target.value)}
+                              placeholder="106.8456"
+                              className="w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-medium text-gray-500 mb-0.5">Radius (m)</label>
+                            <input
+                              type="number"
+                              value={loc.radius}
+                              onChange={(e) => updateLocation(idx, 'radius', e.target.value)}
+                              placeholder="100"
+                              className="w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                          <input
+                            type="text"
+                            value={loc.label}
+                            onChange={(e) => updateLocation(idx, 'label', e.target.value)}
+                            placeholder="Nama titik (opsional), mis. Kantor Lapangan"
+                            className="flex-1 px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => getCurrentLocationFor(idx)}
+                            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-blue-600 hover:text-blue-700 transition-colors shrink-0"
+                          >
+                            <Crosshair size={12} />
+                            Gunakan lokasi saat ini
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addLocation}
+                    className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                  >
+                    <Plus size={14} />
+                    Tambah titik lokasi
                   </button>
                 </div>
 

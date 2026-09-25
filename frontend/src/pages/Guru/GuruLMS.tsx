@@ -1150,7 +1150,7 @@ export default function GuruLMS() {
                               )}
                               {qs && qs.length > 0 && qs.map((q, i) => (
                                 <div key={q.id} className="bg-gray-50 rounded-xl border border-gray-100 p-4">
-                                  <p className="text-xs font-bold text-gray-800 leading-snug"><span className="font-black">{i + 1}.</span>{' '}<span className="[&_*]:inline [&_img]:max-h-40 [&_img]:rounded [&_img]:my-1 inline" dangerouslySetInnerHTML={{ __html: cleanQuillHtml(q.question) }} /></p>
+                                  <div className="text-xs font-bold text-gray-800 leading-snug min-w-0"><span className="font-black">{i + 1}.</span>{' '}<span className="[&_p]:my-0.5 [&_h1]:text-xs [&_h2]:text-xs [&_h3]:text-xs [&_h4]:text-xs [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-bold [&_h4]:font-bold [&_ol]:list-decimal [&_ol]:pl-4 [&_ul]:list-disc [&_ul]:pl-4 [&_img]:max-h-40 [&_img]:rounded [&_img]:my-1.5 [&_img]:border [&_img]:border-gray-200 inline-block" dangerouslySetInnerHTML={{ __html: cleanQuillHtml(q.question) }} /></div>
                                   {q.section?.name && (
                                     <span className="mt-2 inline-block rounded-full bg-[#0069b0]/[0.06] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#0069b0]">{q.section.name}</span>
                                   )}

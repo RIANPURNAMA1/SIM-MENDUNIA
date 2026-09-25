@@ -42,6 +42,13 @@ export interface Divisi {
   nama_divisi: string
 }
 
+export interface CabangLocation {
+  label?: string | null
+  latitude: number
+  longitude: number
+  radius: number
+}
+
 export interface Cabang {
   id: number
   kode_cabang: string
@@ -51,6 +58,7 @@ export interface Cabang {
   latitude: number
   longitude: number
   radius: number
+  locations?: CabangLocation[] | null
   alamat: string | null
   penempatan_cabang_id?: number | null
   penempatan_cabang_kode?: string | null

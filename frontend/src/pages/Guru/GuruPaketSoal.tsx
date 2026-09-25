@@ -8,6 +8,8 @@ import {
 } from 'lucide-react'
 import { guruQuizApi, APP_URL } from '../../services/api'
 import { cleanQuillHtml } from '../../utils/quillHtml'
+import ReactQuill from 'react-quill-new'
+import 'react-quill-new/dist/quill.snow.css'
 import Swal from 'sweetalert2'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
 
@@ -165,6 +167,7 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
   const [coverPreview, setCoverPreview] = useState('')
   const [uploadingCover, setUploadingCover] = useState(false)
   const coverInputRef = useRef<HTMLInputElement>(null)
+  const questionQuillRef = useRef<any>(null)
 
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [categoryForm, setCategoryForm] = useState({ name: '' })
@@ -299,7 +302,7 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
         level: paketForm.level || null,
         category: paketForm.category || null,
         time_limit_minutes: Number(paketForm.time_limit_minutes) || 30,
-        max_attempts: Number(paketForm.max_attempts) || 3,
+        max_attempts: Number(paketForm.max_attempts || 3),
         max_warnings: Number(paketForm.max_warnings) || 3,
         passing_score: Number(paketForm.passing_score) || 0,
         shuffle_questions: paketForm.shuffle_questions,
@@ -606,6 +609,68 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
       .finally(() => setUploadingQMedia(null))
   }
 
+  const questionQuillModules = {
+    toolbar: {
+      container: [
+        [{ header: [1, 2, 3, false] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ list: 'ordered' }, { list: 'bullet' }],
+        ['link', 'image', 'file'],
+        ['clean'],
+      ],
+      handlers: {
+        image: () => {
+          const input = document.createElement('input')
+          input.type = 'file'
+          input.accept = 'image/*'
+          input.onchange = async () => {
+            const file = input.files?.[0]
+            if (!file) return
+            setUploadingQMedia('image')
+            try {
+              const fd = new FormData()
+              fd.append('file', file)
+              const res = await guruQuizApi.uploadMedia(fd)
+              const quill = questionQuillRef.current?.getEditor()
+              const range = quill?.getSelection()
+              quill?.insertEmbed(range?.index || 0, 'image', res.data.url)
+            } catch {
+              Swal.fire({ icon: 'error', title: 'Gagal upload gambar' })
+            } finally {
+              setUploadingQMedia(null)
+            }
+          }
+          input.click()
+        },
+        file: () => {
+          const input = document.createElement('input')
+          input.type = 'file'
+          input.accept = '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt'
+          input.onchange = async () => {
+            const file = input.files?.[0]
+            if (!file) return
+            setUploadingQMedia('image')
+            try {
+              const fd = new FormData()
+              fd.append('file', file)
+              const res = await guruQuizApi.uploadMedia(fd)
+              const quill = questionQuillRef.current?.getEditor()
+              const range = quill?.getSelection(true)
+              quill?.insertText(range?.index || 0, ` ${file.name} `, 'link', res.data.url)
+              quill?.setSelection((range?.index || 0) + file.name.length + 2)
+            } catch {
+              Swal.fire({ icon: 'error', title: 'Gagal upload file' })
+            } finally {
+              setUploadingQMedia(null)
+            }
+          }
+          input.click()
+        },
+      },
+    },
+  }
+  const questionQuillFormats = ['header', 'bold', 'italic', 'underline', 'strike', 'list', 'link', 'image']
+
   const deleteQuestion = (q: Question) => {
     Swal.fire({
       title: 'Hapus soal?',
@@ -889,7 +954,9 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-2">
-                                <p className="text-[12.5px] font-bold text-[#14182B] leading-snug">{q.question}</p>
+                                <div className="text-[12.5px] font-bold text-[#14182B] leading-snug min-w-0">
+                                <span className="[&_p]:my-0.5 [&_h1]:text-[12.5px] [&_h2]:text-[12.5px] [&_h3]:text-[12.5px] [&_h4]:text-[12.5px] [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-bold [&_h4]:font-bold [&_ol]:list-decimal [&_ol]:pl-4 [&_ul]:list-disc [&_ul]:pl-4 [&_img]:max-h-40 [&_img]:rounded [&_img]:my-1.5 [&_img]:border [&_img]:border-[#E5E7EF] inline-block" dangerouslySetInnerHTML={{ __html: cleanQuillHtml(q.question) }} />
+                              </div>
                                 <div className="flex items-center gap-1 shrink-0">
                                   <button onClick={() => openEditQuestion(q)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F4F5F8] hover:bg-[#E5E7EF] transition-colors">
                                     <Repeat size={13} className="text-[#4B5063]" />
@@ -1168,10 +1235,23 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
                     className="w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10" />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-[#4B5063] mb-1.5 block flex items-center gap-1"><Repeat size={11} /> Maks Percobaan</label>
-                  <input type="number" min={1} max={10} value={paketForm.max_attempts}
-                    onChange={e => setPaketForm({ ...paketForm, max_attempts: e.target.value })}
-                    className="w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10" />
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold text-[#4B5063] mb-1.5 block flex items-center gap-1"><Repeat size={11} /> Maks Percobaan</label>
+                    <button
+                      onClick={() => setPaketForm({ ...paketForm, max_attempts: Number(paketForm.max_attempts) === 0 ? '3' : '0' })}
+                      title="Tanpa batas (unlimited)"
+                      className={`relative w-10 h-[22px] rounded-full transition-colors ${Number(paketForm.max_attempts) === 0 ? 'bg-[#0E6187]' : 'bg-slate-300'}`}>
+                      <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${Number(paketForm.max_attempts) === 0 ? 'left-[20px]' : 'left-[2px]'}`} />
+                    </button>
+                  </div>
+                  {Number(paketForm.max_attempts) === 0 ? (
+                    <p className="text-[11px] font-semibold text-[#0069b0] mb-1.5">Tanpa batas (unlimited)</p>
+                  ) : (
+                    <input type="number" min={1} max={10} value={paketForm.max_attempts}
+                      onChange={e => setPaketForm({ ...paketForm, max_attempts: e.target.value })}
+                      className="w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10"
+                    />
+                  )}
                 </div>
               </div>
 
@@ -1183,8 +1263,8 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
                     className="w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10" />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-[#4B5063] mb-1.5 block">Nilai Lulus (0-100)</label>
-                  <input type="number" min={0} max={100} value={paketForm.passing_score}
+                  <label className="text-[11px] font-bold text-[#4B5063] mb-1.5 block">Nilai Lulus (0-200)</label>
+                  <input type="number" min={0} max={200} value={paketForm.passing_score}
                     onChange={e => setPaketForm({ ...paketForm, passing_score: e.target.value })}
                     className="w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10" />
                 </div>
@@ -1303,8 +1383,13 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
             <div className="p-5 space-y-4">
               <div>
                 <label className="text-[11px] font-bold text-[#4B5063] mb-1.5 block">Pertanyaan <span className="text-[#8B90A0] font-medium">(opsional)</span></label>
-                <textarea value={qForm.question} onChange={e => setQForm({ ...qForm, question: e.target.value })}
-                  rows={2} placeholder="Tulis pertanyaan..." className="w-full text-xs border border-[#E5E7EF] rounded-xl px-3.5 py-3 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10 resize-none" />
+                <div className="rounded-xl border border-[#E5E7EF] overflow-hidden bg-white">
+                  <ReactQuill ref={questionQuillRef} value={qForm.question}
+                    onChange={v => setQForm({ ...qForm, question: v })}
+                    modules={questionQuillModules} formats={questionQuillFormats} theme="snow"
+                    placeholder="Tulis pertanyaan..." />
+                </div>
+                {uploadingQMedia && <p className="flex items-center gap-1.5 text-[10px] font-semibold text-[#0069b0] mt-1.5"><Loader2 size={11} className="animate-spin" /> Mengunggah media...</p>}
               </div>
 
               <div>
@@ -1561,7 +1646,7 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
                     {detail.questions.map((q, i) => (
                       <div key={q.id} className="border border-[#E5E7EF] rounded-xl p-4">
                         <div className="flex items-start justify-between gap-2">
-                          <p className="text-[12px] font-bold text-[#14182B] leading-snug"><span className="font-black">{i + 1}.</span>{' '}<span className="[&_*]:inline [&_img]:max-h-40 [&_img]:rounded [&_img]:my-1 inline" dangerouslySetInnerHTML={{ __html: cleanQuillHtml(q.question) }} /></p>
+                          <div className="text-[12px] font-bold text-[#14182B] leading-snug min-w-0"><span className="font-black">{i + 1}.</span>{' '}<span className="[&_p]:my-0.5 [&_h1]:text-[12px] [&_h2]:text-[12px] [&_h3]:text-[12px] [&_h4]:text-[12px] [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-bold [&_h4]:font-bold [&_ol]:list-decimal [&_ol]:pl-4 [&_ul]:list-disc [&_ul]:pl-4 [&_img]:max-h-40 [&_img]:rounded [&_img]:my-1.5 [&_img]:border [&_img]:border-[#E5E7EF] inline-block" dangerouslySetInnerHTML={{ __html: cleanQuillHtml(q.question) }} /></div>
                           <span className={`text-[10px] font-bold shrink-0 px-2 py-0.5 rounded-full ${q.question_type === 'essay' && q.is_correct === null && q.answer_text?.trim() ? 'bg-amber-50 text-amber-600' : q.is_correct === true ? 'bg-emerald-50 text-emerald-600' : q.is_correct === false ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-[#8B90A0]'}`}>
                             {q.question_type === 'essay' && q.is_correct === null && q.answer_text?.trim() ? 'BELUM DINILAI' : q.is_correct === true ? 'BENAR' : q.is_correct === false ? 'SALAH' : 'TIDAK DIJAWAB'}
                           </span>

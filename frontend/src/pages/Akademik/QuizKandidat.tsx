@@ -1121,7 +1121,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
             </p>
 
             <div className="mt-5">
-              <p className="text-5xl font-black text-[#0E6187] tabular-nums">{Number(result.score) || 0}</p>
+              <p className={`text-5xl font-black tabular-nums ${lulus ? 'text-emerald-500' : result.passing_score > 0 ? 'text-red-500' : 'text-[#0E6187]'}`}>{Number(result.score) || 0}</p>
               <p className="text-[10px] font-bold text-slate-400 mt-1">Nilai Akhir · Lulus jika ≥ {result.passing_score}</p>
             </div>
 
@@ -1389,13 +1389,13 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-bold text-gray-900 truncate">{q.title}</p>
                               <p className="text-[10px] text-gray-400 mt-0.5">
-                                {q.questions_count} soal · {q.max_attempts} percobaan
+                                {q.questions_count} soal · {q.max_attempts > 0 ? `${q.max_attempts} percobaan` : 'Unlimited'}
                                 {attemptsMaxed ? ' (habis)' : ''}
                               </p>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
                               {best != null && (
-                                <span className={`text-[11px] font-black ${q.passing_score > 0 && best >= q.passing_score ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                <span className={`text-[11px] font-black ${q.passing_score > 0 ? (best >= q.passing_score ? 'text-emerald-500' : 'text-red-500') : 'text-amber-500'}`}>
                                   {best}%
                                 </span>
                               )}
@@ -1496,7 +1496,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
             <div className="bg-white rounded-md border border-slate-200 p-5">
               <div className="flex items-center justify-between">
                 <p className="text-[12px] font-bold text-slate-700">Riwayat Pengerjaan</p>
-                <span className="text-[10px] font-bold text-slate-500">{attempts.length}/{paket.max_attempts} percobaan</span>
+                <span className="text-[10px] font-bold text-slate-500">{attempts.length}{paket.max_attempts > 0 ? `/${paket.max_attempts}` : ' dari tak terbatas'} percobaan</span>
               </div>
               <div className="mt-3 space-y-2">
                 {attempts.map(a => (
@@ -1527,9 +1527,9 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
                   </div>
                 ))}
               </div>
-              {paket.max_attempts - attempts.length > 0 && (
+              {(paket.max_attempts === 0 || paket.max_attempts - attempts.length > 0) && (
                 <p className="text-[10px] text-slate-400 font-medium mt-2.5">
-                  Sisa percobaan: {paket.max_attempts - attempts.length}×
+                  {paket.max_attempts > 0 ? `Sisa percobaan: ${paket.max_attempts - attempts.length}×` : 'Percobaan tidak dibatasi (unlimited)'}
                 </p>
               )}
             </div>
@@ -1592,7 +1592,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
     const isProctoring = cameraEnabled || blockExit
     const used = attempts.length
     const inProgress = attempts.find(a => a.status === 'in_progress')
-    const remainingAttempts = paket.max_attempts - used
+    const remainingAttempts = paket.max_attempts > 0 ? paket.max_attempts - used : Infinity
     const canStartNew = remainingAttempts > 0
 
     const startFlow = () => {
@@ -1716,7 +1716,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
                   <ListChecks size={15} className="text-[#0E6187]" />
                 </div>
                 <div>
-                  <p className="text-[12px] font-bold text-slate-700">Maks {paket.max_attempts} percobaan</p>
+                  <p className="text-[12px] font-bold text-slate-700">{paket.max_attempts > 0 ? `Maks ${paket.max_attempts} percobaan` : 'Tanpa batas percobaan (unlimited)'}</p>
                   <p className="text-[10px] text-slate-400 font-medium mt-0.5">Nilai terbaik akan diambil. Minimal nilai lulus: {paket.passing_score}.</p>
                 </div>
               </div>
@@ -1757,7 +1757,9 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
                 ))}
               </div>
               {remainingAttempts > 0 && (
-                <p className="text-[10px] text-slate-400 font-medium mt-2.5">Sisa percobaan: {remainingAttempts}×</p>
+                <p className="text-[10px] text-slate-400 font-medium mt-2.5">
+                  {paket.max_attempts > 0 ? `Sisa percobaan: ${remainingAttempts}×` : 'Percobaan tidak dibatasi (unlimited)'}
+                </p>
               )}
             </div>
           )}
@@ -1897,7 +1899,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
                     {p.description && <p className="text-[11px] text-slate-400 font-medium mt-1 line-clamp-2">{p.description}</p>}
                   </div>
                   {p.best_score !== null && (
-                    <span className={`text-[10px] font-bold px-2 py-1 rounded-md shrink-0 ${lulus ? 'bg-emerald-50 text-emerald-600' : 'bg-[#0E6187]/[0.06] text-[#0E6187]'}`}>
+                    <span className={`text-[10px] font-bold px-2 py-1 rounded-md shrink-0 ${p.passing_score > 0 ? (lulus ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600') : 'bg-[#0E6187]/[0.06] text-[#0E6187]'}`}>
                       Nilai {p.best_score}
                     </span>
                   )}
@@ -1913,7 +1915,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
 
                 <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100">
                   <p className="text-[10.5px] font-semibold text-slate-400">
-                    {p.attempts_used}/{p.max_attempts} percobaan dipakai
+                    {p.attempts_used}{p.max_attempts > 0 ? `/${p.max_attempts}` : '/∞'} percobaan dipakai
                   </p>
                   {inProgressId ? (
                     <span role="button" onClick={e => { e.stopPropagation(); navigate(resumeUrl(p.id, inProgressId, p.quiz_template)) }}

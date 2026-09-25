@@ -5,7 +5,7 @@ import {
   FileText, Video, ArrowLeft, Clock, ListChecks, Lock, FileQuestion,
   ClipboardList, Upload, Download, Send, GraduationCap, Star, Award, AlertTriangle, X, XCircle, Trash2,
   CalendarCheck, LayoutDashboard, Wallet, User, Trophy, Search,
-  Image as ImageIcon, Volume2, Calendar, Building2,
+  Image as ImageIcon, Volume2, Calendar, Building2, Sparkles,
 } from 'lucide-react'
 import { lmsApi, quizApi, APP_URL } from '../../services/api'
 import { DEFAULT_COURSE_COVER } from '../../utils/courseCover'
@@ -142,6 +142,8 @@ interface CourseQuiz {
   is_unlocked: boolean
   is_link_locked?: boolean
   locked?: boolean
+  quiz_template?: string
+  is_pembahasan?: boolean
 }
 
 interface ReviewOption {
@@ -653,6 +655,11 @@ export default function LMS() {
     })
   }
 
+  const openLessonPembahasan = (paket: CourseQuiz) => {
+    if (!selectedLesson || !courseId) return
+    navigate(`/siswa-dashboard/lms/${courseId}/materi/${selectedLesson.id}/pembahasan/${paket.id}`)
+  }
+
   const renderReviewModal = () => (
     <ReviewModal
       open={reviewOpen}
@@ -927,7 +934,7 @@ export default function LMS() {
   const renderQuizCard = (q: CourseQuiz) => {
     const unlocked = q.is_unlocked
     const best = q.best_score
-    const attemptsMaxed = q.attempts_used >= q.max_attempts
+    const attemptsMaxed = q.max_attempts > 0 && q.attempts_used >= q.max_attempts
     if (q.locked) {
       return (
         <div key={q.id} className="bg-gray-50 rounded-2xl border border-dashed border-gray-300 overflow-hidden">
@@ -988,9 +995,9 @@ export default function LMS() {
             </div>
             {unlocked && best !== null ? (
               <span className={`shrink-0 text-xs font-black ${
-                q.passing_score > 0 && best >= q.passing_score ? 'text-emerald-500' : 'text-amber-500'
+                q.passing_score > 0 ? (best >= q.passing_score ? 'text-emerald-500' : 'text-red-500') : 'text-amber-500'
               }`}>
-                {best}%
+                {best} poin
               </span>
             ) : null}
           </div>
@@ -1003,10 +1010,10 @@ export default function LMS() {
               <Clock size={11} /> {q.time_limit_minutes}m
             </span>
             <span className="flex items-center gap-1 text-[10px] font-medium px-2.5 py-1 rounded-full bg-gray-50 text-gray-500">
-              <Award size={11} /> Lulus {q.passing_score}%
+              <Award size={11} /> Lulus {q.passing_score} poin
             </span>
             <span className="flex items-center gap-1 text-[10px] font-medium px-2.5 py-1 rounded-full bg-gray-50 text-gray-500">
-              <Play size={11} /> {q.max_attempts - q.attempts_used} percobaan
+              <Play size={11} /> {q.max_attempts > 0 ? `${Math.max(0, q.max_attempts - (q.attempts_used || 0))} percobaan` : 'Tanpa batas'}
             </span>
           </div>
 
@@ -1387,12 +1394,14 @@ export default function LMS() {
     const lessonQuizzes = (lessonDetail?.quizzes && lessonDetail.quizzes.length > 0
       ? lessonDetail.quizzes
       : currentIdx === 0 ? courseQuizzes : [])
+    const pembahasanQuizzes = lessonQuizzes.filter(q => q.is_pembahasan)
+    const lessonQuizItems = lessonQuizzes.filter(q => !q.is_pembahasan)
     const materiCount = (lessonDetail?.slides?.length || 0) + (lessonDetail?.materis?.length || 0) + (selectedLesson.content || selectedLesson.video_url || selectedLesson.file_path ? 1 : 0)
     const courseInfo = [formatBatch(selectedCourse.batch?.nama_batch), selectedCourse.level && `Level ${selectedCourse.level}`].filter(Boolean).join(' · ')
     const lessonTasks = assignments.filter(a => a.lesson_id === selectedLesson.id)
     const tabItems = [
       { key: 'materi' as const, label: 'Materi', icon: BookOpen, count: undefined as number | undefined },
-      { key: 'quiz' as const, label: 'Quiz', icon: ListChecks, count: lessonQuizzes.length || undefined },
+      { key: 'quiz' as const, label: 'Quiz', icon: ListChecks, count: lessonQuizItems.length || undefined },
       { key: 'tugas' as const, label: 'Tugas', icon: ClipboardList, count: lessonTasks.length || undefined },
       { key: 'rekap' as const, label: 'Rekap', icon: FileText, count: lessonDetail?.recap ? 1 : undefined },
     ]
@@ -1670,13 +1679,61 @@ export default function LMS() {
                   </div>
                 )}
               </div>
+
+              {/* Pembahasan dari Bank Paket Soal */}
+              {pembahasanQuizzes.length > 0 && (
+                <div className="bg-white rounded-md shadow-sm overflow-hidden">
+                  <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <h3 className="text-[11px] font-black text-slate-800 flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-md bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+                        <Sparkles size={13} className="text-[#0E6187]" />
+                      </span>
+                      Pembahasan Quiz
+                    </h3>
+                    <span className="text-[10px] font-bold text-gray-400">{pembahasanQuizzes.length} paket</span>
+                  </div>
+                  <div className="p-4">
+                    <p className="text-[11px] text-gray-400 font-medium mb-3">
+                      Buka pembahasan paket soal untuk belajar — lihat soal &amp; kunci jawaban sesuai template quiz.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {pembahasanQuizzes.map(q => {
+                        const template = q.quiz_template === 'jft' ? 'JFT UI' : 'Basic'
+                        return (
+                          <div key={q.id} className="flex flex-col rounded-lg border border-slate-200 bg-white hover:border-[#0E6187]/40 hover:shadow-md hover:shadow-[#0E6187]/5 transition-all">
+                            <div className="flex items-start gap-2.5 p-3.5 pb-3">
+                              <div className="w-9 h-9 rounded-md bg-[#0E6187]/10 flex items-center justify-center shrink-0">
+                                <Sparkles size={16} className="text-[#0E6187]" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-bold text-slate-800 truncate leading-tight">{q.title}</p>
+                                <p className="text-[10px] text-slate-400 mt-0.5">{q.questions_count} soal · {template}</p>
+                              </div>
+                            </div>
+                            <div className="mt-auto px-3.5 py-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
+                              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-2 py-0.5">
+                                <Check size={10} /> Dengan kunci jawaban
+                              </span>
+                              <button type="button"
+                                onClick={() => openLessonPembahasan(q)}
+                                className="rounded-md bg-[#0E6187] px-3 py-1.5 text-[10px] font-bold text-white shadow-sm shadow-[#0E6187]/20 hover:bg-[#0B4C6B] active:scale-95 transition-all shrink-0">
+                                Lihat Pembahasan
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           )}
 
               {lessonTab === 'quiz' && (
             <>
               {/* Quiz Pertemuan Ini */}
-              {lessonQuizzes.length > 0 ? (
+              {lessonQuizItems.length > 0 ? (
                 <div className="bg-white rounded-md shadow-sm overflow-hidden">
                   <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
                     <h3 className="text-[11px] font-black text-slate-800 flex items-center gap-2">
@@ -1685,11 +1742,11 @@ export default function LMS() {
                       </span>
                       Quiz Pertemuan Ini
                     </h3>
-                    <span className="text-[10px] font-bold text-gray-400">{lessonQuizzes.length} paket</span>
+                    <span className="text-[10px] font-bold text-gray-400">{lessonQuizItems.length} paket</span>
                   </div>
                   <div className="p-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {lessonQuizzes.map(q => {
+                      {lessonQuizItems.map(q => {
                         const unlocked = q.is_unlocked
                         const attemptsMaxed = q.max_attempts > 0 && q.attempts_used >= q.max_attempts
                         const locked = !unlocked
@@ -1727,7 +1784,7 @@ export default function LMS() {
                             <div className="mt-auto px-3.5 py-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
                               <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
                                 <Clock size={11} />
-                                {attemptsMaxed ? 'Percobaan habis' : remaining != null ? `Sisa ${remaining} kali` : `${q.max_attempts ?? 0} percobaan`}
+                                {attemptsMaxed ? 'Percobaan habis' : remaining != null ? `Sisa ${remaining} kali` : q.max_attempts > 0 ? `${q.max_attempts} percobaan` : 'Tanpa batas (unlimited)'}
                               </div>
                               <div className="flex items-center gap-1.5 shrink-0">
                                 {q.attempts_used > 0 && (
