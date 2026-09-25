@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { ArrowLeft, Check, Eye, FileQuestion, Loader2, Volume2 } from 'lucide-react'
 import { guruLmsApi, lmsApi } from '../../services/api'
 import { useForceLightMode } from '../../hooks/useForceLightMode'
@@ -40,12 +40,13 @@ const letter = (i: number) => String.fromCharCode(65 + i)
 const fmtSectionName = (q: PembahasanQuestion) => (q.section?.name || '').trim()
 
 interface QuizPembahasanProps {
-  source: 'guru' | 'siswa'
+  source: 'guru' | 'siswa' | 'admin'
 }
 
 export default function QuizPembahasan({ source }: QuizPembahasanProps) {
   useForceLightMode()
   const { lessonId, paketId, courseId } = useParams()
+  const location = useLocation()
   const navigate = useNavigate()
 
   const [loading, setLoading] = useState(true)
@@ -59,9 +60,9 @@ export default function QuizPembahasan({ source }: QuizPembahasanProps) {
     setLoading(true)
     setError(null)
     setIndex(0)
-    const req = source === 'guru'
-      ? guruLmsApi.lessonPaketQuestions(Number(lessonId), Number(paketId))
-      : lmsApi.lessonPembahasan(Number(lessonId), Number(paketId))
+    const req = source === 'siswa'
+      ? lmsApi.lessonPembahasan(Number(lessonId), Number(paketId))
+      : guruLmsApi.lessonPaketQuestions(Number(lessonId), Number(paketId))
     req.then(res => {
       setPaket({
         title: res.data.paket?.title || 'Quiz',
@@ -79,7 +80,10 @@ export default function QuizPembahasan({ source }: QuizPembahasanProps) {
   }, [load])
 
   const handleBack = () => {
-    if (source === 'guru') {
+    if (source === 'admin') {
+      const base = location.pathname.startsWith('/admin-cabang') ? '/admin-cabang/lms' : '/lms'
+      navigate(courseId ? `${base}/course/${courseId}/pertemuan/${lessonId}` : (lessonId ? `${base}/course/${courseId}` : `${base}`))
+    } else if (source === 'guru') {
       navigate(lessonId ? `/guru-lms/lesson/${lessonId}` : '/guru-lms')
     } else if (courseId) {
       navigate(`/siswa-dashboard/lms/${courseId}/materi/${lessonId}`)

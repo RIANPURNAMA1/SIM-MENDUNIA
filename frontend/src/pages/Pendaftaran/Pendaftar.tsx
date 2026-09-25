@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, FileText, Eye, Trash2, RotateCcw, CreditCard, X, Loader, AlertTriangle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Users, MoreHorizontal, BadgeCheck, Ban, RefreshCw, Clock, CheckCircle2, Banknote, Upload, Receipt, LayoutDashboard } from 'lucide-react'
+import { Search, FileText, Eye, Trash2, RotateCcw, CreditCard, X, Loader, AlertTriangle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Users, MoreHorizontal, BadgeCheck, Ban, RefreshCw, Clock, CheckCircle2, Banknote, Upload, Receipt, LayoutDashboard, Landmark, UserRound } from 'lucide-react'
 import { pendaftarApi, pendaftarApi as apiModule } from '../../services/api'
 import api, { APP_URL } from '../../services/api'
 import Swal from 'sweetalert2'
@@ -39,6 +39,10 @@ interface PendaftarItem {
   batch: { id: number; nama_batch: string } | null
   affiliate_link?: { affiliate: { id: number; name: string; email: string } | null } | null
   coupon?: { kode: string } | null
+  bank_pengirim?: string | null
+  nama_pengirim?: string | null
+  bank_asal?: string | null
+  nama_rekening?: string | null
   detail?: { kategori_id: number; kode: string; nama: string; biaya: number; dibayar: number; kode_unik?: number; total_transfer?: number; tanggal_bayar?: string }[]
 }
 
@@ -329,22 +333,37 @@ export default function Pendaftar() {
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Status filter buttons */}
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
-        {[
-          { label: 'Total', value: stats.total },
-          { label: 'Menunggu Pembayaran', value: stats.menungguPembayaran },
-          { label: 'Menunggu Verifikasi', value: stats.pembayaranDiKonfirmasi },
-          { label: 'Proses', value: stats.proses },
-          { label: 'Pembayaran dikonfirmasi', value: stats.selesai },
-          { label: 'Batal', value: stats.batal },
-          { label: 'Ditangguhkan', value: stats.ditangguhkan },
-        ].map(s => (
-          <div key={s.label} className="rounded-sm border border-slate-200 bg-white p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{s.label}</p>
-            <p className="mt-0.5 text-xl font-bold text-slate-800">{s.value}</p>
-          </div>
-        ))}
+        {([
+          { key: '', label: 'Pendaftar', icon: Users, chip: 'bg-[#0E6187]', count: stats.total, badgeValue: 0, badge: false as boolean },
+          { key: 'menunggu pembayaran', label: 'Menunggu Bayar', icon: Clock, chip: 'bg-slate-600', count: stats.menungguPembayaran, badgeValue: 0, badge: false },
+          { key: 'menunggu verifikasi', label: 'Verifikasi', icon: BadgeCheck, chip: 'bg-amber-500', count: stats.pembayaranDiKonfirmasi, badgeValue: stats.pendingVerifikasi, badge: true },
+          { key: 'proses', label: 'Proses', icon: RefreshCw, chip: 'bg-blue-500', count: stats.proses, badgeValue: 0, badge: false },
+          { key: 'pembayaran dikonfirmasi', label: 'Dikonfirmasi', icon: CheckCircle2, chip: 'bg-emerald-600', count: stats.selesai, badgeValue: 0, badge: false },
+          { key: 'batal', label: 'Batal', icon: Ban, chip: 'bg-red-500', count: stats.batal, badgeValue: 0, badge: false },
+          { key: 'ditangguhkan', label: 'Ditangguhkan', icon: Banknote, chip: 'bg-orange-500', count: stats.ditangguhkan, badgeValue: 0, badge: false },
+        ] as const).map(s => {
+          const Icon = s.icon
+          const active = (filterStatus || '') === s.key
+          return (
+            <button key={s.key || 'all'} onClick={() => { setFilterStatus(s.key); setPage(1) }}
+              className={`relative rounded-sm border bg-white p-3 text-left transition ${active ? 'border-[#0E6187] ring-2 ring-[#0E6187]/15' : 'border-slate-200 hover:border-slate-300 hover:shadow-sm'}`}>
+              {s.badge && (s.badgeValue || 0) > 0 && (
+                <span className="absolute -top-2 -right-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm">
+                  {s.badgeValue}
+                </span>
+              )}
+              <div className="flex items-center gap-2">
+                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-white ${s.chip}`}>
+                  <Icon size={16} />
+                </span>
+                <p className={`min-w-0 truncate text-[11px] font-semibold ${active ? 'text-[#0E6187]' : 'text-slate-600'}`}>{s.label}</p>
+              </div>
+              <p className="mt-2 text-xl font-bold text-slate-800">{s.count}</p>
+            </button>
+          )
+        })}
       </div>
 
       {/* Notifikasi Pembayaran Masuk */}
@@ -497,6 +516,18 @@ export default function Pendaftar() {
                       <div className="min-w-0">
                         <div className="truncate text-sm font-semibold text-[#0E6187] hover:underline">{p.nama}</div>
                         <div className="truncate text-xs font-normal text-black">{p.email}</div>
+                        {(p.bank_pengirim || p.bank_asal) && (
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-700">
+                              <Landmark size={9} /> {p.bank_pengirim || p.bank_asal}
+                            </span>
+                            {(p.nama_pengirim || p.nama_rekening) && (
+                              <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 truncate max-w-[140px]">
+                                <UserRound size={9} /> {p.nama_pengirim || p.nama_rekening}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </button>
                   </td>
@@ -976,6 +1007,14 @@ export default function Pendaftar() {
                       <p className="text-sm font-medium text-gray-800">-</p>
                     )}
                   </div>
+                  <div className="rounded-sm bg-gray-50 p-3">
+                    <p className="text-[11px] text-gray-400">Nama Pengirim</p>
+                    <p className="text-sm font-medium text-gray-800">{detailModal.nama_pengirim || detailModal.nama_rekening || '-'}</p>
+                  </div>
+                  <div className="rounded-sm bg-gray-50 p-3">
+                    <p className="text-[11px] text-gray-400">Bank Pengirim</p>
+                    <p className="text-sm font-medium text-gray-800">{detailModal.bank_pengirim || detailModal.bank_asal || '-'}</p>
+                  </div>
                 </div>
                 {detailModal.detail && detailModal.detail.length > 0 && (
                   <div className="rounded-sm border border-gray-200 overflow-hidden">
@@ -1006,12 +1045,12 @@ export default function Pendaftar() {
                 <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Ubah Status</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {[
-                    { val: 'waiting_payment', label: 'Menunggu Pembayaran', icon: Clock, iconColor: 'text-slate-500', bg: 'bg-slate-50 hover:bg-slate-100 border-slate-200' },
-                    { val: 'confirmed', label: 'Menunggu Verifikasi', icon: BadgeCheck, iconColor: 'text-amber-500', bg: 'bg-amber-50 hover:bg-amber-100 border-amber-200' },
-                    { val: 'proses', label: 'Proses', icon: RefreshCw, iconColor: 'text-blue-500', bg: 'bg-blue-50 hover:bg-blue-100 border-blue-200' },
-                    { val: 'selesai', label: 'Pembayaran dikonfirmasi', icon: CheckCircle2, iconColor: 'text-emerald-500', bg: 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200' },
-                    { val: 'batal', label: 'Batal', icon: Ban, iconColor: 'text-red-500', bg: 'bg-red-50 hover:bg-red-100 border-red-200' },
-                    { val: 'ditangguhkan', label: 'Ditangguhkan', icon: Banknote, iconColor: 'text-orange-500', bg: 'bg-orange-50 hover:bg-orange-100 border-orange-200' },
+                    { val: 'waiting_payment', label: 'Menunggu Pembayaran', icon: Clock, iconColor: 'text-white', bg: 'bg-slate-600 hover:bg-slate-700 border-slate-600' },
+                    { val: 'confirmed', label: 'Menunggu Verifikasi', icon: BadgeCheck, iconColor: 'text-white', bg: 'bg-amber-500 hover:bg-amber-600 border-amber-500' },
+                    { val: 'proses', label: 'Proses', icon: RefreshCw, iconColor: 'text-white', bg: 'bg-blue-500 hover:bg-blue-600 border-blue-500' },
+                    { val: 'selesai', label: 'Pembayaran dikonfirmasi', icon: CheckCircle2, iconColor: 'text-white', bg: 'bg-emerald-600 hover:bg-emerald-700 border-emerald-600' },
+                    { val: 'batal', label: 'Batal', icon: Ban, iconColor: 'text-white', bg: 'bg-red-500 hover:bg-red-600 border-red-500' },
+                    { val: 'ditangguhkan', label: 'Ditangguhkan', icon: Banknote, iconColor: 'text-white', bg: 'bg-orange-500 hover:bg-orange-600 border-orange-500' },
                   ].map(opt => {
                     const statusMap: Record<string, Record<string, string>> = {
                       waiting_payment: { status_pembayaran: 'unpaid', status_pendaftaran: 'pending' },
@@ -1077,7 +1116,7 @@ export default function Pendaftar() {
                         className={`flex items-center gap-2 rounded-sm border px-3 py-2.5 text-left text-sm font-medium transition ${opt.bg} ${isActive ? 'ring-2 ring-offset-1 ring-[#0E6187] opacity-100 cursor-default' : 'cursor-pointer'}`}
                       >
                         <Icon size={15} className={opt.iconColor} />
-                        <span className="text-gray-700">{opt.label}</span>
+                        <span className="text-white">{opt.label}</span>
                       </button>
                     )
                   })}

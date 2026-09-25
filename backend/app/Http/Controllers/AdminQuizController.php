@@ -51,6 +51,7 @@ class AdminQuizController extends Controller
     public function meta()
     {
         $batchIds = $this->getBranchBatchIds();
+        $global = $this->isGlobal();
 
         if ($this->isGlobal()) {
             $batches = Batch::orderBy('nama_batch')->get(['id', 'nama_batch']);
@@ -77,12 +78,29 @@ class AdminQuizController extends Controller
             ->get(['id', 'name'])
             ->map(fn ($u) => ['id' => $u->id, 'name' => $guruNama[$u->id] ?? $u->name]);
 
+        $paketScope = function ($q) use ($batchIds, $global) {
+            if (!$global) {
+                $q->where(function ($sub) use ($batchIds) {
+                    $sub->whereIn('batch_id', $batchIds)->orWhereNull('batch_id');
+                });
+            }
+        };
+
+        $totalPaketsQuery = QuizPaket::query();
+        $paketScope($totalPaketsQuery);
+
         return response()->json([
             'batches' => $batches,
             'batch_levels' => $batchLevels,
             'courses' => $courses,
             'gurus' => $gurus,
-            'categories' => QuizCategory::orderBy('name')->get(['id', 'name']),
+            'total_pakets' => $totalPaketsQuery->count(),
+            'categories' => QuizCategory::orderBy('name')->get(['id', 'name'])->map(function ($c) use ($paketScope) {
+                $countQuery = QuizPaket::where('category', $c->name);
+                $paketScope($countQuery);
+                $c->paket_count = $countQuery->count();
+                return $c;
+            }),
         ]);
     }
 
@@ -108,6 +126,10 @@ class AdminQuizController extends Controller
 
         if ($request->search && !empty($request->search)) {
             $query->where('title', 'like', '%' . $request->search . '%');
+        }
+
+        if ($request->category && !empty($request->category)) {
+            $query->where('category', $request->category);
         }
 
         $guruNames = \App\Models\Guru::query()->pluck('nama', 'user_id');

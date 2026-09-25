@@ -113,6 +113,7 @@ import QuizKandidat from './pages/Akademik/QuizKandidat'
 import QuizPlay from './pages/Akademik/QuizPlay'
 import QuizBasicPlay from './pages/Akademik/QuizBasicPlay'
 import QuizPembahasan from './pages/Akademik/QuizPembahasan'
+import AdminLessonDetail from './pages/Akademik/AdminLessonDetail'
 import Raport from './pages/Akademik/Raport'
 import SiswaNilai from './pages/Siswa/SiswaNilai'
 import DataCourse from './pages/Akademik/DataCourse'
@@ -694,6 +695,26 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/admin-cabang/lms/course/:courseId/pertemuan/:lessonId"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <AdminLessonDetail />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-cabang/lms/course/:courseId/pertemuan/:lessonId/pembahasan/:paketId"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <QuizPembahasan source="admin" />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/admin-cabang/lms/course/:courseId/monitor"
         element={
           <ProtectedRoute roleAllowed="ADMIN_CABANG">
@@ -1109,6 +1130,8 @@ function AppRoutes() {
                 <Route path="/lms/course/:courseId/materi/:paketId" element={<DataCourse />} />
                 <Route path="/lms/course/:courseId/hasil/:paketId" element={<DataCourse />} />
                 <Route path="/lms/course/:courseId/monitor" element={<CourseQuizMonitor />} />
+                <Route path="/lms/course/:courseId/pertemuan/:lessonId" element={<AdminLessonDetail />} />
+                <Route path="/lms/course/:courseId/pertemuan/:lessonId/pembahasan/:paketId" element={<QuizPembahasan source="admin" />} />
                 <Route path="/lms/paket/:paketId/soal" element={<DataCourse />} />
                 <Route path="/lms/paket/:paketId/materi" element={<DataCourse />} />
                 <Route path="/lms/paket/:paketId/hasil" element={<DataCourse />} />

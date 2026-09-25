@@ -395,8 +395,10 @@ export default function CheckoutBerhasil() {
           </div>
 
           <div className="mt-6 bg-[#E8FAFF] rounded-md p-3 text-center text-[12px] text-gray-700 leading-relaxed">
-            <span className="font-bold">Penting!</span> Mohon transfer sesuai nominal hingga digit terakhir yaitu{" "}
-            <span className="font-bold text-red-500">{fmt(kodeUnik > 0 && paymentEnabled ? totalTransfer : totalBayar)}</span> agar pembayaran dapat diverifikasi dengan lebih mudah.
+            <span className="font-bold">Penting!</span> Transfer wajib SAMA PERSIS hingga digit terakhir, yaitu{" "}
+            <span className="font-bold text-red-500">{fmt(kodeUnik > 0 && paymentEnabled ? totalTransfer : totalBayar)}</span>.
+            Nominal yang kurang atau lebih — sekalipun hanya Rp 1 — tidak akan dikonfirmasi dan dianggap belum dibayar.
+            Mohon periksa kembali nominal Anda sebelum mengirim.
           </div>
         </div>
 

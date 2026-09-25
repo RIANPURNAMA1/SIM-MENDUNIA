@@ -87,10 +87,15 @@ export default function KonfirmasiPembayaran() {
   const [looking, setLooking] = useState(false);
   const [lookupError, setLookupError] = useState("");
 
+  const [banks, setBanks] = useState<{ kode: string; nama: string }[]>([]);
+  const [ewallets, setEwallets] = useState<{ kode: string; nama: string }[]>([]);
+
   const [data, setData] = useState<BayarData | null>(null);
   const [loading, setLoading] = useState(false);
 
   const [fileBukti, setFileBukti] = useState<File | null>(null);
+  const [namaPengirim, setNamaPengirim] = useState("");
+  const [bankPengirim, setBankPengirim] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -101,6 +106,16 @@ export default function KonfirmasiPembayaran() {
       fetchPendaftar(routeId);
     }
   }, [routeId]);
+
+  useEffect(() => {
+    api
+      .get("/banks")
+      .then((res) => {
+        setBanks(res.data?.banks || []);
+        setEwallets(res.data?.ewallets || []);
+      })
+      .catch(() => {});
+  }, []);
 
   function extractId(val: string): string | null {
     const trimmed = val.trim();
@@ -169,6 +184,8 @@ export default function KonfirmasiPembayaran() {
   function handleBack() {
     setData(null);
     setFileBukti(null);
+    setNamaPengirim("");
+    setBankPengirim("");
     setSubmitError("");
     setSuccess(false);
     setLookupValue(routeId ? "" : lookupValue);
@@ -190,6 +207,8 @@ export default function KonfirmasiPembayaran() {
       const totalTransferAmt = katTotalTransfer > 0 ? katTotalTransfer : (katHarga + katKodeUnik);
       fd.append("jumlah", String(totalTransferAmt));
       fd.append("kategori_id", String(firstKategori?.id || 1));
+      fd.append("nama_pengirim", namaPengirim.trim());
+      fd.append("bank_pengirim", bankPengirim.trim());
       fd.append("bukti_pembayaran", fileBukti);
 
       await api.post(`/pendaftar/${data.pendaftar.id}/bayar`, fd, {
@@ -486,10 +505,6 @@ export default function KonfirmasiPembayaran() {
             </div>
           ) : (
             <>
-              <h2 className="text-[15px] font-bold text-gray-800 mb-5">
-                Bukti Transfer
-              </h2>
-
               {submitError && (
                 <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-md text-[12px] text-red-600 flex items-start gap-2">
                   <AlertTriangle
@@ -501,7 +516,58 @@ export default function KonfirmasiPembayaran() {
               )}
 
               <form onSubmit={handleSubmitPayment} className="space-y-4 text-[13px]">
+                <h2 className="text-[15px] font-bold text-gray-800 mb-2">
+                  Data Pengirim
+                </h2>
+
                 <div>
+                  <label className="block text-[12px] font-medium text-gray-600 mb-1">
+                    Nama Rekening Pengirim
+                  </label>
+                  <input
+                    type="text"
+                    value={namaPengirim}
+                    onChange={(e) => setNamaPengirim(e.target.value)}
+                    placeholder="Nama sesuai rekening bank Anda"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] outline-none transition-colors text-[14px]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[12px] font-medium text-gray-600 mb-1">
+                    Bank / E-Wallet Pengirim
+                  </label>
+                  <select
+                    value={bankPengirim}
+                    onChange={(e) => setBankPengirim(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] outline-none transition-colors text-[14px]"
+                  >
+                    <option value="">Pilih Bank / E-Wallet</option>
+                    {banks.length > 0 && (
+                      <optgroup label="Bank">
+                        {banks.map((b) => (
+                          <option key={b.kode} value={b.kode}>
+                            {b.nama}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {ewallets.length > 0 && (
+                      <optgroup label="E-Wallet">
+                        {ewallets.map((e) => (
+                          <option key={e.kode} value={e.kode}>
+                            {e.nama}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </select>
+                </div>
+
+                <div className="pt-2">
+                  <h2 className="text-[15px] font-bold text-gray-800 mb-3">
+                    Bukti Transfer
+                  </h2>
                   <div className="border-2 border-dashed border-gray-300 bg-gray-50 rounded-md p-5 text-center hover:border-gray-400 transition-colors">
                     <Upload
                       size={28}
@@ -540,7 +606,7 @@ export default function KonfirmasiPembayaran() {
                 <div className="pt-2">
                   <button
                     type="submit"
-                    disabled={!fileBukti || submitting}
+                    disabled={!fileBukti || !namaPengirim.trim() || !bankPengirim.trim() || submitting}
                     className="w-full py-3 bg-[#22C55E] text-white font-bold rounded-lg text-[13px] hover:bg-[#16A34A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {submitting ? (

@@ -1451,10 +1451,15 @@ class PendaftaranController extends Controller
         $request->validate([
             'jumlah' => 'required|numeric|min:1',
             'kategori_id' => 'required|exists:biaya_kategoris,id',
+            'bank_pengirim' => 'nullable|string|max:100',
+            'nama_pengirim' => 'nullable|string|max:200',
             'bukti_pembayaran' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
         ]);
 
         $pendaftar = Pendaftar::with('batch', 'product.biayaKategoris')->findOrFail($id);
+
+        if ($request->filled('bank_pengirim')) $pendaftar->bank_pengirim = $request->bank_pengirim;
+        if ($request->filled('nama_pengirim')) $pendaftar->nama_pengirim = $request->nama_pengirim;
 
         $filePath = $request->file('bukti_pembayaran')->store('bukti_pembayaran', 'public');
 

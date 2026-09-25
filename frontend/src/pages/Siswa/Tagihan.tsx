@@ -13,7 +13,7 @@ import {
   FileText, Search, Receipt, CheckCircle, Clock, AlertCircle, RotateCcw,
   DollarSign, X, Save, Bell, Eye, Loader, XCircle, Users,
   ChevronLeft, ChevronRight, MoreHorizontal, LayoutDashboard,
-  BadgeCheck, RefreshCw, CheckCircle2, Ban, Banknote,
+  BadgeCheck, RefreshCw, CheckCircle2, Ban, Banknote, UserRound, Landmark,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 import api, { pendaftarApi, batchApi, productApi, APP_URL } from '../../services/api'
@@ -121,12 +121,12 @@ const STATUS_MAP: Record<string, Record<string, string>> = {
 }
 
 const STATUS_OPTIONS = [
-  { val: 'waiting_payment', label: 'Menunggu Pembayaran', icon: Clock, iconColor: 'text-slate-500', bg: 'bg-slate-50 hover:bg-slate-100 border-slate-200' },
-  { val: 'confirmed', label: 'Menunggu Verifikasi', icon: BadgeCheck, iconColor: 'text-amber-500', bg: 'bg-amber-50 hover:bg-amber-100 border-amber-200' },
-  { val: 'proses', label: 'Proses', icon: RefreshCw, iconColor: 'text-blue-500', bg: 'bg-blue-50 hover:bg-blue-100 border-blue-200' },
-  { val: 'selesai', label: 'Pembayaran dikonfirmasi', icon: CheckCircle2, iconColor: 'text-emerald-500', bg: 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200' },
-  { val: 'batal', label: 'Batal', icon: Ban, iconColor: 'text-red-500', bg: 'bg-red-50 hover:bg-red-100 border-red-200' },
-  { val: 'ditangguhkan', label: 'Ditangguhkan', icon: Banknote, iconColor: 'text-orange-500', bg: 'bg-orange-50 hover:bg-orange-100 border-orange-200' },
+  { val: 'waiting_payment', label: 'Menunggu Pembayaran', icon: Clock, iconColor: 'text-white', bg: 'bg-slate-600 hover:bg-slate-700 border-slate-600' },
+  { val: 'confirmed', label: 'Menunggu Verifikasi', icon: BadgeCheck, iconColor: 'text-white', bg: 'bg-amber-500 hover:bg-amber-600 border-amber-500' },
+  { val: 'proses', label: 'Proses', icon: RefreshCw, iconColor: 'text-white', bg: 'bg-blue-500 hover:bg-blue-600 border-blue-500' },
+  { val: 'selesai', label: 'Pembayaran dikonfirmasi', icon: CheckCircle2, iconColor: 'text-white', bg: 'bg-emerald-600 hover:bg-emerald-700 border-emerald-600' },
+  { val: 'batal', label: 'Batal', icon: Ban, iconColor: 'text-white', bg: 'bg-red-500 hover:bg-red-600 border-red-500' },
+  { val: 'ditangguhkan', label: 'Ditangguhkan', icon: Banknote, iconColor: 'text-white', bg: 'bg-orange-500 hover:bg-orange-600 border-orange-500' },
 ]
 
 const STATUS_CONFIRM: Record<string, { title: string; text: string; confirmText: string; icon: 'warning' | 'info' | 'question' }> = {
@@ -192,7 +192,7 @@ function UbahStatusGrid({ pendaftarId, pendaftar, onChanged }: { pendaftarId: nu
             className={`flex items-center gap-2 rounded-sm border px-3 py-2.5 text-left text-sm font-medium transition ${opt.bg} ${isActive ? 'ring-2 ring-offset-1 ring-[#0E6187] opacity-100 cursor-default' : 'cursor-pointer'}`}
           >
             <Icon size={15} className={opt.iconColor} />
-            <span className="text-gray-700">{opt.label}</span>
+            <span className="text-white">{opt.label}</span>
           </button>
         )
       })}
@@ -435,16 +435,16 @@ export default function Tagihan() {
   const statusBadge = (status: string, dibayar: number, tagihan: number) => {
     const isLunas = dibayar >= tagihan && tagihan > 0
     const map: Record<string, { bg: string; text: string; label: string; icon: typeof Clock }> = {
-      unpaid: { bg: 'bg-slate-100', text: 'text-slate-600', label: 'Belum Bayar', icon: AlertCircle },
-      processing: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Proses', icon: Clock },
-      partial: { bg: 'bg-orange-100', text: 'text-orange-700', label: 'Belum Lunas', icon: Clock },
-      verified: { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'Lunas', icon: CheckCircle },
+      unpaid: { bg: 'bg-slate-600', text: 'text-white', label: 'Belum Bayar', icon: AlertCircle },
+      processing: { bg: 'bg-blue-500', text: 'text-white', label: 'Proses', icon: Clock },
+      partial: { bg: 'bg-orange-500', text: 'text-white', label: 'Belum Lunas', icon: Clock },
+      verified: { bg: 'bg-emerald-600', text: 'text-white', label: 'Lunas', icon: CheckCircle },
     }
     const key = status === 'verified' && !isLunas ? 'partial' : status
     const s = map[key] || { bg: 'bg-slate-100', text: 'text-slate-600', label: status, icon: Clock }
     const Icon = s.icon
     return (
-      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${s.bg} ${s.text}`}>
+      <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold ${s.bg} ${s.text}`}>
         <Icon size={12} />
         {s.label}
       </span>
@@ -662,8 +662,11 @@ export default function Tagihan() {
                                 <button
                                   onClick={() => { setSelectedPendingPendaftarId(p.id); setShowPendingModal(true) }}
                                   title="Ada pembayaran menunggu verifikasi"
-                                  className="h-2 w-2 rounded-full bg-red-500 shrink-0"
-                                />
+                                  className="inline-flex items-center gap-1 rounded-full bg-red-500 px-2 py-1 text-[11px] font-bold text-white shadow-sm transition-colors hover:bg-red-600 shrink-0"
+                                >
+                                  <Bell size={12} className="animate-pulse" />
+                                  {pendingPembayaran.filter((pp: any) => pp.pendaftar_id === p.id).length}
+                                </button>
                               )}
                             </div>
                             <div className="text-xs text-slate-500 truncate">{p.email}</div>
@@ -731,7 +734,7 @@ export default function Tagihan() {
                       <td className="border border-slate-200 px-4 py-3 text-right text-sm font-semibold text-red-600 whitespace-nowrap">
                         {sisa > 0 ? `Rp ${fmt(sisa)}` : '-'}
                       </td>
-                      <td className="border border-slate-200 px-4 py-3 text-center">
+                      <td className="border border-slate-200 px-4 py-3 text-center whitespace-nowrap">
                         {statusBadge(p.status_pembayaran, dibayar, tagihan)}
                       </td>
                       <td className="border border-slate-200 px-4 py-3 text-center">
@@ -910,11 +913,12 @@ export default function Tagihan() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => { setSelectedPendingPendaftarId(null); setShowPendingModal(true) }}
-            className="relative inline-flex items-center gap-2 rounded-md bg-white border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className={`relative inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium shadow-sm transition ${pendingPembayaran.length > 0 ? 'border-red-200 bg-red-50 text-red-600 hover:bg-red-100' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}
           >
+            <Bell size={16} />
             <span>Verifikasi</span>
             {pendingPembayaran.length > 0 && (
-              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+              <span className="absolute -top-2 -right-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white animate-pulse">
                 {new Set(pendingPembayaran.map((pp: any) => pp.pendaftar_id)).size}
               </span>
             )}
@@ -1281,6 +1285,16 @@ export default function Tagihan() {
                         <p className="mt-1 text-[10px] text-slate-400">
                           {new Date(pp.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </p>
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <span className="inline-flex items-center gap-1 rounded bg-slate-50 border border-slate-200 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                            <UserRound size={10} className="text-slate-400" />
+                            {pp.pendaftar?.nama_pengirim || pp.pendaftar?.nama_rekening || '-'}
+                          </span>
+                          <span className="inline-flex items-center gap-1 rounded bg-slate-50 border border-slate-200 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                            <Landmark size={10} className="text-slate-400" />
+                            {pp.pendaftar?.bank_pengirim || pp.pendaftar?.bank_asal || '-'}
+                          </span>
+                        </div>
                       </div>
                       <div className="flex flex-col items-end gap-2 shrink-0">
                         {pp.bukti_pembayaran && pp.bukti_pembayaran !== 'manual' && pp.bukti_pembayaran !== 'auto' && (

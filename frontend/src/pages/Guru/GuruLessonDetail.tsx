@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   ArrowLeft, BookOpen, FileText, ListChecks, Plus, ChevronRight, ChevronDown, HelpCircle,
   Download, Clock, ClipboardList, Check, Edit3, X, Trash2, Loader2, Layers, Camera, Upload, ImageIcon,
@@ -445,11 +445,20 @@ const quillFormats = ['header', 'bold', 'italic', 'underline', 'strike', 'list',
 
 export default function GuruLessonDetail() {
   const { lessonId } = useParams<{ lessonId: string }>()
+  const { courseId: routeCourseId } = useParams<{ courseId: string }>()
+  const location = useLocation()
+  const isAdminView = location.pathname.startsWith('/lms') || location.pathname.startsWith('/admin-cabang/lms')
+  const lmsBase = location.pathname.startsWith('/admin-cabang') ? '/admin-cabang/lms' : '/lms'
   const navigate = useNavigate()
   const [lesson, setLesson] = useState<LessonDetail | null>(null)
   const [lessonTab, setLessonTab] = useState<'materi' | 'quiz' | 'tugas' | 'rekap' | 'kehadiran' | 'nilai' | 'peringkat'>('materi')
   const [tasks, setTasks] = useState<TaskItem[]>([])
   const [loading, setLoading] = useState(true)
+
+  const goBack = useCallback(() => {
+    const cid = lesson?.course_id ?? (routeCourseId ? Number(routeCourseId) : null)
+    navigate(isAdminView ? (cid ? `${lmsBase}/course/${cid}` : `${lmsBase}`) : '/guru-lms')
+  }, [lesson?.course_id, routeCourseId, isAdminView, lmsBase, navigate])
 
   const [showEditModal, setShowEditModal] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -1334,9 +1343,9 @@ export default function GuruLessonDetail() {
       return loadTasks(l.course_id, l.id)
     }).catch(() => {
       Swal.fire({ icon: 'error', title: 'Gagal memuat pertemuan' })
-      navigate('/guru-lms')
+      goBack()
     }).finally(() => setLoading(false))
-  }, [lessonId, navigate])
+  }, [lessonId, navigate, goBack])
 
   const openEditLesson = () => {
     if (!lesson) return
@@ -1468,7 +1477,7 @@ export default function GuruLessonDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F4F5F8] flex items-center justify-center pb-24">
+      <div className={`min-h-screen bg-[#F4F5F8] flex items-center justify-center ${isAdminView ? 'pb-8' : 'pb-24'}`}>
         <div className="relative w-14 h-14 flex items-center justify-center">
           <div className="absolute inset-0 rounded-full border-2 border-[#0069b0]/10 border-t-[#0069b0] animate-spin" />
           <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
@@ -1630,11 +1639,11 @@ export default function GuruLessonDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F4F5F8] pb-24">
+    <div className={`min-h-screen bg-[#F4F5F8] ${isAdminView ? 'pb-8' : 'pb-24'}`}>
       <div className="h-[3px] bg-gradient-to-r from-[#0069b0] via-[#0069b0] to-[#0069b0]" />
       <div className="bg-white px-5 py-3.5 border-b border-[#E5E7EF]">
         <div className="flex items-center justify-between max-w-lg mx-auto">
-          <button onClick={() => navigate('/guru-lms')}
+          <button onClick={goBack}
             className="flex items-center gap-1.5 text-xs font-semibold text-[#8B90A0] hover:text-[#14182B] transition-colors">
             <ArrowLeft size={14} /> Kembali
           </button>
@@ -1658,6 +1667,14 @@ export default function GuruLessonDetail() {
                 {lesson.course?.title || 'Kursus tidak diketahui'}
                 {lesson.course?.level ? ` · Level ${lesson.course.level}` : ''}
               </p>
+              {lesson.pertemuan_date && (
+                <p className="flex items-center gap-1.5 text-[11px] font-bold text-[#0069b0] mt-2">
+                  <span className="w-6 h-6 rounded-md bg-[#0069b0]/10 flex items-center justify-center shrink-0">
+                    <Calendar size={12} />
+                  </span>
+                  {formatDayDate(lesson.pertemuan_date)}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -1746,7 +1763,7 @@ export default function GuruLessonDetail() {
                   <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Materi dari Bank</h3>
                   <span className="text-[10px] font-bold text-[#8B90A0]">{lessonMateris.length} materi</span>
                 </div>
-                {canManage && (
+                {canManage && lessonMateris.length > 0 && (
                   <button onClick={openMateriPicker}
                     className="flex items-center gap-1 text-[10px] font-bold text-[#0069b0] border border-[#0069b0]/30 bg-[#0069b0]/5 px-3 py-1.5 rounded-md hover:bg-[#0069b0]/10 transition-colors">
                     <Plus size={11} /> Pilih Materi dari Bank
@@ -1868,7 +1885,7 @@ export default function GuruLessonDetail() {
               <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Pembahasan dari Bank Paket Soal</h3>
               <span className="text-[10px] font-bold text-[#8B90A0]">{pembahasanPakets.length} paket</span>
             </div>
-            {canManage && (
+            {canManage && pembahasanPakets.length > 0 && (
               <button onClick={() => openBankPicker('pembahasan')}
                 className="flex items-center gap-1 text-[10px] font-bold text-[#0069b0] border border-[#0069b0]/30 bg-[#0069b0]/5 px-3 py-1.5 rounded-md hover:bg-[#0069b0]/10 transition-colors">
                 <Plus size={11} /> Tambah dari Bank Paket Soal
@@ -1924,7 +1941,7 @@ export default function GuruLessonDetail() {
                       )}
                     </div>
                     <div className="p-3 flex items-center gap-2">
-                      <button onClick={() => navigate(`/guru-lms/lesson/${lesson.id}/pembahasan/${p.id}`)}
+                      <button onClick={() => navigate(isAdminView ? `${lmsBase}/course/${lesson.course_id}/pertemuan/${lesson.id}/pembahasan/${p.id}` : `/guru-lms/lesson/${lesson.id}/pembahasan/${p.id}`)}
                         className="inline-flex items-center gap-1.5 text-[11px] font-bold text-white bg-[#0069b0] px-3.5 py-2 rounded-md hover:bg-[#004d7a] transition-colors">
                         <Eye size={13} /> Lihat Pembahasan
                       </button>
@@ -2002,7 +2019,7 @@ export default function GuruLessonDetail() {
                         className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#4B5063] bg-[#F4F5F8] border border-[#E5E7EF] px-3 py-1.5 rounded-md hover:bg-[#EDEEF3] transition-colors">
                         Lihat Paket Soal <ChevronDown size={12} className={previewPaketId === paket.id ? 'rotate-180 transition-transform' : 'transition-transform'} />
                       </button>
-                      <button onClick={() => navigate(`/guru-paket-soal/monitor/${paket.id}?kelas_sensei_id=${lesson?.course?.kelas_sensei_id ?? ''}`, { state: { title: paket.title } })}
+                      <button onClick={() => isAdminView ? navigate(`${lmsBase}/course/${lesson.course_id}/monitor?paket=${paket.id}`) : navigate(`/guru-paket-soal/monitor/${paket.id}?kelas_sensei_id=${lesson?.course?.kelas_sensei_id ?? ''}`, { state: { title: paket.title } })}
                         className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#4B5063] bg-[#F4F5F8] border border-[#E5E7EF] px-3 py-1.5 rounded-md hover:bg-[#EDEEF3] transition-colors"
                         title="Monitor langsung pengerjaan siswa (kamera + progres)">
                         <Activity size={12} /> Monitor
@@ -3961,9 +3978,9 @@ export default function GuruLessonDetail() {
         </div>
       )}
 
-      <KaryawanBottomNav activeTab="home" absenStatus="belum" hasJadwal={false}
+      {!isAdminView && <KaryawanBottomNav activeTab="home" absenStatus="belum" hasJadwal={false}
         homeHref="/guru-dashboard" jadwalHref="/guru-dashboard"
-        laporanHref="/guru-dashboard" profilHref="/guru-profil" />
+        laporanHref="/guru-dashboard" profilHref="/guru-profil" />}
     </div>
   )
 }

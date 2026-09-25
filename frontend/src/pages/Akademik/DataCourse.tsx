@@ -5,7 +5,7 @@ import {
   ListChecks, Eye, EyeOff, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Camera, Clock, Repeat,
   Award, Users, UserCheck, Pencil, Loader2, ArrowLeft, Video, UploadCloud, Upload, Mic, RotateCcw,
   Settings, LayoutGrid, ShieldCheck, Link2, Building2, Layers, Settings2, FileCheck2, Radio,
-  ClipboardPaste,
+  ClipboardPaste, Tags,
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -220,7 +220,7 @@ c. jawaban 3`
 
 interface Batch { id: number; nama_batch: string; warna?: string | null }
 interface CourseOption { id: number; title: string }
-interface Category { id: number; name: string }
+interface Category { id: number; name: string; paket_count?: number }
 
 const COURSE_PER_PAGE = 10
 const BANK_PER_PAGE = 10
@@ -458,12 +458,14 @@ export default function DataCourse() {
   const [quizPakets, setQuizPakets] = useState<QuizPaket[]>([])
   const [quizLoading, setQuizLoading] = useState(false)
   const [quizCategories, setQuizCategories] = useState<Category[]>([])
+  const [bankTotalPakets, setBankTotalPakets] = useState(0)
   const [quizSearch, setQuizSearch] = useState('')
 
   const [bankPakets, setBankPakets] = useState<QuizPaket[]>([])
   const [bankLoading, setBankLoading] = useState(false)
   const [bankSearch, setBankSearch] = useState('')
   const [bankPage, setBankPage] = useState(1)
+  const [bankCategory, setBankCategory] = useState('')
   const [bankPagination, setBankPagination] = useState<Pagination>({ current_page: 1, last_page: 1, total: 0, per_page: BANK_PER_PAGE })
   const [quizSource, setQuizSource] = useState<'course' | 'bank'>('course')
 
@@ -974,6 +976,7 @@ export default function DataCourse() {
   const fetchQuizMeta = () => {
     adminQuizApi.meta().then(res => {
       setQuizCategories(res.data.categories || [])
+      setBankTotalPakets(Number(res.data.total_pakets) || 0)
     }).catch(() => {})
   }
 
@@ -985,19 +988,28 @@ export default function DataCourse() {
     }).catch(() => setQuizPakets([])).finally(() => setQuizLoading(false))
   }
 
-  const fetchBankPakets = (page?: number) => {
+  const fetchBankPakets = (page?: number, category?: string) => {
     setBankLoading(true)
-    adminQuizApi.pakets({ page: page ?? bankPage, per_page: BANK_PER_PAGE, search: bankSearch.trim() || undefined }).then(res => {
+    const filterCat = (category !== undefined ? category : bankCategory).trim()
+    adminQuizApi.pakets({ page: page ?? bankPage, per_page: BANK_PER_PAGE, search: bankSearch.trim() || undefined, category: filterCat || undefined }).then(res => {
       const all = res.data.pakets || []
       setBankPakets(all)
       setBankPagination(res.data.pagination || { current_page: 1, last_page: 1, total: all.length, per_page: BANK_PER_PAGE })
     }).catch(() => setBankPakets([])).finally(() => setBankLoading(false))
   }
 
+  const selectBankCategory = (category: string) => {
+    if (category === bankCategory) return
+    setBankCategory(category)
+    setBankPage(1)
+    fetchBankPakets(1, category)
+  }
+
   const openBank = () => {
     setQuizSource('course')
     setBankSearch('')
     setBankPage(1)
+    setBankCategory('')
     setActiveQuizPaket(null)
     setActiveCourse(null)
     setView('bank')
@@ -1007,7 +1019,7 @@ export default function DataCourse() {
 
   const openCreateBankPaket = () => {
     setEditingPaket(null)
-    setPaketForm({ ...emptyPaketForm, course_id: '' })
+    setPaketForm({ ...emptyPaketForm, course_id: '', category: bankCategory })
     setCoverPreview('')
     setQuizSource('bank')
     setShowPaketModal(true)
@@ -2514,7 +2526,7 @@ export default function DataCourse() {
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#0E6187] text-white shadow-sm shrink-0">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-slate-100 text-slate-600 border border-slate-200 shrink-0">
               <BookOpen size={22} />
             </div>
             <div className="min-w-0">
@@ -2522,41 +2534,6 @@ export default function DataCourse() {
               <p className="text-sm text-slate-500">Kelola kursus, materi pembelajaran, dan quiz kandidat</p>
             </div>
           </div>
-          {view === 'list' && !isAdminCabang && (
-            <div className="flex flex-wrap items-center gap-2">
-              <button onClick={openBank} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:border-slate-300 text-[12px]">
-                <ListChecks size={15} /> Bank Paket Soal
-              </button>
-              <button onClick={openMateriBank} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:border-slate-300 text-[12px]">
-                <BookOpen size={15} /> Bank Materi
-              </button>
-              <button onClick={openWelcomeSettings} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:border-slate-300 text-[12px]">
-                <Settings size={15} /> Pengaturan
-              </button>
-              <button onClick={openCreateCourseCat} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:border-slate-300 text-[12px]">
-                Kelola Kategori
-              </button>
-              <button onClick={() => navigate(`${base}/quiz-referensi`)} className="relative inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:border-slate-300 text-[12px]">
-                <FileCheck2 size={15} /> Referensi Quiz
-                {refPendingCount > 0 && (
-                  <span className="absolute -top-2 -right-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow">{refPendingCount}</span>
-                )}
-              </button>
-              <button onClick={openCreateCourse} className={primaryBtn}>
-                <Plus size={16} /> Buat Kursus
-              </button>
-            </div>
-          )}
-          {view === 'list' && isAdminCabang && (
-            <div className="flex flex-wrap items-center gap-2">
-              <button onClick={() => navigate(`${base}/quiz-referensi`)} className="relative inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:border-slate-300 text-[12px]">
-                <FileCheck2 size={15} /> Referensi Quiz
-                {refPendingCount > 0 && (
-                  <span className="absolute -top-2 -right-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow">{refPendingCount}</span>
-                )}
-              </button>
-            </div>
-          )}
           <div className="flex items-center gap-2">
             {view === 'quiz' && activeCourse && !isAdminCabang && (
               !activeCourse.kelas_sensei_id || courseTab === 'quiz' ? (
@@ -2579,11 +2556,6 @@ export default function DataCourse() {
                 <Plus size={16} /> Tambah Materi
               </button>
             )}
-            {view === 'bank' && !isAdminCabang && (
-              <button onClick={openCreateBankPaket} className={primaryBtn}>
-                <Plus size={16} /> Buat Paket Soal
-              </button>
-            )}
             {view === 'materi-bank' && !isAdminCabang && (
               <button onClick={openCreateMateri} className={primaryBtn}>
                 <Plus size={16} /> Buat Materi
@@ -2595,19 +2567,104 @@ export default function DataCourse() {
         {/* ==================== LIST VIEW ==================== */}
         {view === 'list' && (
           <>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari kursus..." className={`${inputCls} pl-9`} />
+            {/* Menu akses cepat */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              {!isAdminCabang && (
+                <>
+                  <button onClick={openBank}
+                    className="group bg-white rounded-xl border border-slate-200 p-4 flex flex-col items-start gap-3 text-left hover:border-[#0E6187]/40 hover:shadow-sm transition-all">
+                    <div className="w-11 h-11 rounded-xl bg-[#0E6187] text-white flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <ListChecks size={22} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-800">Bank Paket Soal</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">Kelola paket soal &amp; pembahasan</p>
+                    </div>
+                  </button>
+                  <button onClick={openMateriBank}
+                    className="group bg-white rounded-xl border border-slate-200 p-4 flex flex-col items-start gap-3 text-left hover:border-[#0E6187]/40 hover:shadow-sm transition-all">
+                    <div className="w-11 h-11 rounded-xl bg-amber-500 text-white flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <BookOpen size={22} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-800">Bank Materi</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">Materi, modul &amp; video pembelajaran</p>
+                    </div>
+                  </button>
+                  <button onClick={openWelcomeSettings}
+                    className="group bg-white rounded-xl border border-slate-200 p-4 flex flex-col items-start gap-3 text-left hover:border-[#0E6187]/40 hover:shadow-sm transition-all">
+                    <div className="w-11 h-11 rounded-xl bg-violet-500 text-white flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <Settings size={22} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-800">Pengaturan</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">Tampilan, sambutan &amp; quiz kursus</p>
+                    </div>
+                  </button>
+                  <button onClick={openCreateCourseCat}
+                    className="group bg-white rounded-xl border border-slate-200 p-4 flex flex-col items-start gap-3 text-left hover:border-[#0E6187]/40 hover:shadow-sm transition-all">
+                    <div className="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <Tags size={22} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-800">Kelola Kategori</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">Atur kategori &amp; urutan kursus</p>
+                    </div>
+                  </button>
+                </>
+              )}
+              <button onClick={() => navigate(`${base}/quiz-referensi`)}
+                className="group bg-white rounded-xl border border-slate-200 p-4 flex flex-col items-start gap-3 text-left hover:border-[#0E6187]/40 hover:shadow-sm transition-all">
+                <div className="relative w-11 h-11 rounded-xl bg-sky-500 text-white flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <FileCheck2 size={22} />
+                  {refPendingCount > 0 && (
+                    <span className="absolute -top-2 -right-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow">{refPendingCount}</span>
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-slate-800">Referensi Quiz</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">Quiz kunci jawaban dari sensei</p>
+                </div>
+              </button>
+              {!isAdminCabang && (
+                <button onClick={openCreateCourse}
+                  className="group bg-[#0E6187] text-white rounded-xl p-4 flex flex-col items-start gap-3 text-left hover:bg-[#0E6187]/90 shadow-sm hover:shadow-md transition-all">
+                  <div className="w-11 h-11 rounded-xl bg-white text-[#0E6187] flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <Plus size={22} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold">Buat Kursus</p>
+                    <p className="text-[11px] text-[#0E6187]/80 text-white/80 mt-0.5 leading-snug">Tambah kursus baru</p>
+                  </div>
+                </button>
+              )}
+            </div>
+
+            {/* Heading + filter */}
+            <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+              <div className="flex items-center gap-2 lg:shrink-0">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600 border border-slate-200">
+                  <LayoutGrid size={18} />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-800 leading-tight">Daftar Kursus Saat Ini</h2>
+                  <p className="text-xs text-slate-400">{coursePagination.total} kursus</p>
+                </div>
               </div>
-              <select value={filterLevel} onChange={e => setFilterLevel(e.target.value)} className={`${inputCls} sm:w-44`}>
-                <option value="">Semua Level</option>
-                {uniqueLevels.map(l => <option key={l} value={l}>Level {l}</option>)}
-              </select>
-              <select value={filterBatch} onChange={e => setFilterBatch(e.target.value)} className={`${inputCls} sm:w-44`}>
-                <option value="">Semua Batch</option>
-                {batches.map(b => <option key={b.id} value={b.id}>{b.nama_batch}</option>)}
-              </select>
+              <div className="flex flex-col sm:flex-row gap-3 flex-1">
+                <div className="relative flex-1">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari kursus..." className={`${inputCls} pl-9`} />
+                </div>
+                <select value={filterLevel} onChange={e => setFilterLevel(e.target.value)} className={`${inputCls} sm:w-44`}>
+                  <option value="">Semua Level</option>
+                  {uniqueLevels.map(l => <option key={l} value={l}>Level {l}</option>)}
+                </select>
+                <select value={filterBatch} onChange={e => setFilterBatch(e.target.value)} className={`${inputCls} sm:w-44`}>
+                  <option value="">Semua Batch</option>
+                  {batches.map(b => <option key={b.id} value={b.id}>{b.nama_batch}</option>)}
+                </select>
+              </div>
             </div>
 
             {loading ? (
@@ -2628,7 +2685,7 @@ export default function DataCourse() {
                 )}
               </div>
             ) : (
-              <div className="bg-white border-2 border-slate-200 overflow-hidden">
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 {/* ===== LIST MOBILE (card) ===== */}
                 <div className="md:hidden divide-y divide-slate-100">
                   {filteredCourses.map(c => (
@@ -2651,10 +2708,10 @@ export default function DataCourse() {
                       </div>
                       <div className="mt-3 flex flex-wrap items-center gap-2">
                         <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">
-                          <FileText size={12} /> {c.lessons_count} File
+                          <BookOpen size={12} /> {c.lessons_count} Pertemuan
                         </span>
                         <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">
-                          <UploadCloud size={12} /> {(c as any).files_count || 0} Materi
+                          <FileText size={12} /> {c.files_count || 0} File
                         </span>
                         <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">
                           <ListChecks size={12} /> Urutan {c.sort}
@@ -2681,28 +2738,28 @@ export default function DataCourse() {
                 </div>
                 {/* ===== LIST DESKTOP (table) ===== */}
                 <div className="hidden md:block overflow-x-auto">
-                  <table className="w-full text-sm border-collapse">
-                    <thead className="bg-[#0E6187] text-white">
-                      <tr>
-                        <th className="w-10 px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">No</th>
-                        <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Kursus</th>
-                        <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">File</th>
-                        <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Urutan</th>
-                        <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Status</th>
-                        <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Quiz</th>
-                        <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Aksi</th>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-200 bg-slate-50/60">
+                        <th className="w-12 px-6 py-3 font-bold">No</th>
+                        <th className="px-4 py-3 font-bold">Kursus</th>
+                        <th className="px-4 py-3 font-bold text-center">Pertemuan</th>
+                        <th className="px-4 py-3 font-bold text-center">File</th>
+                        <th className="px-4 py-3 font-bold text-center">Urutan</th>
+                        <th className="px-4 py-3 font-bold">Status</th>
+                        <th className="px-6 py-3 font-bold text-right">Aksi</th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white">
+                    <tbody className="divide-y divide-slate-100">
                       {filteredCourses.map((c, idx) => (
-                        <tr key={c.id} className="hover:bg-[#0E6187]/5 transition-colors">
-                          <td className="px-4 py-3 text-sm text-slate-500 border border-slate-200">{(coursePagination.current_page - 1) * coursePagination.per_page + idx + 1}</td>
-                          <td className="px-4 py-3 border border-slate-200">
+                        <tr key={c.id} className="group hover:bg-slate-50/60 transition-colors">
+                          <td className="px-6 py-4 text-slate-400 font-medium">{(coursePagination.current_page - 1) * coursePagination.per_page + idx + 1}</td>
+                          <td className="px-4 py-4">
                             <div className="min-w-0">
                               <p className="text-slate-800 font-semibold truncate max-w-xs">{c.title}</p>
                               <div className="flex flex-wrap items-center gap-1.5 mt-1">
                                 {c.category && (
-                                  <span className="inline-block px-1.5 py-0.5 text-[10px] font-bold bg-indigo-50 text-indigo-600">
+                                  <span className="inline-block px-2 py-0.5 text-[10px] font-bold bg-indigo-50 text-indigo-600 rounded-md">
                                     {c.category.name}
                                   </span>
                                 )}
@@ -2712,29 +2769,31 @@ export default function DataCourse() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800 border border-slate-200">{c.lessons_count}</td>
-                          <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800 border border-slate-200">{(c as any).files_count || 0}</td>
-                          <td className="px-4 py-3 text-center text-sm font-semibold text-[#0E6187] border border-slate-200">{c.sort}</td>
-                          <td className="px-4 py-3 text-center border border-slate-200">
-                            <span className={`inline-block text-[11px] font-semibold px-2 py-0.5 ${c.status === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
+                          <td className="px-4 py-4 text-center">
+                            <span className="inline-block min-w-[32px] rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-600">{c.lessons_count}</span>
+                          </td>
+                          <td className="px-4 py-4 text-center">
+                            <span className="inline-block min-w-[32px] rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-600">{c.files_count || 0}</span>
+                          </td>
+                          <td className="px-4 py-4 text-center text-slate-500 font-medium">{c.sort}</td>
+                          <td className="px-4 py-4">
+                            <span className={`inline-block text-[11px] font-bold px-2.5 py-1 rounded-full ${c.status === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
                               {c.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-center border border-slate-200">
-                            <button onClick={() => openCourseDetail(c)}
-                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-[#0E6187] px-2.5 py-1.5 hover:bg-[#0E6187]/90 transition-colors">
-                              <ListChecks size={13} /> Buka
-                            </button>
-                          </td>
-                          <td className="px-4 py-3 border border-slate-200">
-                            <div className="flex items-center justify-center gap-1">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button onClick={() => openCourseDetail(c)}
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-[#0E6187] px-3 py-1.5 text-[11px] font-bold text-white hover:bg-[#0E6187]/90 transition-colors">
+                                <BookOpen size={13} /> Buka
+                              </button>
                               {!isAdminCabang && (
                                 <>
-                                  <button onClick={() => openEditCourse(c)} className="p-1.5 hover:bg-slate-100 transition-colors" title="Edit">
-                                    <Pencil size={13} className="text-slate-600" />
+                                  <button onClick={() => openEditCourse(c)} className="p-1.5 rounded-lg text-slate-400 hover:bg-amber-50 hover:text-amber-600 transition-colors" title="Edit">
+                                    <Pencil size={14} />
                                   </button>
-                                  <button onClick={() => deleteCourse(c)} className="p-1.5 bg-red-50 hover:bg-red-100 transition-colors" title="Hapus">
-                                    <Trash2 size={13} className="text-red-500" />
+                                  <button onClick={() => deleteCourse(c)} className="p-1.5 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors" title="Hapus">
+                                    <Trash2 size={14} />
                                   </button>
                                 </>
                               )}
@@ -2761,7 +2820,7 @@ export default function DataCourse() {
                   <ChevronUp size={15} className="-rotate-90" /> Kembali
                 </button>
                 <div className="flex items-center gap-3 mt-4">
-                  <div className="w-11 h-11 rounded-xl bg-[#0E6187] text-white flex items-center justify-center shrink-0">
+                  <div className="w-11 h-11 rounded-xl bg-slate-100 text-slate-600 border border-slate-200 flex items-center justify-center shrink-0">
                     <BookOpen size={22} />
                   </div>
                   <div className="min-w-0">
@@ -2823,15 +2882,16 @@ export default function DataCourse() {
                 ) : (
                   <div className="divide-y divide-slate-100">
                     {courseLessons.map((lesson, idx) => (
-                      <div key={lesson.id} className="flex items-center gap-3 px-5 py-4 hover:bg-slate-50/60 transition-colors group">
+                      <div key={lesson.id} onClick={() => navigate(`${base}/course/${activeCourse.id}/pertemuan/${lesson.id}`)}
+                        className="flex items-center gap-3 px-5 py-4 hover:bg-slate-50/60 transition-colors group cursor-pointer">
                         {!isAdminCabang && (
                           <div className="flex flex-col items-center gap-0.5">
-                            <button onClick={() => moveCourseLesson(idx, 'up')} disabled={idx === 0}
+                            <button onClick={(e) => { e.stopPropagation(); moveCourseLesson(idx, 'up') }} disabled={idx === 0}
                               className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20">
                               <ChevronUp size={14} />
                             </button>
                             <span className="text-[10px] font-bold text-slate-400 w-5 text-center">{idx + 1}</span>
-                            <button onClick={() => moveCourseLesson(idx, 'down')} disabled={idx === courseLessons.length - 1}
+                            <button onClick={(e) => { e.stopPropagation(); moveCourseLesson(idx, 'down') }} disabled={idx === courseLessons.length - 1}
                               className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20">
                               <ChevronDown size={14} />
                             </button>
@@ -2854,10 +2914,10 @@ export default function DataCourse() {
                         </div>
                         {!isAdminCabang && (
                           <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => openEditCourseLesson(lesson)} className="p-2 rounded-lg text-slate-400 hover:bg-amber-50 hover:text-amber-600 transition-colors" title="Edit">
+                            <button onClick={(e) => { e.stopPropagation(); openEditCourseLesson(lesson) }} className="p-2 rounded-lg text-slate-400 hover:bg-amber-50 hover:text-amber-600 transition-colors" title="Edit">
                               <Edit3 size={14} />
                             </button>
-                            <button onClick={() => deleteCourseLesson(lesson)} className="p-2 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors" title="Hapus">
+                            <button onClick={(e) => { e.stopPropagation(); deleteCourseLesson(lesson) }} className="p-2 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors" title="Hapus">
                               <Trash2 size={14} />
                             </button>
                           </div>
@@ -2903,24 +2963,85 @@ export default function DataCourse() {
         {/* ==================== BANK PAKET SOAL VIEW ==================== */}
         {view === 'bank' && (
           <div className="space-y-4">
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-              <button onClick={backToList} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#0E6187] transition-colors">
-                <ArrowLeft size={15} /> Kembali
-              </button>
-              <div className="flex items-center gap-3 mt-3">
-                <div className="w-11 h-11 rounded-xl bg-[#0E6187] text-white flex items-center justify-center shrink-0">
-                  <ListChecks size={22} />
+            <button onClick={backToList} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#0E6187] transition-colors">
+              <ArrowLeft size={15} /> Kembali
+            </button>
+
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="p-5 flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-slate-100 text-slate-600 border border-slate-200 flex items-center justify-center shrink-0">
+                    <ListChecks size={22} />
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="text-lg font-bold text-slate-800 truncate">Bank Paket Soal</h2>
+                    <p className="text-sm text-slate-500">Semua paket soal tersimpan di sini, termasuk yang sudah terhubung ke kursus</p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <h2 className="text-lg font-bold text-slate-800 truncate">Bank Paket Soal</h2>
-                  <p className="text-sm text-slate-500">Semua paket soal tersimpan di sini, termasuk yang sudah terhubung ke kursus</p>
+                {bankCategory !== '' ? (
+                  <button onClick={openCreateBankPaket} className={primaryBtn}>
+                    <Plus size={16} /> Buat Paket Soal
+                  </button>
+                ) : (
+                  <span className="hidden md:inline-flex items-center gap-1.5 text-xs font-medium text-slate-400">
+                    Pilih kategori paket di atas untuk membuat paket baru
+                  </span>
+                )}
+              </div>
+
+              <div className="border-t border-slate-100 px-5 py-4">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                      <LayoutGrid size={15} className="text-[#0E6187]" /> Kategori Paket
+                    </h3>
+                    <p className="text-[11px] text-slate-400">Pilih kategori untuk menampilkan paket soal sesuai kategorinya</p>
+                  </div>
+                  <button onClick={() => setShowCategoryModal(true)}
+                    className="shrink-0 inline-flex items-center gap-1 text-sm font-medium text-[#0E6187] px-3 py-1.5 rounded-lg border border-[#0E6187]/20 hover:bg-[#0E6187]/[0.06] transition-colors">
+                    <LayoutGrid size={13} /> + Kelola
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                  <button onClick={() => selectBankCategory('')}
+                    className={`flex items-center gap-2.5 rounded-xl border px-3.5 py-3 text-left transition-all ${
+                      bankCategory === '' ? 'bg-[#0E6187] border-[#0E6187] text-white shadow-sm shadow-[#0E6187]/25' : 'bg-white border-slate-200 hover:border-[#0E6187]/40 hover:shadow-sm'
+                    }`}>
+                    <span className={`w-9 h-9 shrink-0 rounded-lg flex items-center justify-center ${bankCategory === '' ? 'bg-white/15 text-white' : 'bg-[#0E6187]/10 text-[#0E6187]'}`}>
+                      <LayoutGrid size={15} />
+                    </span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-xs font-bold truncate">Semua Paket</span>
+                      <span className={`block text-[10px] font-medium ${bankCategory === '' ? 'text-white/75' : 'text-slate-400'}`}>{bankTotalPakets} paket</span>
+                    </span>
+                  </button>
+                  {quizCategories.map(c => {
+                    const catCount = typeof c.paket_count === 'number' ? c.paket_count : 0
+                    const active = bankCategory === c.name
+                    return (
+                      <button key={c.id} onClick={() => selectBankCategory(c.name)}
+                        className={`flex items-center gap-2.5 rounded-xl border px-3.5 py-3 text-left transition-all ${
+                          active ? 'bg-[#0E6187] border-[#0E6187] text-white shadow-sm shadow-[#0E6187]/25' : 'bg-white border-slate-200 hover:border-[#0E6187]/40 hover:shadow-sm'
+                        }`}>
+                        <span className={`w-9 h-9 shrink-0 rounded-lg flex items-center justify-center ${active ? 'bg-white/15 text-white' : 'bg-[#0E6187]/10 text-[#0E6187]'}`}>
+                          <LayoutGrid size={15} />
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-xs font-bold truncate">{c.name}</span>
+                          <span className={`block text-[10px] font-medium ${active ? 'text-white/75' : 'text-slate-400'}`}>{catCount} paket</span>
+                        </span>
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             </div>
 
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input value={bankSearch} onChange={e => setBankSearch(e.target.value)} placeholder="Cari paket soal..." className={`${inputCls} pl-9`} />
+              <input value={bankSearch} onChange={e => setBankSearch(e.target.value)}
+                placeholder={bankCategory ? `Cari paket soal pada ${bankCategory}...` : 'Cari paket soal...'}
+                className={`${inputCls} pl-9`} />
             </div>
 
             {bankLoading ? (
@@ -2928,15 +3049,28 @@ export default function DataCourse() {
                 <Loader2 size={24} className="animate-spin text-[#0E6187]" /> Memuat paket soal...
               </div>
             ) : bankPakets.length === 0 ? (
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-14 text-center">
-                <div className="w-14 h-14 mx-auto rounded-lg bg-[#0E6187]/10 flex items-center justify-center mb-3">
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 px-8 py-14 text-center">
+                <div className="w-14 h-14 mx-auto rounded-xl bg-[#0E6187]/10 flex items-center justify-center mb-3">
                   <ListChecks size={28} className="text-[#0E6187]" />
                 </div>
-                <p className="text-slate-800 font-semibold">Belum ada paket soal di bank</p>
-                <p className="text-slate-500 text-sm mt-1">Buat paket soal untuk disimpan di bank dan hubungkan ke kursus nanti</p>
-                <button onClick={openCreateBankPaket} className={`${primaryBtn} mt-5`}>
-                  <Plus size={16} /> Buat Paket Soal
-                </button>
+                <p className="text-slate-800 font-semibold">
+                  {bankSearch.trim() ? 'Tidak ada paket yang cocok dengan pencarian' : bankCategory ? `Belum ada paket soal pada kategori "${bankCategory}"` : 'Belum ada paket soal di bank'}
+                </p>
+                <p className="text-slate-500 text-sm mt-1">
+                  {bankSearch.trim() ? 'Coba ubah kata kunci pencarian atau ganti kategori.' : bankCategory ? 'Buat paket soal baru untuk mengisi kategori ini, lalu hubungkan ke kursus nanti.' : 'Buat paket soal untuk disimpan di bank dan hubungkan ke kursus nanti'}
+                </p>
+                {!bankSearch.trim() && (
+                  bankCategory ? (
+                    <button onClick={openCreateBankPaket} className={`${primaryBtn} mt-5`}>
+                      <Plus size={16} /> Buat Paket Soal
+                    </button>
+                  ) : (
+                    <p className="mt-5 inline-flex flex-col items-center gap-1">
+                      <span className="text-xs font-semibold text-slate-500">Buat paket butuh kategori</span>
+                      <span className="text-[11px] text-slate-400">Pilih salah satu kategori paket di atas terlebih dahulu</span>
+                    </p>
+                  )
+                )}
               </div>
             ) : renderPaketTable(bankPakets, 'bank')}
 
@@ -2952,7 +3086,7 @@ export default function DataCourse() {
                 <ArrowLeft size={15} /> Kembali
               </button>
               <div className="flex items-center gap-3 mt-3">
-                <div className="w-11 h-11 rounded-xl bg-[#0E6187] text-white flex items-center justify-center shrink-0">
+                <div className="w-11 h-11 rounded-xl bg-slate-100 text-slate-600 border border-slate-200 flex items-center justify-center shrink-0">
                   <BookOpen size={22} />
                 </div>
                 <div className="min-w-0">
