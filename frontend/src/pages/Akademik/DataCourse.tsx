@@ -5,7 +5,7 @@ import {
   ListChecks, Eye, EyeOff, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Camera, Clock, Repeat,
   Award, Users, UserCheck, Pencil, Loader2, ArrowLeft, Video, UploadCloud, Upload, Mic, RotateCcw,
   Settings, LayoutGrid, ShieldCheck, Link2, Building2, Layers, Settings2, FileCheck2, Radio,
-  ClipboardPaste, Tags, BarChart3,
+  ClipboardPaste, Tags, BarChart3, Copy,
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -2056,15 +2056,23 @@ export default function DataCourse() {
     setImportParse(p => p.filter((_, x) => x !== i))
   }
 
-  const insertImportMedia = (url: string, type: 'gambar' | 'audio', name = '') => {
+  const tagOf = (m: { type: 'gambar' | 'audio'; url: string }) =>
+    m.type === 'gambar' ? `[gambar:${m.url}]` : `[audio:${m.url}]`
+
+  // Media hasil upload TIDAK dimasukkan ke textarea. Link-nya disimpan terpisah
+  // dan baru disisipkan ke teks soal saat user menekan tombol "Sisip".
+  const addImportMedia = (url: string, type: 'gambar' | 'audio', name = '') => {
+    setImportMedia(prev => (prev.some(m => m.url === url) ? prev : [...prev, { type, url, name: name || url.split('/').pop() || '' }]))
+  }
+
+  const insertImportTag = (m: { type: 'gambar' | 'audio'; url: string }) => {
     const ta = importTextRef.current
     const start = ta?.selectionStart ?? importText.length
     const end = ta?.selectionEnd ?? importText.length
-    const tag = type === 'gambar' ? `[gambar:${url}]` : `[audio:${url}]`
+    const tag = tagOf(m)
     const prefix = start > 0 && !/[\n[]$/.test(importText.slice(0, start)) ? '\n' : ''
     const next = importText.slice(0, start) + prefix + tag + importText.slice(end)
     const pos = start + prefix.length + tag.length
-    setImportMedia(prev => [...prev, { type, url, name: name || url.split('/').pop() || '' }])
     onImportTextChange(next)
     requestAnimationFrame(() => {
       if (ta) {
@@ -2074,12 +2082,26 @@ export default function DataCourse() {
     })
   }
 
+  const insertAllImportTags = () => {
+    if (!importMedia.length) return
+    onImportTextChange([importText.trimEnd(), ...importMedia.map(tagOf)].filter(Boolean).join('\n'))
+  }
+
+  const copyImportMedia = async (m: { type: 'gambar' | 'audio'; url: string }) => {
+    const link = mediaUrl(m.url)
+    try {
+      await navigator.clipboard.writeText(link)
+      Swal.fire({ icon: 'success', title: 'Link disalin', timer: 1000, showConfirmButton: false })
+    } catch {
+      Swal.fire({ icon: 'warning', title: 'Gagal menyalin', text: link })
+    }
+  }
+
   const removeImportMedia = (idx: number) => {
     const m = importMedia[idx]
     if (!m) return
-    const tag = m.type === 'gambar' ? `[gambar:${m.url}]` : `[audio:${m.url}]`
     setImportMedia(prev => prev.filter((_, x) => x !== idx))
-    onImportTextChange(importText.split(tag).join(''))
+    onImportTextChange(importText.split(tagOf(m)).join(''))
   }
 
   const onImportFile = (file: File | undefined, type: 'gambar' | 'audio') => {
@@ -2093,7 +2115,7 @@ export default function DataCourse() {
     fd.append('file', file)
     setImportingMedia(type)
     adminQuizApi.uploadMedia(fd)
-      .then(res => insertImportMedia(res.data.url, type, file.name))
+      .then(res => addImportMedia(res.data.url, type, file.name))
       .catch(() => Swal.fire({ icon: 'error', title: `Gagal mengunggah ${type === 'gambar' ? 'gambar' : 'audio'}` }))
       .finally(() => setImportingMedia(null))
   }
@@ -4753,48 +4775,66 @@ export default function DataCourse() {
                   onChange={e => { onImportFile(e.target.files?.[0], 'gambar'); e.target.value = '' }} />
                 <input ref={importAudioInputRef} type="file" accept="audio/*" className="hidden"
                   onChange={e => { onImportFile(e.target.files?.[0], 'audio'); e.target.value = '' }} />
-                <textarea ref={importTextRef} value={importText} onChange={e => onImportTextChange(e.target.value)}
-                  rows={9} placeholder={'## Vocabulary\n[Arti kata "watashi" adalah...]\n*a. saya\nb. kamu\nc. dia\nd. kami   [2 poin]\n\n[A：ぼくは (student) です。\nB： benar!]\na. teacher\nb. student\n*c. sensei\nd. gakusei   [5 poin]\n\n[gambar:URL] dan [audio:URL] menyisip otomatis di posisi kursor'}
-                  className="w-full px-3.5 py-3 border border-slate-200 rounded-md text-[13px] leading-relaxed font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-slate-50/50" />
+                <div className="mt-2.5 rounded-md border border-slate-200 bg-slate-50/60 p-2.5">
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                      <ImageIcon size={12} /> Media Terunggah
+                      <span className="rounded-md bg-slate-200 px-1.5 py-0.5 text-[10px] text-slate-600">{importMedia.length}</span>
+                    </p>
+                    {importMedia.length > 0 && (
+                      <button type="button" onClick={insertAllImportTags}
+                        className="inline-flex items-center gap-1 rounded-md border border-[#0E6187]/30 bg-[#0E6187]/5 px-2 py-1 text-[11px] font-semibold text-[#0E6187] transition-colors hover:bg-[#0E6187]/10">
+                        <Plus size={12} /> Sisipkan semua ke teks soal
+                      </button>
+                    )}
+                  </div>
 
-                {importMedia.length > 0 && (
-                  <div className="mt-2.5 rounded-md border border-slate-200 bg-slate-50/60 p-2.5">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
-                        Media terunggah ({importMedia.length})
-                      </p>
-                      {importParse.length === 0 && (
-                        <p className="text-[11px] font-semibold text-amber-600">Media sudah tersisip, tambahkan teks soal &amp; opsi agar terdeteksi</p>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
+                  {importMedia.length === 0 ? (
+                    <p className="rounded-md border border-dashed border-slate-300 bg-white px-3 py-2.5 text-center text-[11px] text-slate-400">
+                      Belum ada media. Klik <span className="font-semibold text-violet-600">Upload Gambar</span> atau{' '}
+                      <span className="font-semibold text-amber-600">Upload Audio</span> &mdash; link akan muncul di sini,
+                      lalu tekan <span className="font-semibold text-slate-500">Sisip</span> untuk menempelkannya ke soal.
+                    </p>
+                  ) : (
+                    <div className="max-h-44 space-y-1.5 overflow-y-auto pr-1">
                       {importMedia.map((m, i) => (
-                        <div key={`${m.url}-${i}`}
-                          className="group relative flex items-center gap-2 rounded-md border border-slate-200 bg-white p-1.5 pr-2 shadow-sm">
+                        <div key={`${m.url}-${i}`} className="flex flex-wrap items-center gap-2 rounded-md border border-slate-200 bg-white p-1.5 shadow-sm sm:flex-nowrap">
                           {m.type === 'gambar' ? (
                             <img src={mediaUrl(m.url)} alt={m.name}
-                              className="h-12 w-12 rounded-md border border-slate-200 object-cover" />
+                              className="h-10 w-10 shrink-0 rounded-md border border-slate-200 object-cover" />
                           ) : (
-                            <span className="grid h-12 w-12 place-items-center rounded-md border border-slate-200 bg-amber-50 text-amber-600">
-                              <Mic size={18} />
+                            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md border border-slate-200 bg-amber-50 text-amber-600">
+                              <Mic size={16} />
                             </span>
                           )}
-                          <div className="min-w-0 max-w-[140px]">
-                            <p className="truncate text-[11px] font-semibold text-slate-700">{m.name}</p>
-                            <p className="text-[10px] text-slate-400">{m.type === 'gambar' ? 'Gambar' : 'Audio'} · {m.url.split('/').pop()}</p>
+                          <div className="min-w-0 flex-1">
+                            <input readOnly value={mediaUrl(m.url)} onFocus={e => e.currentTarget.select()}
+                              className="w-full truncate rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-[11px] text-slate-600 focus:border-[#0E6187]/40 focus:outline-none" />
+                            <p className="mt-0.5 truncate px-0.5 text-[10px] text-slate-400">{m.type === 'gambar' ? 'Gambar' : 'Audio'} &middot; {m.name}</p>
                           </div>
-                          {m.type === 'audio' && (
-                            <audio src={mediaUrl(m.url)} controls className="h-7 w-28" />
-                          )}
-                          <button type="button" onClick={() => removeImportMedia(i)} title="Hapus media ini"
-                            className="ml-1 shrink-0 rounded-md bg-red-50 p-1 text-red-500 transition-colors hover:bg-red-100">
-                            <X size={12} />
-                          </button>
+                          {m.type === 'audio' && <audio src={mediaUrl(m.url)} controls className="h-7 w-24 shrink-0" />}
+                          <div className="flex shrink-0 items-center gap-1">
+                            <button type="button" onClick={() => insertImportTag(m)} title="Sisipkan tag ke teks soal"
+                              className="inline-flex items-center gap-1 rounded-md bg-[#0E6187]/10 px-2 py-1 text-[11px] font-bold text-[#0E6187] transition-colors hover:bg-[#0E6187]/20">
+                              <Plus size={12} /> Sisip
+                            </button>
+                            <button type="button" onClick={() => copyImportMedia(m)} title="Salin link"
+                              className="rounded-md bg-slate-100 p-1.5 text-slate-500 transition-colors hover:bg-slate-200">
+                              <Copy size={12} />
+                            </button>
+                            <button type="button" onClick={() => removeImportMedia(i)} title="Hapus media ini"
+                              className="rounded-md bg-red-50 p-1.5 text-red-500 transition-colors hover:bg-red-100">
+                              <X size={12} />
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
+                <textarea ref={importTextRef} value={importText} onChange={e => onImportTextChange(e.target.value)}
+                  rows={9} placeholder={'## Vocabulary\n[Arti kata "watashi" adalah...]\n*a. saya\nb. kamu\nc. dia\nd. kami   [2 poin]\n\n[A：ぼくは (student) です。\nB： benar!]\na. teacher\nb. student\n*c. sensei\nd. gakusei   [5 poin]'}
+                  className="mt-2.5 w-full px-3.5 py-3 border border-slate-200 rounded-md text-[13px] leading-relaxed font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-slate-50/50" />
 
                 {/* PANDUAN */}
                 <div className="mt-3 rounded-md border border-amber-200 bg-amber-50/60 p-3">
@@ -4820,7 +4860,7 @@ export default function DataCourse() {
                     </li>
                     <li className="flex gap-1.5">
                       <span className="text-amber-500 font-bold">&bull;</span>
-                      <span>Posisikan kursor di baris yang diinginkan lalu klik <span className="font-semibold">Upload Gambar/Audio</span> untuk menyisip tag otomatis</span>
+                      <span>Upload Gambar/Audio hanya menyimpan file &mdash; link-nya muncul di kotak <span className="font-semibold">Media Terunggah</span>. Tekan <span className="font-semibold">Sisip</span> untuk menempel tag ke posisi kursor, atau <span className="font-semibold">Salin</span> untuk menyalin link</span>
                     </li>
                     <li className="flex gap-1.5">
                       <span className="text-amber-500 font-bold">&bull;</span>
