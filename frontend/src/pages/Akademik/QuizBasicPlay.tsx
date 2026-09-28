@@ -3,6 +3,15 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Volume2, VolumeX, X, Play, Pause } from 'lucide-react'
 import { quizApi } from '../../services/api'
 import { detectFace, faceModelsReady, loadFaceModels, type DetectedFace } from '../../utils/faceDetector'
+import {
+  BASIC_THEME,
+  buildCelebrationHTML,
+  celebrateResult,
+  getMoodPreset,
+  getResultMood,
+  playResultSound,
+  type ResultData,
+} from '../../utils/quizResultCelebration'
 import Swal from 'sweetalert2'
 import { useForceLightMode } from '../../hooks/useForceLightMode'
 import DraggableCamera from '../../components/quiz/DraggableCamera'
@@ -145,15 +154,6 @@ function QuestionAudio({ src, maxPlays, plays, attemptId, questionId, onComplete
   )
 }
 
-const CELEBRATION_HTML = `
-    <div style="text-align:center">
-      <img src="/celebrate.svg" alt="Hore!" style="width:160px;margin:0 auto 12px;display:block;filter:drop-shadow(0 4px 12px rgba(255,165,0,.25))" />
-      <p style="font-size:22px;font-weight:800;color:#1a1a2e;margin:0 0 6px">Hore! Kamu Hebat!</p>
-      <p style="font-size:13px;color:#6b7280;margin:0 0 4px">Kuis berhasil dikumpulkan. Semangat terus ya!</p>
-      <p style="font-size:12px;color:#9ca3af;margin:0">Nilai dan pembahasan bisa dilihat di halaman berikutnya.</p>
-    </div>
-  `
-
 // ── Toleransi proctoring untuk perangkat lemah ──
 // Semua didasarkan pada durasi (ms), bukan jumlah tick, agar konsisten
 // di perangkat yang frame deteksinya lambat. Tujuannya: hanya siswa yang
@@ -182,6 +182,7 @@ export default function QuizBasicPlay() {
   const [isSaving, setIsSaving] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [flagged, setFlagged] = useState<Set<number>>(new Set())
+  const [finishedSections, setFinishedSections] = useState<Set<number>>(new Set())
   const [remaining, setRemaining] = useState(0)
   const [warnBanner, setWarnBanner] = useState(false)
   const [testTitle, setTestTitle] = useState('')
@@ -227,26 +228,7 @@ export default function QuizBasicPlay() {
     streamRef.current = null
   }, [])
 
-  // ── Celebration sound (Web Audio API – no external file) ──
-  const playTaDa = useCallback(() => {
-    try {
-      const ctx = new AudioContext()
-      const notes = [523.25, 659.25, 783.99, 1046.5]
-      notes.forEach((freq, i) => {
-        const osc = ctx.createOscillator()
-        const gain = ctx.createGain()
-        osc.type = 'sine'
-        osc.frequency.value = freq
-        gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.14)
-        gain.gain.linearRampToValueAtTime(0.28, ctx.currentTime + i * 0.14 + 0.04)
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.14 + 0.48)
-        osc.connect(gain)
-        gain.connect(ctx.destination)
-        osc.start(ctx.currentTime + i * 0.14)
-        osc.stop(ctx.currentTime + i * 0.14 + 0.5)
-      })
-    } catch {}
-  }, [])
+
 
   // ── Load attempt ──
   const load = useCallback(() => {
@@ -386,31 +368,28 @@ export default function QuizBasicPlay() {
       .filter(q => q.question_type === 'essay')
       .map(q => quizApi.answer(Number(attemptId), { question_id: q.id, selected_index: null, answer_text: (essayDrafts[q.id] ?? '').trim() || null }))
     Promise.allSettled(essayOrders).finally(() => {
-      quizApi.submit(Number(attemptId)).then(() => {
+      quizApi.submit(Number(attemptId)).then(res => {
         if (reason === 'manual') {
-          playTaDa()
+          const payload: ResultData = res?.data?.attempt ?? {
+            score: 0,
+            passing_score: attempt?.passing_score ?? 0,
+            correct_count: null,
+            total_count: null,
+          }
+          const score = Math.round(Number(payload.score ?? 0))
+          const mood = getResultMood(score, Number(payload.passing_score ?? 0))
+          const conf = getMoodPreset(mood, BASIC_THEME)
+          playResultSound(conf.sound)
           Swal.fire({
-            html: CELEBRATION_HTML,
+            html: buildCelebrationHTML(payload, BASIC_THEME),
             icon: undefined,
             showConfirmButton: true,
-            confirmButtonColor: '#0E6187',
-            confirmButtonText: 'Lihat Hasil',
+            confirmButtonColor: conf.ring,
+            confirmButtonText: score >= Number(payload.passing_score ?? 0) ? 'Lihat Hasil' : 'Lihat Pembahasan',
             allowOutsideClick: false,
             allowEscapeKey: false,
             customClass: { popup: 'celebrate-popup' },
-            didOpen: (popup) => {
-              const img = popup.querySelector('img')
-              if (img) {
-                img.animate(
-                  [
-                    { transform: 'scale(0.3) rotate(-15deg)', opacity: 0 },
-                    { transform: 'scale(1.1) rotate(4deg)', opacity: 1 },
-                    { transform: 'scale(1) rotate(0deg)', opacity: 1 },
-                  ],
-                  { duration: 600, easing: 'cubic-bezier(.34,1.56,.64,1)' }
-                )
-              }
-            },
+            didOpen: celebrateResult,
           }).then(() => {
             navigate(`/siswa-dashboard/quiz/${paketId}${location.search}`, { replace: true })
           })
@@ -423,7 +402,7 @@ export default function QuizBasicPlay() {
         if (reason === 'waktu habis') setRemaining(0)
       })
     })
-  }, [attemptId, paketId, isSubmitting, stopTimers, navigate, questions, essayDrafts, playTaDa])
+  }, [attemptId, paketId, isSubmitting, stopTimers, navigate, questions, essayDrafts, attempt?.passing_score])
 
   useEffect(() => {
     if (!attempt) return
@@ -721,8 +700,72 @@ export default function QuizBasicPlay() {
   }, [questions, selected, essayDrafts])
 
   const currentSectionName = currentQuestion ? (currentQuestion.section || '').trim() : ''
+
+  // Bagian yang sudah di-"Finish Section" terkunci: nomor soalnya tidak bisa
+  // diklik lagi dan sidebar langsung berpindah ke bagian berikutnya.
+  const activeSection = useMemo(() => {
+    if (!sections.length) return null
+    const nextOpen = sections.findIndex(s => !finishedSections.has(s.startIndex) && s.answered < s.total)
+    return sections[nextOpen >= 0 ? nextOpen : sections.length - 1]
+  }, [sections, finishedSections])
+
+  const sectionKeyByIndex = useMemo(() => {
+    const map = new Map<number, number>()
+    sections.forEach(s => {
+      for (let i = s.startIndex; i < s.startIndex + s.total; i++) map.set(i, s.startIndex)
+    })
+    return map
+  }, [sections])
+
+  const isLockedIndex = (idx: number) => {
+    const key = sectionKeyByIndex.get(idx)
+    return key !== undefined && finishedSections.has(key)
+  }
+
+  const activeSectionQuestions = useMemo(() => {
+    if (!activeSection) return []
+    return questions.slice(activeSection.startIndex, activeSection.startIndex + activeSection.total)
+  }, [questions, activeSection])
+
+  const activeSectionIsLast = useMemo(() => {
+    if (!sections.length || !activeSection) return true
+    return sections[sections.length - 1].startIndex === activeSection.startIndex
+  }, [sections, activeSection])
+
+  const isLastOfSection = !!activeSection
+    && currentIndex === activeSection.startIndex + activeSection.total - 1
+
+  const finishSection = () => {
+    if (!activeSection) return
+    const key = activeSection.startIndex
+    const nextSection = sections.find(s => s.startIndex > key && !finishedSections.has(s.startIndex))
+    const unanswered = activeSection.total - activeSection.answered
+
+    if (nextSection) {
+      const moveNext = () => {
+        setFinishedSections(prev => new Set(prev).add(key))
+        setCurrentIndex(nextSection.startIndex)
+      }
+      if (unanswered > 0) {
+        Swal.fire({
+          title: `Selesai bagian "${activeSection.name || 'Tanpa nama'}"?`,
+          text: `Masih ada ${unanswered} soal belum dijawab di bagian ini. Soal yang kosong akan dinilai 0 dan bagian ini tidak bisa dibuka lagi.`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#0069b0',
+          confirmButtonText: 'Ya, Selesai',
+          cancelButtonText: 'Periksa lagi',
+        }).then(res => { if (res.isConfirmed) moveNext() })
+      } else {
+        moveNext()
+      }
+      return
+    }
+
+    submitManually()
+  }
+
   const sectionLocalIndex = currentIndex
-  const isLast = currentIndex === questions.length - 1
 
   if (isLoading) {
     return (
@@ -779,11 +822,11 @@ export default function QuizBasicPlay() {
               </span>
             )}
             <button
-              onClick={submitManually}
+              onClick={activeSectionIsLast ? submitManually : finishSection}
               disabled={isSubmitting}
               className="shrink-0 rounded bg-[#8fc3e8] px-3 py-1.5 text-xs font-bold text-[#0b2c45] transition-colors hover:bg-[#a3cff0] disabled:opacity-60 sm:px-4 sm:text-sm"
             >
-              {isSubmitting ? 'Mengumpulkan...' : 'Kumpulkan'}
+              {isSubmitting ? 'Mengumpulkan...' : activeSectionIsLast ? 'Kumpulkan' : 'Selesai Bagian'}
             </button>
             <button
               onClick={exitQuiz}
@@ -844,80 +887,66 @@ export default function QuizBasicPlay() {
         </div>
       )}
 
-      {/* ── Mobile: question navigator ── */}
-      <div className="flex items-center gap-2 overflow-x-auto border-b border-gray-200 bg-white px-3 py-2 md:hidden">
-        <span className="shrink-0 text-[10px] font-semibold text-gray-400">Soal:</span>
-        {questions.map((q, idx) => {
-          const isActive = idx === currentIndex
-          const isAnswered = isAnsweredQ(q)
-          const isFlagged = flagged.has(idx)
-          return (
-            <button
-              key={q.id}
-              onClick={() => setCurrentIndex(idx)}
-              className={`relative flex h-9 min-w-9 shrink-0 items-center justify-center rounded-md px-1 text-xs font-bold transition-all hover:opacity-90 ${
-                isActive
-                  ? 'bg-[#0069b0] text-white'
-                  : isAnswered
-                    ? 'bg-[#0b2c45] text-white'
-                    : 'border border-gray-200 bg-[#eef4f9] text-gray-700'
-              }`}
-            >
-              {idx + 1}
-              {isFlagged && <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-yellow-400" />}
-            </button>
-          )
-        })}
-      </div>
-
-      <div className="flex flex-1 overflow-hidden">
-        {/* ── Left Sidebar Navigator (desktop) ── */}
-        <aside className="relative hidden md:block md:w-[130px] md:shrink-0 md:overflow-y-auto">
+        <div className="flex flex-1 overflow-hidden overflow-x-hidden">
+        {/* ── Left Sidebar Navigator (desktop & mobile) ── */}
+        <aside className="relative mx-1.5 w-[74px] shrink-0 overflow-x-hidden overflow-y-auto sm:mx-2 sm:w-[94px] md:w-[116px]">
           <div className="flex">
-            <div className="absolute inset-y-0 left-0 w-10 bg-white" />
-            <div className="relative z-10 mr-2 flex w-10 shrink-0 flex-col py-4">
+            <div className="absolute inset-y-0 left-0 w-6 bg-white sm:w-7 md:w-8" />
+            <div className="relative z-10 mr-1 flex w-6 shrink-0 flex-col gap-2.5 py-3 sm:w-7 sm:mr-1.5 md:w-8 md:py-4">
               {sections.map((section, i) => {
-                const pct = section.total > 0 ? (section.answered / section.total) * 100 : 0
+                const isDone = finishedSections.has(section.startIndex)
+                const pct = isDone ? 100 : section.total > 0 ? (section.answered / section.total) * 100 : 0
+                const isActiveSection = activeSection?.name === section.name && !isDone
                 return (
-                  <div key={section.name || `sec-${i}`} className="flex flex-col items-center px-2" style={{ flex: section.total }}>
+                  <div key={section.name || `sec-${i}`} className="flex flex-col items-center px-0.5 md:px-1.5">
                     {section.name ? (
-                      <p className={`mb-1 text-[12px] ${section.name === currentSectionName ? 'font-bold text-black' : 'font-medium text-gray-500'}`}>
+                      <p className={`mb-0.5 text-center text-[9px] leading-tight md:text-[11px] ${isDone ? 'font-bold text-emerald-600' : isActiveSection ? 'font-bold text-black' : 'font-medium text-gray-500'}`}>
                         {section.name.substring(0, 2)}...
                       </p>
                     ) : (
-                      <p className="mb-1 text-[12px] text-gray-500">–</p>
+                      <p className={`mb-0.5 text-[9px] md:text-[11px] ${isDone ? 'text-emerald-600' : 'text-gray-500'}`}>–</p>
                     )}
-                    <div className="relative w-2.5 flex-1 overflow-hidden rounded-full bg-[#e2e4e8]">
-                      <div className="absolute bottom-0 left-0 w-full rounded-full bg-[#0069b0] transition-all duration-300" style={{ height: `${pct}%` }} />
+                    <div className="relative h-[42px] w-2 overflow-hidden rounded-full bg-[#e2e4e8] md:h-[50px]">
+                      <div className={`absolute bottom-0 left-0 w-full rounded-full transition-all duration-300 ${isDone ? 'bg-emerald-500' : 'bg-[#0069b0]'}`} style={{ height: `${pct}%` }} />
                     </div>
                   </div>
                 )
               })}
             </div>
 
-            <div className="flex flex-1 flex-col py-4 pl-1">
-              {questions.map((q, idx) => {
+            <div className="flex min-w-0 flex-1 flex-col py-3 pl-1 md:py-4 md:pl-1.5">
+              {activeSectionQuestions.map((q, k) => {
+                const idx = (activeSection?.startIndex ?? 0) + k
                 const isActive = idx === currentIndex
                 const isAnswered = isAnsweredQ(q)
                 const isFlagged = flagged.has(idx)
-                const bgColor = idx === currentIndex ? '#0069b0' : isAnswered ? '#0b2c45' : '#0069b0'
+                const isLocked = isLockedIndex(idx)
+                const bgColor = isLocked ? '#94a3b8' : idx === currentIndex ? '#0069b0' : isAnswered ? '#0b2c45' : '#0069b0'
                 return (
                   <div key={q.id}>
-                    <div className="flex items-center pb-2">
+                    <div className="flex items-center pb-1.5 md:pb-2">
                       <button
-                        onClick={() => setCurrentIndex(idx)}
-                        className="relative flex h-[28px] w-[56px] items-center justify-center rounded text-[13px] font-bold text-white transition-all hover:opacity-90"
+                        onClick={() => { if (!isLocked) setCurrentIndex(idx) }}
+                        disabled={isLocked}
+                        title={isLocked ? 'Bagian ini sudah selesai' : undefined}
+                        className={`relative flex h-[24px] w-full max-w-[46px] items-center justify-center rounded text-[11px] font-bold leading-none text-white transition-all sm:max-w-[50px] sm:text-[12px] md:h-[28px] md:max-w-[56px] md:text-[13px] ${isLocked ? 'cursor-not-allowed opacity-70' : 'hover:opacity-90'}`}
                         style={{ backgroundColor: bgColor }}
                       >
-                        <span className="w-full text-center">{idx + 1}</span>
+                        {isLocked ? (
+                          <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        ) : (
+                          <span className="w-full text-center">{idx + 1}</span>
+                        )}
                         {isFlagged && (
-                          <svg className="absolute right-[14px] top-1 h-[10px] w-[10px] fill-[#fde047] drop-shadow-sm" viewBox="0 0 24 24">
+                          <svg className="absolute right-0.5 top-0.5 h-[9px] w-[9px] fill-[#fde047] drop-shadow-sm md:right-2 md:top-1 md:h-[10px] md:w-[10px]" viewBox="0 0 24 24">
                             <path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z" />
                           </svg>
                         )}
                       </button>
-                      {isActive && (
-                        <svg className="h-[14px] w-[10px] shrink-0" viewBox="0 0 10 14" fill={bgColor}>
+                      {isActive && !isLocked && (
+                        <svg className="-ml-px hidden h-[12px] w-[8px] shrink-0 md:block md:h-[14px] md:w-[10px]" viewBox="0 0 10 14" fill={bgColor}>
                           <path d="M0 0L10 7L0 14z" />
                         </svg>
                       )}
@@ -930,8 +959,8 @@ export default function QuizBasicPlay() {
         </aside>
 
         {/* ── Main Question Content ── */}
-        <div className="flex-1 overflow-y-auto bg-[#eef4f9] p-3 md:p-6">
-          <div className="mx-auto w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+        <div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-[#eef4f9] p-3 md:p-6">
+          <div className="mx-auto w-full max-w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
             <div className="p-4 md:p-6">
               <div className="mb-5 flex flex-col items-center md:mb-6">
                 <div className="w-full rounded bg-[#e7f2fc] p-4 md:p-6">
@@ -1036,7 +1065,7 @@ export default function QuizBasicPlay() {
             &lt; Kembali
           </button>
 
-          {!isLast ? (
+          {!isLastOfSection ? (
             <button
               onClick={() => setCurrentIndex(i => Math.min(questions.length - 1, i + 1))}
               className="rounded bg-[#0069b0] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#00568f] md:px-5"
@@ -1045,11 +1074,11 @@ export default function QuizBasicPlay() {
             </button>
           ) : (
             <button
-              onClick={submitManually}
+              onClick={finishSection}
               disabled={isSubmitting}
               className="rounded bg-[#0069b0] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#00568f] disabled:opacity-60"
             >
-              {isSubmitting ? 'Mengumpulkan...' : 'Selesai'}
+              {isSubmitting ? 'Mengumpulkan...' : activeSectionIsLast ? 'Kumpulkan' : 'Selesai Bagian'}
             </button>
           )}
         </div>
