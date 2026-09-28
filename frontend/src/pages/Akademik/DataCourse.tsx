@@ -2738,23 +2738,23 @@ export default function DataCourse() {
                 </div>
                 {/* ===== LIST DESKTOP (table) ===== */}
                 <div className="hidden md:block overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-left text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-200 bg-slate-50/60">
-                        <th className="w-12 px-6 py-3 font-bold">No</th>
-                        <th className="px-4 py-3 font-bold">Kursus</th>
-                        <th className="px-4 py-3 font-bold text-center">Pertemuan</th>
-                        <th className="px-4 py-3 font-bold text-center">File</th>
-                        <th className="px-4 py-3 font-bold text-center">Urutan</th>
-                        <th className="px-4 py-3 font-bold">Status</th>
-                        <th className="px-6 py-3 font-bold text-right">Aksi</th>
+                  <table className="w-full min-w-full border-collapse text-left text-sm text-slate-700">
+                    <thead className="bg-[#0E6187] text-sm text-white">
+                      <tr>
+                        <th scope="col" className="w-12 border border-[#0E6187] px-4 py-3 font-semibold">No</th>
+                        <th scope="col" className="border border-[#0E6187] px-4 py-3 font-semibold">Kursus</th>
+                        <th scope="col" className="border border-[#0E6187] px-4 py-3 text-center font-semibold">Pertemuan</th>
+                        <th scope="col" className="border border-[#0E6187] px-4 py-3 text-center font-semibold">File</th>
+                        <th scope="col" className="border border-[#0E6187] px-4 py-3 text-center font-semibold">Urutan</th>
+                        <th scope="col" className="border border-[#0E6187] px-4 py-3 text-center font-semibold">Status</th>
+                        <th scope="col" className="border border-[#0E6187] px-4 py-3 text-center font-semibold">Aksi</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody>
                       {filteredCourses.map((c, idx) => (
-                        <tr key={c.id} className="group hover:bg-slate-50/60 transition-colors">
-                          <td className="px-6 py-4 text-slate-400 font-medium">{(coursePagination.current_page - 1) * coursePagination.per_page + idx + 1}</td>
-                          <td className="px-4 py-4">
+                        <tr key={c.id} className="bg-white transition hover:bg-slate-50">
+                          <td className="border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-400">{(coursePagination.current_page - 1) * coursePagination.per_page + idx + 1}</td>
+                          <td className="border border-slate-200 px-4 py-3">
                             <div className="min-w-0">
                               <p className="text-slate-800 font-semibold truncate max-w-xs">{c.title}</p>
                               <div className="flex flex-wrap items-center gap-1.5 mt-1">
@@ -2769,30 +2769,30 @@ export default function DataCourse() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-4 text-center">
-                            <span className="inline-block min-w-[32px] rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-600">{c.lessons_count}</span>
+                          <td className="border border-slate-200 px-4 py-3 text-center">
+                            <span className="inline-block min-w-[32px] rounded-md bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-600">{c.lessons_count}</span>
                           </td>
-                          <td className="px-4 py-4 text-center">
-                            <span className="inline-block min-w-[32px] rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-600">{c.files_count || 0}</span>
+                          <td className="border border-slate-200 px-4 py-3 text-center">
+                            <span className="inline-block min-w-[32px] rounded-md bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-600">{c.files_count || 0}</span>
                           </td>
-                          <td className="px-4 py-4 text-center text-slate-500 font-medium">{c.sort}</td>
-                          <td className="px-4 py-4">
-                            <span className={`inline-block text-[11px] font-bold px-2.5 py-1 rounded-full ${c.status === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
+                          <td className="border border-slate-200 px-4 py-3 text-center text-sm font-semibold text-slate-600">{c.sort}</td>
+                          <td className="border border-slate-200 px-4 py-3 text-center">
+                            <span className={`inline-block whitespace-nowrap text-[11px] font-bold px-2.5 py-1 rounded-md ${c.status === 'aktif' ? 'bg-emerald-500 text-white' : 'bg-slate-400 text-white'}`}>
                               {c.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
                             </span>
                           </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center justify-end gap-1.5">
+                          <td className="border border-slate-200 px-4 py-3">
+                            <div className="flex items-center justify-center gap-1.5">
                               <button onClick={() => openCourseDetail(c)}
-                                className="inline-flex items-center gap-1.5 rounded-lg bg-[#0E6187] px-3 py-1.5 text-[11px] font-bold text-white hover:bg-[#0E6187]/90 transition-colors">
+                                className="inline-flex items-center gap-1.5 rounded-md bg-[#0E6187] px-3 py-1.5 text-[11px] font-bold text-white hover:bg-[#0E6187]/90 transition-colors">
                                 <BookOpen size={13} /> Buka
                               </button>
                               {!isAdminCabang && (
                                 <>
-                                  <button onClick={() => openEditCourse(c)} className="p-1.5 rounded-lg text-slate-400 hover:bg-amber-50 hover:text-amber-600 transition-colors" title="Edit">
+                                  <button onClick={() => openEditCourse(c)} className="p-1.5 rounded-md text-slate-400 hover:bg-amber-50 hover:text-amber-600 transition-colors" title="Edit">
                                     <Pencil size={14} />
                                   </button>
-                                  <button onClick={() => deleteCourse(c)} className="p-1.5 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors" title="Hapus">
+                                  <button onClick={() => deleteCourse(c)} className="p-1.5 rounded-md text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors" title="Hapus">
                                     <Trash2 size={14} />
                                   </button>
                                 </>
@@ -3891,189 +3891,268 @@ export default function DataCourse() {
 
       {/* ==================== QUIZ PAKET MODAL ==================== */}
       {showPaketModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[8vh] pb-8 px-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-              <h3 className="font-semibold text-slate-800">{editingPaket ? 'Edit Paket Soal' : 'Buat Paket Soal'}</h3>
-              <button onClick={() => setShowPaketModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
-                <X size={20} className="text-slate-400" />
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-start justify-center pt-[6vh] pb-6 px-4 overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[88vh]">
+            <div className="bg-[#0E6187] px-5 py-4 flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-md bg-white/15 flex items-center justify-center shrink-0">
+                  <FileCheck2 size={20} className="text-white" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-white leading-tight">{editingPaket ? 'Edit Paket Soal' : 'Buat Paket Soal'}</h3>
+                  <p className="text-xs text-white/75 truncate">
+                    {editingPaket ? 'Perbarui pengaturan paket soal' : 'Kumpulkan soal dan atur aturan pengerjaannya'}
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setShowPaketModal(false)}
+                className="p-1.5 rounded-md text-white/70 hover:text-white hover:bg-white/15 transition-colors shrink-0">
+                <X size={20} />
               </button>
             </div>
-            <div className="p-5 space-y-4">
-              <div>
-                <label className={labelCls}>Judul Paket <span className="text-red-500">*</span></label>
+            <div className="p-5 space-y-4 overflow-y-auto flex-1">
+              {/* STEP 1 */}
+              <div className="rounded-md border border-slate-200 p-4">
+                <div className="flex items-start gap-3 mb-3">
+                  <span className="w-6 h-6 shrink-0 rounded-md bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">1</span>
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-800 leading-tight">Informasi Paket</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">Judul, keterangan, dan gambar sampul paket soal</p>
+                  </div>
+                </div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Judul Paket <span className="text-red-500">*</span></label>
                 <input type="text" value={paketForm.title} onChange={e => setPaketForm({ ...paketForm, title: e.target.value })}
-                  className={inputCls} placeholder="Contoh: Quiz Evaluasi Mingguan" />
-              </div>
-              <div>
-                <label className={labelCls}>Deskripsi</label>
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-white"
+                  placeholder="Contoh: Quiz Evaluasi Mingguan" />
+                <label className="block text-xs font-semibold text-slate-600 mt-3 mb-1.5">Deskripsi <span className="text-slate-400 font-normal">(opsional)</span></label>
                 <textarea value={paketForm.description} onChange={e => setPaketForm({ ...paketForm, description: e.target.value })}
                   rows={2} placeholder="Petunjuk atau materi singkat..."
-                  className={`${inputCls} resize-none`} />
-              </div>
-              <div>
-                <label className={labelCls}>Cover Paket (opsional)</label>
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-md text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-white" />
+                <label className="block text-xs font-semibold text-slate-600 mt-3 mb-1.5">Cover Paket <span className="text-slate-400 font-normal">(opsional)</span></label>
                 <div className="flex items-center gap-3">
-                  <div className="w-28 h-20 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center shrink-0">
+                  <div className="w-28 h-20 rounded-md overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center shrink-0">
                     {coverPreview ? <img src={coverPreview} alt="Cover" className="w-full h-full object-cover" /> : <BookOpen size={20} className="text-slate-300" />}
                   </div>
                   <div className="space-y-2">
                     <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverSelect} />
                     <button type="button" onClick={() => coverInputRef.current?.click()} disabled={uploadingCover}
-                      className="inline-flex items-center gap-1.5 text-sm font-medium text-[#0E6187] hover:bg-[#0E6187]/[0.06] px-3 py-2 rounded-lg border border-[#0E6187]/20 transition-colors disabled:opacity-50">
-                      {uploadingCover ? <><Loader2 size={14} className="animate-spin" /> Mengunggah...</> : <>{coverPreview ? 'Ganti Cover' : 'Pilih Gambar'}</>}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0E6187] hover:bg-[#0E6187]/10 border border-[#0E6187]/30 bg-[#0E6187]/5 px-2.5 py-1.5 rounded-md transition-colors disabled:opacity-50">
+                      {uploadingCover ? <><Loader2 size={14} className="animate-spin" /> Mengunggah...</> : <><ImageIcon size={14} /> {coverPreview ? 'Ganti Cover' : 'Pilih Gambar'}</>}
                     </button>
                     {coverPreview && (
                       <button type="button" onClick={() => { setPaketForm({ ...paketForm, cover_image: '' }); setCoverPreview('') }}
-                        className="block text-xs text-red-400 hover:text-red-500">Hapus cover</button>
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-500 hover:bg-red-50 px-2 py-1.5 rounded-md transition-colors">
+                        <Trash2 size={11} /> Hapus cover
+                      </button>
                     )}
                   </div>
                 </div>
               </div>
-              <div>
-                <label className={labelCls}>Level</label>
-                <select value={paketForm.level} onChange={e => setPaketForm({ ...paketForm, level: e.target.value })} className={inputCls}>
-                  <option value="">Semua level</option>
-                  {[1,2,3,4].map(lv => <option key={lv} value={lv}>Level {lv}</option>)}
-                </select>
+              {/* STEP 2 */}
+              <div className="rounded-md border border-slate-200 p-4">
+                <div className="flex items-start gap-3 mb-3">
+                  <span className="w-6 h-6 shrink-0 rounded-md bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">2</span>
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-800 leading-tight">Klasifikasi Paket</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">Tentukan level kandidat dan kategori paket soal</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Level</label>
+                    <select value={paketForm.level} onChange={e => setPaketForm({ ...paketForm, level: e.target.value })}
+                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-white">
+                      <option value="">Semua level</option>
+                      {[1,2,3,4].map(lv => <option key={lv} value={lv}>Level {lv}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Kategori Paket</label>
+                    <div className="flex items-center gap-2">
+                      <select value={paketForm.category} onChange={e => setPaketForm({ ...paketForm, category: e.target.value })}
+                        className="flex-1 min-w-0 px-3.5 py-2.5 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-white">
+                        <option value="">Pilih kategori</option>
+                        {quizCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                      </select>
+                      <button type="button" onClick={() => setShowCategoryModal(true)}
+                        className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-[#0E6187] hover:bg-[#0E6187]/10 border border-[#0E6187]/30 bg-[#0E6187]/5 px-2.5 py-2.5 rounded-md transition-colors">
+                        <Settings2 size={13} /> Kelola
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className={labelCls}>Kategori Paket</label>
-                <div className="flex items-center gap-2">
-                  <select value={paketForm.category} onChange={e => setPaketForm({ ...paketForm, category: e.target.value })} className={inputCls}>
-                    <option value="">Pilih kategori</option>
-                    {quizCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                  </select>
-                  <button type="button" onClick={() => setShowCategoryModal(true)}
-                    className="shrink-0 text-sm font-medium text-[#0E6187] px-3 py-2.5 rounded-lg border border-[#0E6187]/20 hover:bg-[#0E6187]/[0.06] transition-colors">
-                    + Kelola
+
+              {/* STEP 3 */}
+              <div className="rounded-md border border-slate-200 p-4">
+                <div className="flex items-start gap-3 mb-3">
+                  <span className="w-6 h-6 shrink-0 rounded-md bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">3</span>
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-800 leading-tight">Aturan Pengerjaan</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">Batas waktu, percobaan, peringatan, dan nilai kelulusan</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Durasi (menit)</label>
+                    <input type="number" min={1} max={180} value={paketForm.time_limit_minutes}
+                      onChange={e => setPaketForm({ ...paketForm, time_limit_minutes: e.target.value })}
+                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-white" />
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-600">Maks Percobaan</label>
+                      <button type="button"
+                        onClick={() => setPaketForm({ ...paketForm, max_attempts: Number(paketForm.max_attempts) === 0 ? '3' : '0' })}
+                        title="Tanpa batas (unlimited)"
+                        className={`relative w-10 h-[22px] rounded-full transition-colors ${Number(paketForm.max_attempts) === 0 ? 'bg-[#0E6187]' : 'bg-slate-300'}`}>
+                        <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${Number(paketForm.max_attempts) === 0 ? 'left-[20px]' : 'left-[2px]'}`} />
+                      </button>
+                    </div>
+                    {Number(paketForm.max_attempts) === 0 ? (
+                      <div className="px-3.5 py-2.5 rounded-md bg-[#0E6187]/5 border border-[#0E6187]/20 text-xs font-semibold text-[#0E6187]">
+                        Tanpa batas (unlimited)
+                      </div>
+                    ) : (
+                      <input type="number" min={1} max={10} value={paketForm.max_attempts}
+                        onChange={e => setPaketForm({ ...paketForm, max_attempts: e.target.value })}
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-white" />
+                    )}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Maks Peringatan</label>
+                    <input type="number" min={1} max={10} value={paketForm.max_warnings}
+                      onChange={e => setPaketForm({ ...paketForm, max_warnings: e.target.value })}
+                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-white" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Nilai Lulus (0-200)</label>
+                    <input type="number" min={0} max={200} value={paketForm.passing_score}
+                      onChange={e => setPaketForm({ ...paketForm, passing_score: e.target.value })}
+                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-white" />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 px-3.5 py-3 mt-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-700">Acak urutan soal</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">Soal tampil beda urutan tiap percobaan</p>
+                  </div>
+                  <button type="button" onClick={() => setPaketForm({ ...paketForm, shuffle_questions: !paketForm.shuffle_questions })}
+                    className={`relative w-10 h-[22px] shrink-0 rounded-full transition-colors ${paketForm.shuffle_questions ? 'bg-[#0E6187]' : 'bg-slate-300'}`}>
+                    <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${paketForm.shuffle_questions ? 'left-[20px]' : 'left-[2px]'}`} />
                   </button>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>Durasi (menit)</label>
-                  <input type="number" min={1} max={180} value={paketForm.time_limit_minutes}
-                    onChange={e => setPaketForm({ ...paketForm, time_limit_minutes: e.target.value })} className={inputCls} />
-                </div>
-                <div>
-                  <div className="flex items-center justify-between">
-                    <label className={labelCls}>Maks Percobaan</label>
-                    <button
-                      onClick={() => setPaketForm({ ...paketForm, max_attempts: Number(paketForm.max_attempts) === 0 ? '3' : '0' })}
-                      title="Tanpa batas (unlimited)"
-                      className={`relative w-10 h-[22px] rounded-full transition-colors ${Number(paketForm.max_attempts) === 0 ? 'bg-[#0E6187]' : 'bg-slate-300'}`}>
-                      <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${Number(paketForm.max_attempts) === 0 ? 'left-[20px]' : 'left-[2px]'}`} />
-                    </button>
+              {/* STEP 4 */}
+              <div className="rounded-md border border-slate-200 p-4">
+                <div className="flex items-start gap-3 mb-3">
+                  <span className="w-6 h-6 shrink-0 rounded-md bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">4</span>
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-800 leading-tight">Template & Keamanan</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">Pilih tampilan quiz, nyalakan pengawasan, dan tentukan status paket</p>
                   </div>
-                  {Number(paketForm.max_attempts) === 0 ? (
-                    <p className="text-sm font-semibold text-[#0E6187] mt-2">Tanpa batas (unlimited)</p>
-                  ) : (
-                    <input type="number" min={1} max={10} value={paketForm.max_attempts}
-                      onChange={e => setPaketForm({ ...paketForm, max_attempts: e.target.value })} className={inputCls} />
-                  )}
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>Maks Peringatan</label>
-                  <input type="number" min={1} max={10} value={paketForm.max_warnings}
-                    onChange={e => setPaketForm({ ...paketForm, max_warnings: e.target.value })} className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Nilai Lulus (0-200)</label>
-                  <input type="number" min={0} max={200} value={paketForm.passing_score}
-                    onChange={e => setPaketForm({ ...paketForm, passing_score: e.target.value })} className={inputCls} />
-                </div>
-              </div>
-              <div className="flex items-center justify-between bg-slate-50 rounded-lg px-4 py-3">
-                <div>
-                  <p className="text-sm font-medium text-slate-700">Acak urutan soal</p>
-                  <p className="text-xs text-slate-400">Soal tampil beda urutan tiap percobaan</p>
-                </div>
-                <button onClick={() => setPaketForm({ ...paketForm, shuffle_questions: !paketForm.shuffle_questions })}
-                  className={`relative w-10 h-[22px] rounded-full transition-colors ${paketForm.shuffle_questions ? 'bg-[#0E6187]' : 'bg-slate-300'}`}>
-                  <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${paketForm.shuffle_questions ? 'left-[20px]' : 'left-[2px]'}`} />
-                </button>
-              </div>
-              <div>
-                <label className={labelCls}>Template UI Quiz</label>
+
+                <label className="block text-xs font-semibold text-slate-600 mb-2">Template UI Quiz</label>
                 <div className="grid grid-cols-2 gap-3">
                   <button type="button" onClick={() => setPaketForm({ ...paketForm, quiz_template: 'basic' })}
-                    className={`flex flex-col items-center gap-2 border-2 rounded-xl px-3 py-4 text-center transition-all ${
+                    className={`flex items-center gap-3 border-2 rounded-md px-3.5 py-3 text-left transition-all ${
                       paketForm.quiz_template !== 'jft'
-                        ? 'border-[#0E6187] bg-[#0E6187]/[0.04] ring-1 ring-[#0E6187]/20'
+                        ? 'border-[#0E6187] bg-[#0E6187]/5 ring-1 ring-[#0E6187]/20'
                         : 'border-slate-200 hover:border-slate-300'
                     }`}>
-                    <span className={`w-10 h-10 flex items-center justify-center rounded-xl ${
+                    <span className={`w-10 h-10 shrink-0 flex items-center justify-center rounded-md ${
                       paketForm.quiz_template !== 'jft' ? 'bg-[#0E6187] text-white' : 'bg-slate-100 text-slate-400'
                     }`}>
                       <LayoutGrid size={18} />
                     </span>
                     <span>
                       <span className="block text-sm font-semibold text-slate-800">Basic</span>
-                      <span className="block text-xs text-slate-400 mt-0.5">Sederhana & fokus</span>
+                      <span className="block text-[11px] text-slate-400 mt-0.5">Sederhana & fokus</span>
                     </span>
                   </button>
                   <button type="button" onClick={() => setPaketForm({ ...paketForm, quiz_template: 'jft' })}
-                    className={`flex flex-col items-center gap-2 border-2 rounded-xl px-3 py-4 text-center transition-all ${
+                    className={`flex items-center gap-3 border-2 rounded-md px-3.5 py-3 text-left transition-all ${
                       paketForm.quiz_template === 'jft'
                         ? 'border-[#1f2022] bg-[#1f2022] ring-1 ring-[#1f2022]/20'
                         : 'border-slate-200 hover:border-slate-300'
                     }`}>
-                    <span className={`w-10 h-10 flex items-center justify-center rounded-xl ${
+                    <span className={`w-10 h-10 shrink-0 flex items-center justify-center rounded-md ${
                       paketForm.quiz_template === 'jft' ? 'bg-[#5e8b5d] text-white' : 'bg-slate-100 text-slate-400'
                     }`}>
                       <ShieldCheck size={18} />
                     </span>
                     <span>
                       <span className={`block text-sm font-semibold ${paketForm.quiz_template === 'jft' ? 'text-white' : 'text-slate-800'}`}>JFT UI</span>
-                      <span className={`block text-xs mt-0.5 ${paketForm.quiz_template === 'jft' ? 'text-white/60' : 'text-slate-400'}`}>Kamera & pengawasan</span>
+                      <span className={`block text-[11px] mt-0.5 ${paketForm.quiz_template === 'jft' ? 'text-white/60' : 'text-slate-400'}`}>Kamera & pengawasan</span>
                     </span>
                   </button>
                 </div>
-                <p className="text-xs text-slate-400 mt-2">
+                <p className="text-[11px] text-slate-500 mt-2 leading-relaxed rounded-md bg-slate-50 border border-slate-200 px-3 py-2">
                   {paketForm.quiz_template === 'jft'
                     ? 'JFT UI: tampilan quiz lengkap dengan pengawasan kamera. Sistem mengambil foto berkala & memberi peringatan.'
                     : 'Basic: tampilan quiz sederhana dengan kamera pengawas & keamanan aktif — foto berkala & peringatan otomatis.'}
                 </p>
-              </div>
-              <div className="flex items-center justify-between bg-slate-50 rounded-lg px-4 py-3">
-                <div>
-                  <p className="text-sm font-medium text-slate-700">Keamanan kamera</p>
-                  <p className="text-xs text-slate-400">Sistem mengambil foto berkala & mendeteksi wajah selama pengerjaan</p>
+
+                <div className="space-y-2 mt-3">
+                  <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 px-3.5 py-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-700">Keamanan kamera</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">Sistem mengambil foto berkala & mendeteksi wajah selama pengerjaan</p>
+                    </div>
+                    <button type="button" onClick={() => setPaketForm({ ...paketForm, camera_enabled: !paketForm.camera_enabled })}
+                      className={`relative w-10 h-[22px] shrink-0 rounded-full transition-colors ${paketForm.camera_enabled ? 'bg-[#0E6187]' : 'bg-slate-300'}`}>
+                      <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${paketForm.camera_enabled ? 'left-[20px]' : 'left-[2px]'}`} />
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 px-3.5 py-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-700">Kunci saat keluar / tutup aplikasi</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">Keluar atau menutup aplikasi saat quiz berjalan memicu peringatan</p>
+                    </div>
+                    <button type="button" onClick={() => setPaketForm({ ...paketForm, block_exit: !paketForm.block_exit })}
+                      className={`relative w-10 h-[22px] shrink-0 rounded-full transition-colors ${paketForm.block_exit ? 'bg-[#0E6187]' : 'bg-slate-300'}`}>
+                      <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${paketForm.block_exit ? 'left-[20px]' : 'left-[2px]'}`} />
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 px-3.5 py-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-700">Buka paket sekarang</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">Kandidat bisa langsung melihat & mulai quiz</p>
+                    </div>
+                    <button type="button" onClick={() => setPaketForm({ ...paketForm, status: paketForm.status === 'aktif' ? 'nonaktif' : 'aktif' })}
+                      className={`relative w-10 h-[22px] shrink-0 rounded-full transition-colors ${paketForm.status === 'aktif' ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+                      <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${paketForm.status === 'aktif' ? 'left-[20px]' : 'left-[2px]'}`} />
+                    </button>
+                  </div>
                 </div>
-                <button onClick={() => setPaketForm({ ...paketForm, camera_enabled: !paketForm.camera_enabled })}
-                  className={`relative w-10 h-[22px] rounded-full transition-colors ${paketForm.camera_enabled ? 'bg-[#0E6187]' : 'bg-slate-300'}`}>
-                  <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${paketForm.camera_enabled ? 'left-[20px]' : 'left-[2px]'}`} />
-                </button>
-              </div>
-              <div className="flex items-center justify-between bg-slate-50 rounded-lg px-4 py-3">
-                <div>
-                  <p className="text-sm font-medium text-slate-700">Kunci saat keluar / tutup aplikasi</p>
-                  <p className="text-xs text-slate-400">Keluar atau menutup aplikasi saat quiz berjalan memicu peringatan</p>
-                </div>
-                <button onClick={() => setPaketForm({ ...paketForm, block_exit: !paketForm.block_exit })}
-                  className={`relative w-10 h-[22px] rounded-full transition-colors ${paketForm.block_exit ? 'bg-[#0E6187]' : 'bg-slate-300'}`}>
-                  <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${paketForm.block_exit ? 'left-[20px]' : 'left-[2px]'}`} />
-                </button>
-              </div>
-              <div className="flex items-center justify-between bg-slate-50 rounded-lg px-4 py-3">
-                <div>
-                  <p className="text-sm font-medium text-slate-700">Buka paket sekarang</p>
-                  <p className="text-xs text-slate-400">Kandidat bisa langsung melihat & mulai quiz</p>
-                </div>
-                <button onClick={() => setPaketForm({ ...paketForm, status: paketForm.status === 'aktif' ? 'nonaktif' : 'aktif' })}
-                  className={`relative w-10 h-[22px] rounded-full transition-colors ${paketForm.status === 'aktif' ? 'bg-emerald-500' : 'bg-slate-300'}`}>
-                  <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${paketForm.status === 'aktif' ? 'left-[20px]' : 'left-[2px]'}`} />
-                </button>
               </div>
             </div>
-            <div className="px-5 py-4 border-t border-slate-200 flex justify-end gap-3">
-              <button onClick={() => setShowPaketModal(false)} className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Batal</button>
-              <button onClick={savePaket} disabled={savingPaket} className="px-4 py-2.5 bg-[#0E6187] text-white rounded-lg text-sm font-semibold hover:bg-[#0E6187]/90 disabled:opacity-50 transition-colors">
-                {savingPaket ? 'Menyimpan...' : editingPaket ? 'Simpan Perubahan' : 'Buat Paket Soal'}
-              </button>
+            <div className="px-5 py-3.5 border-t border-slate-200 bg-slate-50 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
+              <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500">
+                <span className={`shrink-0 inline-flex items-center gap-1.5 rounded-md px-2 py-1 font-bold ${paketForm.status === 'aktif' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                  {paketForm.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
+                </span>
+                <span className="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-[#0E6187]/10 text-[#0E6187] px-2 py-1 font-bold">
+                  <Clock size={12} /> {paketForm.time_limit_minutes || 0} menit
+                </span>
+                <span className="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-slate-200 text-slate-600 px-2 py-1 font-bold">
+                  <Repeat size={12} /> {Number(paketForm.max_attempts) === 0 ? 'Tanpa batas' : `${paketForm.max_attempts}x percobaan`}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setShowPaketModal(false)}
+                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-md text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 transition-colors">
+                  Batal
+                </button>
+                <button onClick={savePaket} disabled={savingPaket}
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-white bg-[#0E6187] hover:bg-[#0E6187]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                  {savingPaket ? <><Loader2 size={15} className="animate-spin" /> Menyimpan...</> : editingPaket ? 'Simpan Perubahan' : 'Buat Paket Soal'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -4349,44 +4428,80 @@ export default function DataCourse() {
       )}
 
       {/* ==================== BULK IMPORT MODAL ==================== */}
-      {showImportModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[8vh] pb-8 px-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold text-slate-800">Import Banyak Soal</h3>
-                <p className="text-xs text-slate-400">{activeQuizPaket?.title}</p>
+      {showImportModal && (() => {
+        const typeLabel = importType === 'choice' ? 'Pilihan Ganda' : importType === 'rating' ? 'Skala 1-9' : 'Esai'
+        const typeDesc = importType === 'choice'
+          ? 'Format: a. opsi / b. opsi / *a. kunci'
+          : importType === 'rating'
+            ? 'Skala penilaian 1 sampai 9 per soal'
+            : 'Soal terbuka, peserta mengetik jawaban sendiri'
+        return (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-start justify-center pt-[6vh] pb-6 px-4 overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[88vh]">
+            {/* HEADER */}
+            <div className="bg-[#0E6187] px-5 py-4 flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-md bg-white/15 flex items-center justify-center shrink-0">
+                  <ClipboardPaste size={20} className="text-white" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-white leading-tight">Import Banyak Soal</h3>
+                  <p className="text-xs text-white/75 truncate">
+                    {activeQuizPaket?.title ? `Paket: ${activeQuizPaket.title}` : 'Pilih paket soal terlebih dahulu'}
+                  </p>
+                </div>
               </div>
-              <button onClick={() => setShowImportModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
-                <X size={20} className="text-slate-400" />
+              <button onClick={() => setShowImportModal(false)}
+                className="p-1.5 rounded-md text-white/70 hover:text-white hover:bg-white/15 transition-colors shrink-0">
+                <X size={20} />
               </button>
             </div>
-            <div className="p-5 space-y-4">
-              <div>
-                <label className={labelCls}>Jenis soal</label>
+
+            {/* BODY */}
+            <div className="p-5 space-y-4 overflow-y-auto flex-1">
+              {/* STEP 1 */}
+              <div className="rounded-md border border-slate-200 p-4">
+                <div className="flex items-start gap-3 mb-3">
+                  <span className="w-6 h-6 shrink-0 rounded-md bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">1</span>
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-800 leading-tight">Pilih Jenis Soal</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">{typeDesc}</p>
+                  </div>
+                </div>
                 <div className="grid grid-cols-3 gap-2">
                   {(['choice', 'rating', 'essay'] as const).map(t => (
                     <button key={t} type="button" onClick={() => setImportType(t)}
-                      className={`py-2.5 rounded-lg text-sm font-semibold border transition-colors ${importType === t ? 'bg-[#0E6187] text-white border-[#0E6187]' : 'bg-white text-slate-600 border-slate-200 hover:border-[#0E6187]/40'}`}>
+                      className={`py-2.5 rounded-md text-sm font-semibold border transition-colors ${importType === t ? 'bg-[#0E6187] text-white border-[#0E6187] shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-[#0E6187]/40 hover:bg-slate-50'}`}>
                       {t === 'choice' ? 'Pilihan Ganda' : t === 'rating' ? 'Skala 1-9' : 'Esai'}
                     </button>
                   ))}
                 </div>
               </div>
-              <div>
-                <div className="flex items-center justify-between gap-2">
-                  <label className={labelCls}>Paste soal <span className="text-slate-400 font-normal">(1 soal per baris, awalan a./b./c. = opsi, prefix * = kunci)</span></label>
-                  <div className="flex items-center gap-1.5 mb-1">
+
+              {/* STEP 2 */}
+              <div className="rounded-md border border-slate-200 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
+                  <div className="flex items-start gap-3">
+                    <span className="w-6 h-6 shrink-0 rounded-md bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">2</span>
+                    <div>
+                      <h4 className="text-sm font-semibold text-slate-800 leading-tight">Tempel Soal</h4>
+                      <p className="text-xs text-slate-500 mt-0.5">1 soal per baris &middot; awalan a./b./c. = opsi &middot; <span className="font-mono font-semibold text-slate-600">*</span> = kunci</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <button type="button" onClick={() => importImgInputRef.current?.click()} disabled={!!importingMedia}
-                      className="text-xs font-semibold text-violet-600 hover:text-violet-700 border border-violet-200 hover:border-violet-400 bg-white px-2 py-1 rounded-md transition-colors disabled:opacity-50">
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-700 hover:text-violet-800 border border-violet-200 hover:border-violet-400 bg-violet-50 hover:bg-violet-100 px-2.5 py-1.5 rounded-md transition-colors disabled:opacity-50">
+                      <ImageIcon size={13} />
                       {importingMedia === 'gambar' ? 'Mengunggah...' : 'Upload Gambar'}
                     </button>
                     <button type="button" onClick={() => importAudioInputRef.current?.click()} disabled={!!importingMedia}
-                      className="text-xs font-semibold text-amber-600 hover:text-amber-700 border border-amber-200 hover:border-amber-400 bg-white px-2 py-1 rounded-md transition-colors disabled:opacity-50">
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700 hover:text-amber-800 border border-amber-200 hover:border-amber-400 bg-amber-50 hover:bg-amber-100 px-2.5 py-1.5 rounded-md transition-colors disabled:opacity-50">
+                      <Mic size={13} />
                       {importingMedia === 'audio' ? 'Mengunggah...' : 'Upload Audio'}
                     </button>
                     <button type="button" onClick={() => onImportTextChange(importSample)}
-                      className="text-xs font-semibold text-[#0E6187] hover:text-[#0A4A66] hover:underline transition-colors">
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0E6187] hover:bg-[#0E6187]/10 border border-[#0E6187]/30 bg-[#0E6187]/5 px-2.5 py-1.5 rounded-md transition-colors">
+                      <FileText size={13} />
                       Isi Contoh
                     </button>
                   </div>
@@ -4396,44 +4511,84 @@ export default function DataCourse() {
                 <input ref={importAudioInputRef} type="file" accept="audio/*" className="hidden"
                   onChange={e => { onImportFile(e.target.files?.[0], 'audio'); e.target.value = '' }} />
                 <textarea ref={importTextRef} value={importText} onChange={e => onImportTextChange(e.target.value)}
-                  rows={12} placeholder={'## Vocabulary\nArti kata "watashi" adalah...\n*a. saya\nb. kamu\nc. dia\nd. kami   [2 poin]\n\nKalimat "Ohayou" diucapkan saat...\na. pagi\n*b. siang\nc. malam\n\n[gambar:URL] dan [audio:URL] menyisip otomatis di posisi kursor'}
-                  className={inputCls + ' font-mono resize-y'} />
-                <div className="mt-2 rounded-lg bg-slate-50 border border-slate-200 p-3 text-xs text-slate-500 leading-relaxed">
-                  <p className="font-semibold text-slate-600 mb-1">Panduan:</p>
-                  <p>• <span className="font-mono">## Nama bagian</span> untuk mengelompokkan soal (opsional)</p>
-                  <p>• Opsi diawali <span className="font-mono">a.</span> / <span className="font-mono">b.</span> / <span className="font-mono">c.</span> dst; beri <span className="font-mono">*</span> di depan opsi yang benar</p>
-                  <p>• Di akhir soal/opsi boleh gunakan <span className="font-mono">[2 poin]</span> untuk bobot skor</p>
-                  <p>• Media soal: <span className="font-mono">[gambar:URL]</span>, <span className="font-mono">[audio:URL]</span>, dan <span className="font-mono">[maks:2]</span> untuk batas putar audio</p>
-                  <p>• Posisikan kursor di baris yang diinginkan lalu klik <span className="font-semibold">Upload Gambar/Audio</span> untuk menyisip tag secara otomatis</p>
-                  <p>• Opsi berupa gambar: <span className="font-mono">*a. [gambar:URL]</span> (opsi ini jadi gambar, bukan teks)</p>
-                  <p>• Bisa juga tempel dari Excel/Google Sheets: <span className="font-mono">soal [TAB] opsiA [TAB] opsiB [TAB] opsiC [TAB] kunci [TAB] bagian [TAB] bobot</span></p>
+                  rows={9} placeholder={'## Vocabulary\nArti kata "watashi" adalah...\n*a. saya\nb. kamu\nc. dia\nd. kami   [2 poin]\n\nKalimat "Ohayou" diucapkan saat...\na. pagi\n*b. siang\nc. malam\n\n[gambar:URL] dan [audio:URL] menyisip otomatis di posisi kursor'}
+                  className="w-full px-3.5 py-3 border border-slate-200 rounded-md text-[13px] leading-relaxed font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-slate-50/50" />
+
+                {/* PANDUAN */}
+                <div className="mt-3 rounded-md border border-amber-200 bg-amber-50/60 p-3">
+                  <p className="flex items-center gap-1.5 text-xs font-bold text-amber-800 mb-2">
+                    <FileText size={13} /> Panduan Penulisan
+                  </p>
+                  <ul className="space-y-1.5 text-[11px] leading-relaxed text-amber-900/90">
+                    <li className="flex gap-1.5">
+                      <span className="text-amber-500 font-bold">&bull;</span>
+                      <span><span className="font-mono font-semibold">## Nama bagian</span> untuk mengelompokkan soal (opsional)</span>
+                    </li>
+                    <li className="flex gap-1.5">
+                      <span className="text-amber-500 font-bold">&bull;</span>
+                      <span>Opsi diawali <span className="font-mono font-semibold">a.</span> / <span className="font-mono font-semibold">b.</span> / <span className="font-mono font-semibold">c.</span> dst, beri <span className="font-mono font-semibold">*</span> di depan opsi yang benar</span>
+                    </li>
+                    <li className="flex gap-1.5">
+                      <span className="text-amber-500 font-bold">&bull;</span>
+                      <span>Di akhir soal/opsi boleh gunakan <span className="font-mono font-semibold">[2 poin]</span> untuk bobot skor</span>
+                    </li>
+                    <li className="flex gap-1.5">
+                      <span className="text-amber-500 font-bold">&bull;</span>
+                      <span>Media soal: <span className="font-mono font-semibold">[gambar:URL]</span>, <span className="font-mono font-semibold">[audio:URL]</span>, dan <span className="font-mono font-semibold">[maks:2]</span> untuk batas putar audio</span>
+                    </li>
+                    <li className="flex gap-1.5">
+                      <span className="text-amber-500 font-bold">&bull;</span>
+                      <span>Posisikan kursor di baris yang diinginkan lalu klik <span className="font-semibold">Upload Gambar/Audio</span> untuk menyisip tag otomatis</span>
+                    </li>
+                    <li className="flex gap-1.5">
+                      <span className="text-amber-500 font-bold">&bull;</span>
+                      <span>Opsi berupa gambar: <span className="font-mono font-semibold">*a. [gambar:URL]</span> (opsi ini jadi gambar, bukan teks)</span>
+                    </li>
+                    <li className="flex gap-1.5">
+                      <span className="text-amber-500 font-bold">&bull;</span>
+                      <span>Bisa juga tempel dari Excel/Google Sheets: <span className="font-mono font-semibold">soal [TAB] opsiA [TAB] opsiB [TAB] opsiC [TAB] kunci [TAB] bagian [TAB] bobot</span></span>
+                    </li>
+                  </ul>
                 </div>
               </div>
 
+              {/* STEP 3 */}
               {importParse.length > 0 && (
-                <div>
-                  <p className="text-sm font-semibold text-slate-700 mb-2">Pratinjau ({importParse.length} soal)</p>
-                  <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                <div className="rounded-md border border-slate-200 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <div className="flex items-start gap-3">
+                      <span className="w-6 h-6 shrink-0 rounded-md bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">3</span>
+                      <div>
+                        <h4 className="text-sm font-semibold text-slate-800 leading-tight">Pratinjau Soal</h4>
+                        <p className="text-xs text-slate-500 mt-0.5">Periksa dulu sebelum disimpan &middot; jenis: {typeLabel}</p>
+                      </div>
+                    </div>
+                    <span className="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-[#0E6187]/10 text-[#0E6187] px-2.5 py-1.5 text-xs font-bold">
+                      <ListChecks size={13} /> {importParse.length} soal
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                     {importParse.map((q, i) => (
-                      <div key={i} className="flex items-start gap-2.5 border border-slate-200 rounded-lg px-3 py-2.5">
-                        <span className="w-6 h-6 flex items-center justify-center rounded-lg bg-[#0E6187]/10 text-[#0E6187] text-xs font-bold shrink-0">{i + 1}</span>
+                      <div key={i} className="flex items-start gap-2.5 border border-slate-200 rounded-md px-3 py-2.5 bg-white hover:border-slate-300 transition-colors">
+                        <span className="w-6 h-6 flex items-center justify-center rounded-md bg-[#0E6187] text-white text-[11px] font-bold shrink-0">{i + 1}</span>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[11px] font-bold text-[#0E6187] bg-[#0E6187]/5 px-1.5 py-0.5 rounded">{q.section || 'Tanpa bagian'}</span>
-                            {q.image_path && <span className="text-[11px] font-bold text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded">Gambar</span>}
-                            {q.audio_path && <span className="text-[11px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">Audio{q.audio_max_plays ? ` · ${q.audio_max_plays}x` : ''}</span>}
+                            <span className="text-[11px] font-bold text-[#0E6187] bg-[#0E6187]/5 px-1.5 py-0.5 rounded-md">{q.section || 'Tanpa bagian'}</span>
+                            {q.image_path && <span className="text-[11px] font-bold text-violet-700 bg-violet-50 px-1.5 py-0.5 rounded-md">Gambar</span>}
+                            {q.audio_path && <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-md">Audio{q.audio_max_plays ? ` · ${q.audio_max_plays}x` : ''}</span>}
                             <span className="text-[11px] font-semibold text-slate-400">{q.points} poin</span>
                           </div>
-                          <p className="text-sm font-semibold text-slate-800 mt-0.5 line-clamp-2">{q.question || '(tanpa teks)'}</p>
+                          <p className="text-sm font-semibold text-slate-800 mt-1 line-clamp-2">{q.question || '(tanpa teks)'}</p>
                           {q.options.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-1">
+                            <div className="flex flex-wrap gap-1 mt-1.5">
                               {q.options.map((o, oi) => (
                                 <span key={oi}
-                                  className={`flex items-center gap-1.5 text-[11px] px-1.5 py-0.5 rounded font-medium ${q.correct_index === oi ? 'bg-emerald-100 text-emerald-700 font-bold' : 'bg-slate-100 text-slate-600'}`}>
+                                  className={`flex items-center gap-1.5 text-[11px] px-1.5 py-0.5 rounded-md font-medium ${q.correct_index === oi ? 'bg-emerald-500 text-white font-bold' : 'bg-slate-100 text-slate-600'}`}>
                                   {String.fromCharCode(65 + oi)}.
                                   {o.image_path ? (
                                     <img src={o.image_path} alt={o.image_path}
-                                      className="h-7 w-7 object-cover rounded border border-slate-200" />
+                                      className="h-7 w-7 object-cover rounded-md border border-slate-200" />
                                   ) : (
                                     <span>{o.text}</span>
                                   )}
@@ -4442,8 +4597,8 @@ export default function DataCourse() {
                             </div>
                           )}
                         </div>
-                        <button type="button" onClick={() => removeImportQ(i)}
-                          className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 shrink-0">
+                        <button type="button" onClick={() => removeImportQ(i)} title="Hapus soal ini"
+                          className="p-1.5 rounded-md bg-red-50 hover:bg-red-100 text-red-500 shrink-0 transition-colors">
                           <X size={14} />
                         </button>
                       </div>
@@ -4453,62 +4608,103 @@ export default function DataCourse() {
               )}
 
               {importError && (
-                <p className="text-sm font-semibold text-red-500">{importError}</p>
+                <p className="rounded-md bg-red-50 border border-red-200 px-3 py-2.5 text-sm font-semibold text-red-600">{importError}</p>
               )}
+            </div>
 
-              <button onClick={saveImport} disabled={savingImport || importParse.length === 0}
-                className="w-full py-3 rounded-lg text-sm font-semibold text-white bg-[#0E6187] hover:bg-[#0E6187]/90 disabled:opacity-50 transition-colors">
-                {savingImport ? 'Menyimpan...' : `Simpan ${importParse.length} Soal ${importType === 'choice' ? '(Pilihan Ganda)' : importType === 'rating' ? '(Skala 1-9)' : '(Esai)'}`}
-              </button>
+            {/* FOOTER */}
+            <div className="px-5 py-3.5 border-t border-slate-200 bg-slate-50 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
+              <p className="text-xs text-slate-500 text-center sm:text-left">
+                {importParse.length > 0
+                  ? <>Siap menyimpan <span className="font-bold text-slate-700">{importParse.length} soal</span> ({typeLabel})</>
+                  : 'Belum ada soal yang terdeteksi'}
+              </p>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setShowImportModal(false)}
+                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-md text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 transition-colors">
+                  Batal
+                </button>
+                <button onClick={saveImport} disabled={savingImport || importParse.length === 0}
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-white bg-[#0E6187] hover:bg-[#0E6187]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                  {savingImport ? <><Loader2 size={15} className="animate-spin" /> Menyimpan...</> : `Simpan ${importParse.length} Soal`}
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      )}
+        )
+      })()}
 
       {/* ==================== QUESTION MODAL ==================== */}
       {showQuestionModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[8vh] pb-8 px-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold text-slate-800">{editingQuestion ? 'Edit Soal' : 'Tambah Soal'}</h3>
-                <p className="text-xs text-slate-400">{activeQuizPaket?.title}</p>
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-start justify-center pt-[6vh] pb-6 px-4 overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[88vh]">
+            <div className="bg-[#0E6187] px-5 py-4 flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-md bg-white/15 flex items-center justify-center shrink-0">
+                  <ListChecks size={20} className="text-white" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-white leading-tight">{editingQuestion ? 'Edit Soal' : 'Tambah Soal'}</h3>
+                  <p className="text-xs text-white/75 truncate">
+                    {activeQuizPaket?.title ? `Paket: ${activeQuizPaket.title}` : 'Pilih paket soal terlebih dahulu'}
+                  </p>
+                </div>
               </div>
-              <button onClick={() => setShowQuestionModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
-                <X size={20} className="text-slate-400" />
+              <button onClick={() => setShowQuestionModal(false)}
+                className="p-1.5 rounded-md text-white/70 hover:text-white hover:bg-white/15 transition-colors shrink-0">
+                <X size={20} />
               </button>
             </div>
-            <div className="p-5 space-y-4">
-              <div>
-                <label className={labelCls}>Pertanyaan <span className="text-slate-400 font-normal">(opsional)</span></label>
-                <div className="rounded-lg border border-slate-200 overflow-hidden bg-white">
+            <div className="p-5 space-y-4 overflow-y-auto flex-1">
+              {/* STEP 1 */}
+              <div className="rounded-md border border-slate-200 p-4">
+                <div className="flex items-start gap-3 mb-3">
+                  <span className="w-6 h-6 shrink-0 rounded-md bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">1</span>
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-800 leading-tight">Isi Soal</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">Tulis pertanyaan dan tentukan bagian / materi soalnya</p>
+                  </div>
+                </div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                  Pertanyaan <span className="text-slate-400 font-normal">(opsional, boleh kosong jika soal berupa gambar)</span>
+                </label>
+                <div className="rounded-md border border-slate-200 overflow-hidden bg-white [&_.ql-toolbar]:rounded-t-md [&_.ql-container]:rounded-b-md [&_.ql-editor]:min-h-[110px]">
                   <ReactQuill ref={questionQuillRef} value={qForm.question}
                     onChange={v => setQForm({ ...qForm, question: v })}
                     modules={questionQuillModules} formats={quillFormats} theme="snow"
                     placeholder="Tulis pertanyaan..." />
                 </div>
-              </div>
-              <div>
-                <div className="flex items-center justify-between">
-                  <label className="block text-sm font-medium text-slate-700">Bagian / Materi Soal <span className="text-slate-400 font-normal">(opsional)</span></label>
-                  <button onClick={openSectionManager}
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0E6187] hover:text-[#0A4A66] transition-colors">
+
+                <div className="flex items-center justify-between gap-2 mt-4 mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-600">
+                    Bagian / Materi Soal <span className="text-slate-400 font-normal">(opsional)</span>
+                  </label>
+                  <button onClick={openSectionManager} type="button"
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0E6187] hover:bg-[#0E6187]/10 px-2 py-1 rounded-md transition-colors">
                     <Settings2 size={12} /> Kelola bagian
                   </button>
                 </div>
                 <select value={qForm.section_id} onChange={e => setQForm({ ...qForm, section_id: e.target.value })}
-                  className={inputCls}>
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-white">
                   <option value="">Tanpa bagian</option>
                   {quizSections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
-                <p className="text-xs text-slate-400 mt-1">Contoh: Vocabulary, Grammar, Reading, Listening, Conversation</p>
+                <p className="text-[11px] text-slate-400 mt-1.5">Contoh: Vocabulary, Grammar, Reading, Listening, Conversation</p>
               </div>
-              <div>
-                <label className={labelCls}>Media Soal <span className="text-slate-400 font-normal">(opsional)</span></label>
+              {/* STEP 2 */}
+              <div className="rounded-md border border-slate-200 p-4">
+                <div className="flex items-start gap-3 mb-3">
+                  <span className="w-6 h-6 shrink-0 rounded-md bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">2</span>
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-800 leading-tight">Media Soal <span className="text-xs text-slate-400 font-normal">(opsional)</span></h4>
+                    <p className="text-xs text-slate-500 mt-0.5">Lampirkan gambar atau rekaman suara pendukung soal</p>
+                  </div>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className={`border border-slate-200 rounded-lg p-3 ${qForm.image_path ? 'bg-slate-50' : ''}`}>
+                  <div className={`rounded-md border border-slate-200 p-3 ${qForm.image_path ? 'bg-slate-50' : ''}`}>
                     <div className="flex items-center gap-2 mb-2">
-                      <ImageIcon size={14} className="text-slate-400" />
+                      <ImageIcon size={14} className="text-violet-600" />
                       <span className="text-xs font-semibold text-slate-600">Gambar Soal</span>
                     </div>
                     {qForm.image_url ? (
@@ -4516,22 +4712,22 @@ export default function DataCourse() {
                         <img src={qForm.image_url} alt="Pra-preview"
                           className="w-full h-28 object-contain bg-white border border-slate-200 rounded-md" />
                         <button onClick={() => setQForm({ ...qForm, image_path: '', image_url: '' })}
-                          className="absolute top-1.5 right-1.5 p-1 bg-red-500 text-white rounded-full hover:bg-red-600" title="Hapus gambar">
+                          className="absolute top-1.5 right-1.5 p-1 rounded-md bg-red-500 text-white hover:bg-red-600 transition-colors" title="Hapus gambar">
                           <X size={12} />
                         </button>
                       </div>
                     ) : (
-                      <label className={`flex flex-col items-center justify-center gap-1 h-28 border border-dashed border-slate-300 rounded-md cursor-pointer hover:bg-blue-50 hover:border-[#0E6187] transition-colors ${uploadingQMedia === 'image' ? 'opacity-50 pointer-events-none' : ''}`}>
+                      <label className={`flex flex-col items-center justify-center gap-1 h-28 rounded-md border border-dashed border-slate-300 cursor-pointer hover:bg-violet-50 hover:border-violet-400 transition-colors ${uploadingQMedia === 'image' ? 'opacity-50 pointer-events-none' : ''}`}>
                         {uploadingQMedia === 'image' ? <Loader2 size={18} className="animate-spin text-[#0E6187]" /> : <UploadCloud size={18} className="text-slate-400" />}
-                        <span className="text-[11px] font-medium text-slate-500">{uploadingQMedia === 'image' ? 'Mengunggah...' : 'Pilih gambar'}</span>
+                        <span className="text-[11px] font-semibold text-slate-500">{uploadingQMedia === 'image' ? 'Mengunggah...' : 'Pilih gambar'}</span>
                         <input type="file" accept="image/*" className="hidden" disabled={!!uploadingQMedia}
                           onChange={e => { uploadQuestionMedia(e.target.files?.[0], 'image'); e.target.value = '' }} />
                       </label>
                     )}
                   </div>
-                  <div className={`border border-slate-200 rounded-lg p-3 ${qForm.audio_path ? 'bg-slate-50' : ''}`}>
+                  <div className={`rounded-md border border-slate-200 p-3 ${qForm.audio_path ? 'bg-slate-50' : ''}`}>
                     <div className="flex items-center gap-2 mb-2">
-                      <Mic size={14} className="text-slate-400" />
+                      <Mic size={14} className="text-amber-600" />
                       <span className="text-xs font-semibold text-slate-600">Suara Soal</span>
                     </div>
                     {qForm.audio_url ? (
@@ -4543,17 +4739,17 @@ export default function DataCourse() {
                         <div className="flex items-center gap-2">
                           <input type="number" min={1} max={99} value={qForm.audio_max_plays}
                             onChange={e => setQForm({ ...qForm, audio_max_plays: e.target.value })}
-                            className={`${inputCls} w-24`} />
-                          <button onClick={() => { setQForm({ ...qForm, audio_path: '', audio_url: '', audio_max_plays: '2' }) }}
-                            className="text-[11px] font-semibold text-red-500 hover:text-red-600 inline-flex items-center gap-1">
+                            className="w-24 px-3.5 py-2.5 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-white" />
+                          <button onClick={() => setQForm({ ...qForm, audio_path: '', audio_url: '', audio_max_plays: '2' })}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-500 hover:bg-red-50 px-2 py-1.5 rounded-md transition-colors">
                             <Trash2 size={11} /> Hapus
                           </button>
                         </div>
                       </div>
                     ) : (
-                      <label className={`flex flex-col items-center justify-center gap-1 h-28 border border-dashed border-slate-300 rounded-md cursor-pointer hover:bg-blue-50 hover:border-[#0E6187] transition-colors ${uploadingQMedia === 'audio' ? 'opacity-50 pointer-events-none' : ''}`}>
+                      <label className={`flex flex-col items-center justify-center gap-1 h-28 rounded-md border border-dashed border-slate-300 cursor-pointer hover:bg-amber-50 hover:border-amber-400 transition-colors ${uploadingQMedia === 'audio' ? 'opacity-50 pointer-events-none' : ''}`}>
                         {uploadingQMedia === 'audio' ? <Loader2 size={18} className="animate-spin text-[#0E6187]" /> : <UploadCloud size={18} className="text-slate-400" />}
-                        <span className="text-[11px] font-medium text-slate-500">{uploadingQMedia === 'audio' ? 'Mengunggah...' : 'Pilih audio (MP3/WAV)'}</span>
+                        <span className="text-[11px] font-semibold text-slate-500">{uploadingQMedia === 'audio' ? 'Mengunggah...' : 'Pilih audio (MP3/WAV)'}</span>
                         <input type="file" accept="audio/*" className="hidden" disabled={!!uploadingQMedia}
                           onChange={e => { uploadQuestionMedia(e.target.files?.[0], 'audio'); e.target.value = '' }} />
                       </label>
@@ -4561,119 +4757,166 @@ export default function DataCourse() {
                   </div>
                 </div>
               </div>
-              <div>
-                <label className={labelCls}>Tipe Jawaban</label>
-<div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {/* STEP 3 */}
+              <div className="rounded-md border border-slate-200 p-4">
+                <div className="flex items-start gap-3 mb-3">
+                  <span className="w-6 h-6 shrink-0 rounded-md bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">3</span>
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-800 leading-tight">Tipe Jawaban</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">Tentukan format jawaban yang dicari dari kandidat</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   <button type="button" onClick={() => setQForm({ ...qForm, question_type: 'choice' })}
-                    className={`flex items-center gap-2.5 border rounded-lg px-3.5 py-3 text-left transition-colors ${qForm.question_type === 'choice' ? 'border-[#0E6187] bg-[#0E6187]/5 ring-1 ring-[#0E6187]/20' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
-                    <span className={`w-9 h-9 flex items-center justify-center rounded-lg text-xs font-bold shrink-0 ${qForm.question_type === 'choice' ? 'bg-[#0E6187] text-white' : 'bg-slate-100 text-slate-500'}`}>A/B/C</span>
+                    className={`relative flex items-center gap-2.5 border rounded-md px-3.5 py-3 text-left transition-colors ${qForm.question_type === 'choice' ? 'border-[#0E6187] bg-[#0E6187]/5 ring-1 ring-[#0E6187]/20' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+                    <span className={`w-9 h-9 flex items-center justify-center rounded-md text-xs font-bold shrink-0 ${qForm.question_type === 'choice' ? 'bg-[#0E6187] text-white' : 'bg-slate-100 text-slate-500'}`}>A/B/C</span>
                     <span>
                       <span className="block text-sm font-semibold text-slate-700">Pilihan Ganda</span>
-                      <span className="block text-xs text-slate-400 mt-0.5">Opsi A, B, C dengan kunci jawaban</span>
+                      <span className="block text-[11px] text-slate-400 mt-0.5 leading-snug">Opsi A, B, C dengan kunci</span>
                     </span>
                   </button>
                   <button type="button" onClick={() => setQForm({ ...qForm, question_type: 'rating' })}
-                    className={`flex items-center gap-2.5 border rounded-lg px-3.5 py-3 text-left transition-colors ${qForm.question_type === 'rating' ? 'border-violet-500 bg-violet-50 ring-1 ring-violet-500/20' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
-                    <span className={`w-9 h-9 flex items-center justify-center rounded-lg text-xs font-bold shrink-0 ${qForm.question_type === 'rating' ? 'bg-violet-500 text-white' : 'bg-slate-100 text-slate-500'}`}>1-9</span>
+                    className={`relative flex items-center gap-2.5 border rounded-md px-3.5 py-3 text-left transition-colors ${qForm.question_type === 'rating' ? 'border-violet-500 bg-violet-50 ring-1 ring-violet-500/20' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+                    <span className={`w-9 h-9 flex items-center justify-center rounded-md text-xs font-bold shrink-0 ${qForm.question_type === 'rating' ? 'bg-violet-500 text-white' : 'bg-slate-100 text-slate-500'}`}>1-9</span>
                     <span>
                       <span className="block text-sm font-semibold text-slate-700">Skala Rating</span>
-                      <span className="block text-xs text-slate-400 mt-0.5">Penilaian bebas 1-{qForm.rating_max} (tanpa kunci)</span>
+                      <span className="block text-[11px] text-slate-400 mt-0.5 leading-snug">Nilai bebas 1-{qForm.rating_max} tanpa kunci</span>
                     </span>
                   </button>
                   <button type="button" onClick={() => setQForm({ ...qForm, question_type: 'essay' })}
-                    className={`flex items-center gap-2.5 border rounded-lg px-3.5 py-3 text-left transition-colors ${qForm.question_type === 'essay' ? 'border-amber-500 bg-amber-50 ring-1 ring-amber-500/20' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
-                    <span className={`w-9 h-9 flex items-center justify-center rounded-lg text-xs font-bold shrink-0 ${qForm.question_type === 'essay' ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-500'}`}>TEXT</span>
+                    className={`relative flex items-center gap-2.5 border rounded-md px-3.5 py-3 text-left transition-colors ${qForm.question_type === 'essay' ? 'border-amber-500 bg-amber-50 ring-1 ring-amber-500/20' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+                    <span className={`w-9 h-9 flex items-center justify-center rounded-md text-xs font-bold shrink-0 ${qForm.question_type === 'essay' ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-500'}`}>TEXT</span>
                     <span>
                       <span className="block text-sm font-semibold text-slate-700">Esai / Uraian</span>
-                      <span className="block text-xs text-slate-400 mt-0.5">Jawaban teks, nilai via kunci</span>
+                      <span className="block text-[11px] text-slate-400 mt-0.5 leading-snug">Jawaban teks, nilai via kunci</span>
                     </span>
                   </button>
                 </div>
-              </div>
-              {qForm.question_type === 'rating' ? (
-                <div>
-                  <label className={labelCls}>Skala Penilaian <span className="text-red-500">*</span></label>
-                  <div className="flex items-center gap-4 flex-wrap">
-                    <input type="number" min={2} max={10} value={qForm.rating_max}
-                      onChange={e => setQForm({ ...qForm, rating_max: e.target.value })}
-                      className={`${inputCls} max-w-[110px]`} />
-                    <div className="flex gap-1.5 flex-wrap">
-                      {Array.from({ length: Math.min(10, Math.max(2, Number(qForm.rating_max) || 9)) }, (_, i) => (
-                        <span key={i} className="w-8 h-8 flex items-center justify-center rounded-full bg-violet-50 border border-violet-200 text-sm font-bold text-violet-600">
-                          {i + 1}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-2">Kandidat memilih nilai 1 sampai {Math.min(10, Math.max(2, Number(qForm.rating_max) || 9))}. Jawaban bersifat penilaian bebas (tidak ada benar/salah), poin penuh diberikan jika diisi.</p>
-                </div>
-              ) : qForm.question_type === 'essay' ? (
-                <div>
-                  <label className={labelCls}>Kunci Jawaban <span className="text-slate-400 font-normal">(opsional)</span></label>
-                  <textarea value={qForm.keyword} onChange={e => setQForm({ ...qForm, keyword: e.target.value })}
-                    placeholder="Contoh: karena, transportasi umum, 1847"
-                    rows={2}
-                    className={`${inputCls} resize-none`} />
-                  <p className="text-xs text-slate-400 mt-1">Jika diisi, jawaban siswa yang mengandung kata kunci otomatis diberi poin penuh saat submit. Jika dikosongkan, jawaban menunggu penilaian manual.</p>
-                </div>
-              ) : (
-                <div>
-                  <label className={labelCls}>Opsi Jawaban <span className="text-red-500">* (min 2)</span></label>
-                  <div className="space-y-2">
-                    {qOptions.map((opt, oi) => (
-                      <div key={oi} className="flex items-center gap-2">
-                        <button onClick={() => setQForm({ ...qForm, correct_index: String(oi) })}
-                          title="Tandai sebagai jawaban benar"
-                          className={`w-7 h-7 shrink-0 flex items-center justify-center rounded-full border-2 transition-colors ${qForm.correct_index === String(oi) ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-200 text-slate-400 hover:border-[#0E6187]'}`}>
-                          {String.fromCharCode(65 + oi)}
-                        </button>
-                        <input value={opt.text} onChange={e => { const arr = [...qOptions]; arr[oi] = { ...arr[oi], text: e.target.value }; setQOptions(arr) }}
-                          placeholder={opt.image_path ? `Opsi ${String.fromCharCode(65 + oi)} (gambar)` : `Opsi ${String.fromCharCode(65 + oi)}`} className={`${inputCls} flex-1`} />
-                        <div className="relative shrink-0 h-9 w-9">
-                          <label title="Unggah gambar jawaban"
-                            className={`w-9 h-9 flex items-center justify-center rounded-lg border transition-colors cursor-pointer ${opt.image_path ? 'border-transparent' : 'border-slate-200 bg-slate-50 hover:border-[#0E6187] hover:text-[#0E6187] text-slate-400'} ${uploadingOptImg === oi ? 'opacity-50 pointer-events-none' : ''}`}>
-                            {uploadingOptImg === oi
-                              ? <Loader2 size={14} className="animate-spin text-[#0E6187]" />
-                              : opt.image_path
-                                ? <img src={opt.image_url || ''} className="w-9 h-9 rounded-lg object-cover" alt={`Opsi ${String.fromCharCode(65 + oi)}`} />
-                                : <ImageIcon size={14} />}
-                            <input type="file" accept="image/*" className="hidden" disabled={uploadingOptImg !== null}
-                              onChange={e => { uploadOptionImage(e.target.files?.[0], oi); e.target.value = '' }} />
-                          </label>
-                          {opt.image_path && (
-                            <button onClick={() => setQOptions(prev => prev.map((o, i) => i === oi ? { ...o, image_path: null, image_url: null } : o))}
-                              title="Hapus gambar opsi"
-                              className="absolute -top-1.5 -right-1.5 w-5 h-5 flex items-center justify-center rounded-full bg-red-500 text-white shadow">
-                              <X size={11} />
-                            </button>
-                          )}
+
+                <div className="mt-4">
+                  {qForm.question_type === 'rating' ? (
+                    <div className="rounded-md border border-violet-200 bg-violet-50/50 p-3">
+                      <label className="block text-xs font-semibold text-slate-700 mb-2">Skala Penilaian <span className="text-red-500">*</span></label>
+                      <div className="flex items-center gap-4 flex-wrap">
+                        <input type="number" min={2} max={10} value={qForm.rating_max}
+                          onChange={e => setQForm({ ...qForm, rating_max: e.target.value })}
+                          className="w-[110px] px-3.5 py-2.5 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 bg-white" />
+                        <div className="flex gap-1.5 flex-wrap">
+                          {Array.from({ length: Math.min(10, Math.max(2, Number(qForm.rating_max) || 9)) }, (_, i) => (
+                            <span key={i} className="w-8 h-8 flex items-center justify-center rounded-md bg-white border border-violet-200 text-sm font-bold text-violet-600">
+                              {i + 1}
+                            </span>
+                          ))}
                         </div>
-                        {qOptions.length > 2 && (
-                          <button onClick={() => setQOptions(qOptions.filter((_, idx) => idx !== oi))} className="p-1 text-red-400 hover:text-red-500 shrink-0">
-                            <X size={14} />
-                          </button>
-                        )}
                       </div>
-                    ))}
-                  </div>
-                  {qOptions.length < 6 && (
-                    <button onClick={() => setQOptions([...qOptions, { text: '', image_path: null, image_url: null }])} className="mt-2 flex items-center gap-1 text-sm font-medium text-[#0E6187]">
-                      <Plus size={12} /> Tambah opsi
-                    </button>
+                      <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">Kandidat memilih nilai 1 sampai {Math.min(10, Math.max(2, Number(qForm.rating_max) || 9))}. Jawaban bersifat penilaian bebas (tidak ada benar/salah), poin penuh diberikan jika diisi.</p>
+                    </div>
+                  ) : qForm.question_type === 'essay' ? (
+                    <div className="rounded-md border border-amber-200 bg-amber-50/50 p-3">
+                      <label className="block text-xs font-semibold text-slate-700 mb-2">Kunci Jawaban <span className="text-slate-400 font-normal">(opsional)</span></label>
+                      <textarea value={qForm.keyword} onChange={e => setQForm({ ...qForm, keyword: e.target.value })}
+                        placeholder="Contoh: karena, transportasi umum, 1847"
+                        rows={2}
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-md text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 bg-white" />
+                      <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">Jika diisi, jawaban siswa yang mengandung kata kunci otomatis diberi poin penuh saat submit. Jika dikosongkan, jawaban menunggu penilaian manual.</p>
+                    </div>
+                  ) : (
+                    <div className="rounded-md border border-slate-200 p-3">
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <label className="block text-xs font-semibold text-slate-700">Opsi Jawaban <span className="text-red-500">* (min 2)</span></label>
+                        <span className={`shrink-0 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-bold ${qOptions.some((o, i) => qForm.correct_index === String(i) && (o.text.trim() || o.image_path)) ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                          Kunci: {qOptions.some((o, i) => qForm.correct_index === String(i) && (o.text.trim() || o.image_path)) ? String.fromCharCode(65 + Number(qForm.correct_index)) : 'belum dipilih'}
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        {qOptions.map((opt, oi) => (
+                          <div key={oi}
+                            className={`flex items-center gap-2 rounded-md border px-2 py-1.5 transition-colors ${qForm.correct_index === String(oi) ? 'border-emerald-300 bg-emerald-50/50' : 'border-slate-200 bg-white'}`}>
+                            <button onClick={() => setQForm({ ...qForm, correct_index: String(oi) })}
+                              title="Tandai sebagai jawaban benar"
+                              className={`w-7 h-7 shrink-0 flex items-center justify-center rounded-md border-2 text-xs font-bold transition-colors ${qForm.correct_index === String(oi) ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-200 text-slate-400 hover:border-[#0E6187] hover:text-[#0E6187]'}`}>
+                              {String.fromCharCode(65 + oi)}
+                            </button>
+                            <input value={opt.text} onChange={e => { const arr = [...qOptions]; arr[oi] = { ...arr[oi], text: e.target.value }; setQOptions(arr) }}
+                              placeholder={opt.image_path ? `Opsi ${String.fromCharCode(65 + oi)} (gambar)` : `Opsi ${String.fromCharCode(65 + oi)}`}
+                              className="flex-1 min-w-0 px-3 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-white" />
+                            <div className="relative shrink-0 h-9 w-9">
+                              <label title="Unggah gambar jawaban"
+                                className={`w-9 h-9 flex items-center justify-center rounded-md border transition-colors cursor-pointer ${opt.image_path ? 'border-transparent' : 'border-slate-200 bg-slate-50 hover:border-[#0E6187] hover:text-[#0E6187] text-slate-400'} ${uploadingOptImg === oi ? 'opacity-50 pointer-events-none' : ''}`}>
+                                {uploadingOptImg === oi
+                                  ? <Loader2 size={14} className="animate-spin text-[#0E6187]" />
+                                  : opt.image_path
+                                    ? <img src={opt.image_url || ''} className="w-9 h-9 rounded-md object-cover" alt={`Opsi ${String.fromCharCode(65 + oi)}`} />
+                                    : <ImageIcon size={14} />}
+                                <input type="file" accept="image/*" className="hidden" disabled={uploadingOptImg !== null}
+                                  onChange={e => { uploadOptionImage(e.target.files?.[0], oi); e.target.value = '' }} />
+                              </label>
+                              {opt.image_path && (
+                                <button onClick={() => setQOptions(prev => prev.map((o, i) => i === oi ? { ...o, image_path: null, image_url: null } : o))}
+                                  title="Hapus gambar opsi"
+                                  className="absolute -top-1.5 -right-1.5 w-5 h-5 flex items-center justify-center rounded-md bg-red-500 text-white shadow">
+                                  <X size={11} />
+                                </button>
+                              )}
+                            </div>
+                            {qOptions.length > 2 && (
+                              <button onClick={() => setQOptions(qOptions.filter((_, idx) => idx !== oi))} title="Hapus opsi"
+                                className="p-1.5 rounded-md text-red-400 hover:bg-red-50 hover:text-red-500 shrink-0 transition-colors">
+                                <X size={14} />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      {qOptions.length < 6 && (
+                        <button onClick={() => setQOptions([...qOptions, { text: '', image_path: null, image_url: null }])}
+                          className="mt-2 w-full py-2 flex items-center justify-center gap-1.5 text-xs font-semibold text-[#0E6187] bg-[#0E6187]/5 hover:bg-[#0E6187]/10 border border-dashed border-[#0E6187]/40 rounded-md transition-colors">
+                          <Plus size={13} /> Tambah opsi
+                        </button>
+                      )}
+                      <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">Klik huruf <span className="font-bold text-emerald-600">A/B/C...</span> untuk menandai kunci jawaban. Klik ikon <span className="font-bold text-[#0E6187]">gambar</span> di kanan opsi untuk menjadikan opsi berupa gambar.</p>
+                    </div>
                   )}
-                  <p className="text-xs text-slate-400 mt-2">Klik huruf <span className="font-bold text-emerald-500">A/B/C...</span> untuk menandai kunci jawaban. Klik ikon <span className="font-bold text-[#0E6187]">gambar</span> di kanan opsi untuk menjadikan opsi berupa gambar.</p>
                 </div>
-              )}
-              <div>
-                <label className={labelCls}>Bobot Skor</label>
-                <input type="number" min={1} value={qForm.points} onChange={e => setQForm({ ...qForm, points: e.target.value })} className={inputCls} />
+              </div>
+
+              {/* STEP 4 */}
+              <div className="rounded-md border border-slate-200 p-4">
+                <div className="flex items-start gap-3 mb-3">
+                  <span className="w-6 h-6 shrink-0 rounded-md bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">4</span>
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-800 leading-tight">Bobot Skor</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">Poin yang didapat kandidat bila menjawab benar</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <input type="number" min={1} value={qForm.points} onChange={e => setQForm({ ...qForm, points: e.target.value })}
+                    className="w-32 px-3.5 py-2.5 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-white" />
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-[#0E6187]/10 text-[#0E6187] px-2.5 py-1.5 text-xs font-bold">
+                    <Award size={13} /> {qForm.points || 0} poin
+                  </span>
+                </div>
               </div>
             </div>
-            <div className="px-5 py-4 border-t border-slate-200 flex justify-end gap-3">
-              <button onClick={() => setShowQuestionModal(false)} className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Batal</button>
-              <button onClick={saveQuestion} disabled={savingQuestion} className="px-4 py-2.5 bg-[#0E6187] text-white rounded-lg text-sm font-semibold hover:bg-[#0E6187]/90 disabled:opacity-50 transition-colors">
-                {savingQuestion ? 'Menyimpan...' : editingQuestion ? 'Simpan Perubahan' : 'Tambah Soal'}
-              </button>
+            <div className="px-5 py-3.5 border-t border-slate-200 bg-slate-50 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
+              <p className="text-xs text-slate-500 text-center sm:text-left">
+                {qForm.question_type === 'choice'
+                  ? 'Pastikan kunci jawaban sudah ditandai pada salah satu opsi.'
+                  : qForm.question_type === 'rating'
+                    ? 'Soal rating tidak memakai kunci jawaban.'
+                    : 'Esai dinilai dari kunci kata kunci atau penilaian manual.'}
+              </p>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setShowQuestionModal(false)}
+                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-md text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 transition-colors">
+                  Batal
+                </button>
+                <button onClick={saveQuestion} disabled={savingQuestion}
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-white bg-[#0E6187] hover:bg-[#0E6187]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                  {savingQuestion ? <><Loader2 size={15} className="animate-spin" /> Menyimpan...</> : editingQuestion ? 'Simpan Perubahan' : 'Tambah Soal'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

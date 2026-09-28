@@ -249,12 +249,12 @@ export default function Pendaftar() {
   }
 
   function combinedStatus(p: PendaftarItem) {
-    if (p.status_pembayaran === 'ditangguhkan') return { bg: 'bg-orange-100 text-orange-700 border-orange-200', label: 'Ditangguhkan' }
-    if (p.status_pembayaran === 'verified') return { bg: 'bg-emerald-100 text-emerald-700 border-emerald-200', label: 'Pembayaran dikonfirmasi' }
-    if (p.status_pendaftaran === 'ditolak' || p.status_pembayaran === 'ditolak') return { bg: 'bg-red-100 text-red-700 border-red-200', label: 'Batal' }
-    if (p.status_pembayaran === 'processing' && p.status_pendaftaran === 'pending') return { bg: 'bg-amber-100 text-amber-700 border-amber-200', label: 'Menunggu Verifikasi' }
-    if (p.status_pembayaran === 'unpaid') return { bg: 'bg-slate-100 text-slate-600 border-slate-200', label: 'Menunggu Pembayaran' }
-    return { bg: 'bg-blue-100 text-blue-700 border-blue-200', label: 'Proses' }
+    if (p.status_pembayaran === 'ditangguhkan') return { bg: 'bg-orange-500 text-white', label: 'Ditangguhkan' }
+    if (p.status_pembayaran === 'verified') return { bg: 'bg-emerald-600 text-white', label: 'Pembayaran Dikonfirmasi' }
+    if (p.status_pendaftaran === 'ditolak' || p.status_pembayaran === 'ditolak') return { bg: 'bg-red-600 text-white', label: 'Batal' }
+    if (p.status_pembayaran === 'processing' && p.status_pendaftaran === 'pending') return { bg: 'bg-amber-500 text-white', label: 'Menunggu Verifikasi' }
+    if (p.status_pembayaran === 'unpaid') return { bg: 'bg-slate-500 text-white', label: 'Menunggu Pembayaran' }
+    return { bg: 'bg-blue-600 text-white', label: 'Proses' }
   }
 
   const filtered = useMemo(() => data, [data])
@@ -452,18 +452,18 @@ export default function Pendaftar() {
 
       {/* Table */}
       <div className="overflow-x-auto rounded-sm border border-slate-200 bg-white">
-        <table className="w-full border-collapse text-left text-sm text-black" style={{ tableLayout: 'fixed', minWidth: '900px' }}>
+        <table className="w-full border-collapse text-left text-sm text-black" style={{ tableLayout: 'fixed', minWidth: '1180px' }}>
           <colgroup>
-            <col className="w-[220px]" />
+            <col className="w-[200px]" />
+            <col className="w-[120px]" />
+            <col className="w-[100px]" />
             <col className="w-[130px]" />
-            <col className="w-[100px]" />
-            <col className="w-[150px]" />
-            <col className="w-[140px]" />
+            <col className="w-[110px]" />
             <col className="w-[100px]" />
             <col className="w-[100px]" />
-            <col className="w-[90px]" />
-            <col className="w-[90px]" />
-            <col className="w-[50px]" />
+            <col className="w-[80px]" />
+            <col className="w-[190px]" />
+            <col className="w-[56px]" />
           </colgroup>
           <thead className="bg-[#0e6187]">
             <tr>
@@ -566,8 +566,8 @@ export default function Pendaftar() {
                   <td className="border border-slate-200 px-3 py-3 text-right text-sm font-normal text-black whitespace-nowrap">
                     {p.diskon ? `Rp ${Number(p.diskon).toLocaleString('id-ID')}` : <span className="text-gray-400">-</span>}
                   </td>
-                  <td className="border border-slate-200 px-3 py-3 text-center">
-                    {(() => { const s = combinedStatus(p); return (<span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium ${s.bg}`}>{s.label}</span>) })()}
+                  <td className="border border-slate-200 px-3 py-3 text-center whitespace-nowrap">
+                    {(() => { const s = combinedStatus(p); return (<span title={s.label} className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap ${s.bg}`}><span className="w-1.5 h-1.5 rounded-full bg-white/90 shrink-0" />{s.label}</span>) })()}
                   </td>
                   <td className="border border-slate-200 px-2 py-3">
                     <div className="relative flex justify-center" ref={openActionId === p.id ? actionRef : undefined}>
@@ -899,7 +899,7 @@ export default function Pendaftar() {
             <div className="px-6 py-4 space-y-5">
               {/* Status */}
               <div className="flex items-center gap-3">
-                {(() => { const s = combinedStatus(detailModal); return (<span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium ${s.bg}`}>{s.label}</span>) })()}
+                {(() => { const s = combinedStatus(detailModal); return (<span className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap ${s.bg}`}><span className="w-1.5 h-1.5 rounded-full bg-white/90 shrink-0" />{s.label}</span>) })()}
               </div>
 
               {/* Data Diri */}

@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   ShieldCheck,
   ArrowLeft,
+  Home,
 } from "lucide-react";
 import api from "../../services/api";
 
@@ -234,41 +235,173 @@ export default function KonfirmasiPembayaran() {
     return (
       <div className="force-light min-h-screen bg-[#0E6187] py-12 px-4 font-sans flex flex-col items-center">
         <div className="w-full max-w-[460px] mx-auto mt-6">
-          <div className="bg-white rounded-2xl pt-10 pb-8 px-6 relative text-center shadow-sm">
-            <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-12 h-12 bg-[#00C853] rounded-full border-[3px] border-[#0E6187] flex items-center justify-center shadow-sm">
-              <Check size={26} className="text-white" strokeWidth={3} />
+          {/* BAGIAN 1: HEADER SUKSES */}
+          <div className="bg-white rounded-t-2xl pt-10 pb-6 px-6 relative shadow-sm">
+            <div className="relative w-[72px] h-[72px] mx-auto mb-4">
+              <div className="absolute inset-0 rounded-full bg-[#00C853]/20 animate-ping" />
+              <div className="relative w-[72px] h-[72px] bg-[#00C853] rounded-full flex items-center justify-center shadow-sm">
+                <Check size={34} className="text-white" strokeWidth={3} />
+              </div>
             </div>
 
-            <h1 className="text-xl font-bold text-gray-800 mb-2">
-              Bukti Terkirim!
-            </h1>
-            <p className="text-[13px] text-gray-500 mb-6 leading-relaxed">
-              Bukti pembayaran Anda berhasil dikirim dan akan segera diverifikasi
-              oleh admin.
-            </p>
+            <div className="text-center">
+              <h1 className="text-[20px] font-bold text-gray-800 mb-1.5">
+                Bukti Terkirim!
+              </h1>
+              <p className="text-[13px] text-gray-500 leading-relaxed">
+                Bukti pembayaran Anda berhasil dikirim dan akan segera
+                diverifikasi oleh admin.
+              </p>
+              <p className="text-[12px] text-gray-400 mt-2 leading-relaxed">
+                Anda tidak perlu menunggu di halaman ini. Silahkan masuk ke
+                dashboard dan pantau status pembayaran Anda secara berkala.
+              </p>
+            </div>
+          </div>
 
-            <div className="bg-[#FFF9E5] border border-yellow-100 rounded-lg p-4 mb-6 text-left">
-              <div className="flex justify-between text-[13px] mb-2">
-                <span className="text-gray-500">Invoice</span>
-                <span className="font-bold text-gray-800">
-                  {data?.no_invoice || "-"}
-                </span>
-              </div>
-              <div className="flex justify-between text-[13px] items-center">
-                <span className="text-gray-500">Status</span>
+          {/* PEMBATAS TIKET */}
+          <div className="relative h-5 bg-white">
+            <div className="absolute top-1/2 left-4 right-4 border-t-[1.5px] border-dashed border-gray-300 -translate-y-1/2"></div>
+            <div className="absolute top-1/2 -left-3 w-6 h-6 bg-[#0E6187] rounded-full -translate-y-1/2"></div>
+            <div className="absolute top-1/2 -right-3 w-6 h-6 bg-[#0E6187] rounded-full -translate-y-1/2"></div>
+          </div>
+
+          {/* BAGIAN 2: INFORMASI INVOICE */}
+          <div className="bg-white py-6 px-6">
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-5 text-center">
+              <p className="text-[11px] text-gray-400 uppercase tracking-wider mb-1">
+                Nomor Invoice
+              </p>
+              <p className="text-[18px] font-bold font-mono text-[#0E6187] tracking-wider">
+                {data?.no_invoice || "-"}
+              </p>
+            </div>
+
+            <div className="space-y-3 text-[13px]">
+              <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                <span className="text-gray-500">status:</span>
                 <span className="inline-flex items-center gap-1.5 text-yellow-600 font-bold">
                   <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
                   Menunggu Verifikasi
                 </span>
               </div>
+              <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                <span className="text-gray-500">waktu dikirim:</span>
+                <span className="font-bold font-mono text-gray-800">
+                  {new Date().toLocaleString("id-ID", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                <span className="text-gray-500">atas nama:</span>
+                <span className="font-medium text-gray-800 text-right max-w-[200px] leading-tight">
+                  {namaPengirim || "-"}
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-2">
+                <span className="text-gray-500">bank pengirim:</span>
+                <span className="font-medium text-gray-800">
+                  {bankPengirim || "-"}
+                </span>
+              </div>
             </div>
+          </div>
 
+          {/* PEMBATAS TIKET */}
+          <div className="relative h-5 bg-white">
+            <div className="absolute top-1/2 left-4 right-4 border-t-[1.5px] border-dashed border-gray-300 -translate-y-1/2"></div>
+            <div className="absolute top-1/2 -left-3 w-6 h-6 bg-[#0E6187] rounded-full -translate-y-1/2"></div>
+            <div className="absolute top-1/2 -right-3 w-6 h-6 bg-[#0E6187] rounded-full -translate-y-1/2"></div>
+          </div>
+
+          {/* BAGIAN 3: LANGKAH SELANJUTNYA */}
+          <div className="bg-white py-6 px-6">
+            <h2 className="text-[15px] font-bold text-gray-800 mb-4">
+              Langkah Selanjutnya
+            </h2>
+
+            <ol className="space-y-4 text-[13px]">
+              <li className="flex items-start gap-3">
+                <span className="shrink-0 w-6 h-6 rounded-full bg-[#00C853] text-white flex items-center justify-center text-[11px] font-bold">
+                  1
+                </span>
+                <div>
+                  <p className="font-bold text-gray-800">
+                    Bukti pembayaran terkirim
+                  </p>
+                  <p className="text-[12px] text-gray-500 leading-relaxed">
+                    Berkas bukti dan data rekening pengirim sudah kami terima
+                    dengan aman.
+                  </p>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="shrink-0 w-6 h-6 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center text-[11px] font-bold">
+                  2
+                </span>
+                <div>
+                  <p className="font-bold text-gray-800">
+                    Verifikasi oleh admin
+                  </p>
+                  <p className="text-[12px] text-gray-500 leading-relaxed">
+                    Admin akan mencocokkan nominal dengan tagihan invoice Anda.
+                    Proses ini memerlukan waktu 1x24 jam.
+                  </p>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="shrink-0 w-6 h-6 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-[11px] font-bold">
+                  3
+                </span>
+                <div>
+                  <p className="font-bold text-gray-800">
+                    Aktivasi akses dashboard
+                  </p>
+                  <p className="text-[12px] text-gray-500 leading-relaxed">
+                    Setelah pembayaran diverifikasi, akun Anda otomatis aktif dan
+                    semua materi dapat diakses.
+                  </p>
+                </div>
+              </li>
+            </ol>
+
+            <div className="bg-[#FFF9E5] border border-yellow-100 rounded-md p-3 mt-5 text-[12px] text-gray-600 leading-relaxed">
+              Simpan nomor invoice di atas sebagai bukti. Anda dapat memantau
+              status verifikasi kapan saja melalui dashboard.
+            </div>
+          </div>
+
+          {/* PEMBATAS TIKET */}
+          <div className="relative h-5 bg-white">
+            <div className="absolute top-1/2 left-4 right-4 border-t-[1.5px] border-dashed border-gray-300 -translate-y-1/2"></div>
+            <div className="absolute top-1/2 -left-3 w-6 h-6 bg-[#0E6187] rounded-full -translate-y-1/2"></div>
+            <div className="absolute top-1/2 -right-3 w-6 h-6 bg-[#0E6187] rounded-full -translate-y-1/2"></div>
+          </div>
+
+          {/* BAGIAN 4: CTA */}
+          <div className="bg-white rounded-b-2xl py-6 px-6">
             <a
               href="/siswa-dashboard"
-              className="inline-block w-full py-3 bg-[#00D1FF] text-white font-bold rounded-lg text-[13px] hover:bg-[#00bce6] transition-colors"
+              className="w-full py-3.5 bg-[#0E6187] text-white font-bold rounded-lg text-[13px] hover:bg-[#0a4d6e] active:scale-[0.99] transition-all flex items-center justify-center gap-2"
             >
-              KEMBALI KE DASHBOARD
+              <Home size={16} />
+              SILAKKAN MASUK KE DASHBOARD
             </a>
+            <p className="text-[11px] text-gray-400 text-center mt-3">
+              Belum bisa masuk? Silahkan login terlebih dahulu menggunakan akun
+              yang sama.
+            </p>
+          </div>
+
+          {/* FOOTER AMAN */}
+          <div className="mt-6 flex items-center justify-center gap-2 text-white text-[12px] opacity-90 pb-8">
+            <ShieldCheck size={16} className="text-[#00D166]" />
+            <span>Informasi Pribadi Anda Aman</span>
           </div>
         </div>
       </div>

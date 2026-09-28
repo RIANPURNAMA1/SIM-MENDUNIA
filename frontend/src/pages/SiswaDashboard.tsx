@@ -960,31 +960,91 @@ export default function SiswaDashboard() {
                     <div className="border-t border-gray-100 my-6" />
 
                     {success ? (
-                      <div className="text-center py-4">
-                        <div className="w-16 h-16 bg-[#00C853]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <Check size={32} className="text-[#00C853]" strokeWidth={3} />
-                        </div>
-                        <h2 className="text-[16px] font-bold text-gray-800 mb-1">Bukti Terkirim!</h2>
-                        <p className="text-[13px] text-gray-500 mb-6 leading-relaxed">
-                          Bukti pembayaran Anda berhasil dikirim dan akan segera diverifikasi oleh admin.
-                        </p>
-                        <div className="bg-[#FFF9E5] border border-yellow-100 rounded-lg p-4 mb-6 text-left">
-                          <div className="flex justify-between text-[13px] mb-2">
-                            <span className="text-gray-500">Invoice</span>
-                            <span className="font-bold text-gray-800">{checkoutData.no_invoice}</span>
+                      <div className="py-2">
+                        <div className="text-center">
+                          <div className="relative w-[72px] h-[72px] mx-auto mb-4">
+                            <div className="absolute inset-0 rounded-full bg-[#00C853]/20 animate-ping" />
+                            <div className="relative w-[72px] h-[72px] bg-[#00C853] rounded-full flex items-center justify-center shadow-sm">
+                              <Check size={34} className="text-white" strokeWidth={3} />
+                            </div>
                           </div>
-                          <div className="flex justify-between text-[13px] items-center">
-                            <span className="text-gray-500">Status</span>
+                          <h2 className="text-[18px] font-bold text-gray-800 mb-1.5">Bukti Terkirim!</h2>
+                          <p className="text-[13px] text-gray-500 leading-relaxed">
+                            Bukti pembayaran Anda berhasil dikirim dan akan segera diverifikasi oleh admin.
+                          </p>
+                          <p className="text-[12px] text-gray-400 mt-2 leading-relaxed">
+                            Anda tidak perlu menunggu di halaman ini. Pantau status pembayaran Anda secara berkala melalui dashboard.
+                          </p>
+                        </div>
+
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 my-5 text-center">
+                          <p className="text-[11px] text-gray-400 uppercase tracking-wider mb-1">Nomor Invoice</p>
+                          <p className="text-[18px] font-bold font-mono text-[#0E6187] tracking-wider">
+                            {checkoutData.no_invoice}
+                          </p>
+                        </div>
+
+                        <div className="space-y-3 text-[13px] mb-5">
+                          <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span className="text-gray-500">status:</span>
                             <span className="inline-flex items-center gap-1.5 text-yellow-600 font-bold">
                               <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
                               Menunggu Verifikasi
                             </span>
                           </div>
+                          <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span className="text-gray-500">waktu dikirim:</span>
+                            <span className="font-bold font-mono text-gray-800">
+                              {new Date().toLocaleString('id-ID', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                          </div>
                         </div>
+
+                        <h3 className="text-[14px] font-bold text-gray-800 mb-3">Langkah Selanjutnya</h3>
+                        <ol className="space-y-3 text-[13px]">
+                          <li className="flex items-start gap-3">
+                            <span className="shrink-0 w-6 h-6 rounded-full bg-[#00C853] text-white flex items-center justify-center text-[11px] font-bold">1</span>
+                            <div>
+                              <p className="font-bold text-gray-800">Bukti pembayaran terkirim</p>
+                              <p className="text-[12px] text-gray-500 leading-relaxed">
+                                Berkas bukti dan data rekening pengirim sudah kami terima dengan aman.
+                              </p>
+                            </div>
+                          </li>
+                          <li className="flex items-start gap-3">
+                            <span className="shrink-0 w-6 h-6 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center text-[11px] font-bold">2</span>
+                            <div>
+                              <p className="font-bold text-gray-800">Verifikasi oleh admin</p>
+                              <p className="text-[12px] text-gray-500 leading-relaxed">
+                                Admin akan mencocokkan nominal dengan tagihan invoice Anda. Proses ini memerlukan waktu 1x24 jam.
+                              </p>
+                            </div>
+                          </li>
+                          <li className="flex items-start gap-3">
+                            <span className="shrink-0 w-6 h-6 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-[11px] font-bold">3</span>
+                            <div>
+                              <p className="font-bold text-gray-800">Aktivasi akses dashboard</p>
+                              <p className="text-[12px] text-gray-500 leading-relaxed">
+                                Setelah pembayaran diverifikasi, akun Anda otomatis aktif dan semua materi dapat diakses.
+                              </p>
+                            </div>
+                          </li>
+                        </ol>
+
+                        <div className="bg-[#FFF9E5] border border-yellow-100 rounded-md p-3 mt-5 text-[12px] text-gray-600 leading-relaxed">
+                          Simpan nomor invoice di atas sebagai bukti. Anda dapat memantau status verifikasi kapan saja melalui dashboard.
+                        </div>
+
                         <button
                           onClick={() => { setShowPaymentModal(false); setShowDetail(false); setSuccess(false) }}
-                          className="w-full py-3 bg-[#0E6187] text-white font-bold rounded-lg text-[13px] hover:bg-[#0a4d6e] transition-colors">
-                          KEMBALI KE DASHBOARD
+                          className="w-full py-3.5 mt-5 bg-[#0E6187] text-white font-bold rounded-lg text-[13px] hover:bg-[#0a4d6e] active:scale-[0.99] transition-all flex items-center justify-center gap-2">
+                          SILAKKAN MASUK KE DASHBOARD
                         </button>
                       </div>
                     ) : showConfirmForm ? (
