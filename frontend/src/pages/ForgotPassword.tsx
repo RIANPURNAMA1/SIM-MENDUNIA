@@ -1,55 +1,32 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { MailCheck, Send, ArrowLeft, KeyRound } from "lucide-react";
 import api from "../services/api";
-
-const PASSWORD_REQUIREMENTS = [
-  { id: "length", label: "Minimal 8 karakter", test: (p: string) => p.length >= 8 },
-  { id: "lower", label: "Terdapat minimal satu huruf kecil", test: (p: string) => /[a-z]/.test(p) },
-  { id: "upper", label: "Terdapat minimal satu huruf besar", test: (p: string) => /[A-Z]/.test(p) },
-  { id: "number", label: "Terdapat minimal satu angka", test: (p: string) => /\d/.test(p) },
-  { id: "symbol", label: "Terdapat salah satu simbol: ! @ # $ % ^ & *", test: (p: string) => /[!@#$%^&*]/.test(p) },
-];
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [passwordConfirmation, setPasswordConfirmation] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [devResetUrl, setDevResetUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
-
-    if (password !== passwordConfirmation) {
-      setError("Konfirmasi password tidak cocok");
-      return;
-    }
-
-    const unmet = PASSWORD_REQUIREMENTS.filter((r) => !r.test(password));
-    if (unmet.length > 0) {
-      setError(`Password harus memenuhi semua ketentuan: ${unmet.map((r) => r.label).join("; ")}`);
-      return;
-    }
+    setDevResetUrl("");
 
     setIsSubmitting(true);
     try {
-      const res = await api.post("/auth/forgot-password", {
-        email,
-        password,
-        password_confirmation: passwordConfirmation,
-      });
+      const res = await api.post("/auth/forgot-password", { email });
       setSuccess(res.data.message);
-      setTimeout(() => navigate("/login"), 2000);
+      if (res.data.dev_reset_url) setDevResetUrl(res.data.dev_reset_url);
     } catch (err: any) {
       setError(
         err.response?.data?.message ||
           err.response?.data?.errors?.email?.[0] ||
-          "Gagal mereset password"
+          "Gagal mengirim link reset password"
       );
     } finally {
       setIsSubmitting(false);
@@ -62,8 +39,15 @@ export default function ForgotPassword() {
       <div className="w-full lg:w-1/2 bg-white flex items-center justify-center p-6">
         <div className="w-full max-w-[420px] fade-in">
           <div className="p-8">
+            <div className="w-14 h-14 rounded-2xl bg-[#0E6187]/10 flex items-center justify-center mb-5">
+              <KeyRound size={26} className="text-[#0E6187]" />
+            </div>
+
             <h1 className="text-2xl font-bold text-[#1c1e21] mb-1">Lupa Kata Sandi</h1>
-            <p className="text-sm text-[#606770] mb-6">Masukkan email dan password baru Anda</p>
+            <p className="text-sm text-[#606770] mb-6">
+              Masukkan email terdaftar. Kami akan mengirimkan link untuk membuat
+              password baru ke inbox Anda.
+            </p>
 
             {error && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm font-semibold text-red-700 text-center">
@@ -71,96 +55,87 @@ export default function ForgotPassword() {
               </div>
             )}
 
-            {success && (
-              <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm font-semibold text-emerald-700 text-center">
-                {success}
+            {success ? (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-center">
+                <MailCheck size={34} className="mx-auto mb-3 text-emerald-600" />
+                <p className="text-sm font-bold text-emerald-800 mb-1">
+                  Link reset sudah dikirim
+                </p>
+                <p className="text-[13px] text-emerald-700 leading-relaxed">
+                  {success}
+                </p>
+                <p className="text-[12px] text-emerald-600 mt-3">
+                  Silakan cek folder spam bila email belum sampai dalam 5 menit.
+                </p>
+
+                {devResetUrl && (
+                  <a
+                    href={devResetUrl}
+                    className="mt-4 block rounded-lg border border-emerald-300 bg-white px-3 py-2 text-[12px] font-semibold text-emerald-700 hover:bg-emerald-50 break-all"
+                  >
+                    {devResetUrl}
+                  </a>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSuccess("");
+                    setDevResetUrl("");
+                    setEmail("");
+                  }}
+                  className="mt-4 text-sm font-semibold text-[#0E6187] hover:underline"
+                >
+                  Kirim ulang ke email lain
+                </button>
               </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-[#1c1e21] mb-2">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoFocus
+                    placeholder="contoh: siswa@mendunia.com"
+                    className="w-full h-[52px] px-4 text-[17px] bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:outline-none focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187] text-[#1c1e21] placeholder-[#8d949e]"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full mt-1 bg-[#0E6187] text-white font-bold text-[18px] py-3 rounded-lg hover:bg-[#1a5e6f] transition-colors flex justify-center items-center gap-2 h-[48px] disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Mengirim...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send size={18} />
+                      <span>Kirim Link Reset</span>
+                    </>
+                  )}
+                </button>
+              </form>
             )}
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                placeholder="Email"
-                className="w-full h-[52px] px-4 text-[17px] bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:outline-none focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187] text-[#1c1e21] placeholder-[#8d949e]"
-              />
-
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={8}
-                  placeholder="Password Baru"
-                  className="w-full h-[52px] px-4 text-[17px] bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:outline-none focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187] text-[#1c1e21] placeholder-[#8d949e]"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#0E6187] hover:underline"
-                >
-                  {showPassword ? "Sembunyikan" : "Tampilkan"}
-                </button>
-              </div>
-
-              <div className="space-y-1.5 -mt-1">
-                {PASSWORD_REQUIREMENTS.map((r) => {
-                  const met = r.test(password);
-                  return (
-                    <div key={r.id} className="flex items-start gap-2 text-[13px]">
-                      <span
-                        className={`mt-0.5 flex-none h-4 w-4 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors ${
-                          met ? "bg-emerald-500 text-white" : "bg-[#dddfe2] text-[#8d949e]"
-                        }`}
-                      >
-                        {met ? "✓" : ""}
-                      </span>
-                      <span className={met ? "text-emerald-700 font-medium" : "text-[#606770]"}>
-                        {r.label}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <input
-                type="password"
-                value={passwordConfirmation}
-                onChange={(e) => setPasswordConfirmation(e.target.value)}
-                required
-                minLength={8}
-                placeholder="Konfirmasi Password Baru"
-                className="w-full h-[52px] px-4 text-[17px] bg-[#f5f6f7] border border-[#dddfe2] rounded-lg focus:outline-none focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187] text-[#1c1e21] placeholder-[#8d949e]"
-              />
-
+            <div className="text-center mt-5">
               <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full mt-1 bg-[#0E6187] text-white font-bold text-[18px] py-3 rounded-lg hover:bg-[#1a5e6f] transition-colors flex justify-center items-center h-[48px] disabled:opacity-70 disabled:cursor-not-allowed"
+                type="button"
+                onClick={() => navigate("/login")}
+                className="inline-flex items-center gap-1.5 text-sm text-[#0E6187] font-medium hover:underline"
               >
-                {isSubmitting ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Memproses...</span>
-                  </div>
-                ) : (
-                  "Reset Password"
-                )}
+                <ArrowLeft size={15} />
+                Kembali ke Login
               </button>
-
-              <div className="text-center">
-                <button
-                  type="button"
-                  onClick={() => navigate("/login")}
-                  className="text-sm text-[#0E6187] font-medium hover:underline"
-                >
-                  Kembali ke Login
-                </button>
-              </div>
-            </form>
+            </div>
           </div>
         </div>
       </div>
@@ -184,7 +159,9 @@ export default function ForgotPassword() {
             <img src="/logo-sm.png" alt="" className="w-10 h-10 brightness-0 invert" />
           </div>
           <h2 className="text-3xl font-bold text-white mb-3">Peluang Kerja Mendunia</h2>
-          <p className="text-xl font-semibold text-[#f0c040] mb-2">di Jepang & Korea Selatan</p>
+          <p className="text-xl font-semibold text-[#f0c040] mb-2">
+            di Jepang & Korea Selatan
+          </p>
           <p className="text-[#b0b8cc] leading-relaxed mb-10 max-w-sm mx-auto">
             Kami bersamai sampai kamu bisa Sukses Kerja ke Jepang dan Korea Selatan
           </p>

@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\ResetPasswordMail;
 use App\Models\User;
 use App\Models\LoginLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 
 class AuthController extends Controller
@@ -201,16 +203,23 @@ class AuthController extends Controller
         ], 201);
     }
 
+    /**
+     * Kirim link reset password ke email pengguna.
+     * Tidak membocorkan apakah email terdaftar (selalu pesan sukses yang sama).
+     */
     public function forgotPasswordApi(Request $request)
     {
         $request->validate([
-            'email' => 'required|email|exists:users,email',
-            'password' => ['required', 'confirmed', 'min:8', 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*]).+$/'],
-        ], [
-            'password.regex' => 'Password harus mengandung minimal satu huruf kecil, satu huruf besar, satu angka, dan satu simbol (! @ # $ % ^ & *)',
+            'email' => 'required|email|max:191',
         ]);
 
+        $message = 'Jika email tersebut terdaftar, link reset password sudah kami kirim ke inbox Anda.';
+
         $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return response()->json(['message' => $message]);
+        }
 
         if (in_array($user->role, ['MANAGER', 'HR'])) {
             return response()->json([
@@ -218,13 +227,96 @@ class AuthController extends Controller
             ], 403);
         }
 
-        $user->password = Hash::make($request->password);
-        $user->save();
+        $token = Password::broker()->createToken($user);
+
+        $resetUrl = rtrim(config('app.frontend_url', config('app.url')), '/')
+            . '/reset-password?token=' . $token
+            . '&email=' . urlencode($user->email);
+
+        try {
+            Mail::to($user->email)->send(new ResetPasswordMail(
+                nama: $user->name ?? 'Pengguna',
+                resetUrl: $resetUrl,
+                expireMinutes: (int) config('auth.passwords.users.expire', 60),
+            ));
+        } catch (\Throwable $e) {
+            report($e);
+
+            if (app()->environment('local')) {
+                return response()->json([
+                    'message' => $message,
+                    'mail_error' => $e->getMessage(),
+                    'dev_reset_url' => $resetUrl,
+                ]);
+            }
+
+            return response()->json(['message' => 'Gagal mengirim email reset. Silakan coba lagi beberapa saat lagi.'], 500);
+        }
+
+        $payload = ['message' => $message];
+        if (app()->environment('local')) {
+            $payload['dev_reset_url'] = $resetUrl;
+        }
+
+        return response()->json($payload);
+    }
+
+    /**
+     * Consume token reset link lalu simpan password baru.
+     */
+    public function resetPasswordApi(Request $request)
+    {
+        $request->validate([
+            'token' => 'required|string',
+            'email' => 'required|email',
+            'password' => ['required', 'confirmed', 'min:8', 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*]).+$/'],
+        ], [
+            'password.regex' => 'Password harus mengandung minimal satu huruf kecil, satu huruf besar, satu angka, dan satu simbol (! @ # $ % ^ & *)',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+        if (!$user) {
+            return response()->json(['message' => 'Email tidak terdaftar.'], 404);
+        }
+
+        if (in_array($user->role, ['MANAGER', 'HR'])) {
+            return response()->json([
+                'message' => 'Akun Manager dan HR tidak dapat direset melalui fitur ini. Hubungi administrator.',
+            ], 403);
+        }
+
+        $status = Password::broker()->reset(
+            credentials: $request->only('email', 'password', 'password_confirmation', 'token'),
+            callback: function ($user, string $password) {
+                $user->forceFill([
+                    'password' => Hash::make($password),
+                    'remember_token' => \Illuminate\Support\Str::random(60),
+                ])->save();
+
+                if (method_exists($user, 'tokens')) {
+                    $user->tokens()->delete();
+                }
+
+                event(new \Illuminate\Auth\Events\PasswordReset($user));
+            }
+        );
+
+        if ($status !== Password::PASSWORD_RESET) {
+            return response()->json([
+                'message' => match ($status) {
+                    Password::INVALID_TOKEN => 'Link reset password sudah tidak berlaku. Silakan minta link baru.',
+                    Password::INVALID_USER => 'Email tidak terdaftar.',
+                    Password::RESET_THROTTLED => 'Terlalu banyak percobaan. Silakan coba lagi nanti.',
+                    default => 'Gagal mereset password. Silakan minta link baru.',
+                },
+            ], 422);
+        }
 
         return response()->json([
-            'message' => 'Password berhasil diubah. Silakan login.',
+            'message' => 'Password berhasil diubah. Silakan login dengan password baru Anda.',
         ]);
     }
+
 
     public function logoutApi(Request $request)
     {

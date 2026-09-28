@@ -5,6 +5,7 @@ import DashboardLayout from './layouts/DashboardLayout'
 import AffiliateLayout from './layouts/AffiliateLayout'
 import Login from './pages/Login'
 import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import DashboardHome from './pages/Dashboard/DashboardHome'
 import DashboardAbsensi from './pages/Absensi/DashboardAbsensi'
 import DashboardAkademik from './pages/Akademik/DashboardAkademik'
@@ -235,6 +236,7 @@ function AppRoutes() {
         element={isAuthenticated ? <Navigate to="/" replace /> : <Login />}
       />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/kebijakan-privasi" element={<KebijakanPrivasi />} />
       <Route path="/daftar/:kode" element={<DaftarAffiliate />} />
       <Route path="/daftar-affiliate" element={<DaftarAffiliateBaru />} />
