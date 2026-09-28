@@ -44,6 +44,10 @@ const stripPoin = (s: string) => {
   return { text: s, points: 0 }
 }
 
+// Stem soal yang beberapa baris (dialog "A：..." / "B：...") harus disimpan
+// sebagai HTML <br> supaya tidak menyatu jadi satu baris saat dirender.
+const stemToHtml = (s: string) => s.replace(/\r?\n/g, '<br />')
+
 const stripMedia = (s: string) => {
   let text = s
   let image_path: string | null = null
@@ -67,7 +71,7 @@ const stripMedia = (s: string) => {
   return { text, image_path, audio_path, audio_max_plays }
 }
 
-const parseQuestionImport = (text: string): ImportQ[] => {
+const parseQuestionImport = (text: string, type: 'choice' | 'rating' | 'essay' = 'choice'): ImportQ[] => {
   const rows = text.split(/\r?\n/)
   const isTsv = text.includes('\t')
   const result: ImportQ[] = []
@@ -109,17 +113,57 @@ const parseQuestionImport = (text: string): ImportQ[] => {
 
   let current: ImportQ | null = null
   let section = ''
+  // Penampung stem berformat "[isi soal]" yang belum tertutup.
+  let bracket: { buf: string; sec: string } | null = null
   const push = () => {
     if (current && current.question) result.push(current)
     current = null
+  }
+  const startQuestion = (raw: string, sec: string) => {
+    const { text, points } = stripPoin(raw)
+    const media = stripMedia(text)
+    current = {
+      ...emptyQ(sec),
+      question: stemToHtml(media.text),
+      image_path: media.image_path,
+      audio_path: media.audio_path,
+      audio_max_plays: media.audio_max_plays,
+      points: points || 1,
+    }
   }
 
   for (const raw of rows) {
     const line = raw.trim()
     if (!line) continue
+
+    // Lanjutan stem "[isi soal]": kumpulkan baris sampai penutup ']'
+    if (bracket) {
+      if (line.endsWith(']')) {
+        startQuestion(`${bracket.buf}\n${line}`.replace(/\]\s*$/, '').trim(), bracket.sec)
+        bracket = null
+      } else {
+        bracket.buf += `\n${line}`
+      }
+      continue
+    }
+
     if (line.startsWith('##')) {
       push()
       section = line.replace(/^#+\s*/, '').trim()
+      continue
+    }
+    // FORMAT "[isi soal]": stem dibungkus kurung siku, boleh multi-baris.
+    // Selalu membuka soal baru, dan tidak pernah tertukar dengan awalan opsi.
+    // Tag media [gambar:...] / [audio:...] / [maks:N] bukan stem.
+    const br = line.match(/^\[\s*(?!\s*(?:gambar|audio|maks)\s*:)([\s\S]*)$/)
+    if (br) {
+      push()
+      const inner = br[1]
+      if (inner.trimEnd().endsWith(']')) {
+        startQuestion(inner.trim().replace(/\]\s*$/, '').trim(), section)
+      } else {
+        bracket = { buf: inner, sec: section }
+      }
       continue
     }
     const opt = line.match(/^([!*]?)\s*([A-Ha-h])[.)\-:]\s*(.+)$/)
@@ -132,17 +176,28 @@ const parseQuestionImport = (text: string): ImportQ[] => {
       if (p.points) current.points = p.points
       continue
     }
-    push()
-    const { text, points } = stripPoin(line)
-    const media = stripMedia(text)
-    current = {
-      ...emptyQ(section),
-      question: media.text,
-      image_path: media.image_path,
-      audio_path: media.audio_path,
-      audio_max_plays: media.audio_max_plays,
-      points: points || 1,
+    // BARIS LANJUTAN: stem soal boleh beberapa baris, mis. dialog
+    // "A：..." / "B：..." pada soal bahasa. Selama soal saat ini belum punya
+    // opsi, baris ini digabung ke stem, bukan jadi soal baru. Jika tidak,
+    // baris "A：" akan menjadi soal tanpa opsi dan baris "B：" yang justru
+    // soal terpisah.
+    if (current && type === 'choice' && !current.options.length && current.question) {
+      const cont = stripPoin(line)
+      const media = stripMedia(cont.text)
+      current.question = `${current.question}<br />${media.text}`.trim()
+      if (cont.points) current.points = cont.points
+      if (media.image_path && !current.image_path) current.image_path = media.image_path
+      if (media.audio_path && !current.audio_path) current.audio_path = media.audio_path
+      if (media.audio_max_plays) current.audio_max_plays = media.audio_max_plays
+      continue
     }
+    push()
+    startQuestion(line, section)
+  }
+  // Stem "[isi soal]" yang tidak ditutup tetap dipakai sebagai soal.
+  if (bracket) {
+    startQuestion(bracket.buf.trim(), bracket.sec)
+    bracket = null
   }
   push()
   return result
@@ -175,48 +230,54 @@ interface LmsCategory {
 }
 
 const importSample = `## Vocabulary
-Arti kata "watashi" adalah...
+[Arti kata "watashi" adalah...]
 *a. saya
 b. kamu
 c. dia
 d. kami   [2 poin]
 
-Bentuk lampau dari "taberu" adalah...
+[Bentuk lampau dari "taberu" adalah...]
 a. taberu
 *b. tabeta
 c. tabemasu
 d. tabete
 
 ## Grammar
-Partikel penanda subjek adalah...
+[Partikel penanda subjek adalah...]
 *a. wa
 b. wo
 c. ni
 d. de
 
-Urutan kalimat bahasa Jepang yang benar adalah...
+[Urutan kalimat bahasa Jepang yang benar adalah...]
 a. S-O-V
 *b. S-P-O
 c. O-S-P
 d. P-S-O
 
-## Example dari Excel
-Kalimat "Ohayou" diucapkan saat...
-a. malam
-b. subuh
-*c. pagi
-d. sore   [3 poin]
+## Soal Dialog
+[A：すみません。たなかさんは、どの人ですか？
+B：たなかさん？あそこに います（_____）。]
+*a. ね
+b. よ
+c. か
+d. し   [5 poin]
 
 ## Listening
-Pilih gambar yang benar [gambar:https://contoh.com/soal-audio.jpg]
+[Pilih gambar yang benar [gambar:https://contoh.com/soal-audio.jpg]]
 *a. [gambar:https://contoh.com/opsi-a.png]
 b. [gambar:https://contoh.com/opsi-b.png]
 c. [gambar:https://contoh.com/opsi-c.png]
 
-Dengarkan audio berikut lalu jawab [audio:https://contoh.com/audio.mp3] [maks:2]
+[Dengarkan audio berikut lalu jawab [audio:https://contoh.com/audio.mp3] [maks:2]]
 a. jawaban 1
 *b. jawaban 2
-c. jawaban 3`
+c. jawaban 3
+
+## Tanpa Kurung Siku
+[Tetap boleh ditulis tanpa kurung siku, selama opsi belum dimulai:]
+a. benar
+*b. salah   [1 poin]`
 
 interface Batch { id: number; nama_batch: string; warna?: string | null }
 interface CourseOption { id: number; title: string }
@@ -1207,12 +1268,14 @@ export default function DataCourse() {
   const openQuizQuestions = (paket: QuizPaket, source: 'course' | 'bank' = 'course', quiet = false) => {
     setActiveQuizPaket(paket)
     activePaketIdRef.current = paket.id
+    // Selalu muat ulang daftar soal + hitungan bagian, termasuk saat "quiet"
+    // (setelah simpan/import/hapus) supaya layar langsung berubah tanpa refresh.
+    loadQuestionEditor(paket)
     if (quiet) return
     setQuizSource(source)
     setQPage(1)
     setQSectionFilter('all')
     setView('quiz-questions')
-    loadQuestionEditor(paket)
     const cid = source === 'bank' ? undefined : (activeCourse?.id ?? paket.course_id ?? undefined)
     navigate(routeTo('quiz-questions', source, cid, paket.id))
   }
@@ -1954,7 +2017,7 @@ export default function DataCourse() {
       }
       setShowQuestionModal(false)
       openQuizQuestions(activeQuizPaket, undefined, true)
-      if (activeCourse) fetchQuizPakets(activeCourse.id)
+      refreshPaketList()
       Swal.fire({ icon: 'success', title: editingQuestion ? 'Soal diperbarui' : 'Soal ditambahkan', timer: 1200, showConfirmButton: false })
     } catch (e: any) {
       const msg = e?.response?.data?.message
@@ -1976,7 +2039,7 @@ export default function DataCourse() {
 
   const onImportTextChange = (val: string) => {
     setImportText(val)
-    setImportParse(parseQuestionImport(val))
+    setImportParse(parseQuestionImport(val, importType))
     setImportError('')
   }
 
@@ -2042,7 +2105,7 @@ export default function DataCourse() {
       const res = await adminQuizApi.storeQuestionsBulk(activeQuizPaket.id, { questions })
       setShowImportModal(false)
       openQuizQuestions(activeQuizPaket, undefined, true)
-      if (activeCourse) fetchQuizPakets(activeCourse.id)
+      refreshPaketList()
       const errCount = (res.data?.errors as never[] | undefined)?.length || 0
       const title = `${res.data?.created ?? 0} soal ditambahkan${errCount ? ` (${errCount} dilewati)` : ''}`
       Swal.fire({ icon: errCount ? 'warning' : 'success', title, timer: 1800, showConfirmButton: false })
@@ -2161,6 +2224,7 @@ export default function DataCourse() {
           setQuestions(prev => prev.filter(x => x.id !== q.id))
           setQuizSections(prev => prev.map(s => s.id === q.section_id ? { ...s, questions_count: Math.max(0, s.questions_count - 1) } : s))
           openQuizQuestions(activeQuizPaket, undefined, true)
+          refreshPaketList()
           Swal.fire({ icon: 'success', title: 'Dihapus', timer: 1200, showConfirmButton: false })
         }).catch(() => Swal.fire({ icon: 'error', title: 'Gagal menghapus' }))
       }
@@ -4623,14 +4687,19 @@ export default function DataCourse() {
                     <p className="text-xs text-slate-500 mt-0.5">{typeDesc}</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['choice', 'rating', 'essay'] as const).map(t => (
-                    <button key={t} type="button" onClick={() => setImportType(t)}
-                      className={`py-2.5 rounded-md text-sm font-semibold border transition-colors ${importType === t ? 'bg-[#0E6187] text-white border-[#0E6187] shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-[#0E6187]/40 hover:bg-slate-50'}`}>
-                      {t === 'choice' ? 'Pilihan Ganda' : t === 'rating' ? 'Skala 1-9' : 'Esai'}
-                    </button>
-                  ))}
-                </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(['choice', 'rating', 'essay'] as const).map(t => (
+                        <button key={t} type="button"
+                          onClick={() => {
+                            setImportType(t)
+                            // Parse ulang karena cara pemenggalan baris berbeda per jenis soal.
+                            setImportParse(parseQuestionImport(importText, t))
+                          }}
+                          className={`py-2.5 rounded-md text-sm font-semibold border transition-colors ${importType === t ? 'bg-[#0E6187] text-white border-[#0E6187] shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-[#0E6187]/40 hover:bg-slate-50'}`}>
+                          {t === 'choice' ? 'Pilihan Ganda' : t === 'rating' ? 'Skala 1-9' : 'Esai'}
+                        </button>
+                      ))}
+                    </div>
               </div>
 
               {/* STEP 2 */}
@@ -4666,7 +4735,7 @@ export default function DataCourse() {
                 <input ref={importAudioInputRef} type="file" accept="audio/*" className="hidden"
                   onChange={e => { onImportFile(e.target.files?.[0], 'audio'); e.target.value = '' }} />
                 <textarea ref={importTextRef} value={importText} onChange={e => onImportTextChange(e.target.value)}
-                  rows={9} placeholder={'## Vocabulary\nArti kata "watashi" adalah...\n*a. saya\nb. kamu\nc. dia\nd. kami   [2 poin]\n\nKalimat "Ohayou" diucapkan saat...\na. pagi\n*b. siang\nc. malam\n\n[gambar:URL] dan [audio:URL] menyisip otomatis di posisi kursor'}
+                  rows={9} placeholder={'## Vocabulary\n[Arti kata "watashi" adalah...]\n*a. saya\nb. kamu\nc. dia\nd. kami   [2 poin]\n\n[A：ぼくは (student) です。\nB： benar!]\na. teacher\nb. student\n*c. sensei\nd. gakusei   [5 poin]\n\n[gambar:URL] dan [audio:URL] menyisip otomatis di posisi kursor'}
                   className="w-full px-3.5 py-3 border border-slate-200 rounded-md text-[13px] leading-relaxed font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-slate-50/50" />
 
                 {/* PANDUAN */}
@@ -4697,7 +4766,15 @@ export default function DataCourse() {
                     </li>
                     <li className="flex gap-1.5">
                       <span className="text-amber-500 font-bold">&bull;</span>
-                      <span>Opsi berupa gambar: <span className="font-mono font-semibold">*a. [gambar:URL]</span> (opsi ini jadi gambar, bukan teks)</span>
+                      <span><span className="font-mono font-semibold">[isi soal]</span> &mdash; paling aman untuk soal panjang/dialog. Stem ditulis dalam kurung siku, boleh beberapa baris sampai penutup <span className="font-mono font-semibold">]</span>, selalu memulai soal baru</span>
+                    </li>
+                    <li className="flex gap-1.5">
+                      <span className="text-amber-500 font-bold">&bull;</span>
+                      <span>Tanpa kurung siku pun aman: selama opsi belum dimulai, baris berikutnya digabung ke stem soal yang sama</span>
+                    </li>
+                    <li className="flex gap-1.5">
+                      <span className="text-amber-500 font-bold">&bull;</span>
+                      <span>Opsi diawali a. / b. / c. dst, beri * di depan opsi yang benar</span>
                     </li>
                     <li className="flex gap-1.5">
                       <span className="text-amber-500 font-bold">&bull;</span>
