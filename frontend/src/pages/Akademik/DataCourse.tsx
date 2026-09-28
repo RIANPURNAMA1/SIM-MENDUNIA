@@ -5,7 +5,7 @@ import {
   ListChecks, Eye, EyeOff, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Camera, Clock, Repeat,
   Award, Users, UserCheck, Pencil, Loader2, ArrowLeft, Video, UploadCloud, Upload, Mic, RotateCcw,
   Settings, LayoutGrid, ShieldCheck, Link2, Building2, Layers, Settings2, FileCheck2, Radio,
-  ClipboardPaste, Tags,
+  ClipboardPaste, Tags, BarChart3,
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -266,6 +266,7 @@ interface QuizPaket {
   cover_url: string | null
   camera_enabled: boolean
   block_exit: boolean
+  penilaian_ulangan?: boolean
   batch?: { id: number; nama_batch: string } | null
   course?: { id: number; title: string } | null
 }
@@ -307,6 +308,14 @@ interface Participant {
   attempts: AttemptRow[]
 }
 
+interface AttemptSection {
+  id: number
+  name: string
+  total: number
+  correct: number
+  percent: number
+}
+
 interface AttemptRow {
   attempt_id: number
   attempt_number: number
@@ -316,6 +325,7 @@ interface AttemptRow {
   total_count: number | null
   warnings: number
   auto_submitted: boolean
+  sections?: AttemptSection[]
   started_at: string | null
   submitted_at: string | null
   webcam_photo: string | null
@@ -377,7 +387,7 @@ const emptyPaketForm = {
   title: '', description: '', course_id: '', batch_id: '', level: '', category: '',
   time_limit_minutes: '30', max_attempts: '3', max_warnings: '3',
   passing_score: '0', shuffle_questions: true, quiz_template: 'basic', status: 'nonaktif', user_id: '',
-  camera_enabled: true, block_exit: true,
+  camera_enabled: true, block_exit: true, penilaian_ulangan: false,
   cover_image: '',
 }
 const emptyQuestionForm = { question: '', section_id: '', question_type: 'choice', rating_max: '9', correct_index: '', points: '1', keyword: '', image_path: '', image_url: '', audio_path: '', audio_url: '', audio_max_plays: '2' }
@@ -1692,6 +1702,7 @@ export default function DataCourse() {
       shuffle_questions: p.shuffle_questions, quiz_template: p.quiz_template || 'basic',
       status: p.status, user_id: p.user_id?.toString() || '',
       camera_enabled: p.camera_enabled ?? true, block_exit: p.block_exit ?? true,
+      penilaian_ulangan: p.penilaian_ulangan ?? false,
       cover_image: p.cover_image || '',
     })
     setCoverPreview(p.cover_url || '')
@@ -1731,6 +1742,7 @@ export default function DataCourse() {
         passing_score: Number(paketForm.passing_score) || 0,
         shuffle_questions: paketForm.shuffle_questions, quiz_template: paketForm.quiz_template,
         camera_enabled: paketForm.camera_enabled, block_exit: paketForm.block_exit,
+        penilaian_ulangan: paketForm.penilaian_ulangan,
         status: paketForm.status,
         user_id: paketForm.user_id ? Number(paketForm.user_id) : undefined,
       }
@@ -2277,6 +2289,14 @@ export default function DataCourse() {
                       {p.category && (
                         <span className="inline-block text-[10px] font-semibold px-2 py-0.5 bg-[#0E6187]/[0.08] text-[#0E6187] shrink-0">{p.category}</span>
                       )}
+                      {p.penilaian_ulangan && (
+                        <span
+                          title="Skor terbaik kandidat otomatis masuk ke Nilai Ulangan saat paket dipakai di pertemuan"
+                          className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 bg-emerald-50 text-emerald-600 shrink-0"
+                        >
+                          <Award size={10} /> Ulangan
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-slate-400 mt-0.5">
                       {[p.batch?.nama_batch, p.level && `Level ${p.level}`].filter(Boolean).join(' · ') || 'Semua kandidat'}
@@ -2414,6 +2434,48 @@ export default function DataCourse() {
   })
   const rHasFilter = !!(rFCabang || rFBatch || rFLevel || rFSearch.trim())
 
+  // ==================== GRAFIK PERSENTASE PER BAGIAN ====================
+  // Warna bar mengikuti performa: >=80 hijau, >=50 kuning, else merah.
+  const pctColor = (pct: number) => (pct >= 80 ? '#16a34a' : pct >= 50 ? '#f59e0b' : '#dc2626')
+  const pctTextColor = (pct: number) => (pct >= 80 ? 'text-emerald-600' : pct >= 50 ? 'text-amber-600' : 'text-red-500')
+
+  // Percobaan terbaik = submitted dengan skor tertinggi (fallback: attempt terakhir).
+  const rBestAttempt = (par: Participant): AttemptRow | null => {
+    if (!par.attempts?.length) return null
+    const submitted = par.attempts.filter(a => a.status === 'submitted')
+    const pool = submitted.length ? submitted : par.attempts
+    return [...pool].sort((a, b) => (Number(b.score) || 0) - (Number(a.score) || 0))[0]
+  }
+
+  // Bar per bagian untuk 1 kandidat (dari percobaan terbaiknya).
+  const rCandidateSections = (par: Participant) => {
+    const best = rBestAttempt(par)
+    if (!best?.sections?.length) return null
+    const rows = best.sections.filter(s => s.total > 0)
+    if (!rows.length) return null
+    return { attempt: best, rows }
+  }
+
+  // Rata-rata persentase per bagian dari peserta yang sedang difilter.
+  const rSectionStats = (() => {
+    const map = new Map<string, { id: number; name: string; total: number; correct: number; n: number }>()
+    rFiltered.forEach(par => {
+      const c = rCandidateSections(par)
+      if (!c) return
+      c.rows.forEach(s => {
+        const key = String(s.id)
+        const cur = map.get(key) ?? { id: s.id, name: s.name, total: s.total, correct: 0, n: 0 }
+        cur.correct += s.correct
+        cur.n += 1
+        map.set(key, cur)
+      })
+    })
+    return [...map.values()].map(s => ({
+      ...s,
+      percent: s.n > 0 ? Math.round((s.correct / (s.n * s.total)) * 1000) / 10 : 0,
+    }))
+  })()
+
   const resetResultFilters = () => {
     setRFCabang(''); setRFBatch(''); setRFLevel(''); setRFSearch('')
     setRPage(1)
@@ -2459,7 +2521,9 @@ export default function DataCourse() {
   const rPageParticipants = rGroupedMode ? [] : rFiltered.slice((rSafePage - 1) * R_PER_PAGE, rSafePage * R_PER_PAGE)
   const rPagination: Pagination = { current_page: rSafePage, last_page: rTotalPages, total: rTotalItems, per_page: R_PER_PAGE }
 
-  const renderParticipantRow = (par: Participant, idx: number) => (
+  const renderParticipantRow = (par: Participant, idx: number) => {
+    const secChart = rCandidateSections(par)
+    return (
     <tr key={par.siswa_id} className="bg-white hover:bg-[#0E6187]/5 transition-colors">
       <td className="px-4 py-3 text-xs font-bold text-slate-400 border border-slate-200">{idx + 1}</td>
       <td className="px-4 py-3 border border-slate-200">
@@ -2507,6 +2571,28 @@ export default function DataCourse() {
         <p className="text-lg font-black text-[#0E6187]">{Number(par.best_score) || 0}</p>
         <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">poin</p>
       </td>
+      <td className="px-4 py-3 border border-slate-200">
+        {secChart ? (
+          <div className="min-w-[170px]">
+            <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400 mb-1">Percobaan #{secChart.attempt.attempt_number}</p>
+            <div className="space-y-1">
+              {secChart.rows.map(s => (
+                <div key={s.id} className="flex items-center gap-1.5"
+                  title={`${s.name}: ${s.correct} benar dari ${s.total} soal (${s.percent}%)`}>
+                  <span className="w-14 text-[10px] text-slate-500 truncate shrink-0">{s.name}</span>
+                  <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${Math.max(s.percent, s.percent > 0 ? 5 : 0)}%`, backgroundColor: pctColor(s.percent) }} />
+                  </div>
+                  <span className={`w-9 text-right text-[10px] font-bold shrink-0 ${pctTextColor(s.percent)}`}>{s.percent}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <span className="text-xs text-slate-300">-</span>
+        )}
+      </td>
       <td className="px-4 py-3 text-right whitespace-nowrap border border-slate-200">
         {!isAdminCabang && (
           <button onClick={() => resetAttempts(par.siswa_id, par.nama)}
@@ -2516,7 +2602,8 @@ export default function DataCourse() {
         )}
       </td>
     </tr>
-  )
+    )
+  }
 
   // ==================== RENDER ====================
   return (
@@ -3588,6 +3675,49 @@ export default function DataCourse() {
               </div>
             )}
 
+            {!rLoading && rFiltered.length > 0 && rSectionStats.length > 0 && (
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0E6187]/10 text-[#0E6187] shrink-0">
+                      <BarChart3 size={15} />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-800">Persentase Benar per Bagian</h3>
+                      <p className="text-[11px] text-slate-500">
+                        Rata-rata dari {rFiltered.length} kandidat{rHasFilter ? ' (sesuai filter)' : ''} · dari percobaan terbaik masing-masing
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 text-[10px] font-semibold text-slate-500">
+                    {[['≥80 Bagus', '#16a34a'], ['50-79 Cukup', '#f59e0b'], ['<50 Lemah', '#dc2626']].map(([label, color]) => (
+                      <span key={label} className="inline-flex items-center gap-1">
+                        <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: color }} /> {label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="mt-4 space-y-3">
+                  {rSectionStats.map(s => (
+                    <div key={s.id} className="flex items-center gap-3">
+                      <span className="w-28 sm:w-40 text-[11px] font-semibold text-slate-600 truncate shrink-0" title={s.name}>{s.name}</span>
+                      <div className="flex-1 h-5 bg-slate-100 rounded-md overflow-hidden relative">
+                        <div
+                          className="h-full rounded-md transition-all duration-500 flex items-center justify-end pr-1.5"
+                          style={{ width: `${Math.max(s.percent, s.percent > 0 ? 6 : 0)}%`, backgroundColor: pctColor(s.percent) }}
+                        >
+                          {s.percent >= 12 && <span className="text-[9px] font-black text-white">{s.percent}%</span>}
+                        </div>
+                      </div>
+                      <span className={`w-24 text-right text-[11px] font-bold shrink-0 ${pctTextColor(s.percent)}`}>
+                        {s.correct}/{s.total * s.n} benar
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {rLoading ? (
               <div className="flex flex-col items-center justify-center py-16 text-slate-400 text-sm gap-2">
                 <Loader2 size={24} className="animate-spin text-[#0E6187]" /> Memuat hasil...
@@ -3618,6 +3748,7 @@ export default function DataCourse() {
                           <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Level</th>
                           <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Riwayat Percobaan</th>
                           <th className="text-right px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Nilai Terbaik</th>
+                          <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Persentase per Bagian</th>
                           <th className="text-right px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Aksi</th>
                         </tr>
                       </thead>
@@ -3628,7 +3759,7 @@ export default function DataCourse() {
                             return (
                             <Fragment key={group.name}>
                               <tr className="bg-gradient-to-r from-[#0E6187]/8 to-[#0E6187]/3">
-                                <td colSpan={8} className="p-0 border border-slate-200">
+                                <td colSpan={9} className="p-0 border border-slate-200">
                                   <button onClick={() => setRCollapsed(c => ({ ...c, [group.name]: !c[group.name] }))}
                                     className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-[#0E6187]/10 transition-colors">
                                     <span className="flex items-center gap-2.5 min-w-0">
@@ -4095,6 +4226,30 @@ export default function DataCourse() {
                     ? 'JFT UI: tampilan quiz lengkap dengan pengawasan kamera. Sistem mengambil foto berkala & memberi peringatan.'
                     : 'Basic: tampilan quiz sederhana dengan kamera pengawas & keamanan aktif — foto berkala & peringatan otomatis.'}
                 </p>
+
+                <div className="mt-3 rounded-md border border-slate-200 p-3.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className={`flex h-9 w-9 flex-none items-center justify-center rounded-md ${paketForm.penilaian_ulangan ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                        <Award size={17} />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-700">Nilai Ulangan</p>
+                        <p className="text-[11px] text-slate-500 mt-0.5">Skor terbaik kandidat otomatis masuk ke Nilai Ulangan saat paket dipakai di pertemuan</p>
+                      </div>
+                    </div>
+                    <button type="button" onClick={() => setPaketForm({ ...paketForm, penilaian_ulangan: !paketForm.penilaian_ulangan })}
+                      title={paketForm.penilaian_ulangan ? 'Matikan masuk penilaian ulangan' : 'Aktifkan masuk penilaian ulangan'}
+                      className={`relative w-10 h-[22px] shrink-0 rounded-full transition-colors ${paketForm.penilaian_ulangan ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+                      <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${paketForm.penilaian_ulangan ? 'left-[20px]' : 'left-[2px]'}`} />
+                    </button>
+                  </div>
+                  <p className={`mt-2 text-[11px] leading-relaxed rounded-md border px-3 py-2 ${paketForm.penilaian_ulangan ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>
+                    {paketForm.penilaian_ulangan
+                      ? 'Aktif secara default: saat paket ditambahkan ke pertemuan, tombol "Nilai Ulangan" langsung berstatus Masuk Penilaian. Guru tetap bisa mengubahnya per pertemuan.'
+                      : 'Nonaktif secara default: guru perlu menekan tombol "Nilai Ulangan" di halaman pertemuan agar skor kandidat masuk ke penilaian.'}
+                  </p>
+                </div>
 
                 <div className="space-y-2 mt-3">
                   <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 px-3.5 py-3">

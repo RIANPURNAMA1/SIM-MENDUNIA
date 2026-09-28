@@ -23,6 +23,7 @@ class QuizPaket extends Model
         'template',
         'camera_enabled',
         'block_exit',
+        'penilaian_ulangan',
         'status',
     ];
 
@@ -34,6 +35,7 @@ class QuizPaket extends Model
         'shuffle_questions' => 'boolean',
         'camera_enabled' => 'boolean',
         'block_exit' => 'boolean',
+        'penilaian_ulangan' => 'boolean',
     ];
 
     protected $appends = ['cover_url', 'quiz_template'];

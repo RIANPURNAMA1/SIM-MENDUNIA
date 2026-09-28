@@ -89,6 +89,7 @@ interface BatchGroup {
   totalDibayar: number
   totalSisa: number
   hasPending: boolean
+  pendingCount: number
 }
 
 interface BatchGroupMeta {
@@ -101,6 +102,7 @@ interface BatchGroupMeta {
   total_sisa: number
   kategori_ids: number[]
   has_pending: boolean
+  pending_count?: number
 }
 
 interface CandidatePage {
@@ -189,10 +191,17 @@ function UbahStatusGrid({ pendaftarId, pendaftar, onChanged }: { pendaftarId: nu
                 Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal memperbarui status' })
               }
             }}
-            className={`flex items-center gap-2 rounded-sm border px-3 py-2.5 text-left text-sm font-medium transition ${opt.bg} ${isActive ? 'ring-2 ring-offset-1 ring-[#0E6187] opacity-100 cursor-default' : 'cursor-pointer'}`}
+            className={`flex items-center justify-between gap-2 rounded-md border px-3 py-2.5 text-left text-sm font-medium transition ${opt.bg} ${isActive ? 'cursor-default opacity-100 ring-2 ring-offset-1 ring-[#0E6187]' : 'cursor-pointer hover:brightness-95'}`}
           >
-            <Icon size={15} className={opt.iconColor} />
-            <span className="text-white">{opt.label}</span>
+            <span className="flex items-center gap-2">
+              <Icon size={15} className={opt.iconColor} />
+              <span className="text-white">{opt.label}</span>
+            </span>
+            {isActive && (
+              <span className="flex-none rounded bg-white/25 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+                saat ini
+              </span>
+            )}
           </button>
         )
       })}
@@ -230,15 +239,17 @@ export default function Tagihan() {
   const [groupsMeta, setGroupsMeta] = useState<BatchGroupMeta[]>([])
   const [candidates, setCandidates] = useState<Record<number, CandidatePage>>({})
   const [stats, setStats] = useState({ total: 0, paid: 0, outstanding: 0, count: 0 })
-  const [batchPage, setBatchPage] = useState(1)
-  const [batchTotalPages, setBatchTotalPages] = useState(1)
   const [batchTotal, setBatchTotal] = useState(0)
   const [uniqueCodeOp, setUniqueCodeOp] = useState<string>('add')
   const [openActionId, setOpenActionId] = useState<number | null>(null)
   const [selectedLunasIds, setSelectedLunasIds] = useState<Set<number>>(new Set())
   const [bulkLunasLoading, setBulkLunasLoading] = useState(false)
   const actionRef = useRef<HTMLDivElement>(null)
-  const batchPerPage = 5
+  const batchStripRef = useRef<HTMLDivElement | null>(null)
+  const pendingRef = useRef<any[]>([])
+  const fetchGroupsRef = useRef<(() => Promise<void>) | null>(null)
+  const batchPerPage = 50
+  const maxBatchPages = 10
   const candidatePerPage = 5
   const isFirstRender = useRef(true)
 
@@ -246,7 +257,9 @@ export default function Tagihan() {
 
   function fetchPendingPembayaran() {
     api.get('/pembayaran-pending').then(res => {
-      setPendingPembayaran(res.data.data || [])
+      const data = res.data.data || []
+      pendingRef.current = data
+      setPendingPembayaran(data)
     }).catch(() => {})
   }
 
@@ -282,18 +295,18 @@ export default function Tagihan() {
       setProducts(prodRes.data || [])
       setUniqueCodeOp(settingsRes.data?.unique_code_operation?.value ?? 'add')
     }).catch(() => {})
-    fetchGroups(1)
+    fetchGroups()
     fetchPendingPembayaran()
 
     const interval = setInterval(() => {
       api.get('/pembayaran-pending').then(res => {
         const newPending = res.data.data || []
-        setPendingPembayaran(prev => {
-          if (JSON.stringify(prev) !== JSON.stringify(newPending)) {
-            return newPending
-          }
-          return prev
-        })
+        const changed = JSON.stringify(pendingRef.current) !== JSON.stringify(newPending)
+        if (changed) {
+          pendingRef.current = newPending
+          setPendingPembayaran(newPending)
+          fetchGroupsRef.current?.()
+        }
         if (newPending.length === 0) {
           setShowPendingModal(false)
           setSelectedPendingPendaftarId(null)
@@ -356,17 +369,28 @@ export default function Tagihan() {
     }
   }, [fetchCandidates])
 
-  const fetchGroups = useCallback(async (page: number, params = filterParams()) => {
+  const fetchGroups = useCallback(async (params = filterParams()) => {
     setLoading(true)
     try {
-      const res = await pendaftarApi.tagihanGroups({ ...params, page, per_page: batchPerPage })
-      const batches = res.data.batches || []
-      setGroupsMeta(batches)
-      setStats(res.data.stats || { total: 0, paid: 0, outstanding: 0, count: 0 })
-      setBatchTotalPages(res.data.total_pages || 1)
-      setBatchTotal(res.data.total || 0)
+      const allBatches: BatchGroupMeta[] = []
+      let statsData = { total: 0, paid: 0, outstanding: 0, count: 0 }
+      let totalBatches = 0
+      let totalPages = 1
+      let page = 1
+      do {
+        const res = await pendaftarApi.tagihanGroups({ ...params, page, per_page: batchPerPage })
+        allBatches.push(...(res.data.batches || []))
+        statsData = res.data.stats || statsData
+        totalBatches = res.data.total || 0
+        totalPages = Math.max(1, res.data.total_pages || 1)
+        page += 1
+      } while (page <= totalPages && page <= maxBatchPages)
+
+      setGroupsMeta(allBatches)
+      setStats(statsData)
+      setBatchTotal(totalBatches || allBatches.length)
       const current = activeBatchRef.current
-      const nextActive = current !== null && batches.some((b: BatchGroupMeta) => b.batch_id === current) ? current : null
+      const nextActive = current !== null && allBatches.some(b => b.batch_id === current) ? current : null
       if (activeBatchRef.current !== nextActive) {
         activeBatchRef.current = nextActive
         setActiveBatchId(nextActive)
@@ -385,12 +409,15 @@ export default function Tagihan() {
   }, [filterParams, fetchCandidates])
 
   useEffect(() => {
+    fetchGroupsRef.current = fetchGroups
+  }, [fetchGroups])
+
+  useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false
       return
     }
-    setBatchPage(1)
-    fetchGroups(1)
+    fetchGroups()
   }, [filterParams])
 
   const renderGroups = useMemo<BatchGroup[]>(() => {
@@ -418,6 +445,7 @@ export default function Tagihan() {
         totalDibayar: meta.total_dibayar,
         totalSisa: meta.total_sisa,
         hasPending: meta.has_pending,
+        pendingCount: meta.pending_count || 0,
       }
     })
   }, [groupsMeta, kategoris, candidates])
@@ -426,30 +454,6 @@ export default function Tagihan() {
     () => renderGroups.find(g => g.batchId === activeBatchId) || null,
     [renderGroups, activeBatchId]
   )
-
-  const goBatchPage = (page: number) => {
-    if (page < 1 || page > batchTotalPages || page === batchPage) return
-    setBatchPage(page)
-    fetchGroups(page)
-  }
-
-  const pageNumbers = useMemo(() => {
-    const pages: (number | string)[] = []
-    const total = batchTotalPages
-    if (total <= 7) {
-      for (let i = 1; i <= total; i++) pages.push(i)
-    } else {
-      const current = batchPage
-      pages.push(1)
-      if (current > 3) pages.push('...')
-      const start = Math.max(2, current - 1)
-      const end = Math.min(total - 1, current + 1)
-      for (let i = start; i <= end; i++) pages.push(i)
-      if (current < total - 2) pages.push('...')
-      pages.push(total)
-    }
-    return pages
-  }, [batchTotalPages, batchPage])
 
   const getDibayar = (p: TagihanItem, kategoriId: number): number => {
     const key = `${p.id}_${kategoriId}`
@@ -516,7 +520,7 @@ export default function Tagihan() {
         )
       )
       setPendingChanges({})
-      await fetchGroups(batchPage)
+      await fetchGroups()
     } catch (err) {
       console.error(err)
     } finally {
@@ -545,8 +549,14 @@ export default function Tagihan() {
       setShowPendingModal(false)
       setSelectedPendingPendaftarId(null)
     }
-    await fetchGroups(batchPage)
-  }, [fetchGroups, batchPage])
+    await fetchGroups()
+  }, [fetchGroups])
+
+  const scrollBatches = (dir: 1 | -1) => {
+    const el = batchStripRef.current
+    if (!el) return
+    el.scrollBy({ left: dir * Math.max(180, el.clientWidth * 0.8), behavior: 'smooth' })
+  }
 
   const renderBatchMenu = () => (
     <div className="mb-4 overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
@@ -560,12 +570,28 @@ export default function Tagihan() {
             <p className="text-xs text-slate-500">Pilih batch untuk melihat data tagihan kandidat</p>
           </div>
         </div>
-        <span className="flex-none rounded-md bg-[#0E6187]/10 px-2.5 py-1 text-xs font-semibold text-[#0E6187]">
-          {renderGroups.length} batch
-        </span>
+        <div className="flex flex-none items-center gap-1.5">
+          <button
+            onClick={() => scrollBatches(-1)}
+            title="Geser ke kiri"
+            className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-700"
+          >
+            <ChevronLeft size={14} />
+          </button>
+          <span className="rounded-md bg-[#0E6187]/10 px-2.5 py-1 text-xs font-semibold text-[#0E6187] whitespace-nowrap">
+            {renderGroups.length} batch
+          </span>
+          <button
+            onClick={() => scrollBatches(1)}
+            title="Geser ke kanan"
+            className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-700"
+          >
+            <ChevronRight size={14} />
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 p-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      <div ref={batchStripRef} className="flex snap-x snap-mandatory gap-2 overflow-x-auto p-2.5">
         {renderGroups.map(group => {
           const isActive = activeBatchId === group.batchId
           const color = group.batchWarna || '#0E6187'
@@ -573,12 +599,21 @@ export default function Tagihan() {
             <button
               key={group.batchId}
               onClick={() => selectBatch(group.batchId)}
-              className={`flex items-center justify-between gap-2 rounded-md border p-2 text-left transition-all ${
+              className={`relative flex w-[170px] flex-none snap-start items-center justify-between gap-2 rounded-md border p-2 text-left transition-all ${
                 isActive
                   ? 'border-[#0E6187] bg-[#0E6187]/5 shadow-sm ring-1 ring-[#0E6187]/20'
                   : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 hover:shadow-sm'
               }`}
             >
+              {group.pendingCount > 0 && (
+                <span
+                  title={`${group.pendingCount} pembayaran menunggu verifikasi`}
+                  className="absolute -right-1.5 -top-1.5 flex h-5 min-w-[20px] items-center justify-center gap-0.5 rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white animate-pulse"
+                >
+                  <Bell size={10} />
+                  {group.pendingCount}
+                </span>
+              )}
               <span className="flex min-w-0 items-center gap-2">
                 <span
                   className="flex h-7 w-7 flex-none items-center justify-center rounded-md"
@@ -589,10 +624,10 @@ export default function Tagihan() {
                 <span className="min-w-0">
                   <span className="flex flex-wrap items-center gap-1">
                     <span className="truncate text-xs font-semibold text-slate-800">{group.batchName}</span>
-                    {group.hasPending && (
+                    {group.hasPending && group.pendingCount === 0 && (
                       <span className="inline-flex items-center gap-0.5 rounded bg-red-100 px-1 py-0.5 text-[9px] font-bold text-red-600">
                         <Bell size={9} />
-                        pengajuan
+                        proses
                       </span>
                     )}
                     {isActive && (
@@ -1193,48 +1228,6 @@ export default function Tagihan() {
         </div>
       )}
 
-      {/* Batch list pagination */}
-      {!loading && renderGroups.length > 0 && batchTotalPages > 1 && (
-        <div className="mt-4 flex items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm">
-          <span className="text-sm text-slate-500">
-            Halaman {batchPage} dari {batchTotalPages}
-          </span>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => goBatchPage(batchPage - 1)}
-              disabled={batchPage <= 1}
-              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            {pageNumbers.map((pg: number | string, i: number) =>
-              typeof pg !== 'number' ? (
-                <span key={`e${i}`} className="px-1 text-sm text-slate-400">…</span>
-              ) : (
-                <button
-                  key={pg}
-                  onClick={() => goBatchPage(pg)}
-                  className={`min-w-[32px] rounded-md border px-2 py-1 text-center text-sm transition ${
-                    pg === batchPage
-                      ? 'border-[#0E6187] bg-[#0E6187] font-medium text-white'
-                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  {pg}
-                </button>
-              )
-            )}
-            <button
-              onClick={() => goBatchPage(batchPage + 1)}
-              disabled={batchPage >= batchTotalPages}
-              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Floating save bar */}
       {pendingCount > 0 && (
         <div className="sticky bottom-4 z-40 mt-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-lg sm:flex-row sm:items-center sm:justify-between">
@@ -1330,7 +1323,7 @@ export default function Tagihan() {
                           kategori_id: item.kategori_id,
                         })
                       }
-                      await fetchGroups(batchPage)
+                      await fetchGroups()
                       setModalBayar(null)
                     } catch (err: any) {
                       const msg = err?.response?.data?.message || err?.message || 'Terjadi kesalahan'
@@ -1359,78 +1352,129 @@ export default function Tagihan() {
           ? filteredPembayaran[0]?.pendaftar?.nama || ''
           : ''
         return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-6" onClick={() => { setShowPendingModal(false); setSelectedPendingPendaftarId(null) }}>
-          <div className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-xl bg-white shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50">
-                  <Bell size={18} className="text-amber-600" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-3 py-6" onClick={() => { setShowPendingModal(false); setSelectedPendingPendaftarId(null) }}>
+          <div className="flex max-h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex flex-none items-center justify-between gap-3 bg-[#0E6187] px-4 py-3.5 sm:px-5">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-10 w-10 flex-none items-center justify-center rounded-md bg-white/15">
+                  <Bell size={19} className="text-white" />
                 </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-800">Verifikasi Pembayaran</h3>
-                  <p className="text-xs text-slate-500">{filteredPembayaran.length} pembayaran menunggu verifikasi{filteredNama ? ` — ${filteredNama}` : ''}</p>
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-white">Verifikasi Pembayaran</h3>
+                  <p className="truncate text-xs text-white/75">
+                    {filteredPembayaran.length} pembayaran menunggu verifikasi{filteredNama ? ` — ${filteredNama}` : ''}
+                  </p>
                 </div>
               </div>
-              <button onClick={() => { setShowPendingModal(false); setSelectedPendingPendaftarId(null) }} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"><X size={17} /></button>
+              <div className="flex flex-none items-center gap-2">
+                <span className="inline-flex items-center gap-1 rounded-md bg-amber-400 px-2.5 py-1 text-xs font-bold text-white">
+                  <Bell size={12} />
+                  {filteredPembayaran.length}
+                </span>
+                <button
+                  onClick={() => { setShowPendingModal(false); setSelectedPendingPendaftarId(null) }}
+                  title="Tutup"
+                  className="rounded-md p-1.5 text-white/70 transition hover:bg-white/15 hover:text-white"
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
             {filteredPembayaran.length === 0 ? (
-              <div className="px-5 py-10 text-center">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-500 mb-3">
-                  <CheckCircle size={24} />
+              <div className="px-5 py-14 text-center">
+                <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-500">
+                  <CheckCircle size={28} />
                 </div>
-                <p className="text-sm font-medium text-slate-600">Tidak ada pembayaran yang perlu diverifikasi</p>
+                <p className="text-sm font-semibold text-slate-700">Tidak ada pembayaran yang perlu diverifikasi</p>
+                <p className="mt-1 text-xs text-slate-500">Semua bukti pembayaran sudah diproses.</p>
               </div>
             ) : (
-              <div className="divide-y divide-slate-100">
+              <div className="flex-1 space-y-3 overflow-y-auto bg-slate-50 p-3 sm:p-4">
                 {filteredPembayaran.map((pp: any) => (
-                  <div key={pp.id} className="px-5 py-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-slate-800">{pp.pendaftar?.nama}</p>
-                        <p className="text-xs text-slate-500">{pp.pendaftar?.email}</p>
-                        <div className="mt-2 flex items-center gap-2">
-                          <span className="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-                            {pp.kategori?.kode || 'Tagihan'}
-                          </span>
-                          <span className="text-xs font-bold text-slate-700">
-                            Rp {Number(pp.jumlah).toLocaleString('id-ID')}
-                          </span>
-                        </div>
-                        <p className="mt-1 text-[10px] text-slate-400">
-                          {new Date(pp.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                        <div className="mt-2 flex flex-wrap items-center gap-2">
-                          <span className="inline-flex items-center gap-1 rounded bg-slate-50 border border-slate-200 px-2 py-0.5 text-[10px] font-medium text-slate-600">
-                            <UserRound size={10} className="text-slate-400" />
-                            {pp.pendaftar?.nama_pengirim || pp.pendaftar?.nama_rekening || '-'}
-                          </span>
-                          <span className="inline-flex items-center gap-1 rounded bg-slate-50 border border-slate-200 px-2 py-0.5 text-[10px] font-medium text-slate-600">
-                            <Landmark size={10} className="text-slate-400" />
-                            {pp.pendaftar?.bank_pengirim || pp.pendaftar?.bank_asal || '-'}
-                          </span>
+                  <div key={pp.id} className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
+                    <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <img
+                          src={`https://ui-avatars.com/api/?name=${encodeURIComponent(pp.pendaftar?.nama || '?')}&background=0E6187&color=ffffff&size=64`}
+                          alt=""
+                          className="h-11 w-11 flex-none rounded-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                        />
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold text-slate-800">{pp.pendaftar?.nama}</p>
+                          <p className="truncate text-xs text-slate-500">{pp.pendaftar?.email}</p>
+                          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                            <span className="rounded bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
+                              {pp.kategori?.nama || pp.kategori?.kode || 'Tagihan'}
+                            </span>
+                            <span className="inline-flex items-center gap-1 rounded bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                              <Clock size={11} className="text-slate-400" />
+                              {new Date(pp.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                              {' · '}
+                              {new Date(pp.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex flex-col items-end gap-2 shrink-0">
+
+                      <div className="flex flex-none items-center justify-between gap-2 sm:flex-col sm:items-end">
+                        <div className="text-left sm:text-right">
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Nominal</p>
+                          <p className="text-lg font-bold leading-tight text-emerald-600">
+                            Rp {Number(pp.jumlah).toLocaleString('id-ID')}
+                          </p>
+                        </div>
                         {pp.bukti_pembayaran && pp.bukti_pembayaran !== 'manual' && pp.bukti_pembayaran !== 'auto' && (
                           <a
                             href={`${APP_URL}/storage/${pp.bukti_pembayaran}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[10px] font-medium text-slate-600 transition hover:border-blue-200 hover:text-blue-600"
+                            className="inline-flex items-center gap-1.5 rounded-md border border-[#0E6187] bg-white px-3 py-1.5 text-xs font-semibold text-[#0E6187] transition hover:bg-[#0E6187] hover:text-white"
                           >
-                            <Eye size={12} /> Lihat Bukti
+                            <Eye size={14} /> Lihat Bukti
                           </a>
                         )}
                       </div>
                     </div>
-                    <div className="mt-4">
-                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Ubah Status</p>
+
+                    <div className="grid grid-cols-1 gap-2 border-b border-slate-100 p-4 sm:grid-cols-2">
+                      <div className="flex items-center gap-2.5 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+                        <UserRound size={14} className="flex-none text-slate-400" />
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Nama Pengirim</p>
+                          <p className="truncate text-xs font-semibold text-slate-700">{pp.pendaftar?.nama_pengirim || pp.pendaftar?.nama_rekening || '-'}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2.5 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+                        <Landmark size={14} className="flex-none text-slate-400" />
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Bank / Sumber</p>
+                          <p className="truncate text-xs font-semibold text-slate-700">{pp.pendaftar?.bank_pengirim || pp.pendaftar?.bank_asal || '-'}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-4">
+                      <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-xs font-bold text-slate-700">Ubah Status Pembayaran</p>
+                        <p className="text-[11px] text-slate-400">Status saat ini ditandai, klik aksi lain untuk mengubah</p>
+                      </div>
                       <UbahStatusGrid pendaftarId={pp.pendaftar_id} pendaftar={pp.pendaftar} onChanged={refreshAll} />
                     </div>
                   </div>
                 ))}
               </div>
             )}
+
+            <div className="flex flex-none flex-col gap-2 border-t border-slate-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-[11px] text-slate-500">Periksa bukti pembayaran sebelum mengubah status kandidat.</p>
+              <button
+                onClick={() => { setShowPendingModal(false); setSelectedPendingPendaftarId(null) }}
+                className="inline-flex items-center justify-center rounded-md bg-[#0E6187] px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#1a3a5c]"
+              >
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
         )

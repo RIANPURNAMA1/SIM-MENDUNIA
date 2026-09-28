@@ -120,6 +120,27 @@ const EDITABLE_FIELDS: EditableField[] = [
   'status_kandidat',
 ]
 
+// Warna SOLID (bukan soft) untuk badge status kandidat.
+// Kelas ditulis penuh karena Tailwind JIT tidak bisa membaca kelas dinamis.
+const STATUS_KANDIDAT_SOLID: Record<string, string> = {
+  'Calon Kandidat': 'bg-blue-600',
+  'Kandidat Aktif': 'bg-emerald-600',
+  'Proses Belajar': 'bg-indigo-600',
+  'Mengundurkan Diri': 'bg-red-600',
+  'Lulus Pendidikan': 'bg-emerald-600',
+}
+
+function StatusKandidatBadge({ status, className = '' }: { status?: string | null; className?: string }) {
+  const label = status || 'Calon Kandidat'
+  const bg = STATUS_KANDIDAT_SOLID[label] || STATUS_KANDIDAT_SOLID['Calon Kandidat']
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full ${bg} px-2.5 py-1 text-[11px] font-semibold text-white ${className}`}>
+      <span className="h-1.5 w-1.5 rounded-full bg-white/80" />
+      {label}
+    </span>
+  )
+}
+
 export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'cabang' } = {}) {
   const isCabang = variant === 'cabang'
   const navigate = useNavigate()
@@ -1994,23 +2015,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                             )}
                           </td>
                           <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
-                            {(() => {
-                              const sk = k.status_kandidat || 'Calon Kandidat'
-                              const skMap: Record<string, { bg: string; border: string; text: string; dot: string }> = {
-                                  'Calon Kandidat': { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', dot: 'bg-blue-500' },
-                                  'Kandidat Aktif': { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' },
-                                  'Proses Belajar': { bg: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-700', dot: 'bg-indigo-500' },
-                                  'Mengundurkan Diri': { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-600', dot: 'bg-red-500' },
-                                  'Lulus Pendidikan': { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' },
-                                }
-                              const skStyle = skMap[sk] || skMap['Calon Kandidat']
-                              return (
-                                <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${skStyle.bg} ${skStyle.border} ${skStyle.text}`}>
-                                  <span className={`h-1.5 w-1.5 rounded-full ${skStyle.dot}`} />
-                                  {sk}
-                                </span>
-                              )
-                            })()}
+                            <StatusKandidatBadge status={k.status_kandidat} />
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black max-w-[180px]">
                             <div className="flex flex-col gap-1">
@@ -2352,23 +2357,9 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                   <h2 className="truncate text-sm font-bold text-slate-900 sm:text-base">{detailKandidat.nama}</h2>
                   <p className="truncate text-xs text-slate-500">{detailKandidat.email}</p>
                 </div>
-                <span className="sm:ml-2">{(() => {
-                  const sk = detailKandidat.status_kandidat || 'Calon Kandidat'
-                  const skMap: Record<string, { bg: string; border: string; text: string; dot: string }> = {
-                    'Calon Kandidat': { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', dot: 'bg-blue-500' },
-                    'Kandidat Aktif': { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' },
-                    'Proses Belajar': { bg: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-700', dot: 'bg-indigo-500' },
-                    'Mengundurkan Diri': { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-600', dot: 'bg-red-500' },
-                    'Lulus Pendidikan': { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' },
-                  }
-                  const s = skMap[sk] || skMap['Calon Kandidat']
-                  return (
-                    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${s.bg} ${s.border} ${s.text}`}>
-                      <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
-                      {sk}
-                    </span>
-                  )
-                })()}</span>
+                <span className="sm:ml-2">
+                  <StatusKandidatBadge status={detailKandidat.status_kandidat} />
+                </span>
                 {detailKandidat.status_akademik && (
                   <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-medium ${detailKandidat.status_akademik === 'AKTIF' ? 'border-emerald-200 bg-emerald-50 text-emerald-600' : 'border-red-200 bg-red-50 text-red-500'}`}>
                     {detailKandidat.status_akademik}

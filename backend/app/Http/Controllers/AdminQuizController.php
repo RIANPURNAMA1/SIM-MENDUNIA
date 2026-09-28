@@ -180,6 +180,7 @@ class AdminQuizController extends Controller
             'quiz_template' => 'nullable|in:basic,jft',
             'camera_enabled' => 'nullable|boolean',
             'block_exit' => 'nullable|boolean',
+            'penilaian_ulangan' => 'nullable|boolean',
             'status' => 'nullable|in:aktif,nonaktif',
             'user_id' => 'nullable|exists:users,id',
         ]);
@@ -189,6 +190,7 @@ class AdminQuizController extends Controller
         $data['shuffle_questions'] = $request->boolean('shuffle_questions');
         $data['camera_enabled'] = $request->boolean('camera_enabled', true);
         $data['block_exit'] = $request->boolean('block_exit', true);
+        $data['penilaian_ulangan'] = $request->boolean('penilaian_ulangan');
         $data['passing_score'] = (int) ($data['passing_score'] ?? 0);
         $data['cover_image'] = $data['cover_image'] ?? null;
         $data['template'] = $data['quiz_template'] ?? 'basic';
@@ -219,6 +221,7 @@ class AdminQuizController extends Controller
             'quiz_template' => 'nullable|in:basic,jft',
             'camera_enabled' => 'nullable|boolean',
             'block_exit' => 'nullable|boolean',
+            'penilaian_ulangan' => 'nullable|boolean',
             'status' => 'nullable|in:aktif,nonaktif',
             'user_id' => 'nullable|exists:users,id',
         ]);
@@ -231,6 +234,9 @@ class AdminQuizController extends Controller
         }
         if ($request->has('block_exit')) {
             $data['block_exit'] = $request->boolean('block_exit');
+        }
+        if ($request->has('penilaian_ulangan')) {
+            $data['penilaian_ulangan'] = $request->boolean('penilaian_ulangan');
         }
         if (array_key_exists('passing_score', $data)) {
             $data['passing_score'] = (int) ($data['passing_score'] ?? 0);
@@ -775,7 +781,52 @@ $data = $request->validate([
             ->orderByDesc('created_at')
             ->get();
 
-        $participants = $attempts->groupBy('siswa_id')->map(function ($rows) {
+        // Rincian jawaban per BAGIAN (section) untuk grafik persentase.
+        // Penyebut memakai jumlah soal paket pada bagian tersebut, jadi soal
+        // yang tidak dijawab ikut terhitung salah.
+        $sectionMeta = [];
+        foreach (QuizSection::where('quiz_paket_id', $paket->id)->orderBy('sort')->orderBy('id')->get(['id', 'name']) as $sec) {
+            $sectionMeta[(int) $sec->id] = ['id' => (int) $sec->id, 'name' => $sec->name, 'total' => 0];
+        }
+        // Bagian virtual untuk soal yang belum dikelompokkan.
+        $sectionMeta[0] = ['id' => 0, 'name' => 'Tanpa Bagian', 'total' => 0];
+
+        $questionSection = [];
+        foreach (QuizQuestion::where('quiz_paket_id', $paket->id)->get(['id', 'section_id']) as $q) {
+            $sid = (int) ($q->section_id ?? 0);
+            $questionSection[(int) $q->id] = $sid;
+            if (isset($sectionMeta[$sid])) $sectionMeta[$sid]['total']++;
+        }
+
+        $answersByAttempt = QuizAnswer::whereIn('quiz_attempt_id', $attempts->pluck('id'))
+            ->get(['quiz_attempt_id', 'quiz_question_id', 'is_correct'])
+            ->groupBy('quiz_attempt_id');
+
+        $buildSections = function ($attemptId) use ($sectionMeta, $questionSection, $answersByAttempt) {
+            $tally = [];
+            foreach ($sectionMeta as $sid => $meta) {
+                $tally[$sid] = 0;
+            }
+            foreach ($answersByAttempt->get($attemptId, collect()) as $ans) {
+                $sid = $questionSection[(int) $ans->quiz_question_id] ?? 0;
+                if (!array_key_exists($sid, $tally)) $tally[$sid] = 0;
+                if ($ans->is_correct) $tally[$sid]++;
+            }
+            $out = [];
+            foreach ($tally as $sid => $correct) {
+                $total = $sectionMeta[$sid]['total'];
+                $out[] = [
+                    'id' => $sid,
+                    'name' => $sectionMeta[$sid]['name'],
+                    'total' => $total,
+                    'correct' => $correct,
+                    'percent' => $total > 0 ? round($correct / $total * 100, 1) : 0.0,
+                ];
+            }
+            return $out;
+        };
+
+        $participants = $attempts->groupBy('siswa_id')->map(function ($rows) use ($buildSections) {
             $siswa = $rows->first()->siswa;
             return [
                 'siswa_id' => (int) $rows->first()->siswa_id,
@@ -794,6 +845,7 @@ $data = $request->validate([
                     'total_count' => $a->total_count,
                     'warnings' => $a->warnings,
                     'auto_submitted' => $a->auto_submitted,
+                    'sections' => $buildSections($a->id),
                     'started_at' => $a->started_at?->toIso8601String(),
                     'submitted_at' => $a->submitted_at?->toIso8601String(),
                     'webcam_photo' => $a->webcam_photo ? asset('storage/' . $a->webcam_photo) : null,

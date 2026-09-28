@@ -608,7 +608,13 @@ class PendaftaranController extends Controller
             $katByBatch[(int) $bid] = $krows->pluck('kategori_id')->unique()->values()->all();
         }
 
-        $pendingPids = \App\Models\Pembayaran::where('status', 'processing')
+        $pendingPids = \App\Models\Pembayaran::whereIn('status', ['pending', 'processing'])
+            ->whereIn('pendaftar_id', $ids)
+            ->pluck('pendaftar_id')
+            ->unique()
+            ->flip();
+
+        $pendingUploadPids = \App\Models\Pembayaran::where('status', 'pending')
             ->whereIn('pendaftar_id', $ids)
             ->pluck('pendaftar_id')
             ->unique()
@@ -642,6 +648,7 @@ class PendaftaranController extends Controller
                     'total_sisa' => 0,
                     'kategori_ids' => $katByBatch[$bid] ?? [],
                     'has_pending' => false,
+                    'pending_count' => 0,
                     'last_pembayaran' => null,
                 ];
             }
@@ -650,6 +657,10 @@ class PendaftaranController extends Controller
             $groupMap[$bid]['total_dibayar'] += $dibayar;
 
             if (isset($pendingPids[$p->id])) {
+                $groupMap[$bid]['has_pending'] = true;
+            }
+            if (isset($pendingUploadPids[$p->id])) {
+                $groupMap[$bid]['pending_count']++;
                 $groupMap[$bid]['has_pending'] = true;
             }
             $pLast = $lastPayments[$p->id] ?? null;

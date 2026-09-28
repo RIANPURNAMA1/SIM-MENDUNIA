@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   ArrowLeft, BookOpen, FileText, ListChecks, Plus, ChevronRight, ChevronDown, HelpCircle,
   Download, Clock, ClipboardList, Check, Edit3, X, Trash2, Loader2, Layers, Camera, Upload, ImageIcon,
-  BarChart3, Users, Video, Eye, EyeOff, Activity, Search, Volume2, UploadCloud, Mic, Repeat, RotateCcw, Calendar, Minus, Trophy, Sparkles,
+  BarChart3, Users, Video, Eye, EyeOff, Activity, Search, Volume2, UploadCloud, Mic, Repeat, RotateCcw, Calendar, Minus, Trophy, Sparkles, AlertTriangle, Settings,
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -23,6 +23,10 @@ interface LessonPaketItem {
   questions_count?: number
   attempts_count?: number
   quiz_template?: string
+  time_limit_minutes?: number
+  max_attempts?: number
+  max_warnings?: number
+  passing_score?: number
   pivot?: { status?: string; penilaian_ulangan?: boolean; is_pembahasan?: boolean }
 }
 
@@ -39,7 +43,7 @@ interface LessonDetail {
   file_size: number | null
   paket_id: number | null
   paket?: { id: number; title: string; status: string; questions_count?: number; attempts_count?: number } | null
-  link_pakets?: { id: number; title: string; status: string; questions_count?: number; attempts_count?: number; quiz_template?: string; pivot?: { status?: string; penilaian_ulangan?: boolean; is_pembahasan?: boolean } }[]
+  link_pakets?: { id: number; title: string; status: string; questions_count?: number; attempts_count?: number; quiz_template?: string; time_limit_minutes?: number; max_attempts?: number; max_warnings?: number; passing_score?: number; pivot?: { status?: string; penilaian_ulangan?: boolean; is_pembahasan?: boolean } }[]
   link_materis?: LmsMateriItem[]
   slides?: { id: number; file_path: string; file_name?: string; url?: string }[]
   sort: number
@@ -177,6 +181,14 @@ interface RekapNilaiData {
   siswa: RekapNilaiSiswa[]
 }
 
+interface ResultAttemptSection {
+  id: number
+  name: string
+  total: number
+  correct: number
+  percent: number
+}
+
 interface ResultAttempt {
   attempt_id: number
   attempt_number: number
@@ -186,6 +198,7 @@ interface ResultAttempt {
   total_count: number | null
   warnings: number
   auto_submitted: boolean
+  sections?: ResultAttemptSection[]
   started_at: string | null
   submitted_at: string | null
   webcam_photo: string | null
@@ -347,6 +360,34 @@ const fmtDuration = (startedAt?: string | null, submittedAt?: string | null) => 
   const m = Math.floor((sec % 3600) / 60)
   const s = sec % 60
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`
+}
+
+// ===== Grafik persentase per bagian (section) =====
+// Warna mengikuti performa: >=80 hijau, >=50 kuning, else merah.
+const PCT_GOOD = '#16a34a'
+const PCT_MID = '#f59e0b'
+const PCT_BAD = '#dc2626'
+const pctColor = (pct: number) => (pct >= 80 ? PCT_GOOD : pct >= 50 ? PCT_MID : PCT_BAD)
+const pctText = (pct: number) => (pct >= 80 ? 'text-emerald-600' : pct >= 50 ? 'text-amber-600' : 'text-red-500')
+// Lebar bar minimal 5% supaya nilai kecil tetap terlihat.
+const pctWidth = (pct: number) => `${Math.max(pct, pct > 0 ? 5 : 0)}%`
+
+// Chip info pada kartu paket quiz. Base = tampilan mobile (kecil, rapat),
+// varian sm:ipi memperbesar agar lebih jelas di laptop/desktop.
+const QUIZ_CHIP_CLS = 'inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-medium text-[#4B5063] bg-[#F4F5F8] border border-[#E5E7EF] px-1.5 sm:px-2 py-0.5 sm:py-1 rounded'
+// Tombol aksi pada kartu paket quiz.
+const QUIZ_ACTION_CLS = 'inline-flex items-center gap-1 text-[11px] sm:text-xs font-semibold px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-md transition-colors'
+
+// Baris per bagian untuk satu percobaan (hanya bagian yang punya soal).
+const sectionRows = (attempt?: ResultAttempt | null) => (attempt?.sections ?? []).filter(s => s.total > 0)
+
+// Percobaan terbaik kandidat = submitted dengan skor tertinggi.
+const bestAttemptOf = (par: ResultParticipant) => {
+  const list = par.attempts ?? []
+  if (!list.length) return null
+  const submitted = list.filter(a => a.status === 'submitted')
+  const pool = submitted.length ? submitted : list
+  return [...pool].sort((a, b) => (Number(b.score) || 0) - (Number(a.score) || 0))[0]
 }
 
 const fmtDateTime = (s?: string | null) => {
@@ -550,6 +591,25 @@ export default function GuruLessonDetail() {
   const [detail, setDetail] = useState<AttemptDetailData | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [reviewSection, setReviewSection] = useState('__all__')
+
+  // Rata-rata persentase benar per bagian, dihitung dari percobaan terbaik
+  // setiap kandidat. Penyebut = jumlah soal paket pada bagian tsb.
+  const hasilSectionStats = (() => {
+    const map = new Map<number, { id: number; name: string; total: number; correct: number; n: number }>()
+    participants.forEach(par => {
+      const best = bestAttemptOf(par)
+      sectionRows(best).forEach(s => {
+        const cur = map.get(s.id) ?? { id: s.id, name: s.name, total: s.total, correct: 0, n: 0 }
+        cur.correct += s.correct
+        cur.n += 1
+        map.set(s.id, cur)
+      })
+    })
+    return [...map.values()].map(s => ({
+      ...s,
+      percent: s.n > 0 ? Math.round((s.correct / (s.n * s.total)) * 1000) / 10 : 0,
+    }))
+  })()
 
   const loadRekapNilai = (id: number) => {
     setRekapNilaiLoading(true)
@@ -1973,17 +2033,17 @@ export default function GuruLessonDetail() {
                   {lessonPakets.map(paket => {
                       const linkStatus = paket.pivot?.status
                       return (
-                  <div key={paket.id} className="border border-[#E5E7EF] rounded-md bg-white p-4">
+                  <div key={paket.id} className="border border-[#E5E7EF] rounded-md bg-white p-4 sm:p-5">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-9 h-9 rounded-md bg-[#0069b0]/[0.08] flex items-center justify-center shrink-0">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-md bg-[#0069b0]/[0.08] flex items-center justify-center shrink-0">
                           <ListChecks size={16} className="text-[#0069b0]" />
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="text-xs font-semibold text-[#14182B] truncate">{paket.title}</p>
+                            <p className="text-xs sm:text-sm font-semibold sm:font-bold text-[#14182B] truncate">{paket.title}</p>
                             {linkStatus && (
-                              <span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${
+                              <span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-1.5 sm:px-2 sm:py-1 rounded-full shrink-0 ${
                                 linkStatus === 'aktif' ? 'bg-[#0069b0]/[0.08] text-[#0069b0]' : 'bg-[#F1F2F6] text-[#8B90A0]'
                               }`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${linkStatus === 'aktif' ? 'bg-[#0069b0]' : 'bg-[#C5C8D4]'}`} />
@@ -1991,17 +2051,71 @@ export default function GuruLessonDetail() {
                               </span>
                             )}
                           </div>
-                          <p className="text-[10px] text-[#8B90A0] mt-0.5">
-                            {paket.questions_count != null ? `${paket.questions_count} soal` : 'Paket soal'}
-                            {paket.attempts_count != null ? ` · ${paket.attempts_count} percobaan` : ''}
-                          </p>
+                          {/* Panel pengaturan: rapat di mobile, jadi kotak Info di sm:ipi */}
+                          <div className="mt-1.5 sm:mt-3 sm:border sm:border-[#E5E7EF] sm:bg-[#F9FBFD] sm:rounded-md sm:px-3 sm:py-2.5">
+                            <p className="hidden sm:flex items-center gap-1.5 text-[9.5px] font-bold tracking-[0.08em] uppercase text-[#8B90A0] mb-2">
+                              <Settings size={11} /> Pengaturan Paket
+                            </p>
+                            <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
+                            <span className={QUIZ_CHIP_CLS}>
+                              <ListChecks size={10} className="text-[#0069b0]" />
+                              {paket.questions_count != null ? `${paket.questions_count} soal` : 'Paket soal'}
+                            </span>
+                            {paket.attempts_count != null && (
+                              <span className={QUIZ_CHIP_CLS}>
+                                <BarChart3 size={10} className="text-[#0069b0]" />
+                                {paket.attempts_count} percobaan
+                              </span>
+                            )}
+                            {paket.time_limit_minutes != null && (
+                              <span
+                                title="Durasi pengerjaan per percobaan"
+                                className={QUIZ_CHIP_CLS}
+                              >
+                                <Clock size={10} className="text-[#0069b0]" />
+                                {paket.time_limit_minutes} menit
+                              </span>
+                            )}
+                            {paket.max_attempts != null && (
+                              <span
+                                title="Maksimum percobaan yang diizinkan"
+                                className={QUIZ_CHIP_CLS}
+                              >
+                                <Repeat size={10} className="text-[#0069b0]" />
+                                {paket.max_attempts > 0 ? `Maks ${paket.max_attempts}x percobaan` : 'Tanpa batas percobaan'}
+                              </span>
+                            )}
+                            {paket.max_warnings != null && (
+                              <span
+                                title="Maksimum peringatan sebelum otomatis dihentikan"
+                                className={QUIZ_CHIP_CLS}
+                              >
+                                <AlertTriangle size={10} className="text-[#B45309]" />
+                                Maks {paket.max_warnings} peringatan
+                              </span>
+                            )}
+                            {paket.passing_score != null && (
+                              <span
+                                title="Nilai minimum untuk lulus"
+                                className={`inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded border ${
+                                  Number(paket.passing_score) > 0
+                                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                                    : 'bg-[#F4F5F8] border-[#E5E7EF] text-[#8B90A0]'
+                                }`}
+                              >
+                                <Trophy size={10} />
+                                {Number(paket.passing_score) > 0 ? `Nilai lulus ${paket.passing_score}` : 'Nilai lulus bebas'}
+                              </span>
+                            )}
+                            </div>
+                          </div>
                         </div>
                       </div>
                       {canManage && linkStatus && (
                         <button onClick={() => handleTogglePaketStatus(paket)}
                           disabled={togglingPaketId === paket.id}
                           title={linkStatus === 'aktif' ? 'Nonaktifkan quiz untuk siswa' : 'Aktifkan quiz untuk siswa'}
-                          className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-md border transition-colors disabled:opacity-50 ${
+                          className={`shrink-0 inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold px-2 sm:px-3 py-1 sm:py-1.5 rounded-md border transition-colors disabled:opacity-50 ${
                             linkStatus === 'aktif'
                               ? 'border-[#0069b0]/20 bg-[#0069b0]/5 text-[#0069b0] hover:bg-[#0069b0]/10'
                               : 'border-[#E5E7EF] bg-white text-[#8B90A0] hover:bg-[#F4F5F8]'
@@ -2014,18 +2128,19 @@ export default function GuruLessonDetail() {
                       )}
                     </div>
 
-                    <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                    {/* Aksi dipisah garis di sm:ipi, tetap rapat di mobile */}
+                    <div className="mt-3 sm:mt-4 sm:pt-4 sm:border-t sm:border-[#F0F1F5] flex flex-wrap items-center gap-1.5 sm:gap-2">
                       <button onClick={() => toggleQuizPreview(paket.id)}
-                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#4B5063] bg-[#F4F5F8] border border-[#E5E7EF] px-3 py-1.5 rounded-md hover:bg-[#EDEEF3] transition-colors">
+                        className={`${QUIZ_ACTION_CLS} text-[#4B5063] bg-[#F4F5F8] border border-[#E5E7EF] hover:bg-[#EDEEF3]`}>
                         Lihat Paket Soal <ChevronDown size={12} className={previewPaketId === paket.id ? 'rotate-180 transition-transform' : 'transition-transform'} />
                       </button>
                       <button onClick={() => isAdminView ? navigate(`${lmsBase}/course/${lesson.course_id}/monitor?paket=${paket.id}`) : navigate(`/guru-paket-soal/monitor/${paket.id}?kelas_sensei_id=${lesson?.course?.kelas_sensei_id ?? ''}`, { state: { title: paket.title } })}
-                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#4B5063] bg-[#F4F5F8] border border-[#E5E7EF] px-3 py-1.5 rounded-md hover:bg-[#EDEEF3] transition-colors"
+                        className={`${QUIZ_ACTION_CLS} text-[#4B5063] bg-[#F4F5F8] border border-[#E5E7EF] hover:bg-[#EDEEF3]`}
                         title="Monitor langsung pengerjaan siswa (kamera + progres)">
                         <Activity size={12} /> Monitor
                       </button>
                       <button onClick={() => openQuizResults(paket)}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-white bg-[#0069b0] px-3 py-1.5 rounded-md hover:bg-[#004d7a] transition-colors"
+                        className={`${QUIZ_ACTION_CLS} font-bold text-white bg-[#0069b0] hover:bg-[#004d7a]`}
                         title="Lihat hasil pengerjaan kandidat + kunci jawaban + waktu pengerjaan">
                         <BarChart3 size={12} /> Hasil Quiz
                       </button>
@@ -2035,7 +2150,7 @@ export default function GuruLessonDetail() {
                           title={paket.pivot?.penilaian_ulangan
                             ? 'Skor terbaik siswa otomatis masuk Penilaian Ulangan (tanggal pertemuan). Klik untuk mematikan.'
                             : 'Aktifkan: skor terbaik siswa otomatis masuk Penilaian Ulangan pada tanggal pertemuan ini.'}
-                          className={`inline-flex items-center gap-1 text-[11px] font-semibold px-3 py-1.5 rounded-md border transition-colors disabled:opacity-50 ${
+                          className={`${QUIZ_ACTION_CLS} border disabled:opacity-50 ${
                             paket.pivot?.penilaian_ulangan
                               ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
                               : 'border-[#E5E7EF] bg-[#F4F5F8] text-[#4B5063] hover:bg-[#EDEEF3]'
@@ -2831,6 +2946,44 @@ export default function GuruLessonDetail() {
             </div>
 
             <div className="p-5">
+              {!hasilLoading && hasilSectionStats.length > 0 && (
+                <div className="rounded-md border border-[#E5E7EF] bg-[#F9FBFD] p-3.5 mb-4">
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <BarChart3 size={14} className="text-[#0069b0] shrink-0" />
+                      <div>
+                        <p className="text-[11px] font-bold text-[#14182B]">Persentase Benar per Bagian</p>
+                        <p className="text-[9.5px] text-[#8B90A0] font-medium mt-0.5">
+                          Rata-rata {participants.length} kandidat · dari percobaan terbaik
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2.5 text-[9px] font-bold text-[#8B90A0]">
+                      {[['≥80', PCT_GOOD], ['50-79', PCT_MID], ['<50', PCT_BAD]].map(([label, color]) => (
+                        <span key={label} className="inline-flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-sm" style={{ backgroundColor: color }} /> {label}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    {hasilSectionStats.map(s => (
+                      <div key={s.id} className="flex items-center gap-2.5">
+                        <span className="w-24 sm:w-32 text-[10px] font-semibold text-[#4B5063] truncate shrink-0" title={s.name}>{s.name}</span>
+                        <div className="flex-1 h-4 bg-white border border-[#E5E7EF] rounded overflow-hidden">
+                          <div className="h-full rounded-sm transition-all duration-500 flex items-center justify-end pr-1"
+                            style={{ width: pctWidth(s.percent), backgroundColor: pctColor(s.percent) }}>
+                            {s.percent >= 14 && <span className="text-[8px] font-black text-white">{s.percent}%</span>}
+                          </div>
+                        </div>
+                        <span className={`w-20 text-right text-[10px] font-bold shrink-0 ${pctText(s.percent)}`}>
+                          {s.correct}/{s.total * s.n} benar
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               {hasilLoading ? (
                 <div className="flex items-center justify-center gap-2 py-14 text-[11px] text-[#8B90A0] font-medium">
                   <Loader2 size={16} className="animate-spin text-[#0069b0]" /> Memuat hasil...
@@ -2854,6 +3007,7 @@ export default function GuruLessonDetail() {
                           <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide text-center border border-[#E5E7EF]">Percobaan</th>
                           <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide text-center border border-[#E5E7EF]">Skor</th>
                           <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide text-center border border-[#E5E7EF]">Benar/Total</th>
+                          <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide text-left border border-[#E5E7EF]">Persentase per Bagian</th>
                           <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide text-center border border-[#E5E7EF]">Waktu Pengerjaan</th>
                           <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide text-center border border-[#E5E7EF]">Status</th>
                           <th className="py-2.5 px-3 text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide text-center border border-[#E5E7EF]">Aksi</th>
@@ -2880,6 +3034,27 @@ export default function GuruLessonDetail() {
                               </td>
                               <td className="py-3 px-3 text-center text-[11px] font-semibold text-[#4B5063] border border-[#E5E7EF]">
                                 {a.correct_count != null && a.total_count != null ? `${a.correct_count}/${a.total_count}` : '–'}
+                              </td>
+                              <td className="py-3 px-3 border border-[#E5E7EF]">
+                                {(() => {
+                                  const rows = sectionRows(a)
+                                  if (!rows.length) return <span className="text-[10px] text-[#B9BDCB]">-</span>
+                                  return (
+                                    <div className="min-w-[150px] space-y-1">
+                                      {rows.map(s => (
+                                        <div key={s.id} className="flex items-center gap-1.5"
+                                          title={`${s.name}: ${s.correct} benar dari ${s.total} soal (${s.percent}%)`}>
+                                          <span className="w-12 text-[9px] text-[#8B90A0] font-medium truncate shrink-0">{s.name}</span>
+                                          <div className="flex-1 h-1.5 bg-[#E9ECF3] rounded-full overflow-hidden">
+                                            <div className="h-full rounded-full transition-all duration-500"
+                                              style={{ width: pctWidth(s.percent), backgroundColor: pctColor(s.percent) }} />
+                                          </div>
+                                          <span className={`w-8 text-right text-[9px] font-bold shrink-0 ${pctText(s.percent)}`}>{s.percent}%</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )
+                                })()}
                               </td>
                               <td className="py-3 px-3 text-center border border-[#E5E7EF]">
                                 <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#4B5063]">
@@ -2964,6 +3139,22 @@ export default function GuruLessonDetail() {
                                 </p>
                               </div>
                             </div>
+                            {sectionRows(a).length > 0 && (
+                              <div className="mt-2.5 rounded-md border border-[#E5E7EF] bg-[#F9FBFD] px-2.5 py-2 space-y-1">
+                                <p className="text-[8.5px] font-bold text-[#8B90A0] uppercase tracking-wide">Persentase per Bagian</p>
+                                {sectionRows(a).map(s => (
+                                  <div key={s.id} className="flex items-center gap-1.5"
+                                    title={`${s.name}: ${s.correct} benar dari ${s.total} soal (${s.percent}%)`}>
+                                    <span className="w-12 text-[9px] text-[#8B90A0] font-medium truncate shrink-0">{s.name}</span>
+                                    <div className="flex-1 h-1.5 bg-[#E9ECF3] rounded-full overflow-hidden">
+                                      <div className="h-full rounded-full transition-all duration-500"
+                                        style={{ width: pctWidth(s.percent), backgroundColor: pctColor(s.percent) }} />
+                                    </div>
+                                    <span className={`w-8 text-right text-[9px] font-bold shrink-0 ${pctText(s.percent)}`}>{s.percent}%</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                             <div className="mt-2.5 flex gap-1.5">
                               <button onClick={() => openAttemptDetail(a.attempt_id)}
                                 className="flex-1 inline-flex items-center justify-center gap-1 text-[10px] font-bold text-[#0069b0] border border-[#0069b0]/30 bg-[#0069b0]/5 px-2.5 py-2 rounded-md hover:bg-[#0069b0]/10 transition-colors">

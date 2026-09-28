@@ -1355,6 +1355,7 @@ class GuruDashboardController extends Controller
         $data = $request->validate([
             'quiz_paket_id' => 'required|exists:quiz_pakets,id',
             'is_pembahasan' => 'sometimes|boolean',
+            'penilaian_ulangan' => 'sometimes|boolean',
         ]);
 
         $lesson = Lesson::findOrFail($id);
@@ -1365,7 +1366,15 @@ class GuruDashboardController extends Controller
             return response()->json(['message' => 'Paket soal tidak ditemukan'], 422);
         }
 
-        $lesson->linkPakets()->syncWithoutDetaching([$paket->id]);
+        // Default "Masuk Penilaian" diambil dari pengaturan paket di bank soal,
+        // guru tetap bisa mengubahnya per pertemuan lewat tombol Nilai Ulangan.
+        $lesson->linkPakets()->syncWithoutDetaching([
+            $paket->id => [
+                'penilaian_ulangan' => array_key_exists('penilaian_ulangan', $data)
+                    ? (bool) $data['penilaian_ulangan']
+                    : (bool) $paket->penilaian_ulangan,
+            ],
+        ]);
 
         if (isset($data['is_pembahasan'])) {
             $lesson->linkPakets()->updateExistingPivot($paket->id, ['is_pembahasan' => (bool) $data['is_pembahasan']]);
