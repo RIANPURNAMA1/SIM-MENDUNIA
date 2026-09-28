@@ -116,7 +116,8 @@ const parseQuestionImport = (text: string, type: 'choice' | 'rating' | 'essay' =
   // Penampung stem berformat "[isi soal]" yang belum tertutup.
   let bracket: { buf: string; sec: string } | null = null
   const push = () => {
-    if (current && current.question) result.push(current)
+    // Soal tetap valid walau stem teksnya kosong, asal ada gambar/audio.
+    if (current && (current.question || current.image_path || current.audio_path)) result.push(current)
     current = null
   }
   const startQuestion = (raw: string, sec: string) => {
@@ -184,7 +185,7 @@ const parseQuestionImport = (text: string, type: 'choice' | 'rating' | 'essay' =
     if (current && type === 'choice' && !current.options.length && current.question) {
       const cont = stripPoin(line)
       const media = stripMedia(cont.text)
-      current.question = `${current.question}<br />${media.text}`.trim()
+      if (media.text) current.question = `${current.question}<br />${media.text}`.trim()
       if (cont.points) current.points = cont.points
       if (media.image_path && !current.image_path) current.image_path = media.image_path
       if (media.audio_path && !current.audio_path) current.audio_path = media.audio_path
@@ -282,6 +283,12 @@ a. benar
 interface Batch { id: number; nama_batch: string; warna?: string | null }
 interface CourseOption { id: number; title: string }
 interface Category { id: number; name: string; paket_count?: number }
+
+const mediaUrl = (u?: string | null): string => {
+  if (!u) return ''
+  if (/^(https?:)?\/\//i.test(u) || u.startsWith('data:')) return u
+  return `${APP_URL}/storage/${u.replace(/^\/+/, '')}`
+}
 
 const COURSE_PER_PAGE = 10
 const BANK_PER_PAGE = 10
@@ -575,6 +582,7 @@ export default function DataCourse() {
   const [savingImport, setSavingImport] = useState(false)
   const [importError, setImportError] = useState('')
   const [importingMedia, setImportingMedia] = useState<'gambar' | 'audio' | null>(null)
+  const [importMedia, setImportMedia] = useState<{ type: 'gambar' | 'audio'; url: string; name: string }[]>([])
   const importTextRef = useRef<HTMLTextAreaElement>(null)
   const importImgInputRef = useRef<HTMLInputElement>(null)
   const importAudioInputRef = useRef<HTMLInputElement>(null)
@@ -2034,6 +2042,7 @@ export default function DataCourse() {
     setImportParse([])
     setImportType('choice')
     setImportError('')
+    setImportMedia([])
     setShowImportModal(true)
   }
 
@@ -2047,13 +2056,15 @@ export default function DataCourse() {
     setImportParse(p => p.filter((_, x) => x !== i))
   }
 
-  const insertImportMedia = (url: string, type: 'gambar' | 'audio') => {
+  const insertImportMedia = (url: string, type: 'gambar' | 'audio', name = '') => {
     const ta = importTextRef.current
     const start = ta?.selectionStart ?? importText.length
     const end = ta?.selectionEnd ?? importText.length
     const tag = type === 'gambar' ? `[gambar:${url}]` : `[audio:${url}]`
-    const next = importText.slice(0, start) + tag + importText.slice(end)
-    const pos = start + tag.length
+    const prefix = start > 0 && !/[\n[]$/.test(importText.slice(0, start)) ? '\n' : ''
+    const next = importText.slice(0, start) + prefix + tag + importText.slice(end)
+    const pos = start + prefix.length + tag.length
+    setImportMedia(prev => [...prev, { type, url, name: name || url.split('/').pop() || '' }])
     onImportTextChange(next)
     requestAnimationFrame(() => {
       if (ta) {
@@ -2061,6 +2072,14 @@ export default function DataCourse() {
         ta.setSelectionRange(pos, pos)
       }
     })
+  }
+
+  const removeImportMedia = (idx: number) => {
+    const m = importMedia[idx]
+    if (!m) return
+    const tag = m.type === 'gambar' ? `[gambar:${m.url}]` : `[audio:${m.url}]`
+    setImportMedia(prev => prev.filter((_, x) => x !== idx))
+    onImportTextChange(importText.split(tag).join(''))
   }
 
   const onImportFile = (file: File | undefined, type: 'gambar' | 'audio') => {
@@ -2074,7 +2093,7 @@ export default function DataCourse() {
     fd.append('file', file)
     setImportingMedia(type)
     adminQuizApi.uploadMedia(fd)
-      .then(res => insertImportMedia(res.data.url, type))
+      .then(res => insertImportMedia(res.data.url, type, file.name))
       .catch(() => Swal.fire({ icon: 'error', title: `Gagal mengunggah ${type === 'gambar' ? 'gambar' : 'audio'}` }))
       .finally(() => setImportingMedia(null))
   }
@@ -4738,6 +4757,45 @@ export default function DataCourse() {
                   rows={9} placeholder={'## Vocabulary\n[Arti kata "watashi" adalah...]\n*a. saya\nb. kamu\nc. dia\nd. kami   [2 poin]\n\n[A：ぼくは (student) です。\nB： benar!]\na. teacher\nb. student\n*c. sensei\nd. gakusei   [5 poin]\n\n[gambar:URL] dan [audio:URL] menyisip otomatis di posisi kursor'}
                   className="w-full px-3.5 py-3 border border-slate-200 rounded-md text-[13px] leading-relaxed font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-slate-50/50" />
 
+                {importMedia.length > 0 && (
+                  <div className="mt-2.5 rounded-md border border-slate-200 bg-slate-50/60 p-2.5">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                        Media terunggah ({importMedia.length})
+                      </p>
+                      {importParse.length === 0 && (
+                        <p className="text-[11px] font-semibold text-amber-600">Media sudah tersisip, tambahkan teks soal &amp; opsi agar terdeteksi</p>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {importMedia.map((m, i) => (
+                        <div key={`${m.url}-${i}`}
+                          className="group relative flex items-center gap-2 rounded-md border border-slate-200 bg-white p-1.5 pr-2 shadow-sm">
+                          {m.type === 'gambar' ? (
+                            <img src={mediaUrl(m.url)} alt={m.name}
+                              className="h-12 w-12 rounded-md border border-slate-200 object-cover" />
+                          ) : (
+                            <span className="grid h-12 w-12 place-items-center rounded-md border border-slate-200 bg-amber-50 text-amber-600">
+                              <Mic size={18} />
+                            </span>
+                          )}
+                          <div className="min-w-0 max-w-[140px]">
+                            <p className="truncate text-[11px] font-semibold text-slate-700">{m.name}</p>
+                            <p className="text-[10px] text-slate-400">{m.type === 'gambar' ? 'Gambar' : 'Audio'} · {m.url.split('/').pop()}</p>
+                          </div>
+                          {m.type === 'audio' && (
+                            <audio src={mediaUrl(m.url)} controls className="h-7 w-28" />
+                          )}
+                          <button type="button" onClick={() => removeImportMedia(i)} title="Hapus media ini"
+                            className="ml-1 shrink-0 rounded-md bg-red-50 p-1 text-red-500 transition-colors hover:bg-red-100">
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* PANDUAN */}
                 <div className="mt-3 rounded-md border border-amber-200 bg-amber-50/60 p-3">
                   <p className="flex items-center gap-1.5 text-xs font-bold text-amber-800 mb-2">
@@ -4812,6 +4870,18 @@ export default function DataCourse() {
                             <span className="text-[11px] font-semibold text-slate-400">{q.points} poin</span>
                           </div>
                           <p className="text-sm font-semibold text-slate-800 mt-1 line-clamp-2">{q.question || '(tanpa teks)'}</p>
+                          {q.image_path && (
+                            <img src={mediaUrl(q.image_path)} alt="media soal"
+                              className="mt-2 max-h-40 rounded-md border border-slate-200 object-contain" />
+                          )}
+                          {q.audio_path && (
+                            <div className="mt-2 flex items-center gap-2">
+                              <audio src={mediaUrl(q.audio_path)} controls className="h-8" />
+                              {q.audio_max_plays && (
+                                <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-md">maks {q.audio_max_plays}x</span>
+                              )}
+                            </div>
+                          )}
                           {q.options.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1.5">
                               {q.options.map((o, oi) => (
@@ -4819,7 +4889,7 @@ export default function DataCourse() {
                                   className={`flex items-center gap-1.5 text-[11px] px-1.5 py-0.5 rounded-md font-medium ${q.correct_index === oi ? 'bg-emerald-500 text-white font-bold' : 'bg-slate-100 text-slate-600'}`}>
                                   {String.fromCharCode(65 + oi)}.
                                   {o.image_path ? (
-                                    <img src={o.image_path} alt={o.image_path}
+                                    <img src={mediaUrl(o.image_path)} alt={o.text || `opsi ${oi + 1}`}
                                       className="h-7 w-7 object-cover rounded-md border border-slate-200" />
                                   ) : (
                                     <span>{o.text}</span>
