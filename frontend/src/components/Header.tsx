@@ -2,10 +2,9 @@ import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, ChevronDown, Bell, Mail, Timer, User, UserCog, LogOut,
-  UserPlus, DollarSign,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { izinApi, lemburApi, pendaftarApi, pembayaranApi, APP_URL } from '../services/api'
+import { izinApi, lemburApi, APP_URL } from '../services/api'
 import ThemeToggle from './ThemeToggle'
 
 interface HeaderProps {
@@ -22,7 +21,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
   const { user, logout } = useAuth()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showNotif, setShowNotif] = useState(false)
-  const [notifFilter, setNotifFilter] = useState<'all' | 'izin' | 'lembur' | 'pendaftaran' | 'pembayaran'>('all')
+  const [notifFilter, setNotifFilter] = useState<'all' | 'izin' | 'lembur'>('all')
   const [notifications, setNotifications] = useState<any[]>([])
   const [readNotifs, setReadNotifs] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem('readNotifs') || '[]') } catch { return [] }
@@ -32,9 +31,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
     Promise.all([
       izinApi.list({ status: 'PENDING', per_page: 10 }).catch(() => ({ data: { data: [] } })),
       lemburApi.list({ status: 'PENDING', per_page: 10 }).catch(() => ({ data: { data: [] } })),
-      pendaftarApi.list({ status_pendaftaran: 'pending', per_page: 10 }).catch(() => ({ data: [] })),
-      pembayaranApi.list({ status: 'pending', per_page: 10 }).catch(() => ({ data: [] })),
-    ]).then(([izinRes, lemburRes, pendaftarRes, pembayaranRes]) => {
+    ]).then(([izinRes, lemburRes]) => {
       const izinList = (izinRes.data?.data || []).map((i: any) => ({
         id: `izin-${i.id}`,
         type: 'izin' as const,
@@ -55,30 +52,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
         icon: Timer,
         iconColor: 'text-green-400',
       }))
-      const pendaftarArr = Array.isArray(pendaftarRes.data)
-        ? pendaftarRes.data
-        : (pendaftarRes.data?.data || pendaftarRes.data?.pendaftar || [])
-      const pendaftaranList = pendaftarArr.map((p: any) => ({
-        id: `pendaftaran-${p.id}`,
-        type: 'pendaftaran' as const,
-        nama: p.nama || '-',
-        jenis: 'Pendaftaran Baru',
-        created_at: p.created_at,
-        link: `/pendaftar/${p.id}`,
-        icon: UserPlus,
-        iconColor: 'text-purple-400',
-      }))
-      const pembayaranList = (pembayaranRes.data?.data || pembayaranRes.data || []).map((py: any) => ({
-        id: `pembayaran-${py.id}`,
-        type: 'pembayaran' as const,
-        nama: py.pendaftar?.nama || '-',
-        jenis: `Pembayaran ${py.kategori?.nama || ''}`,
-        created_at: py.created_at,
-        link: `/pendaftar/${py.pendaftar_id}`,
-        icon: DollarSign,
-        iconColor: 'text-emerald-400',
-      }))
-      const combined = [...izinList, ...lemburList, ...pendaftaranList, ...pembayaranList].sort((a, b) =>
+      const combined = [...izinList, ...lemburList].sort((a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       ).filter(n => !readNotifs.includes(n.id))
       setNotifications(combined)
@@ -89,8 +63,6 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
     if (notifFilter === 'all') return true
     if (notifFilter === 'izin') return n.type === 'izin'
     if (notifFilter === 'lembur') return n.type === 'lembur'
-    if (notifFilter === 'pendaftaran') return n.type === 'pendaftaran'
-    if (notifFilter === 'pembayaran') return n.type === 'pembayaran'
     return true
   })
 
@@ -207,10 +179,6 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
                 <button onClick={() => setNotifFilter('izin')} className={`hover:underline ${notifFilter === 'izin' ? 'font-bold' : ''}`}>Izin</button>
                 <span className="text-gray-300">|</span>
                 <button onClick={() => setNotifFilter('lembur')} className={`hover:underline ${notifFilter === 'lembur' ? 'font-bold' : ''}`}>Lembur</button>
-                <span className="text-gray-300">|</span>
-                <button onClick={() => setNotifFilter('pendaftaran')} className={`hover:underline ${notifFilter === 'pendaftaran' ? 'font-bold' : ''}`}>Pendaftaran</button>
-                <span className="text-gray-300">|</span>
-                <button onClick={() => setNotifFilter('pembayaran')} className={`hover:underline ${notifFilter === 'pembayaran' ? 'font-bold' : ''}`}>Pembayaran</button>
               </div>
             </div>
           )}
