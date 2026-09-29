@@ -338,7 +338,7 @@ export default function Pendaftar() {
         {([
           { key: '', label: 'Pendaftar', icon: Users, chip: 'bg-[#0E6187]', count: stats.total, badgeValue: 0, badge: false as boolean },
           { key: 'menunggu pembayaran', label: 'Menunggu Bayar', icon: Clock, chip: 'bg-slate-600', count: stats.menungguPembayaran, badgeValue: 0, badge: false },
-          { key: 'menunggu verifikasi', label: 'Verifikasi', icon: BadgeCheck, chip: 'bg-amber-500', count: stats.pembayaranDiKonfirmasi, badgeValue: stats.pendingVerifikasi, badge: true },
+          { key: 'menunggu verifikasi', label: 'Verifikasi', icon: BadgeCheck, chip: 'bg-amber-500', count: stats.pendingVerifikasi, badgeValue: stats.pendingVerifikasi, badge: true },
           { key: 'proses', label: 'Proses', icon: RefreshCw, chip: 'bg-blue-500', count: stats.proses, badgeValue: 0, badge: false },
           { key: 'pembayaran dikonfirmasi', label: 'Dikonfirmasi', icon: CheckCircle2, chip: 'bg-emerald-600', count: stats.selesai, badgeValue: 0, badge: false },
           { key: 'batal', label: 'Batal', icon: Ban, chip: 'bg-red-500', count: stats.batal, badgeValue: 0, badge: false },

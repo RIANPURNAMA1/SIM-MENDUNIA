@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { FileText, Search, RotateCcw, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
+import { FileText, Search, RotateCcw, CheckCircle, XCircle, AlertTriangle, RefreshCw } from 'lucide-react'
 import { izinApi } from '../../services/api'
 import type { Izin, Pagination } from '../../types'
 
@@ -28,9 +28,11 @@ export default function IzinCutiPage() {
   const [rejectNote, setRejectNote] = useState('')
   const [showConfirm, setShowConfirm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
+    setErrorMsg(null)
     try {
       const params: Record<string, string | number> = { page, per_page: 50 }
       if (search) params.search = search
@@ -40,7 +42,13 @@ export default function IzinCutiPage() {
       setData(res.data.data)
       setPagination(res.data.pagination)
     } catch (err) {
-      console.error(err)
+      // Jangan ditelan diam-diam: HTTP 500 akan terlihat sama dengan
+      // "belum ada data" kalau errornya disembunyikan.
+      const e = err as { response?: { status?: number; data?: { message?: string } } }
+      setErrorMsg(
+        e?.response?.data?.message
+          ?? (e?.response?.status ? `Gagal memuat data (HTTP ${e.response.status}).` : 'Gagal terhubung ke server.')
+      )
     } finally {
       setLoading(false)
     }
@@ -183,13 +191,41 @@ export default function IzinCutiPage() {
                   </td>
                 </tr>
               ))
+            ) : errorMsg ? (
+              <tr>
+                <td colSpan={8} className="border border-slate-200 px-6 py-10 text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-500">
+                    <AlertTriangle size={24} />
+                  </div>
+                  <p className="mt-3 text-sm font-semibold text-red-600">Gagal memuat data izin &amp; cuti</p>
+                  <p className="mt-1 text-xs text-slate-500">{errorMsg}</p>
+                  <button
+                    onClick={() => fetchData()}
+                    className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-slate-800 px-4 py-2 text-[11px] font-bold text-white transition hover:bg-slate-700"
+                  >
+                    <RefreshCw size={13} /> Coba lagi
+                  </button>
+                </td>
+              </tr>
             ) : data.length === 0 ? (
               <tr>
                 <td colSpan={8} className="border border-slate-200 px-6 py-10 text-center">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
                     <FileText size={24} />
                   </div>
-                  <p className="mt-3 text-sm font-medium text-slate-600">Tidak ada data izin & cuti</p>
+                  <p className="mt-3 text-sm font-medium text-slate-600">
+                    {search || filterJenis || filterStatus
+                      ? 'Tidak ada data yang cocok dengan filter'
+                      : 'Tidak ada data izin & cuti'}
+                  </p>
+                  {(search || filterJenis || filterStatus) && (
+                    <button
+                      onClick={resetFilter}
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-slate-800 px-4 py-2 text-[11px] font-bold text-white transition hover:bg-slate-700"
+                    >
+                      <RotateCcw size={13} /> Reset filter
+                    </button>
+                  )}
                 </td>
               </tr>
             ) : (

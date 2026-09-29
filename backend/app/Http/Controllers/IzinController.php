@@ -356,15 +356,25 @@ class IzinController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Izin sudah diproses'], 422);
         }
 
-        DB::transaction(function () use ($izin) {
-            $izin->update(['status' => 'APPROVED']);
+        $approverId = (int) (Auth::guard('sanctum')->id() ?: auth()->id() ?: 0);
 
-            IzinApproval::create([
-                'izin_id'     => $izin->id,
-                'approved_by' => 1,
+        DB::transaction(function () use ($izin, $approverId) {
+            // Catat siapa & kapan memproses — kolom ini tidak ada di $fillable
+            // sebelum sekarang, jadi kolom "Diproses Oleh" selalu kosong.
+            $izin->update([
                 'status'      => 'APPROVED',
+                'approved_by' => $approverId ?: null,
                 'approved_at' => now(),
             ]);
+
+            if ($approverId) {
+                IzinApproval::create([
+                    'izin_id'     => $izin->id,
+                    'approved_by' => $approverId,
+                    'status'      => 'APPROVED',
+                    'approved_at' => now(),
+                ]);
+            }
 
             if ($izin->user && $izin->user->isSiswa()) {
                 $siswa = $izin->user->siswa;

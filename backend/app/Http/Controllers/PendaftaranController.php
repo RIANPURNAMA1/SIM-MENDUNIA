@@ -383,7 +383,7 @@ class PendaftaranController extends Controller
                 'selesai' => Pendaftar::where('status_pembayaran', 'verified')->count(),
                 'batal' => Pendaftar::where('status_pendaftaran', 'ditolak')->where('status_pembayaran', '!=', 'ditangguhkan')->count(),
                 'ditangguhkan' => Pendaftar::where('status_pembayaran', 'ditangguhkan')->count(),
-                'pendingVerifikasi' => Pendaftar::where('status_pembayaran', 'processing')->count(),
+                'pendingVerifikasi' => Pendaftar::where('status_pembayaran', 'processing')->where('status_pendaftaran', 'pending')->count(),
             ];
 
             return response()->json([

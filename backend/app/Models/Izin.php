@@ -19,7 +19,9 @@ class Izin extends Model
         'tgl_selesai',
         'alasan',
         'lampiran',
-        'status',         // PENDING / DISETUJUI / DITOLAK
+        'status',         // PENDING / APPROVED / REJECTED
+        'approved_by',    // user yang memproses pengajuan
+        'approved_at',
     ];
 
     protected $casts = [

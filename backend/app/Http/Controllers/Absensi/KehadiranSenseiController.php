@@ -55,7 +55,7 @@ class KehadiranSenseiController extends Controller
                     $kelas->jumlah_absen = $absenQuery->count();
                     $kelas->jumlah_alpa = $absenQuery->where('status', 'ALPA')->count();
                     $izinSensei = \App\Models\Izin::where('user_id', $kelas->user_id)
-                        ->where('status', 'DISETUJUI')
+                        ->where('status', 'APPROVED')
                         ->whereDate('tgl_mulai', '<=', $tglSelesai)
                         ->whereDate('tgl_selesai', '>=', $tglMulai)
                         ->get();
@@ -569,7 +569,7 @@ class KehadiranSenseiController extends Controller
             $kelasItem->jumlah_alpa = $absenQuery->where('status', 'ALPA')->count();
 
             $izinSensei = \App\Models\Izin::where('user_id', $kelasItem->user_id)
-                ->where('status', 'DISETUJUI')
+                ->where('status', 'APPROVED')
                 ->whereDate('tgl_mulai', '<=', $tglSelesai)
                 ->whereDate('tgl_selesai', '>=', $tglMulai)
                 ->get();
@@ -648,7 +648,7 @@ class KehadiranSenseiController extends Controller
             $kelasItem->jumlah_alpa = $absenQuery->where('status', 'ALPA')->count();
 
             $izinSensei = \App\Models\Izin::where('user_id', $kelasItem->user_id)
-                ->where('status', 'DISETUJUI')
+                ->where('status', 'APPROVED')
                 ->whereDate('tgl_mulai', '<=', $tglSelesai)
                 ->whereDate('tgl_selesai', '>=', $tglMulai)
                 ->get();

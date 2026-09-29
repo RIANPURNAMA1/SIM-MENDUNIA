@@ -168,9 +168,12 @@ Route::prefix('kehadiran-khusus')->group(function () {
 });
 
 // Izin & Cuti
-Route::prefix('izin')->group(function () {
+// List/approve/reject sebelumnya terbuka tanpa autentikasi — siapa pun bisa
+// menyetujui pengajuan. Sekarang wajib login, dan approve/reject dibatasi
+// ke peran pengelola (HR/Manager/Guru/Admin).
+Route::prefix('izin')->middleware('auth:sanctum')->group(function () {
     Route::get('/', [IzinController::class, 'apiIndex']);
-    Route::post('/', [IzinController::class, 'apiStore'])->middleware('auth:sanctum');
+    Route::post('/', [IzinController::class, 'apiStore']);
     Route::post('/{id}/approve', [IzinController::class, 'apiApprove']);
     Route::post('/{id}/reject', [IzinController::class, 'apiReject']);
 });

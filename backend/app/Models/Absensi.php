@@ -15,6 +15,7 @@ class Absensi extends Model
     protected $fillable = [
         'user_id',
         'shift_id', // Tambahkan ini agar bisa disimpan
+        'izin_id',   // relasi ke pengajuan izin/cuti yang jadi dasar status baris ini
         'cabang_id', // Tambahkan ini agar bisa disimpan
         'tanggal',
         'jam_masuk',

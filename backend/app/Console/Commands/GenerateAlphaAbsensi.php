@@ -5,6 +5,8 @@ namespace App\Console\Commands;
 use App\Models\User;
 use App\Models\Absensi;
 use App\Models\HariLibur;
+use App\Models\Izin;
+use App\Services\IzinApprovalService;
 use App\Services\WhatsAppService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -33,6 +35,15 @@ class GenerateAlphaAbsensi extends Command
             ->whereNotNull('no_hp')
             ->get();
 
+        // Pengajuan izin/cuti yang disetujui dan mencakup HARI INI.
+        // Tanpa ini, cron akan menimpa izin menjadi ALPA karena query di bawah
+        // sama sekali tidak membaca tabel izins.
+        $izinHariIni = Izin::where('status', 'APPROVED')
+            ->whereDate('tgl_mulai', '<=', $today->toDateString())
+            ->whereDate('tgl_selesai', '>=', $today->toDateString())
+            ->get()
+            ->groupBy('user_id');
+
         foreach ($users as $user) {
             // Kumpulkan semua shift user
             $userShifts = $user->shifts;
@@ -40,10 +51,28 @@ class GenerateAlphaAbsensi extends Command
                 $userShifts = collect([$user->shift]);
             }
 
+            // 2. Terapkan izin/cuti yang sudah disetujui untuk hari ini.
+            // Ini membuat baris IZIN (bukan ALPA) dan menimpa ALPA lama.
+            if ($izinHariIni->has($user->id)) {
+                foreach ($izinHariIni->get($user->id) as $izin) {
+                    $hasil = IzinApprovalService::applyToAbsensi(
+                        $user,
+                        (int) $izin->id,
+                        (string) $izin->jenis_izin,
+                        (string) ($izin->alasan ?? ''),
+                        (string) $izin->tgl_mulai,
+                        (string) $izin->tgl_selesai
+                    );
+                    if ($hasil['dibuat'] || $hasil['diperbarui']) {
+                        $this->info("Izin #{$izin->id} ({$izin->jenis_izin}) diterapkan: {$izin->user_id} " . date('Y-m-d') . " dibuat={$hasil['dibuat']} diperbarui={$hasil['diperbarui']}");
+                    }
+                }
+            }
+
             foreach ($userShifts as $shift) {
                 if (!$shift) continue;
 
-                // 2. CEK APAKAH SUDAH ADA RECORD ABSENSI UNTUK SHIFT INI
+                // 3. CEK APAKAH SUDAH ADA RECORD ABSENSI UNTUK SHIFT INI
                 $absensi = Absensi::where('user_id', $user->id)
                     ->whereDate('tanggal', $today)
                     ->where('shift_id', $shift->id)

@@ -1513,9 +1513,12 @@ class AdminCabangController extends Controller
             $kelasItem->jumlah_tidak_absen_pulang = $absenQuery->where('status', 'TIDAK ABSEN PULANG')->count();
             $kelasItem->jumlah_pulang_lebih_awal = $absenQuery->where('status', 'PULANG LEBIH AWAL')->count();
 
+            // Kolom di tabel `izins` adalah tgl_mulai / tgl_selesai, dan
+            // enum status-nya PENDING / APPROVED / REJECTED (bukan DISETUJUI).
             $izinSensei = \App\Models\Izin::where('user_id', $kelasItem->user_id)
-                ->where('status', 'DISETUJUI')
-                ->whereBetween('tanggal_mulai', [$tglMulai, $tglSelesai])
+                ->where('status', 'APPROVED')
+                ->whereDate('tgl_mulai', '<=', $tglSelesai)
+                ->whereDate('tgl_selesai', '>=', $tglMulai)
                 ->count();
 
             $kelasItem->jumlah_izin = $izinSensei;
