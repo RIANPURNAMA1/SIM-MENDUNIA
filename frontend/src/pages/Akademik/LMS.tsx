@@ -160,12 +160,14 @@ interface ReviewQuestion {
   rating_max: number | null
   options: ReviewOption[]
   correct_index: number | null
+  correct_indexes?: number[] | null
   keyword?: string | null
   points: number
   image_url?: string | null
   audio_url?: string | null
   audio_max_plays?: number | null
   selected_index?: number | null
+  selected_indexes?: number[] | null
   answer_text?: string | null
   earned_points?: number | null
   is_correct?: boolean | null
@@ -248,9 +250,14 @@ function ReviewLine({ label, value, tone }: { label: string; value: string; tone
 function ReviewQuestionCard({ q, index }: { q: ReviewQuestion; index: number }) {
   const isRating = q.question_type === 'rating'
   const isEssay = q.question_type === 'essay'
+  const isMulti = q.question_type === 'multi'
+  const correctSet = new Set((q.correct_indexes || []).map(Number))
+  const selectedSet = new Set((q.selected_indexes || []).map(Number))
   const answered = isEssay
     ? Boolean(q.answer_text && String(q.answer_text).trim() !== '')
-    : q.selected_index !== undefined && q.selected_index !== null
+    : isMulti
+      ? (q.selected_indexes?.length ?? 0) > 0
+      : q.selected_index !== undefined && q.selected_index !== null
   const correct = q.is_correct === true
   const wrong = q.is_correct === false
   const status = !answered ? 'empty' : correct ? 'correct' : wrong ? 'wrong' : 'empty'
@@ -322,8 +329,8 @@ function ReviewQuestionCard({ q, index }: { q: ReviewQuestion; index: number }) 
         ) : (
           <div className="mt-2 space-y-1.5">
             {q.options.map((opt, oi) => {
-              const isCorrectOpt = q.correct_index != null && oi === q.correct_index
-              const isSelected = oi === q.selected_index
+              const isCorrectOpt = isMulti ? correctSet.has(oi) : (q.correct_index != null && oi === q.correct_index)
+              const isSelected = isMulti ? selectedSet.has(oi) : oi === q.selected_index
               const isWrongPick = isSelected && !isCorrectOpt
               const cls = isCorrectOpt
                 ? 'border-emerald-300 bg-emerald-50'

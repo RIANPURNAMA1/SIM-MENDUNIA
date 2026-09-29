@@ -1182,14 +1182,18 @@ export default function GuruLMS() {
                                         const optLabel = typeof opt === 'string' ? opt : (opt?.text ?? '')
                                         const optRaw = typeof opt === 'string' ? null : (opt?.image_url || opt?.image_path || null)
                                         const optUrl = optRaw && !optRaw.startsWith('http') ? `${APP_URL}/storage/${optRaw}` : optRaw
+                                        const isMultiQ = q.question_type === 'multi'
+                                        const isKeyOpt = isMultiQ
+                                          ? (Array.isArray(q.correct_indexes) ? q.correct_indexes.map(Number) : []).includes(oi)
+                                          : oi === q.correct_index
                                         return (
-                                          <div key={oi} className={`flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-lg ${oi === q.correct_index ? 'bg-emerald-50 text-emerald-700 font-bold' : 'bg-white text-gray-500 font-medium'}`}>
-                                            <span className={`w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold shrink-0 ${oi === q.correct_index ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                                          <div key={oi} className={`flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-lg ${isKeyOpt ? 'bg-emerald-50 text-emerald-700 font-bold' : 'bg-white text-gray-500 font-medium'}`}>
+                                            <span className={`w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold shrink-0 ${isKeyOpt ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
                                               {String.fromCharCode(65 + oi)}
                                             </span>
                                             {optUrl && <img src={optUrl} className="h-6 w-6 rounded object-cover shrink-0" alt="" />}
                                             {optLabel && <span>{optLabel}</span>}
-                                            {oi === q.correct_index && <span className="ml-auto text-[9px] font-bold text-emerald-500 shrink-0">BENAR</span>}
+                                            {isKeyOpt && <span className="ml-auto text-[9px] font-bold text-emerald-500 shrink-0">BENAR</span>}
                                           </div>
                                         )
                                       })

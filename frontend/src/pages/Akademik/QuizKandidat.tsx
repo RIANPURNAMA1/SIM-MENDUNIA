@@ -90,6 +90,7 @@ interface PlayQuestion {
   points: number
   section?: string | null
   selected_index?: number | null
+  selected_indexes?: number[] | null
   answer_text?: string | null
 }
 
@@ -107,6 +108,7 @@ interface ReviewQuestion {
   rating_max: number | null
   options: ReviewOption[]
   correct_index: number | null
+  correct_indexes?: number[] | null
   keyword?: string | null
   points: number
   sort: number
@@ -114,6 +116,7 @@ interface ReviewQuestion {
   audio_url?: string | null
   audio_max_plays?: number | null
   selected_index?: number | null
+  selected_indexes?: number[] | null
   answer_text?: string | null
   earned_points?: number | null
   is_correct?: boolean | null
@@ -204,9 +207,14 @@ function ReviewLine({ label, value, tone }: { label: string; value: string; tone
 function ReviewQuestionCard({ q, index }: { q: ReviewQuestion; index: number }) {
   const isRating = q.question_type === 'rating'
   const isEssay = q.question_type === 'essay'
+  const isMulti = q.question_type === 'multi'
+  const correctSet = new Set((q.correct_indexes || []).map(Number))
+  const selectedSet = new Set((q.selected_indexes || []).map(Number))
   const answered = isEssay
     ? Boolean(q.answer_text && String(q.answer_text).trim() !== '')
-    : q.selected_index !== undefined && q.selected_index !== null
+    : isMulti
+      ? (q.selected_indexes?.length ?? 0) > 0
+      : q.selected_index !== undefined && q.selected_index !== null
   const correct = q.is_correct === true
   const wrong = q.is_correct === false
   const status = !answered ? 'empty' : correct ? 'correct' : wrong ? 'wrong' : 'empty'
@@ -278,8 +286,8 @@ function ReviewQuestionCard({ q, index }: { q: ReviewQuestion; index: number }) 
         ) : (
           <div className="mt-2 space-y-1.5">
             {q.options.map((opt, oi) => {
-              const isCorrectOpt = q.correct_index != null && oi === q.correct_index
-              const isSelected = oi === q.selected_index
+              const isCorrectOpt = isMulti ? correctSet.has(oi) : (q.correct_index != null && oi === q.correct_index)
+              const isSelected = isMulti ? selectedSet.has(oi) : oi === q.selected_index
               const isWrongPick = isSelected && !isCorrectOpt
               const cls = isCorrectOpt
                 ? 'border-emerald-300 bg-emerald-50'
@@ -429,6 +437,7 @@ export default function QuizKandidat() {
 
   const [questions, setQuestions] = useState<PlayQuestion[]>([])
   const [selected, setSelected] = useState<Record<number, number | null>>({})
+  const [selectedMulti, setSelectedMulti] = useState<Record<number, number[]>>({})
   const [essayDrafts, setEssayDrafts] = useState<Record<number, string>>({})
   const [remaining, setRemaining] = useState(0)
   const [warnBanner, setWarnBanner] = useState(false)
@@ -907,6 +916,17 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
 
   const selectAnswer = (q: PlayQuestion, idx: number) => {
     if (!attemptRef.current) return
+    if (q.question_type === 'multi') {
+      const current = selectedMulti[q.id] || []
+      const next = current.includes(idx) ? current.filter(i => i !== idx) : [...current, idx].sort((a, b) => a - b)
+      setSelectedMulti({ ...selectedMulti, [q.id]: next })
+      quizApi.answer(attemptRef.current, { question_id: q.id, selected_index: null, selected_indexes: next })
+        .catch(() => {
+          setSelectedMulti({ ...selectedMulti, [q.id]: current })
+          Swal.fire({ icon: 'warning', title: 'Gagal menyimpan jawaban', text: 'Periksa koneksi Anda' })
+        })
+      return
+    }
     const current = selected[q.id]
     const next = current === idx ? -1 : idx
     setSelected({ ...selected, [q.id]: next === -1 ? null : idx })
@@ -962,7 +982,9 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
 
   const answeredCount = questions.filter(q => q.question_type === 'essay'
     ? !!(essayDrafts[q.id] ?? '').trim()
-    : selected[q.id] !== undefined && selected[q.id] !== null).length
+    : q.question_type === 'multi'
+      ? (selectedMulti[q.id] ?? []).length > 0
+      : selected[q.id] !== undefined && selected[q.id] !== null).length
 
   // ==================== RENDER ====================
 
@@ -1055,8 +1077,12 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
                 {q.question_type === 'rating' && (
                   <p className="text-[10px] font-bold text-violet-600 uppercase tracking-wide">Skala penilaian 1–{q.rating_max || q.options.length} — pilih salah satu</p>
                 )}
+                {q.question_type === 'multi' && (
+                  <p className="text-[10px] font-bold text-[#0E6187] uppercase tracking-wide">Jawaban benar boleh lebih dari satu — pilih semua yang sesuai</p>
+                )}
                 {q.options.map((opt, oi) => {
-                  const isSel = selected[q.id] === oi
+                  const isMulti = q.question_type === 'multi'
+                  const isSel = isMulti ? (selectedMulti[q.id] || []).includes(oi) : selected[q.id] === oi
                   const optLabel = typeof opt === 'string' ? opt : (opt?.text ?? '')
                   const optImg = typeof opt === 'string' ? null : (opt?.image_url || null)
                   const badgeLabel = q.question_type === 'rating' ? optLabel : String.fromCharCode(65 + oi)

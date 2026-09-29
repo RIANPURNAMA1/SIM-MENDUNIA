@@ -65,6 +65,7 @@ use App\Http\Controllers\VisitorController;
 Route::post('/auth/login',    [AuthController::class, 'loginApi']);
 Route::post('/auth/register', [AuthController::class, 'registerApi']);
 Route::post('/auth/forgot-password', [AuthController::class, 'forgotPasswordApi']);
+Route::post('/auth/verify-otp',      [AuthController::class, 'verifyOtpApi']);
 Route::post('/auth/reset-password',  [AuthController::class, 'resetPasswordApi']);
 
 Route::middleware('auth:sanctum')->group(function () {

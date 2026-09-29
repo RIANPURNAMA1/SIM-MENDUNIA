@@ -338,7 +338,9 @@ class WaSettingController extends Controller
     }
 
     /**
-     * Ambil konfigurasi SMTP email dari database
+     * Ambil konfigurasi SMTP email dari database.
+     * Password TIDAK pernah dikirim ke browser (dikembalikan sebagai null +
+     * flag is_set), supaya tidak bocor lewat devtools/log.
      */
     public function mailIndex()
     {
@@ -348,18 +350,23 @@ class WaSettingController extends Controller
             'mail_port' => 'SMTP Port',
             'mail_username' => 'SMTP Username',
             'mail_password' => 'SMTP Password',
-            'mail_encryption' => 'Enkripsi (tls / ssl / null)',
+            'mail_encryption' => 'Enkripsi (tls / ssl / none)',
             'mail_from_address' => 'Email Pengirim (From Address)',
             'mail_from_name' => 'Nama Pengirim (From Name)',
         ];
 
+        $rows = NotificationSetting::whereIn('key', array_keys($keys))->get()->keyBy('key');
+
         $settings = [];
         foreach ($keys as $key => $desc) {
-            $existing = NotificationSetting::where('key', $key)->first();
+            $raw = $rows->get($key)?->value;
+            $isPassword = $key === 'mail_password';
+
             $settings[] = [
                 'key' => $key,
                 'description' => $desc,
-                'value' => $existing?->value ?? null,
+                'value' => $isPassword ? null : $raw,
+                'is_set' => $isPassword ? ($raw !== null && $raw !== '') : null,
             ];
         }
 
@@ -367,7 +374,9 @@ class WaSettingController extends Controller
     }
 
     /**
-     * Simpan konfigurasi SMTP email ke database lalu terapkan langsung
+     * Simpan konfigurasi SMTP email ke database lalu terapkan langsung.
+     * Password tidak tersentuh bila tidak dikirim (value null + is_set),
+     * jadi user tidak perlu mengetik ulang password yang sudah disimpan.
      */
     public function mailUpdate(Request $request)
     {
@@ -375,13 +384,38 @@ class WaSettingController extends Controller
             'settings' => 'required|array',
             'settings.*.key' => 'required|string',
             'settings.*.value' => 'nullable|string',
+            'settings.*.is_set' => 'nullable|boolean',
         ]);
 
+        $allowed = [
+            'mail_mailer',
+            'mail_host',
+            'mail_port',
+            'mail_username',
+            'mail_password',
+            'mail_encryption',
+            'mail_from_address',
+            'mail_from_name',
+        ];
+
         foreach ($data['settings'] as $item) {
+            $key = $item['key'];
+            if (!in_array($key, $allowed, true)) {
+                continue;
+            }
+
+            $value = $item['value'] ?? null;
+            $value = $value === '' ? null : $value;
+
+            // Password: biarkan apa adanya kalau tidak ada nilai baru yang dikirim.
+            if ($key === 'mail_password' && $value === null) {
+                continue;
+            }
+
             NotificationSetting::updateOrCreate(
-                ['key' => $item['key']],
+                ['key' => $key],
                 [
-                    'value' => ($item['value'] ?? null) !== '' ? $item['value'] : null,
+                    'value' => $value,
                     'description' => $item['description'] ?? null,
                 ]
             );

@@ -59,7 +59,7 @@ export default function ForgotPassword() {
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-center">
                 <MailCheck size={34} className="mx-auto mb-3 text-emerald-600" />
                 <p className="text-sm font-bold text-emerald-800 mb-1">
-                  Link reset sudah dikirim
+                  Kode OTP sudah dikirim
                 </p>
                 <p className="text-[13px] text-emerald-700 leading-relaxed">
                   {success}
@@ -68,14 +68,13 @@ export default function ForgotPassword() {
                   Silakan cek folder spam bila email belum sampai dalam 5 menit.
                 </p>
 
-                {devResetUrl && (
-                  <a
-                    href={devResetUrl}
-                    className="mt-4 block rounded-lg border border-emerald-300 bg-white px-3 py-2 text-[12px] font-semibold text-emerald-700 hover:bg-emerald-50 break-all"
-                  >
-                    {devResetUrl}
-                  </a>
-                )}
+                <button
+                  type="button"
+                  onClick={() => navigate(`/reset-password?email=${encodeURIComponent(email)}`)}
+                  className="mt-4 w-full bg-[#0E6187] text-white font-bold text-[15px] py-2.5 rounded-lg hover:bg-[#1a5e6f] transition-colors"
+                >
+                  Masukkan Kode OTP
+                </button>
 
                 <button
                   type="button"
@@ -84,7 +83,7 @@ export default function ForgotPassword() {
                     setDevResetUrl("");
                     setEmail("");
                   }}
-                  className="mt-4 text-sm font-semibold text-[#0E6187] hover:underline"
+                  className="mt-3 text-sm font-semibold text-[#0E6187] hover:underline"
                 >
                   Kirim ulang ke email lain
                 </button>
@@ -119,7 +118,7 @@ export default function ForgotPassword() {
                   ) : (
                     <>
                       <Send size={18} />
-                      <span>Kirim Link Reset</span>
+                      <span>Kirim Kode OTP</span>
                     </>
                   )}
                 </button>

@@ -18,13 +18,25 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
          $middleware->api(prepend: [
-            \Illuminate\Http\Middleware\HandleCors::class,
-        ]);
+             \Illuminate\Http\Middleware\HandleCors::class,
+         ]);
 
          $middleware->api(append: [
-            \Illuminate\Session\Middleware\StartSession::class,
-        ]);
-    })
+             \Illuminate\Session\Middleware\StartSession::class,
+         ]);
+
+         $middleware->web(append: [
+             \App\Http\Middleware\ApplyMailSettings::class,
+         ]);
+
+         $middleware->api(prepend: [
+             \App\Http\Middleware\ApplyMailSettings::class,
+         ]);
+
+         $middleware->validateCsrfTokens(except: [
+             'api/*',
+         ]);
+     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();

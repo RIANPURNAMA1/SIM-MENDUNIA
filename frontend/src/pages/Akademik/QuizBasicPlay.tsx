@@ -33,6 +33,7 @@ interface PlayQuestion {
   audio_max_plays?: number | null
   audio_plays?: number
   selected_index?: number | null
+  selected_indexes?: number[] | null
   answer_text?: string | null
   section?: string | null
 }
@@ -176,6 +177,7 @@ export default function QuizBasicPlay() {
   const [attempt, setAttempt] = useState<PlayAttempt | null>(null)
   const [questions, setQuestions] = useState<PlayQuestion[]>([])
   const [selected, setSelected] = useState<Record<number, number | null>>({})
+  const [selectedMulti, setSelectedMulti] = useState<Record<number, number[]>>({})
   const [essayDrafts, setEssayDrafts] = useState<Record<number, string>>({})
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
@@ -246,10 +248,12 @@ export default function QuizBasicPlay() {
       setCameraEnabled(data.camera_enabled !== false)
       setBlockExit(data.block_exit !== false)
       const pre: Record<number, number | null> = {}
+      const preMulti: Record<number, number[]> = {}
       const preEssay: Record<number, string> = {}
       const preAudio: Record<number, number> = {}
       const qs: PlayQuestion[] = (data.questions || []).map((q: any) => {
         if (q.selected_index !== undefined && q.selected_index !== null) pre[q.id] = q.selected_index
+        if (Array.isArray(q.selected_indexes) && q.selected_indexes.length) preMulti[q.id] = q.selected_indexes.map(Number)
         if (q.answer_text !== undefined && q.answer_text !== null) preEssay[q.id] = q.answer_text
         if (q.audio_plays !== undefined && q.audio_plays !== null) preAudio[q.id] = q.audio_plays
         return {
@@ -258,12 +262,14 @@ export default function QuizBasicPlay() {
           image_url: q.image_url ?? null, audio_url: q.audio_url ?? null,
           audio_max_plays: q.audio_max_plays ?? null, audio_plays: q.audio_plays ?? 0,
           selected_index: q.selected_index ?? null,
+          selected_indexes: Array.isArray(q.selected_indexes) ? q.selected_indexes : [],
           answer_text: q.answer_text ?? null,
           section: q.section ?? null,
         }
       })
       setQuestions(qs)
       setSelected(pre)
+      setSelectedMulti(preMulti)
       setEssayDrafts(preEssay)
       setFlagged(new Set())
       setAudioPlays(preAudio)
@@ -622,6 +628,19 @@ export default function QuizBasicPlay() {
     const q = questions[currentIndex]
     if (!q || !attemptId || isSaving) return
     setIsSaving(true)
+    if (q.question_type === 'multi') {
+      const current = selectedMulti[q.id] || []
+      const next = current.includes(idx) ? current.filter(i => i !== idx) : [...current, idx].sort((a, b) => a - b)
+      setSelectedMulti({ ...selectedMulti, [q.id]: next })
+      quizApi.answer(Number(attemptId), { question_id: q.id, selected_index: null, selected_indexes: next })
+        .then(() => setIsSaving(false))
+        .catch(() => {
+          setSelectedMulti({ ...selectedMulti, [q.id]: current })
+          setIsSaving(false)
+          Swal.fire({ icon: 'warning', title: 'Gagal menyimpan jawaban', text: 'Periksa koneksi Anda' })
+        })
+      return
+    }
     const current = selected[q.id]
     const next = current === idx ? null : idx
     setSelected({ ...selected, [q.id]: next })
@@ -1011,8 +1030,14 @@ export default function QuizBasicPlay() {
                 {currentQuestion.question_type === 'rating' && (
                   <p className="text-[11px] font-bold text-violet-600 uppercase tracking-wide">Skala penilaian 1–{currentQuestion.rating_max || currentQuestion.options.length} — pilih salah satu</p>
                 )}
+                {currentQuestion.question_type === 'multi' && (
+                  <p className="text-[11px] font-bold text-[#0069b0] uppercase tracking-wide">Jawaban benar boleh lebih dari satu — pilih semua yang sesuai</p>
+                )}
                 {currentQuestion.options.map((opt, oi) => {
-                  const isSelected = selected[currentQuestion.id] === oi
+                  const isMulti = currentQuestion.question_type === 'multi'
+                  const isSelected = isMulti
+                    ? (selectedMulti[currentQuestion.id] || []).includes(oi)
+                    : selected[currentQuestion.id] === oi
                   const optLabel = typeof opt === 'string' ? opt : (opt?.text ?? '')
                   const optImg = typeof opt === 'string' ? null : (opt?.image_url || null)
                   const badgeLabel = currentQuestion.question_type === 'rating' ? optLabel : String.fromCharCode(65 + oi)
@@ -1025,7 +1050,7 @@ export default function QuizBasicPlay() {
                         isSelected ? (currentQuestion.question_type === 'rating' ? 'border-violet-500 bg-violet-50' : 'border-[#0069b0] bg-[#e7f2fc]') : 'border-gray-300 bg-white hover:bg-gray-50'
                       }`}
                     >
-                      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                      <span className={`flex h-8 w-8 shrink-0 items-center justify-center ${isMulti ? 'rounded-md' : 'rounded-full'} text-sm font-bold ${
                         isSelected ? (currentQuestion.question_type === 'rating' ? 'bg-violet-500 text-white' : 'bg-[#0069b0] text-white') : 'bg-[#eef4f9] text-gray-600'
                       }`}>
                         {badgeLabel}

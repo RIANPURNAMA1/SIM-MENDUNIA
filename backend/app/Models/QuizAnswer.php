@@ -10,6 +10,7 @@ class QuizAnswer extends Model
         'quiz_attempt_id',
         'quiz_question_id',
         'selected_index',
+        'selected_indexes',
         'answer_text',
         'earned_points',
         'is_correct',
@@ -18,10 +19,16 @@ class QuizAnswer extends Model
 
     protected $casts = [
         'selected_index' => 'integer',
+        'selected_indexes' => 'array',
         'earned_points' => 'integer',
         'is_correct' => 'boolean',
         'audio_plays' => 'integer',
     ];
+
+    public function selectedIndexList(): array
+    {
+        return QuizQuestion::normalizeIndexes($this->selected_indexes);
+    }
 
     public function attempt()
     {

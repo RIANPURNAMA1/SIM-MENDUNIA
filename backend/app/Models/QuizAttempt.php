@@ -73,6 +73,8 @@ class QuizAttempt extends Model
 
             if ($q->question_type === 'essay') {
                 $earned = $a && $a->earned_points !== null ? (int) $a->earned_points : null;
+            } elseif ($q->isMulti()) {
+                $earned = $a && $q->isAnswerCorrect($a->selectedIndexList()) ? (int) $q->points : 0;
             } else {
                 $sel = $a?->selected_index;
                 $isRating = $q->question_type === 'rating';

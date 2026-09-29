@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\AssessmentCategory;
+use App\Models\DailyAssessmentStatus;
 use App\Models\KelasPertemuan;
 use App\Models\Lesson;
 use App\Models\QuizAttempt;
@@ -13,6 +14,66 @@ class QuizAssessmentSync
 {
     /** Nama komponen penilaian yang diisi otomatis dari skor quiz ulangan. */
     public const COMPONENT = 'Ulangan';
+
+    /**
+     * Tentukan level penilaian yang dipakai untuk menulis kolom "Ulangan".
+     *
+     * Grid "Penilaian Siswa" menampilkan komponen berdasarkan level KELAS
+     * (kelas_sensei.level), jadi itu harus jadi acuan utama. Level siswa
+     * hanya dipakai sebagai cadangan terakhir karena sering kosong
+     * (kolomnya nullable) dan kalau kosong dulu membuat seluruh sync ter-skip.
+     */
+    private function resolveLevel(?Siswa $siswa, $kelasLevel = null, $courseLevel = null)
+    {
+        foreach ([$kelasLevel, $courseLevel, $siswa?->level] as $candidate) {
+            if ($candidate !== null && $candidate !== '') {
+                return (string) $candidate;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Level siswa yang bertentangan dengan level kelas/course → students ini
+     * memang tidak boleh ikut kelas tersebut. Level siswa yang kosong TIDAK
+     * dianggap bertentangan.
+     */
+    private function levelConflicts(?Siswa $siswa, $kelasLevel, $courseLevel): bool
+    {
+        $target = $this->resolveLevel($siswa, $kelasLevel, $courseLevel);
+        if ($target === null) {
+            return false;
+        }
+
+        return $siswa !== null
+            && $siswa->level !== null
+            && $siswa->level !== ''
+            && (string) $siswa->level !== $target;
+    }
+
+    /**
+     * Tandai status harian "Terisi" supaya badge hijau di grid ikut menyala
+     * ketika nilai ulangan berasal dari quiz.
+     */
+    private function markDailyTerisi(int $siswaId, ?int $kelasSenseiId, string $tanggal, int $userId): void
+    {
+        if (!$kelasSenseiId) {
+            return;
+        }
+
+        DailyAssessmentStatus::updateOrCreate(
+            [
+                'siswa_id' => $siswaId,
+                'kelas_sensei_id' => $kelasSenseiId,
+                'tanggal' => $tanggal,
+            ],
+            [
+                'user_id' => $userId,
+                'is_terisi' => true,
+            ]
+        );
+    }
 
     /** @return int jumlah baris penilaian yang ditulis/diperbarui */
     public function syncAttempt(QuizAttempt $attempt): int
@@ -52,20 +113,25 @@ class QuizAssessmentSync
                 continue;
             }
 
-            $level = $siswa->level ?? $kelas->level;
+            $level = $this->resolveLevel($siswa, $kelas->level, null);
             $component = $this->ulanganComponent($level);
             if (!$component) {
                 continue;
             }
 
+            $tanggal = $p->tanggal->toDateString();
+            $userId = (int) $kelas->user_id;
+
             $this->writeUlangan(
                 $component->id,
                 $siswaId,
                 $kelas->batch_id,
-                $p->tanggal->toDateString(),
-                $kelas->user_id,
+                $tanggal,
+                $userId,
                 $bestScore
             );
+
+            $this->markDailyTerisi($siswaId, (int) $kelas->id, $tanggal, $userId);
 
             $synced++;
         }
@@ -126,26 +192,33 @@ class QuizAssessmentSync
             if ($course->batch_id && (int) $siswa->batch_id !== (int) $course->batch_id) {
                 continue;
             }
-            if ($course->level !== null && $course->level !== ''
-                && (string) $siswa->level !== (string) $course->level
-            ) {
+
+            // Level kelas (kelas_sensei) adalah acuan grid, course sebagai
+            // cadangan, dan level siswa sebagai cadangan terakhir. Level siswa
+            // yang kosong tidak lagi memblokir penulisan nilai.
+            $kelas = $course->kelasSensei;
+            if ($this->levelConflicts($siswa, $kelas?->level, $course->level)) {
                 continue;
             }
 
-            $level = $siswa->level ?? $course->level;
+            $level = $this->resolveLevel($siswa, $kelas?->level, $course->level);
             $component = $this->ulanganComponent($level);
             if (!$component) {
                 continue;
             }
+
+            $userId = (int) $course->user_id;
 
             $this->writeUlangan(
                 $component->id,
                 $siswaId,
                 (int) $siswa->batch_id,
                 $tanggal,
-                (int) $course->user_id,
+                $userId,
                 $bestScore
             );
+
+            $this->markDailyTerisi($siswaId, (int) $course->kelas_sensei_id, $tanggal, $userId);
 
             $synced++;
         }
@@ -190,6 +263,71 @@ class QuizAssessmentSync
         return ['attempts' => $attempts->count(), 'penilaian' => $penilaian];
     }
 
+    /**
+     * Backfill untuk satu lesson: semua paket yang pivot-nya penilaian_ulangan
+     * aktif, semua siswa di kelas course tersebut.
+     *
+     * Dipakai saat guru menekan "Nilai Ulangan" pada paket yang sudah punya
+     * attempt lama, dan bisa dipanggil ulang kapan saja lewat
+     * `php artisan quiz:sync-penilaian {lessonId}`.
+     *
+     * @return array{paket: int, attempt: int, penilaian: int, detail: array}
+     */
+    public function syncLesson(int $lessonId): array
+    {
+        $lesson = Lesson::with(['course.kelasSensei', 'linkPakets'])->find($lessonId);
+        $empty = ['paket' => 0, 'attempt' => 0, 'penilaian' => 0, 'detail' => []];
+
+        if (!$lesson || !$lesson->course) {
+            return $empty;
+        }
+
+        $course = $lesson->course;
+        $kelas = $course->kelasSensei;
+
+        $paketIds = $lesson->linkPakets()
+            ->where('lms_lesson_quiz_pakets.penilaian_ulangan', true)
+            ->pluck('quiz_pakets.id')
+            ->map(fn ($id) => (int) $id)
+            ->values();
+
+        if ($paketIds->isEmpty()) {
+            return $empty;
+        }
+
+        $tanggal = $lesson->pertemuanTanggal();
+        if (!$tanggal) {
+            return $empty;
+        }
+
+        $attempts = QuizAttempt::whereIn('quiz_paket_id', $paketIds)
+            ->where('status', 'submitted')
+            ->whereNotNull('score')
+            ->get();
+
+        $detail = [];
+        $penilaian = 0;
+
+        foreach ($attempts as $attempt) {
+            $rows = $this->syncAttemptFromLesson($attempt, $lesson);
+            $penilaian += $rows;
+            if ($rows > 0) {
+                $detail[] = [
+                    'siswa_id' => (int) $attempt->siswa_id,
+                    'paket_id' => (int) $attempt->quiz_paket_id,
+                    'nilai' => (int) $attempt->score,
+                ];
+            }
+        }
+
+        return [
+            'paket' => $paketIds->count(),
+            'attempt' => $attempts->count(),
+            'penilaian' => $penilaian,
+            'detail' => $detail,
+        ];
+    }
+
     private function bestScore(QuizAttempt $attempt): ?float
     {
         $best = QuizAttempt::where('quiz_paket_id', (int) $attempt->quiz_paket_id)
@@ -207,7 +345,7 @@ class QuizAssessmentSync
             return null;
         }
 
-        return AssessmentCategory::where('level', $level)
+        return AssessmentCategory::where('level', (string) $level)
             ->with(['components' => fn ($q) => $q->where('sub_komponen', self::COMPONENT)])
             ->get()
             ->flatMap->components

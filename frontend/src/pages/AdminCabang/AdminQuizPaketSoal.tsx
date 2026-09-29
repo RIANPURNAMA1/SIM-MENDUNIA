@@ -51,6 +51,7 @@ interface Question {
   rating_max: number | null
   options: string[]
   correct_index: number | null
+  correct_indexes?: number[] | null
   keyword: string | null
   points: number
   sort: number
@@ -94,10 +95,12 @@ interface DetailRow {
   rating_max: number | null
   options: string[]
   correct_index: number | null
+  correct_indexes?: number[] | null
   keyword: string | null
   points: number
   sort: number
   selected_index: number | null
+  selected_indexes?: number[] | null
   answer_text: string | null
   earned_points: number | null
   is_correct: boolean | null
@@ -113,7 +116,7 @@ const emptyPaketForm = {
   cover_image: '',
 }
 
-const emptyQuestionForm = { question: '', question_type: 'choice', rating_max: '9', correct_index: '', points: '1', keyword: '', section_id: '' }
+const emptyQuestionForm = { question: '', question_type: 'choice', rating_max: '9', correct_index: '', correct_indexes: [] as number[], points: '1', keyword: '', section_id: '' }
 
 const DEFAULT_SECTIONS = ['Vocabulary', 'Grammar', 'Reading', 'Listening', 'Conversation']
 
@@ -395,9 +398,10 @@ export default function AdminQuizPaketSoal() {
     setEditingQuestion(q)
     setQForm({
       question: q.question ?? '',
-      question_type: q.question_type === 'rating' ? 'rating' : q.question_type === 'essay' ? 'essay' : 'choice',
+      question_type: q.question_type === 'multi' ? 'multi' : q.question_type === 'rating' ? 'rating' : q.question_type === 'essay' ? 'essay' : 'choice',
       rating_max: q.rating_max ? q.rating_max.toString() : '9',
       correct_index: q.correct_index?.toString() ?? '',
+      correct_indexes: Array.isArray(q.correct_indexes) ? q.correct_indexes.map(Number) : [],
       points: q.points.toString(),
       keyword: q.keyword || '',
       section_id: q.section_id?.toString() ?? '',
@@ -410,7 +414,9 @@ export default function AdminQuizPaketSoal() {
     if (!activePaket) return
     const isRating = qForm.question_type === 'rating'
     const isEssay = qForm.question_type === 'essay'
+    const isMulti = qForm.question_type === 'multi'
     let opts: string[]
+    let correctIndexes: number[] = []
     if (isEssay) {
       opts = []
     } else if (isRating) {
@@ -422,7 +428,16 @@ export default function AdminQuizPaketSoal() {
         Swal.fire({ icon: 'warning', title: 'Minimal 2 opsi jawaban' })
         return
       }
-      if (qForm.correct_index === '' || Number(qForm.correct_index) >= opts.length) {
+      if (isMulti) {
+        correctIndexes = [...new Set((qForm.correct_indexes || []).map(Number))]
+          .filter(Number.isFinite)
+          .filter(i => i >= 0 && i < opts.length)
+          .sort((a, b) => a - b)
+        if (correctIndexes.length === 0) {
+          Swal.fire({ icon: 'warning', title: 'Pilih minimal 1 jawaban benar (boleh lebih dari satu)' })
+          return
+        }
+      } else if (qForm.correct_index === '' || Number(qForm.correct_index) >= opts.length) {
         Swal.fire({ icon: 'warning', title: 'Pilih jawaban benar yang valid' })
         return
       }
@@ -431,10 +446,11 @@ export default function AdminQuizPaketSoal() {
     try {
       const data = {
         question: qForm.question ?? '',
-        question_type: isEssay ? 'essay' : isRating ? 'rating' : 'choice',
+        question_type: isEssay ? 'essay' : isRating ? 'rating' : isMulti ? 'multi' : 'choice',
         rating_max: isRating ? Number(qForm.rating_max) || 9 : null,
         options: opts,
-        correct_index: isEssay ? null : isRating ? null : Number(qForm.correct_index),
+        correct_index: isEssay ? null : isRating ? null : isMulti ? (correctIndexes.length ? correctIndexes[0] : null) : Number(qForm.correct_index),
+        correct_indexes: isMulti ? correctIndexes : null,
         keyword: isEssay ? (qForm.keyword.trim() || null) : null,
         points: Number(qForm.points) || 1,
         section_id: qForm.section_id ? Number(qForm.section_id) : null,
@@ -716,6 +732,12 @@ export default function AdminQuizPaketSoal() {
                         <div className="flex items-start justify-between gap-2">
                           <span className="text-sm font-bold text-slate-400 shrink-0 mt-0.5">#{i + 1}</span>
                           <p className="text-[15px] font-semibold text-slate-800 leading-snug flex-1">{q.question}</p>
+                          {q.question_type === 'multi' && (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 shrink-0">MULTI</span>
+                          )}
+                          {q.question_type === 'essay' && (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 shrink-0">ESAI</span>
+                          )}
                           {q.section && (
                             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#0E6187]/[0.08] text-[#0E6187] shrink-0">{q.section.name}</span>
                           )}
@@ -735,15 +757,22 @@ export default function AdminQuizPaketSoal() {
                               <span>Rating 1–{q.rating_max || q.options.length}</span>
                               <span className="ml-auto text-[10px] font-bold text-violet-400 shrink-0">TANPA KUNCI</span>
                             </div>
-                          ) : (q.options.map((opt, oi) => (
-                            <div key={oi} className={`flex items-center gap-2.5 text-sm px-3.5 py-2 rounded-lg ${oi === q.correct_index ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'bg-slate-50 text-slate-600'}`}>
-                              <span className={`w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold shrink-0 ${oi === q.correct_index ? 'bg-emerald-500 text-white' : 'bg-white border border-slate-200 text-slate-400'}`}>
-                                {String.fromCharCode(65 + oi)}
-                              </span>
-                              <span>{opt}</span>
-                              {oi === q.correct_index && <span className="ml-auto text-[10px] font-bold text-emerald-500 shrink-0">BENAR</span>}
-                            </div>
-                          )))}
+                          ) : (q.options.map((opt, oi) => {
+                            const isMultiQ = q.question_type === 'multi'
+                            const keySet = new Set(isMultiQ
+                              ? (Array.isArray(q.correct_indexes) ? q.correct_indexes.map(Number) : [])
+                              : (q.correct_index !== null && q.correct_index !== undefined ? [Number(q.correct_index)] : []))
+                            const isKey = keySet.has(oi)
+                            return (
+                              <div key={oi} className={`flex items-center gap-2.5 text-sm px-3.5 py-2 rounded-lg ${isKey ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'bg-slate-50 text-slate-600'}`}>
+                                <span className={`w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0 ${isMultiQ ? 'rounded-md' : 'rounded-full'} ${isKey ? 'bg-emerald-500 text-white' : 'bg-white border border-slate-200 text-slate-400'}`}>
+                                  {String.fromCharCode(65 + oi)}
+                                </span>
+                                <span>{opt}</span>
+                                {isKey && <span className="ml-auto text-[10px] font-bold text-emerald-500 shrink-0">BENAR</span>}
+                              </div>
+                            )
+                          }))}
                         </div>
                         <p className="text-xs text-slate-400 font-medium mt-3">Skor: {q.points} poin</p>
                       </div>
@@ -1141,13 +1170,21 @@ export default function AdminQuizPaketSoal() {
 
               <div>
                 <label className={labelCls}>Tipe Jawaban</label>
-<div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                   <button type="button" onClick={() => setQForm({ ...qForm, question_type: 'choice' })}
                     className={`flex items-center gap-2.5 border rounded-lg px-3.5 py-3 text-left transition-colors ${qForm.question_type === 'choice' ? 'border-[#0E6187] bg-[#0E6187]/5 ring-1 ring-[#0E6187]/20' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
                     <span className={`w-9 h-9 flex items-center justify-center rounded-lg text-xs font-bold shrink-0 ${qForm.question_type === 'choice' ? 'bg-[#0E6187] text-white' : 'bg-slate-100 text-slate-500'}`}>A/B/C</span>
                     <span>
                       <span className="block text-sm font-semibold text-slate-700">Pilihan Ganda</span>
                       <span className="block text-xs text-slate-400 mt-0.5">Opsi A, B, C dengan kunci jawaban</span>
+                    </span>
+                  </button>
+                  <button type="button" onClick={() => setQForm({ ...qForm, question_type: 'multi' })}
+                    className={`flex items-center gap-2.5 border rounded-lg px-3.5 py-3 text-left transition-colors ${qForm.question_type === 'multi' ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500/20' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+                    <span className={`w-9 h-9 flex items-center justify-center rounded-lg text-[10px] font-bold shrink-0 ${qForm.question_type === 'multi' ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500'}`}>A/B/C+</span>
+                    <span>
+                      <span className="block text-sm font-semibold text-slate-700">Pilihan Ganda (Multi)</span>
+                      <span className="block text-xs text-slate-400 mt-0.5">Kunci boleh lebih dari satu</span>
                     </span>
                   </button>
                   <button type="button" onClick={() => setQForm({ ...qForm, question_type: 'rating' })}
@@ -1197,24 +1234,58 @@ export default function AdminQuizPaketSoal() {
                 </div>
               ) : (
                 <div>
-                  <label className={labelCls}>Opsi Jawaban <span className="text-red-500">* (min 2)</span></label>
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <label className={labelCls}>Opsi Jawaban <span className="text-red-500">* (min 2)</span></label>
+                    {(() => {
+                      const isMultiType = qForm.question_type === 'multi'
+                      const validKeys = isMultiType
+                        ? (qForm.correct_indexes || []).filter(i => i >= 0 && i < qOptions.length && qOptions[i].trim()).sort((a, b) => a - b)
+                        : (qOptions.some((o, i) => qForm.correct_index === String(i) && o.trim()) ? [Number(qForm.correct_index)] : [])
+                      const hasKey = validKeys.length > 0
+                      return (
+                        <span className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${hasKey ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                          Kunci: {hasKey ? validKeys.map(i => String.fromCharCode(65 + i)).join(', ') : 'belum dipilih'}
+                        </span>
+                      )
+                    })()}
+                  </div>
                   <div className="space-y-2.5">
-                    {qOptions.map((opt, oi) => (
+                    {qOptions.map((opt, oi) => {
+                      const isMultiType = qForm.question_type === 'multi'
+                      const isKey = isMultiType
+                        ? (qForm.correct_indexes || []).includes(oi)
+                        : qForm.correct_index === String(oi)
+                      const toggleKey = () => {
+                        if (isMultiType) {
+                          const cur = qForm.correct_indexes || []
+                          const next = cur.includes(oi) ? cur.filter(i => i !== oi) : [...cur, oi].sort((a, b) => a - b)
+                          setQForm({ ...qForm, correct_indexes: next })
+                        } else {
+                          setQForm({ ...qForm, correct_index: String(oi), correct_indexes: [] })
+                        }
+                      }
+                      return (
                       <div key={oi} className="flex items-center gap-2">
-                        <button type="button" onClick={() => setQForm({ ...qForm, correct_index: String(oi) })}
-                          title="Tandai sebagai jawaban benar"
-                          className={`w-8 h-8 shrink-0 flex items-center justify-center rounded-full border-2 transition-colors ${qForm.correct_index === String(oi) ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-200 text-slate-400 hover:border-[#0E6187]'}`}>
+                        <button type="button" onClick={toggleKey}
+                          title={isMultiType ? 'Tandai/lepas jawaban benar' : 'Tandai sebagai jawaban benar'}
+                          className={`w-8 h-8 shrink-0 flex items-center justify-center border-2 text-xs font-bold transition-colors ${isMultiType ? 'rounded-lg' : 'rounded-full'} ${isKey ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-200 text-slate-400 hover:border-[#0E6187] hover:text-[#0E6187]'}`}>
                           {String.fromCharCode(65 + oi)}
                         </button>
                         <input value={opt} onChange={e => { const arr = [...qOptions]; arr[oi] = e.target.value; setQOptions(arr) }}
                           placeholder={`Opsi ${String.fromCharCode(65 + oi)}`} className={inputCls} />
                         {qOptions.length > 2 && (
-                          <button type="button" onClick={() => setQOptions(qOptions.filter((_, idx) => idx !== oi))} className="p-1.5 text-red-400 hover:text-red-500 shrink-0" title="Hapus opsi">
+                          <button type="button" onClick={() => {
+                            setQOptions(qOptions.filter((_, idx) => idx !== oi))
+                            const cur = qForm.correct_indexes || []
+                            setQForm({ ...qForm, correct_indexes: cur.filter(i => i !== oi).map(i => i > oi ? i - 1 : i) })
+                          }} className="p-1.5 text-red-400 hover:text-red-500 shrink-0" title="Hapus opsi">
                             <X size={16} />
                           </button>
                         )}
                       </div>
-                    ))}
+                      )
+                    })}
                   </div>
                   {qOptions.length < 6 && (
                     <button type="button" onClick={() => setQOptions([...qOptions, ''])}
@@ -1222,7 +1293,11 @@ export default function AdminQuizPaketSoal() {
                       <Plus size={14} /> Tambah opsi
                     </button>
                   )}
-                  <p className="text-xs text-slate-400 mt-2">Klik huruf <span className="font-bold text-emerald-500">A/B/C...</span> untuk menandai kunci jawaban.</p>
+                  <p className="text-xs text-slate-400 mt-2">
+                    {qForm.question_type === 'multi'
+                      ? <>Klik huruf <span className="font-bold text-emerald-500">A/B/C...</span> untuk menandai <span className="font-bold">satu atau lebih</span> kunci jawaban. Jawaban dinilai benar hanya bila pilihan kandidat sama persis dengan kunci.</>
+                      : <>Klik huruf <span className="font-bold text-emerald-500">A/B/C...</span> untuk menandai kunci jawaban.</>}
+                  </p>
                 </div>
               )}
 
@@ -1348,23 +1423,32 @@ export default function AdminQuizPaketSoal() {
                         </div>
                       ) : (
                       <div className="mt-2.5 space-y-2">
-                        {dq.options.map((opt, oi) => {
-                          const isCorrect = oi === dq.correct_index
-                          const isSelected = oi === dq.selected_index
-                          let cls = 'bg-slate-50 text-slate-600'
-                          if (isCorrect) cls = 'bg-emerald-50 text-emerald-700 font-semibold'
-                          if (isSelected && !isCorrect) cls = 'bg-red-50 text-red-600 font-semibold'
-                          return (
-                            <div key={oi} className={`flex items-center gap-2.5 text-sm px-3.5 py-2 rounded-lg ${cls}`}>
-                              <span className={`w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold shrink-0 ${isCorrect ? 'bg-emerald-500 text-white' : isSelected ? 'bg-red-500 text-white' : 'bg-white border border-slate-200 text-slate-400'}`}>
-                                {String.fromCharCode(65 + oi)}
-                              </span>
-                              <span>{opt}</span>
-                              {isCorrect && <span className="ml-auto text-[10px] font-bold text-emerald-500 shrink-0">BENAR</span>}
-                              {isSelected && !isCorrect && <span className="ml-auto text-[10px] font-bold text-red-500 shrink-0">SALAH</span>}
-                            </div>
-                          )
-                        })}
+                        {(() => {
+                          const isMultiQ = dq.question_type === 'multi'
+                          const keySet = new Set(isMultiQ
+                            ? (Array.isArray(dq.correct_indexes) ? dq.correct_indexes.map(Number) : [])
+                            : (dq.correct_index !== null && dq.correct_index !== undefined ? [Number(dq.correct_index)] : []))
+                          const selSet = new Set(isMultiQ
+                            ? (Array.isArray(dq.selected_indexes) ? dq.selected_indexes.map(Number) : [])
+                            : (dq.selected_index !== null && dq.selected_index !== undefined ? [Number(dq.selected_index)] : []))
+                          return dq.options.map((opt, oi) => {
+                            const isCorrect = keySet.has(oi)
+                            const isSelected = selSet.has(oi)
+                            let cls = 'bg-slate-50 text-slate-600'
+                            if (isCorrect) cls = 'bg-emerald-50 text-emerald-700 font-semibold'
+                            if (isSelected && !isCorrect) cls = 'bg-red-50 text-red-600 font-semibold'
+                            return (
+                              <div key={oi} className={`flex items-center gap-2.5 text-sm px-3.5 py-2 rounded-lg ${cls}`}>
+                                <span className={`w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0 ${isMultiQ ? 'rounded-md' : 'rounded-full'} ${isCorrect ? 'bg-emerald-500 text-white' : isSelected ? 'bg-red-500 text-white' : 'bg-white border border-slate-200 text-slate-400'}`}>
+                                  {String.fromCharCode(65 + oi)}
+                                </span>
+                                <span>{opt}</span>
+                                {isCorrect && <span className="ml-auto text-[10px] font-bold text-emerald-500 shrink-0">BENAR</span>}
+                                {isSelected && !isCorrect && <span className="ml-auto text-[10px] font-bold text-red-500 shrink-0">SALAH</span>}
+                              </div>
+                            )
+                          })
+                        })()}
                       </div>
                       )}
                     </div>

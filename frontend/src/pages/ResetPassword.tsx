@@ -1,6 +1,13 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { KeyRound, ShieldCheck } from "lucide-react";
+import {
+  ArrowLeft,
+  KeyRound,
+  MailCheck,
+  ShieldCheck,
+  Clock,
+  RefreshCw,
+} from "lucide-react";
 import api from "../services/api";
 
 const PASSWORD_REQUIREMENTS = [
@@ -11,24 +18,142 @@ const PASSWORD_REQUIREMENTS = [
   { id: "symbol", label: "Terdapat salah satu simbol: ! @ # $ % ^ & *", test: (p: string) => /[!@#$%^&*]/.test(p) },
 ];
 
+const OTP_LENGTH = 6;
+const RESEND_COOLDOWN = 60;
+
 export default function ResetPassword() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
   const [email, setEmail] = useState(searchParams.get("email") ?? "");
+  const [step, setStep] = useState<"otp" | "password">(searchParams.get("code") ? "password" : "otp");
+  const [code, setCode] = useState(searchParams.get("code") ?? "");
+  const [token, setToken] = useState("");
+  const [attemptsLeft, setAttemptsLeft] = useState<number | null>(null);
+  const [cooldown, setCooldown] = useState(RESEND_COOLDOWN);
+
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [devCode, setDevCode] = useState("");
 
-  const token = searchParams.get("token") ?? "";
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  useEffect(() => {
+    if (step === "otp") otpRefs.current[0]?.focus();
+  }, [step]);
+
   const allMet = PASSWORD_REQUIREMENTS.every((r) => r.test(password));
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleOtpChange = (value: string, index: number) => {
+    const clean = value.replace(/\D/g, "");
+    if (!clean) {
+      setCode(prev => {
+        const next = [...prev];
+        next[index] = "";
+        return next.join("").slice(0, OTP_LENGTH);
+      });
+      return;
+    }
+
+    setCode(prev => {
+      const next = (prev + clean).slice(0, OTP_LENGTH);
+      if (index + 1 < OTP_LENGTH && next.length > index + 1) {
+        otpRefs.current[index + 1]?.focus();
+      }
+      return next;
+    });
+  };
+
+  const handleOtpKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
+    if (e.key === "Backspace" && !code[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+    if (e.key === "ArrowLeft" && index > 0) {
+      e.preventDefault();
+      otpRefs.current[index - 1]?.focus();
+    }
+    if (e.key === "ArrowRight" && index < OTP_LENGTH - 1) {
+      e.preventDefault();
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, OTP_LENGTH);
+    if (!text) return;
+    setCode(text);
+    const focusIndex = Math.min(text.length, OTP_LENGTH - 1);
+    otpRefs.current[focusIndex]?.focus();
+  };
+
+  const verifyOtp = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
-    setSuccess("");
+    setInfo("");
+
+    if (code.length !== OTP_LENGTH) {
+      setError(`Masukkan ${OTP_LENGTH} digit kode OTP dengan lengkap.`);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await api.post("/auth/verify-otp", { email, code });
+      setToken(res.data.token);
+      setStep("password");
+    } catch (err: any) {
+      setError(
+        err.response?.data?.message ||
+          err.response?.data?.errors?.code?.[0] ||
+          "Gagal memverifikasi kode OTP"
+      );
+      if (typeof err.response?.data?.attempts_left === "number") {
+        setAttemptsLeft(err.response.data.attempts_left);
+      }
+      setCode("");
+      otpRefs.current[0]?.focus();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const resendOtp = async () => {
+    if (cooldown > 0 || isResending) return;
+    setError("");
+    setInfo("");
+    setIsResending(true);
+    try {
+      const res = await api.post("/auth/forgot-password", { email });
+      setInfo(res.data.message);
+      setCooldown(RESEND_COOLDOWN);
+      setDevCode(res.data.dev_code ?? "");
+      setAttemptsLeft(null);
+    } catch (err: any) {
+      const wait = err.response?.data?.cooldown;
+      if (typeof wait === "number") setCooldown(wait);
+      setError(err.response?.data?.message || "Gagal mengirim ulang kode OTP");
+    } finally {
+      setIsResending(false);
+    }
+  };
+
+  const savePassword = async (e: FormEvent) => {
+    e.preventDefault();
+    setError("");
 
     if (password !== passwordConfirmation) {
       setError("Konfirmasi password tidak cocok");
@@ -54,11 +179,11 @@ export default function ResetPassword() {
       setSuccess(res.data.message);
       setTimeout(() => navigate("/login"), 2500);
     } catch (err: any) {
-      setError(
-        err.response?.data?.message ||
-          err.response?.data?.errors?.email?.[0] ||
-          "Gagal mereset password"
-      );
+      setError(err.response?.data?.message || "Gagal mereset password");
+      if (err.response?.status === 422) {
+        setStep("otp");
+        setToken("");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -71,18 +196,52 @@ export default function ResetPassword() {
         <div className="w-full max-w-[420px] fade-in">
           <div className="p-8">
             <div className="w-14 h-14 rounded-2xl bg-[#0E6187]/10 flex items-center justify-center mb-5">
-              <ShieldCheck size={26} className="text-[#0E6187]" />
+              {step === "otp" ? (
+                <MailCheck size={26} className="text-[#0E6187]" />
+              ) : (
+                <ShieldCheck size={26} className="text-[#0E6187]" />
+              )}
             </div>
 
-            <h1 className="text-2xl font-bold text-[#1c1e21] mb-1">Buat Password Baru</h1>
+            {/* Stepper */}
+            <div className="flex items-center gap-2 mb-5">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#0E6187] text-[11px] font-bold text-white">
+                1
+              </span>
+              <span className={`h-[3px] flex-1 rounded ${step === "password" ? "bg-[#0E6187]" : "bg-[#d5dae0]"}`} />
+              <span
+                className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold ${
+                  step === "password" ? "bg-[#0E6187] text-white" : "bg-[#d5dae0] text-[#8d949e]"
+                }`}
+              >
+                2
+              </span>
+            </div>
+
+            <h1 className="text-2xl font-bold text-[#1c1e21] mb-1">
+              {step === "otp" ? "Masukkan Kode OTP" : "Buat Password Baru"}
+            </h1>
             <p className="text-sm text-[#606770] mb-6">
-              Masukkan password baru untuk akun Anda. Setelah berhasil, Anda akan
-              diarahkan ke halaman login.
+              {step === "otp" ? (
+                <>
+                  Kami kirim kode 6 digit ke{" "}
+                  <span className="font-semibold text-[#1c1e21]">{email}</span>. Masukkan kode
+                  tersebut untuk melanjutkan.
+                </>
+              ) : (
+                "Password baru minimal 8 karakter dan harus memenuhi ketentuan di bawah."
+              )}
             </p>
 
             {error && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm font-semibold text-red-700 text-center">
                 {error}
+              </div>
+            )}
+
+            {info && (
+              <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-[13px] font-semibold text-emerald-700 text-center">
+                {info}
               </div>
             )}
 
@@ -92,22 +251,86 @@ export default function ResetPassword() {
               </div>
             )}
 
-            {success ? (
-              <div className="w-full mt-1 bg-[#0E6187] text-white font-bold text-[18px] py-3 rounded-lg flex justify-center items-center h-[48px] opacity-70">
-                Mengalihkan ke halaman login...
+            {devCode && /^\d{6}$/.test(devCode) && step === "otp" && (
+              <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-center">
+                <p className="text-[11px] font-bold text-amber-700">
+                  MODE DEVELOPMENT — kode OTP
+                </p>
+                <p className="text-xl font-extrabold tracking-widest text-amber-800">
+                  {devCode}
+                </p>
               </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  readOnly
-                  placeholder="Email"
-                  className="w-full h-[52px] px-4 text-[17px] bg-[#f5f6f7] border border-[#dddfe2] rounded-lg text-[#606770]"
-                />
+            )}
 
+            {step === "otp" ? (
+              <form onSubmit={verifyOtp} className="flex flex-col gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-[#1c1e21] mb-2">
+                    Kode OTP
+                  </label>
+                  <div className="flex gap-1.5 sm:gap-2">
+                    {Array.from({ length: OTP_LENGTH }).map((_, i) => (
+                      <input
+                        key={i}
+                        ref={el => {
+                          otpRefs.current[i] = el;
+                        }}
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        maxLength={1}
+                        value={code[i] ?? ""}
+                        onChange={e => handleOtpChange(e.target.value, i)}
+                        onKeyDown={e => handleOtpKeyDown(e, i)}
+                        onPaste={handleOtpPaste}
+                        disabled={isSubmitting}
+                        className="h-[56px] w-full min-w-0 rounded-lg border border-[#dddfe2] bg-[#f5f6f7] text-center text-xl font-bold text-[#1c1e21] focus:outline-none focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187] focus:bg-white disabled:opacity-60"
+                      />
+                    ))}
+                  </div>
+                  <p className="mt-2 flex items-center gap-1.5 text-[12px] text-[#606770]">
+                    <Clock size={13} />
+                    Kode berlaku 10 menit
+                    {attemptsLeft !== null && (
+                      <span className="font-semibold text-red-600">
+                        · sisa percobaan {attemptsLeft}
+                      </span>
+                    )}
+                  </p>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting || code.length !== OTP_LENGTH}
+                  className="w-full bg-[#0E6187] text-white font-bold text-[18px] py-3 rounded-lg hover:bg-[#1a5e6f] transition-colors flex justify-center items-center gap-2 h-[48px] disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Memverifikasi...</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck size={18} />
+                      <span>Verifikasi Kode</span>
+                    </>
+                  )}
+                </button>
+
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={resendOtp}
+                    disabled={cooldown > 0 || isResending}
+                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#0E6187] hover:underline disabled:text-[#8d949e] disabled:no-underline disabled:cursor-not-allowed"
+                  >
+                    <RefreshCw size={14} className={isResending ? "animate-spin" : ""} />
+                    {cooldown > 0 ? `Kirim ulang dalam ${cooldown} detik` : "Kirim ulang kode OTP"}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={savePassword} className="flex flex-col gap-4">
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
@@ -161,7 +384,7 @@ export default function ResetPassword() {
                 <button
                   type="submit"
                   disabled={isSubmitting || !allMet}
-                  className="w-full mt-1 bg-[#0E6187] text-white font-bold text-[18px] py-3 rounded-lg hover:bg-[#1a5e6f] transition-colors flex justify-center items-center gap-2 h-[48px] disabled:opacity-70 disabled:cursor-not-allowed"
+                  className="w-full bg-[#0E6187] text-white font-bold text-[18px] py-3 rounded-lg hover:bg-[#1a5e6f] transition-colors flex justify-center items-center gap-2 h-[48px] disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
                     <>
@@ -175,6 +398,21 @@ export default function ResetPassword() {
                     </>
                   )}
                 </button>
+
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStep("otp");
+                      setToken("");
+                      setError("");
+                    }}
+                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#0E6187] hover:underline"
+                  >
+                    <ArrowLeft size={15} />
+                    Ubah kode OTP
+                  </button>
+                </div>
               </form>
             )}
 

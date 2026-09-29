@@ -273,16 +273,26 @@ class AdminQuizController extends Controller
 
     public function uploadMedia(Request $request)
     {
-        $request->validate([
-            'file' => 'required|file',
-        ]);
+        $request->validate(
+            ['file' => 'required|file|max:51200'],
+            ['file.max' => 'Ukuran file maksimal 50MB']
+        );
+
+        $allowedMime = [
+            'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+            'audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/ogg',
+            'audio/mp4', 'audio/m4a', 'audio/x-m4a', 'video/mp4',
+        ];
 
         $file = $request->file('file');
-        if ($file->isValid() && in_array($file->getMimeType(), ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/ogg', 'audio/mp4', 'audio/m4a', 'audio/x-m4a'])) {
-            $path = $file->store('quiz/media', 'public');
-        } else {
-            return response()->json(['message' => 'File harus berupa gambar atau audio'], 422);
+        if (!$file->isValid()) {
+            return response()->json(['message' => 'File gagal diunggah'], 422);
         }
+        if (!in_array($file->getMimeType(), $allowedMime, true)) {
+            return response()->json(['message' => 'File harus berupa gambar, audio, atau video MP4'], 422);
+        }
+
+        $path = $file->store('quiz/media', 'public');
 
         return response()->json([
             'path' => $path,
@@ -401,11 +411,12 @@ class AdminQuizController extends Controller
 $data = $request->validate([
             'question' => 'nullable|string',
             'section_id' => 'nullable|integer|exists:quiz_sections,id',
-            'question_type' => 'sometimes|string|in:choice,rating,essay',
+            'question_type' => 'sometimes|string|in:choice,multi,rating,essay',
             'rating_max' => 'nullable|integer|min:2|max:10',
             'options' => 'sometimes|array',
             'options.*' => 'required',
             'correct_index' => 'nullable|integer|min:0',
+            'correct_indexes' => 'nullable|array',
 
             'image_path' => 'nullable|string',
             'audio_path' => 'nullable|string',
@@ -426,23 +437,34 @@ $data = $request->validate([
         if ($type === 'essay') {
             $options = [];
             $data['correct_index'] = null;
+            $data['correct_indexes'] = null;
             $data['rating_max'] = null;
             $data['keyword'] = !empty(trim((string) ($data['keyword'] ?? ''))) ? trim((string) $data['keyword']) : null;
         } elseif ($type === 'rating') {
             $ratingMax = (int) ($data['rating_max'] ?? count($options) ?: 9);
             $options = array_map('strval', range(1, $ratingMax));
             $data['correct_index'] = null;
+            $data['correct_indexes'] = null;
             $data['rating_max'] = $ratingMax;
         } else {
-            if (count($options) < 2 || count($options) > 6) {
-                return response()->json(['message' => 'Opsi jawaban minimal 2 dan maksimal 6'], 422);
+            if ($error = $this->validateChoiceOptions($options)) {
+                return response()->json(['message' => $error], 422);
             }
-            $searchable = array_map(fn ($o) => $o['text'] . '|' . ($o['image_path'] ?? ''), $options);
-            if (count(array_unique($searchable)) !== count($searchable)) {
-                return response()->json(['message' => 'Opsi jawaban tidak boleh duplikat'], 422);
-            }
-            if ((int) ($data['correct_index'] ?? -1) >= count($options)) {
-                return response()->json(['message' => 'correct_index melebihi jumlah opsi'], 422);
+            if ($type === 'multi') {
+                $keys = $this->normalizeCorrectIndexes($data['correct_indexes'] ?? null);
+                if ($keys === []) {
+                    return response()->json(['message' => 'Pilih minimal 1 jawaban benar'], 422);
+                }
+                if (max($keys) >= count($options)) {
+                    return response()->json(['message' => 'Kunci jawaban melebihi jumlah opsi'], 422);
+                }
+                $data['correct_indexes'] = $keys;
+                $data['correct_index'] = null;
+            } else {
+                $data['correct_indexes'] = null;
+                if ((int) ($data['correct_index'] ?? -1) >= count($options)) {
+                    return response()->json(['message' => 'correct_index melebihi jumlah opsi'], 422);
+                }
             }
             $data['rating_max'] = null;
         }
@@ -467,10 +489,11 @@ $data = $request->validate([
             'questions.*.question' => 'nullable|string',
             'questions.*.section' => 'nullable|string|max:100',
             'questions.*.section_id' => 'nullable|integer',
-            'questions.*.question_type' => 'nullable|in:choice,rating,essay',
+            'questions.*.question_type' => 'nullable|in:choice,multi,rating,essay',
             'questions.*.rating_max' => 'nullable|integer|min:2|max:10',
             'questions.*.options' => 'nullable|array',
             'questions.*.correct_index' => 'nullable|integer|min:0',
+            'questions.*.correct_indexes' => 'nullable',
             'questions.*.keyword' => 'nullable|string',
             'questions.*.points' => 'nullable|numeric',
             'questions.*.image_path' => 'nullable|string',
@@ -521,6 +544,7 @@ $data = $request->validate([
                 if ($type === 'essay') {
                     $data['options'] = [];
                     $data['correct_index'] = null;
+                    $data['correct_indexes'] = null;
                     $data['rating_max'] = null;
                     $data['keyword'] = !empty(trim((string) ($q['keyword'] ?? ''))) ? trim((string) $q['keyword']) : null;
                 } elseif ($type === 'rating') {
@@ -528,6 +552,7 @@ $data = $request->validate([
                     $ratingMax = max(2, min(10, $ratingMax));
                     $data['options'] = array_map('strval', range(1, $ratingMax));
                     $data['correct_index'] = null;
+                    $data['correct_indexes'] = null;
                     $data['rating_max'] = $ratingMax;
                 } else {
                     $options = array_values(array_filter($options, fn ($o) => $o['text'] !== '' || $o['image_path'] !== null));
@@ -536,8 +561,18 @@ $data = $request->validate([
                         continue;
                     }
                     $data['options'] = array_slice($options, 0, 6);
-                    $data['correct_index'] = isset($q['correct_index']) && (int) $q['correct_index'] < count($data['options']) ? (int) $q['correct_index'] : null;
                     $data['rating_max'] = null;
+                    if ($type === 'multi') {
+                        $keys = array_values(array_filter(
+                            $this->normalizeCorrectIndexes($q['correct_indexes'] ?? null),
+                            fn ($i) => $i < count($data['options'])
+                        ));
+                        $data['correct_indexes'] = $keys;
+                        $data['correct_index'] = null;
+                    } else {
+                        $data['correct_indexes'] = null;
+                        $data['correct_index'] = isset($q['correct_index']) && (int) $q['correct_index'] < count($data['options']) ? (int) $q['correct_index'] : null;
+                    }
                 }
 
                 $data['question'] = $questionText;
@@ -564,11 +599,12 @@ $data = $request->validate([
         $data = $request->validate([
             'question' => 'sometimes|nullable|string',
             'section_id' => 'nullable|integer|exists:quiz_sections,id',
-            'question_type' => 'sometimes|string|in:choice,rating,essay',
+            'question_type' => 'sometimes|string|in:choice,multi,rating,essay',
             'rating_max' => 'nullable|integer|min:2|max:10',
             'options' => 'sometimes|array',
             'options.*' => 'required',
             'correct_index' => 'nullable|integer|min:0',
+            'correct_indexes' => 'nullable|array',
             'keyword' => 'nullable|string|max:2000',
             'points' => 'nullable|integer|min:1',
             'sort' => 'nullable|integer|min:0',
@@ -590,40 +626,69 @@ $data = $request->validate([
             if ($type === 'essay') {
                 $data['options'] = [];
                 $data['correct_index'] = null;
+                $data['correct_indexes'] = null;
                 $data['rating_max'] = null;
                 $data['keyword'] = !empty(trim((string) ($data['keyword'] ?? ''))) ? trim((string) $data['keyword']) : null;
             } elseif ($type === 'rating') {
                 $ratingMax = (int) ($data['rating_max'] ?? $question->rating_max ?? count($question->options ?? []));
                 $data['options'] = array_map('strval', range(1, $ratingMax));
                 $data['correct_index'] = null;
+                $data['correct_indexes'] = null;
                 $data['rating_max'] = $ratingMax;
             } else {
                 $data['rating_max'] = null;
-                if (isset($data['options'])) {
-                    $options = $this->normalizeOptions($data['options']);
-                    if (count($options) < 2 || count($options) > 6) {
-                        return response()->json(['message' => 'Opsi jawaban minimal 2 dan maksimal 6'], 422);
+                $options = isset($data['options'])
+                    ? $this->normalizeOptions($data['options'])
+                    : ($question->options ?? []);
+
+                if ($error = $this->validateChoiceOptions($options)) {
+                    return response()->json(['message' => $error], 422);
+                }
+
+                if ($type === 'multi') {
+                    $rawKeys = $data['correct_indexes'] ?? $question->correct_indexes;
+                    $keys = $this->normalizeCorrectIndexes($rawKeys);
+                    if ($keys === []) {
+                        return response()->json(['message' => 'Pilih minimal 1 jawaban benar'], 422);
                     }
-                    $searchable = array_map(fn ($o) => $o['text'] . '|' . ($o['image_path'] ?? ''), $options);
-                    if (count(array_unique($searchable)) !== count($searchable)) {
-                        return response()->json(['message' => 'Opsi jawaban tidak boleh duplikat'], 422);
+                    if (max($keys) >= count($options)) {
+                        return response()->json(['message' => 'Kunci jawaban melebihi jumlah opsi'], 422);
                     }
+                    $data['correct_indexes'] = $keys;
+                    $data['correct_index'] = null;
+                } else {
+                    $data['correct_indexes'] = null;
                     if (isset($data['correct_index']) && $data['correct_index'] !== null && (int) $data['correct_index'] >= count($options)) {
                         return response()->json(['message' => 'correct_index melebihi jumlah opsi'], 422);
                     }
+                }
+
+                if (isset($data['options'])) {
                     $data['options'] = $options;
                 }
             }
         } elseif (isset($data['options'])) {
             $options = $this->normalizeOptions($data['options']);
-            if (count($options) < 2 || count($options) > 6) {
-                return response()->json(['message' => 'Opsi jawaban minimal 2 dan maksimal 6'], 422);
+            if ($error = $this->validateChoiceOptions($options)) {
+                return response()->json(['message' => $error], 422);
             }
-            $searchable = array_map(fn ($o) => $o['text'] . '|' . ($o['image_path'] ?? ''), $options);
-            if (count(array_unique($searchable)) !== count($searchable)) {
-                return response()->json(['message' => 'Opsi jawaban tidak boleh duplikat'], 422);
-            }
-            if (isset($data['correct_index']) && $data['correct_index'] !== null && (int) $data['correct_index'] >= count($options)) {
+            if ($question->question_type === 'multi') {
+                if (array_key_exists('correct_indexes', $data)) {
+                    $keys = $this->normalizeCorrectIndexes($data['correct_indexes']);
+                    if ($keys === []) {
+                        return response()->json(['message' => 'Pilih minimal 1 jawaban benar'], 422);
+                    }
+                    if (max($keys) >= count($options)) {
+                        return response()->json(['message' => 'Kunci jawaban melebihi jumlah opsi'], 422);
+                    }
+                    $data['correct_indexes'] = $keys;
+                } else {
+                    $keys = $question->correctIndexList();
+                    if ($keys === [] || max($keys) >= count($options)) {
+                        $data['correct_indexes'] = [];
+                    }
+                }
+            } elseif (isset($data['correct_index']) && $data['correct_index'] !== null && (int) $data['correct_index'] >= count($options)) {
                 return response()->json(['message' => 'correct_index melebihi jumlah opsi'], 422);
             }
             $data['options'] = $options;
@@ -910,7 +975,7 @@ $data = $request->validate([
 
         $scope = fn ($q) => $q->whereHas('siswa', fn ($sq) => $sq->whereIn('batch_id', $batchIds));
 
-        $attempts = QuizAttempt::with(['siswa:id,nama,batch,level,batch_id', 'siswa.batchRelasi.cabang', 'answers:id,quiz_attempt_id,quiz_question_id,selected_index,answer_text,is_correct,earned_points,updated_at'])
+        $attempts = QuizAttempt::with(['siswa:id,nama,batch,level,batch_id', 'siswa.batchRelasi.cabang', 'answers:id,quiz_attempt_id,quiz_question_id,selected_index,selected_indexes,answer_text,is_correct,earned_points,updated_at'])
             ->where('quiz_paket_id', $paket->id)
             ->when($batchIds !== null, $scope)
             ->where(function ($q) use ($date) {
@@ -950,6 +1015,11 @@ $data = $request->validate([
                 if (($q->question_type ?? 'choice') === 'rating') {
                     return $ans?->selected_index !== null ? 'benar' : 'kosong';
                 }
+                if ($q->isMulti()) {
+                    $sel = QuizQuestion::normalizeIndexes($ans?->selected_indexes);
+                    if ($sel === []) return 'kosong';
+                    return $q->isAnswerCorrect($sel) ? 'benar' : 'salah';
+                }
                 $sel = $ans?->selected_index;
                 if ($sel === null) return 'kosong';
                 return (int) $sel === (int) $q->correct_index ? 'benar' : 'salah';
@@ -957,6 +1027,7 @@ $data = $request->validate([
 
             $answered = $a->answers->filter(function ($ans) {
                 return ($ans->selected_index !== null && (int) $ans->selected_index >= 0)
+                    || QuizQuestion::normalizeIndexes($ans->selected_indexes) !== []
                     || ($ans->answer_text !== null && trim($ans->answer_text) !== '');
             })->count();
 
@@ -1080,6 +1151,7 @@ $data = $request->validate([
                 'rating_max' => $q->rating_max,
                 'options' => $q->options,
                 'correct_index' => $q->correct_index,
+                'correct_indexes' => $q->correct_indexes,
                 'keyword' => $q->keyword,
                 'points' => $q->points,
                 'sort' => $q->sort,
@@ -1087,6 +1159,7 @@ $data = $request->validate([
                 'audio_url' => $q->audio_url,
                 'audio_max_plays' => $q->audio_max_plays,
                 'selected_index' => $a?->selected_index,
+                'selected_indexes' => QuizQuestion::normalizeIndexes($a?->selected_indexes),
                 'answer_text' => $a?->answer_text,
                 'earned_points' => $a?->earned_points,
                 'is_correct' => $a?->is_correct,
@@ -1141,10 +1214,18 @@ $data = $request->validate([
         $attempt->recomputeScore();
         $attempt->refresh();
 
+        // Koreksi nilai esai juga harus memperbarui kolom "Ulangan" di
+        // Penilaian Siswa, bukan hanya jalur assessment harian.
         try {
-            app(\App\Services\QuizAssessmentSync::class)->syncAttempt($attempt);
+            $sync = app(\App\Services\QuizAssessmentSync::class);
+            $sync->syncAttempt($attempt);
+            $sync->syncAttemptFromLesson($attempt);
         } catch (\Throwable $e) {
             // Sinkronisasi nilai opsional: penyimpanan nilai esai tetap berhasil.
+            \Illuminate\Support\Facades\Log::error('QuizAssessmentSync gagal setelah koreksi esai: ' . $e->getMessage(), [
+                'attempt_id' => $attempt->id,
+                'trace' => $e->getTraceAsString(),
+            ]);
         }
 
         return response()->json([
@@ -1185,5 +1266,29 @@ $data = $request->validate([
             }
         }
         return $result;
+    }
+
+    /**
+     * Validasi kumpulan opsi untuk tipe choice & multi. Mengembalikan pesan error
+     * atau null bila valid.
+     */
+    private function validateChoiceOptions(array $options): ?string
+    {
+        if (count($options) < 2 || count($options) > 6) {
+            return 'Opsi jawaban minimal 2 dan maksimal 6';
+        }
+        $searchable = array_map(fn ($o) => $o['text'] . '|' . ($o['image_path'] ?? ''), $options);
+        if (count(array_unique($searchable)) !== count($searchable)) {
+            return 'Opsi jawaban tidak boleh duplikat';
+        }
+        return null;
+    }
+
+    /**
+     * Normalisasi kunci jawaban multi menjadi index int unik terurut.
+     */
+    private function normalizeCorrectIndexes($indexes): array
+    {
+        return QuizQuestion::normalizeIndexes($indexes);
     }
 }

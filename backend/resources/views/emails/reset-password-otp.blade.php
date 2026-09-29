@@ -18,39 +18,47 @@
                     <tr>
                         <td style="padding:40px;">
                             <h2 style="color:#1a1a2e;margin:0 0 8px;font-size:20px;">Halo, {{ $nama }} 👋</h2>
-                            <p style="color:#64748b;margin:0 0 24px;font-size:14px;line-height:1.6;">
-                                Kami menerima permintaan untuk mereset password akun Anda. Klik tombol di bawah untuk membuat password baru.
+                            <p style="color:#64748b;margin:0 0 28px;font-size:14px;line-height:1.6;">
+                                Kami menerima permintaan untuk mereset password akun Anda. Masukkan kode OTP di bawah ini pada halaman reset password.
                             </p>
 
-                            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0f7fb;border:1px solid #bfe0f0;border-radius:12px;margin-bottom:24px;">
                                 <tr>
-                                    <td align="center">
-                                        <a href="{{ $resetUrl }}"
-                                           style="display:inline-block;background:linear-gradient(135deg,#0E6187 0%,#0a4a6a 100%);color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;padding:14px 40px;border-radius:8px;">
-                                            Reset Password Saya
-                                        </a>
+                                    <td align="center" style="padding:28px 20px;">
+                                        <p style="color:#0E6187;margin:0 0 12px;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">Kode OTP Kamu</p>
+                                        <p style="margin:0;font-size:42px;font-weight:800;letter-spacing:14px;color:#0b2c45;font-family:'Courier New',monospace;">{{ $code }}</p>
                                     </td>
                                 </tr>
                             </table>
-
-                            <p style="color:#94a3b8;margin:0 0 8px;font-size:12px;line-height:1.6;">
-                                Jika tombol tidak bisa diklik, salin tautan berikut ke browser Anda:
-                            </p>
-                            <p style="margin:0 0 24px;font-size:12px;word-break:break-all;">
-                                <a href="{{ $resetUrl }}" style="color:#0E6187;">{{ $resetUrl }}</a>
-                            </p>
 
                             <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#fffbeb;border:1px solid #fde68a;border-radius:10px;margin-bottom:24px;">
                                 <tr>
                                     <td style="padding:16px 20px;">
                                         <p style="color:#92400e;margin:0;font-size:13px;line-height:1.6;">
-                                            ⏰ Tautan ini hanya berlaku selama <strong>{{ $expireMinutes }} menit</strong>. Setelah itu kamu perlu meminta tautan baru.
+                                            ⏰ Kode ini berlaku selama <strong>{{ $expireMinutes }} menit</strong> dan hanya bisa dipakai <strong>1 kali</strong>. Jangan bagikan kode ini kepada siapa pun.
                                         </p>
                                     </td>
                                 </tr>
                             </table>
 
-                            <p style="color:#64748b;margin:0 0 8px;font-size:14px;line-height:1.6;">
+                            @if ($link)
+                                <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+                                    <tr>
+                                        <td align="center">
+                                            <a href="{{ $link }}"
+                                               style="display:inline-block;background:linear-gradient(135deg,#0E6187 0%,#0a4a6a 100%);color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:13px 34px;border-radius:8px;">
+                                                Buka Halaman Reset
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </table>
+                                <p style="color:#94a3b8;margin:0 0 24px;font-size:12px;line-height:1.6;">
+                                    Opens the page with the code filled in automatically. If the button cannot be clicked, copy this link:<br>
+                                    <a href="{{ $link }}" style="color:#0E6187;word-break:break-all;">{{ $link }}</a>
+                                </p>
+                            @endif
+
+                            <p style="color:#64748b;margin:0;font-size:14px;line-height:1.6;">
                                 Jika kamu <strong>tidak</strong> meminta reset password, abaikan email ini. Password akun kamu tidak akan berubah.
                             </p>
                         </td>

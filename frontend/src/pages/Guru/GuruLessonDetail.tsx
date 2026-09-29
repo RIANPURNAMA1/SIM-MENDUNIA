@@ -10,6 +10,7 @@ import 'react-quill-new/dist/quill.snow.css'
 import { guruLmsApi, assignmentApi, guruQuizApi, guruMateriApi, guruKelasApi, absensiSiswaApi, penilaianApi, APP_URL } from '../../services/api'
 import { getYouTubeEmbedUrl } from '../../utils/youtube'
 import { cleanQuillHtml } from '../../utils/quillHtml'
+import { isQuestionAudioFile, QUESTION_AUDIO_ACCEPT } from '../../utils/questionMedia'
 import Swal from 'sweetalert2'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
 import LessonSlidesViewer from '../../components/LessonSlidesViewer'
@@ -119,6 +120,7 @@ interface PaketQuestion {
   rating_max: number | null
   options: AttemptOption[]
   correct_index: number | null
+  correct_indexes?: number[] | null
   points: number | null
   section_id?: number | null
   section?: { id: number; name: string } | null
@@ -137,7 +139,7 @@ interface QuizOptItem {
   image_url: string | null
 }
 
-const emptyQuestionForm = { question: '', section_id: '', question_type: 'choice', rating_max: '9', correct_index: '', points: '1', keyword: '', image_path: '', image_url: '', audio_path: '', audio_url: '', audio_max_plays: '2' }
+const emptyQuestionForm = { question: '', section_id: '', question_type: 'choice', rating_max: '9', correct_index: '', correct_indexes: [] as number[], points: '1', keyword: '', image_path: '', image_url: '', audio_path: '', audio_url: '', audio_max_plays: '2' }
 
 interface RecapData {
   id: number
@@ -223,6 +225,7 @@ interface AttemptDetailQuestion {
   rating_max?: number | null
   options: AttemptOption[]
   correct_index?: number | null
+  correct_indexes?: number[] | null
   keyword?: string | null
   points?: number | null
   section_id?: number | null
@@ -231,6 +234,7 @@ interface AttemptDetailQuestion {
   audio_url?: string | null
   audio_max_plays?: number | null
   selected_index?: number | null
+  selected_indexes?: number[] | null
   answer_text?: string | null
   earned_points?: number | null
   is_correct?: boolean | null
@@ -1109,12 +1113,16 @@ export default function GuruLessonDetail() {
     setEditingQuestion(q)
     setEditPaketId(paketId)
     setQPaketTitle(paketTitle)
+    const keys = Array.isArray(q.correct_indexes) && q.correct_indexes.length
+      ? q.correct_indexes.map(Number)
+      : (q.correct_index !== null && q.correct_index !== undefined ? [Number(q.correct_index)] : [])
     setQForm({
       question: q.question ?? '',
       section_id: q.section_id != null ? String(q.section_id) : '',
-      question_type: q.question_type === 'rating' ? 'rating' : q.question_type === 'essay' ? 'essay' : 'choice',
+      question_type: q.question_type === 'multi' ? 'multi' : q.question_type === 'rating' ? 'rating' : q.question_type === 'essay' ? 'essay' : 'choice',
       rating_max: q.rating_max ? q.rating_max.toString() : '9',
       correct_index: q.correct_index?.toString() ?? '',
+      correct_indexes: keys,
       points: q.points != null ? q.points.toString() : '1',
       keyword: q.keyword || '',
       image_path: q.image_path || '', image_url: q.image_url || '',
@@ -1157,8 +1165,8 @@ export default function GuruLessonDetail() {
     if (type === 'image' && !file.type.startsWith('image/')) {
       Swal.fire({ icon: 'warning', title: 'File harus berupa gambar' }); return
     }
-    if (type === 'audio' && !file.type.startsWith('audio/')) {
-      Swal.fire({ icon: 'warning', title: 'File harus berupa audio' }); return
+    if (type === 'audio' && !isQuestionAudioFile(file)) {
+      Swal.fire({ icon: 'warning', title: 'File harus berupa audio atau video MP4' }); return
     }
     const fd = new FormData()
     fd.append('file', file)
@@ -1240,7 +1248,9 @@ export default function GuruLessonDetail() {
     if (!editingQuestion) return
     const isRating = qForm.question_type === 'rating'
     const isEssay = qForm.question_type === 'essay'
+    const isMulti = qForm.question_type === 'multi'
     let opts: unknown[]
+    let correctIndexes: number[] = []
     if (isEssay) {
       opts = []
     } else if (isRating) {
@@ -1254,7 +1264,16 @@ export default function GuruLessonDetail() {
         Swal.fire({ icon: 'warning', title: 'Minimal 2 opsi jawaban (isi teks atau unggah gambar)' })
         return
       }
-      if (qForm.correct_index === '' || Number(qForm.correct_index) >= opts.length) {
+      if (isMulti) {
+        correctIndexes = [...new Set((qForm.correct_indexes || []).map(Number))]
+          .filter(Number.isFinite)
+          .filter(i => i >= 0 && i < opts.length)
+          .sort((a, b) => a - b)
+        if (correctIndexes.length === 0) {
+          Swal.fire({ icon: 'warning', title: 'Pilih minimal 1 jawaban benar (boleh lebih dari satu)' })
+          return
+        }
+      } else if (qForm.correct_index === '' || Number(qForm.correct_index) >= opts.length) {
         Swal.fire({ icon: 'warning', title: 'Pilih jawaban benar yang valid' })
         return
       }
@@ -1264,10 +1283,11 @@ export default function GuruLessonDetail() {
       await guruQuizApi.updateQuestion(editingQuestion.id, {
         question: qForm.question ?? '',
         section_id: qForm.section_id ? Number(qForm.section_id) : null,
-        question_type: isEssay ? 'essay' : isRating ? 'rating' : 'choice',
+        question_type: isEssay ? 'essay' : isRating ? 'rating' : isMulti ? 'multi' : 'choice',
         rating_max: isRating ? Number(qForm.rating_max) || 9 : null,
         options: opts,
-        correct_index: isEssay ? null : isRating ? null : Number(qForm.correct_index),
+        correct_index: (isEssay || isRating || isMulti) ? null : Number(qForm.correct_index),
+        correct_indexes: isMulti ? correctIndexes : null,
         keyword: isEssay ? (qForm.keyword.trim() || null) : null,
         points: Number(qForm.points) || 1,
         image_path: qForm.image_path || null,
@@ -1370,21 +1390,38 @@ export default function GuruLessonDetail() {
                   <span>Rating 1–{q.rating_max || q.options.length}</span>
                   <span className="ml-auto text-[9.5px] font-bold text-violet-400 shrink-0">TANPA KUNCI</span>
                 </div>
-              ) : (q.options.map((opt, oi) => {
-                const optLabel = typeof opt === 'string' ? opt : (opt?.text ?? '')
-                const optRaw = typeof opt === 'string' ? null : (opt?.image_url || opt?.image_path || null)
-                const optUrl = optRaw && !optRaw.startsWith('http') ? `${APP_URL}/storage/${optRaw}` : optRaw
+              ) : (() => {
+                const isMultiQ = q.question_type === 'multi'
+                const keySet = new Set(isMultiQ
+                  ? (Array.isArray(q.correct_indexes) ? q.correct_indexes.map(Number) : [])
+                  : (q.correct_index !== null && q.correct_index !== undefined ? [Number(q.correct_index)] : []))
                 return (
-                  <div key={oi} className={`flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-md ${oi === q.correct_index ? 'bg-emerald-50 text-emerald-700 font-bold' : 'bg-[#F4F5F8] text-[#4B5063] font-medium'}`}>
-                    <span className={`w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold shrink-0 ${oi === q.correct_index ? 'bg-emerald-500 text-white' : 'bg-[#E5E7EF] text-[#8B90A0]'}`}>
-                      {String.fromCharCode(65 + oi)}
-                    </span>
-                    {optUrl && <img src={optUrl} className="h-6 w-6 rounded object-cover shrink-0" alt="" />}
-                    {optLabel && <span>{optLabel}</span>}
-                    {oi === q.correct_index && <span className="ml-auto text-[9px] font-bold text-emerald-500 shrink-0">BENAR</span>}
-                  </div>
+                  <>
+                    {isMultiQ && (
+                      <div className="flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-md bg-emerald-50 text-emerald-700 font-bold">
+                        <span className="px-1.5 py-0.5 rounded-md bg-emerald-500 text-white text-[9px] font-bold shrink-0">MULTI</span>
+                        <span>Kunci boleh lebih dari satu</span>
+                      </div>
+                    )}
+                    {q.options.map((opt, oi) => {
+                      const isKey = keySet.has(oi)
+                      const optLabel = typeof opt === 'string' ? opt : (opt?.text ?? '')
+                      const optRaw = typeof opt === 'string' ? null : (opt?.image_url || opt?.image_path || null)
+                      const optUrl = optRaw && !optRaw.startsWith('http') ? `${APP_URL}/storage/${optRaw}` : optRaw
+                      return (
+                        <div key={oi} className={`flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-md ${isKey ? 'bg-emerald-50 text-emerald-700 font-bold' : 'bg-[#F4F5F8] text-[#4B5063] font-medium'}`}>
+                          <span className={`w-4 h-4 flex items-center justify-center text-[9px] font-bold shrink-0 ${isMultiQ ? 'rounded-md' : 'rounded-full'} ${isKey ? 'bg-emerald-500 text-white' : 'bg-[#E5E7EF] text-[#8B90A0]'}`}>
+                            {String.fromCharCode(65 + oi)}
+                          </span>
+                          {optUrl && <img src={optUrl} className="h-6 w-6 rounded object-cover shrink-0" alt="" />}
+                          {optLabel && <span>{optLabel}</span>}
+                          {isKey && <span className="ml-auto text-[9px] font-bold text-emerald-500 shrink-0">BENAR</span>}
+                        </div>
+                      )
+                    })}
+                  </>
                 )
-              }))}
+              })()}
             </div>
             <p className="text-[10px] text-[#8B90A0] font-semibold mt-2">Skor: {q.points} poin</p>
           </div>
@@ -1674,22 +1711,31 @@ export default function GuruLessonDetail() {
                 </p>
               )}
             </div>
-          ) : (q.options || []).map((opt, oi) => {
-            const isKunci = q.correct_index === oi
-            const isPilih = q.selected_index === oi
-            return (
-              <div key={oi}
-                className={`flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-md font-medium ${isKunci ? 'bg-emerald-50 text-emerald-700 font-bold' : isPilih ? 'bg-red-50 text-red-500 font-bold' : 'bg-[#F4F5F8] text-[#4B5063]'}`}>
-                <span className={`w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold shrink-0 ${isKunci ? 'bg-emerald-500 text-white' : isPilih ? 'bg-red-500 text-white' : 'bg-[#E5E7EF] text-[#8B90A0]'}`}>
-                  {String.fromCharCode(65 + oi)}
-                </span>
-                {optImgUrl(opt) && <img src={optImgUrl(opt)} className="h-5 w-5 rounded-md object-cover shrink-0" alt="" />}
-                {optText(opt) && <span className="flex-1">{optText(opt)}</span>}
-                {isKunci && <span className="text-[9px] font-bold shrink-0">KUNCI</span>}
-                {isPilih && <span className="text-[9px] font-bold shrink-0">JAWABAN</span>}
-              </div>
-            )
-          })}
+          ) : (() => {
+            const isMultiQ = q.question_type === 'multi'
+            const keySet = new Set(isMultiQ
+              ? (Array.isArray(q.correct_indexes) ? q.correct_indexes.map(Number) : [])
+              : (q.correct_index !== null && q.correct_index !== undefined ? [Number(q.correct_index)] : []))
+            const selSet = new Set(isMultiQ
+              ? (Array.isArray(q.selected_indexes) ? q.selected_indexes.map(Number) : [])
+              : (q.selected_index !== null && q.selected_index !== undefined ? [Number(q.selected_index)] : []))
+            return (q.options || []).map((opt, oi) => {
+              const isKunci = keySet.has(oi)
+              const isPilih = selSet.has(oi)
+              return (
+                <div key={oi}
+                  className={`flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-md font-medium ${isKunci ? 'bg-emerald-50 text-emerald-700 font-bold' : isPilih ? 'bg-red-50 text-red-500 font-bold' : 'bg-[#F4F5F8] text-[#4B5063]'}`}>
+                  <span className={`w-4 h-4 flex items-center justify-center text-[9px] font-bold shrink-0 ${isMultiQ ? 'rounded-md' : 'rounded-full'} ${isKunci ? 'bg-emerald-500 text-white' : isPilih ? 'bg-red-500 text-white' : 'bg-[#E5E7EF] text-[#8B90A0]'}`}>
+                    {String.fromCharCode(65 + oi)}
+                  </span>
+                  {optImgUrl(opt) && <img src={optImgUrl(opt)} className="h-5 w-5 rounded-md object-cover shrink-0" alt="" />}
+                  {optText(opt) && <span className="flex-1">{optText(opt)}</span>}
+                  {isKunci && <span className="text-[9px] font-bold shrink-0">KUNCI</span>}
+                  {isPilih && <span className="text-[9px] font-bold shrink-0">JAWABAN</span>}
+                </div>
+              )
+            })
+          })()}
         </div>
         {q.points != null && q.question_type !== 'essay' && (
           <p className="text-[10px] text-[#8B90A0] font-semibold mt-2">Poin: {q.points}</p>
@@ -3484,8 +3530,8 @@ export default function GuruLessonDetail() {
                     ) : (
                       <label className={`flex flex-col items-center justify-center gap-1 h-28 border border-dashed border-[#D6D9E1] rounded-lg cursor-pointer hover:border-[#0069b0] hover:bg-[#F0F6FA] transition-colors ${uploadingQMedia === 'audio' ? 'opacity-50 pointer-events-none' : ''}`}>
                         {uploadingQMedia === 'audio' ? <Loader2 size={18} className="animate-spin text-[#0069b0]" /> : <UploadCloud size={18} className="text-[#8B90A0]" />}
-                        <span className="text-[10px] font-medium text-[#8B90A0]">{uploadingQMedia === 'audio' ? 'Mengunggah...' : 'Pilih audio (MP3/WAV)'}</span>
-                        <input type="file" accept="audio/*" className="hidden" disabled={!!uploadingQMedia}
+                        <span className="text-[10px] font-medium text-[#8B90A0]">{uploadingQMedia === 'audio' ? 'Mengunggah...' : 'Pilih audio (MP3/WAV/MP4)'}</span>
+                        <input type="file" accept={QUESTION_AUDIO_ACCEPT} className="hidden" disabled={!!uploadingQMedia}
                           onChange={e => { uploadQuestionMedia(e.target.files?.[0], 'audio'); e.target.value = '' }} />
                       </label>
                     )}
@@ -3495,13 +3541,21 @@ export default function GuruLessonDetail() {
 
               <div>
                 <label className="text-[11px] font-bold text-[#4B5063] mb-1.5 block">Tipe Jawaban</label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                   <button type="button" onClick={() => setQForm({ ...qForm, question_type: 'choice' })}
                     className={`flex items-center gap-2.5 border rounded-xl px-3 py-2.5 text-left transition-colors ${qForm.question_type === 'choice' ? 'border-[#0069b0] bg-[#0069b0]/[0.04] ring-1 ring-[#0069b0]/20' : 'border-[#E5E7EF] hover:border-[#D6D9E1]'}`}>
                     <span className={`w-8 h-8 flex items-center justify-center rounded-lg text-[11px] font-bold shrink-0 ${qForm.question_type === 'choice' ? 'bg-[#0069b0] text-white' : 'bg-[#F4F5F8] text-[#8B90A0]'}`}>A/B/C</span>
                     <span>
                       <span className="block text-[11.5px] font-bold text-[#14182B]">Pilihan Ganda</span>
                       <span className="block text-[9.5px] text-[#8B90A0] font-medium">Opsi A, B, C + kunci jawaban</span>
+                    </span>
+                  </button>
+                  <button type="button" onClick={() => setQForm({ ...qForm, question_type: 'multi' })}
+                    className={`flex items-center gap-2.5 border rounded-xl px-3 py-2.5 text-left transition-colors ${qForm.question_type === 'multi' ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500/20' : 'border-[#E5E7EF] hover:border-[#D6D9E1]'}`}>
+                    <span className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold shrink-0 ${qForm.question_type === 'multi' ? 'bg-emerald-500 text-white' : 'bg-[#F4F5F8] text-[#8B90A0]'}`}>A/B/C+</span>
+                    <span>
+                      <span className="block text-[11.5px] font-bold text-[#14182B]">Pilihan Ganda (Multi)</span>
+                      <span className="block text-[9.5px] text-[#8B90A0] font-medium">Kunci boleh lebih dari satu</span>
                     </span>
                   </button>
                   <button type="button" onClick={() => setQForm({ ...qForm, question_type: 'rating' })}
@@ -3551,13 +3605,42 @@ export default function GuruLessonDetail() {
                 </div>
               ) : (
                 <div>
-                  <label className="text-[11px] font-bold text-[#4B5063] mb-1.5 block">Opsi Jawaban <span className="text-red-400">* (min 2)</span></label>
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <label className="text-[11px] font-bold text-[#4B5063] block">Opsi Jawaban <span className="text-red-400">* (min 2)</span></label>
+                    {(() => {
+                      const isMultiType = qForm.question_type === 'multi'
+                      const validKeys = isMultiType
+                        ? (qForm.correct_indexes || []).filter(i => qOptions[i] && (qOptions[i].text.trim() || qOptions[i].image_path)).sort((a, b) => a - b)
+                        : (qOptions.some((o, i) => qForm.correct_index === String(i) && (o.text.trim() || o.image_path)) ? [Number(qForm.correct_index)] : [])
+                      const hasKey = validKeys.length > 0
+                      return (
+                        <span className={`shrink-0 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[9.5px] font-bold ${hasKey ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                          Kunci: {hasKey ? validKeys.map(i => String.fromCharCode(65 + i)).join(', ') : 'belum dipilih'}
+                        </span>
+                      )
+                    })()}
+                  </div>
                   <div className="space-y-2">
-                    {qOptions.map((opt, oi) => (
-                      <div key={oi} className="flex items-center gap-2">
-                        <button onClick={() => setQForm({ ...qForm, correct_index: String(oi) })}
-                          title="Tandai sebagai jawaban benar"
-                          className={`w-7 h-7 shrink-0 flex items-center justify-center rounded-full border-2 transition-colors ${qForm.correct_index === String(oi) ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-[#E5E7EF] text-[#8B90A0] hover:border-[#0069b0]'}`}>
+                    {qOptions.map((opt, oi) => {
+                      const isMultiType = qForm.question_type === 'multi'
+                      const isKey = isMultiType
+                        ? (qForm.correct_indexes || []).includes(oi)
+                        : qForm.correct_index === String(oi)
+                      const toggleKey = () => {
+                        if (isMultiType) {
+                          const cur = qForm.correct_indexes || []
+                          const next = cur.includes(oi) ? cur.filter(i => i !== oi) : [...cur, oi].sort((a, b) => a - b)
+                          setQForm({ ...qForm, correct_indexes: next })
+                        } else {
+                          setQForm({ ...qForm, correct_index: String(oi), correct_indexes: [] })
+                        }
+                      }
+                      return (
+                      <div key={oi} className={`flex items-center gap-2 rounded-xl ${isMultiType && isKey ? 'bg-emerald-50/60' : ''}`}>
+                        <button onClick={toggleKey}
+                          title={isMultiType ? 'Tandai/lepas jawaban benar' : 'Tandai sebagai jawaban benar'}
+                          className={`w-7 h-7 shrink-0 flex items-center justify-center border-2 transition-colors ${isMultiType ? 'rounded-lg' : 'rounded-full'} ${isKey ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-[#E5E7EF] text-[#8B90A0] hover:border-[#0069b0]'}`}>
                           {String.fromCharCode(65 + oi)}
                         </button>
                         <input value={opt.text} onChange={e => { const arr = [...qOptions]; arr[oi] = { ...arr[oi], text: e.target.value }; setQOptions(arr) }}
@@ -3583,12 +3666,17 @@ export default function GuruLessonDetail() {
                           )}
                         </div>
                         {qOptions.length > 2 && (
-                          <button onClick={() => setQOptions(qOptions.filter((_, idx) => idx !== oi))} className="p-1 text-red-400 hover:text-red-500 shrink-0">
+                          <button onClick={() => {
+                            setQOptions(qOptions.filter((_, idx) => idx !== oi))
+                            const cur = qForm.correct_indexes || []
+                            setQForm({ ...qForm, correct_indexes: cur.filter(i => i !== oi).map(i => i > oi ? i - 1 : i) })
+                          }} className="p-1 text-red-400 hover:text-red-500 shrink-0">
                             <X size={14} />
                           </button>
                         )}
                       </div>
-                    ))}
+                      )
+                    })}
                   </div>
                   {qOptions.length < 6 && (
                     <button onClick={() => setQOptions([...qOptions, { text: '', image_path: null, image_url: null }])}
@@ -3596,7 +3684,11 @@ export default function GuruLessonDetail() {
                       <Plus size={12} /> Tambah opsi
                     </button>
                   )}
-                  <p className="text-[10px] text-[#8B90A0] font-medium mt-2">Klik huruf <span className="font-bold text-emerald-500">A/B/C...</span> untuk menandai kunci jawaban. Klik ikon <span className="font-bold text-[#0069b0]">gambar</span> di kanan opsi untuk menjadikan opsi berupa gambar.</p>
+                  <p className="text-[10px] text-[#8B90A0] font-medium mt-2">
+                    {qForm.question_type === 'multi'
+                      ? <>Klik huruf <span className="font-bold text-emerald-500">A/B/C...</span> untuk menandai <span className="font-bold">satu atau lebih</span> kunci jawaban. Jawaban dinilai benar hanya bila pilihan kandidat sama persis dengan kunci. Klik ikon <span className="font-bold text-[#0069b0]">gambar</span> di kanan opsi untuk menjadikan opsi berupa gambar.</>
+                      : <>Klik huruf <span className="font-bold text-emerald-500">A/B/C...</span> untuk menandai kunci jawaban. Klik ikon <span className="font-bold text-[#0069b0]">gambar</span> di kanan opsi untuk menjadikan opsi berupa gambar.</>}
+                  </p>
                 </div>
               )}
 

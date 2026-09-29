@@ -535,7 +535,7 @@ export const quizApi = {
   start: (id: number, params?: { source?: string; source_id?: number }) => api.post(`/quiz/pakets/${id}/start`, null, { params }),
   attempt: (id: number) => api.get(`/quiz/attempts/${id}`),
   review: (id: number) => api.get(`/quiz/attempts/${id}/review`),
-  answer: (id: number, data: { question_id: number; selected_index?: number | null; answer_text?: string | null }) => api.post(`/quiz/attempts/${id}/answer`, data),
+  answer: (id: number, data: { question_id: number; selected_index?: number | null; selected_indexes?: number[] | null; answer_text?: string | null }) => api.post(`/quiz/attempts/${id}/answer`, data),
   warn: (id: number) => api.post(`/quiz/attempts/${id}/warn`),
   submit: (id: number) => api.post(`/quiz/attempts/${id}/submit`),
   uploadWebcam: (id: number, fd: FormData) => api.post(`/quiz/attempts/${id}/webcam`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
@@ -611,7 +611,7 @@ export const waSettingApi = {
   getGlobalSettings: () => api.get('/wa-settings/global'),
   updateGlobalSettings: (settings: { key: string; is_enabled: boolean; value?: string }[]) => api.put('/wa-settings/global', { settings }),
   getMailSettings: () => api.get('/wa-settings/mail'),
-  updateMailSettings: (settings: { key: string; value?: string }[]) => api.put('/wa-settings/mail', { settings }),
+  updateMailSettings: (settings: { key: string; value?: string | null; description?: string | null; is_set?: boolean }[]) => api.put('/wa-settings/mail', { settings }),
 
   // Batch deadlines (per batch + kategori)
   getBatchKategoris: (batchId: number) => api.get('/wa-settings/batch-kategoris', { params: { batch_id: batchId } }),

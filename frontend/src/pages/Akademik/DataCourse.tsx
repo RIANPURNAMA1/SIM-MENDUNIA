@@ -11,6 +11,7 @@ import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
 import { lmsAdminApi, adminCabangApi, jadwalLevelApi, adminQuizApi, APP_URL, quizReferenceApi } from '../../services/api'
 import { getYouTubeEmbedUrl } from '../../utils/youtube'
+import { isQuestionAudioFile, QUESTION_AUDIO_ACCEPT } from '../../utils/questionMedia'
 import LessonMediaFields, { LessonSlideItem } from '../../components/LessonMediaFields'
 import Swal from 'sweetalert2'
 import type { Pagination } from '../../types'
@@ -33,6 +34,7 @@ interface ImportQ {
   audio_max_plays: number | null
   options: ImportOpt[]
   correct_index: number | null
+  correct_indexes: number[]
   points: number
 }
 
@@ -71,14 +73,14 @@ const stripMedia = (s: string) => {
   return { text, image_path, audio_path, audio_max_plays }
 }
 
-const parseQuestionImport = (text: string, type: 'choice' | 'rating' | 'essay' = 'choice'): ImportQ[] => {
+const parseQuestionImport = (text: string, type: 'choice' | 'multi' | 'rating' | 'essay' = 'choice'): ImportQ[] => {
   const rows = text.split(/\r?\n/)
   const isTsv = text.includes('\t')
   const result: ImportQ[] = []
 
   const emptyQ = (section: string): ImportQ => ({
     section, question: '', image_path: null, audio_path: null, audio_max_plays: null,
-    options: [], correct_index: null, points: 1,
+    options: [], correct_index: null, correct_indexes: [], points: 1,
   })
 
   if (isTsv) {
@@ -93,18 +95,25 @@ const parseQuestionImport = (text: string, type: 'choice' | 'rating' | 'essay' =
       const section = cells[n - 2]
       const bobot = parseInt(cells[n - 1], 10)
       let correct_index: number | null = null
-      const kunciLetter = kunci.trim().toUpperCase().charCodeAt(0) - 65
-      if (optTexts.length > 0 && kunciLetter >= 0 && kunciLetter < optTexts.length) {
-        correct_index = kunciLetter
+      const correct_indexes: number[] = []
+      const kunciClean = kunci.trim()
+      for (const ch of kunciClean.toUpperCase()) {
+        const letter = ch.charCodeAt(0) - 65
+        if (letter >= 0 && letter < optTexts.length) correct_indexes.push(letter)
+      }
+      if (optTexts.length > 0 && correct_indexes.length > 0) {
+        correct_index = correct_indexes[0]
       } else {
-        const idx = optTexts.findIndex(o => o.toLowerCase() === kunci.trim().toLowerCase())
+        const idx = optTexts.findIndex(o => o.toLowerCase() === kunciClean.toLowerCase())
         correct_index = idx >= 0 ? idx : null
+        if (idx >= 0) correct_indexes.push(idx)
       }
       result.push({
         ...emptyQ(section),
         question: soal,
         options: optTexts.map(t => ({ text: t, image_path: null })),
         correct_index,
+        correct_indexes: type === 'multi' ? [...new Set(correct_indexes)] : [],
         points: isNaN(bobot) ? 1 : bobot,
       })
     }
@@ -173,7 +182,10 @@ const parseQuestionImport = (text: string, type: 'choice' | 'rating' | 'essay' =
       const p = stripPoin(opt[3].trim())
       const media = stripMedia(p.text)
       current.options.push({ text: media.image_path ? '' : media.text, image_path: media.image_path })
-      if (opt[1]) current.correct_index = current.options.length - 1
+      if (opt[1]) {
+        current.correct_index = current.options.length - 1
+        current.correct_indexes.push(current.options.length - 1)
+      }
       if (p.points) current.points = p.points
       continue
     }
@@ -348,6 +360,7 @@ interface Question {
   rating_max: number | null
   options: (string | { text?: string; image_path?: string | null; image_url?: string | null })[]
   correct_index: number | null
+  correct_indexes: number[] | null
   keyword: string | null
   points: number
   sort: number
@@ -406,10 +419,12 @@ interface DetailRow {
   rating_max: number | null
   options: (string | { text?: string; image_path?: string | null; image_url?: string | null })[]
   correct_index: number | null
+  correct_indexes?: number[] | null
   keyword: string | null
   points: number
   sort: number
   selected_index: number | null
+  selected_indexes?: number[] | null
   answer_text: string | null
   earned_points: number | null
   is_correct: boolean | null
@@ -458,7 +473,7 @@ const emptyPaketForm = {
   camera_enabled: true, block_exit: true, penilaian_ulangan: false,
   cover_image: '',
 }
-const emptyQuestionForm = { question: '', section_id: '', question_type: 'choice', rating_max: '9', correct_index: '', points: '1', keyword: '', image_path: '', image_url: '', audio_path: '', audio_url: '', audio_max_plays: '2' }
+const emptyQuestionForm = { question: '', section_id: '', question_type: 'choice', rating_max: '9', correct_index: '', correct_indexes: [] as number[], points: '1', keyword: '', image_path: '', image_url: '', audio_path: '', audio_url: '', audio_max_plays: '2' }
 
 const DEFAULT_SECTIONS = ['Script and Vocabulary', 'Grammar', 'Reading', 'Listening', 'Conversation', 'Kanji', 'Vocabulary']
 
@@ -577,7 +592,7 @@ export default function DataCourse() {
   const [qOptions, setQOptions] = useState<QuizOpt[]>([{ text: '', image_path: null, image_url: null }, { text: '', image_path: null, image_url: null }])
   const [showImportModal, setShowImportModal] = useState(false)
   const [importText, setImportText] = useState('')
-  const [importType, setImportType] = useState<'choice' | 'rating' | 'essay'>('choice')
+  const [importType, setImportType] = useState<'choice' | 'multi' | 'rating' | 'essay'>('choice')
   const [importParse, setImportParse] = useState<ImportQ[]>([])
   const [savingImport, setSavingImport] = useState(false)
   const [importError, setImportError] = useState('')
@@ -1894,12 +1909,16 @@ export default function DataCourse() {
 
   const openEditQuestion = (q: Question) => {
     setEditingQuestion(q)
+    const keys = Array.isArray(q.correct_indexes) && q.correct_indexes.length
+      ? q.correct_indexes.map(Number)
+      : (q.correct_index !== null && q.correct_index !== undefined ? [Number(q.correct_index)] : [])
     setQForm({
       question: q.question ?? '',
       section_id: q.section_id ? String(q.section_id) : '',
-      question_type: q.question_type === 'rating' ? 'rating' : q.question_type === 'essay' ? 'essay' : 'choice',
+      question_type: q.question_type === 'multi' ? 'multi' : q.question_type === 'rating' ? 'rating' : q.question_type === 'essay' ? 'essay' : 'choice',
       rating_max: q.rating_max ? q.rating_max.toString() : '9',
       correct_index: q.correct_index?.toString() ?? '',
+      correct_indexes: keys,
       points: q.points.toString(),
       keyword: q.keyword || '',
       image_path: q.image_path || '', image_url: q.image_url || '',
@@ -1935,7 +1954,9 @@ export default function DataCourse() {
     if (!activeQuizPaket) return
     const isRating = qForm.question_type === 'rating'
     const isEssay = qForm.question_type === 'essay'
+    const isMulti = qForm.question_type === 'multi'
     let opts: string[]
+    let correctIndexes: number[] = []
     if (isEssay) {
       opts = []
     } else if (isRating) {
@@ -1948,7 +1969,15 @@ export default function DataCourse() {
       if (opts.length < 2) { Swal.fire({ icon: 'warning', title: 'Minimal 2 opsi jawaban (isi teks atau unggah gambar)' }); return }
       const searchable = opts.map(o => `${o?.text ?? ''}|${o?.image_path ?? ''}`)
       if (new Set(searchable).size !== searchable.length) { Swal.fire({ icon: 'warning', title: 'Opsi jawaban tidak boleh ada yang sama' }); return }
-      if (qForm.correct_index === '' || Number(qForm.correct_index) >= opts.length) {
+      if (isMulti) {
+        correctIndexes = [...new Set((qForm.correct_indexes || []).map(Number))]
+          .filter(Number.isFinite)
+          .filter(i => i >= 0 && i < opts.length)
+          .sort((a, b) => a - b)
+        if (correctIndexes.length === 0) {
+          Swal.fire({ icon: 'warning', title: 'Pilih minimal 1 jawaban benar (boleh lebih dari satu)' }); return
+        }
+      } else if (qForm.correct_index === '' || Number(qForm.correct_index) >= opts.length) {
         Swal.fire({ icon: 'warning', title: 'Pilih jawaban benar yang valid' }); return
       }
     }
@@ -1957,10 +1986,11 @@ export default function DataCourse() {
       const data = {
         question: qForm.question ?? '',
         section_id: qForm.section_id ? Number(qForm.section_id) : null,
-        question_type: isEssay ? 'essay' : isRating ? 'rating' : 'choice',
+        question_type: isEssay ? 'essay' : isRating ? 'rating' : isMulti ? 'multi' : 'choice',
         rating_max: isRating ? Number(qForm.rating_max) || 9 : null,
         options: opts,
-        correct_index: isEssay ? null : isRating ? null : Number(qForm.correct_index),
+        correct_index: (isEssay || isRating || isMulti) ? null : Number(qForm.correct_index),
+        correct_indexes: isMulti ? correctIndexes : null,
         keyword: isEssay ? (qForm.keyword.trim() || null) : null,
         points: Number(qForm.points) || 1,
         image_path: qForm.image_path || null,
@@ -1978,10 +2008,11 @@ export default function DataCourse() {
           section_id: newSectionId,
           section: sectObj ? { id: sectObj.id, name: sectObj.name } : null,
           question: qForm.question ?? '',
-          question_type: isEssay ? 'essay' : isRating ? 'rating' : 'choice',
+          question_type: isEssay ? 'essay' : isRating ? 'rating' : isMulti ? 'multi' : 'choice',
           rating_max: isRating ? (Number(qForm.rating_max) || 9) : null,
           options: opts,
-          correct_index: isEssay ? null : isRating ? null : Number(qForm.correct_index),
+          correct_index: (isEssay || isRating || isMulti) ? null : Number(qForm.correct_index),
+          correct_indexes: isMulti ? correctIndexes : null,
           keyword: isEssay ? (qForm.keyword.trim() || null) : null,
           points: Number(qForm.points) || 1,
           image_path: qForm.image_path || null,
@@ -2007,10 +2038,11 @@ export default function DataCourse() {
           section_id: newSectionId,
           section: sectObj ? { id: sectObj.id, name: sectObj.name } : null,
           question: qForm.question ?? '',
-          question_type: isEssay ? 'essay' : isRating ? 'rating' : 'choice',
+          question_type: isEssay ? 'essay' : isRating ? 'rating' : isMulti ? 'multi' : 'choice',
           rating_max: isRating ? (Number(qForm.rating_max) || 9) : null,
           options: opts,
-          correct_index: isEssay ? null : isRating ? null : Number(qForm.correct_index),
+          correct_index: (isEssay || isRating || isMulti) ? null : Number(qForm.correct_index),
+          correct_indexes: isMulti ? correctIndexes : null,
           keyword: isEssay ? (qForm.keyword.trim() || null) : null,
           points: Number(qForm.points) || 1,
           sort: saved.sort ?? questions.length,
@@ -2106,7 +2138,7 @@ export default function DataCourse() {
 
   const onImportFile = (file: File | undefined, type: 'gambar' | 'audio') => {
     if (!file) return
-    const ok = type === 'gambar' ? file.type.startsWith('image/') : file.type.startsWith('audio/')
+    const ok = type === 'gambar' ? file.type.startsWith('image/') : isQuestionAudioFile(file)
     if (!ok) {
       Swal.fire({ icon: 'warning', title: `File harus berupa ${type === 'gambar' ? 'gambar' : 'audio'}` })
       return
@@ -2128,7 +2160,8 @@ export default function DataCourse() {
     }
     setSavingImport(true)
     setImportError('')
-    const isChoice = importType === 'choice'
+    const isChoice = importType === 'choice' || importType === 'multi'
+    const isMulti = importType === 'multi'
     try {
       const questions = importParse.map(q => ({
         question: q.question,
@@ -2136,7 +2169,8 @@ export default function DataCourse() {
         question_type: importType,
         rating_max: importType === 'rating' ? 9 : null,
         options: isChoice ? q.options.map(o => o.image_path ? { text: o.text || '', image_path: o.image_path } : o.text) : [],
-        correct_index: isChoice ? q.correct_index : null,
+        correct_index: importType === 'choice' ? q.correct_index : null,
+        correct_indexes: isMulti ? q.correct_indexes : null,
         keyword: null,
         points: q.points,
         image_path: q.image_path,
@@ -2237,8 +2271,8 @@ export default function DataCourse() {
     if (type === 'image' && !file.type.startsWith('image/')) {
       Swal.fire({ icon: 'warning', title: 'File harus berupa gambar' }); return
     }
-    if (type === 'audio' && !file.type.startsWith('audio/')) {
-      Swal.fire({ icon: 'warning', title: 'File harus berupa audio' }); return
+    if (type === 'audio' && !isQuestionAudioFile(file)) {
+      Swal.fire({ icon: 'warning', title: 'File harus berupa audio atau video MP4' }); return
     }
     const fd = new FormData()
     fd.append('file', file)
@@ -3584,9 +3618,23 @@ export default function DataCourse() {
                                 {(() => {
                                   const qMediaRaw = q.image_url || q.image_path
                                   const qMediaUrl = qMediaRaw && !qMediaRaw.startsWith('http') ? `${APP_URL}/storage/${qMediaRaw}` : qMediaRaw
-                                  return qMediaUrl ? (
-                                    <img src={qMediaUrl} alt="Gambar soal"
-                                      className="mt-3 max-h-44 rounded-lg border border-slate-200 object-contain" />
+                                  const qAudioRaw = q.audio_url || q.audio_path
+                                  const qAudioUrl = qAudioRaw && !qAudioRaw.startsWith('http') ? `${APP_URL}/storage/${qAudioRaw}` : qAudioRaw
+                                  return (qMediaUrl || qAudioUrl) ? (
+                                    <div className="mt-3 space-y-2">
+                                      {qMediaUrl && (
+                                        <img src={qMediaUrl} alt="Gambar soal"
+                                          className="max-h-44 rounded-lg border border-slate-200 object-contain" />
+                                      )}
+                                      {qAudioUrl && (
+                                        <div className="flex items-center gap-2">
+                                          <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-bold shrink-0">
+                                            AUDIO{q.audio_max_plays ? ` · ${q.audio_max_plays}x` : ''}
+                                          </span>
+                                          <audio src={qAudioUrl} controls className="h-8" />
+                                        </div>
+                                      )}
+                                    </div>
                                   ) : null
                                 })()}
                                 <div className="mt-3 space-y-2">
@@ -3596,21 +3644,29 @@ export default function DataCourse() {
                                       <span>Rating 1–{q.rating_max || q.options.length}</span>
                                       <span className="ml-auto text-[10px] font-bold text-violet-400 shrink-0">TANPA KUNCI</span>
                                     </div>
-                                  ) : (q.options.map((opt, oi) => {
+                                  ) : ((() => {
+                                    const isMultiQ = q.question_type === 'multi'
+                                    const keyList = isMultiQ
+                                      ? (Array.isArray(q.correct_indexes) ? q.correct_indexes.map(Number) : [])
+                                      : (q.correct_index !== null && q.correct_index !== undefined ? [Number(q.correct_index)] : [])
+                                    const keySet = new Set(keyList)
+                                    return q.options.map((opt, oi) => {
                                       const optLabel = typeof opt === 'string' ? opt : ((opt as { text?: string }).text ?? '')
                                       const optRaw = typeof opt === 'string' ? null : ((opt as { image_url?: string | null; image_path?: string | null }).image_url || (opt as { image_path?: string | null }).image_path || null)
                                       const optUrl = optRaw && !optRaw.startsWith('http') ? `${APP_URL}/storage/${optRaw}` : optRaw
+                                      const isKey = keySet.has(oi)
                                       return (
-                                        <div key={oi} className={`flex items-center gap-2.5 text-sm px-3.5 py-2 rounded-lg ${oi === q.correct_index ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'bg-slate-50 text-slate-600'}`}>
-                                          <span className={`w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold shrink-0 ${oi === q.correct_index ? 'bg-emerald-500 text-white' : 'bg-white border border-slate-200 text-slate-400'}`}>
+                                        <div key={oi} className={`flex items-center gap-2.5 text-sm px-3.5 py-2 rounded-lg ${isKey ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'bg-slate-50 text-slate-600'}`}>
+                                          <span className={`w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0 ${isMultiQ ? 'rounded-md' : 'rounded-full'} ${isKey ? 'bg-emerald-500 text-white' : 'bg-white border border-slate-200 text-slate-400'}`}>
                                             {String.fromCharCode(65 + oi)}
                                           </span>
                                           {optUrl && <img src={optUrl} className="h-6 w-6 rounded object-cover shrink-0" alt="" />}
                                           {optLabel && <span>{optLabel}</span>}
-                                          {oi === q.correct_index && <span className="ml-auto text-[10px] font-bold text-emerald-500 shrink-0">BENAR</span>}
+                                          {isKey && <span className="ml-auto text-[10px] font-bold text-emerald-500 shrink-0">BENAR</span>}
                                         </div>
                                       )
-                                    }))}
+                                    })
+                                  })())}
                                 </div>
                                 <p className="text-xs text-slate-400 font-medium mt-3">Skor: {q.points} poin</p>
                               </div>
@@ -4689,15 +4745,17 @@ export default function DataCourse() {
 
       {/* ==================== BULK IMPORT MODAL ==================== */}
       {showImportModal && (() => {
-        const typeLabel = importType === 'choice' ? 'Pilihan Ganda' : importType === 'rating' ? 'Skala 1-9' : 'Esai'
+        const typeLabel = importType === 'choice' ? 'Pilihan Ganda' : importType === 'multi' ? 'Pilihan Ganda (Multi)' : importType === 'rating' ? 'Skala 1-9' : 'Esai'
         const typeDesc = importType === 'choice'
           ? 'Format: a. opsi / b. opsi / *a. kunci'
-          : importType === 'rating'
-            ? 'Skala penilaian 1 sampai 9 per soal'
-            : 'Soal terbuka, peserta mengetik jawaban sendiri'
+          : importType === 'multi'
+            ? 'Format: a. opsi / b. opsi / beberapa kunci dengan *a. *b. (atau tulis kunci AB)'
+            : importType === 'rating'
+              ? 'Skala penilaian 1 sampai 9 per soal'
+              : 'Soal terbuka, peserta mengetik jawaban sendiri'
         return (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-start justify-center pt-[6vh] pb-6 px-4 overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[88vh]">
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-stretch justify-center p-2 sm:p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col h-full max-h-[96vh]">
             {/* HEADER */}
             <div className="bg-[#0E6187] px-5 py-4 flex items-center justify-between gap-3 shrink-0">
               <div className="flex items-center gap-3 min-w-0">
@@ -4718,7 +4776,7 @@ export default function DataCourse() {
             </div>
 
             {/* BODY */}
-            <div className="p-5 space-y-4 overflow-y-auto flex-1">
+            <div className="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1 min-h-0">
               {/* STEP 1 */}
               <div className="rounded-md border border-slate-200 p-4">
                 <div className="flex items-start gap-3 mb-3">
@@ -4728,16 +4786,16 @@ export default function DataCourse() {
                     <p className="text-xs text-slate-500 mt-0.5">{typeDesc}</p>
                   </div>
                 </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      {(['choice', 'rating', 'essay'] as const).map(t => (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {(['choice', 'multi', 'rating', 'essay'] as const).map(t => (
                         <button key={t} type="button"
                           onClick={() => {
                             setImportType(t)
                             // Parse ulang karena cara pemenggalan baris berbeda per jenis soal.
                             setImportParse(parseQuestionImport(importText, t))
                           }}
-                          className={`py-2.5 rounded-md text-sm font-semibold border transition-colors ${importType === t ? 'bg-[#0E6187] text-white border-[#0E6187] shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-[#0E6187]/40 hover:bg-slate-50'}`}>
-                          {t === 'choice' ? 'Pilihan Ganda' : t === 'rating' ? 'Skala 1-9' : 'Esai'}
+                          className={`py-2.5 rounded-md text-xs sm:text-sm font-semibold border transition-colors ${importType === t ? 'bg-[#0E6187] text-white border-[#0E6187] shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-[#0E6187]/40 hover:bg-slate-50'}`}>
+                          {t === 'choice' ? 'Pilihan Ganda' : t === 'multi' ? 'Pilihan Ganda (Multi)' : t === 'rating' ? 'Skala 1-9' : 'Esai'}
                         </button>
                       ))}
                     </div>
@@ -4773,7 +4831,7 @@ export default function DataCourse() {
                 </div>
                 <input ref={importImgInputRef} type="file" accept="image/*" className="hidden"
                   onChange={e => { onImportFile(e.target.files?.[0], 'gambar'); e.target.value = '' }} />
-                <input ref={importAudioInputRef} type="file" accept="audio/*" className="hidden"
+                <input ref={importAudioInputRef} type="file" accept={QUESTION_AUDIO_ACCEPT} className="hidden"
                   onChange={e => { onImportFile(e.target.files?.[0], 'audio'); e.target.value = '' }} />
                 <div className="mt-2.5 rounded-md border border-slate-200 bg-slate-50/60 p-2.5">
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -4833,15 +4891,16 @@ export default function DataCourse() {
                   )}
                 </div>
                 <textarea ref={importTextRef} value={importText} onChange={e => onImportTextChange(e.target.value)}
-                  rows={9} placeholder={'## Vocabulary\n[Arti kata "watashi" adalah...]\n*a. saya\nb. kamu\nc. dia\nd. kami   [2 poin]\n\n[A：ぼくは (student) です。\nB： benar!]\na. teacher\nb. student\n*c. sensei\nd. gakusei   [5 poin]'}
-                  className="mt-2.5 w-full px-3.5 py-3 border border-slate-200 rounded-md text-[13px] leading-relaxed font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-slate-50/50" />
+                  rows={20} placeholder={'## Vocabulary\n[Arti kata "watashi" adalah...]\n*a. saya\nb. kamu\nc. dia\nd. kami   [2 poin]\n\n[A：ぼくは (student) です。\nB： benar!]\na. teacher\nb. student\n*c. sensei\nd. gakusei   [5 poin]'}
+                  className="mt-2.5 w-full min-h-[300px] lg:min-h-[40vh] max-h-[62vh] px-3.5 py-3 border border-slate-200 rounded-md text-[13px] leading-relaxed font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-slate-50/50" />
 
                 {/* PANDUAN */}
-                <div className="mt-3 rounded-md border border-amber-200 bg-amber-50/60 p-3">
-                  <p className="flex items-center gap-1.5 text-xs font-bold text-amber-800 mb-2">
+                <details className="mt-3 rounded-md border border-amber-200 bg-amber-50/60 p-3 group">
+                  <summary className="flex items-center gap-1.5 text-xs font-bold text-amber-800 cursor-pointer select-none list-none">
                     <FileText size={13} /> Panduan Penulisan
-                  </p>
-                  <ul className="space-y-1.5 text-[11px] leading-relaxed text-amber-900/90">
+                    <ChevronDown size={13} className="ml-auto transition-transform group-open:rotate-180" />
+                  </summary>
+                  <ul className="mt-2 space-y-1.5 text-[11px] leading-relaxed text-amber-900/90">
                     <li className="flex gap-1.5">
                       <span className="text-amber-500 font-bold">&bull;</span>
                       <span><span className="font-mono font-semibold">## Nama bagian</span> untuk mengelompokkan soal (opsional)</span>
@@ -4879,7 +4938,7 @@ export default function DataCourse() {
                       <span>Bisa juga tempel dari Excel/Google Sheets: <span className="font-mono font-semibold">soal [TAB] opsiA [TAB] opsiB [TAB] opsiC [TAB] kunci [TAB] bagian [TAB] bobot</span></span>
                     </li>
                   </ul>
-                </div>
+                </details>
               </div>
 
               {/* STEP 3 */}
@@ -4898,7 +4957,7 @@ export default function DataCourse() {
                     </span>
                   </div>
 
-                  <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                  <div className="space-y-2 max-h-[30vh] overflow-y-auto pr-1">
                     {importParse.map((q, i) => (
                       <div key={i} className="flex items-start gap-2.5 border border-slate-200 rounded-md px-3 py-2.5 bg-white hover:border-slate-300 transition-colors">
                         <span className="w-6 h-6 flex items-center justify-center rounded-md bg-[#0E6187] text-white text-[11px] font-bold shrink-0">{i + 1}</span>
@@ -4924,9 +4983,13 @@ export default function DataCourse() {
                           )}
                           {q.options.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1.5">
-                              {q.options.map((o, oi) => (
+                              {q.options.map((o, oi) => {
+                                const isKey = importType === 'multi'
+                                  ? q.correct_indexes.includes(oi)
+                                  : q.correct_index === oi
+                                return (
                                 <span key={oi}
-                                  className={`flex items-center gap-1.5 text-[11px] px-1.5 py-0.5 rounded-md font-medium ${q.correct_index === oi ? 'bg-emerald-500 text-white font-bold' : 'bg-slate-100 text-slate-600'}`}>
+                                  className={`flex items-center gap-1.5 text-[11px] px-1.5 py-0.5 rounded-md font-medium ${isKey ? 'bg-emerald-500 text-white font-bold' : 'bg-slate-100 text-slate-600'}`}>
                                   {String.fromCharCode(65 + oi)}.
                                   {o.image_path ? (
                                     <img src={mediaUrl(o.image_path)} alt={o.text || `opsi ${oi + 1}`}
@@ -4935,7 +4998,8 @@ export default function DataCourse() {
                                     <span>{o.text}</span>
                                   )}
                                 </span>
-                              ))}
+                                )
+                              })}
                             </div>
                           )}
                         </div>
@@ -5091,8 +5155,8 @@ export default function DataCourse() {
                     ) : (
                       <label className={`flex flex-col items-center justify-center gap-1 h-28 rounded-md border border-dashed border-slate-300 cursor-pointer hover:bg-amber-50 hover:border-amber-400 transition-colors ${uploadingQMedia === 'audio' ? 'opacity-50 pointer-events-none' : ''}`}>
                         {uploadingQMedia === 'audio' ? <Loader2 size={18} className="animate-spin text-[#0E6187]" /> : <UploadCloud size={18} className="text-slate-400" />}
-                        <span className="text-[11px] font-semibold text-slate-500">{uploadingQMedia === 'audio' ? 'Mengunggah...' : 'Pilih audio (MP3/WAV)'}</span>
-                        <input type="file" accept="audio/*" className="hidden" disabled={!!uploadingQMedia}
+                        <span className="text-[11px] font-semibold text-slate-500">{uploadingQMedia === 'audio' ? 'Mengunggah...' : 'Pilih audio (MP3/WAV/MP4)'}</span>
+                        <input type="file" accept={QUESTION_AUDIO_ACCEPT} className="hidden" disabled={!!uploadingQMedia}
                           onChange={e => { uploadQuestionMedia(e.target.files?.[0], 'audio'); e.target.value = '' }} />
                       </label>
                     )}
@@ -5108,13 +5172,21 @@ export default function DataCourse() {
                     <p className="text-xs text-slate-500 mt-0.5">Tentukan format jawaban yang dicari dari kandidat</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                   <button type="button" onClick={() => setQForm({ ...qForm, question_type: 'choice' })}
                     className={`relative flex items-center gap-2.5 border rounded-md px-3.5 py-3 text-left transition-colors ${qForm.question_type === 'choice' ? 'border-[#0E6187] bg-[#0E6187]/5 ring-1 ring-[#0E6187]/20' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
                     <span className={`w-9 h-9 flex items-center justify-center rounded-md text-xs font-bold shrink-0 ${qForm.question_type === 'choice' ? 'bg-[#0E6187] text-white' : 'bg-slate-100 text-slate-500'}`}>A/B/C</span>
                     <span>
                       <span className="block text-sm font-semibold text-slate-700">Pilihan Ganda</span>
-                      <span className="block text-[11px] text-slate-400 mt-0.5 leading-snug">Opsi A, B, C dengan kunci</span>
+                      <span className="block text-[11px] text-slate-400 mt-0.5 leading-snug">Satu kunci jawaban</span>
+                    </span>
+                  </button>
+                  <button type="button" onClick={() => setQForm({ ...qForm, question_type: 'multi' })}
+                    className={`relative flex items-center gap-2.5 border rounded-md px-3.5 py-3 text-left transition-colors ${qForm.question_type === 'multi' ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500/20' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+                    <span className={`w-9 h-9 flex items-center justify-center rounded-md text-[10px] font-bold shrink-0 ${qForm.question_type === 'multi' ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500'}`}>A/B/C+</span>
+                    <span>
+                      <span className="block text-sm font-semibold text-slate-700">Pilihan Ganda (Multi)</span>
+                      <span className="block text-[11px] text-slate-400 mt-0.5 leading-snug">Kunci boleh lebih dari satu</span>
                     </span>
                   </button>
                   <button type="button" onClick={() => setQForm({ ...qForm, question_type: 'rating' })}
@@ -5166,18 +5238,41 @@ export default function DataCourse() {
                     <div className="rounded-md border border-slate-200 p-3">
                       <div className="flex items-center justify-between gap-2 mb-2">
                         <label className="block text-xs font-semibold text-slate-700">Opsi Jawaban <span className="text-red-500">* (min 2)</span></label>
-                        <span className={`shrink-0 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-bold ${qOptions.some((o, i) => qForm.correct_index === String(i) && (o.text.trim() || o.image_path)) ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
-                          <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                          Kunci: {qOptions.some((o, i) => qForm.correct_index === String(i) && (o.text.trim() || o.image_path)) ? String.fromCharCode(65 + Number(qForm.correct_index)) : 'belum dipilih'}
-                        </span>
+                        {(() => {
+                          const isMultiType = qForm.question_type === 'multi'
+                          const validKeys = isMultiType
+                            ? (qForm.correct_indexes || []).filter(i => qOptions[i] && (qOptions[i].text.trim() || qOptions[i].image_path)).sort((a, b) => a - b)
+                            : (qOptions.some((o, i) => qForm.correct_index === String(i) && (o.text.trim() || o.image_path)) ? [Number(qForm.correct_index)] : [])
+                          const hasKey = validKeys.length > 0
+                          return (
+                            <span className={`shrink-0 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-bold ${hasKey ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+                              <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                              {isMultiType ? 'Kunci' : 'Kunci'}: {hasKey ? validKeys.map(i => String.fromCharCode(65 + i)).join(', ') : 'belum dipilih'}
+                            </span>
+                          )
+                        })()}
                       </div>
                       <div className="space-y-2">
-                        {qOptions.map((opt, oi) => (
+                        {qOptions.map((opt, oi) => {
+                          const isMultiType = qForm.question_type === 'multi'
+                          const isKey = isMultiType
+                            ? (qForm.correct_indexes || []).includes(oi)
+                            : qForm.correct_index === String(oi)
+                          const toggleKey = () => {
+                            if (isMultiType) {
+                              const cur = qForm.correct_indexes || []
+                              const next = cur.includes(oi) ? cur.filter(i => i !== oi) : [...cur, oi].sort((a, b) => a - b)
+                              setQForm({ ...qForm, correct_indexes: next })
+                            } else {
+                              setQForm({ ...qForm, correct_index: String(oi), correct_indexes: [] })
+                            }
+                          }
+                          return (
                           <div key={oi}
-                            className={`flex items-center gap-2 rounded-md border px-2 py-1.5 transition-colors ${qForm.correct_index === String(oi) ? 'border-emerald-300 bg-emerald-50/50' : 'border-slate-200 bg-white'}`}>
-                            <button onClick={() => setQForm({ ...qForm, correct_index: String(oi) })}
-                              title="Tandai sebagai jawaban benar"
-                              className={`w-7 h-7 shrink-0 flex items-center justify-center rounded-md border-2 text-xs font-bold transition-colors ${qForm.correct_index === String(oi) ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-200 text-slate-400 hover:border-[#0E6187] hover:text-[#0E6187]'}`}>
+                            className={`flex items-center gap-2 rounded-md border px-2 py-1.5 transition-colors ${isKey ? 'border-emerald-300 bg-emerald-50/50' : 'border-slate-200 bg-white'}`}>
+                            <button onClick={toggleKey}
+                              title={isMultiType ? 'Tandai/lepas jawaban benar' : 'Tandai sebagai jawaban benar'}
+                              className={`w-7 h-7 shrink-0 flex items-center justify-center border-2 text-xs font-bold transition-colors ${isMultiType ? 'rounded-md' : 'rounded-full'} ${isKey ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-200 text-slate-400 hover:border-[#0E6187] hover:text-[#0E6187]'}`}>
                               {String.fromCharCode(65 + oi)}
                             </button>
                             <input value={opt.text} onChange={e => { const arr = [...qOptions]; arr[oi] = { ...arr[oi], text: e.target.value }; setQOptions(arr) }}
@@ -5203,13 +5298,18 @@ export default function DataCourse() {
                               )}
                             </div>
                             {qOptions.length > 2 && (
-                              <button onClick={() => setQOptions(qOptions.filter((_, idx) => idx !== oi))} title="Hapus opsi"
+                              <button onClick={() => {
+                                setQOptions(qOptions.filter((_, idx) => idx !== oi))
+                                const cur = qForm.correct_indexes || []
+                                setQForm({ ...qForm, correct_indexes: cur.filter(i => i !== oi).map(i => i > oi ? i - 1 : i) })
+                              }} title="Hapus opsi"
                                 className="p-1.5 rounded-md text-red-400 hover:bg-red-50 hover:text-red-500 shrink-0 transition-colors">
                                 <X size={14} />
                               </button>
                             )}
                           </div>
-                        ))}
+                          )
+                        })}
                       </div>
                       {qOptions.length < 6 && (
                         <button onClick={() => setQOptions([...qOptions, { text: '', image_path: null, image_url: null }])}
@@ -5217,7 +5317,11 @@ export default function DataCourse() {
                           <Plus size={13} /> Tambah opsi
                         </button>
                       )}
-                      <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">Klik huruf <span className="font-bold text-emerald-600">A/B/C...</span> untuk menandai kunci jawaban. Klik ikon <span className="font-bold text-[#0E6187]">gambar</span> di kanan opsi untuk menjadikan opsi berupa gambar.</p>
+                      <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
+                        {qForm.question_type === 'multi'
+                          ? <>Klik huruf <span className="font-bold text-emerald-600">A/B/C...</span> untuk menandai <span className="font-bold">satu atau lebih</span> kunci jawaban. Jawaban dinilai benar hanya bila pilihan kandidat sama persis dengan kunci. Klik ikon <span className="font-bold text-[#0E6187]">gambar</span> untuk menjadikan opsi berupa gambar.</>
+                          : <>Klik huruf <span className="font-bold text-emerald-600">A/B/C...</span> untuk menandai kunci jawaban. Klik ikon <span className="font-bold text-[#0E6187]">gambar</span> di kanan opsi untuk menjadikan opsi berupa gambar.</>}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -5245,9 +5349,11 @@ export default function DataCourse() {
               <p className="text-xs text-slate-500 text-center sm:text-left">
                 {qForm.question_type === 'choice'
                   ? 'Pastikan kunci jawaban sudah ditandai pada salah satu opsi.'
-                  : qForm.question_type === 'rating'
-                    ? 'Soal rating tidak memakai kunci jawaban.'
-                    : 'Esai dinilai dari kunci kata kunci atau penilaian manual.'}
+                  : qForm.question_type === 'multi'
+                    ? 'Tandai satu atau lebih kunci jawaban. Kandidat harus memilih tepat sama dengan kunci.'
+                    : qForm.question_type === 'rating'
+                      ? 'Soal rating tidak memakai kunci jawaban.'
+                      : 'Esai dinilai dari kunci kata kunci atau penilaian manual.'}
               </p>
               <div className="flex items-center gap-2">
                 <button onClick={() => setShowQuestionModal(false)}
@@ -5490,25 +5596,34 @@ export default function DataCourse() {
                                 </div>
                               )}
                             </div>
-                          ) : (q.options.map((opt, oi) => {
-                            const isCorrect = q.correct_index === oi
-                            const isSelected = q.selected_index === oi
-                            const optLabel = typeof opt === 'string' ? opt : ((opt as { text?: string }).text ?? '')
-                            const optRaw = typeof opt === 'string' ? null : ((opt as { image_url?: string | null; image_path?: string | null }).image_url || (opt as { image_path?: string | null }).image_path || null)
-                            const optUrl = optRaw && !optRaw.startsWith('http') ? `${APP_URL}/storage/${optRaw}` : optRaw
-                            return (
-                              <div key={oi}
-                                className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg font-medium ${isCorrect ? 'bg-emerald-50 text-emerald-700 font-bold' : isSelected ? 'bg-red-50 text-red-500 font-bold' : 'bg-slate-50 text-slate-600'}`}>
-                                <span className={`w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold shrink-0 ${isCorrect ? 'bg-emerald-500 text-white' : isSelected ? 'bg-red-500 text-white' : 'bg-slate-200 text-slate-400'}`}>
-                                  {String.fromCharCode(65 + oi)}
-                                </span>
-                                {optUrl && <img src={optUrl} className="h-5 w-5 rounded object-cover shrink-0" alt="" />}
-                                <span className="flex-1">{optLabel}</span>
-                                {isCorrect && <span className="text-[9px] font-bold shrink-0">KUNCI</span>}
-                                {isSelected && <span className="text-[9px] font-bold shrink-0">JAWABAN</span>}
-                              </div>
-                            )
-                          }))}
+                          ) : ((() => {
+                            const isMultiQ = q.question_type === 'multi'
+                            const keySet = new Set(isMultiQ
+                              ? (Array.isArray(q.correct_indexes) ? q.correct_indexes.map(Number) : [])
+                              : (q.correct_index !== null && q.correct_index !== undefined ? [Number(q.correct_index)] : []))
+                            const selSet = new Set(isMultiQ
+                              ? (Array.isArray(q.selected_indexes) ? q.selected_indexes.map(Number) : [])
+                              : (q.selected_index !== null && q.selected_index !== undefined ? [Number(q.selected_index)] : []))
+                            return q.options.map((opt, oi) => {
+                              const isCorrect = keySet.has(oi)
+                              const isSelected = selSet.has(oi)
+                              const optLabel = typeof opt === 'string' ? opt : ((opt as { text?: string }).text ?? '')
+                              const optRaw = typeof opt === 'string' ? null : ((opt as { image_url?: string | null; image_path?: string | null }).image_url || (opt as { image_path?: string | null }).image_path || null)
+                              const optUrl = optRaw && !optRaw.startsWith('http') ? `${APP_URL}/storage/${optRaw}` : optRaw
+                              return (
+                                <div key={oi}
+                                  className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg font-medium ${isCorrect ? 'bg-emerald-50 text-emerald-700 font-bold' : isSelected ? 'bg-red-50 text-red-500 font-bold' : 'bg-slate-50 text-slate-600'}`}>
+                                  <span className={`w-4 h-4 flex items-center justify-center text-[9px] font-bold shrink-0 ${isMultiQ ? 'rounded-md' : 'rounded-full'} ${isCorrect ? 'bg-emerald-500 text-white' : isSelected ? 'bg-red-500 text-white' : 'bg-slate-200 text-slate-400'}`}>
+                                    {String.fromCharCode(65 + oi)}
+                                  </span>
+                                  {optUrl && <img src={optUrl} className="h-5 w-5 rounded object-cover shrink-0" alt="" />}
+                                  <span className="flex-1">{optLabel}</span>
+                                  {isCorrect && <span className="text-[9px] font-bold shrink-0">KUNCI</span>}
+                                  {isSelected && <span className="text-[9px] font-bold shrink-0">JAWABAN</span>}
+                                </div>
+                              )
+                            })
+                          })())}
                         </div>
                       </div>
                     ))}

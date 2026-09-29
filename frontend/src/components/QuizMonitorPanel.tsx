@@ -50,12 +50,14 @@ interface DetailQuestion {
   rating_max: number | null
   options: OptionEntry[]
   correct_index: number | null
+  correct_indexes?: number[] | null
   keyword: string | null
   points: number
   image_url?: string | null
   audio_url?: string | null
   audio_max_plays?: number | null
   selected_index?: number | null
+  selected_indexes?: number[] | null
   answer_text?: string | null
   earned_points?: number | null
   is_correct?: boolean | null
@@ -521,12 +523,15 @@ export default function QuizMonitorPanel({ paketId, title, onClose }: QuizMonito
                               )}
                             </div>
                           ) : (q.options.map((opt, oi) => {
-                            const isCorrect = q.correct_index === oi
-                            const isSelected = q.selected_index === oi
+                            const isMultiQ = q.question_type === 'multi'
+                            const correctSet = new Set((q.correct_indexes || []).map(Number))
+                            const selectedSet = new Set((q.selected_indexes || []).map(Number))
+                            const isCorrect = isMultiQ ? correctSet.has(oi) : (q.correct_index === oi)
+                            const isSelected = isMultiQ ? selectedSet.has(oi) : (q.selected_index === oi)
                             return (
                               <div key={oi}
                                 className={`flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-md font-medium ${isCorrect ? 'bg-emerald-50 text-emerald-700 font-bold' : isSelected ? 'bg-red-50 text-red-500 font-bold' : 'bg-[#F4F5F8] text-[#4B5063]'}`}>
-                                <span className={`w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold shrink-0 ${isCorrect ? 'bg-emerald-500 text-white' : isSelected ? 'bg-red-500 text-white' : 'bg-[#E5E7EF] text-[#8B90A0]'}`}>
+                                <span className={`w-4 h-4 flex items-center justify-center text-[9px] font-bold shrink-0 ${isMultiQ ? 'rounded-md' : 'rounded-full'} ${isCorrect ? 'bg-emerald-500 text-white' : isSelected ? 'bg-red-500 text-white' : 'bg-[#E5E7EF] text-[#8B90A0]'}`}>
                                   {String.fromCharCode(65 + oi)}
                                 </span>
                                 {optAbsUrl(opt) && <img src={optAbsUrl(opt)} className="h-5 w-5 rounded-md object-cover shrink-0" alt="" />}

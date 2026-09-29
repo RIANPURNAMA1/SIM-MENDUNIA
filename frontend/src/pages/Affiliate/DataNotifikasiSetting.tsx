@@ -21,6 +21,8 @@ import {
   Plus,
   Trash2,
   Building2,
+  CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react'
 
 interface GlobalSetting {
@@ -44,7 +46,8 @@ interface CabangAdminRow {
 interface MailSetting {
   key: string
   description: string
-  value?: string
+  value?: string | null
+  is_set?: boolean
 }
 
 type TabId = 'wa' | 'email' | 'website' | 'ai' | 'uji'
@@ -286,6 +289,21 @@ export default function DataNotifikasiSetting() {
   const handleMailValueChange = (key: string, value: string) => {
     setMailSettings(prev => prev.map(s => s.key === key ? { ...s, value } : s))
   }
+
+  const mailField = (key: string) => mailSettings.find(s => s.key === key)
+  const mailPasswordValue = mailField('mail_password')?.value ?? ''
+  const mailPasswordSet = mailField('mail_password')?.is_set === true
+
+  const clearMailPassword = () => {
+    setMailSettings(prev => prev.map(s =>
+      s.key === 'mail_password' ? { ...s, value: '', is_set: false } : s
+    ))
+  }
+
+  const mailMailer = mailField('mail_mailer')?.value || 'log'
+  const mailHostFilled = !!mailField('mail_host')?.value
+  const mailUserFilled = !!mailField('mail_username')?.value
+  const mailReady = mailMailer === 'smtp' ? (mailHostFilled && mailPasswordSet) : true
 
   const handleTestEmail = async () => {
     if (!testEmail.trim()) return
@@ -853,34 +871,84 @@ export default function DataNotifikasiSetting() {
               </button>
             </div>
             <div className="px-6 py-5">
+              {/* Status bar */}
+              <div className={`mb-5 flex flex-wrap items-center gap-2 rounded-xl border px-4 py-3 text-[13px] ${
+                mailReady
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                  : 'border-amber-200 bg-amber-50 text-amber-700'
+              }`}>
+                {mailReady ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
+                <span className="font-semibold">
+                  {mailReady ? 'SMTP siap dipakai' : 'SMTP belum lengkap'}
+                </span>
+                <span className="opacity-80">
+                  {mailMailer === 'log'
+                    ? 'Saat ini email hanya ditulis ke log server, tidak benar-benar terkirim. Pilih mailer "smtp" lalu isi host & password.'
+                    : mailReady
+                      ? `Email akan dikirim lewat ${mailField('mail_host')?.value}:${mailField('mail_port')?.value || 587}.`
+                      : 'Isi SMTP Host dan SMTP Password agar email benar-benar terkirim.'}
+                </span>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {mailSettings.map(setting => {
-                  const val = setting.value ?? ''
+                  const isPassword = setting.key === 'mail_password'
+                  const isSet = setting.is_set === true
+                  const val = isPassword ? mailPasswordValue : (setting.value ?? '')
+
                   return (
                     <div key={setting.key}>
                       <label className="block text-sm font-medium text-slate-600 mb-1">
                         {setting.description}
                         <span className="ml-1 text-xs text-slate-400 font-mono">{setting.key}</span>
+                        {isPassword && isSet && !mailPasswordValue && (
+                          <span className="ml-1.5 text-[11px] font-semibold text-emerald-600">
+                            tersimpan
+                          </span>
+                        )}
                       </label>
+
                       {setting.key === 'mail_encryption' ? (
-                        <select value={val} onChange={e => handleMailValueChange(setting.key, e.target.value)}
+                        <select value={val || 'none'} onChange={e => handleMailValueChange(setting.key, e.target.value)}
                           className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20">
                           <option value="tls">tls</option>
                           <option value="ssl">ssl</option>
-                          <option value="">none</option>
+                          <option value="none">none</option>
+                          <option value="">default (.env)</option>
                         </select>
                       ) : setting.key === 'mail_mailer' ? (
-                        <select value={val} onChange={e => handleMailValueChange(setting.key, e.target.value)}
+                        <select value={val || 'log'} onChange={e => handleMailValueChange(setting.key, e.target.value)}
                           className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20">
                           <option value="smtp">smtp</option>
                           <option value="log">log</option>
                         </select>
+                      ) : isPassword ? (
+                        <div className="flex gap-2">
+                          <input
+                            type="password"
+                            value={val}
+                            autoComplete="new-password"
+                            onChange={e => handleMailValueChange(setting.key, e.target.value)}
+                            placeholder={isSet ? '••••••••  (kosongkan bila tidak diubah)' : 'App password / Email Password'}
+                            className="flex-1 min-w-0 px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20"
+                          />
+                          {(mailPasswordValue || isSet) && (
+                            <button
+                              type="button"
+                              onClick={clearMailPassword}
+                              title="Hapus password tersimpan"
+                              className="shrink-0 px-3 py-2 border border-slate-200 rounded-lg text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors"
+                            >
+                              Hapus
+                            </button>
+                          )}
+                        </div>
                       ) : (
                         <input
-                          type={setting.key === 'mail_password' ? 'password' : setting.key === 'mail_port' ? 'number' : 'text'}
+                          type={setting.key === 'mail_port' ? 'number' : 'text'}
                           value={val}
                           onChange={e => handleMailValueChange(setting.key, e.target.value)}
-                          placeholder={setting.key === 'mail_host' ? 'smtp.gmail.com' : setting.key === 'mail_port' ? '587' : setting.key === 'mail_encryption' ? 'tls' : ''}
+                          placeholder={setting.key === 'mail_host' ? 'smtp.gmail.com' : setting.key === 'mail_port' ? '587' : setting.key === 'mail_from_name' ? 'SIM Mendunia' : ''}
                           className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20"
                         />
                       )}
@@ -889,7 +957,9 @@ export default function DataNotifikasiSetting() {
                 })}
               </div>
               <p className="mt-4 text-xs text-slate-400">
-                Kosongkan field untuk memakai nilai bawaan dari <code className="bg-slate-100 px-1 rounded">.env</code>. Konfigurasi ini langsung dipakai untuk pengiriman email setelah disimpan.
+                Nilai kosong memakai bawaan <code className="bg-slate-100 px-1 rounded">.env</code>. Pengaturan ini dipakai
+                otomatis oleh semua pengiriman email (notifikasi, tagihan, OTP reset password) setelah disimpan, tanpa perlu
+                restart server.
               </p>
             </div>
           </div>

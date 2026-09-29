@@ -132,6 +132,18 @@ class QuizController extends Controller
                 continue;
             }
 
+            if ($q->isMulti()) {
+                $selected = QuizQuestion::normalizeIndexes($a?->selected_indexes);
+                if ($selected === []) {
+                    $a?->update(['is_correct' => false, 'earned_points' => 0]);
+                } elseif ($q->isAnswerCorrect($selected)) {
+                    $a?->update(['is_correct' => true, 'earned_points' => (int) $q->points]);
+                } else {
+                    $a?->update(['is_correct' => false, 'earned_points' => 0]);
+                }
+                continue;
+            }
+
             $sel = $a?->selected_index;
             $isRating = $q->question_type === 'rating';
             if ($sel !== null && ($isRating || (int) $sel === (int) $q->correct_index)) {
@@ -155,17 +167,19 @@ try {
         } catch (\Throwable $e) {
         }
 
+        // Sinkronisasi nilai ke "Penilaian Siswa" tidak boleh menggagalkan submit
+        // quiz, tapi errornya harus terlihat di log (tidak dibuang diam-diam).
         try {
-            $sync = new \App\Services\QuizAssessmentSync();
+            $sync = app(\App\Services\QuizAssessmentSync::class);
             $sync->syncAttempt($attempt);
             $sync->syncAttemptFromLesson($attempt);
         } catch (\Throwable $e) {
-        }
-
-        try {
-            app(\App\Services\QuizAssessmentSync::class)->syncAttempt($attempt);
-        } catch (\Throwable $e) {
-            // Sinkronisasi nilai ke penilaian tidak boleh menggagalkan submit quiz.
+            \Illuminate\Support\Facades\Log::error('QuizAssessmentSync gagal setelah submit: ' . $e->getMessage(), [
+                'attempt_id' => $attempt->id,
+                'paket_id' => $attempt->quiz_paket_id,
+                'siswa_id' => $attempt->siswa_id,
+                'trace' => $e->getTraceAsString(),
+            ]);
         }
     }
 
@@ -179,7 +193,7 @@ try {
     private function resultPayload(QuizAttempt $attempt)
     {
         $answered = $attempt->answers()
-            ->where(fn ($q) => $q->whereNotNull('selected_index')->orWhereNotNull('answer_text'))
+            ->where(fn ($q) => $q->whereNotNull('selected_index')->orWhereNotNull('answer_text')->orWhereNotNull('selected_indexes'))
             ->count();
         return [
             'attempt_id' => $attempt->id,
@@ -614,6 +628,7 @@ try {
                     'audio_max_plays' => $q->audio_max_plays,
                     'audio_plays' => $a?->audio_plays ?? 0,
                     'selected_index' => $a?->selected_index,
+                    'selected_indexes' => QuizQuestion::normalizeIndexes($a?->selected_indexes),
                     'answer_text' => $a?->answer_text,
                 ];
             }),
@@ -645,6 +660,7 @@ try {
                 'rating_max' => $q->rating_max,
                 'options' => $this->optionList($q->options),
                 'correct_index' => $q->correct_index,
+                'correct_indexes' => $q->correctIndexList(),
                 'keyword' => $q->keyword,
                 'points' => $q->points,
                 'sort' => $q->sort,
@@ -652,6 +668,7 @@ try {
                 'audio_url' => $q->audio_url,
                 'audio_max_plays' => $q->audio_max_plays,
                 'selected_index' => $a?->selected_index,
+                'selected_indexes' => QuizQuestion::normalizeIndexes($a?->selected_indexes),
                 'answer_text' => $a?->answer_text,
                 'earned_points' => $a?->earned_points,
                 'is_correct' => $a?->is_correct,
@@ -688,6 +705,8 @@ try {
         $data = $request->validate([
             'question_id' => 'required|integer',
             'selected_index' => 'nullable|integer|min:-1',
+            'selected_indexes' => 'nullable|array',
+            'selected_indexes.*' => 'integer|min:0',
             'answer_text' => 'nullable|string|max:5000',
         ]);
 
@@ -704,7 +723,7 @@ try {
             $text = trim((string) ($data['answer_text'] ?? ''));
             $answer = QuizAnswer::updateOrCreate(
                 ['quiz_attempt_id' => $attempt->id, 'quiz_question_id' => $question->id],
-                ['answer_text' => $text !== '' ? $text : null, 'selected_index' => null]
+                ['answer_text' => $text !== '' ? $text : null, 'selected_index' => null, 'selected_indexes' => null]
             );
             try {
                 WebcamSnapshotUpdated::dispatch((int) $attempt->quiz_paket_id, (int) $attempt->id);
@@ -717,8 +736,39 @@ try {
             ]);
         }
 
+        $optionCount = count($question->options ?? []);
+
+        if ($question->isMulti()) {
+            $indexes = QuizQuestion::normalizeIndexes($data['selected_indexes'] ?? []);
+            foreach ($indexes as $i) {
+                if ($i >= $optionCount) {
+                    return response()->json(['message' => 'Opsi tidak valid'], 422);
+                }
+            }
+
+            $answer = QuizAnswer::updateOrCreate(
+                ['quiz_attempt_id' => $attempt->id, 'quiz_question_id' => $question->id],
+                [
+                    'selected_index' => null,
+                    'selected_indexes' => $indexes === [] ? null : $indexes,
+                    'answer_text' => null,
+                ]
+            );
+
+            try {
+                WebcamSnapshotUpdated::dispatch((int) $attempt->quiz_paket_id, (int) $attempt->id);
+            } catch (\Throwable $e) {
+                // Realtime push bersifat opsional: jawaban tetap tersimpan walau server websocket mati.
+            }
+
+            return response()->json([
+                'question_id' => $question->id,
+                'selected_indexes' => $indexes,
+            ]);
+        }
+
         $index = (int) ($data['selected_index'] ?? -1);
-        if ($index >= 0 && $index >= count($question->options)) {
+        if ($index >= 0 && $index >= $optionCount) {
             return response()->json(['message' => 'Opsi tidak valid'], 422);
         }
 
@@ -726,7 +776,7 @@ try {
 
         $answer = QuizAnswer::updateOrCreate(
             ['quiz_attempt_id' => $attempt->id, 'quiz_question_id' => $question->id],
-            ['selected_index' => $savedIndex, 'answer_text' => null]
+            ['selected_index' => $savedIndex, 'selected_indexes' => null, 'answer_text' => null]
         );
 
         try {
