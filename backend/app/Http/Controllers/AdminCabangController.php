@@ -1892,7 +1892,7 @@ class AdminCabangController extends Controller
 
         $query = Course::withCount(['lessons' => function ($q) {
             $q->where('status', 'aktif');
-        }]);
+        }])->with(['kelasSensei.user:id,name']);
 
         if ($request->batch_id && in_array($request->batch_id, $batchIds)) {
             $query->where(function ($q) use ($request) {
@@ -1923,9 +1923,19 @@ class AdminCabangController extends Controller
 
         $perPage = $request->filled('per_page') ? (int) $request->per_page : null;
 
+        // Nama sensei pengajar kursus (kursus hasil "Tambah Kelas" punya
+        // kelas_sensei_id) agar cabang tahu siapa yang mengajar.
+        $decorate = function ($c) {
+            $sensei = $c->kelasSensei?->user;
+            $c->sensei_nama = $sensei?->name ?? null;
+            $c->sensei_id = $sensei?->id ?? null;
+            $c->nama_kelas = $c->kelasSensei?->nama_kelas ?? null;
+            $c->makeVisible('password_course');
+        };
+
         if ($perPage) {
             $courses = $query->orderBy('sort')->orderBy('id')->paginate($perPage);
-            $courses->getCollection()->each(fn ($c) => $c->makeVisible('password_course'));
+            $courses->getCollection()->each($decorate);
             return response()->json([
                 'success' => true,
                 'courses' => $courses->items(),
@@ -1941,7 +1951,7 @@ class AdminCabangController extends Controller
         }
 
         $courses = $query->orderBy('sort')->get();
-        $courses->each(fn ($c) => $c->makeVisible('password_course'));
+        $courses->each($decorate);
 
         return response()->json([
             'success' => true,

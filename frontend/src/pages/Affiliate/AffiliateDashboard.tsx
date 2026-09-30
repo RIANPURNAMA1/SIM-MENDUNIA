@@ -10,11 +10,59 @@ interface Product {
   komisi: number | null
 }
 
+interface KomisiTier {
+  id: number
+  batch_id: number | null
+  batch_nama: string | null
+  min_orang: number
+  max_orang: number | null
+  komisi: number
+}
+
+interface TierProgress {
+  batch_id: number
+  batch_nama: string
+  lunas_count: number
+  komisi_berkas: number
+  status_komisi: string | null
+  tier_aktif: number | null
+  tier_berikut: { min_orang: number; komisi: number } | null
+  kurang_orang: number
+}
+
+interface KomisiProgress {
+  link_id: number
+  kode: string
+  nama_link: string | null
+  product: { id: number; nama: string; harga: number }
+  kategori: {
+    kategori_id: number
+    nama: string
+    sub: string[]
+    tiers: KomisiTier[]
+    progres: TierProgress[]
+  }[]
+}
+
 interface DashboardData {
   affiliate: { name: string; email: string; telepon: string | null; alamat: string | null }
   stats: { total_links: number; total_views: number; total_pendaftar: number; pending: number; disetujui: number; komisi_pending: number; komisi_paid: number }
   links: { id: number; kode: string; nama_link: string | null; views: number; pendaftar_count: number; product: { id: number; nama: string; harga: number; komisi: number | null } | null; komisi_dibayar: number; komisi_pending: number; total_komisi: number }[]
   pendaftar: { id: number; nama: string; email: string; nominal: number; status_pendaftaran: string; status_pembayaran: string; status_kandidat?: string; batch: { id: number; nama_batch: string } | null; created_at: string; product: { nama: string; harga: number; komisi: number | null } | null; komisi_diperoleh: number; komisi_pending: number }[]
+  komisi_progress: KomisiProgress[]
+}
+
+const rp = (n: number | null | undefined) => `Rp ${Number(n || 0).toLocaleString('id-ID')}`
+
+function tierLabel(t: KomisiTier) {
+  return t.max_orang === null ? `${t.min_orang}+` : `${t.min_orang}-${t.max_orang}`
+}
+
+function statusKomisiBadge(status: string | null) {
+  if (status === 'paid') return { label: 'Sudah Dibayar', cls: 'bg-emerald-100 text-emerald-700' }
+  if (status === 'cair') return { label: 'Cair', cls: 'bg-blue-100 text-blue-700' }
+  if (status === 'pending') return { label: 'Menunggu Verifikasi', cls: 'bg-amber-100 text-amber-700' }
+  return { label: 'Belum Tercapai', cls: 'bg-slate-100 text-slate-500' }
 }
 
 function toast(msg: string) {
@@ -102,6 +150,7 @@ export default function AffiliateDashboard() {
   }
 
   const { affiliate, stats, links, pendaftar } = data
+  const komisiProgress = data.komisi_progress ?? []
 
   const batchList = [...new Map(pendaftar.filter(p => p.batch).map(p => [p.batch!.id, p.batch!.nama_batch])).entries()]
     .map(([id, nama_batch]) => ({ id, nama_batch }))
@@ -173,6 +222,125 @@ export default function AffiliateDashboard() {
             ))}
           </div>
 
+          {/* Info Pembayaran Komisi */}
+          <div className="mb-4 rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5">
+              <div className="flex items-center gap-2">
+                <Wallet size={16} className="text-emerald-600" />
+                <h2 className="text-sm font-bold text-slate-800">Info Pembayaran Komisi</h2>
+              </div>
+              {stats.komisi_pending > 0 && (
+                <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700">
+                  {rp(stats.komisi_pending)} menunggu
+                </span>
+              )}
+            </div>
+
+            {komisiProgress.length === 0 ? (
+              <div className="flex flex-col items-center px-5 py-10 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
+                  <Wallet size={22} className="text-slate-400" />
+                </div>
+                <p className="mt-3 text-sm font-medium text-slate-500">Belum ada pengaturan komisi</p>
+                <p className="mt-1 text-xs text-slate-400">Aturan komisi disetel oleh admin pada halaman Edit Produk</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {komisiProgress.map(prog => (
+                  <div key={prog.link_id} className="px-5 py-4">
+                    <p className="text-sm font-bold text-slate-800">{prog.product.nama}</p>
+                    <p className="text-[11px] text-slate-400">
+                      {prog.nama_link || `Link ${prog.kode}`} · Biaya program {rp(prog.product.harga)}
+                    </p>
+
+                    <div className="mt-3 space-y-3">
+                      {prog.kategori.map(kat => {
+                        return (
+                        <div key={kat.kategori_id} className="overflow-hidden rounded-lg border border-slate-200">
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50 px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-slate-700">{kat.nama}</span>
+                              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+                                {kat.tiers.length} tier
+                              </span>
+                            </div>
+                            {kat.sub.length > 0 && (
+                              <span className="text-[10px] text-slate-400">Sub: {kat.sub.join(', ')}</span>
+                            )}
+                          </div>
+
+                          <div className="p-3">
+                            <div className="grid grid-cols-[1fr_46px_84px] gap-2 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                              <span>Batch</span>
+                              <span className="text-center">Tier</span>
+                              <span className="text-right">Komisi (flat)</span>
+                            </div>
+
+                            <div className="mt-1.5 space-y-1">
+                              {kat.tiers.map(t => (
+                                <div key={t.id} className="grid grid-cols-[1fr_46px_84px] items-center gap-2 rounded-lg bg-slate-50 p-2">
+                                  <span className="truncate text-[11px] font-semibold text-slate-700">
+                                    {t.batch_nama || 'Semua Batch'}
+                                  </span>
+                                  <span className="text-center text-[11px] font-semibold text-slate-500">{tierLabel(t)}</span>
+                                  <span className="text-right text-[11px] font-bold text-emerald-600">{rp(t.komisi)}</span>
+                                </div>
+                              ))}
+                            </div>
+
+                            {kat.progres.length > 0 && (
+                              <div className="mt-3 space-y-2 border-t border-dashed border-slate-200 pt-3">
+                                {kat.progres.map(pr => {
+                                  const badge = statusKomisiBadge(pr.status_komisi)
+                                  const pct = pr.tier_berikut
+                                    ? Math.min(100, Math.round((pr.lunas_count / pr.tier_berikut.min_orang) * 100))
+                                    : 100
+                                  return (
+                                    <div key={pr.batch_id} className="rounded-lg border border-slate-200 p-2.5">
+                                      <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <span className="text-[11px] font-semibold text-slate-700">
+                                          {pr.batch_nama} · <span className="text-slate-500">{pr.lunas_count} kandidat lunas</span>
+                                        </span>
+                                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${badge.cls}`}>
+                                          {badge.label}
+                                        </span>
+                                      </div>
+
+                                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                                        <div
+                                          className={`h-full rounded-full ${pr.tier_berikut ? 'bg-amber-400' : 'bg-emerald-500'}`}
+                                          style={{ width: `${pct}%` }}
+                                        />
+                                      </div>
+
+                                      <p className="mt-1.5 text-[10px] leading-relaxed text-slate-500">
+                                        {pr.tier_berikut ? (
+                                          <>
+                                            Kurang <strong className="text-slate-700">{pr.kurang_orang} kandidat lagi</strong> untuk
+                                            naik ke <strong className="text-emerald-600">{rp(pr.tier_berikut.komisi)}</strong>
+                                          </>
+                                        ) : pr.tier_aktif ? (
+                                          <>Tier tertinggi tercapai — komisi <strong className="text-emerald-600">{rp(pr.tier_aktif)}</strong></>
+                                        ) : (
+                                          <>Belum ada kandidat lunas</>
+                                        )}
+                                      </p>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Link Saya + Pendaftar */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -189,7 +357,7 @@ export default function AffiliateDashboard() {
                       <p className="truncate text-sm font-semibold text-slate-800">{link.nama_link || 'Link ' + link.kode}</p>
                       <p className="text-xs text-slate-400">{link.product?.nama} · Rp {Number(link.product?.harga || 0).toLocaleString('id-ID')}</p>
                       {link.product?.komisi ? (
-                        <p className="mt-0.5 text-[11px] font-medium text-blue-600">Komisi: Rp {Number(link.product.komisi).toLocaleString('id-ID')}/kandidat</p>
+                        <p className="mt-0.5 text-[11px] font-medium text-blue-600">Komisi: {rp(link.product.komisi)} (flat)</p>
                       ) : null}
                       <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-slate-500">
                         <span className="flex items-center gap-1"><Eye size={12} /> {link.views}</span>
@@ -241,7 +409,7 @@ export default function AffiliateDashboard() {
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-slate-800 truncate">{p.nama}</p>
-                        <p className="text-xs text-slate-400">{p.product?.nama}{p.batch?.nama_batch ? <span className="ml-1 text-[10px] text-indigo-500">· {p.batch.nama_batch}</span> : null}</p>
+                        <p className="text-xs text-slate-400">                          {p.product?.nama}{p.batch?.nama_batch ? <span className="ml-1 text-[10px] text-indigo-500">· {p.batch.nama_batch}</span> : null}</p>
                         {(p.komisi_diperoleh > 0 || p.komisi_pending > 0) && (
                           <div className="mt-0.5 flex items-center gap-2 text-[11px]">
                             {p.komisi_diperoleh > 0 && <span className="text-emerald-600 font-medium">Dibayar: Rp {Number(p.komisi_diperoleh).toLocaleString('id-ID')}</span>}
@@ -325,7 +493,7 @@ export default function AffiliateDashboard() {
                         <td className="border border-slate-200 px-4 py-3 text-sm text-slate-500">{p.email}</td>
                         <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">
                           {p.product?.nama || '-'}
-                          {p.product?.komisi && <span className="ml-1 text-[10px] text-blue-500">(Rp {Number(p.product.komisi).toLocaleString('id-ID')}/org)</span>}
+                          {p.product?.komisi && <span className="ml-1 text-[10px] text-blue-500">({rp(p.product.komisi)} flat)</span>}
                         </td>
                         <td className="border border-slate-200 px-4 py-3 text-sm text-slate-500">{p.batch?.nama_batch || '-'}</td>
                         <td className="border border-slate-200 px-4 py-3 text-center">

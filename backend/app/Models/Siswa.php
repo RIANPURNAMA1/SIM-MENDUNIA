@@ -68,24 +68,13 @@ class Siswa extends Model
      */
     public function levelRekap(?string $startDate = null, ?string $endDate = null): ?int
     {
-        $level = $this->absensi()
-            ->when($startDate && $endDate, fn ($q) => $q->whereBetween('tanggal', [$startDate, $endDate]))
-            ->with('kelasSensei:id,level')
-            ->get()
-            ->map(fn ($a) => $a->kelasSensei?->level)
-            ->filter()
-            ->last();
-        if ($level !== null) return (int) $level;
+        $level = $this->levelAbsensiTerbaru($startDate, $endDate);
+        if ($level !== null) return $level;
 
         if (!empty($this->level)) return (int) $this->level;
 
-        $level = $this->absensi()
-            ->with('kelasSensei:id,level')
-            ->get()
-            ->map(fn ($a) => $a->kelasSensei?->level)
-            ->filter()
-            ->last();
-        if ($level !== null) return (int) $level;
+        $level = $this->levelAbsensiTerbaru();
+        if ($level !== null) return $level;
 
         $aktifLevels = KelasSensei::where('batch_id', $this->batch_id)
             ->where('status', 'aktif')
@@ -97,6 +86,30 @@ class Siswa extends Model
         }
 
         return null;
+    }
+
+    /**
+     * Level kelas dari absensi paling baru. Absensi wajib diurutkan, tanpa itu
+     * "terakhir" hanya berarti baris acak hasil returned MySQL. Absensi dengan
+     * kelas_sensei_id NULL diabaikan karena kelasnya sudah dihapus.
+     */
+    private function levelAbsensiTerbaru(?string $startDate = null, ?string $endDate = null): ?int
+    {
+        $q = $this->absensi()
+            ->whereNotNull('kelas_sensei_id')
+            ->whereHas('kelasSensei', fn ($k) => $k->whereNotNull('level'))
+            ->with('kelasSensei:id,level')
+            ->orderByRaw('tanggal IS NULL')
+            ->orderByDesc('tanggal')
+            ->orderByDesc('id');
+
+        if ($startDate && $endDate) {
+            $q->whereBetween('tanggal', [$startDate, $endDate]);
+        }
+
+        $level = $q->first()?->kelasSensei?->level;
+
+        return ($level === null || $level === '') ? null : (int) $level;
     }
 
     public function shift()

@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import {
   BookOpen, Plus, Edit3, Trash2, Search, X, Image as ImageIcon, FileText,
   ListChecks, Eye, EyeOff, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Camera, Clock, Repeat,
-  Award, Users, UserCheck, Pencil, Loader2, ArrowLeft, Video, UploadCloud, Upload, Mic, RotateCcw,
+  Award, Users, UserCheck, UserRound, Pencil, Loader2, ArrowLeft, Video, UploadCloud, Upload, Mic, RotateCcw,
   Settings, LayoutGrid, ShieldCheck, Link2, Building2, Layers, Settings2, FileCheck2, Radio,
   ClipboardPaste, Tags, BarChart3, Copy,
 } from 'lucide-react'
@@ -228,6 +228,9 @@ interface Course {
   sort: number
   status: string
   kelas_sensei_id: number | null
+  sensei_nama?: string | null
+  sensei_id?: number | null
+  nama_kelas?: string | null
   lessons_count: number
   files_count: number
   alert?: string | null
@@ -476,6 +479,26 @@ const emptyPaketForm = {
 const emptyQuestionForm = { question: '', section_id: '', question_type: 'choice', rating_max: '9', correct_index: '', correct_indexes: [] as number[], points: '1', keyword: '', image_path: '', image_url: '', audio_path: '', audio_url: '', audio_max_plays: '2' }
 
 const DEFAULT_SECTIONS = ['Script and Vocabulary', 'Grammar', 'Reading', 'Listening', 'Conversation', 'Kanji', 'Vocabulary']
+
+/** Badge nama sensei pengajar. "Manual" = kursus dibuat admin, bukan lewat Tambah Kelas. */
+const SenseiBadge = ({ nama, namaKelas }: { nama?: string | null; namaKelas?: string | null }) => {
+  if (!nama) {
+    return (
+      <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap text-slate-400">
+        <UserRound size={10} /> Manual
+      </span>
+    )
+  }
+  return (
+    <span
+      title={namaKelas ? `Pengajar: ${nama} · Kelas ${namaKelas}` : `Pengajar: ${nama}`}
+      className="inline-flex max-w-[150px] shrink-0 items-center gap-1 rounded-md bg-[#0E6187]/10 px-2 py-0.5 text-[10px] font-bold whitespace-nowrap text-[#0E6187]"
+    >
+      <UserRound size={10} className="shrink-0" />
+      <span className="truncate">{nama}</span>
+    </span>
+  )
+}
 
 export default function DataCourse() {
   const location = useLocation()
@@ -2931,6 +2954,7 @@ export default function DataCourse() {
                         <p className="text-xs text-slate-400">
                           {[c.batch_id && batches.find(b => b.id === c.batch_id)?.nama_batch, c.level && `Level ${c.level}`].filter(Boolean).join(' · ') || 'Semua kandidat'}
                         </p>
+                        <SenseiBadge nama={c.sensei_nama} namaKelas={c.nama_kelas} />
                       </div>
                       <div className="mt-3 flex flex-wrap items-center gap-2">
                         <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">
@@ -2969,6 +2993,7 @@ export default function DataCourse() {
                       <tr>
                         <th scope="col" className="w-12 border border-[#0E6187] px-4 py-3 font-semibold">No</th>
                         <th scope="col" className="border border-[#0E6187] px-4 py-3 font-semibold">Kursus</th>
+                        <th scope="col" className="border border-[#0E6187] px-4 py-3 font-semibold">Pengajar</th>
                         <th scope="col" className="border border-[#0E6187] px-4 py-3 text-center font-semibold">Pertemuan</th>
                         <th scope="col" className="border border-[#0E6187] px-4 py-3 text-center font-semibold">File</th>
                         <th scope="col" className="border border-[#0E6187] px-4 py-3 text-center font-semibold">Urutan</th>
@@ -2994,6 +3019,9 @@ export default function DataCourse() {
                                 </p>
                               </div>
                             </div>
+                          </td>
+                          <td className="border border-slate-200 px-4 py-3">
+                            <SenseiBadge nama={c.sensei_nama} namaKelas={c.nama_kelas} />
                           </td>
                           <td className="border border-slate-200 px-4 py-3 text-center">
                             <span className="inline-block min-w-[32px] rounded-md bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-600">{c.lessons_count}</span>

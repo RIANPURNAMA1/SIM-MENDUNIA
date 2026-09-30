@@ -6,6 +6,7 @@ use App\Models\AffiliateLink;
 use App\Models\Pendaftar;
 use App\Models\KomisiAffiliate;
 use App\Models\KomisiTier;
+use App\Services\KomisiAffiliateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -121,6 +122,7 @@ class AffiliateDashboardController extends Controller
             ],
             'links' => $linksData,
             'pendaftar' => $pendaftarData,
+            'komisi_progress' => app(KomisiAffiliateService::class)->progressForAffiliate($userId),
         ]);
     }
 }

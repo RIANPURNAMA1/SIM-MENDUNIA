@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { User, CheckCircle, Camera, ChevronDown, Loader } from 'lucide-react'
+import { User, CheckCircle, Camera, ChevronDown } from 'lucide-react'
 import api, { APP_URL } from '../../services/api'
 
 interface PendaftarData {
@@ -55,7 +55,9 @@ interface Wilayah {
 }
 
 const inputClass = "w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm"
+const inputErrorClass = "w-full px-4 py-2.5 bg-white border border-red-400 rounded focus:ring-1 focus:ring-red-400 focus:border-red-400 outline-none transition-colors text-sm"
 const selectClass = "w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm appearance-none cursor-pointer"
+const selectErrorClass = "w-full px-4 py-2.5 bg-white border border-red-400 rounded focus:ring-1 focus:ring-red-400 focus:border-red-400 outline-none transition-colors text-sm appearance-none cursor-pointer"
 const labelClass = "block text-sm font-medium text-gray-700 mb-1"
 const cardClass = "bg-white border border-gray-200 rounded-lg shadow-sm"
 
@@ -95,6 +97,7 @@ export default function DataDiri() {
   const [successDokumen, setSuccessDokumen] = useState(false)
 
   const [errors, setErrors] = useState<string[]>([])
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   const [provinsiList, setProvinsiList] = useState<Wilayah[]>([])
   const [kabupatenList, setKabupatenList] = useState<Wilayah[]>([])
@@ -218,13 +221,48 @@ export default function DataDiri() {
     setTimeout(() => setter(false), 2000)
   }
 
+  const validators: Record<string, (v: string) => string> = {
+    name: v => v.trim().length < 3 ? 'Nama minimal 3 karakter' : '',
+    nik: v => v && !/^\d{16}$/.test(v.trim()) ? 'NIK harus 16 digit angka' : '',
+    tempat_lahir: v => v.trim().length < 2 ? 'Tempat lahir wajib diisi' : '',
+    tanggal_lahir: v => v && v > new Date().toISOString().split('T')[0] ? 'Tanggal lahir tidak boleh di masa depan' : v && !/^\d{4}-\d{2}-\d{2}$/.test(v) ? 'Format tanggal tidak valid' : '',
+    no_hp: v => {
+      const d = v.replace(/\D/g, '')
+      return d ? (d.length < 10 || d.length > 15 ? 'Nomor HP 10–15 digit' : '') : ''
+    },
+    no_hp_ortu: v => {
+      const d = v.replace(/\D/g, '')
+      return d ? (d.length < 10 || d.length > 15 ? 'Nomor HP 10–15 digit' : '') : ''
+    },
+    tahun_lulus: v => v && (!/^\d{4}$/.test(v.trim()) || Number(v) < 1950 || Number(v) > new Date().getFullYear()) ? 'Tahun lulus tidak valid' : '',
+    tinggi_badan: v => v && (Number(v) < 50 || Number(v) > 250) ? 'Tinggi badan 50–250 cm' : '',
+    berat_badan: v => v && (Number(v) < 20 || Number(v) > 300) ? 'Berat badan 20–300 kg' : '',
+    alamat: v => v.trim().length < 5 ? 'Alamat minimal 5 karakter' : '',
+    provinsi: v => v ? '' : 'Provinsi wajib diisi',
+    kabupaten: v => v ? '' : 'Kabupaten/Kota wajib diisi',
+    kecamatan: v => v ? '' : 'Kecamatan wajib diisi',
+    desa: v => v ? '' : 'Desa/Kelurahan wajib diisi',
+  }
+
+  function validateFields(fields: Record<string, string>): boolean {
+    const errs: Record<string, string> = {}
+    Object.keys(fields).forEach(key => {
+      const msg = validators[key]?.(fields[key])
+      if (msg) errs[key] = msg
+    })
+    setFieldErrors(errs)
+    return Object.keys(errs).length === 0
+  }
+
   async function savePribadi() {
+    if (!validateFields(formPribadi)) return
     setSavingPribadi(true)
     setErrors([])
     try {
       const res = await api.post('/siswa/profile', formPribadi)
       setUserData(res.data.user)
       setSiswa(res.data.siswa)
+      setFieldErrors({})
       flashSuccess(setSuccessPribadi)
     } catch (err: any) {
       const serverErrors = err?.response?.data?.errors
@@ -237,12 +275,14 @@ export default function DataDiri() {
   }
 
   async function saveAlamat() {
+    if (!validateFields(formAlamat)) return
     setSavingAlamat(true)
     setErrors([])
     try {
       const res = await api.post('/siswa/profile', formAlamat)
       setUserData(res.data.user)
       setSiswa(res.data.siswa)
+      setFieldErrors({})
       flashSuccess(setSuccessAlamat)
     } catch (err: any) {
       const serverErrors = err?.response?.data?.errors
@@ -255,12 +295,14 @@ export default function DataDiri() {
   }
 
   async function saveTambahan() {
+    if (!validateFields(formTambahan)) return
     setSavingTambahan(true)
     setErrors([])
     try {
       const res = await api.post('/siswa/profile', formTambahan)
       setUserData(res.data.user)
       setSiswa(res.data.siswa)
+      setFieldErrors({})
       flashSuccess(setSuccessTambahan)
     } catch (err: any) {
       const serverErrors = err?.response?.data?.errors
@@ -273,12 +315,14 @@ export default function DataDiri() {
   }
 
   async function saveKeluarga() {
+    if (!validateFields(formKeluarga)) return
     setSavingKeluarga(true)
     setErrors([])
     try {
       const res = await api.post('/siswa/profile', formKeluarga)
       setUserData(res.data.user)
       setSiswa(res.data.siswa)
+      setFieldErrors({})
       flashSuccess(setSuccessKeluarga)
     } catch (err: any) {
       const serverErrors = err?.response?.data?.errors
@@ -297,7 +341,12 @@ export default function DataDiri() {
       setErrors([`${field}: maksimal 5MB`])
       return
     }
+    if (file.type && !['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
+      setErrors([`${field}: hanya format JPG/PNG`])
+      return
+    }
     setErrors([])
+    setFieldErrors(prev => ({ ...prev, [field]: '' }))
     setFiles(prev => ({ ...prev, [field]: file }))
   }
 
@@ -312,6 +361,7 @@ export default function DataDiri() {
       })
       setUserData(res.data.user)
       setSiswa(res.data.siswa)
+      setFieldErrors({})
       setFiles({ foto_profil: null, foto: null, foto_ktp: null, foto_ijazah: null, foto_kk: null })
       flashSuccess(setSuccessDokumen)
     } catch (err: any) {
@@ -333,13 +383,6 @@ export default function DataDiri() {
         </div>
       </div>
     )
-  }
-
-  const fotoSrc = userData?.foto_profil ? `${APP_URL}/${userData.foto_profil}` : null
-  const hasData = (field: string) => {
-    const s = siswa as any
-    const u = userData as any
-    return !!(s?.[field] || u?.[field])
   }
 
   return (
@@ -364,7 +407,7 @@ export default function DataDiri() {
             return (
               <button
                 key={step.id}
-                onClick={() => { setActiveStep(idx); setErrors([]) }}
+                onClick={() => { setActiveStep(idx); setErrors([]); setFieldErrors({}) }}
                 className={`flex items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
                   isActive
                     ? 'bg-[#0E6187] text-white shadow-sm'
@@ -406,19 +449,23 @@ export default function DataDiri() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className={labelClass}>Nama Lengkap</label>
-                <input type="text" value={formPribadi.name} onChange={e => setFormPribadi({ ...formPribadi, name: e.target.value })} className={inputClass} placeholder="Nama Lengkap" />
+                <input type="text" value={formPribadi.name} onChange={e => setFormPribadi({ ...formPribadi, name: e.target.value })} className={fieldErrors.name ? inputErrorClass : inputClass} placeholder="Nama Lengkap" />
+                {fieldErrors.name && <p className="mt-1 text-xs text-red-500">{fieldErrors.name}</p>}
               </div>
               <div>
                 <label className={labelClass}>NIK</label>
-                <input type="text" value={formPribadi.nik} onChange={e => setFormPribadi({ ...formPribadi, nik: e.target.value })} className={inputClass} placeholder="16 digit NIK" maxLength={16} />
+                <input type="text" inputMode="numeric" pattern="\d*" value={formPribadi.nik} onChange={e => setFormPribadi({ ...formPribadi, nik: e.target.value.replace(/\D/g, '') })} className={fieldErrors.nik ? inputErrorClass : inputClass} placeholder="16 digit NIK" maxLength={16} />
+                {fieldErrors.nik && <p className="mt-1 text-xs text-red-500">{fieldErrors.nik}</p>}
               </div>
               <div>
                 <label className={labelClass}>Tempat Lahir</label>
-                <input type="text" value={formPribadi.tempat_lahir} onChange={e => setFormPribadi({ ...formPribadi, tempat_lahir: e.target.value })} className={inputClass} placeholder="Tempat Lahir" />
+                <input type="text" value={formPribadi.tempat_lahir} onChange={e => setFormPribadi({ ...formPribadi, tempat_lahir: e.target.value })} className={fieldErrors.tempat_lahir ? inputErrorClass : inputClass} placeholder="Tempat Lahir" />
+                {fieldErrors.tempat_lahir && <p className="mt-1 text-xs text-red-500">{fieldErrors.tempat_lahir}</p>}
               </div>
               <div>
                 <label className={labelClass}>Tanggal Lahir</label>
-                <input type="date" value={formPribadi.tanggal_lahir} onChange={e => setFormPribadi({ ...formPribadi, tanggal_lahir: e.target.value })} className={inputClass} />
+                <input type="date" max={new Date().toISOString().split('T')[0]} value={formPribadi.tanggal_lahir} onChange={e => setFormPribadi({ ...formPribadi, tanggal_lahir: e.target.value })} className={fieldErrors.tanggal_lahir ? inputErrorClass : inputClass} />
+                {fieldErrors.tanggal_lahir && <p className="mt-1 text-xs text-red-500">{fieldErrors.tanggal_lahir}</p>}
               </div>
               <div>
                 <label className={labelClass}>Jenis Kelamin</label>
@@ -467,7 +514,8 @@ export default function DataDiri() {
               <div className="sm:col-span-2">
                 <label className={labelClass}>Alamat Lengkap</label>
                 <textarea value={formAlamat.alamat} onChange={e => setFormAlamat({ ...formAlamat, alamat: e.target.value })} rows={2}
-                  className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm resize-none" placeholder="Alamat lengkap" />
+                  className={`${fieldErrors.alamat ? 'border-red-400' : 'border-gray-300'} w-full px-4 py-2.5 bg-white rounded focus:ring-1 focus:ring-[#0E6187] focus:border-[#0E6187] outline-none transition-colors text-sm resize-none`} placeholder="Alamat lengkap" />
+                {fieldErrors.alamat && <p className="mt-1 text-xs text-red-500">{fieldErrors.alamat}</p>}
               </div>
 
               {/* Provinsi */}
@@ -482,7 +530,7 @@ export default function DataDiri() {
                       setFormAlamat({ ...formAlamat, provinsi: name, kabupaten: '', kecamatan: '', desa: '' })
                       if (found) fetchKabupaten(found.id)
                     }}
-                    className={selectClass}
+                    className={fieldErrors.provinsi ? selectErrorClass : selectClass}
                     disabled={wilayahLoading.provinsi}
                   >
                     <option value="">{wilayahLoading.provinsi ? 'Memuat...' : 'Pilih Provinsi'}</option>
@@ -492,6 +540,7 @@ export default function DataDiri() {
                   </select>
                   <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 </div>
+                {fieldErrors.provinsi && <p className="mt-1 text-xs text-red-500">{fieldErrors.provinsi}</p>}
               </div>
 
               {/* Kabupaten/Kota */}
@@ -506,7 +555,7 @@ export default function DataDiri() {
                       setFormAlamat({ ...formAlamat, kabupaten: name, kecamatan: '', desa: '' })
                       if (found) fetchKecamatan(found.id)
                     }}
-                    className={selectClass}
+                    className={fieldErrors.kabupaten ? selectErrorClass : selectClass}
                     disabled={!formAlamat.provinsi || wilayahLoading.kabupaten}
                   >
                     <option value="">{!formAlamat.provinsi ? 'Pilih Provinsi dulu' : wilayahLoading.kabupaten ? 'Memuat...' : 'Pilih Kabupaten/Kota'}</option>
@@ -516,6 +565,7 @@ export default function DataDiri() {
                   </select>
                   <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 </div>
+                {fieldErrors.kabupaten && <p className="mt-1 text-xs text-red-500">{fieldErrors.kabupaten}</p>}
               </div>
 
               {/* Kecamatan */}
@@ -530,7 +580,7 @@ export default function DataDiri() {
                       setFormAlamat({ ...formAlamat, kecamatan: name, desa: '' })
                       if (found) fetchDesa(found.id)
                     }}
-                    className={selectClass}
+                    className={fieldErrors.kecamatan ? selectErrorClass : selectClass}
                     disabled={!formAlamat.kabupaten || wilayahLoading.kecamatan}
                   >
                     <option value="">{!formAlamat.kabupaten ? 'Pilih Kabupaten dulu' : wilayahLoading.kecamatan ? 'Memuat...' : 'Pilih Kecamatan'}</option>
@@ -540,6 +590,7 @@ export default function DataDiri() {
                   </select>
                   <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 </div>
+                {fieldErrors.kecamatan && <p className="mt-1 text-xs text-red-500">{fieldErrors.kecamatan}</p>}
               </div>
 
               {/* Desa/Kelurahan */}
@@ -551,7 +602,7 @@ export default function DataDiri() {
                     onChange={e => {
                       setFormAlamat({ ...formAlamat, desa: e.target.value })
                     }}
-                    className={selectClass}
+                    className={fieldErrors.desa ? selectErrorClass : selectClass}
                     disabled={!formAlamat.kecamatan || wilayahLoading.desa}
                   >
                     <option value="">{!formAlamat.kecamatan ? 'Pilih Kecamatan dulu' : wilayahLoading.desa ? 'Memuat...' : 'Pilih Desa/Kelurahan'}</option>
@@ -561,6 +612,7 @@ export default function DataDiri() {
                   </select>
                   <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 </div>
+                {fieldErrors.desa && <p className="mt-1 text-xs text-red-500">{fieldErrors.desa}</p>}
               </div>
             </div>
             <div className="mt-5 flex justify-end">
@@ -588,7 +640,8 @@ export default function DataDiri() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className={labelClass}>No. HP</label>
-                <input type="text" value={formTambahan.no_hp} onChange={e => setFormTambahan({ ...formTambahan, no_hp: e.target.value })} className={inputClass} placeholder="No. HP" />
+                <input type="tel" inputMode="tel" value={formTambahan.no_hp} onChange={e => setFormTambahan({ ...formTambahan, no_hp: e.target.value.replace(/[^\d+]/g, '') })} className={fieldErrors.no_hp ? inputErrorClass : inputClass} placeholder="Contoh: 081234567890" />
+                {fieldErrors.no_hp && <p className="mt-1 text-xs text-red-500">{fieldErrors.no_hp}</p>}
               </div>
               <div>
                 <label className={labelClass}>Pendidikan Terakhir</label>
@@ -604,15 +657,18 @@ export default function DataDiri() {
               </div>
               <div>
                 <label className={labelClass}>Tahun Lulus</label>
-                <input type="text" value={formTambahan.tahun_lulus} onChange={e => setFormTambahan({ ...formTambahan, tahun_lulus: e.target.value })} className={inputClass} placeholder="Contoh: 2024" maxLength={4} />
+                <input type="text" inputMode="numeric" pattern="\d*" maxLength={4} value={formTambahan.tahun_lulus} onChange={e => setFormTambahan({ ...formTambahan, tahun_lulus: e.target.value.replace(/\D/g, '').slice(0, 4) })} className={fieldErrors.tahun_lulus ? inputErrorClass : inputClass} placeholder="Contoh: 2024" />
+                {fieldErrors.tahun_lulus && <p className="mt-1 text-xs text-red-500">{fieldErrors.tahun_lulus}</p>}
               </div>
               <div>
                 <label className={labelClass}>Tinggi Badan (cm)</label>
-                <input type="number" value={formTambahan.tinggi_badan} onChange={e => setFormTambahan({ ...formTambahan, tinggi_badan: e.target.value })} className={inputClass} placeholder="cm" />
+                <input type="number" inputMode="decimal" min={50} max={250} step={1} value={formTambahan.tinggi_badan} onChange={e => setFormTambahan({ ...formTambahan, tinggi_badan: e.target.value })} className={fieldErrors.tinggi_badan ? inputErrorClass : inputClass} placeholder="cm" />
+                {fieldErrors.tinggi_badan && <p className="mt-1 text-xs text-red-500">{fieldErrors.tinggi_badan}</p>}
               </div>
               <div>
                 <label className={labelClass}>Berat Badan (kg)</label>
-                <input type="number" value={formTambahan.berat_badan} onChange={e => setFormTambahan({ ...formTambahan, berat_badan: e.target.value })} className={inputClass} placeholder="kg" />
+                <input type="number" inputMode="decimal" min={20} max={300} step={0.1} value={formTambahan.berat_badan} onChange={e => setFormTambahan({ ...formTambahan, berat_badan: e.target.value })} className={fieldErrors.berat_badan ? inputErrorClass : inputClass} placeholder="kg" />
+                {fieldErrors.berat_badan && <p className="mt-1 text-xs text-red-500">{fieldErrors.berat_badan}</p>}
               </div>
               <div>
                 <label className={labelClass}>Golongan Darah</label>
@@ -669,7 +725,8 @@ export default function DataDiri() {
               </div>
               <div>
                 <label className={labelClass}>No. HP Orang Tua / Wali</label>
-                <input type="text" value={formKeluarga.no_hp_ortu} onChange={e => setFormKeluarga({ ...formKeluarga, no_hp_ortu: e.target.value })} className={inputClass} placeholder="No. HP Orang Tua" />
+                <input type="tel" inputMode="tel" value={formKeluarga.no_hp_ortu} onChange={e => setFormKeluarga({ ...formKeluarga, no_hp_ortu: e.target.value.replace(/[^\d+]/g, '') })} className={fieldErrors.no_hp_ortu ? inputErrorClass : inputClass} placeholder="No. HP Orang Tua" />
+                {fieldErrors.no_hp_ortu && <p className="mt-1 text-xs text-red-500">{fieldErrors.no_hp_ortu}</p>}
               </div>
             </div>
             <div className="mt-5 flex justify-end">
@@ -731,7 +788,7 @@ function stepDone(id: string, siswa: SiswaData | null, userData: UserData | null
   }
 }
 
-function DocUpload({ label, file, existing, onChange }: { label: string; file: File | null; existing: string | null; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) {
+function DocUpload({ label, file, existing, onChange }: { label: string; file: File | null; existing: string | null | undefined; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) {
   return (
     <div className="rounded-lg border border-gray-200 p-4">
       <label className={labelClass}>{label}</label>
@@ -739,7 +796,7 @@ function DocUpload({ label, file, existing, onChange }: { label: string; file: F
         <label className="flex-1 flex cursor-pointer items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-3 text-sm font-semibold text-[#0E6187] transition hover:border-[#0E6187] hover:bg-white">
           <Camera size={16} />
           {file ? <span className="truncate max-w-[120px]">{file.name}</span> : 'Pilih file'}
-          <input type="file" accept="image/*" className="hidden" onChange={onChange} />
+          <input type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" className="hidden" onChange={onChange} />
         </label>
         {existing && (
           <a href={`${APP_URL}/${existing}`} target="_blank" rel="noreferrer"

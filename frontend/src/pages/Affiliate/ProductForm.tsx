@@ -909,7 +909,8 @@ export default function ProductForm() {
                     <ul className="list-inside list-disc space-y-0.5">
                       <li>Komisi di-trigger saat <strong>semua sub-kategori lunas</strong></li>
                       <li>Tier dihitung per batch — pilih batch spesifik atau "Semua Batch"</li>
-                      <li>Komisi diterima affiliate per kandidat yang mencapai lunas</li>
+                      <li>Min/Max = jumlah kandidat lunas dari affiliate yang sama di batch tersebut</li>
+                      <li>Komisi <strong>flat</strong> per affiliate per batch — bukan per kandidat</li>
                     </ul>
                   </div>
                 </div>
@@ -965,9 +966,9 @@ export default function ProductForm() {
                             <div className="space-y-2">
                               <div className="grid grid-cols-[110px_50px_50px_1fr_32px] gap-2 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                                 <span>Batch</span>
-                                <span className="text-center">Min</span>
-                                <span className="text-center">Max</span>
-                                <span>Komisi/org</span>
+                                <span className="text-center" title="Jumlah kandidat lunas minimum">Min</span>
+                                <span className="text-center" title="Jumlah kandidat lunas maksimum">Max</span>
+                                <span title="Nominal komisi flat untuk affiliate, bukan per kandidat">Komisi (flat)</span>
                                 <span></span>
                               </div>
                               {parentTiers.map((t, _ti) => {

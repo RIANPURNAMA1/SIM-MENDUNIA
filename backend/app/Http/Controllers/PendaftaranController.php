@@ -3245,7 +3245,7 @@ class PendaftaranController extends Controller
                     $remainingPendaftars = Pendaftar::where('affiliate_link_id', $pendaftar->affiliate_link_id)
                         ->where('batch_id', $pendaftar->batch_id)
                         ->where('id', '!=', $pendaftar->id)
-                        ->where('status_pendaftaran', '!=', 'rejected')
+                        ->where('status_pendaftaran', '!=', 'ditolak')
                         ->where(function ($q) {
                             $q->where('status_pembayaran', 'verified')
                               ->orWhereHas('pembayaranItems');
@@ -3751,141 +3751,7 @@ class PendaftaranController extends Controller
 
     public static function cekDanCatatKomisiAffiliate($pendaftar)
     {
-        if (!$pendaftar->affiliate_link_id) return;
-
-        $product = $pendaftar->product;
-        if (!$product) return;
-
-        $product->load(['biayaKategoris', 'komisiTiers']);
-        if ($product->biayaKategoris->isEmpty()) return;
-
-        // Build parent→children map from kategori_items JSON
-        $kategoriItems = $product->kategori_items ?? [];
-        $parentMap = []; // kategori_id => ['name' => ..., 'children_ids' => [...], 'children_count' => N]
-
-        foreach ($kategoriItems as $item) {
-            $name = strtolower(trim($item['name'] ?? ''));
-            if (empty($item['children']) || count($item['children']) === 0) continue;
-
-            $parentKategori = $product->biayaKategoris->first(
-                fn($k) => strtolower($k->nama) === $name || strtolower($k->kode) === $name
-            );
-            if (!$parentKategori) continue;
-
-            $childrenIds = [];
-            foreach ($item['children'] as $child) {
-                $childName = strtolower(trim($child['name'] ?? ''));
-                $childKategori = $product->biayaKategoris->first(
-                    fn($k) => strtolower($k->nama) === $childName || strtolower($k->kode) === $childName
-                );
-                if ($childKategori) $childrenIds[] = $childKategori->id;
-            }
-
-            $parentMap[$parentKategori->id] = [
-                'name' => $parentKategori->nama,
-                'children_ids' => $childrenIds,
-                'children_count' => count($childrenIds),
-            ];
-        }
-
-        // For each parent kategori, check if this pendaftar is lunas (all children fully paid)
-        foreach ($parentMap as $parentId => $info) {
-            if ($info['children_count'] === 0) continue;
-
-            // Check if komisi already exists for this affiliate_link + batch + kategori (flat per affiliate, not per pendaftar)
-            $existingKomisi = KomisiAffiliate::where('affiliate_link_id', $pendaftar->affiliate_link_id)
-                ->where('kategori_id', $parentId)
-                ->whereHas('pendaftar', fn($q) => $q->where('batch_id', $pendaftar->batch_id))
-                ->first();
-            if ($existingKomisi) {
-                // Jika komisi existing ter-link ke pendaftar yang mengundurkan diri, hapus supaya bisa dihitung ulang
-                $linkedPendaftar = \App\Models\Pendaftar::with('siswa')->find($existingKomisi->pendaftar_id);
-                if ($linkedPendaftar && $linkedPendaftar->siswa && $linkedPendaftar->siswa->status_kandidat === 'Mengundurkan Diri') {
-                    $existingKomisi->delete();
-                } else {
-                    continue;
-                }
-            }
-
-            // Check all children are fully paid (aggregate across parent + children)
-            $allIds = array_merge([$parentId], $info['children_ids']);
-            $totalBiayaGroup = 0;
-            $totalDibayarGroup = 0;
-            foreach ($allIds as $id) {
-                $kat = $product->biayaKategoris->first(fn($k) => $k->id === $id);
-                $harga = $kat ? (float) $kat->pivot->harga : 0;
-                $totalBiayaGroup += $harga;
-                $dibayar = PembayaranItem::where('pendaftar_id', $pendaftar->id)
-                    ->where('kategori_id', $id)
-                    ->sum('jumlah');
-                $totalDibayarGroup += $dibayar;
-            }
-            $allLunas = $totalBiayaGroup > 0 && $totalDibayarGroup >= $totalBiayaGroup;
-
-            if (!$allLunas) continue;
-
-            // Count how many other pendaftar from same affiliate in same batch are also lunas at this parent
-            $affiliatePendaftars = \App\Models\Pendaftar::where('affiliate_link_id', $pendaftar->affiliate_link_id)
-                ->where('batch_id', $pendaftar->batch_id)
-                ->where('status_pendaftaran', '!=', 'rejected')
-                ->where(function ($q) {
-                    $q->whereDoesntHave('siswa')
-                      ->orWhereHas('siswa', fn($q) => $q->where(function ($inner) {
-                          $inner->whereNull('status_kandidat')
-                                ->orWhere('status_kandidat', '!=', 'Mengundurkan Diri');
-                      }));
-                })
-                ->get();
-
-            $lunasCount = 0;
-            foreach ($affiliatePendaftars as $ap) {
-                $totalBiayaAp = 0;
-                $totalDibayarAp = 0;
-                foreach ($allIds as $id) {
-                    $kat = $product->biayaKategoris->first(fn($k) => $k->id === $id);
-                    $harga = $kat ? (float) $kat->pivot->harga : 0;
-                    $totalBiayaAp += $harga;
-                    $dibayar = PembayaranItem::where('pendaftar_id', $ap->id)
-                        ->where('kategori_id', $id)
-                        ->sum('jumlah');
-                    $totalDibayarAp += $dibayar;
-                }
-                if ($totalBiayaAp > 0 && $totalDibayarAp >= $totalBiayaAp) $lunasCount++;
-            }
-
-            // Find matching tier: prefer batch-specific, fallback to global (batch_id=null)
-            $komisiAmount = 0;
-
-            $batchTiers = $product->komisiTiers
-                ->where('kategori_id', $parentId)
-                ->where('batch_id', $pendaftar->batch_id)
-                ->filter(fn($t) => $lunasCount >= $t->min_orang && ($t->max_orang === null || $lunasCount <= $t->max_orang))
-                ->sortBy('min_orang')
-                ->last();
-
-            $globalTiers = $product->komisiTiers
-                ->where('kategori_id', $parentId)
-                ->whereNull('batch_id')
-                ->filter(fn($t) => $lunasCount >= $t->min_orang && ($t->max_orang === null || $lunasCount <= $t->max_orang))
-                ->sortBy('min_orang')
-                ->last();
-
-            $tier = $batchTiers ?? $globalTiers;
-
-            if ($tier) {
-                $komisiAmount = (float) $tier->komisi;
-            }
-
-            if ($komisiAmount <= 0) continue;
-
-            KomisiAffiliate::create([
-                'affiliate_link_id' => $pendaftar->affiliate_link_id,
-                'pendaftar_id' => $pendaftar->id,
-                'kategori_id' => $parentId,
-                'jumlah' => $komisiAmount,
-                'status' => 'pending',
-            ]);
-        }
+        app(\App\Services\KomisiAffiliateService::class)->catat($pendaftar);
     }
 
     private function firstKategoriId(Pendaftar $pendaftar): ?int
@@ -4205,7 +4071,7 @@ class PendaftaranController extends Controller
         KomisiAffiliate::where('status', 'pending')->delete();
 
         $pendaftars = \App\Models\Pendaftar::whereNotNull('affiliate_link_id')
-            ->where('status_pendaftaran', '!=', 'rejected')
+            ->where('status_pendaftaran', '!=', 'ditolak')
             ->where(function ($q) {
                 $q->where('status_pembayaran', 'verified')
                   ->orWhereHas('pembayaranItems');

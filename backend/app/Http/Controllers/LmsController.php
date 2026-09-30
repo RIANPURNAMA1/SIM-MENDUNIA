@@ -695,7 +695,8 @@ class LmsController extends Controller
     {
         $perPage = $request->filled('per_page') ? (int) $request->per_page : null;
 
-        $query = Course::withCount(['lessons', 'files'])->with('category');
+        $query = Course::withCount(['lessons', 'files'])
+            ->with(['category', 'kelasSensei.user:id,name,no_hp,email']);
 
         if ($request->search && !empty($request->search)) {
             $q = $request->search;
@@ -717,9 +718,19 @@ class LmsController extends Controller
         $batches = Batch::aktif()->orderBy('nama_batch')->get(['id', 'nama_batch', 'warna']);
         $levels = Course::query()->distinct()->pluck('level')->filter()->values();
 
+        // Kursus yang dibuat dari "Tambah Kelas" punya kelas_sensei_id. Nama
+        // sensei-nya ditampilkan supaya admin tahu siapa pengajar kursus itu.
+        $decorate = function ($c) {
+            $sensei = $c->kelasSensei?->user;
+            $c->sensei_nama = $sensei?->name ?? null;
+            $c->sensei_id = $sensei?->id ?? null;
+            $c->nama_kelas = $c->kelasSensei?->nama_kelas ?? null;
+            $c->makeVisible('password_course');
+        };
+
         if ($perPage) {
             $courses = $query->paginate($perPage);
-            $courses->getCollection()->each(fn ($c) => $c->makeVisible('password_course'));
+            $courses->getCollection()->each($decorate);
             return response()->json([
                 'courses' => $courses->items(),
                 'batches' => $batches,
@@ -734,7 +745,7 @@ class LmsController extends Controller
         }
 
         $courses = $query->get();
-        $courses->each(fn ($c) => $c->makeVisible('password_course'));
+        $courses->each($decorate);
         return response()->json(['courses' => $courses, 'batches' => $batches, 'levels' => $levels]);
     }
 

@@ -837,9 +837,28 @@ $data = $request->validate([
         return response()->json(['message' => 'Materi dihapus']);
     }
 
+    /**
+     * Level resmi paket. Satu paket terikat satu kelas / satu pasangan
+     * batch+level, jadi semua pesertanya dijamin berlevel sama. Level dari
+     * absensi siswa tidak boleh dipakai untuk pengelompokan hasil, karena
+     * riwayat absensi bisa menunjuk kelas level lain sehingga kandidat
+     * terbelah ke beberapa grup.
+     */
+    private function levelResmiPaket($paket): ?int
+    {
+        $level = $paket->level;
+        if (($level === null || $level === '') && $paket->course) {
+            $level = $paket->course->kelasSensei?->level ?? $paket->course->level;
+        }
+
+        return ($level === null || $level === '') ? null : (int) $level;
+    }
+
     public function results($paketId)
     {
         $paket = QuizPaket::findOrFail($paketId);
+        $paket->loadMissing(['course:id,level,kelas_sensei_id', 'course.kelasSensei:id,level']);
+        $levelPaket = $this->levelResmiPaket($paket);
 
         $attempts = QuizAttempt::with(['siswa:id,nama,batch,level,batch_id', 'siswa.batchRelasi.cabang'])
             ->where('quiz_paket_id', $paket->id)
@@ -891,14 +910,15 @@ $data = $request->validate([
             return $out;
         };
 
-        $participants = $attempts->groupBy('siswa_id')->map(function ($rows) use ($buildSections) {
+        $participants = $attempts->groupBy('siswa_id')->map(function ($rows) use ($buildSections, $levelPaket) {
             $siswa = $rows->first()->siswa;
+            $levelSiswa = ($siswa?->level === null || $siswa?->level === '') ? null : (int) $siswa->level;
             return [
                 'siswa_id' => (int) $rows->first()->siswa_id,
                 'nama' => $siswa?->nama ?? 'Tanpa nama',
                 'cabang' => $siswa?->batchRelasi?->cabang?->nama_cabang,
                 'batch' => $siswa?->batchRelasi?->nama_batch,
-                'level' => $siswa?->levelRekap(),
+                'level' => $levelPaket ?? $levelSiswa,
                 'attempts_count' => $rows->count(),
                 'best_score' => (int) $rows->where('status', 'submitted')->max('score'),
                 'attempts' => $rows->map(fn ($a) => [
@@ -972,6 +992,8 @@ $data = $request->validate([
         }
 
         $paket->load('questions');
+        $paket->loadMissing(['course:id,level,kelas_sensei_id', 'course.kelasSensei:id,level']);
+        $levelPaket = $this->levelResmiPaket($paket);
 
         $scope = fn ($q) => $q->whereHas('siswa', fn ($sq) => $sq->whereIn('batch_id', $batchIds));
 
@@ -1000,8 +1022,9 @@ $data = $request->validate([
                 'is_today' => (string) $r->day === now()->toDateString(),
             ]);
 
-        $rows = $attempts->map(function ($a) use ($paket) {
+        $rows = $attempts->map(function ($a) use ($paket, $levelPaket) {
             $siswa = $a->siswa;
+            $levelSiswa = ($siswa?->level === null || $siswa?->level === '') ? null : (int) $siswa->level;
 
             $statuses = $paket->questions->map(function ($q) use ($a) {
                 $ans = $a->answers->firstWhere('quiz_question_id', $q->id);
@@ -1062,7 +1085,7 @@ $data = $request->validate([
                     'nama' => $siswa?->nama ?? 'Tanpa nama',
                     'cabang' => $siswa?->batchRelasi?->cabang?->nama_cabang,
                     'batch' => $siswa?->batchRelasi?->nama_batch,
-                    'level' => $siswa?->levelRekap(),
+                    'level' => $levelPaket ?? $levelSiswa,
                 ],
             ];
         })->values();

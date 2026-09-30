@@ -5,7 +5,7 @@ import {
   FileText, Video, ArrowLeft, Clock, ListChecks, Lock, FileQuestion,
   ClipboardList, Upload, Download, Send, GraduationCap, Star, Award, AlertTriangle, X, XCircle, Trash2,
   CalendarCheck, LayoutDashboard, Wallet, User, Trophy, Search,
-  Image as ImageIcon, Volume2, Calendar, Building2, Sparkles,
+  Image as ImageIcon, Volume2, Calendar, Building2, Sparkles, CheckCircle2,
 } from 'lucide-react'
 import { lmsApi, quizApi, APP_URL } from '../../services/api'
 import { DEFAULT_COURSE_COVER } from '../../utils/courseCover'
@@ -36,6 +36,31 @@ interface Course {
 const passwordCourseKey = (courseId: number) => `lms_password_course_${courseId}`
 
 const isCourseOpen = (course: { status?: string }) => (course.status ?? 'aktif') === 'aktif'
+
+/**
+ * Status jadwal kursus berdasarkan tanggal mulai / selesai.
+ * Tanggal hanya dipakai bila keduanya terisi, supaya kursus tanpa jadwal
+ * tetap dianggap "Tanpa Jadwal" dan tidak terkunci.
+ */
+type CourseSchedule = 'Sedang Berlangsung' | 'Belum Dimulai' | 'Selesai' | null
+
+const courseSchedule = (course: { tanggal_mulai?: string | null; tanggal_selesai?: string | null }): CourseSchedule => {
+  if (!course.tanggal_mulai || !course.tanggal_selesai) return null
+  const mulai = new Date(course.tanggal_mulai + 'T00:00:00')
+  const selesai = new Date(course.tanggal_selesai + 'T00:00:00')
+  if (Number.isNaN(mulai.getTime()) || Number.isNaN(selesai.getTime())) return null
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  if (today > selesai) return 'Selesai'
+  if (today < mulai) return 'Belum Dimulai'
+  return 'Sedang Berlangsung'
+}
+
+const SCHEDULE_STYLES: Record<Exclude<CourseSchedule, null>, { badge: string; dot: string; ring: string }> = {
+  'Sedang Berlangsung': { badge: 'bg-sky-500 text-white', dot: 'bg-sky-500', ring: 'border-sky-300' },
+  'Belum Dimulai': { badge: 'bg-amber-500 text-white', dot: 'bg-amber-500', ring: 'border-amber-300' },
+  'Selesai': { badge: 'bg-slate-400 text-white', dot: 'bg-slate-400', ring: 'border-slate-200' },
+}
 
 const formatBatch = (nama: string | null | undefined) => {
   if (!nama) return null
@@ -2649,9 +2674,18 @@ export default function LMS() {
               </div>
             ) : (
 <div className="grid grid-cols-2 gap-2.5 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-              {visibleCourses.map(course => (
+              {visibleCourses.map(course => {
+                const schedule = courseSchedule(course)
+                const style = schedule ? SCHEDULE_STYLES[schedule] : null
+                return (
 <button key={course.id} onClick={() => handleCourseClick(course)}
-                  className={`bg-white rounded-md shadow-sm border border-gray-200 overflow-hidden hover:shadow-md hover:shadow-gray-200/60 hover:border-[#0E6187]/40 transition-all text-left group flex flex-col ${!isCourseOpen(course) ? 'opacity-90' : ''}`}>
+                  className={`bg-white rounded-md shadow-sm border overflow-hidden hover:shadow-md hover:shadow-gray-200/60 transition-all text-left group flex flex-col ${
+                    schedule === 'Sedang Berlangsung'
+                      ? 'border-sky-300 ring-2 ring-sky-100'
+                      : isCourseOpen(course)
+                        ? 'border-gray-200 hover:border-[#0E6187]/40'
+                        : 'border-gray-200 opacity-90'
+                  }`}>
                   <div className="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-[#0E6187] to-[#1a3355] shrink-0">
                     {course.image ? (
                       <img src={`${APP_URL}/storage/${course.image}`} alt="" className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${!isCourseOpen(course) ? 'grayscale' : ''}`} />
@@ -2662,6 +2696,12 @@ export default function LMS() {
                     {course.category && (
                       <span className="absolute top-2 left-2 rounded-md bg-white/95 px-2 py-1 text-[9px] font-bold text-[#0E6187] shadow-sm">
                         {course.category.name}
+                      </span>
+                    )}
+                    {schedule && (
+                      <span className={`absolute bottom-2 right-2 flex items-center gap-1 rounded-md px-2 py-1 text-[9px] font-bold shadow-sm backdrop-blur ${style!.badge}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full bg-white ${schedule === 'Sedang Berlangsung' ? 'animate-pulse' : ''}`} />
+                        {schedule}
                       </span>
                     )}
                     {course.has_password && isCourseOpen(course) && (
@@ -2679,9 +2719,11 @@ export default function LMS() {
                         </div>
                       </div>
                     )}
-                    <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-md bg-black/40 px-2 py-1 text-[9px] font-bold text-white backdrop-blur">
-                      <Play size={9} /> {course.lessons_count} Pelajaran
-                    </span>
+                    {(!schedule || schedule === 'Belum Dimulai') && (
+                      <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-md bg-black/40 px-2 py-1 text-[9px] font-bold text-white backdrop-blur">
+                        <Play size={9} /> {course.lessons_count} Pelajaran
+                      </span>
+                    )}
                   </div>
                   <div className="p-3 sm:p-3.5 flex flex-col flex-1">
                     <h3 className="text-xs sm:text-sm font-bold text-gray-900 leading-snug line-clamp-2 group-hover:text-[#0E6187] transition-colors" title={course.title}>
@@ -2691,6 +2733,16 @@ export default function LMS() {
                       <p className="text-[10px] sm:text-[11px] text-gray-500 mt-1 line-clamp-1 leading-relaxed [&_*]:inline"
                         title={course.description.replace(/<[^>]*>/g, ' ')}
                         dangerouslySetInnerHTML={{ __html: course.description }} />
+                    )}
+                    {schedule && (
+                      <div className="mt-1.5 flex items-center gap-1 text-[9px] sm:text-[10px] font-semibold text-slate-500">
+                        <Calendar size={10} className="shrink-0" />
+                        <span className="truncate">
+                          {new Date(course.tanggal_mulai! + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                          {' – '}
+                          {new Date(course.tanggal_selesai! + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </span>
+                      </div>
                     )}
                     <div className="mt-auto flex items-center justify-between pt-2.5 gap-2">
                       <span className="min-w-0 flex-1 flex items-center gap-1 text-[9px] sm:text-[10px] font-medium text-slate-500 truncate">
@@ -2705,15 +2757,24 @@ export default function LMS() {
                         <span className="flex items-center gap-1 text-[9px] sm:text-[10px] font-bold text-slate-400 whitespace-nowrap">
                           <Lock size={10} /> Terkunci
                         </span>
+                      ) : schedule === 'Selesai' ? (
+                        <span className="flex items-center gap-0.5 text-[9px] sm:text-[10px] font-bold text-slate-400 whitespace-nowrap">
+                          <CheckCircle2 size={10} /> Selesai
+                        </span>
+                      ) : schedule === 'Belum Dimulai' ? (
+                        <span className="flex items-center gap-0.5 text-[9px] sm:text-[10px] font-bold text-amber-600 whitespace-nowrap">
+                          <Clock size={10} /> Segera
+                        </span>
                       ) : (
                       <span className="flex items-center gap-0.5 text-[9px] sm:text-[10px] font-bold text-[#0E6187] whitespace-nowrap">
-                        Buka <ChevronRight size={10} />
+                        {schedule === 'Sedang Berlangsung' ? 'Ikuti' : 'Buka'} <ChevronRight size={10} />
                       </span>
                       )}
                     </div>
                   </div>
                 </button>
-              ))}
+                )
+              })}
             </div>
             )}
             {totalPages > 1 && (
