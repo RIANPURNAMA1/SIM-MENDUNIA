@@ -141,6 +141,18 @@ class GuruDashboardController extends Controller
         $tanggalMulai = $request->tanggal_mulai;
         $tanggalSelesai = $request->tanggal_selesai;
 
+        if ($request->batch_id && $request->level) {
+            $duplicate = KelasSensei::where('user_id', $user->id)
+                ->where('batch_id', $request->batch_id)
+                ->where('level', $request->level)
+                ->exists();
+            if ($duplicate) {
+                return response()->json([
+                    'message' => 'Kelas untuk batch & level ini sudah dibuat. Tidak boleh duplikat.',
+                ], 422);
+            }
+        }
+
         if (!$tanggalMulai && $request->batch_id && $request->level) {
             $jadwal = \App\Models\JadwalLevel::where('batch_id', $request->batch_id)
                 ->where('level', $request->level)

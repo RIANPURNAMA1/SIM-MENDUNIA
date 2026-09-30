@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   CheckCircle2, X, RefreshCw, Pause, Play, ShieldAlert, Camera, Users, ListChecks, Timer,
+  Trophy, ArrowUp, ArrowDown,
 } from 'lucide-react'
 import { guruQuizApi, APP_URL } from '../services/api'
 import { getEcho, leaveChannel } from '../services/echo'
+import { useFlipReorder } from '../hooks/useFlipReorder'
 import Swal from 'sweetalert2'
 
 type OptionEntry = string | { text?: string; image_path?: string | null; image_url?: string | null }
@@ -104,6 +106,7 @@ export default function QuizMonitorPanel({ paketId, title, onClose }: QuizMonito
   const [showDetail, setShowDetail] = useState(false)
   const [grades, setGrades] = useState<Record<number, string>>({})
   const [savingGrade, setSavingGrade] = useState<number | null>(null)
+  const [rankDelta, setRankDelta] = useState<Record<number, number>>({})
 
   const fetchingRef = useRef(false)
 
@@ -202,12 +205,54 @@ export default function QuizMonitorPanel({ paketId, title, onClose }: QuizMonito
     return `${Math.floor(m / 60)} jam lalu`
   }
 
-  const attempts = data?.attempts || []
+  const attempts = useMemo(() => data?.attempts || [], [data])
   const live = attempts.filter(a => a.status === 'in_progress')
   const finished = attempts.filter(a => a.status === 'submitted')
   const warningsTotal = live.reduce((s, a) => s + a.warnings, 0)
   const answeredTotal = live.reduce((s, a) => s + a.answered_count, 0)
   const liveCount = live.length
+
+  const ranked = useMemo(() => {
+    const timeOf = (a: MonitorAttempt) => Date.parse(a.submitted_at || a.started_at || '') || 0
+    return [...attempts].sort((a, b) => {
+      if (b.correct_count !== a.correct_count) return b.correct_count - a.correct_count
+      if (b.answered_count !== a.answered_count) return b.answered_count - a.answered_count
+      const sa = Number(a.score) || 0
+      const sb = Number(b.score) || 0
+      if (sb !== sa) return sb - sa
+      if (a.warnings !== b.warnings) return a.warnings - b.warnings
+      if (timeOf(a) !== timeOf(b)) return timeOf(a) - timeOf(b)
+      return a.attempt_id - b.attempt_id
+    })
+  }, [attempts])
+
+  const prevRankRef = useRef<Map<number, number>>(new Map())
+  useEffect(() => {
+    const next = new Map<number, number>()
+    ranked.forEach((a, i) => next.set(a.attempt_id, i + 1))
+    if (prevRankRef.current.size === 0) {
+      prevRankRef.current = next
+      return
+    }
+    const deltas: Record<number, number> = {}
+    next.forEach((rank, id) => {
+      const before = prevRankRef.current.get(id)
+      if (before !== undefined && before !== rank) deltas[id] = before - rank
+    })
+    prevRankRef.current = next
+    if (!Object.keys(deltas).length) return
+    setRankDelta(deltas)
+    const t = window.setTimeout(() => setRankDelta({}), 4500)
+    return () => window.clearTimeout(t)
+  }, [ranked])
+
+  const bindRow = useFlipReorder(ranked.map(a => String(a.attempt_id)))
+
+  const RANK_UI: Record<number, string> = {
+    1: 'bg-amber-400/20 border-amber-400/60 text-amber-300',
+    2: 'bg-slate-300/20 border-slate-300/50 text-slate-200',
+    3: 'bg-orange-500/20 border-orange-500/50 text-orange-300',
+  }
 
   const finishedDurations = finished
     .filter(a => a.started_at && a.submitted_at)
@@ -322,7 +367,9 @@ export default function QuizMonitorPanel({ paketId, title, onClose }: QuizMonito
               <table className="w-full text-left">
                 <thead>
                   <tr className="border-b border-white/10 bg-white/[0.04] text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    <th className="px-3 py-2.5 whitespace-nowrap">No</th>
+                    <th className="px-3 py-2.5 whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1"><Trophy size={11} /> Peringkat</span>
+                    </th>
                     <th className="px-3 py-2.5 whitespace-nowrap">Kandidat</th>
                     <th className="px-3 py-2.5 whitespace-nowrap">Jawaban per Soal</th>
                     <th className="px-3 py-2.5 whitespace-nowrap text-center">Benar</th>
@@ -331,24 +378,35 @@ export default function QuizMonitorPanel({ paketId, title, onClose }: QuizMonito
                   </tr>
                 </thead>
                 <tbody>
-                  {attempts.map(a => {
+                  {ranked.map((a, idx) => {
                     const remaining = remOf(a)
                     const lowTime = remaining !== null && remaining <= 60
                     const stale = a.status === 'in_progress' && a.last_activity
                       ? (now - Date.parse(a.last_activity)) > 90 * 1000
                       : false
                     const statuses = Array.from({ length: a.total_count }, (_, i) => a.answers_status[i] || 'kosong')
+                    const rank = idx + 1
+                    const delta = rankDelta[a.attempt_id]
                     return (
-                      <tr key={a.attempt_id} onClick={() => openDetail(a.attempt_id)}
-                        className="border-b border-white/5 last:border-0 cursor-pointer transition-colors hover:bg-[#0E6187]/10">
+                      <tr key={a.attempt_id} ref={bindRow(String(a.attempt_id))} onClick={() => openDetail(a.attempt_id)}
+                        className="border-b border-white/5 last:border-0 cursor-pointer transition-colors hover:bg-[#0E6187]/10 will-change-transform">
                         <td className="px-3 py-3 align-top">
-                          <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-white/5 border border-white/10 text-[11px] font-bold text-slate-300">
-                            {a.attempt_number}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`inline-flex w-7 h-7 items-center justify-center rounded-md border text-[11px] font-bold tabular-nums ${RANK_UI[rank] || 'bg-white/5 border-white/10 text-slate-300'}`}>
+                              {rank}
+                            </span>
+                            {delta !== undefined && (
+                              <span className={`inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[9px] font-bold tabular-nums animate-pulse ${delta > 0 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}>
+                                {delta > 0 ? <ArrowUp size={8} /> : <ArrowDown size={8} />}
+                                {Math.abs(delta)}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-3 py-3 align-top min-w-[180px]">
                           <div className="flex items-center gap-2">
                             <p className="text-[12px] font-bold text-white leading-tight">{a.siswa.nama}</p>
+                            <span className="shrink-0 rounded bg-white/5 px-1 py-0.5 text-[9px] font-bold text-slate-500">#{a.attempt_number}</span>
                             {a.status === 'in_progress' ? (
                               <span className="inline-flex items-center gap-1 rounded-md bg-[#0E6187]/15 px-1.5 py-0.5 text-[9px] font-bold text-[#7ec3e4] shrink-0">
                                 <span className="h-1 w-1 rounded-full bg-[#7ec3e4] animate-pulse" />LAKUKAN
@@ -416,7 +474,11 @@ export default function QuizMonitorPanel({ paketId, title, onClose }: QuizMonito
                   {v.label}
                 </span>
               ))}
-              <span className="text-[10px] text-slate-500 font-medium ml-auto">Klik baris untuk melihat detail & menilai esai</span>
+              <span className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
+                <Trophy size={11} className="text-slate-500" />
+                Diurutkan otomatis: benar terbanyak di atas, berpindah realtime
+              </span>
+              <span className="text-[10px] font-medium text-slate-500 ml-auto">Klik baris untuk melihat detail & menilai esai</span>
             </div>
           </div>
         )}

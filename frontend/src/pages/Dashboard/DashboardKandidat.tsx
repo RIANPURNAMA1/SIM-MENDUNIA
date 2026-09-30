@@ -46,11 +46,50 @@ interface KandidatItem {
   status_akademik: string
 }
 
+interface BatchSummary {
+  id: number
+  nama?: string
+  warna?: string | null
+  jumlahKandidat?: number
+  kandidat: KandidatItem[]
+}
+
 interface KandidatStats {
   totalKandidat: number
   kandidatAktif: number
   totalBatch: number
-  batches?: { id: number; kandidat: KandidatItem[] }[]
+  batches?: BatchSummary[]
+}
+
+const BATCH_SEGMENTS = [
+  { label: 'Kandidat Aktif', color: '#0E6187' },
+  { label: 'Proses Belajar', color: '#14919c' },
+  { label: 'Calon Kandidat', color: '#7cc5d8' },
+  { label: 'Lulus Pendidikan', color: '#10b981' },
+  { label: 'Mengundurkan Diri', color: '#ef4444' },
+  { label: 'Cuti', color: '#f59e0b' },
+  { label: 'Lainnya', color: '#94a3b8' },
+]
+
+const stackTotalPlugin = {
+  id: 'stackTotal',
+  afterDatasetsDraw(chart: any) {
+    const ctx = chart.ctx
+    ctx.save()
+    ctx.font = '600 11px system-ui, sans-serif'
+    ctx.fillStyle = '#334155'
+    ctx.textAlign = 'center'
+    chart.getDatasetMeta(0).data.forEach((bar: any, i: number) => {
+      let top = bar.y
+      for (let d = 0; d < chart.data.datasets.length; d++) {
+        const el = chart.getDatasetMeta(d).data[i]
+        if (el && el.y < top) top = el.y
+      }
+      const total = chart.data.datasets.reduce((s: number, ds: any) => s + (Number(ds.data[i]) || 0), 0)
+      if (total > 0) ctx.fillText(String(total), bar.x, top - 6)
+    })
+    ctx.restore()
+  },
 }
 
 export default function DashboardKandidat() {
@@ -303,6 +342,78 @@ export default function DashboardKandidat() {
     },
   }
 
+  const batchRows = useMemo(() => {
+    const rows = (kandidatStats?.batches || []).map(b => {
+      const list = b.kandidat || []
+      const counts: Record<string, number> = {}
+      BATCH_SEGMENTS.forEach(s => { counts[s.label] = 0 })
+      list.forEach(k => {
+        if (k.is_cuti) { counts['Cuti']++; return }
+        const seg = BATCH_SEGMENTS.find(s => s.label === k.status_kandidat)
+        if (seg && seg.label !== 'Cuti' && seg.label !== 'Lainnya') counts[seg.label]++
+        else counts['Lainnya']++
+      })
+      return { nama: b.nama || `Batch #${b.id}`, warna: b.warna || null, total: list.length, counts }
+    })
+    return rows.sort((a, b) => b.total - a.total)
+  }, [kandidatStats])
+
+  const batchChartData = useMemo(() => ({
+    labels: batchRows.map(r => r.nama),
+    datasets: BATCH_SEGMENTS.map(s => ({
+      label: s.label,
+      data: batchRows.map(r => r.counts[s.label] || 0),
+      backgroundColor: s.color + 'cc',
+      borderColor: s.color,
+      borderWidth: 1,
+      borderRadius: 3,
+      borderSkipped: false as const,
+      barPercentage: 0.68,
+      categoryPercentage: 0.78,
+    })),
+  }), [batchRows])
+
+  const batchChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom' as const,
+        labels: { usePointStyle: true, boxWidth: 8, padding: 12, font: { size: 11 } },
+      },
+      tooltip: {
+        backgroundColor: '#0E6187',
+        titleFont: { size: 12 },
+        bodyFont: { size: 11 },
+        footerFont: { size: 11, weight: 'bold' as const },
+        footerColor: '#ffffff',
+        padding: 10,
+        cornerRadius: 8,
+        callbacks: {
+          label: (ctx: any) => ` ${ctx.dataset.label}: ${ctx.parsed.y} kandidat`,
+          footer: (items: any[]) => `Total: ${items.reduce((s, i) => s + (i.parsed.y || 0), 0)} kandidat`,
+        },
+      },
+    },
+    scales: {
+      x: {
+        stacked: true,
+        grid: { display: false },
+        ticks: { font: { size: 10 }, color: '#334155', maxRotation: 45, minRotation: 0, autoSkip: false },
+      },
+      y: {
+        stacked: true,
+        beginAtZero: true,
+        ticks: { stepSize: 1, precision: 0, font: { size: 10 }, color: '#94a3b8' },
+        grid: { color: 'rgba(0,0,0,0.04)' },
+        title: { display: true, text: 'Jumlah kandidat', font: { size: 10 }, color: '#94a3b8' },
+      },
+    },
+  }
+
+  const totalKandidatPerBatch = batchRows.reduce((s, r) => s + r.total, 0)
+  const rataRataPerBatch = batchRows.length ? Math.round(totalKandidatPerBatch / batchRows.length) : 0
+
   const breakdownStats = [
     { label: 'Menunggu Pembayaran', value: pendaftar.filter(p => p.status_pembayaran === 'unpaid').length, icon: Clock },
     { label: 'Menunggu Verifikasi', value: pendaftar.filter(p => p.status_pembayaran === 'pending').length, icon: Clock },
@@ -504,6 +615,52 @@ export default function DashboardKandidat() {
             })}
           </div>
         </div>
+      </div>
+
+      {/* Grafik Kandidat per Batch */}
+      <div className="mb-6 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0E6187]/5">
+              <Layers size={18} className="text-[#0E6187]" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-slate-800">Kandidat per Batch</h2>
+              <p className="text-xs text-slate-400">Komposisi kandidat tiap batch berdasarkan status</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {[
+              { label: 'Total Batch', value: batchRows.length },
+              { label: 'Total Kandidat', value: totalKandidatPerBatch },
+              { label: 'Rata-rata/Batch', value: rataRataPerBatch },
+            ].map(s => (
+              <div key={s.label} className="rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-center">
+                <p className="text-[10px] uppercase tracking-wide text-slate-400">{s.label}</p>
+                <p className="text-sm font-bold text-slate-700">{s.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {batchRows.length > 0 ? (
+          <>
+            <div className="h-72 sm:h-96">
+              <Bar data={batchChartData} options={batchChartOptions} plugins={[stackTotalPlugin]} />
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+              {batchRows.map(r => (
+                <div key={r.nama} className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px]">
+                  <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: r.warna || '#cbd5e1' }} />
+                  <span className="text-slate-600">{r.nama}</span>
+                  <span className="font-semibold text-slate-800">{r.total}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="flex h-72 items-center justify-center text-sm text-slate-400">Belum ada data kandidat per batch</div>
+        )}
       </div>
 
       {/* Breakdown Stats */}

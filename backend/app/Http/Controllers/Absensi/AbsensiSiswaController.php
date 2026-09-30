@@ -402,6 +402,11 @@ class AbsensiSiswaController extends Controller
 
         if ($request->filled('tanggal')) {
             $query->where('tanggal', $request->tanggal);
+        } elseif ($request->filled('date_from') || $request->filled('date_to')) {
+            $query->whereBetween('tanggal', [
+                $request->date_from ?: now()->subDays(6)->toDateString(),
+                $request->date_to ?: now()->toDateString(),
+            ]);
         } else {
             $query->where('tanggal', now()->toDateString());
         }

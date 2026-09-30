@@ -286,6 +286,10 @@ export default function GuruDashboard() {
     const jadwalKey = `${form.batch_id}-${form.level}`
     const jadwal = jadwalLevels[jadwalKey]
     if (!jadwal) return
+    if (duplicateKelas) {
+      Swal.fire({ icon: 'warning', title: 'Duplikat', text: 'Kelas untuk batch & level ini sudah dibuat. Tidak boleh duplikat.' })
+      return
+    }
     setSaving(true)
     try {
       const batchName = batches.find(b => b.id === Number(form.batch_id))?.nama_batch || ''
@@ -302,8 +306,9 @@ export default function GuruDashboard() {
       setForm({ batch_id: '', level: '', tanggal_mulai: '', tanggal_selesai: '', catatan: '' })
       fetchDashboard()
       Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Kelas & kursus LMS dibuat otomatis', timer: 2000, showConfirmButton: false })
-    } catch {
-      Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal menambahkan kelas' })
+    } catch (err: any) {
+      const msg = err?.response?.data?.message
+      Swal.fire({ icon: 'error', title: 'Gagal', text: msg || 'Gagal menambahkan kelas' })
     } finally {
       setSaving(false)
     }
@@ -318,6 +323,10 @@ export default function GuruDashboard() {
       .map(key => key.split('-')[1])
       .sort()
   }, [form.batch_id, jadwalLevels])
+
+  const duplicateKelas = form.batch_id && form.level ? kelasList.some(k =>
+    k.batch_id === Number(form.batch_id) && String(k.level) === String(form.level)
+  ) : false
 
   const startCamera = useCallback(async (kelasId: number, mode: 'masuk' | 'pulang') => {
     setCameraKelasId(kelasId)
@@ -859,6 +868,12 @@ export default function GuruDashboard() {
                   Jadwal belum diatur untuk batch & level ini. Silakan hubungi admin untuk mengatur jadwal terlebih dahulu.
                 </div>
               )}
+              {duplicateKelas && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600 flex gap-1.5">
+                  <X size={13} className="shrink-0 mt-0.5" />
+                  Kelas untuk batch & level ini sudah dibuat. Tidak boleh duplikat — pilih batch/level lain.
+                </div>
+              )}
               {selectedJadwal && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -885,7 +900,7 @@ export default function GuruDashboard() {
                   className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition">
                   Batal
                 </button>
-                <button type="submit" disabled={saving || !selectedJadwal}
+                <button type="submit" disabled={saving || !selectedJadwal || duplicateKelas}
                   className="rounded-lg bg-[#0069b0] px-4 py-2 text-xs font-semibold text-white hover:bg-[#004d7a] transition disabled:opacity-50 flex items-center gap-1.5">
                   {saving ? 'Menyimpan...' : 'Simpan'}
                 </button>

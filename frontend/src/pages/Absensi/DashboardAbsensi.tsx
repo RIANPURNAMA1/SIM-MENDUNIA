@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { Chart, registerables } from 'chart.js'
 import {
-  Users, CalendarCheck, MapPin, Clock, Timer,
+  CalendarCheck, MapPin, Clock, Timer,
   Calendar, ArrowRight, FileText, UserCheck,
   TrendingUp, Search, RotateCcw,
 } from 'lucide-react'
@@ -118,7 +118,7 @@ export default function DashboardAbsensi() {
         jam_keluar: a.jam_keluar,
         status: a.status ? (a.status.charAt(0) + a.status.slice(1).toLowerCase()) : '-',
         user: a.user,
-        shift: a.shift ? { nama: a.shift.nama_shift || a.shift.nama, jam_mulai: a.shift.jam_mulai, jam_selesai: a.shift.jam_selesai } : null,
+        shift: a.shift ? { nama: a.shift.nama_shift || a.shift.nama, jam_mulai: a.shift.jam_mulai || a.shift.jam_masuk, jam_selesai: a.shift.jam_selesai || a.shift.jam_pulang } : undefined,
       })) : [])
       setListCabang(kehRes.data.list_cabang || [])
       setListDivisi(kehRes.data.list_divisi || [])
