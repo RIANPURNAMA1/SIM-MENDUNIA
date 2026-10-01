@@ -168,16 +168,33 @@ function BarBagian({ baris }: { baris: RincianBagian }) {
 
 export default function CertificateCard({ sertifikat: s, actionLabel = 'Cetak / Simpan PDF', className = '' }: Props) {
   const [zoom, setZoom] = useState(1)
+  const [tinggiKartu, setTinggiKartu] = useState(TINGGI)
   const wrapRef = useRef<HTMLDivElement>(null)
+  const kartuRef = useRef<HTMLDivElement>(null)
 
-  // Zoom menyesuaikan lebar kontainer agar sertifikat tidak terpotong.
+  // Zoom menyesuaikan lebar kontainer agar sertifikat tidak terpotong, dan
+  // tinggi pembungkus mengikuti tinggi asli kartu. Isi sertifikat bisa lebih
+  // dari satu halaman A4 (banyak bagian, nama panjang), jadi tinggi kartu
+  // diukur, bukan dipatok 1123px — kalau dipatok, isi di bawahnya terpotong.
   useEffect(() => {
+    const el = wrapRef.current
+    if (!el) return
+
     const hitung = () => {
-      const el = wrapRef.current
-      if (!el) return
       setZoom(Math.min(1, el.clientWidth / LEBAR))
+      const tinggi = kartuRef.current?.offsetHeight
+      if (tinggi) setTinggiKartu(tinggi)
     }
+
     hitung()
+
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(hitung) : null
+    if (ro) {
+      ro.observe(el)
+      if (kartuRef.current) ro.observe(kartuRef.current)
+      return () => ro.disconnect()
+    }
+
     window.addEventListener('resize', hitung)
     return () => window.removeEventListener('resize', hitung)
   }, [])
@@ -187,11 +204,11 @@ export default function CertificateCard({ sertifikat: s, actionLabel = 'Cetak / 
   const namaUjian = s.judul_paket || s.judul
 
   return (
-    <div className={className}>
-      <div className="no-print mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-sm text-slate-600">
-          <ShieldCheck className="h-4 w-4 text-emerald-600" />
-          <span>
+    <div className={`sertifikat-akar ${className}`}>
+      <div className="no-print mb-4 flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+        <div className="flex min-w-0 items-center gap-2 text-xs sm:text-sm text-slate-600">
+          <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-600" />
+          <span className="min-w-0 truncate">
             Nomor <span className="font-mono font-semibold text-slate-800">{s.nomor}</span> · Kode{' '}
             <span className="font-mono font-semibold text-slate-800">{s.kode_verifikasi}</span>
           </span>
@@ -199,7 +216,7 @@ export default function CertificateCard({ sertifikat: s, actionLabel = 'Cetak / 
         <button
           type="button"
           onClick={() => window.print()}
-          className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+          className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-xs sm:px-4 sm:text-sm font-semibold text-white transition hover:bg-slate-800"
         >
           <Printer className="h-4 w-4" />
           {actionLabel}
@@ -208,14 +225,15 @@ export default function CertificateCard({ sertifikat: s, actionLabel = 'Cetak / 
 
       <div
         ref={wrapRef}
-        className="print-content overflow-hidden rounded-md bg-white shadow-lg ring-1 ring-slate-200"
-        style={{ height: TINGGI * zoom }}
+        className="print-content sertifikat-print overflow-hidden rounded-md bg-white shadow-lg ring-1 ring-slate-200"
+        style={{ height: tinggiKartu * zoom }}
       >
         <div
+          ref={kartuRef}
           className="sertifikat-kartu origin-top-left bg-white text-slate-900"
-          style={{ width: LEBAR, height: TINGGI, transform: `scale(${zoom})`, fontFamily: `Arial, ${FONT_JP}` }}
+          style={{ width: LEBAR, minHeight: TINGGI, transform: `scale(${zoom})`, fontFamily: `Arial, ${FONT_JP}` }}
         >
-          <div className="flex h-full flex-col px-12 py-9">
+          <div className="sertifikat-isi flex flex-col px-12 py-9">
             {/* Kop */}
             <div className="flex items-start justify-between gap-6">
               <div className="min-w-0 flex-1 text-center" style={{ paddingLeft: 90 }}>
@@ -363,13 +381,53 @@ export default function CertificateCard({ sertifikat: s, actionLabel = 'Cetak / 
       </p>
 
       <style>{`
+        /* A4 portrait tanpa margin: kartu memakai lebar halaman penuh. */
         @page { size: A4 portrait; margin: 0; }
         @media print {
-          .print-content { height: auto !important; box-shadow: none !important; border-radius: 0 !important; }
+          /* Rules global .print-content di index.css memakai position:fixed +
+             translate(-50%,-50%) untuk elemen hasil cetak lain (mis. struk
+             Cabang). Aturan itu ikut kena ke sertifikat ini karena kelasnya
+             sama, sehingga kartunya terangkat keluar area cetak dan terpotong.
+             Semua override di bawah memakai !important supaya menang dari
+             stylesheet global. */
+          .print-content.sertifikat-print {
+            /* position:fixed dipakai supaya kartu keluar dari alur dokumen:
+               elemen lain tetap visibility:hidden tapi masih memakan tinggi,
+               jadi kalau ikut flow sertifikat terdorong ke halaman kedua.
+               fixed tanpa centering menaruh kartu tepat di asal halaman. */
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: auto !important;
+            bottom: auto !important;
+            transform: none !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: none !important;
+            max-height: none !important;
+            height: auto !important;
+            overflow: visible !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            background: #fff !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            outline: 0 !important;
+          }
+          /* Tombol cetak, nomor, dan catatan tidak ikut ke PDF. */
+          .sertifikat-akar .no-print { display: none !important; }
           .sertifikat-kartu {
+            width: 100% !important;
+            min-height: 100% !important;
+            height: auto !important;
             transform: none !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
+          }
+          /* Cegah isi kotak hasil terbelah awkward di tengah antar halaman. */
+          .sertifikat-kartu .sertifikat-isi * {
+            break-inside: avoid;
+            page-break-inside: avoid;
           }
         }
       `}</style>

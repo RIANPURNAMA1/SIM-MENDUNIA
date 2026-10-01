@@ -937,7 +937,49 @@ $data = $request->validate([
             $batchIds = empty($ids) ? null : $ids;
         }
 
-        $pakets = QuizPaket::where('course_id', $course->id)
+        // Paket kursus bisa tertaut lewat course_id, lessons.paket_id,
+        // atau pivot lms_lesson_quiz_pakets. Gabungkan semuanya supaya paket
+        // yang dibuat dari bank soal / ditautkan ke pertemuan tetap terpantau.
+        $paketIds = QuizPaket::where('course_id', $course->id)->pluck('id');
+
+        $lessonIds = $course->lessons()->pluck('id');
+        if ($lessonIds->isNotEmpty()) {
+            $linkedIds = DB::table('lms_lesson_quiz_pakets')
+                ->whereIn('lesson_id', $lessonIds)
+                ->pluck('quiz_paket_id');
+            $paketIds = $paketIds->merge($linkedIds);
+        }
+
+        $directIds = $course->lessons()->whereNotNull('paket_id')->pluck('paket_id');
+        $paketIds = $paketIds->merge($directIds)->map(fn ($id) => (int) $id)->unique()->values();
+
+        // Kalau ada lesson_id, monitoring difokuskan ke paket milik pertemuan
+        // itu saja supaya daftar di layar tidak tercampur paket pertemuan lain.
+        $lesson = null;
+        $lessonId = (int) $request->query('lesson_id');
+        if ($lessonId > 0) {
+            $lesson = $course->lessons()->where('id', $lessonId)->first();
+
+            if ($lesson) {
+                $lessonPaketIds = DB::table('lms_lesson_quiz_pakets')
+                    ->where('lesson_id', $lesson->id)
+                    ->pluck('quiz_paket_id')
+                    ->map(fn ($id) => (int) $id);
+
+                if ($lesson->paket_id) {
+                    $lessonPaketIds->push((int) $lesson->paket_id);
+                }
+
+                $paketIds = $lessonPaketIds->unique()->values();
+            }
+        }
+
+        $lessonPayload = $lesson ? [
+            'id' => (int) $lesson->id,
+            'title' => $lesson->title,
+        ] : null;
+
+        $pakets = QuizPaket::whereIn('id', $paketIds)
             ->withCount('questions')
             ->orderBy('id')
             ->get();
@@ -953,6 +995,7 @@ $data = $request->validate([
                     'level' => $course->level,
                     'batch_name' => $course->batch?->nama_batch,
                 ],
+                'lesson' => $lessonPayload,
                 'pakets' => [],
                 'paket' => null,
                 'server_time' => now()->toIso8601String(),
@@ -1088,6 +1131,7 @@ $data = $request->validate([
                 'level' => $course->level,
                 'batch_name' => $course->batch?->nama_batch,
             ],
+            'lesson' => $lessonPayload,
             'pakets' => $paketSummary,
             'paket' => [
                 'id' => $paket->id,

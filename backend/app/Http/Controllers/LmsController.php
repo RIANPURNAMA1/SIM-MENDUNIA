@@ -17,7 +17,9 @@ use App\Models\LmsProgress;
 use App\Models\LmsSetting;
 use App\Models\Pendaftar;
 use App\Models\QuizAttempt;
+use App\Models\QuizSertifikat;
 use App\Models\Siswa;
+use App\Services\QuizSertifikatService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -332,6 +334,24 @@ class LmsController extends Controller
             $best = $attempts->where('status', 'submitted')->max('score');
             $inProgress = $attempts->firstWhere('status', 'in_progress');
 
+            // Sertifikat terbit per attempt yang selesai. Ambil yang terbaik
+            // supaya tombol unduh selalu menunjuk sertifikat nilai tertinggi.
+            $sertifikat = null;
+            $sertifikatId = null;
+            if ($p->sertifikasi_aktif) {
+                $attemptIds = $attempts->where('status', 'submitted')->pluck('id')->all();
+                if ($attemptIds) {
+                    $cert = QuizSertifikat::whereIn('quiz_attempt_id', $attemptIds)
+                        ->orderByDesc('nilai')
+                        ->orderByDesc('id')
+                        ->first();
+                    if ($cert) {
+                        $sertifikatId = (int) $cert->id;
+                        $sertifikat = QuizSertifikatService::payload($cert);
+                    }
+                }
+            }
+
             return [
                 'id' => $p->id,
                 'title' => $p->title,
@@ -353,6 +373,9 @@ class LmsController extends Controller
                 'quiz_template' => $p->quiz_template,
                 'is_pembahasan' => (bool) ($entry['is_pembahasan'] ?? false),
                 'in_progress_attempt_id' => $inProgress?->id,
+                'sertifikasi_aktif' => (bool) $p->sertifikasi_aktif,
+                'sertifikat_id' => $sertifikatId,
+                'sertifikat' => $sertifikat,
             ];
         })->values();
 

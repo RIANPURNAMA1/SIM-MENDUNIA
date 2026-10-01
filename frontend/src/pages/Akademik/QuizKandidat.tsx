@@ -420,11 +420,19 @@ export default function QuizKandidat() {
   const navigate = useNavigate()
   const { paketId, lessonId } = useParams()
   const [searchParams] = useSearchParams()
+  // Lesson asal saat quiz dibuka dari halaman materi, dipakai untuk kembali setelah selesai.
+  const asalLesson = searchParams.get('lesson') ? Number(searchParams.get('lesson')) : null
   const ctxSource = searchParams.get('source') === 'tugas' ? 'tugas' : 'paket'
   const ctxSourceId = searchParams.get('source_id') ? Number(searchParams.get('source_id')) : null
   const ctxParams = (): { source?: string; source_id?: number } | undefined =>
     ctxSource === 'tugas' && ctxSourceId ? { source: 'tugas', source_id: ctxSourceId } : undefined
-  const ctxQuery = () => (ctxSource === 'tugas' && ctxSourceId ? `?source=tugas&source_id=${ctxSourceId}` : '')
+  const ctxQuery = () => {
+    const p = new URLSearchParams()
+    if (ctxSource === 'tugas' && ctxSourceId) { p.set('source', 'tugas'); p.set('source_id', String(ctxSourceId)) }
+    if (asalLesson) p.set('lesson', String(asalLesson))
+    const qs = p.toString()
+    return qs ? `?${qs}` : ''
+  }
   const quizUrl = (id: number) => `/siswa-dashboard/quiz/${id}${ctxQuery()}`
   const resumeUrl = (packageId: number, attemptId: number, template?: string | null) => {
     const tpl = template || detail?.paket?.quiz_template || 'basic'
@@ -602,6 +610,21 @@ export default function QuizKandidat() {
         }
       }).catch(() => {})
     })
+  }
+
+  // Setelah ujian selesai, kandidat dikembalikan ke halaman materi asal,
+  // bukan daftar paket, supaya bisa langsung lanjut ke materi berikutnya.
+  const selesaiHasil = () => {
+    const courseId = detail?.paket.course_id
+    const lid = asalLesson ?? (lessonId ? Number(lessonId) : null)
+
+    if (courseId && lid) {
+      stopTimers()
+      stopStream()
+      navigate(`/siswa-dashboard/lms/${courseId}/materi/${lid}`)
+      return
+    }
+    goBack()
   }
 
   const goBack = () => {
@@ -1252,7 +1275,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
                 className="flex-1 text-[11.5px] font-bold text-[#0E6187] bg-white border border-[#0E6187]/30 py-3 rounded-md hover:bg-[#0E6187]/5 transition-colors">
                 Lihat Pembahasan
               </button>
-              <button onClick={goBack}
+              <button onClick={selesaiHasil}
                 className="flex-1 text-[12px] font-bold text-white bg-[#0E6187] py-3 rounded-md hover:bg-[#0a4d6b] transition-colors">
                 Selesai
               </button>
@@ -1482,7 +1505,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
                         const best = q.best_score != null ? q.best_score : null
                         return (
                           <button key={q.id} type="button"
-                            onClick={() => { if (unlocked && !attemptsMaxed) navigate(`/siswa-dashboard/quiz/${q.id}`) }}
+                            onClick={() => { if (unlocked && !attemptsMaxed) navigate(`/siswa-dashboard/quiz/${q.id}?lesson=${activeLesson.id}`) }}
                             className={`w-full flex items-center gap-3 rounded-md border p-3 text-left bg-white transition-all ${
                               unlocked && !attemptsMaxed ? 'border-slate-200 hover:border-[#0E6187]/40 hover:shadow-sm' : 'border-slate-100 opacity-80'
                             }`}>

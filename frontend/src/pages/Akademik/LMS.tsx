@@ -13,6 +13,7 @@ import { getYouTubeEmbedUrl } from '../../utils/youtube'
 import LessonSlidesViewer from '../../components/LessonSlidesViewer'
 import TrackedVideo from '../../components/TrackedVideo'
 import { fmtFileSize } from '../../components/LessonMediaFields'
+import CertificateCard, { type Sertifikat } from '../../components/quiz/CertificateCard'
 import Swal from 'sweetalert2'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -169,6 +170,9 @@ interface CourseQuiz {
   locked?: boolean
   quiz_template?: string
   is_pembahasan?: boolean
+  sertifikasi_aktif?: boolean
+  sertifikat_id?: number | null
+  sertifikat?: Sertifikat | null
 }
 
 interface ReviewOption {
@@ -589,6 +593,7 @@ export default function LMS() {
 
   // ---- Quiz review (pembahasan hasil jawaban) ----
   const [reviewOpen, setReviewOpen] = useState(false)
+  const [sertifikatData, setSertifikatData] = useState<Sertifikat | null>(null)
   const [reviewLoading, setReviewLoading] = useState(false)
   const [reviewErr, setReviewErr] = useState<string | null>(null)
   const [reviewData, setReviewData] = useState<ReviewData | null>(null)
@@ -612,6 +617,7 @@ export default function LMS() {
   }, [])
 
   useEffect(() => {
+    setSertifikatData(null)
     if (!courseId) {
       setSelectedCourse(null)
       setLessons([])
@@ -660,6 +666,10 @@ export default function LMS() {
       .finally(() => setReviewLoading(false))
   }
 
+  const openSertifikat = (sert: Sertifikat) => {
+    setSertifikatData(sert)
+  }
+
   const openReviewForPaket = (paket: CourseQuiz) => {
     setReviewOpen(true)
     setReviewLoading(true)
@@ -690,6 +700,34 @@ export default function LMS() {
   const openLessonPembahasan = (paket: CourseQuiz) => {
     if (!selectedLesson || !courseId) return
     navigate(`/siswa-dashboard/lms/${courseId}/materi/${selectedLesson.id}/pembahasan/${paket.id}`)
+  }
+
+  const renderSertifikatModal = () => {
+    if (!sertifikatData) return null
+    return (
+      <div className="fixed inset-0 z-50 flex items-stretch sm:items-center justify-center bg-black/60 sm:p-4 overflow-y-auto"
+        onClick={() => setSertifikatData(null)}>
+        <div className="bg-white w-full sm:max-w-3xl rounded-none sm:rounded-md p-3 sm:p-5 my-0 sm:my-6"
+          onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-8 h-8 rounded-md bg-amber-600 flex items-center justify-center shrink-0">
+                <Award size={15} className="text-white" />
+              </span>
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold text-slate-800 truncate">Sertifikat</h3>
+                <p className="text-[10px] text-slate-400 font-medium font-mono truncate">{sertifikatData.nomor}</p>
+              </div>
+            </div>
+            <button onClick={() => setSertifikatData(null)}
+              className="w-8 h-8 flex items-center justify-center rounded-md bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors shrink-0">
+              <X size={15} />
+            </button>
+          </div>
+          <CertificateCard sertifikat={sertifikatData} actionLabel="Unduh / Cetak PDF" />
+        </div>
+      </div>
+    )
   }
 
   const renderReviewModal = () => (
@@ -838,6 +876,7 @@ export default function LMS() {
   }
 
   useEffect(() => {
+    setSertifikatData(null)
     if (!lessonId || !selectedCourse) return
     const id = Number(lessonId)
     const lesson = lessons.find(l => l.id === id)
@@ -1082,6 +1121,15 @@ export default function LMS() {
               onClick={(e) => { e.stopPropagation(); openReviewForPaket(q) }}
               className="mt-2 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold bg-[#0E6187]/10 text-[#0E6187] hover:bg-[#0E6187]/15 transition-all">
               <FileQuestion size={13} /> Review Hasil Quiz
+            </button>
+          )}
+
+          {q.sertifikat && (
+            <button
+              onClick={(e) => { e.stopPropagation(); openSertifikat(q.sertifikat as Sertifikat) }}
+              title={`Unduh sertifikat ${q.sertifikat.nomor}`}
+              className="mt-2 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold bg-amber-600 text-white hover:bg-amber-700 transition-all">
+              <Download size={13} /> Unduh Sertifikat
             </button>
           )}
         </div>
@@ -1818,8 +1866,16 @@ export default function LMS() {
                                 <Clock size={11} />
                                 {attemptsMaxed ? 'Percobaan habis' : remaining != null ? `Sisa ${remaining} kali` : q.max_attempts > 0 ? `${q.max_attempts} percobaan` : 'Tanpa batas (unlimited)'}
                               </div>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                {q.attempts_used > 0 && (
+<div className="flex items-center gap-1.5 shrink-0">
+                                 {q.sertifikat && (
+                                   <button type="button"
+                                     onClick={(e) => { e.stopPropagation(); openSertifikat(q.sertifikat as Sertifikat) }}
+                                     title={`Unduh sertifikat ${q.sertifikat.nomor}`}
+                                     className="flex items-center gap-1 rounded-md bg-amber-600 px-3 py-1.5 text-[10px] font-bold text-white hover:bg-amber-700 active:scale-95 transition-all shrink-0">
+                                     <Download size={11} /> Sertifikat
+                                   </button>
+                                 )}
+                                 {q.attempts_used > 0 && (
                                   <button type="button"
                                     onClick={(e) => { e.stopPropagation(); openReviewForPaket(q) }}
                                     className="rounded-md bg-[#0E6187]/10 px-3 py-1.5 text-[10px] font-bold text-[#0E6187] hover:bg-[#0E6187]/15 active:scale-95 transition-all shrink-0">
@@ -1828,7 +1884,7 @@ export default function LMS() {
                                 )}
                                 {canDo ? (
                                   <button type="button"
-                                    onClick={() => navigate(`/siswa-dashboard/quiz/${q.id}`)}
+                                    onClick={() => navigate(`/siswa-dashboard/quiz/${q.id}?lesson=${selectedLesson.id}`)}
                                     className="rounded-md bg-[#0E6187] px-3 py-1.5 text-[10px] font-bold text-white shadow-sm shadow-[#0E6187]/20 hover:bg-[#0B4C6B] active:scale-95 transition-all shrink-0">
                                     Kerjakan
                                   </button>
@@ -2004,6 +2060,7 @@ export default function LMS() {
         {renderSubmitModal()}
 
         {/* Quiz Review Modal (Pembahasan Hasil) */}
+        {renderSertifikatModal()}
         {renderReviewModal()}
       </div>
     )
@@ -2106,6 +2163,7 @@ export default function LMS() {
         </nav>
 
         {/* Quiz Review Modal (Pembahasan Hasil) */}
+        {renderSertifikatModal()}
         {renderReviewModal()}
       </div>
     )
@@ -2496,7 +2554,8 @@ export default function LMS() {
       {renderSubmitModal()}
 
       {/* Quiz Review Modal (Pembahasan Hasil) */}
-      {renderReviewModal()}
+      {renderSertifikatModal()}
+        {renderReviewModal()}
 
       {/* ============ Bottom Nav Bar ============ */}
       <nav className="fixed bottom-3 left-3 right-3 z-40 rounded-2xl border border-slate-200 bg-white/95 shadow-lg shadow-slate-900/10 backdrop-blur lg:hidden">

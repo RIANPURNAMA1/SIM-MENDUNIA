@@ -1449,6 +1449,12 @@ export default function DataCourse() {
     navigate(`${base}/course/${cid}/monitor`, { state: { title: activeCourse?.title } })
   }
 
+  // Monitoring live khusus satu pertemuan: daftar kandidat + status per soal.
+  const openLessonMonitor = (lesson: LessonItem) => {
+    const cid = activeCourse?.id ?? lesson.course_id ?? undefined
+    navigate(`${base}/course/${cid}/monitor/live/${lesson.id}`, { state: { title: lesson.title } })
+  }
+
   const backToList = () => {
     setActiveCourse(null)
     setActiveQuizPaket(null)
@@ -3277,6 +3283,12 @@ export default function DataCourse() {
                               {lesson.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
                             </span>
                           </div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button onClick={(e) => { e.stopPropagation(); openLessonMonitor(lesson) }}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-600 bg-red-50 px-2 py-1.5 hover:bg-red-100 transition-colors" title="Monitoring kandidat">
+                            <Radio size={13} /> Monitoring
+                          </button>
                         </div>
                         {!isAdminCabang && (
                           <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">

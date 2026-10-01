@@ -64,8 +64,14 @@ interface MonitorPaketDetail {
   questions_count: number
 }
 
+interface MonitorLesson {
+  id: number
+  title: string
+}
+
 interface MonitorData {
   course: { id: number; title: string; level: string | number | null; batch_name: string | null }
+  lesson?: MonitorLesson | null
   pakets: MonitorPaket[]
   paket: MonitorPaketDetail | null
   server_time: string
@@ -137,10 +143,12 @@ const STATUS_UI: Record<string, { cls: string; label: string }> = {
 }
 
 export default function CourseQuizMonitor() {
-  const { courseId } = useParams()
+  const { courseId, lessonId } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
   const navTitle = (location.state as { title?: string } | null)?.title
+  // Monitoring bisa difokuskan ke satu pertemuan lewat /monitor/live/:lessonId.
+  const scopedLessonId = lessonId ? Number(lessonId) : null
 
   const [data, setData] = useState<MonitorData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -190,6 +198,7 @@ export default function CourseQuizMonitor() {
     adminQuizApi.courseMonitor(Number(courseId), {
       paket_id: selectedPaketId ?? undefined,
       date: selectedDate,
+      lesson_id: scopedLessonId ?? undefined,
     }).then(res => {
       setData(res.data)
       if (res.data?.paket?.id && selectedPaketId !== res.data.paket.id) {
@@ -203,7 +212,7 @@ export default function CourseQuizMonitor() {
       fetchingRef.current = false
       setLoading(false)
     })
-  }, [courseId, selectedDate, selectedPaketId])
+  }, [courseId, selectedDate, selectedPaketId, scopedLessonId])
 
   useEffect(() => {
     fetchMonitor()
@@ -300,6 +309,7 @@ export default function CourseQuizMonitor() {
   const fastest = finishedDurations.length ? Math.min(...finishedDurations) : null
 
   const courseInfo = data?.course
+  const lessonInfo = data?.lesson
   const paketTitle = data?.paket?.title
   const pakets = data?.pakets || []
 
@@ -343,13 +353,14 @@ export default function CourseQuizMonitor() {
               </button>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h1 className="text-sm font-bold text-white truncate">{navTitle || courseInfo?.title || 'Monitoring Kursus'}</h1>
+                  <h1 className="text-sm font-bold text-white truncate">{navTitle || lessonInfo?.title || courseInfo?.title || 'Monitoring Kursus'}</h1>
                   <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold shrink-0 ${isToday && liveCount > 0 ? 'bg-red-500/15 text-red-400' : isToday ? 'bg-white/10 text-slate-400' : 'bg-white/10 text-slate-400'}`}>
                     <span className={`h-1.5 w-1.5 rounded-full ${isToday && liveCount > 0 ? 'bg-red-500 animate-pulse' : 'bg-slate-500'}`} />
                     {isToday ? 'LIVE' : 'RIWAYAT'}
                   </span>
                 </div>
                 <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                  {lessonInfo && `${courseInfo?.title || ''} · `}
                   {courseInfo && [courseInfo.batch_name, courseInfo.level && `Level ${courseInfo.level}`].filter(Boolean).join(' · ')}
                   {paketTitle ? ` · ${paketTitle}` : ''}
                   {' · '}{fmtDay(selectedDate, isToday)}

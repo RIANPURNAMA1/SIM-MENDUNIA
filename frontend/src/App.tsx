@@ -740,6 +740,16 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/admin-cabang/lms/course/:courseId/monitor/live/:lessonId"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <CourseQuizMonitor />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/admin-cabang/lms/paket/:paketId/soal"
         element={
           <ProtectedRoute roleAllowed="ADMIN_CABANG">
@@ -1147,6 +1157,7 @@ function AppRoutes() {
                 <Route path="/lms/course/:courseId/hasil/:paketId" element={<DataCourse />} />
                 <Route path="/lms/course/:courseId/monitor" element={<CourseMonitorDashboard />} />
                 <Route path="/lms/course/:courseId/monitor/live" element={<CourseQuizMonitor />} />
+                <Route path="/lms/course/:courseId/monitor/live/:lessonId" element={<CourseQuizMonitor />} />
                 <Route path="/lms/course/:courseId/pertemuan/:lessonId" element={<AdminLessonDetail />} />
                 <Route path="/lms/course/:courseId/pertemuan/:lessonId/pembahasan/:paketId" element={<QuizPembahasan source="admin" />} />
                 <Route path="/lms/paket/:paketId/soal" element={<DataCourse />} />
