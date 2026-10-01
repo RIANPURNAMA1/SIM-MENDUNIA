@@ -605,6 +605,9 @@ export default function DataCourse() {
   const [search, setSearch] = useState('')
   const [filterLevel, setFilterLevel] = useState('')
   const [filterBatch, setFilterBatch] = useState('')
+  // Pemisahan asal kursus: '' = semua, 'manual' = dibuat admin, 'sensei' =
+  // dibuat dari menu Tambah Kelas dan punya pengajar.
+  const [filterSource, setFilterSource] = useState<'' | 'manual' | 'sensei'>('')
   const [refPendingCount, setRefPendingCount] = useState(0)
   const [courseLevels, setCourseLevels] = useState<string[]>([])
   const [coursePage, setCoursePage] = useState(1)
@@ -995,7 +998,7 @@ export default function DataCourse() {
     const t = setTimeout(() => { setCoursePage(1); fetchCourses(1) }, 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, filterLevel, filterBatch])
+  }, [search, filterLevel, filterBatch, filterSource])
   const bankSearchFirstRef = useRef(true)
   useEffect(() => {
     if (bankSearchFirstRef.current) { bankSearchFirstRef.current = false; return }
@@ -1124,6 +1127,7 @@ export default function DataCourse() {
         search: search.trim() || undefined,
         level: filterLevel || undefined,
         batch_id: filterBatch || undefined,
+        source: filterSource || undefined,
       }).then(res => {
         const list = res.data.courses || []
         setCourses(list)
@@ -1138,6 +1142,7 @@ export default function DataCourse() {
         search: search.trim() || undefined,
         level: filterLevel || undefined,
         batch_id: filterBatch || undefined,
+        source: filterSource || undefined,
       }).then(res => {
         setCourses(res.data.courses || [])
         setBatches(res.data.batches || [])
@@ -2521,7 +2526,12 @@ export default function DataCourse() {
     const matchSearch = c.title.toLowerCase().includes(search.toLowerCase()) || (c.level && c.level.toLowerCase().includes(search.toLowerCase()))
     const matchLevel = !filterLevel || c.level === filterLevel
     const matchBatch = !filterBatch || c.batch_id?.toString() === filterBatch
-    return matchSearch && matchLevel && matchBatch
+    // Penjaga kedua di sisi klien, karena backend sudah memfilter lewat
+    // ?source=. Tanpa ini, halaman terakhir bisa menampilkan jenis yang salah
+    // kalau paginasi server berubah.
+    const matchSource = !filterSource
+      || (filterSource === 'manual' ? !c.kelas_sensei_id : !!c.kelas_sensei_id)
+    return matchSearch && matchLevel && matchBatch && matchSource
   })
 
   const filteredQuizPakets = quizPakets.filter(p => !quizSearch || p.title.toLowerCase().includes(quizSearch.toLowerCase()))
@@ -3005,6 +3015,36 @@ export default function DataCourse() {
                   </div>
                 </button>
               )}
+            </div>
+
+            {/* Pemisahan asal kursus: tombol kecil di pojok kiri atas tabel */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] font-semibold text-slate-400 mr-0.5">Asal Kursus:</span>
+              {([
+                { key: '', label: 'Semua' },
+                { key: 'manual', label: 'Manual' },
+                { key: 'sensei', label: 'Pengajar' },
+              ] as const).map(opt => (
+                <button
+                  key={opt.key || 'all'}
+                  onClick={() => setFilterSource(opt.key)}
+                  title={
+                    opt.key === 'manual'
+                      ? 'Kursus dibuat admin, tanpa pengajar'
+                      : opt.key === 'sensei'
+                        ? 'Kursus dibuat dari menu Tambah Kelas, ada pengajarnya'
+                        : 'Tampilkan semua kursus'
+                  }
+                  className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-bold transition-colors ${
+                    filterSource === opt.key
+                      ? 'border-[#0E6187] bg-[#0E6187] text-white'
+                      : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
+                  }`}
+                >
+                  {opt.key === 'sensei' ? <UserCheck size={10} /> : opt.key === 'manual' ? <UserRound size={10} /> : <Layers size={10} />}
+                  {opt.label}
+                </button>
+              ))}
             </div>
 
             {/* Heading + filter */}

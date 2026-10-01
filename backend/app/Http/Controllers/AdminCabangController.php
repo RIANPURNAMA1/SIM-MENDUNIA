@@ -1921,6 +1921,14 @@ class AdminCabangController extends Controller
             });
         }
 
+        // Pemisahan asal kursus: "manual" = dibuat admin, "sensei" = dibuat
+        // lewat menu Tambah Kelas (punya kelas_sensei_id).
+        if ($request->source === 'manual') {
+            $query->whereNull('kelas_sensei_id');
+        } elseif ($request->source === 'sensei') {
+            $query->whereNotNull('kelas_sensei_id');
+        }
+
         $perPage = $request->filled('per_page') ? (int) $request->per_page : null;
 
         // Nama sensei pengajar kursus (kursus hasil "Tambah Kelas" punya

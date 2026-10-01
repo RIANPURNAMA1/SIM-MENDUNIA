@@ -42,6 +42,38 @@ const hitungPotongan = (vw: number, vh: number, face: DetectedFace | null): Poto
   return { sx, sy, sw, sh }
 }
 
+/** Label kamera depan menurut berbagai platform. */
+const POLA_DEPAN = /front|user|face|depan|selfie/i
+/** Label kamera belakang — harus dikecualikan walau mengandung "front". */
+const POLA_BELAKANG = /back|rear|belakang|world/i
+
+/**
+ * Cari id kamera depan di antara device yang tersedia.
+ *
+ * Label device baru terisi setelah izin kamera diberikan, jadi pemanggilan ini
+ * harus dilakukan setelah getUserMedia pertama berhasil.
+ */
+const cariKameraDepan = async (): Promise<string | null> => {
+  if (!navigator.mediaDevices?.enumerateDevices) return null
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices()
+    const kameras = devices.filter((d) => d.kind === 'videoinput')
+    if (kameras.length === 0) return null
+
+    const depan = kameras.filter(
+      (d) => POLA_DEPAN.test(d.label) && !POLA_BELAKANG.test(d.label),
+    )
+    if (depan.length > 0) return depan[0].deviceId
+
+    // Android lama sometimes only numbers the devices without labels. Kandidat
+    // pertama dicoba sebagai backup karena urutannya biasanya user-facing.
+    const tanpaLabel = kameras.find((d) => !d.label)
+    return tanpaLabel ? tanpaLabel.deviceId : null
+  } catch {
+    return null
+  }
+}
+
 /**
  * Step pra-ujian untuk paket bersertifikat.
  *
@@ -99,10 +131,37 @@ export default function SertifikatFotoStep({ paketId, judul, onLanjut, onBatal, 
   const startCamera = useCallback(async () => {
     try {
       await loadFaceModels()
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+
+      // Permintaan pertama hanya untuk memunculkan daftar perangkat: label
+      // kamera di HP baru terisi setelah izin diberikan.
+      const awal = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user' },
         audio: false,
       })
+
+      // Lalu pakai deviceId kamera depan secara eksplisit. Tanpa ini, HP
+      // sering membuka kamera belakang walau facingMode sudah 'user'.
+      const deviceId = await cariKameraDepan()
+      let stream = awal
+
+      if (deviceId) {
+        const spec = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false,
+        }).catch(() => null)
+
+        if (spec) {
+          awal.getTracks().forEach((t) => t.stop())
+          stream = spec
+        }
+      } else {
+        awal.getTracks().forEach((t) => t.stop())
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false,
+        })
+      }
+
       streamRef.current = stream
       if (videoRef.current) {
         videoRef.current.srcObject = stream
@@ -140,12 +199,8 @@ export default function SertifikatFotoStep({ paketId, judul, onLanjut, onBatal, 
     const ctx = canvas.getContext('2d')
     if (!ctx) return
     ctx.imageSmoothingQuality = 'high'
-
-    ctx.save()
-    ctx.translate(canvas.width, 0)
-    ctx.scale(-1, 1)
+    // Tidak ada pembalikan: hasil foto harus sama persis dengan pratinjau.
     ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height)
-    ctx.restore()
 
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92))
     if (!blob) {
@@ -212,7 +267,7 @@ export default function SertifikatFotoStep({ paketId, judul, onLanjut, onBatal, 
               <img src={preview} alt="Pratinjau foto identitas" className="h-full w-full object-cover" />
             ) : (
               <>
-                <video ref={videoRef} muted playsInline className="h-full w-full -scale-x-100 object-cover" />
+                <video ref={videoRef} muted playsInline className="h-full w-full object-cover" />
                 {status === 'menyiapkan' && (
                   <div className="absolute inset-0 flex items-center justify-center bg-slate-900/70 text-white">
                     <Loader2 className="h-6 w-6 animate-spin" />

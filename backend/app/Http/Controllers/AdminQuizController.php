@@ -995,7 +995,14 @@ $data = $request->validate([
                     'level' => $course->level,
                     'batch_name' => $course->batch?->nama_batch,
                 ],
-                'lesson' => $lessonPayload,
+'lesson' => $lessonPayload,
+            'scope' => [
+                'batch_id' => $restrictBatchId > 0 ? $restrictBatchId : null,
+                'level' => $restrictLevel,
+                'batch_name' => $restrictBatchId > 0
+                    ? \App\Models\Batch::where('id', $restrictBatchId)->value('nama_batch')
+                    : null,
+            ],
                 'pakets' => [],
                 'paket' => null,
                 'server_time' => now()->toIso8601String(),
@@ -1009,11 +1016,34 @@ $data = $request->validate([
         $paket->loadMissing(['course:id,level,kelas_sensei_id', 'course.kelasSensei:id,level']);
         $levelPaket = $this->levelResmiPaket($paket);
 
-        $scope = fn ($q) => $q->whereHas('siswa', fn ($sq) => $sq->whereIn('batch_id', $batchIds));
+        // Monitoring dari halaman pertemuan dibatasi ke batch + level milik pertemuan
+        // itu. $lesson sudah divalidasi sebagai anak dari $course, jadi scope
+        // diambil dari $course — bukan dari query string, supaya klien tidak
+        // bisa mengarang batch lain. Monitoring dari bank paket soal tidak
+        // mengirim lesson_id, jadi tetap lintas batch.
+        $restrictBatchId = $lesson ? (int) ($course->batch_id ?? 0) : 0;
+        $restrictLevel = $lesson ? ($course->level === null ? null : (string) $course->level) : null;
+
+        $scope = function ($q) use ($batchIds, $restrictBatchId, $restrictLevel) {
+            $q->whereHas('siswa', function ($sq) use ($batchIds, $restrictBatchId, $restrictLevel) {
+                if ($batchIds !== null) {
+                    $sq->whereIn('batch_id', $batchIds);
+                }
+                if ($restrictBatchId > 0) {
+                    $sq->where('batch_id', $restrictBatchId);
+                }
+                if ($restrictLevel !== null) {
+                    $sq->where('level', $restrictLevel);
+                }
+            });
+        };
+
+        // Kalau tidak ada pembatasan lain, scope tidak perlu dijalankan sama sekali.
+        $butuhScope = $batchIds !== null || $restrictBatchId > 0 || $restrictLevel !== null;
 
         $attempts = QuizAttempt::with(['siswa:id,nama,batch,level,batch_id', 'siswa.batchRelasi.cabang', 'answers:id,quiz_attempt_id,quiz_question_id,selected_index,selected_indexes,answer_text,is_correct,earned_points,updated_at'])
             ->where('quiz_paket_id', $paket->id)
-            ->when($batchIds !== null, $scope)
+            ->when($butuhScope, $scope)
             ->where(function ($q) use ($date) {
                 $q->where(function ($q2) use ($date) {
                     $q2->where('status', 'in_progress')->whereDate('created_at', $date);
@@ -1025,7 +1055,7 @@ $data = $request->validate([
             ->get();
 
         $dates = QuizAttempt::where('quiz_paket_id', $paket->id)
-            ->when($batchIds !== null, $scope)
+            ->when($butuhScope, $scope)
             ->selectRaw('DATE(COALESCE(submitted_at, created_at)) as day, COUNT(*) as cnt')
             ->groupBy('day')
             ->orderByDesc('day')
@@ -1135,7 +1165,7 @@ $data = $request->validate([
         });
 
         // Ringkasan live / kumpul hari ini per paket, untuk chip pemilih paket.
-        $paketSummary = $pakets->map(function ($p) use ($batchIds, $scope) {
+        $paketSummary = $pakets->map(function ($p) use ($butuhScope, $scope) {
             return [
                 'id' => $p->id,
                 'title' => $p->title,
@@ -1144,12 +1174,12 @@ $data = $request->validate([
                 'live_today' => (int) QuizAttempt::where('quiz_paket_id', $p->id)
                     ->where('status', 'in_progress')
                     ->whereDate('created_at', now()->toDateString())
-                    ->when($batchIds !== null, $scope)
+                    ->when($butuhScope, $scope)
                     ->count(),
                 'submitted_today' => (int) QuizAttempt::where('quiz_paket_id', $p->id)
                     ->whereNotNull('submitted_at')
                     ->whereDate('submitted_at', now()->toDateString())
-                    ->when($batchIds !== null, $scope)
+                    ->when($butuhScope, $scope)
                     ->count(),
             ];
         })->values();

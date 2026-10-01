@@ -75,6 +75,7 @@ interface MonitorLesson {
 interface MonitorData {
   course: { id: number; title: string; level: string | number | null; batch_name: string | null }
   lesson?: MonitorLesson | null
+  scope?: { batch_id: number | null; level: string | null; batch_name: string | null }
   pakets: MonitorPaket[]
   paket: MonitorPaketDetail | null
   server_time: string
@@ -157,6 +158,9 @@ export default function CourseQuizMonitor() {
   const location = useLocation()
   const navTitle = (location.state as { title?: string } | null)?.title
   // Monitoring bisa difokuskan ke satu pertemuan lewat /monitor/live/:lessonId.
+  // Backend memakai lesson_id ini untuk membatasi kandidat ke batch + level
+  // pertemuan tersebut. Tanpa lesson_id (mis. dari bank paket soal), monitor
+  // menampilkan semua batch yang mengerjakan paket itu.
   const scopedLessonId = lessonId ? Number(lessonId) : null
 
   const [data, setData] = useState<MonitorData | null>(null)
@@ -381,6 +385,16 @@ export default function CourseQuizMonitor() {
                   {liveCount > 0 ? ` · ${liveCount} kandidat sedang mengerjakan` : ' · tidak ada kandidat aktif'}
                   {lastSync && ` · diperbarui ${ago(new Date(lastSync).toISOString())}`}
                 </p>
+                {data?.scope?.batch_id ? (
+                  <p className="text-[10px] font-medium text-[#7ec3e4] mt-1 inline-flex items-center gap-1">
+                    <Users size={11} />
+                    Hanya kandidat {data.scope.batch_name || `batch ${data.scope.batch_id}`}{data.scope.level ? ` · Level ${data.scope.level}` : ''} pada pertemuan ini
+                  </p>
+                ) : (
+                  <p className="text-[10px] font-medium text-slate-500 mt-1">
+                    Seluruh batch yang mengerjakan paket ini
+                  </p>
+                )}
               </div>
             </div>
 

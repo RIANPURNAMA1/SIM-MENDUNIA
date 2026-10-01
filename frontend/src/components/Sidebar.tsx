@@ -167,7 +167,6 @@ const navItems: NavItem[] = [
     children: [
       { label: "Data Sensei", icon: "Presentation", href: "/guru" },
       { label: "Kelas Sensei", icon: "BookOpen", href: "/kelas-sensei" },
-      { label: "Riwayat Pertemuan", icon: "Calendar", href: "/pertemuan" },
       { label: "Rekap Siswa", icon: "BarChart3", href: "/rekap-siswa" },
       { label: "Penilaian Siswa", icon: "Notebook", href: "/penilaian" },
       { label: "Evaluasi Instruktur", icon: "ClipboardCheck", href: "/evaluasi-instruktur" },

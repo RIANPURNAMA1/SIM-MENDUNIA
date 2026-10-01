@@ -2141,7 +2141,7 @@ export default function LMS() {
         </div>
 
         {/* ============ Bottom Nav Bar ============ */}
-        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden">
+        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur animate-fade-in delay-300">
           <div className="mx-auto grid max-w-lg grid-cols-5">
             {bottomNav.map(nav => {
               const Icon = nav.icon
@@ -2150,11 +2150,11 @@ export default function LMS() {
                 <Link
                   key={nav.label}
                   to={nav.to}
-                  className={`flex flex-col items-center gap-1 py-2.5 transition ${
-                    isActive ? 'text-[#0E6187]' : 'text-slate-400'
+                  className={`flex flex-col items-center gap-1 py-2.5 transition-all duration-200 active:scale-90 ${
+                    isActive ? 'text-[#0E6187]' : 'text-slate-400 hover:text-slate-600'
                   }`}
                 >
-                  <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
+                  <Icon size={20} strokeWidth={isActive ? 2.4 : 2} className="transition-transform duration-200" />
                   <span className="text-[10px] font-medium">{nav.label}</span>
                 </Link>
               )
@@ -2558,8 +2558,8 @@ export default function LMS() {
         {renderReviewModal()}
 
       {/* ============ Bottom Nav Bar ============ */}
-      <nav className="fixed bottom-3 left-3 right-3 z-40 rounded-2xl border border-slate-200 bg-white/95 shadow-lg shadow-slate-900/10 backdrop-blur lg:hidden">
-        <div className="mx-auto grid max-w-md grid-cols-5">
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur animate-fade-in delay-300">
+        <div className="mx-auto grid max-w-lg grid-cols-5">
           {bottomNav.map(nav => {
             const Icon = nav.icon
             const isActive = nav.to === location.pathname
@@ -2567,18 +2567,12 @@ export default function LMS() {
               <Link
                 key={nav.label}
                 to={nav.to}
-                className={`group flex flex-col items-center justify-center py-2 transition ${
-                  isActive ? 'text-[#0E6187]' : 'text-slate-400'
+                className={`flex flex-col items-center gap-1 py-2.5 transition-all duration-200 active:scale-90 ${
+                  isActive ? 'text-[#0E6187]' : 'text-slate-400 hover:text-slate-600'
                 }`}
               >
-                <span className={`flex h-9 w-9 items-center justify-center rounded-xl transition-all ${
-                  isActive
-                    ? 'bg-[#0E6187] text-white'
-                    : 'group-hover:bg-[#0E6187] group-hover:text-white'
-                }`}>
-                  <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
-                </span>
-                <span className="mt-0.5 text-[9px] font-semibold">{nav.label}</span>
+                <Icon size={20} strokeWidth={isActive ? 2.4 : 2} className="transition-transform duration-200" />
+                <span className="text-[10px] font-medium">{nav.label}</span>
               </Link>
             )
           })}
@@ -2872,8 +2866,8 @@ export default function LMS() {
       </div>
 
       {/* ============ Bottom Nav Bar ============ */}
-      <nav className="fixed bottom-3 left-3 right-3 z-40 rounded-2xl border border-slate-200 bg-white/95 shadow-lg shadow-slate-900/10 backdrop-blur lg:hidden">
-        <div className="mx-auto grid max-w-md grid-cols-5">
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur animate-fade-in delay-300">
+        <div className="mx-auto grid max-w-lg grid-cols-5">
           {bottomNav.map(nav => {
             const Icon = nav.icon
             const isActive = nav.to === location.pathname
@@ -2881,18 +2875,12 @@ export default function LMS() {
               <Link
                 key={nav.label}
                 to={nav.to}
-                className={`group flex flex-col items-center justify-center py-2 transition ${
-                  isActive ? 'text-[#0E6187]' : 'text-slate-400'
+                className={`flex flex-col items-center gap-1 py-2.5 transition-all duration-200 active:scale-90 ${
+                  isActive ? 'text-[#0E6187]' : 'text-slate-400 hover:text-slate-600'
                 }`}
               >
-                <span className={`flex h-9 w-9 items-center justify-center rounded-xl transition-all ${
-                  isActive
-                    ? 'bg-[#0E6187] text-white'
-                    : 'group-hover:bg-[#0E6187] group-hover:text-white'
-                }`}>
-                  <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
-                </span>
-                <span className="mt-0.5 text-[9px] font-semibold">{nav.label}</span>
+                <Icon size={20} strokeWidth={isActive ? 2.4 : 2} className="transition-transform duration-200" />
+                <span className="text-[10px] font-medium">{nav.label}</span>
               </Link>
             )
           })}

@@ -121,8 +121,12 @@ export default function CourseMonitorDashboard() {
     [lessons],
   )
 
-  const openMonitor = (paketId: number, title: string, pertemuanKe: number) => {
-    navigate(`${location.pathname}/live?paket=${paketId}`, {
+  // lesson_id diteruskan supaya backend membatasi kandidat ke batch + level
+  // pertemuan ini. Tanpa itu, monitor ikut menampilkan batch lain.
+  const openMonitor = (lessonId: number | undefined, paketId: number, title: string, pertemuanKe: number) => {
+    const qs = new URLSearchParams({ paket: String(paketId) })
+    if (lessonId) qs.set('lesson_id', String(lessonId))
+    navigate(`${location.pathname}/live?${qs.toString()}`, {
       state: { title, pertemuan_ke: pertemuanKe },
     })
   }
@@ -329,7 +333,7 @@ function LessonCard({
   onOpen,
 }: {
   lesson: OverviewLesson
-  onOpen: (paketId: number, title: string, pertemuanKe: number) => void
+  onOpen: (lessonId: number | undefined, paketId: number, title: string, pertemuanKe: number) => void
 }) {
   const live = lesson.live_count > 0
 
@@ -365,7 +369,7 @@ function LessonCard({
 
       <div className="border-t border-white/10 px-3.5 py-2 space-y-1.5">
         {lesson.pakets.map(p => (
-          <PaketRow key={p.id} paket={p} pertemuanKe={lesson.pertemuan_ke} onOpen={onOpen} />
+          <PaketRow key={p.id} paket={p} pertemuanKe={lesson.pertemuan_ke} lessonId={lesson.id} onOpen={onOpen} />
         ))}
       </div>
     </div>
@@ -375,18 +379,22 @@ function LessonCard({
 function PaketRow({
   paket,
   pertemuanKe,
+  lessonId,
   onOpen,
 }: {
   paket: OverviewPaket
   pertemuanKe: number | null
-  onOpen: (paketId: number, title: string, pertemuanKe: number) => void
+  // undefined untuk paket orphan: paket seperti ini bisa dipakai beberapa batch,
+  // jadi monitor dibiarkan lintas batch.
+  lessonId?: number
+  onOpen: (lessonId: number | undefined, paketId: number, title: string, pertemuanKe: number) => void
 }) {
   const live = paket.live_count > 0
   const disabled = paket.status !== 'aktif'
 
   return (
     <button
-      onClick={() => onOpen(paket.id, paket.title, pertemuanKe ?? 0)}
+      onClick={() => onOpen(lessonId, paket.id, paket.title, pertemuanKe ?? 0)}
       disabled={disabled}
       title={disabled ? 'Paket soal nonaktif' : 'Buka ruang monitoring'}
       className={`w-full flex items-center gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors ${

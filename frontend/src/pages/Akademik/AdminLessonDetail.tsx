@@ -531,7 +531,7 @@ export default function AdminLessonDetail() {
                                 className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-600 hover:border-slate-300 transition-colors">
                                 <BarChart3 size={12} /> Hasil
                               </button>
-                              <button onClick={() => navigate(`${base}/course/${lesson.course_id}/monitor/live?paket=${p.id}`, { state: { title: p.title, pertemuan_ke: lesson.pertemuan_ke } })}
+                              <button onClick={() => navigate(`${base}/course/${lesson.course_id}/monitor/live?paket=${p.id}&lesson_id=${lesson.id}`, { state: { title: p.title, pertemuan_ke: lesson.pertemuan_ke } })}
                                 className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-600 hover:border-slate-300 transition-colors">
                                 <Activity size={12} /> Monitor
                               </button>

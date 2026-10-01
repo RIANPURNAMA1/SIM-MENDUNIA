@@ -2180,7 +2180,7 @@ export default function GuruLessonDetail() {
                         className={`${QUIZ_ACTION_CLS} text-[#4B5063] bg-[#F4F5F8] border border-[#E5E7EF] hover:bg-[#EDEEF3]`}>
                         Lihat Paket Soal <ChevronDown size={12} className={previewPaketId === paket.id ? 'rotate-180 transition-transform' : 'transition-transform'} />
                       </button>
-                      <button onClick={() => isAdminView ? navigate(`${lmsBase}/course/${lesson.course_id}/monitor/live?paket=${paket.id}`, { state: { title: paket.title, pertemuan_ke: lesson.pertemuan_ke } }) : navigate(`/guru-paket-soal/monitor/${paket.id}?kelas_sensei_id=${lesson?.course?.kelas_sensei_id ?? ''}`, { state: { title: paket.title } })}
+                      <button onClick={() => isAdminView ? navigate(`${lmsBase}/course/${lesson.course_id}/monitor/live?paket=${paket.id}&lesson_id=${lesson.id}`, { state: { title: paket.title, pertemuan_ke: lesson.pertemuan_ke } }) : navigate(`/guru-paket-soal/monitor/${paket.id}?kelas_sensei_id=${lesson?.course?.kelas_sensei_id ?? ''}`, { state: { title: paket.title } })}
                         className={`${QUIZ_ACTION_CLS} text-[#4B5063] bg-[#F4F5F8] border border-[#E5E7EF] hover:bg-[#EDEEF3]`}
                         title="Monitor langsung pengerjaan siswa (kamera + progres)">
                         <Activity size={12} /> {isAdminView ? 'Monitoring Kursus' : 'Monitor'}

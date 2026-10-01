@@ -737,6 +737,14 @@ class LmsController extends Controller
             $query->where('batch_id', $request->batch_id);
         }
 
+        // Pemisahan asal kursus: "manual" = dibuat admin lewat Data Kursus LMS,
+        // "sensei" = dibuat sensei lewat menu Tambah Kelas (punya kelas_sensei_id).
+        if ($request->source === 'manual') {
+            $query->whereNull('kelas_sensei_id');
+        } elseif ($request->source === 'sensei') {
+            $query->whereNotNull('kelas_sensei_id');
+        }
+
         $query->orderBy('sort')->orderBy('id');
         $batches = Batch::aktif()->orderBy('nama_batch')->get(['id', 'nama_batch', 'warna']);
         $levels = Course::query()->distinct()->pluck('level')->filter()->values();
