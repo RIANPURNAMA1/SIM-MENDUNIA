@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft, Camera, CheckCircle2, X, RefreshCw, Pause, Play, ShieldAlert, Users, ListChecks, Timer, CalendarDays,
-  ImageIcon, Volume2, Radio,
+  ImageIcon, Volume2, Radio, Trophy,
 } from 'lucide-react'
 import { adminQuizApi, APP_URL } from '../../services/api'
 import { getEcho, leaveChannel } from '../../services/echo'
@@ -24,6 +24,9 @@ interface MonitorAttempt {
   status: string
   auto_submitted: boolean
   score: number | null
+  live_points: number
+  max_points: number
+  rank: number
   warnings: number
   max_warnings: number
   time_limit_seconds: number
@@ -133,6 +136,12 @@ const fmtDay = (d: string, isToday: boolean) => {
   } catch {
     return d
   }
+}
+
+const RANK_CLS: Record<number, string> = {
+  1: 'bg-amber-400/20 border-amber-400/50 text-amber-300',
+  2: 'bg-slate-300/15 border-slate-300/40 text-slate-200',
+  3: 'bg-orange-500/15 border-orange-500/40 text-orange-300',
 }
 
 const STATUS_UI: Record<string, { cls: string; label: string }> = {
@@ -308,6 +317,11 @@ export default function CourseQuizMonitor() {
     .map(a => Math.max(0, Math.floor((Date.parse(a.submitted_at!) - Date.parse(a.started_at!)) / 1000)))
   const fastest = finishedDurations.length ? Math.min(...finishedDurations) : null
 
+  const topPoints = attempts.length
+    ? Math.max(...attempts.map(a => Number(a.live_points) || 0))
+    : null
+  const maxPointsTotal = attempts.length ? Math.max(...attempts.map(a => Number(a.max_points) || 0)) : 0
+
   const courseInfo = data?.course
   const lessonInfo = data?.lesson
   const paketTitle = data?.paket?.title
@@ -412,7 +426,7 @@ export default function CourseQuizMonitor() {
           )}
 
           {/* Stats */}
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
             <div className="rounded-lg bg-[#16181d] border border-white/10 px-3 py-2.5">
               <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
                 <Users size={12} className="text-slate-500 shrink-0" />
@@ -440,6 +454,15 @@ export default function CourseQuizMonitor() {
                 <span className="truncate">Soal Terjawab</span>
               </div>
               <p className="text-lg font-bold text-white leading-none mt-2 tabular-nums">{answeredTotal}/{live.reduce((s, a) => s + a.total_count, 0)}</p>
+            </div>
+            <div className="rounded-lg bg-[#16181d] border border-white/10 px-3 py-2.5">
+              <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
+                <Trophy size={12} className="text-amber-400 shrink-0" />
+                <span className="truncate">Poin Tertinggi</span>
+              </div>
+              <p className="text-lg font-bold text-amber-300 leading-none mt-2 tabular-nums">
+                {topPoints !== null ? `${topPoints}/${maxPointsTotal || '--'}` : '--/--'}
+              </p>
             </div>
             <div className="rounded-lg bg-[#16181d] border border-white/10 px-3 py-2.5">
               <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
@@ -510,8 +533,11 @@ export default function CourseQuizMonitor() {
                     className="rounded-lg border border-white/10 bg-[#16181d] p-3.5 cursor-pointer active:bg-[#0E6187]/10 transition-colors">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-white/5 border border-white/10 text-[11px] font-bold text-slate-300 shrink-0">#{a.attempt_number}</span>
+                        <span className={`inline-flex w-7 h-7 items-center justify-center rounded-md border text-[11px] font-bold tabular-nums shrink-0 ${RANK_CLS[a.rank] ?? 'bg-white/5 border-white/10 text-slate-300'}`}>{a.rank}</span>
                         <p className="text-[12px] font-bold text-white truncate">{a.siswa.nama}</p>
+                        <span className={`shrink-0 text-[10px] font-bold tabular-nums ${a.rank === 1 ? 'text-amber-300' : 'text-slate-300'}`}>
+                          {Number(a.live_points) || 0} poin
+                        </span>
                       </div>
                       {isLive ? (
                         <span className="inline-flex items-center gap-1 rounded-md bg-[#0E6187]/15 px-1.5 py-0.5 text-[9px] font-bold text-[#7ec3e4] shrink-0">
@@ -571,10 +597,11 @@ export default function CourseQuizMonitor() {
               <table className="w-full text-left">
                 <thead>
                   <tr className="border-b border-white/10 bg-white/[0.04] text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    <th className="px-3 py-2.5 whitespace-nowrap">No</th>
+                    <th className="px-3 py-2.5 whitespace-nowrap">Peringkat</th>
                     <th className="px-3 py-2.5 whitespace-nowrap">Kandidat</th>
                     <th className="px-3 py-2.5 whitespace-nowrap">Jawaban per Soal</th>
                     <th className="px-3 py-2.5 whitespace-nowrap text-center">Benar</th>
+                    <th className="px-3 py-2.5 whitespace-nowrap text-center">Poin</th>
                     <th className="px-3 py-2.5 whitespace-nowrap text-center">Peringatan</th>
                     <th className="px-3 py-2.5 whitespace-nowrap">Waktu</th>
                   </tr>
@@ -591,8 +618,8 @@ export default function CourseQuizMonitor() {
                       <tr key={a.attempt_id} onClick={() => openDetail(a.attempt_id)}
                         className="border-b border-white/5 last:border-0 cursor-pointer transition-colors hover:bg-[#0E6187]/10">
                         <td className="px-3 py-3 align-top">
-                          <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-white/5 border border-white/10 text-[11px] font-bold text-slate-300">
-                            {a.attempt_number}
+                          <span className={`inline-flex w-7 h-7 items-center justify-center rounded-md border text-[11px] font-bold tabular-nums ${RANK_CLS[a.rank] ?? 'bg-white/5 border-white/10 text-slate-300'}`}>
+                            {a.rank}
                           </span>
                         </td>
                         <td className="px-3 py-3 align-top min-w-[180px]">
@@ -635,6 +662,12 @@ export default function CourseQuizMonitor() {
                         </td>
                         <td className="px-3 py-3 align-top text-center whitespace-nowrap">
                           <p className="text-[12px] font-bold text-slate-200">{a.correct_count}/{a.total_count}</p>
+                        </td>
+                        <td className="px-3 py-3 align-top text-center whitespace-nowrap">
+                          <p className={`text-[12px] font-bold tabular-nums ${a.rank === 1 ? 'text-amber-300' : 'text-white'}`}>
+                            {Number(a.live_points) || 0}
+                            <span className="text-[10px] text-slate-500 font-semibold">/{Number(a.max_points) || 0}</span>
+                          </p>
                         </td>
                         <td className="px-3 py-3 align-top text-center whitespace-nowrap">
                           <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md ${a.warnings >= a.max_warnings ? 'bg-red-500/15 text-red-400' : a.warnings > 0 ? 'bg-amber-500/15 text-amber-400' : 'bg-white/5 text-slate-500'}`}>

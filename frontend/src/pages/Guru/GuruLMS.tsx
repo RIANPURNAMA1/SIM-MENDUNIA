@@ -35,6 +35,7 @@ interface Course {
   tanggal_mulai_formatted?: string | null
   tanggal_selesai_formatted?: string | null
   periode_status?: string | null
+  is_berlangsung?: boolean
 }
 
 interface KelasOption {
@@ -730,6 +731,9 @@ export default function GuruLMS() {
   }
 
   const filtered = courses.filter(c => c.title.toLowerCase().includes(search.toLowerCase()))
+  const sedangBerlangsungCount = courses.filter(c => c.is_berlangsung).length
+  const diajarCount = courses.filter(c => c.can_manage).length
+  const hanyaBacaCount = courses.filter(c => !c.can_manage).length
 
   const getFileIcon = (type: string | null) => {
     if (!type) return <FileText size={15} className="text-gray-400" />
@@ -1676,6 +1680,30 @@ export default function GuruLMS() {
       </div>
 
       <div className="max-w-5xl mx-auto px-4 pt-4">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
+          <div className="rounded-xl bg-emerald-500 px-3 py-2.5 text-white">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold opacity-90">
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse shrink-0" />
+              <span className="truncate">Sedang Berlangsung</span>
+            </div>
+            <p className="text-lg font-black leading-none mt-1.5 tabular-nums">{sedangBerlangsungCount}</p>
+          </div>
+          <div className="rounded-xl bg-white border border-gray-200 px-3 py-2.5">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500">
+              <BookOpen size={12} className="shrink-0" />
+              <span className="truncate">Diajar Anda</span>
+            </div>
+            <p className="text-lg font-black text-gray-900 leading-none mt-1.5 tabular-nums">{diajarCount}</p>
+          </div>
+          <div className="rounded-xl bg-white border border-gray-200 px-3 py-2.5">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500">
+              <Eye size={12} className="shrink-0" />
+              <span className="truncate">Hanya Baca</span>
+            </div>
+            <p className="text-lg font-black text-gray-900 leading-none mt-1.5 tabular-nums">{hanyaBacaCount}</p>
+          </div>
+        </div>
+
         {filtered.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
             <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
@@ -1692,6 +1720,7 @@ export default function GuruLMS() {
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
             {filtered.map(course => {
               const courseActive = course.status === 'aktif'
+              const sedangBerlangsung = !!course.is_berlangsung
               return (
               <button key={course.id} onClick={() => courseActive ? openCourse(course) : (
                 Swal.fire({
@@ -1702,8 +1731,12 @@ export default function GuruLMS() {
                   confirmButtonColor: '#0069b0',
                 })
               )}
-                className={`bg-white rounded-2xl border border-gray-200 overflow-hidden text-left group transition-all ${
-                  courseActive ? 'hover:shadow-lg hover:border-[#0069b0]/40 hover:-translate-y-0.5' : 'opacity-75 cursor-not-allowed'
+                className={`bg-white rounded-2xl border overflow-hidden text-left group transition-all ${
+                  sedangBerlangsung
+                    ? 'border-emerald-300 ring-1 ring-emerald-200 hover:shadow-lg hover:border-emerald-400 hover:-translate-y-0.5'
+                    : courseActive
+                      ? 'border-gray-200 hover:shadow-lg hover:border-[#0069b0]/40 hover:-translate-y-0.5'
+                      : 'border-gray-200 opacity-75 cursor-not-allowed'
                 }`}>
                 <div className={`h-32 bg-gradient-to-br from-[#0E6187] to-[#1a3355] flex items-center justify-center relative overflow-hidden ${courseActive ? '' : 'grayscale'}`}>
                   {course.image ? (
@@ -1712,6 +1745,9 @@ export default function GuruLMS() {
                     <img src={DEFAULT_COURSE_COVER} alt="" className="w-full h-full object-cover" />
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0b1420]/70 via-[#0E6187]/25 to-transparent pointer-events-none" />
+                  {sedangBerlangsung && (
+                    <div className="absolute inset-x-0 top-0 h-1 bg-emerald-500" />
+                  )}
                   <div className="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between gap-2">
                     <span className="inline-flex items-center gap-1 rounded-md bg-slate-900/70 px-2 py-1 text-[10px] font-bold text-white ring-1 ring-white/15 backdrop-blur-sm">
                       <Layers size={11} className="shrink-0" />
@@ -1730,6 +1766,12 @@ export default function GuruLMS() {
                       )}
                     </div>
                   </div>
+                  {sedangBerlangsung && (
+                    <span className="absolute bottom-2.5 left-2.5 inline-flex items-center gap-1.5 rounded-md bg-emerald-500 px-2 py-1 text-[10px] font-bold text-white shadow-sm">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                      Sedang Berlangsung
+                    </span>
+                  )}
                 </div>
                 <div className="p-3 sm:p-4">
                   <div className="flex items-start justify-between gap-2">
@@ -1745,14 +1787,26 @@ export default function GuruLMS() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-3 border-t border-gray-100">
-                    <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold ring-1 ${
-                      courseActive
-                        ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-                        : 'bg-gray-100 text-gray-500 ring-gray-200'
-                    }`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${courseActive ? 'bg-emerald-500' : 'bg-gray-400'}`} />
-                      {courseActive ? 'Aktif' : 'Nonaktif'}
-                    </span>
+                    {sedangBerlangsung ? (
+                      <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-500 text-white text-[10px] font-bold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                        Sedang Berlangsung
+                      </span>
+                    ) : (
+                      <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold ring-1 ${
+                        courseActive
+                          ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                          : 'bg-gray-100 text-gray-500 ring-gray-200'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${courseActive ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+                        {courseActive ? 'Aktif' : 'Nonaktif'}
+                      </span>
+                    )}
+                    {sedangBerlangsung && (
+                      <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 text-[10px] font-bold">
+                        Aktif
+                      </span>
+                    )}
                     <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[#0069b0]/5 text-[#0069b0] ring-1 ring-[#0069b0]/15 text-[10px] font-bold">
                       <Layers size={11} className="shrink-0" />
                       {course.level ? `Level ${course.level}` : 'Level Umum'}

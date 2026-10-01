@@ -215,6 +215,107 @@ class QuizMonitoringTest extends TestCase
         $this->assertCount(1, $respons->json('attempts'));
         $this->assertSame($this->paketA->id, $respons->json('attempts.0.paket_id'));
         $this->assertSame(['benar'], $respons->json('attempts.0.answers_status'));
+
+        // Poin sementara dihitung dari questions->points, bukan dari
+        // attempt->score yang masih null selama pengerjaan berjalan.
+        $respons->assertJsonPath('attempts.0.live_points', 10);
+        $respons->assertJsonPath('attempts.0.max_points', 10);
+        $respons->assertJsonPath('attempts.0.rank', 1);
+    }
+
+    public function test_monitoring_kursus_urutkan_kandidat_berdasarkan_poin_live()
+    {
+        Sanctum::actingAs($this->admin);
+
+        // Tambah dua soal lagi per paket supaya poin antar kandidat bisa beda.
+        foreach ([$this->paketA, $this->paketB] as $paket) {
+            for ($i = 1; $i < 3; $i++) {
+                QuizQuestion::create([
+                    'quiz_paket_id' => $paket->id,
+                    'question' => 'Soal tambahan ' . ($i + 1),
+                    'options' => ['a', 'b', 'c'],
+                    'correct_index' => 0,
+                    'points' => 10,
+                    'sort' => $i + 1,
+                    'question_type' => 'choice',
+                ]);
+            }
+            $paket->load('questions');
+        }
+
+        $rendah = Siswa::create([
+            'nama' => 'Kandidat Rendah', 'nik' => '3273011501990021',
+            'no_registrasi' => 'REG/MON/0021',
+            'batch_id' => $this->batch->id, 'level' => '2', 'status' => 'aktif',
+        ]);
+        $tinggi = Siswa::create([
+            'nama' => 'Kandidat Tinggi', 'nik' => '3273011501990022',
+            'no_registrasi' => 'REG/MON/0022',
+            'batch_id' => $this->batch->id, 'level' => '2', 'status' => 'aktif',
+        ]);
+
+        $attemptRendah = QuizAttempt::create([
+            'quiz_paket_id' => $this->paketA->id,
+            'siswa_id' => $rendah->id,
+            'source' => 'lms',
+            'attempt_number' => 1,
+            'started_at' => now(),
+            'submitted_at' => null,
+            'time_limit_seconds' => 1800,
+            'warnings' => 0,
+            'auto_submitted' => false,
+            'status' => 'in_progress',
+        ]);
+        $attemptTinggi = QuizAttempt::create([
+            'quiz_paket_id' => $this->paketA->id,
+            'siswa_id' => $tinggi->id,
+            'source' => 'lms',
+            'attempt_number' => 1,
+            'started_at' => now(),
+            'submitted_at' => null,
+            'time_limit_seconds' => 1800,
+            'warnings' => 0,
+            'auto_submitted' => false,
+            'status' => 'in_progress',
+        ]);
+
+        // Kandidat rendah benar 1 soal, kandidat tinggi benar semua.
+        foreach ($this->paketA->questions as $i => $soal) {
+            foreach ([
+                [$attemptRendah, $i === 0 ? 0 : 1],
+                [$attemptTinggi, 0],
+            ] as [$attempt, $index]) {
+                QuizAnswer::create([
+                    'quiz_attempt_id' => $attempt->id,
+                    'quiz_question_id' => $soal->id,
+                    'selected_index' => $index,
+                    'earned_points' => $index === 0 ? 10 : 0,
+                    'is_correct' => $index === 0,
+                ]);
+            }
+        }
+
+        $respons = $this->getJson("/api/admin-cabang/quiz/courses/{$this->course->id}/monitor");
+
+        $respons->assertOk();
+
+        $rows = collect($respons->json('attempts'));
+
+        // Kandidat Tinggi benar semua harus menduduki peringkat 1 dengan poin
+        // penuh; attempt bawaan setUp dan Kandidat Rendah tetap ikut masuk
+        // dengan poin lebih kecil.
+        $this->assertSame('Kandidat Tinggi', $rows->first()['siswa']['nama']);
+        $this->assertSame(1, $rows->first()['rank']);
+        $this->assertSame(30, $rows->first()['live_points']);
+        $this->assertSame(30, $rows->first()['max_points']);
+
+        // Poin selalu non-naik sesuai peringkat, dan rank berurutan tanpa bolong.
+        $poin = $rows->pluck('live_points')->values()->all();
+        $sortedPoin = $poin;
+        rsort($sortedPoin);
+        $this->assertSame($sortedPoin, $poin);
+        $this->assertSame(range(1, $rows->count()), $rows->pluck('rank')->values()->all());
+        $this->assertContains('Kandidat Rendah', $rows->pluck('siswa.nama')->all());
     }
 
     public function test_monitoring_pertemuan_kedua_menampilkan_kandidat_dan_status_soal_yang_sedang_dikerjakan()

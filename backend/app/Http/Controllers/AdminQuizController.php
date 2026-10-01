@@ -1076,12 +1076,24 @@ $data = $request->validate([
 
             $last = $a->answers->max('updated_at') ?? $a->updated_at;
 
+            // Poin sementara: dijumlahkan dari questions->points untuk jawaban
+            // yang sudah benar, supaya terlihat live meski attempt belum selesai.
+            // Esai yang belum dinilai tidak ikut dihitung karena nilainya belum ada.
+            $livePoints = 0;
+            foreach ($paket->questions as $i => $q) {
+                if (($statuses[$i] ?? 'kosong') === 'benar') {
+                    $livePoints += (int) $q->points;
+                }
+            }
+
             return [
                 'attempt_id' => $a->id,
                 'attempt_number' => $a->attempt_number,
                 'status' => $a->status,
                 'auto_submitted' => (bool) $a->auto_submitted,
                 'score' => $a->score,
+                'live_points' => $livePoints,
+                'max_points' => (int) $paket->questions->sum('points'),
                 'warnings' => $a->warnings,
                 'max_warnings' => (int) $paket->max_warnings,
                 'time_limit_seconds' => $a->time_limit_seconds,
@@ -1103,6 +1115,24 @@ $data = $request->validate([
                 ],
             ];
         })->values();
+
+        // Peringkat live: poin sementara tertinggi di atas, lalu jumlah soal
+        // terjawab, lalu yang mulai lebih dulu. Kandidat bisa saling menyalip
+        // selama mengerjakan karena list diurutkan ulang tiap polling.
+        $rows = $rows->sort(function ($x, $y) {
+            if ($x['live_points'] !== $y['live_points']) {
+                return $y['live_points'] <=> $x['live_points'];
+            }
+            if ($x['answered_count'] !== $y['answered_count']) {
+                return $y['answered_count'] <=> $x['answered_count'];
+            }
+
+            return strcmp((string) $x['started_at'], (string) $y['started_at']);
+        })->values()->map(function ($row, $i) {
+            $row['rank'] = $i + 1;
+
+            return $row;
+        });
 
         // Ringkasan live / kumpul hari ini per paket, untuk chip pemilih paket.
         $paketSummary = $pakets->map(function ($p) use ($batchIds, $scope) {

@@ -554,6 +554,12 @@ class GuruDashboardController extends Controller
                     }
                 }
             }
+            // Kelas yang sedang diampu sensei ini. Kelas tanpa jadwal tanggal
+            // tetap dianggap sedang berlangsung; yang sudah lewat tanggal
+            // selesai tidak lagi ditandai.
+            $course->is_berlangsung = $course->can_manage
+                && $course->status === 'aktif'
+                && $course->periode_status !== 'Selesai';
             return $course;
         });
 
