@@ -11,13 +11,19 @@ use App\Models\QuizCategory;
 use App\Models\QuizPaket;
 use App\Models\QuizQuestion;
 use App\Models\QuizSection;
+use App\Models\QuizSertifikat;
 use App\Models\Siswa;
+use App\Services\QuizSertifikatService;
+use App\Services\QuizSectionScore;
+use App\Traits\HandlesSertifikasiSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class GuruQuizController extends Controller
 {
+    use HandlesSertifikasiSetting;
+
     private function guruUser()
     {
         return Auth::guard('sanctum')->user();
@@ -392,7 +398,7 @@ class GuruQuizController extends Controller
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
-        $data = $request->validate([
+        $data = $request->validate(array_merge([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'cover_image' => 'nullable|string|max:255',
@@ -409,7 +415,7 @@ class GuruQuizController extends Controller
             'camera_enabled' => 'nullable|boolean',
             'block_exit' => 'nullable|boolean',
             'status' => 'nullable|in:aktif,nonaktif',
-        ]);
+        ], $this->aturanSertifikasi()));
 
         $data['user_id'] = $user->id;
         $data['shuffle_questions'] = $request->boolean('shuffle_questions');
@@ -420,7 +426,7 @@ class GuruQuizController extends Controller
         $data['template'] = $data['quiz_template'] ?? 'basic';
         unset($data['quiz_template']);
 
-        $paket = QuizPaket::create($data);
+        $paket = QuizPaket::create($this->normalisasiSertifikasi($data));
 
         return response()->json(['paket' => $paket->fresh()->load('batch:id,nama_batch', 'course:id,title')], 201);
     }
@@ -434,7 +440,7 @@ class GuruQuizController extends Controller
 
         $paket = $this->ownPaket($id, $user->id);
 
-        $data = $request->validate([
+        $data = $request->validate(array_merge([
             'title' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
             'cover_image' => 'nullable|string|max:255',
@@ -451,7 +457,7 @@ class GuruQuizController extends Controller
             'camera_enabled' => 'nullable|boolean',
             'block_exit' => 'nullable|boolean',
             'status' => 'nullable|in:aktif,nonaktif',
-        ]);
+        ], $this->aturanSertifikasi()));
 
         if ($request->has('shuffle_questions')) {
             $data['shuffle_questions'] = $request->boolean('shuffle_questions');
@@ -470,7 +476,7 @@ class GuruQuizController extends Controller
         }
         unset($data['quiz_template']);
 
-        $paket->update($data);
+        $paket->update($this->normalisasiSertifikasi($data));
 
         return response()->json(['paket' => $paket->fresh()->load('batch:id,nama_batch', 'course:id,title')]);
     }
@@ -950,49 +956,13 @@ $data = $request->validate([
             ->get();
 
         // Rincian jawaban per BAGIAN (section) untuk grafik persentase.
-        // Penyebut memakai jumlah soal paket pada bagian tersebut, jadi soal
-        // yang tidak dijawab ikut terhitung salah.
-        $sectionMeta = [];
-        foreach (QuizSection::where('quiz_paket_id', $paket->id)->orderBy('sort')->orderBy('id')->get(['id', 'name']) as $sec) {
-            $sectionMeta[(int) $sec->id] = ['id' => (int) $sec->id, 'name' => $sec->name, 'total' => 0];
-        }
-        // Bagian virtual untuk soal yang belum dikelompokkan.
-        $sectionMeta[0] = ['id' => 0, 'name' => 'Tanpa Bagian', 'total' => 0];
-
-        $questionSection = [];
-        foreach (QuizQuestion::where('quiz_paket_id', $paket->id)->get(['id', 'section_id']) as $q) {
-            $sid = (int) ($q->section_id ?? 0);
-            $questionSection[(int) $q->id] = $sid;
-            if (isset($sectionMeta[$sid])) $sectionMeta[$sid]['total']++;
-        }
-
-        $answersByAttempt = QuizAnswer::whereIn('quiz_attempt_id', $attempts->pluck('id'))
-            ->get(['quiz_attempt_id', 'quiz_question_id', 'is_correct'])
-            ->groupBy('quiz_attempt_id');
-
-        $buildSections = function ($attemptId) use ($sectionMeta, $questionSection, $answersByAttempt) {
-            $tally = [];
-            foreach ($sectionMeta as $sid => $meta) {
-                $tally[$sid] = 0;
-            }
-            foreach ($answersByAttempt->get($attemptId, collect()) as $ans) {
-                $sid = $questionSection[(int) $ans->quiz_question_id] ?? 0;
-                if (!array_key_exists($sid, $tally)) $tally[$sid] = 0;
-                if ($ans->is_correct) $tally[$sid]++;
-            }
-            $out = [];
-            foreach ($tally as $sid => $correct) {
-                $total = $sectionMeta[$sid]['total'];
-                $out[] = [
-                    'id' => $sid,
-                    'name' => $sectionMeta[$sid]['name'],
-                    'total' => $total,
-                    'correct' => $correct,
-                    'percent' => $total > 0 ? round($correct / $total * 100, 1) : 0.0,
-                ];
-            }
-            return $out;
-        };
+        // Logikanya dipusatkan di QuizSectionScore supaya sama persis dengan
+        // angka yang tercetak di sertifikat.
+        $sectionScores = QuizSectionScore::untukBanyakAttempt(
+            $paket->id,
+            $attempts->pluck('id')->all()
+        );
+        $buildSections = fn ($attemptId) => $sectionScores[(int) $attemptId] ?? [];
 
         $participants = $attempts->groupBy('siswa_id')->map(function ($rows) use ($buildSections, $levelPaket) {
             $siswa = $rows->first()->siswa;
@@ -1244,7 +1214,19 @@ $data = $request->validate([
             'questions' => $rows,
             'sections' => $sections,
             'siswa' => $attempt->siswa,
+            'sertifikat' => $this->sertifikatUntukAttempt($attemptId),
         ]);
+    }
+
+    /**
+     * Sertifikat milik satu percobaan untuk ditampilkan/ dicetak guru.
+     * Null kalau paketnya tidak memakai fitur sertifikasi.
+     */
+    private function sertifikatUntukAttempt(int $attemptId): ?array
+    {
+        $sertifikat = QuizSertifikat::where('quiz_attempt_id', $attemptId)->first();
+
+        return $sertifikat ? QuizSertifikatService::payload($sertifikat) : null;
     }
 
     public function gradeAttempt(Request $request, $attemptId)

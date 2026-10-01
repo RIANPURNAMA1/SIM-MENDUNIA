@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   BookOpen, Plus, FileText, X, Image as ImageIcon, Download, Trash2,
   ChevronRight, ArrowLeft, Layers, Search, Video, GripVertical, Edit3,
-  ChevronUp, ChevronDown, Upload, FolderOpen, ListChecks, Eye, Trophy, Users, History, HelpCircle, Check, Lock, Activity, RefreshCw, Volume2, CalendarCheck
+  ChevronUp, ChevronDown, Upload, FolderOpen, ListChecks, Eye, Trophy, Users, History, HelpCircle, Check, Lock, Activity, Volume2, CalendarCheck
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -193,26 +193,7 @@ export default function GuruLMS() {
   const [showRankModal, setShowRankModal] = useState(false)
   const [rankData, setRankData] = useState<RankPaket[]>([])
   const [rankLoading, setRankLoading] = useState(false)
-  const [syncing, setSyncing] = useState(false)
   const [syncingKehadiran, setSyncingKehadiran] = useState(false)
-
-  const handleSyncKelas = async () => {
-    setSyncing(true)
-    try {
-      const res = await guruLmsApi.syncKelas()
-      const data = res.data
-      if (typeof data?.synced === 'number' && data.synced > 0) {
-        Swal.fire({ icon: 'success', title: 'Sinkronisasi Berhasil', text: data.message || `${data.synced} kelas disinkronkan`, timer: 2000, showConfirmButton: false })
-      } else {
-        Swal.fire({ icon: 'info', title: 'Semua Sudah Sinkron', text: data?.message || 'Semua kelas sudah tersinkron ke LMS', timer: 2000, showConfirmButton: false })
-      }
-      fetchCourses()
-    } catch {
-      Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal sinkronisasi kelas ke LMS' })
-    } finally {
-      setSyncing(false)
-    }
-  }
 
   const handleSyncKehadiran = async () => {
     setSyncingKehadiran(true)
@@ -1674,10 +1655,6 @@ export default function GuruLMS() {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <button onClick={handleSyncKelas} disabled={syncing}
-                className="flex items-center gap-1.5 border border-gray-300 text-gray-600 px-4 py-2.5 rounded-lg text-[11px] font-bold bg-white hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50 whitespace-nowrap">
-                <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} /> {syncing ? 'Sinkronisasi...' : 'Sinkronisasi'}
-              </button>
               <button onClick={handleSyncKehadiran} disabled={syncingKehadiran}
                 className="flex items-center gap-1.5 border border-[#0B5E42] text-[#0B5E42] px-4 py-2.5 rounded-lg text-[11px] font-bold bg-white hover:bg-[#0B5E42]/5 transition-colors shadow-sm disabled:opacity-50 whitespace-nowrap">
                 <CalendarCheck size={14} className={syncingKehadiran ? 'animate-pulse' : ''} /> {syncingKehadiran ? 'Sinkronisasi Kehadiran...' : 'Sinkronisasi Kehadiran'}
@@ -1725,8 +1702,8 @@ export default function GuruLMS() {
                   confirmButtonColor: '#0069b0',
                 })
               )}
-                className={`bg-white rounded-xl border border-gray-200 overflow-hidden text-left group transition-all ${
-                  courseActive ? 'hover:shadow-md' : 'opacity-75 cursor-not-allowed'
+                className={`bg-white rounded-2xl border border-gray-200 overflow-hidden text-left group transition-all ${
+                  courseActive ? 'hover:shadow-lg hover:border-[#0069b0]/40 hover:-translate-y-0.5' : 'opacity-75 cursor-not-allowed'
                 }`}>
                 <div className={`h-32 bg-gradient-to-br from-[#0E6187] to-[#1a3355] flex items-center justify-center relative overflow-hidden ${courseActive ? '' : 'grayscale'}`}>
                   {course.image ? (
@@ -1734,32 +1711,28 @@ export default function GuruLMS() {
                   ) : (
                     <img src={DEFAULT_COURSE_COVER} alt="" className="w-full h-full object-cover" />
                   )}
-                  <div className="absolute inset-0 bg-[#0E6187]/40 mix-blend-multiply pointer-events-none" />
-                  <div className="absolute top-2.5 right-2.5 flex flex-col items-end gap-1">
-                    {!course.can_manage && (
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-900/60 text-white backdrop-blur-sm">
-                        Hanya Baca
-                      </span>
-                    )}
-                    {!courseActive && (
-                      <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/90 text-white backdrop-blur-sm">
-                        <Lock size={9} /> Ditutup
-                      </span>
-                    )}
-<div className="flex flex-wrap items-center gap-1.5">
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-white/20 text-white backdrop-blur-sm">
-                        {course.level ? `Level ${course.level}` : 'Umum'}
-                      </span>
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                        courseActive ? 'bg-emerald-500/80 text-white' : 'bg-gray-500/80 text-white'
-                      }`}>
-                        {courseActive ? 'Aktif' : 'Nonaktif'}
-                      </span>
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0b1420]/70 via-[#0E6187]/25 to-transparent pointer-events-none" />
+                  <div className="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between gap-2">
+                    <span className="inline-flex items-center gap-1 rounded-md bg-slate-900/70 px-2 py-1 text-[10px] font-bold text-white ring-1 ring-white/15 backdrop-blur-sm">
+                      <Layers size={11} className="shrink-0" />
+                      <span className="truncate">{course.level ? `Level ${course.level}` : 'Umum'}</span>
+                    </span>
+                    <div className="flex flex-col items-end gap-1">
+                      {!course.can_manage && (
+                        <span className="px-2 py-1 rounded-md bg-slate-900/70 text-white text-[10px] font-bold ring-1 ring-white/15 backdrop-blur-sm">
+                          Hanya Baca
+                        </span>
+                      )}
+                      {!courseActive && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-amber-500 text-white text-[10px] font-bold ring-1 ring-amber-400/50 shadow-sm">
+                          <Lock size={10} className="shrink-0" /> Ditutup
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
                 <div className="p-3 sm:p-4">
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <h3 className="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-[#0069b0] transition-colors truncate">{course.title}</h3>
                       <span className="text-[10px] font-medium text-gray-400 mt-0.5 inline-block truncate">{getBatchName(course.batch_id)}</span>
@@ -1770,6 +1743,27 @@ export default function GuruLMS() {
                       <Lock size={16} className="text-gray-300 shrink-0 mt-0.5" />
                     )}
                   </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-3 border-t border-gray-100">
+                    <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold ring-1 ${
+                      courseActive
+                        ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                        : 'bg-gray-100 text-gray-500 ring-gray-200'
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${courseActive ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+                      {courseActive ? 'Aktif' : 'Nonaktif'}
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[#0069b0]/5 text-[#0069b0] ring-1 ring-[#0069b0]/15 text-[10px] font-bold">
+                      <Layers size={11} className="shrink-0" />
+                      {course.level ? `Level ${course.level}` : 'Level Umum'}
+                    </span>
+                    {!course.can_manage && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-gray-100 text-gray-600 ring-1 ring-gray-200 text-[10px] font-bold">
+                        <Eye size={11} className="shrink-0" /> Hanya Baca
+                      </span>
+                    )}
+                  </div>
+
                   <div className="flex items-center gap-3 sm:gap-4 mt-2.5 text-[10px] text-gray-400">
                     <span className="flex items-center gap-1">
                       <ListChecks size={11} /> {course.lessons_count} pelajaran

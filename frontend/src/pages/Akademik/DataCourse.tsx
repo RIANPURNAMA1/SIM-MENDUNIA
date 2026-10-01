@@ -12,6 +12,7 @@ import 'react-quill-new/dist/quill.snow.css'
 import { lmsAdminApi, adminCabangApi, jadwalLevelApi, adminQuizApi, APP_URL, quizReferenceApi } from '../../services/api'
 import { getYouTubeEmbedUrl } from '../../utils/youtube'
 import { isQuestionAudioFile, QUESTION_AUDIO_ACCEPT } from '../../utils/questionMedia'
+import CertificateCard, { type Sertifikat } from '../../components/quiz/CertificateCard'
 import LessonMediaFields, { LessonSlideItem } from '../../components/LessonMediaFields'
 import Swal from 'sweetalert2'
 import type { Pagination } from '../../types'
@@ -216,6 +217,53 @@ const parseQuestionImport = (text: string, type: 'choice' | 'multi' | 'rating' |
   return result
 }
 
+interface RekapPaketCol {
+  id: number
+  title: string
+  category: string
+  batch_name: string | null
+  level: string | null
+  passing_score: number
+  questions_count: number
+}
+
+interface RekapKandidat {
+  siswa_id: number
+  nama: string
+  nik: string | null
+  no_registrasi: string | null
+  kelas: string | null
+  batch_id: number | null
+  level: string | null
+  scores: Record<string, number>
+  paket_kerjakan: number
+  total_paket: number
+  rata_rata: number
+  terbaik: number
+  terendah: number
+  peringkat: number
+}
+
+interface RekapNilai {
+  filters: {
+    kategori: string[]
+    batch: { id: number; nama: string; warna: string | null }[]
+    level: string[]
+  }
+  ringkasan: {
+    total_paket: number
+    total_kandidat: number
+    total_kandidat_ter_filter: number
+    rata_rata: number
+    tertinggi: number
+    terendah: number
+    lulus: number
+  }
+  paket: RekapPaketCol[]
+  kandidat: RekapKandidat[]
+  pagination: Pagination
+}
+
 interface Course {
   id: number
   title: string
@@ -307,6 +355,7 @@ const mediaUrl = (u?: string | null): string => {
 
 const COURSE_PER_PAGE = 10
 const BANK_PER_PAGE = 10
+const REKAP_PER_PAGE = 15
 
 interface MateriItem {
   id: number
@@ -350,6 +399,11 @@ interface QuizPaket {
   camera_enabled: boolean
   block_exit: boolean
   penilaian_ulangan?: boolean
+  sertifikasi_aktif?: boolean
+  sertifikat_wajib_foto?: boolean
+  sertifikat_judul?: string | null
+  sertifikat_penerbit?: string | null
+  sertifikat_berlaku_hari?: number | null
   batch?: { id: number; nama_batch: string } | null
   course?: { id: number; title: string } | null
 }
@@ -463,7 +517,7 @@ interface LessonSlideData {
   sort?: number
 }
 
-type View = 'list' | 'quiz' | 'bank' | 'materi-bank' | 'quiz-questions' | 'quiz-results' | 'quiz-materi'
+type View = 'list' | 'quiz' | 'bank' | 'materi-bank' | 'quiz-questions' | 'quiz-results' | 'quiz-materi' | 'rekap-nilai'
 
 const inputCls = 'w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white'
 const labelCls = 'block text-sm font-medium text-slate-700 mb-1'
@@ -475,6 +529,11 @@ const emptyPaketForm = {
   passing_score: '0', shuffle_questions: true, quiz_template: 'basic', status: 'nonaktif', user_id: '',
   camera_enabled: true, block_exit: true, penilaian_ulangan: false,
   cover_image: '',
+  sertifikasi_aktif: false,
+  sertifikat_judul: '',
+  sertifikat_penerbit: '',
+  sertifikat_berlaku_hari: '',
+  sertifikat_wajib_foto: true,
 }
 const emptyQuestionForm = { question: '', section_id: '', question_type: 'choice', rating_max: '9', correct_index: '', correct_indexes: [] as number[], points: '1', keyword: '', image_path: '', image_url: '', audio_path: '', audio_url: '', audio_max_plays: '2' }
 
@@ -511,6 +570,7 @@ export default function DataCourse() {
     const parts = rest.split('/').filter(Boolean)
     const r: { view: View; source: 'course' | 'bank'; courseId?: number; paketId?: number } = { view: 'list', source: 'course' }
     if (parts[0] === 'bank-paket-soal') r.view = 'bank'
+    else if (parts[0] === 'rekap-nilai') r.view = 'rekap-nilai'
     else if (parts[0] === 'bank-materi') r.view = 'materi-bank'
     else if (parts[0] === 'course' && parts[1]) {
       r.courseId = Number(parts[1])
@@ -529,6 +589,7 @@ export default function DataCourse() {
 
   function routeTo(viewName: View, source: 'course' | 'bank', courseId?: number, paketId?: number): string {
     if (viewName === 'bank') return `${base}/bank-paket-soal`
+    if (viewName === 'rekap-nilai') return `${base}/rekap-nilai`
     if (viewName === 'materi-bank') return `${base}/bank-materi`
     if (viewName === 'quiz' && courseId) return `${base}/course/${courseId}`
     if (viewName === 'quiz-questions') return source === 'bank' && paketId ? `${base}/paket/${paketId}/soal` : `${base}/course/${courseId}/soal/${paketId}`
@@ -584,6 +645,15 @@ export default function DataCourse() {
   const [bankCategory, setBankCategory] = useState('')
   const [bankPagination, setBankPagination] = useState<Pagination>({ current_page: 1, last_page: 1, total: 0, per_page: BANK_PER_PAGE })
   const [quizSource, setQuizSource] = useState<'course' | 'bank'>('course')
+
+  // Rekap nilai kandidat (kategori paket + batch + level)
+  const [rekap, setRekap] = useState<RekapNilai | null>(null)
+  const [rekapLoading, setRekapLoading] = useState(false)
+  const [rekapPage, setRekapPage] = useState(1)
+  const [rekapCategory, setRekapCategory] = useState('')
+  const [rekapBatch, setRekapBatch] = useState('')
+  const [rekapLevel, setRekapLevel] = useState('')
+  const [rekapSearch, setRekapSearch] = useState('')
 
   const [showPaketModal, setShowPaketModal] = useState(false)
   const [editingPaket, setEditingPaket] = useState<QuizPaket | null>(null)
@@ -644,7 +714,7 @@ export default function DataCourse() {
   const [rCollapsed, setRCollapsed] = useState<Record<string, boolean>>({})
   const R_PER_PAGE = 10
   const [showDetailModal, setShowDetailModal] = useState(false)
-  const [detail, setDetail] = useState<{ attempt: any; questions: DetailRow[]; siswa: any } | null>(null)
+  const [detail, setDetail] = useState<{ attempt: any; questions: DetailRow[]; siswa: any; sertifikat?: Sertifikat | null } | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [grades, setGrades] = useState<Record<number, string>>({})
   const [savingGrade, setSavingGrade] = useState<number | null>(null)
@@ -941,6 +1011,7 @@ export default function DataCourse() {
 
     if (r.view === 'bank') fetchBankPakets()
     if (r.view === 'materi-bank') fetchBankMateris()
+    if (r.view === 'rekap-nilai') fetchRekap(1)
 
     if (r.view === 'quiz' && r.courseId && (!activeCourse || activeCourse.id !== r.courseId)) {
       lmsAdminApi.courses().then(res => {
@@ -1113,6 +1184,35 @@ export default function DataCourse() {
       setBankPakets(all)
       setBankPagination(res.data.pagination || { current_page: 1, last_page: 1, total: all.length, per_page: BANK_PER_PAGE })
     }).catch(() => setBankPakets([])).finally(() => setBankLoading(false))
+  }
+
+  const fetchRekap = (page?: number) => {
+    setRekapLoading(true)
+    lmsAdminApi.rekapNilai({
+      page: page ?? rekapPage,
+      per_page: REKAP_PER_PAGE,
+      category: rekapCategory || undefined,
+      batch_id: rekapBatch || undefined,
+      level: rekapLevel || undefined,
+      search: rekapSearch.trim() || undefined,
+    }).then(res => {
+      setRekap(res.data)
+    }).catch(() => setRekap(null)).finally(() => setRekapLoading(false))
+  }
+
+  const openRekap = () => {
+    setRekapPage(1)
+    setRekapSearch('')
+    setView('rekap-nilai')
+    fetchRekap(1)
+    navigate(`${base}/rekap-nilai`)
+  }
+
+  const backToBankFromRekap = () => {
+    setRekapPage(1)
+    setView('bank')
+    fetchBankPakets(1)
+    navigate(`${base}/bank-paket-soal`)
   }
 
   const selectBankCategory = (category: string) => {
@@ -1342,7 +1442,7 @@ export default function DataCourse() {
 
   const openQuizMonitor = (paket: QuizPaket) => {
     const cid = activeCourse?.id ?? paket.course_id ?? undefined
-    navigate(`${base}/course/${cid}/monitor?paket=${paket.id}`, { state: { title: activeCourse?.title } })
+    navigate(`${base}/course/${cid}/monitor/live?paket=${paket.id}`, { state: { title: paket.title } })
   }
 
   const openQuizMonitorById = (cid: number) => {
@@ -1813,6 +1913,11 @@ export default function DataCourse() {
       camera_enabled: p.camera_enabled ?? true, block_exit: p.block_exit ?? true,
       penilaian_ulangan: p.penilaian_ulangan ?? false,
       cover_image: p.cover_image || '',
+      sertifikasi_aktif: p.sertifikasi_aktif ?? false,
+      sertifikat_judul: p.sertifikat_judul || '',
+      sertifikat_penerbit: p.sertifikat_penerbit || '',
+      sertifikat_berlaku_hari: p.sertifikat_berlaku_hari?.toString() || '',
+      sertifikat_wajib_foto: p.sertifikat_wajib_foto ?? true,
     })
     setCoverPreview(p.cover_url || '')
     setShowPaketModal(true)
@@ -1854,6 +1959,13 @@ export default function DataCourse() {
         penilaian_ulangan: paketForm.penilaian_ulangan,
         status: paketForm.status,
         user_id: paketForm.user_id ? Number(paketForm.user_id) : undefined,
+        sertifikasi_aktif: paketForm.sertifikasi_aktif,
+        sertifikat_wajib_foto: paketForm.sertifikasi_aktif,
+        sertifikat_judul: paketForm.sertifikasi_aktif ? (paketForm.sertifikat_judul || null) : null,
+        sertifikat_penerbit: paketForm.sertifikasi_aktif ? (paketForm.sertifikat_penerbit || null) : null,
+        sertifikat_berlaku_hari: paketForm.sertifikasi_aktif && paketForm.sertifikat_berlaku_hari
+          ? Number(paketForm.sertifikat_berlaku_hari)
+          : null,
       }
       if (editingPaket) {
         await adminQuizApi.updatePaket(editingPaket.id, data)
@@ -3232,15 +3344,21 @@ export default function DataCourse() {
                     <p className="text-sm text-slate-500">Semua paket soal tersimpan di sini, termasuk yang sudah terhubung ke kursus</p>
                   </div>
                 </div>
-                {bankCategory !== '' ? (
-                  <button onClick={openCreateBankPaket} className={primaryBtn}>
-                    <Plus size={16} /> Buat Paket Soal
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button onClick={openRekap}
+                    className="inline-flex items-center gap-2 rounded-lg border border-[#0E6187]/25 bg-[#0E6187]/[0.06] px-4 py-2.5 text-sm font-semibold text-[#0E6187] transition-colors hover:bg-[#0E6187]/10">
+                    <BarChart3 size={16} /> Rekap Nilai
                   </button>
-                ) : (
-                  <span className="hidden md:inline-flex items-center gap-1.5 text-xs font-medium text-slate-400">
-                    Pilih kategori paket di atas untuk membuat paket baru
-                  </span>
-                )}
+                  {bankCategory !== '' ? (
+                    <button onClick={openCreateBankPaket} className={primaryBtn}>
+                      <Plus size={16} /> Buat Paket Soal
+                    </button>
+                  ) : (
+                    <span className="hidden md:inline-flex items-center gap-1.5 text-xs font-medium text-slate-400">
+                      Pilih kategori paket di atas untuk membuat paket baru
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="border-t border-slate-100 px-5 py-4">
@@ -3329,6 +3447,225 @@ export default function DataCourse() {
             ) : renderPaketTable(bankPakets, 'bank')}
 
             {renderPagination(bankPagination, p => { setBankPage(p); fetchBankPakets(p) })}
+          </div>
+        )}
+
+        {/* ==================== REKAP NILAI KANDIDAT VIEW ==================== */}
+        {view === 'rekap-nilai' && (
+          <div className="space-y-4">
+            <button onClick={backToBankFromRekap} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#0E6187] transition-colors">
+              <ArrowLeft size={15} /> Kembali
+            </button>
+
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="p-5 flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-[#0E6187]/10 text-[#0E6187] border border-[#0E6187]/20 flex items-center justify-center shrink-0">
+                  <BarChart3 size={22} />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-lg font-bold text-slate-800 truncate">Rekap Nilai Kandidat</h2>
+                  <p className="text-sm text-slate-500">Rekap nilai kandidat per kategori paket, dikelompokkan berdasarkan batch dan level</p>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-100 px-5 py-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div>
+                    <label className={labelCls}>Kategori Paket</label>
+                    <select value={rekapCategory} onChange={e => { setRekapCategory(e.target.value); setRekapPage(1); fetchRekap(1) }}
+                      className={`${inputCls} py-2`}>
+                      <option value="">Semua Kategori</option>
+                      {(rekap?.filters.kategori ?? []).map(k => <option key={k} value={k}>{k}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelCls}>Batch</label>
+                    <select value={rekapBatch} onChange={e => { setRekapBatch(e.target.value); setRekapPage(1); fetchRekap(1) }}
+                      className={`${inputCls} py-2`}>
+                      <option value="">Semua Batch</option>
+                      {(rekap?.filters.batch ?? []).map(b => <option key={b.id} value={b.id}>{b.nama}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelCls}>Level</label>
+                    <select value={rekapLevel} onChange={e => { setRekapLevel(e.target.value); setRekapPage(1); fetchRekap(1) }}
+                      className={`${inputCls} py-2`}>
+                      <option value="">Semua Level</option>
+                      {(rekap?.filters.level ?? []).map(l => <option key={l} value={l}>Level {l}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelCls}>Cari Kandidat</label>
+                    <div className="relative">
+                      <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input value={rekapSearch}
+                        onChange={e => setRekapSearch(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') { setRekapPage(1); fetchRekap(1) } }}
+                        placeholder="Nama / NIK / No. Registrasi"
+                        className={`${inputCls} py-2 pl-9`} />
+                    </div>
+                  </div>
+                </div>
+                {(rekapCategory || rekapBatch || rekapLevel || rekapSearch) && (
+                  <button onClick={() => { setRekapCategory(''); setRekapBatch(''); setRekapLevel(''); setRekapSearch(''); setRekapPage(1); fetchRekap(1) }}
+                    className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-[#0E6187] transition-colors">
+                    <X size={13} /> Reset filter
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {rekapLoading && !rekap ? (
+              <div className="flex flex-col items-center justify-center py-20 text-slate-400 text-sm gap-2">
+                <Loader2 size={24} className="animate-spin text-[#0E6187]" /> Memuat rekap nilai...
+              </div>
+            ) : !rekap ? (
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 px-8 py-14 text-center">
+                <p className="text-slate-800 font-semibold">Gagal memuat rekap nilai</p>
+                <p className="text-slate-500 text-sm mt-1">Coba muat ulang halaman atau periksa koneksi ke server.</p>
+                <button onClick={() => fetchRekap(rekapPage)} className={`${primaryBtn} mt-5`}>
+                  <RotateCcw size={16} /> Coba Lagi
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2.5">
+                  {[
+                    { label: 'Paket Soal', value: rekap.ringkasan.total_paket, color: 'text-[#0E6187]' },
+                    { label: 'Kandidat', value: rekap.ringkasan.total_kandidat, color: 'text-slate-800' },
+                    { label: 'Rata-rata', value: rekap.ringkasan.rata_rata, color: 'text-slate-800' },
+                    { label: 'Tertinggi', value: rekap.ringkasan.tertinggi, color: 'text-emerald-600' },
+                    { label: 'Terendah', value: rekap.ringkasan.terendah, color: 'text-amber-600' },
+                    { label: 'Rata-rata 70+', value: rekap.ringkasan.lulus, color: 'text-[#0E6187]' },
+                  ].map(k => (
+                    <div key={k.label} className="rounded-xl border border-slate-200 bg-white px-3.5 py-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{k.label}</p>
+                      <p className={`mt-1 text-xl font-bold ${k.color}`}>{k.value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {rekap.paket.length > 0 && (
+                  <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div className="px-5 py-3.5 border-b border-slate-100">
+                      <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                        <ListChecks size={15} className="text-[#0E6187]" /> Paket Soal dalam Filter
+                        <span className="text-[11px] font-medium text-slate-400">({rekap.paket.length})</span>
+                      </h3>
+                    </div>
+                    <div className="flex flex-wrap gap-2 p-4">
+                      {rekap.paket.map(pk => (
+                        <div key={pk.id} className="rounded-lg border border-slate-200 bg-slate-50/60 px-3 py-2 min-w-[180px]">
+                          <p className="text-xs font-bold text-slate-700 truncate" title={pk.title}>{pk.title}</p>
+                          <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-slate-400">
+                            <span className="rounded bg-white px-1.5 py-0.5 font-semibold text-slate-500 border border-slate-200">{pk.category}</span>
+                            {pk.level && <span className="rounded bg-white px-1.5 py-0.5 font-semibold text-slate-500 border border-slate-200">Level {pk.level}</span>}
+                            {pk.batch_name && <span className="rounded bg-white px-1.5 py-0.5 font-semibold text-slate-500 border border-slate-200">{pk.batch_name}</span>}
+                            <span>{pk.questions_count} soal</span>
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                  {rekap.kandidat.length === 0 ? (
+                    <div className="px-8 py-14 text-center">
+                      <div className="w-14 h-14 mx-auto rounded-xl bg-[#0E6187]/10 flex items-center justify-center mb-3">
+                        <BarChart3 size={28} className="text-[#0E6187]" />
+                      </div>
+                      <p className="text-slate-800 font-semibold">Belum ada nilai kandidat</p>
+                      <p className="text-slate-500 text-sm mt-1">
+                        {rekap.paket.length === 0
+                          ? 'Belum ada paket soal pada filter ini.'
+                          : 'Belum ada kandidat yang mengerjakan paket soal pada filter ini.'}
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm">
+                          <thead className="bg-slate-50 text-slate-600">
+                            <tr>
+                              <th className="border border-slate-200 px-3 py-3 text-center font-semibold w-12">#</th>
+                              <th className="border border-slate-200 px-4 py-3 text-left font-semibold">Kandidat</th>
+                              <th className="border border-slate-200 px-3 py-3 text-center font-semibold">Batch</th>
+                              <th className="border border-slate-200 px-3 py-3 text-center font-semibold">Level</th>
+                              {rekap.paket.map(pk => (
+                                <th key={pk.id} title={pk.title}
+                                  className="border border-slate-200 px-3 py-3 text-center font-semibold max-w-[110px]">
+                                  <span className="block truncate">{pk.title}</span>
+                                </th>
+                              ))}
+                              <th className="border border-slate-200 px-3 py-3 text-center font-semibold">Rata-rata</th>
+                              <th className="border border-slate-200 px-3 py-3 text-center font-semibold">Terbaik</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {rekap.kandidat.map(k => {
+                              const avgColor = k.rata_rata >= 70 ? 'text-emerald-600' : k.rata_rata >= 50 ? 'text-amber-600' : 'text-red-500'
+                              const batchNama = rekap.filters.batch.find(b => b.id === k.batch_id)?.nama
+                              return (
+                                <tr key={k.siswa_id} className="hover:bg-slate-50/70 transition-colors">
+                                  <td className="border border-slate-200 px-3 py-3 text-center">
+                                    <span className={`inline-flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold ${
+                                      k.peringkat === 1 ? 'bg-amber-100 text-amber-700'
+                                        : k.peringkat === 2 ? 'bg-slate-200 text-slate-600'
+                                        : k.peringkat === 3 ? 'bg-orange-100 text-orange-700'
+                                        : 'bg-slate-50 text-slate-400'}`}>
+                                      {k.peringkat}
+                                    </span>
+                                  </td>
+                                  <td className="border border-slate-200 px-4 py-3">
+                                    <p className="font-semibold text-slate-800 truncate">{k.nama}</p>
+                                    <p className="text-[11px] text-slate-400 truncate">
+                                      {[k.no_registrasi, k.nik && `NIK ${k.nik}`].filter(Boolean).join(' · ') || '—'}
+                                    </p>
+                                  </td>
+                                  <td className="border border-slate-200 px-3 py-3 text-center">
+                                    {batchNama ? (
+                                      <span className="rounded-md px-2 py-0.5 text-[11px] font-semibold text-slate-600 bg-slate-100">{batchNama}</span>
+                                    ) : <span className="text-slate-300">—</span>}
+                                  </td>
+                                  <td className="border border-slate-200 px-3 py-3 text-center">
+                                    {k.level ? (
+                                      <span className="rounded-md bg-[#0E6187]/10 px-2 py-0.5 text-[11px] font-semibold text-[#0E6187]">L{k.level}</span>
+                                    ) : <span className="text-slate-300">—</span>}
+                                  </td>
+                                  {rekap.paket.map(pk => {
+                                    const val = k.scores[String(pk.id)]
+                                    if (val === undefined) return (
+                                      <td key={pk.id} className="border border-slate-200 px-3 py-3 text-center text-slate-300">—</td>
+                                    )
+                                    return (
+                                      <td key={pk.id} className="border border-slate-200 px-3 py-3 text-center">
+                                        <span className={`text-xs font-bold ${val >= 70 ? 'text-emerald-600' : val >= 50 ? 'text-amber-600' : 'text-red-500'}`}>{val}</span>
+                                      </td>
+                                    )
+                                  })}
+                                  <td className="border border-slate-200 px-3 py-3 text-center">
+                                    <span className={`inline-block min-w-[42px] rounded-md bg-slate-50 px-2.5 py-1.5 text-xs font-bold ${avgColor}`}>{k.rata_rata}</span>
+                                  </td>
+                                  <td className="border border-slate-200 px-3 py-3 text-center">
+                                    <span className="inline-block min-w-[38px] rounded-md bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-700">{k.terbaik}</span>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div className="border-t border-slate-100 px-4 py-2.5 text-[11px] text-slate-400">
+                        Nilai = attempt terbaik per paket (0-100). Rata-rata dihitung dari paket yang dikerjakan kandidat tersebut.
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {renderPagination(rekap.pagination, p => { setRekapPage(p); fetchRekap(p) }, 'kandidat')}
+              </>
+            )}
           </div>
         )}
 
@@ -4440,6 +4777,81 @@ export default function DataCourse() {
                   </p>
                 </div>
 
+                <div className="mt-3 rounded-md border border-slate-200 p-3.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className={`flex h-9 w-9 flex-none items-center justify-center rounded-md ${paketForm.sertifikasi_aktif ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                        <Award size={17} />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-700">Sertifikasi Ujian</p>
+                        <p className="text-[11px] text-slate-500 mt-0.5">Kandidat wajib foto identitas sebelum mulai, lalu mendapat sertifikat nilai otomatis</p>
+                      </div>
+                    </div>
+                    <button type="button" onClick={() => setPaketForm({ ...paketForm, sertifikasi_aktif: !paketForm.sertifikasi_aktif })}
+                      title={paketForm.sertifikasi_aktif ? 'Matikan sertifikasi' : 'Aktifkan sertifikasi'}
+                      className={`relative w-10 h-[22px] shrink-0 rounded-full transition-colors ${paketForm.sertifikasi_aktif ? 'bg-amber-500' : 'bg-slate-300'}`}>
+                      <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${paketForm.sertifikasi_aktif ? 'left-[20px]' : 'left-[2px]'}`} />
+                    </button>
+                  </div>
+
+                  {paketForm.sertifikasi_aktif && (
+                    <div className="mt-3 space-y-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Judul sertifikat</label>
+                        <input
+                          type="text"
+                          value={paketForm.sertifikat_judul}
+                          onChange={e => setPaketForm({ ...paketForm, sertifikat_judul: e.target.value })}
+                          placeholder="Kosongkan untuk memakai judul paket"
+                          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-[#0E6187] focus:outline-none focus:ring-1 focus:ring-[#0E6187]"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1.5">Penerbit</label>
+                          <input
+                            type="text"
+                            value={paketForm.sertifikat_penerbit}
+                            onChange={e => setPaketForm({ ...paketForm, sertifikat_penerbit: e.target.value })}
+                            placeholder="Kosongkan untuk nama aplikasi"
+                            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-[#0E6187] focus:outline-none focus:ring-1 focus:ring-[#0E6187]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1.5">Masa berlaku (hari)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={paketForm.sertifikat_berlaku_hari}
+                            onChange={e => setPaketForm({ ...paketForm, sertifikat_berlaku_hari: e.target.value })}
+                            placeholder="0 = tidak ada masa berlaku"
+                            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-[#0E6187] focus:outline-none focus:ring-1 focus:ring-[#0E6187]"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2.5 rounded-md border border-slate-200 bg-slate-50 px-3.5 py-3">
+                        <Camera size={16} className="mt-0.5 shrink-0 text-slate-400" />
+                        <div>
+                          <p className="text-sm font-semibold text-slate-700">Foto identitas selalu wajib</p>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            Saat sertifikasi aktif, kandidat harus memotret wajah sebelum ujian bisa dimulai. Foto ini
+                            dipakai sebagai foto pada sertifikat.
+                          </p>
+                        </div>
+                      </div>
+
+                      <p className="text-[11px] leading-relaxed rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">
+                        Sertifikat terbit untuk setiap percobaan, lulus maupun tidak, dan memuat nilai, rincian per
+                        bagian, foto identitas, serta kode verifikasi publik. Kandidat boleh memiliki lebih dari satu
+                        sertifikat dari paket ini.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-2 mt-3">
                   <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 px-3.5 py-3">
                     <div className="min-w-0">
@@ -5547,6 +5959,22 @@ export default function DataCourse() {
                       <p className="text-[10px] text-slate-500 font-medium">Peringatan</p>
                     </div>
                   </div>
+                  {detail.sertifikat && (
+                    <div>
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <p className="text-sm font-medium text-slate-700 flex items-center gap-1.5"><Award size={12} /> Sertifikat</p>
+                        <a
+                          href={`/verifikasi-sertifikat/${detail.sertifikat.kode_verifikasi}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[11px] font-semibold text-[#0E6187] hover:underline"
+                        >
+                          Cek keaslian
+                        </a>
+                      </div>
+                      <CertificateCard sertifikat={detail.sertifikat} />
+                    </div>
+                  )}
                   {detail.attempt.webcam_photo && (
                     <div>
                       <p className="text-sm font-medium text-slate-700 mb-2 flex items-center gap-1.5"><Camera size={12} /> Foto Pengerjaan</p>

@@ -6,10 +6,12 @@ use App\Models\QuizAnswer;
 use App\Models\QuizAttempt;
 use App\Models\QuizPaket;
 use App\Models\QuizQuestion;
+use App\Models\QuizSertifikat;
 use App\Models\Siswa;
 use App\Models\Lesson;
 use App\Models\LmsProgress;
 use App\Events\WebcamSnapshotUpdated;
+use App\Services\QuizSertifikatService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -50,7 +52,8 @@ class QuizController extends Controller
     }
 
     private function siswaUser()
-    {        $user = Auth::guard('sanctum')->user();
+    {
+        $user = Auth::guard('sanctum')->user();
         if (!$user) {
             return null;
         }
@@ -162,9 +165,24 @@ class QuizController extends Controller
             'auto_submitted' => $auto ? true : $attempt->auto_submitted,
         ]);
 
-try {
+        try {
             WebcamSnapshotUpdated::dispatch((int) $attempt->quiz_paket_id, (int) $attempt->id);
         } catch (\Throwable $e) {
+        }
+
+        // Terbitkan sertifikat kalau paket menyalakan fitur sertifikasi.
+        // Sengaja dibungkus try/catch: sertifikat yang gagal terbit tidak
+        // boleh membuat kandidat kehilangan hasil ujiannya, tapi errornya
+        // tetap harus terlihat di log.
+        try {
+            QuizSertifikatService::terbitkan($attempt);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Penerbitan sertifikat gagal setelah submit: ' . $e->getMessage(), [
+                'attempt_id' => $attempt->id,
+                'paket_id' => $attempt->quiz_paket_id,
+                'siswa_id' => $attempt->siswa_id,
+                'trace' => $e->getTraceAsString(),
+            ]);
         }
 
         // Sinkronisasi nilai ke "Penilaian Siswa" tidak boleh menggagalkan submit
@@ -210,7 +228,24 @@ try {
             'submitted_at' => $attempt->submitted_at?->toIso8601String(),
             'time_limit_seconds' => (int) $attempt->time_limit_seconds,
             'passing_score' => (int) $attempt->paket->passing_score,
+            'sertifikat' => $this->sertifikatPayload($attempt),
         ];
+    }
+
+    /**
+     * Sertifikat milik percobaan ini, atau null kalau paketnya tidak memakai
+     * fitur sertifikasi. Sengaja null-safe: halaman hasil harus tetap jalan
+     * untuk paket biasa.
+     */
+    private function sertifikatPayload(QuizAttempt $attempt): ?array
+    {
+        if (!$attempt->paket?->sertifikasi_aktif) {
+            return null;
+        }
+
+        $sertifikat = QuizSertifikat::where('quiz_attempt_id', $attempt->id)->first();
+
+        return $sertifikat ? QuizSertifikatService::payload($sertifikat) : null;
     }
 
     // ========== Paket ==========
@@ -294,6 +329,8 @@ try {
                 'block_exit' => (bool) $p->block_exit,
                 'is_unlocked' => !$locked && $this->paketUnlocked($p, $siswa),
                 'locked' => $locked,
+                'sertifikasi_aktif' => (bool) $p->sertifikasi_aktif,
+                'sertifikat_wajib_foto' => (bool) $p->sertifikasi_aktif,
             ];
         });
 
@@ -409,6 +446,9 @@ try {
                 'quiz_template' => $paket->quiz_template,
                 'camera_enabled' => (bool) $paket->camera_enabled,
                 'block_exit' => (bool) $paket->block_exit,
+                'sertifikasi_aktif' => (bool) $paket->sertifikasi_aktif,
+                'sertifikat_wajib_foto' => (bool) $paket->sertifikasi_aktif,
+                'sertifikat_judul' => $paket->sertifikat_judul,
                 'has_prerequisite_course' => $hasPrerequisiteCourse,
             ],
             'lessons' => $lessons,
@@ -469,6 +509,22 @@ try {
             return response()->json(['message' => 'Batas percobaan telah tercapai'], 422);
         }
 
+        // Kalau paket memakai sertifikasi, kandidat wajib ambil foto identitas
+        // lebih dulu. Tokennya dibuat oleh step pra-ujian, jadi attempt tidak
+        // pernah lahir tanpa bukti wajah.
+        $fotoWajah = null;
+        $tokenFoto = null;
+        if ($paket->sertifikasi_aktif) {
+            $tokenFoto = (string) $request->input('sertifikat_foto_token', '');
+            $fotoWajah = $this->ambilTokenFotoSertifikat($tokenFoto, $siswa->id, $paket->id);
+            if (!$fotoWajah) {
+                return response()->json([
+                    'message' => 'Ambil foto identitas terlebih dahulu untuk memulai ujian tersertifikasi',
+                    'code' => 'sertifikasi_foto_required',
+                ], 422);
+            }
+        }
+
         $attempt = QuizAttempt::create([
             'quiz_paket_id' => $paket->id,
             'siswa_id' => $siswa->id,
@@ -477,8 +533,16 @@ try {
             'attempt_number' => $used + 1,
             'started_at' => now(),
             'time_limit_seconds' => $paket->time_limit_minutes * 60,
+            'foto_wajah' => $fotoWajah,
             'status' => 'in_progress',
         ]);
+
+        // Token hanya berlaku untuk satu percobaan. Kalau dibiarkan, kandidat
+        // bisa memulai percobaan berikutnya dengan foto lama tanpa memotret
+        // ulang, padahal tiap sertifikat harus punya bukti wajah saat itu juga.
+        if ($tokenFoto !== null && $tokenFoto !== '') {
+            $this->pakaiTokenFotoSertifikat($tokenFoto, $siswa->id, $paket->id);
+        }
 
         $questions = $paket->questions->map(fn ($q) => [
             'id' => $q->id,
@@ -567,6 +631,184 @@ try {
         return response()->json([
             'message' => 'Foto tersimpan',
             'webcam_photo' => asset('storage/' . $path),
+        ]);
+    }
+
+    /**
+     * Step pra-ujian: kandidat memotret wajah, hasilnya disimpan sementara
+     * dan dikembalikan sebagai token. Token inilah yang dipakai start()
+     * untuk menempelkan foto ke percobaan.
+     */
+    public function uploadFotoSertifikat(Request $request, $id)
+    {
+        $siswa = $this->siswaUser();
+        if (!$siswa) {
+            return response()->json(['message' => 'Siswa tidak ditemukan'], 401);
+        }
+
+        $paket = QuizPaket::find($id);
+        if (!$paket || !$this->paketBisaDiakses($paket, $siswa)) {
+            return response()->json(['message' => 'Paket soal tidak ditemukan'], 404);
+        }
+
+        $request->validate([
+            'photo' => 'required|image|mimes:jpg,jpeg,png,webp|max:3072',
+        ]);
+
+        $path = $request->file('photo')->store(QuizSertifikatService::PATH_FOTO, QuizSertifikatService::DISK_FOTO);
+
+        $token = $this->buatTokenFotoSertifikat($path, $siswa->id, (int) $paket->id);
+
+        return response()->json([
+            'message' => 'Foto identitas tersimpan',
+            'sertifikat_foto_token' => $token,
+            'preview_url' => asset('storage/' . $path),
+        ]);
+    }
+
+    /**
+     * Ambil token foto pra-ujian milik siswa tersebut.
+     *
+     * Token diikat ke siswa + paket dan punya masa berlaku, jadi token yang
+     * bocor tidak bisa dipakai untuk menempelkan foto milik orang lain.
+     */
+    private function buatTokenFotoSertifikat(string $path, int $siswaId, int $paketId): string
+    {
+        // Kalau kandidat memotret ulang sebelum ujian dimulai, foto yang
+        // sebelumnya sudah diunggah tidak akan pernah dipakai. Hapus supaya
+        // tidak menumpuk di storage. Foto yang SUDAH dipakai percobaan lain
+        // ditandai terpakai dan harus tetap disimpan karena jadi lampiran
+        // sertifikat.
+        $kunciAktif = $this->cacheKeyFotoSertifikatAktif($siswaId, $paketId);
+        $tokenLama = Cache::get($kunciAktif);
+        if (is_string($tokenLama) && $tokenLama !== '') {
+            $dataLama = Cache::get($this->cacheKeyFotoSertifikat($tokenLama));
+            if (is_array($dataLama) && empty($dataLama['terpakai'])) {
+                $pathLama = (string) ($dataLama['path'] ?? '');
+                if ($pathLama !== '' && $pathLama !== $path) {
+                    Storage::disk(QuizSertifikatService::DISK_FOTO)->delete($pathLama);
+                }
+                Cache::forget($this->cacheKeyFotoSertifikat($tokenLama));
+            }
+        }
+
+        $token = bin2hex(random_bytes(20));
+        Cache::put($this->cacheKeyFotoSertifikat($token), [
+            'path' => $path,
+            'siswa_id' => $siswaId,
+            'paket_id' => $paketId,
+        ], now()->addMinutes(30));
+        Cache::put($kunciAktif, $token, now()->addMinutes(30));
+
+        return $token;
+    }
+
+    /**
+     * Menandai token sudah dipakai satu percobaan. Token tidak dihapus supaya
+     * file fotonya tetap hidup sebagai lampiran sertifikat.
+     */
+    private function pakaiTokenFotoSertifikat(string $token, int $siswaId, int $paketId): void
+    {
+        $key = $this->cacheKeyFotoSertifikat($token);
+        $data = Cache::get($key);
+        if (!is_array($data)) {
+            return;
+        }
+        if ((int) ($data['siswa_id'] ?? 0) !== $siswaId || (int) ($data['paket_id'] ?? 0) !== $paketId) {
+            return;
+        }
+
+        $data['terpakai'] = true;
+        Cache::put($key, $data, now()->addMinutes(30));
+        Cache::forget($this->cacheKeyFotoSertifikatAktif($siswaId, $paketId));
+    }
+
+    private function ambilTokenFotoSertifikat(?string $token, int $siswaId, int $paketId): ?string
+    {
+        if ($token === null || $token === '') {
+            return null;
+        }
+
+        $key = $this->cacheKeyFotoSertifikat($token);
+        $data = Cache::get($key);
+        if (!is_array($data)) {
+            return null;
+        }
+        if ((int) ($data['siswa_id'] ?? 0) !== $siswaId || (int) ($data['paket_id'] ?? 0) !== $paketId) {
+            return null;
+        }
+
+        // Token sudah pernah dipakai untuk memulai percobaan. Menolak di sini
+        // yang membuat tiap percobaan wajib punya foto yang diambil saat itu.
+        if (!empty($data['terpakai'])) {
+            return null;
+        }
+
+        $path = (string) ($data['path'] ?? '');
+        if ($path === '' || !Storage::disk(QuizSertifikatService::DISK_FOTO)->exists($path)) {
+            Cache::forget($key);
+
+            return null;
+        }
+
+        return $path;
+    }
+
+    private function cacheKeyFotoSertifikat(string $token): string
+    {
+        return 'sertifikat:foto:' . hash('sha256', $token);
+    }
+
+    /**
+     * Menunjuk foto pra-ujian terakhir milik siswa untuk paket ini, supaya
+     * foto yang digantikan bisa dibersihkan.
+     */
+    private function cacheKeyFotoSertifikatAktif(int $siswaId, int $paketId): string
+    {
+        return "sertifikat:foto:aktif:{$siswaId}:{$paketId}";
+    }
+
+    /**
+     * Sertifikat untuk satu percobaan milik siswa yang sedang login.
+     */
+    public function sertifikat($attemptId)
+    {
+        $siswa = $this->siswaUser();
+        if (!$siswa) {
+            return response()->json(['message' => 'Siswa tidak ditemukan'], 401);
+        }
+
+        $attempt = $this->ownAttempt($attemptId, $siswa->id);
+        $sertifikat = QuizSertifikat::where('quiz_attempt_id', $attempt->id)->first();
+
+        if (!$sertifikat) {
+            return response()->json(['message' => 'Sertifikat belum tersedia untuk percobaan ini'], 404);
+        }
+
+        return response()->json([
+            'sertifikat' => QuizSertifikatService::payload($sertifikat),
+        ]);
+    }
+
+    /**
+     * Verifikasi sertifikat lewat kode, tanpa perlu login. Dipakai penerima
+     * sertifikat untuk memastikan dokumennya benar.
+     */
+    public function verifikasiSertifikat($kode)
+    {
+        $sertifikat = QuizSertifikat::whereRaw('UPPER(kode_verifikasi) = ?', [strtoupper((string) $kode)])
+            ->first();
+
+        if (!$sertifikat) {
+            return response()->json([
+                'valid' => false,
+                'message' => 'Kode sertifikat tidak ditemukan',
+            ], 404);
+        }
+
+        return response()->json([
+            'valid' => true,
+            'sertifikat' => QuizSertifikatService::payloadPublik($sertifikat),
         ]);
     }
 

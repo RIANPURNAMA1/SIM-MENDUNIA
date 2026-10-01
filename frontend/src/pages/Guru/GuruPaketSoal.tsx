@@ -9,6 +9,7 @@ import {
 import { guruQuizApi, APP_URL } from '../../services/api'
 import { cleanQuillHtml } from '../../utils/quillHtml'
 import { isQuestionAudioFile, QUESTION_AUDIO_ACCEPT } from '../../utils/questionMedia'
+import CertificateCard, { type Sertifikat } from '../../components/quiz/CertificateCard'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
 import Swal from 'sweetalert2'
@@ -195,7 +196,7 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
   const [participants, setParticipants] = useState<Participant[]>([])
   const [rLoading, setRLoading] = useState(false)
   const [showDetailModal, setShowDetailModal] = useState(false)
-  const [detail, setDetail] = useState<{ attempt: any; questions: DetailRow[]; siswa: any } | null>(null)
+  const [detail, setDetail] = useState<{ attempt: any; questions: DetailRow[]; siswa: any; sertifikat?: Sertifikat | null } | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [grades, setGrades] = useState<Record<number, string>>({})
   const [savingGrade, setSavingGrade] = useState<number | null>(null)
@@ -738,7 +739,7 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
     setDetail(null)
     setGrades({})
     guruQuizApi.attemptDetail(attemptId).then(res => {
-      setDetail({ attempt: res.data.attempt, questions: res.data.questions || [], siswa: res.data.siswa })
+      setDetail({ attempt: res.data.attempt, questions: res.data.questions || [], siswa: res.data.siswa, sertifikat: res.data.sertifikat || null })
     }).catch(() => {
       setDetail(null)
       Swal.fire({ icon: 'error', title: 'Gagal memuat detail' })
@@ -756,7 +757,7 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
       setGrades(g => { const n = { ...g }; delete n[qid]; return n })
       setDetailLoading(true)
       const res = await guruQuizApi.attemptDetail(detail.attempt.id)
-      setDetail({ attempt: res.data.attempt, questions: res.data.questions || [], siswa: res.data.siswa })
+      setDetail({ attempt: res.data.attempt, questions: res.data.questions || [], siswa: res.data.siswa, sertifikat: res.data.sertifikat || null })
       Swal.fire({ icon: 'success', title: 'Nilai esai tersimpan', timer: 1000, showConfirmButton: false })
     } catch {
       Swal.fire({ icon: 'error', title: 'Gagal menyimpan nilai' })
@@ -1709,6 +1710,23 @@ export default function GuruPaketSoal({ courseId, embedded, onBack, hiddenHeader
                       <p className="text-[10px] text-[#8B90A0] font-semibold">Peringatan</p>
                     </div>
                   </div>
+
+                  {detail.sertifikat && (
+                    <div>
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <p className="text-[11px] font-bold text-[#4B5063] flex items-center gap-1.5"><Award size={12} /> Sertifikat</p>
+                        <a
+                          href={`/verifikasi-sertifikat/${detail.sertifikat.kode_verifikasi}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[11px] font-semibold text-[#0E6187] hover:underline"
+                        >
+                          Cek keaslian
+                        </a>
+                      </div>
+                      <CertificateCard sertifikat={detail.sertifikat} />
+                    </div>
+                  )}
 
                   {detail.attempt.webcam_photo && (
                     <div>

@@ -68,6 +68,10 @@ Route::post('/auth/forgot-password', [AuthController::class, 'forgotPasswordApi'
 Route::post('/auth/verify-otp',      [AuthController::class, 'verifyOtpApi']);
 Route::post('/auth/reset-password',  [AuthController::class, 'resetPasswordApi']);
 
+// Verifikasi sertifikat: sengaja DI LUAR auth:sanctum supaya penerima
+// sertifikat (yang belum punya akun) tetap bisa memeriksa keasliannya.
+Route::get('/sertifikat/verify/{kode}', [QuizController::class, 'verifikasiSertifikat']);
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/user',   [AuthController::class, 'userApi']);
     Route::post('/auth/logout',[AuthController::class, 'logoutApi']);
@@ -558,6 +562,8 @@ Route::get('/guru/penilaian-rekap/{kelasId}', [GuruDashboardController::class, '
         Route::post('/attempts/{id}/submit', [QuizController::class, 'submit']);
         Route::post('/attempts/{id}/webcam', [QuizController::class, 'uploadWebcam']);
         Route::post('/attempts/{id}/audio-play/{questionId}', [QuizController::class, 'recordAudioPlay']);
+        Route::get('/attempts/{id}/sertifikat', [QuizController::class, 'sertifikat']);
+        Route::post('/pakets/{id}/sertifikasi/foto', [QuizController::class, 'uploadFotoSertifikat']);
     });
 
     // Guru Quiz (paket soal + hasil)
@@ -618,6 +624,8 @@ Route::get('/guru/penilaian-rekap/{kelasId}', [GuruDashboardController::class, '
         Route::post('/welcome-video', [LmsController::class, 'updateWelcomeVideo'])->middleware('role:MANAGER,HR,ADMIN');
         Route::post('/welcome-video-url', [LmsController::class, 'updateWelcomeVideoUrl'])->middleware('role:MANAGER,HR,ADMIN');
         Route::delete('/welcome-video', [LmsController::class, 'deleteWelcomeVideo'])->middleware('role:MANAGER,HR,ADMIN');
+        // Rekap nilai kandidat (kategori paket + batch + level)
+        Route::get('/rekap-nilai', [\App\Http\Controllers\Admin\RekapNilaiController::class, 'index']);
         // Quiz References (Manager): urutan statis sebelum /{id}
         Route::get('/quiz-references/pending-count', [QuizReferenceController::class, 'adminPendingCount']);
         Route::post('/quiz-references/categories', [QuizReferenceController::class, 'adminCategoryStore']);
@@ -707,6 +715,7 @@ Route::prefix('admin-cabang')->middleware(['auth:sanctum'])->group(function () {
         Route::delete('/materi/{id}', [AdminQuizController::class, 'deleteMateri']);
         Route::get('/pakets/{id}/results', [AdminQuizController::class, 'results']);
         Route::get('/courses/{courseId}/monitor', [AdminQuizController::class, 'courseMonitor']);
+        Route::get('/courses/{courseId}/monitor/overview', [AdminQuizController::class, 'courseMonitorOverview']);
         Route::post('/pakets/{id}/reset-attempts', [AdminQuizController::class, 'resetAttempts']);
         Route::get('/attempts/{id}', [AdminQuizController::class, 'attemptDetail']);
         Route::post('/attempts/{id}/grade', [AdminQuizController::class, 'gradeAttempt']);

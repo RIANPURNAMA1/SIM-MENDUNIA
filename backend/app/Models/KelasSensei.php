@@ -63,10 +63,52 @@ class KelasSensei extends Model
     /**
      * Jumlah pertemuan: hari kerja (Senin-Jumat) di luar hari libur
      * antara tanggal mulai dan tanggal selesai.
+     *
+     * Dihitung aritmatika, bukan dengan mengiterasi tiap tanggal. Halaman
+     * daftar pertemuan memanggil ini untuk semua kelas sekaligus, jadi loop
+     * per tanggal akan lambat sekali kalau daftar kelasnya banyak.
      */
     public function totalPertemuan(): int
     {
-        return count($this->daftarPertemuan());
+        $mulai = \Carbon\Carbon::parse($this->tanggal_mulai)->startOfDay();
+        $selesai = \Carbon\Carbon::parse($this->tanggal_selesai)->startOfDay();
+        if ($selesai->lt($mulai)) {
+            return 0;
+        }
+
+        $totalHari = (int) $mulai->diffInDays($selesai) + 1;
+
+        // Setiap 7 hari penuh ada tepat 1 Sabtu + 1 Minggu.
+        $pekanPenuh = intdiv($totalHari, 7);
+        $sisaHari = $totalHari % 7;
+
+        $akhirPekan = 0;
+        $hariAwal = $mulai->dayOfWeek;
+        for ($i = 0; $i < $sisaHari; $i++) {
+            $dow = ($hariAwal + $i) % 7;
+            if ($dow === \Carbon\Carbon::SATURDAY || $dow === \Carbon\Carbon::SUNDAY) {
+                $akhirPekan++;
+            }
+        }
+
+        $hariKerja = $totalHari - ($pekanPenuh * 2) - $akhirPekan;
+
+        // Kurangi hari libur yang jatuh di hari kerja. Bandingkan string
+        // Y-m-d secara leksikal supaya tidak perlu parse tiap entri.
+        $mulaiStr = $mulai->toDateString();
+        $selesaiStr = $selesai->toDateString();
+        $liburDiKerja = 0;
+        foreach (HariLibur::tanggalLibur() as $tgl) {
+            if ($tgl < $mulaiStr || $tgl > $selesaiStr) {
+                continue;
+            }
+            $dow = \Carbon\Carbon::parse($tgl)->dayOfWeek;
+            if ($dow !== \Carbon\Carbon::SATURDAY && $dow !== \Carbon\Carbon::SUNDAY) {
+                $liburDiKerja++;
+            }
+        }
+
+        return max(0, $hariKerja - $liburDiKerja);
     }
 
     /**
@@ -77,15 +119,19 @@ class KelasSensei extends Model
      */
     public function daftarPertemuan(): array
     {
+        $libur = HariLibur::tanggalLiburSet();
+
         $tglMulai = \Carbon\Carbon::parse($this->tanggal_mulai)->startOfDay();
         $tglSelesai = \Carbon\Carbon::parse($this->tanggal_selesai)->startOfDay();
 
         $dates = [];
         $cursor = $tglMulai->copy();
         while ($cursor->lte($tglSelesai)) {
-            if ($cursor->dayOfWeek !== \Carbon\Carbon::SATURDAY && $cursor->dayOfWeek !== \Carbon\Carbon::SUNDAY) {
-                if (!HariLibur::apakahLibur($cursor->toDateString())) {
-                    $dates[] = $cursor->toDateString();
+            $dow = $cursor->dayOfWeek;
+            if ($dow !== \Carbon\Carbon::SATURDAY && $dow !== \Carbon\Carbon::SUNDAY) {
+                $tgl = $cursor->toDateString();
+                if (!isset($libur[$tgl])) {
+                    $dates[] = $tgl;
                 }
             }
             $cursor->addDay();

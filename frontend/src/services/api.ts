@@ -499,6 +499,13 @@ export const guruKelasApi = {
   penilaianRekap: (kelasId: number, params?: { date_from?: string; date_to?: string }) => api.get(`/guru/penilaian-rekap/${kelasId}`, { params }),
 }
 
+export interface PertemuanKelasParams {
+  q?: string
+  status?: string
+  cabang_id?: number | string
+  sort?: 'terbaru' | 'terlama' | 'nama'
+}
+
 export const pertemuanApi = {
   detail: (kelasId: number) => api.get(`/guru/pertemuan/kelas/${kelasId}`),
   detailTanggal: (kelasId: number, tanggal: string) => api.get(`/guru/pertemuan/kelas/${kelasId}/detail/${tanggal}`),
@@ -506,8 +513,10 @@ export const pertemuanApi = {
     api.post(`/guru/pertemuan/kelas/${kelasId}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   syncNilai: (kelasId: number) => api.post(`/guru/pertemuan/kelas/${kelasId}/sync-nilai`),
   ringkasan: () => api.get('/guru/pertemuan/ringkasan'),
-  adminKelas: () => api.get('/admin/pertemuan/kelas'),
-  adminCabangKelas: () => api.get('/admin-cabang/pertemuan/kelas'),
+  adminKelas: (params?: PertemuanKelasParams) =>
+    api.get('/admin/pertemuan/kelas', { params: { ...params, q: params?.q?.trim() || undefined } }),
+  adminCabangKelas: (params?: PertemuanKelasParams) =>
+    api.get('/admin-cabang/pertemuan/kelas', { params: { ...params, q: params?.q?.trim() || undefined } }),
 }
 
 export const lmsApi = {
@@ -540,6 +549,17 @@ export const quizApi = {
   submit: (id: number) => api.post(`/quiz/attempts/${id}/submit`),
   uploadWebcam: (id: number, fd: FormData) => api.post(`/quiz/attempts/${id}/webcam`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
   recordAudioPlay: (id: number, questionId: number) => api.post(`/quiz/attempts/${id}/audio-play/${questionId}`),
+
+  // Sertifikasi ujian (JFT): foto identitas sebelum mulai, sertifikat setelah submit.
+  /** Unggah foto pra-ujian, dapat token sekali pakai untuk start. */
+  uploadFotoSertifikat: (paketId: number, fd: FormData) => api.post(`/quiz/pakets/${paketId}/sertifikasi/foto`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  /** Mulai ujian; sertakan sertifikat_foto_token bila paket memakai sertifikasi. */
+  startWithSertifikat: (id: number, sertifikatFotoToken: string, params?: { source?: string; source_id?: number }) =>
+    api.post(`/quiz/pakets/${id}/start`, { sertifikat_foto_token: sertifikatFotoToken }, { params }),
+  /** Sertifikat untuk satu percobaan milik siswa yang sedang login. */
+  sertifikat: (attemptId: number) => api.get(`/quiz/attempts/${attemptId}/sertifikat`),
+  /** Verifikasi sertifikat memakai kode, tanpa login. */
+  verifikasiSertifikat: (kode: string) => api.get(`/sertifikat/verify/${kode}`),
 }
 
 export const lmsAdminApi = {
@@ -563,6 +583,7 @@ export const lmsAdminApi = {
   storeMateri: (data: FormData) => api.post('/admin/lms/materi-bank', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   updateMateri: (id: number, data: FormData) => api.post(`/admin/lms/materi-bank/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   deleteMateri: (id: number) => api.delete(`/admin/lms/materi-bank/${id}`),
+  rekapNilai: (params?: Record<string, string | number | undefined>) => api.get('/admin/lms/rekap-nilai', { params }),
   welcomeInfo: () => api.get('/admin/lms/welcome'),
   uploadWelcomeVideo: (fd: FormData) => api.post('/admin/lms/welcome-video', fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
   saveWelcomeVideoUrl: (url: string) => api.post('/admin/lms/welcome-video-url', { url }),
@@ -744,6 +765,7 @@ export const adminQuizApi = {
   deleteQuestion: (id: number) => api.delete(`/admin-cabang/quiz/questions/${id}`),
   results: (paketId: number) => api.get(`/admin-cabang/quiz/pakets/${paketId}/results`),
   courseMonitor: (courseId: number, params?: { paket_id?: number; date?: string }) => api.get(`/admin-cabang/quiz/courses/${courseId}/monitor`, { params }),
+  courseMonitorOverview: (courseId: number, params?: { date?: string }) => api.get(`/admin-cabang/quiz/courses/${courseId}/monitor/overview`, { params }),
   resetAttempts: (paketId: number, siswaId?: number) => api.post(`/admin-cabang/quiz/pakets/${paketId}/reset-attempts`, { siswa_id: siswaId }),
   attemptDetail: (attemptId: number) => api.get(`/admin-cabang/quiz/attempts/${attemptId}`),
   gradeAttempt: (attemptId: number, data: { grades: { question_id: number; earned_points: number }[] }) => api.post(`/admin-cabang/quiz/attempts/${attemptId}/grade`, data),

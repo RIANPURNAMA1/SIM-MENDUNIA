@@ -10,6 +10,8 @@ import { quizApi, lmsApi, APP_URL } from '../../services/api'
 import { detectFace, loadFaceModels, type DetectedFace } from '../../utils/faceDetector'
 import LessonSlidesViewer from '../../components/LessonSlidesViewer'
 import TrackedVideo from '../../components/TrackedVideo'
+import CertificateCard, { type Sertifikat } from '../../components/quiz/CertificateCard'
+import SertifikatFotoStep from '../../components/quiz/SertifikatFotoStep'
 import Swal from 'sweetalert2'
 
 const cleanQuillHtml = (html: string | null | undefined) =>
@@ -65,6 +67,9 @@ interface PaketDetail {
   quiz_template?: string
   camera_enabled?: boolean
   block_exit?: boolean
+  sertifikasi_aktif?: boolean
+  sertifikat_wajib_foto?: boolean
+  sertifikat_judul?: string | null
 }
 
 interface LessonPayload {
@@ -143,6 +148,7 @@ interface ResultPayload {
   submitted_at: string | null
   time_limit_seconds: number
   passing_score: number
+  sertifikat?: Sertifikat | null
 }
 
 interface LessonProgress {
@@ -451,6 +457,10 @@ export default function QuizKandidat() {
   const [submitting, setSubmitting] = useState(false)
 
   const [result, setResult] = useState<ResultPayload | null>(null)
+  const [resultLoading, setResultLoading] = useState(false)
+
+  // Step foto identitas untuk paket bersertifikasi.
+  const [fotoStepOpen, setFotoStepOpen] = useState(false)
 
   const [reviewOpen, setReviewOpen] = useState(false)
   const [reviewLoading, setReviewLoading] = useState(false)
@@ -879,9 +889,47 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
     })
   }
 
+  /**
+   * Buka layar hasil dari riwayat percobaan. Sertifikat hanya ikut di payload
+   * kalau paket menyalakan sertifikasi, jadi nilainya bisa null.
+   */
+  const openResult = (attemptId: number) => {
+    setResultLoading(true)
+    quizApi.attempt(attemptId).then(res => {
+      setResult(res.data.attempt)
+      setView('result')
+    }).catch(() => {
+      Swal.fire({ icon: 'error', title: 'Gagal memuat hasil percobaan', text: 'Silakan coba lagi.' })
+    }).finally(() => setResultLoading(false))
+  }
+
+  const mulaiDenganToken = (packageId: number, sertifikatFotoToken: string) => {
+    setStarting(true)
+    setFotoStepOpen(false)
+    quizApi.startWithSertifikat(packageId, sertifikatFotoToken, ctxParams()).then(res => {
+      const d = res.data
+      enterPlay(d.attempt.id, packageId, d.template)
+    }).catch(err => {
+      const attemptId = err?.response?.data?.attempt_id
+      if (attemptId) {
+        setFotoStepOpen(false)
+        resumeAttempt(attemptId)
+      } else {
+        const msg = err?.response?.data?.message || 'Gagal memulai quiz'
+        Swal.fire({ icon: 'warning', title: msg })
+        fetchPakets()
+      }
+    }).finally(() => setStarting(false))
+  }
+
   const startNew = () => {
     const packageId = detail?.paket.id
     if (!packageId) return
+    // Paket bersertifikasi mewajibkan foto identitas lebih dulu.
+    if (detail?.paket.sertifikasi_aktif) {
+      setFotoStepOpen(true)
+      return
+    }
     setStarting(true)
     quizApi.start(packageId, ctxParams()).then(res => {
       const d = res.data
@@ -988,6 +1036,25 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
 
   // ==================== RENDER ====================
 
+  if (fotoStepOpen && detail?.paket.id) {
+    return (
+      <div className="min-h-screen bg-[#f0f2f5] px-4 py-8">
+        <div className="mx-auto mb-4 max-w-2xl">
+          <button onClick={() => setFotoStepOpen(false)} className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-800 transition-colors">
+            <ArrowLeft size={12} /> Kembali
+          </button>
+        </div>
+        <SertifikatFotoStep
+          paketId={detail.paket.id}
+          judul={detail.paket.title}
+          sedangMemulai={starting}
+          onLanjut={token => mulaiDenganToken(detail.paket.id, token)}
+          onBatal={() => setFotoStepOpen(false)}
+        />
+      </div>
+    )
+  }
+
   if (view === 'play') {
     const lowTime = remaining <= 60
     return (
@@ -1022,7 +1089,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
                 <p className="text-[10.5px] font-bold text-[#0E6187]">Kamera pengawas aktif</p>
                 <p className="text-[9.5px] text-slate-400 font-medium">Foto dikirim berkala ke pengawas</p>
               </div>
-              <Camera size={15} className="text-[#0E6187]" />
+              <Camera size={15} className="text-slate-600" />
             </div>
           </div>
         )}
@@ -1169,6 +1236,16 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
             <p className="text-[10.5px] text-slate-400 font-medium mt-5 leading-relaxed">
               Kunci jawaban dan rekap detail hanya dapat dilihat oleh instruktur/guru.
             </p>
+
+            {result.sertifikat && (
+              <div className="mt-5 border-t border-[#E5E7EF] pt-5 text-left">
+                <p className="mb-3 flex items-center justify-center gap-1.5 text-xs font-bold text-slate-700">
+                  <Award size={14} className="text-amber-500" />
+                  Sertifikat Ujian
+                </p>
+                <CertificateCard sertifikat={result.sertifikat} />
+              </div>
+            )}
 
             <div className="flex gap-2 mt-5">
               <button onClick={() => openReview(result.attempt_id)}
@@ -1526,8 +1603,8 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
               </div>
               <div className="mt-3 space-y-2">
                 {attempts.map(a => (
-                  <div key={a.attempt_id} className="flex items-center gap-3 bg-slate-50 rounded-md border border-slate-100 px-3 py-2.5">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${a.status === 'submitted' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-500'}`}>
+                  <div key={a.attempt_id} className="flex items-center gap-3 bg-white rounded-md border border-slate-200 px-3 py-2.5">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${a.status === 'submitted' ? 'bg-emerald-600 text-white' : 'bg-orange-500 text-white'}`}>
                       #{a.attempt_number}
                     </span>
                     <div className="flex-1 min-w-0">
@@ -1541,14 +1618,21 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
                     </div>
                     {a.status === 'in_progress' ? (
                       <button onClick={() => resumeAttempt(a.attempt_id)}
-                        className="shrink-0 text-[9.5px] font-bold text-orange-600 bg-white border border-orange-300 px-2.5 py-1.5 rounded-md hover:bg-orange-50 transition-colors">
+                        className="shrink-0 text-[9.5px] font-bold bg-orange-500 text-white px-2.5 py-1.5 rounded-md hover:bg-orange-600 transition-colors">
                         Lanjutkan
                       </button>
                     ) : (
-                      <button onClick={() => openReview(a.attempt_id)}
-                        className="shrink-0 text-[10px] font-bold text-[#0E6187] bg-white border border-[#0E6187]/25 px-2.5 py-1.5 rounded-md hover:bg-[#0E6187]/5 transition-colors">
-                        Lihat Pembahasan
-                      </button>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <button onClick={() => openResult(a.attempt_id)} disabled={resultLoading}
+                          title="Lihat hasil & sertifikat"
+                          className="flex items-center gap-1 text-[10px] font-bold bg-amber-600 text-white px-2.5 py-1.5 rounded-md hover:bg-amber-700 transition-colors disabled:opacity-50">
+                          <Award size={11} /> Hasil
+                        </button>
+                        <button onClick={() => openReview(a.attempt_id)}
+                          className="shrink-0 text-[10px] font-bold text-slate-700 bg-white border border-slate-300 px-2.5 py-1.5 rounded-md hover:bg-slate-100 transition-colors">
+                          Lihat Pembahasan
+                        </button>
+                      </div>
                     )}
                   </div>
                 ))}
@@ -1664,29 +1748,29 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
             <ArrowLeft size={12} /> Daftar Paket Soal
           </button>
 
-          <div className="bg-[#0E6187] rounded-md overflow-hidden shadow-sm">
+          <div className="bg-[#0E6187] rounded-md overflow-hidden">
             <div className="px-5 py-5">
               <h1 className="text-lg font-bold text-white leading-snug">{paket.title}</h1>
-              {paket.description && <p className="text-[11px] text-teal-100 mt-1.5">{paket.description}</p>}
+              {paket.description && <p className="text-[11px] text-slate-200 mt-1.5">{paket.description}</p>}
               <div className="flex flex-wrap gap-2 mt-3">
                 {paket.course_title && (
-                  <span className="px-2.5 py-1 rounded-md bg-white/10 text-[10px] font-bold text-white/80">{paket.course_title}</span>
+                  <span className="px-2.5 py-1 rounded-md bg-white text-[10px] font-bold text-[#0E6187]">{paket.course_title}</span>
                 )}
                 {ctxSource === 'tugas' && (
-                  <span className="px-2.5 py-1 rounded-md bg-amber-400/90 text-[10px] font-bold text-amber-950">Dari Tugas</span>
+                  <span className="px-2.5 py-1 rounded-md bg-amber-500 text-[10px] font-bold text-white">Dari Tugas</span>
                 )}
-                <span className="px-2.5 py-1 rounded-md bg-white/10 text-[10px] font-bold text-white/80">{paket.questions_count} soal</span>
+                <span className="px-2.5 py-1 rounded-md bg-white text-[10px] font-bold text-[#0E6187]">{paket.questions_count} soal</span>
               </div>
             </div>
           </div>
 
           {/* Rules */}
-          <div className="bg-white rounded-md border border-slate-200 p-5 mt-4 shadow-sm">
+          <div className="bg-white rounded-md border border-slate-200 p-5 mt-4">
             <h2 className="text-[11px] font-bold tracking-wide text-slate-500 uppercase mb-4">Aturan & Ketentuan</h2>
             <div className="space-y-3.5">
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-md bg-[#0E6187]/[0.06] flex items-center justify-center shrink-0">
-                  <Clock size={15} className="text-[#0E6187]" />
+                <div className="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center shrink-0">
+                  <Clock size={15} className="text-slate-600" />
                 </div>
                 <div>
                   <p className="text-[12px] font-bold text-slate-700">Durasi {paket.time_limit_minutes} menit</p>
@@ -1695,8 +1779,8 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
               </div>
               {isProctoring && (
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-md bg-[#0E6187]/[0.06] flex items-center justify-center shrink-0">
-                    <AlertTriangle size={15} className="text-[#0E6187]" />
+                  <div className="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center shrink-0">
+                    <AlertTriangle size={15} className="text-slate-600" />
                   </div>
                   <div>
                     <p className="text-[12px] font-bold text-slate-700">Max {paket.max_warnings} peringatan</p>
@@ -1706,8 +1790,8 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
               )}
               {cameraEnabled && (
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-md bg-[#0E6187]/[0.06] flex items-center justify-center shrink-0">
-                    <Camera size={15} className="text-[#0E6187]" />
+                  <div className="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center shrink-0">
+                    <Camera size={15} className="text-slate-600" />
                   </div>
                   <div>
                     <p className="text-[12px] font-bold text-slate-700">Kamera pengawas</p>
@@ -1717,8 +1801,8 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
               )}
               {blockExit && (
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-md bg-[#0E6187]/[0.06] flex items-center justify-center shrink-0">
-                    <Lock size={15} className="text-[#0E6187]" />
+                  <div className="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center shrink-0">
+                    <Lock size={15} className="text-slate-600" />
                   </div>
                   <div>
                     <p className="text-[12px] font-bold text-slate-700">Kunci saat keluar / tutup aplikasi</p>
@@ -1728,8 +1812,8 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
               )}
               {!isProctoring && (
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-md bg-[#0E6187]/[0.06] flex items-center justify-center shrink-0">
-                    <LayoutGrid size={15} className="text-[#0E6187]" />
+                  <div className="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center shrink-0">
+                    <LayoutGrid size={15} className="text-slate-600" />
                   </div>
                   <div>
                     <p className="text-[12px] font-bold text-slate-700">Template Basic</p>
@@ -1738,8 +1822,8 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
                 </div>
               )}
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-md bg-[#0E6187]/[0.06] flex items-center justify-center shrink-0">
-                  <ListChecks size={15} className="text-[#0E6187]" />
+                <div className="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center shrink-0">
+                  <ListChecks size={15} className="text-slate-600" />
                 </div>
                 <div>
                   <p className="text-[12px] font-bold text-slate-700">{paket.max_attempts > 0 ? `Maks ${paket.max_attempts} percobaan` : 'Tanpa batas percobaan (unlimited)'}</p>
@@ -1751,12 +1835,12 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
 
           {/* History */}
           {attempts.length > 0 && (
-            <div className="bg-white rounded-md border border-slate-200 p-5 mt-4 shadow-sm">
+            <div className="bg-white rounded-md border border-slate-200 p-5 mt-4">
               <h2 className="text-[11px] font-bold tracking-wide text-slate-500 uppercase mb-3">Riwayat Percobaan</h2>
               <div className="space-y-2">
                 {attempts.map(a => (
-                  <div key={a.attempt_id} className="flex items-center gap-3 bg-slate-50 rounded-md border border-slate-100 px-3 py-2.5">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${a.status === 'submitted' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-500'}`}>
+                  <div key={a.attempt_id} className="flex items-center gap-3 bg-white rounded-md border border-slate-200 px-3 py-2.5">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${a.status === 'submitted' ? 'bg-emerald-600 text-white' : 'bg-orange-500 text-white'}`}>
                       #{a.attempt_number}
                     </span>
                     <div className="flex-1 min-w-0">
@@ -1770,14 +1854,21 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
                     </div>
                     {a.status === 'in_progress' ? (
                       <button onClick={() => resumeAttempt(a.attempt_id)}
-                        className="shrink-0 text-[9.5px] font-bold text-orange-600 bg-white border border-orange-300 px-2.5 py-1.5 rounded-md hover:bg-orange-50 transition-colors">
+                        className="shrink-0 text-[9.5px] font-bold bg-orange-500 text-white px-2.5 py-1.5 rounded-md hover:bg-orange-600 transition-colors">
                         Lanjutkan
                       </button>
                     ) : (
-                      <button onClick={() => openReview(a.attempt_id)}
-                        className="shrink-0 text-[10px] font-bold text-[#0E6187] bg-white border border-[#0E6187]/25 px-2.5 py-1.5 rounded-md hover:bg-[#0E6187]/5 transition-colors">
-                        Lihat Pembahasan
-                      </button>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <button onClick={() => openResult(a.attempt_id)} disabled={resultLoading}
+                          title="Lihat hasil & sertifikat"
+                          className="flex items-center gap-1 text-[10px] font-bold bg-amber-600 text-white px-2.5 py-1.5 rounded-md hover:bg-amber-700 transition-colors disabled:opacity-50">
+                          <Award size={11} /> Hasil
+                        </button>
+                        <button onClick={() => openReview(a.attempt_id)}
+                          className="shrink-0 text-[10px] font-bold text-slate-700 bg-white border border-slate-300 px-2.5 py-1.5 rounded-md hover:bg-slate-100 transition-colors">
+                          Lihat Pembahasan
+                        </button>
+                      </div>
                     )}
                   </div>
                 ))}
@@ -1803,8 +1894,8 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
         {cameraModal && (
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4" onClick={() => setCameraModal(false)}>
             <div className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-md p-5" onClick={e => e.stopPropagation()}>
-              <div className="w-10 h-10 rounded-md bg-[#0E6187]/[0.06] flex items-center justify-center mb-3">
-                <Camera size={18} className="text-[#0E6187]" />
+              <div className="w-10 h-10 rounded-md bg-slate-100 flex items-center justify-center mb-3">
+                <Camera size={18} className="text-slate-600" />
               </div>
               <h2 className="text-sm font-bold text-slate-800">Aktifkan kamera pengawas</h2>
               <p className="text-[11px] text-slate-400 font-medium mt-1">
@@ -1887,7 +1978,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
             <img src="/logo-sm1.png" alt="Kelas Mendunia" className="h-8 w-auto" />
           </div>
           <div className="mt-5 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-white/10">
+            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-slate-700">
               <ListChecks size={20} />
             </div>
             <div>
@@ -1913,7 +2004,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
             const inProgressId = p.in_progress_attempt_id
             return (
               <button key={p.id} onClick={() => openPaket(p.id)}
-                className="w-full text-left bg-white rounded-md border border-[#E5E7EF] p-5 transition-all hover:shadow-sm">
+                className="w-full text-left bg-white rounded-md border border-slate-200 p-5 transition-colors hover:border-slate-300">
                 {p.cover_url && (
                   <div className="w-full h-32 rounded-md overflow-hidden border border-slate-100 mb-4 -mt-1">
                     <img src={p.cover_url} alt={p.title} className="w-full h-full object-cover" />
@@ -1925,7 +2016,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
                     {p.description && <p className="text-[11px] text-slate-400 font-medium mt-1 line-clamp-2">{p.description}</p>}
                   </div>
                   {p.best_score !== null && (
-                    <span className={`text-[10px] font-bold px-2 py-1 rounded-md shrink-0 ${p.passing_score > 0 ? (lulus ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600') : 'bg-[#0E6187]/[0.06] text-[#0E6187]'}`}>
+                    <span className={`text-[10px] font-bold px-2 py-1 rounded-md shrink-0 ${p.passing_score > 0 ? (lulus ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white') : 'bg-slate-200 text-slate-700'}`}>
                       Nilai {p.best_score}
                     </span>
                   )}

@@ -14,13 +14,20 @@ use App\Models\QuizCategory;
 use App\Models\QuizPaket;
 use App\Models\QuizQuestion;
 use App\Models\QuizSection;
+use App\Models\QuizSertifikat;
 use App\Models\User;
+use App\Services\QuizSertifikatService;
+use App\Services\QuizSectionScore;
+use App\Traits\HandlesSertifikasiSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class AdminQuizController extends Controller
 {
+    use HandlesSertifikasiSetting;
+
     private function adminUser()
     {
         return Auth::guard('sanctum')->user();
@@ -164,7 +171,7 @@ class AdminQuizController extends Controller
 
     public function store(Request $request)
     {
-        $data = $request->validate([
+        $data = $request->validate(array_merge([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'cover_image' => 'nullable|string|max:255',
@@ -183,7 +190,7 @@ class AdminQuizController extends Controller
             'penilaian_ulangan' => 'nullable|boolean',
             'status' => 'nullable|in:aktif,nonaktif',
             'user_id' => 'nullable|exists:users,id',
-        ]);
+        ], $this->aturanSertifikasi()));
 
         $adminId = $this->adminUser()->id;
         $data['user_id'] = $data['user_id'] ?? $adminId;
@@ -196,7 +203,7 @@ class AdminQuizController extends Controller
         $data['template'] = $data['quiz_template'] ?? 'basic';
         unset($data['quiz_template']);
 
-        $paket = QuizPaket::create($data);
+        $paket = QuizPaket::create($this->normalisasiSertifikasi($data));
 
         return response()->json(['paket' => $paket->fresh()->load('batch:id,nama_batch', 'course:id,title', 'user:id,name')], 201);
     }
@@ -205,7 +212,7 @@ class AdminQuizController extends Controller
     {
         $paket = QuizPaket::findOrFail($id);
 
-        $data = $request->validate([
+        $data = $request->validate(array_merge([
             'title' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
             'cover_image' => 'nullable|string|max:255',
@@ -224,7 +231,7 @@ class AdminQuizController extends Controller
             'penilaian_ulangan' => 'nullable|boolean',
             'status' => 'nullable|in:aktif,nonaktif',
             'user_id' => 'nullable|exists:users,id',
-        ]);
+        ], $this->aturanSertifikasi()));
 
         if ($request->has('shuffle_questions')) {
             $data['shuffle_questions'] = $request->boolean('shuffle_questions');
@@ -246,7 +253,7 @@ class AdminQuizController extends Controller
         }
         unset($data['quiz_template']);
 
-        $paket->update($data);
+        $paket->update($this->normalisasiSertifikasi($data));
 
         return response()->json(['paket' => $paket->fresh()->load('batch:id,nama_batch', 'course:id,title', 'user:id,name')]);
     }
@@ -866,49 +873,13 @@ $data = $request->validate([
             ->get();
 
         // Rincian jawaban per BAGIAN (section) untuk grafik persentase.
-        // Penyebut memakai jumlah soal paket pada bagian tersebut, jadi soal
-        // yang tidak dijawab ikut terhitung salah.
-        $sectionMeta = [];
-        foreach (QuizSection::where('quiz_paket_id', $paket->id)->orderBy('sort')->orderBy('id')->get(['id', 'name']) as $sec) {
-            $sectionMeta[(int) $sec->id] = ['id' => (int) $sec->id, 'name' => $sec->name, 'total' => 0];
-        }
-        // Bagian virtual untuk soal yang belum dikelompokkan.
-        $sectionMeta[0] = ['id' => 0, 'name' => 'Tanpa Bagian', 'total' => 0];
-
-        $questionSection = [];
-        foreach (QuizQuestion::where('quiz_paket_id', $paket->id)->get(['id', 'section_id']) as $q) {
-            $sid = (int) ($q->section_id ?? 0);
-            $questionSection[(int) $q->id] = $sid;
-            if (isset($sectionMeta[$sid])) $sectionMeta[$sid]['total']++;
-        }
-
-        $answersByAttempt = QuizAnswer::whereIn('quiz_attempt_id', $attempts->pluck('id'))
-            ->get(['quiz_attempt_id', 'quiz_question_id', 'is_correct'])
-            ->groupBy('quiz_attempt_id');
-
-        $buildSections = function ($attemptId) use ($sectionMeta, $questionSection, $answersByAttempt) {
-            $tally = [];
-            foreach ($sectionMeta as $sid => $meta) {
-                $tally[$sid] = 0;
-            }
-            foreach ($answersByAttempt->get($attemptId, collect()) as $ans) {
-                $sid = $questionSection[(int) $ans->quiz_question_id] ?? 0;
-                if (!array_key_exists($sid, $tally)) $tally[$sid] = 0;
-                if ($ans->is_correct) $tally[$sid]++;
-            }
-            $out = [];
-            foreach ($tally as $sid => $correct) {
-                $total = $sectionMeta[$sid]['total'];
-                $out[] = [
-                    'id' => $sid,
-                    'name' => $sectionMeta[$sid]['name'],
-                    'total' => $total,
-                    'correct' => $correct,
-                    'percent' => $total > 0 ? round($correct / $total * 100, 1) : 0.0,
-                ];
-            }
-            return $out;
-        };
+        // Logikanya dipusatkan di QuizSectionScore supaya sama persis dengan
+        // angka yang tercetak di sertifikat.
+        $sectionScores = QuizSectionScore::untukBanyakAttempt(
+            $paket->id,
+            $attempts->pluck('id')->all()
+        );
+        $buildSections = fn ($attemptId) => $sectionScores[(int) $attemptId] ?? [];
 
         $participants = $attempts->groupBy('siswa_id')->map(function ($rows) use ($buildSections, $levelPaket) {
             $siswa = $rows->first()->siswa;
@@ -1133,6 +1104,204 @@ $data = $request->validate([
         ]);
     }
 
+    /**
+     * Dashboard monitoring tingkat kursus: daftar pertemuan mana saja yang
+     * punya paket soal, plus berapa kandidat yang sedang mengerjakan real-time.
+     */
+    public function courseMonitorOverview(Request $request, $courseId)
+    {
+        $user = $this->adminUser();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $course = Course::with('batch:id,nama_batch')->findOrFail($courseId);
+
+        $date = $request->query('date');
+        $date = $date && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) ? $date : now()->toDateString();
+
+        $batchIds = null;
+        if (!$this->isGlobal()) {
+            $ids = $this->getBranchBatchIds();
+            $batchIds = empty($ids) ? null : $ids;
+        }
+
+        $lessons = $course->lessons()
+            ->orderBy('sort')
+            ->orderBy('id')
+            ->get(['id', 'course_id', 'paket_id', 'title', 'status', 'sort']);
+
+        // Kumpulkan paket yang tertaut ke setiap pertemuan.
+        $lessonIds = $lessons->pluck('id')->all();
+        $pivot = DB::table('lms_lesson_quiz_pakets')
+            ->whereIn('lesson_id', $lessonIds)
+            ->get(['lesson_id', 'quiz_paket_id', 'status']);
+
+        $pivotByLesson = [];
+        $allPaketIds = [];
+        foreach ($pivot as $row) {
+            $pivotByLesson[(int) $row->lesson_id][] = (int) $row->quiz_paket_id;
+            $allPaketIds[] = (int) $row->quiz_paket_id;
+        }
+
+        // Paket yang ditautkan langsung lewat lessons.paket_id juga dihitung.
+        $directIds = $lessons->pluck('paket_id')->filter()->map(fn ($id) => (int) $id)->all();
+        foreach ($directIds as $id) {
+            $allPaketIds[] = $id;
+        }
+
+        // Semua paket milik kursus ini ikut diambil agar paket yang belum
+        // tertaut ke pertemuan mana pun tetap bisa dipantau.
+        foreach (QuizPaket::where('course_id', $course->id)->pluck('id') as $id) {
+            $allPaketIds[] = (int) $id;
+        }
+
+        $allPaketIds = array_values(array_unique(array_filter($allPaketIds)));
+        $pakets = QuizPaket::whereIn('id', $allPaketIds)
+            ->withCount('questions')
+            ->get(['id', 'title', 'template', 'status', 'time_limit_minutes', 'questions_count', 'max_attempts'])
+            ->keyBy('id');
+
+        // Agregasi attempt sekali jalan untuk seluruh paket.
+        $agg = [];
+        if ($allPaketIds) {
+            $rows = QuizAttempt::whereIn('quiz_paket_id', $allPaketIds)
+                ->when($batchIds !== null, fn ($q) => $q->whereHas('siswa', fn ($sq) => $sq->whereIn('batch_id', $batchIds)))
+                ->where(function ($q) use ($date) {
+                    $q->where(fn ($q2) => $q2->where('status', 'in_progress')->whereDate('created_at', $date))
+                        ->orWhere(fn ($q2) => $q2->whereNotNull('submitted_at')->whereDate('submitted_at', $date));
+                })
+                ->selectRaw('quiz_paket_id, status, COUNT(*) as cnt, SUM(warnings) as warn')
+                ->groupBy('quiz_paket_id', 'status')
+                ->get();
+
+            foreach ($rows as $r) {
+                $pid = (int) $r->quiz_paket_id;
+                $agg[$pid] ??= ['live' => 0, 'submitted' => 0, 'warnings' => 0];
+                if ($r->status === 'in_progress') {
+                    $agg[$pid]['live'] = (int) $r->cnt;
+                } else {
+                    $agg[$pid]['submitted'] = (int) $r->cnt;
+                }
+                $agg[$pid]['warnings'] += (int) ($r->warn ?? 0);
+            }
+        }
+
+        $lessonTanggal = [];
+        if ($course->kelas_sensei_id) {
+            $dates = (KelasSensei::find($course->kelas_sensei_id)?->daftarPertemuan()) ?? [];
+            foreach ($lessons as $i => $l) {
+                if (isset($dates[$i])) {
+                    $lessonTanggal[(int) $l->id] = $dates[$i];
+                }
+            }
+        }
+
+        $paketRow = function ($paketId) use ($pakets, $agg) {
+            $p = $pakets->get($paketId);
+            if (!$p) {
+                return null;
+            }
+            $a = $agg[$paketId] ?? ['live' => 0, 'submitted' => 0, 'warnings' => 0];
+
+            return [
+                'id' => (int) $p->id,
+                'title' => $p->title,
+                'template' => $p->template,
+                'status' => $p->status,
+                'time_limit_minutes' => (int) $p->time_limit_minutes,
+                'questions_count' => (int) $p->questions_count,
+                'max_attempts' => (int) $p->max_attempts,
+                'live_count' => $a['live'],
+                'submitted_count' => $a['submitted'],
+                'warning_total' => $a['warnings'],
+            ];
+        };
+
+        $lessonRows = [];
+        $totalLive = 0;
+        $totalSubmitted = 0;
+        $totalWarnings = 0;
+        $lessonWithQuiz = 0;
+
+        foreach ($lessons as $i => $l) {
+            $ids = $pivotByLesson[(int) $l->id] ?? [];
+            if ($l->paket_id) {
+                $ids[] = (int) $l->paket_id;
+            }
+            $ids = array_values(array_unique($ids));
+
+            $paketRows = [];
+            foreach ($ids as $pid) {
+                $row = $paketRow($pid);
+                if ($row) {
+                    $paketRows[] = $row;
+                }
+            }
+
+            if (empty($paketRows)) {
+                continue;
+            }
+
+            $lessonWithQuiz++;
+            $live = array_sum(array_column($paketRows, 'live_count'));
+            $submitted = array_sum(array_column($paketRows, 'submitted_count'));
+            $warn = array_sum(array_column($paketRows, 'warning_total'));
+
+            $totalLive += $live;
+            $totalSubmitted += $submitted;
+            $totalWarnings += $warn;
+
+            $lessonRows[] = [
+                'id' => (int) $l->id,
+                'pertemuan_ke' => $i + 1,
+                'title' => $l->title,
+                'status' => $l->status,
+                'tanggal' => $lessonTanggal[(int) $l->id] ?? null,
+                'paket_count' => count($paketRows),
+                'live_count' => $live,
+                'submitted_count' => $submitted,
+                'warning_total' => $warn,
+                'pakets' => $paketRows,
+            ];
+        }
+
+        // Paket yang ada di kursus tapi belum tertaut ke pertemuan mana pun.
+        $linked = [];
+        foreach ($lessonRows as $lr) {
+            foreach ($lr['pakets'] as $pr) {
+                $linked[$pr['id']] = true;
+            }
+        }
+        $orphanPakets = [];
+        foreach (QuizPaket::where('course_id', $course->id)->withCount('questions')->get() as $p) {
+            if (!isset($linked[(int) $p->id])) {
+                $orphanPakets[] = $paketRow((int) $p->id);
+            }
+        }
+
+        return response()->json([
+            'course' => [
+                'id' => (int) $course->id,
+                'title' => $course->title,
+                'level' => $course->level,
+                'batch_name' => $course->batch?->nama_batch,
+                'lesson_total' => $lessons->count(),
+            ],
+            'totals' => [
+                'lesson_with_quiz' => $lessonWithQuiz + ($orphanPakets ? 1 : 0),
+                'paket_count' => count($allPaketIds),
+                'live_total' => $totalLive,
+                'submitted_total' => $totalSubmitted,
+                'warning_total' => $totalWarnings,
+            ],
+            'lessons' => $lessonRows,
+            'orphan_pakets' => array_values(array_filter($orphanPakets)),
+            'server_time' => now()->toIso8601String(),
+            'date' => $date,
+        ]);
+    }
+
     public function resetAttempts(Request $request, $paketId)
     {
         $paket = QuizPaket::findOrFail($paketId);
@@ -1193,7 +1362,19 @@ $data = $request->validate([
             'attempt' => $attempt,
             'questions' => $rows,
             'siswa' => $attempt->siswa,
+            'sertifikat' => $this->sertifikatUntukAttempt($attemptId),
         ]);
+    }
+
+    /**
+     * Sertifikat milik satu percobaan untuk ditampilkan/ dicetak guru dan admin.
+     * Null kalau paketnya tidak memakai fitur sertifikasi.
+     */
+    private function sertifikatUntukAttempt(int $attemptId): ?array
+    {
+        $sertifikat = QuizSertifikat::where('quiz_attempt_id', $attemptId)->first();
+
+        return $sertifikat ? QuizSertifikatService::payload($sertifikat) : null;
     }
 
     public function gradeAttempt(Request $request, $attemptId)

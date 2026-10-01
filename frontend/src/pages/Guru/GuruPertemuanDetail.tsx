@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft, BookOpen, CalendarDays, Camera, Check, CheckCircle2, ChevronRight, Circle, FileText,
@@ -110,6 +110,10 @@ interface DetailPertemuan {
 
 export default function GuruPertemuanDetail({ readOnly = false, backPath = '/guru-pertemuan' }: Props) {
   const { kelasId } = useParams()
+  const kelasIdNum = useMemo(() => {
+    const n = Number(kelasId)
+    return Number.isFinite(n) && n > 0 ? n : null
+  }, [kelasId])
   const navigate = useNavigate()
 
   const [loading, setLoading] = useState(true)
@@ -131,10 +135,10 @@ export default function GuruPertemuanDetail({ readOnly = false, backPath = '/gur
   const [detailLoading, setDetailLoading] = useState(false)
 
   const load = useCallback(async () => {
-    if (!kelasId) return
+    if (!kelasIdNum) return
     setLoading(true)
     try {
-      const res = await pertemuanApi.detail(kelasId)
+      const res = await pertemuanApi.detail(kelasIdNum)
       const d = res.data
       setKelas(d.kelas)
       setPertemuan(d.pertemuan || [])
@@ -146,16 +150,16 @@ export default function GuruPertemuanDetail({ readOnly = false, backPath = '/gur
     } finally {
       setLoading(false)
     }
-  }, [kelasId, readOnly])
+  }, [kelasIdNum, readOnly])
 
   useEffect(() => { load() }, [load])
 
   const bukaDetail = async (item: PertemuanItem) => {
-    if (!kelasId) return
+    if (!kelasIdNum) return
     setDetailLoading(true)
     setDetail(null)
     try {
-      const res = await pertemuanApi.detailTanggal(Number(kelasId), item.tanggal)
+      const res = await pertemuanApi.detailTanggal(kelasIdNum, item.tanggal)
       setDetail(res.data)
     } catch {
       Swal.fire({ icon: 'error', title: 'Gagal memuat detail pertemuan' })
@@ -192,7 +196,7 @@ export default function GuruPertemuanDetail({ readOnly = false, backPath = '/gur
   }
 
   const simpan = async () => {
-    if (!modalDate) return
+    if (!modalDate || !kelasIdNum) return
     setSaving(true)
     try {
       const fd = new FormData()
@@ -204,7 +208,7 @@ export default function GuruPertemuanDetail({ readOnly = false, backPath = '/gur
       fd.append('ulangan_harian_paket_id', form.ulangan_harian_paket_id)
       fd.append('ulangan_mingguan_paket_id', form.ulangan_mingguan_paket_id)
 
-      await pertemuanApi.store(kelasId!, fd)
+      await pertemuanApi.store(kelasIdNum, fd)
       setModalDate(null)
       await load()
       Swal.fire({ icon: 'success', title: 'Tersimpan', text: 'Riwayat pertemuan berhasil disimpan', timer: 1500, showConfirmButton: false })
@@ -238,7 +242,7 @@ export default function GuruPertemuanDetail({ readOnly = false, backPath = '/gur
   }
 
   const syncNilai = async () => {
-    if (!kelasId) return
+    if (!kelasIdNum) return
     const conf = await Swal.fire({
       title: 'Tarik nilai quiz ke Penilaian Siswa?',
       text: 'Nilai terbaik siswa dari paket Ulangan Harian/Mingguan di kelas ini akan ditulis ke komponen "Ulangan" pada tanggal pertemuan bersangkutan. Nilai manual yang sudah terisi akan tertimpa.',
@@ -250,7 +254,7 @@ export default function GuruPertemuanDetail({ readOnly = false, backPath = '/gur
     if (!conf.isConfirmed) return
     setSyncing(true)
     try {
-      const res = await pertemuanApi.syncNilai(Number(kelasId))
+      const res = await pertemuanApi.syncNilai(kelasIdNum)
       Swal.fire({ icon: 'success', title: 'Selesai', text: res.data.message, timer: 2500, showConfirmButton: false })
       await load()
     } catch (e: any) {

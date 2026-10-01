@@ -24,6 +24,11 @@ class QuizPaket extends Model
         'camera_enabled',
         'block_exit',
         'penilaian_ulangan',
+        'sertifikasi_aktif',
+        'sertifikat_judul',
+        'sertifikat_penerbit',
+        'sertifikat_berlaku_hari',
+        'sertifikat_wajib_foto',
         'status',
     ];
 
@@ -36,6 +41,9 @@ class QuizPaket extends Model
         'camera_enabled' => 'boolean',
         'block_exit' => 'boolean',
         'penilaian_ulangan' => 'boolean',
+        'sertifikasi_aktif' => 'boolean',
+        'sertifikat_berlaku_hari' => 'integer',
+        'sertifikat_wajib_foto' => 'boolean',
     ];
 
     protected $appends = ['cover_url', 'quiz_template'];
@@ -112,6 +120,11 @@ class QuizPaket extends Model
     public function attempts()
     {
         return $this->hasMany(QuizAttempt::class);
+    }
+
+    public function sertifikat()
+    {
+        return $this->hasMany(QuizSertifikat::class);
     }
 
     public function linkLessons()

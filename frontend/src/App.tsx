@@ -86,6 +86,7 @@ import DaftarAffiliateBaru from './pages/Pendaftaran/DaftarAffiliateBaru'
 import DaftarProgram from './pages/Pendaftaran/DaftarProgram'
 import Bayar from './pages/Bayar/Bayar'
 import CheckoutBerhasil from './pages/Pendaftaran/CheckoutBerhasil'
+import VerifikasiSertifikat from './pages/VerifikasiSertifikat'
 import KonfirmasiPembayaran from './pages/Pendaftaran/KonfirmasiPembayaran'
 import Verifikasi from './pages/Verifikasi'
 import SyaratKetentuan from './pages/SyaratKetentuan'
@@ -134,6 +135,7 @@ import GuruPertemuan from './pages/Guru/GuruPertemuan'
 import GuruPertemuanDetail from './pages/Guru/GuruPertemuanDetail'
 import GuruQuizMonitor from './pages/Guru/GuruQuizMonitor'
 import CourseQuizMonitor from './pages/Akademik/CourseQuizMonitor'
+import CourseMonitorDashboard from './pages/Akademik/CourseMonitorDashboard'
 
 import GuruLayout from './layouts/GuruLayout'
 import AdminCabangLayout from './layouts/AdminCabangLayout'
@@ -249,6 +251,7 @@ function AppRoutes() {
       <Route path="/syarat-ketentuan" element={<SyaratKetentuan />} />
       <Route path="/verifikasi" element={<Verifikasi />} />
       <Route path="/verifikasi/*" element={<Verifikasi />} />
+      <Route path="/verifikasi-sertifikat/:kode" element={<VerifikasiSertifikat />} />
       <Route path="/blog" element={<Blog />} />
       <Route path="/blog/:slug" element={<BlogDetail />} />
       <Route path="/tentang" element={<AboutPage />} />
@@ -721,6 +724,16 @@ function AppRoutes() {
         element={
           <ProtectedRoute roleAllowed="ADMIN_CABANG">
             <AdminCabangLayout>
+              <CourseMonitorDashboard />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-cabang/lms/course/:courseId/monitor/live"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
               <CourseQuizMonitor />
             </AdminCabangLayout>
           </ProtectedRoute>
@@ -1126,12 +1139,14 @@ function AppRoutes() {
                 <Route path="/lms" element={<DataCourse />} />
                 <Route path="/lms/quiz-referensi" element={<QuizReferensi />} />
                 <Route path="/lms/bank-paket-soal" element={<DataCourse />} />
+                <Route path="/lms/rekap-nilai" element={<DataCourse />} />
                 <Route path="/lms/bank-materi" element={<DataCourse />} />
                 <Route path="/lms/course/:courseId" element={<DataCourse />} />
                 <Route path="/lms/course/:courseId/soal/:paketId" element={<DataCourse />} />
                 <Route path="/lms/course/:courseId/materi/:paketId" element={<DataCourse />} />
                 <Route path="/lms/course/:courseId/hasil/:paketId" element={<DataCourse />} />
-                <Route path="/lms/course/:courseId/monitor" element={<CourseQuizMonitor />} />
+                <Route path="/lms/course/:courseId/monitor" element={<CourseMonitorDashboard />} />
+                <Route path="/lms/course/:courseId/monitor/live" element={<CourseQuizMonitor />} />
                 <Route path="/lms/course/:courseId/pertemuan/:lessonId" element={<AdminLessonDetail />} />
                 <Route path="/lms/course/:courseId/pertemuan/:lessonId/pembahasan/:paketId" element={<QuizPembahasan source="admin" />} />
                 <Route path="/lms/paket/:paketId/soal" element={<DataCourse />} />

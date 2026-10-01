@@ -104,9 +104,15 @@ class GuruDashboardController extends Controller
             });
 
         $cabangIds = $user->cabang_ids ?? [];
-        $batches = Batch::when(count($cabangIds) > 0, fn ($q) => $q->whereIn('cabang_id', $cabangIds))
-            ->orderBy('nama_batch')
-            ->get();
+        $ownBatchIds = KelasSensei::where('user_id', $user->id)->pluck('batch_id')->filter()->unique()->values();
+
+        // Hanya batch milik guru ini sendiri yang boleh dipilih. Kalau guru belum
+        // punya kelas sama sekali, seluruh batch cabang ditampilkan supaya ia
+        // tetap bisa membuat kelas pertama.
+        $batchQuery = Batch::when(count($cabangIds) > 0, fn ($q) => $q->whereIn('cabang_id', $cabangIds))
+            ->when($ownBatchIds->isNotEmpty(), fn ($q) => $q->whereIn('id', $ownBatchIds))
+            ->orderBy('nama_batch');
+        $batches = $batchQuery->get();
 
         return response()->json([
             'kelas' => $kelas,
@@ -794,12 +800,18 @@ class GuruDashboardController extends Controller
         if (empty($data['level']) && $kelas) {
             $data['level'] = $kelas->level;
         }
-        if (empty($data['batch_id']) && $kelas) {
+        // Batch & level selalu mengikuti kelas yang dipilih — nilai dari form
+        // diabaikan supaya kursus tidak bisa menyimpang ke batch/level lain.
+        if ($kelas) {
             $data['batch_id'] = $kelas->batch_id;
+            $data['level'] = $kelas->level;
         }
         if (empty($data['title'])) {
             $data['title'] = $kelas && $kelas->nama_kelas ? $kelas->nama_kelas : 'Kursus LMS';
         }
+
+        // Buang nilai batch dari request supaya tidak menimpa kolom di atas.
+        $data['batch_id'] = $kelas->batch_id ?? null;
 
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('lms/courses', 'public');
@@ -846,6 +858,9 @@ class GuruDashboardController extends Controller
             'status' => 'nullable|in:aktif,nonaktif',
             'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
+
+        // Batch & level milik kelas, tidak boleh diubah lewat form edit.
+        unset($data['batch_id'], $data['level']);
 
         if ($request->hasFile('image')) {
             if ($course->image) {

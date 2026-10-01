@@ -9,6 +9,7 @@ use App\Models\QuizPaket;
 use App\Models\QuizAttempt;
 use App\Models\StudentAssessment;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -17,24 +18,20 @@ class PertemuanController extends Controller
     /**
      * Daftar hari kerja (Senin-Jumat) di luar hari libur dalam rentang kelas,
      * diurutkan sebagai pertemuan ke-1, 2, 3, ...
+     *
+     * Sumber tunggalnya adalah KelasSensei::daftarPertemuan() supaya nomor
+     * pertemuan di daftar ini tidak pernah melenceng dari hitungan di header.
      */
     private function hariKerjaList(KelasSensei $kelas): array
     {
         $list = [];
         $ke = 0;
-        $tgl = Carbon::parse($kelas->tanggal_mulai);
-        $selesai = Carbon::parse($kelas->tanggal_selesai);
-
-        while ($tgl->lte($selesai)) {
-            if ($tgl->dayOfWeek !== Carbon::SATURDAY && $tgl->dayOfWeek !== Carbon::SUNDAY
-                && !\App\Models\HariLibur::apakahLibur($tgl->toDateString())) {
-                $ke++;
-                $list[] = [
-                    'pertemuan_ke' => $ke,
-                    'tanggal' => $tgl->toDateString(),
-                ];
-            }
-            $tgl->addDay();
+        foreach ($kelas->daftarPertemuan() as $tanggal) {
+            $ke++;
+            $list[] = [
+                'pertemuan_ke' => $ke,
+                'tanggal' => $tanggal,
+            ];
         }
 
         return $list;
@@ -42,7 +39,7 @@ class PertemuanController extends Controller
 
     private function kelasPayload(KelasSensei $kelas): array
     {
-        $kelas->load('batchRelasi', 'user');
+        $kelas->loadMissing('batchRelasi.cabang', 'user');
         return [
             'id' => $kelas->id,
             'nama_kelas' => $kelas->nama_kelas,
@@ -427,28 +424,24 @@ class PertemuanController extends Controller
         }
 
         $kelas = KelasSensei::where('user_id', $user->id)
-            ->with('batchRelasi')
+            ->with('batchRelasi.cabang')
             ->orderBy('created_at', 'desc')
             ->get();
 
         return response()->json(['kelas' => $this->mapRingkasan($kelas)]);
     }
 
-    public function adminIndex()
+    public function adminIndex(Request $request)
     {
         $user = Auth::guard('sanctum')->user();
         if (!$user || !in_array($user->role, ['ADMIN', 'MANAGER', 'HR'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $kelas = KelasSensei::with('batchRelasi', 'user')
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return response()->json(['kelas' => $this->mapRingkasan($kelas)]);
+        return $this->daftarKelas($request, null);
     }
 
-    public function adminCabangIndex()
+    public function adminCabangIndex(Request $request)
     {
         $user = Auth::guard('sanctum')->user();
         if (!$user || $user->role !== 'ADMIN_CABANG') {
@@ -456,14 +449,56 @@ class PertemuanController extends Controller
         }
 
         $cabangIds = $user->cabang_ids ?? [];
-        $kelas = KelasSensei::with('batchRelasi', 'user')
-            ->whereHas('batchRelasi', function ($q) use ($cabangIds) {
-                $q->whereIn('cabang_id', $cabangIds);
-            })
-            ->orderBy('created_at', 'desc')
-            ->get();
 
-        return response()->json(['kelas' => $this->mapRingkasan($kelas)]);
+        return $this->daftarKelas($request, $cabangIds ?: [0]);
+    }
+
+    /**
+     * Daftar kelas untuk halaman Riwayat Pertemuan. $cabangIds null = semua
+     * cabang (admin pusat), array = batasi ke cabang yang dipegang admin cabang.
+     *
+     * Query, filter, dan ringkasan dikembalikan terpisah supaya frontend bisa
+     * memfilter tanpa memuat ulang seluruh daftar.
+     */
+    private function daftarKelas(Request $request, ?array $cabangIds): JsonResponse
+    {
+        $q = $request->query('q');
+        $status = $request->query('status');
+        $cabang = $request->query('cabang_id');
+        $sort = $request->query('sort', 'terbaru');
+
+        $kelas = KelasSensei::with('batchRelasi.cabang', 'user')
+            ->when($cabangIds !== null, fn ($b) => $b->whereHas('batchRelasi', fn ($sq) => $sq->whereIn('cabang_id', $cabangIds)))
+            ->when($status !== null && $status !== '', fn ($b) => $b->where('status', $status))
+            ->when($cabang !== null && $cabang !== '', fn ($b) => $b->whereHas('batchRelasi', fn ($sq) => $sq->where('cabang_id', (int) $cabang)))
+            ->when($q !== null && $q !== '', function ($b) use ($q) {
+                $needle = '%' . trim($q) . '%';
+                $b->where(function ($w) use ($needle) {
+                    $w->where('nama_kelas', 'like', $needle)
+                        ->orWhereHas('user', fn ($u) => $u->where('name', 'like', $needle))
+                        ->orWhereHas('batchRelasi', fn ($bt) => $bt->where('nama_batch', 'like', $needle));
+                });
+            });
+
+        match ($sort) {
+            'terlama' => $kelas->orderBy('tanggal_mulai'),
+            'nama' => $kelas->orderBy('nama_kelas'),
+            default => $kelas->orderByDesc('created_at'),
+        };
+
+        $result = $this->mapRingkasan($kelas->get());
+
+        return response()->json([
+            'kelas' => $result,
+            'ringkasan' => [
+                'jumlah_kelas' => count($result),
+                'total_pertemuan' => (int) $result->sum('total_pertemuan'),
+                'total_terisi' => (int) $result->sum('terisi'),
+                'persen_terisi' => $result->sum('total_pertemuan') > 0
+                    ? round($result->sum('terisi') / $result->sum('total_pertemuan') * 100)
+                    : 0,
+            ],
+        ]);
     }
 
     private function mapRingkasan($kelas)
@@ -483,11 +518,13 @@ class PertemuanController extends Controller
                 'batch' => $k->batchRelasi?->nama_batch,
                 'cabang' => $k->batchRelasi?->cabang?->nama_cabang ?? $k->batchRelasi?->cabang_id,
                 'level' => $k->level,
+                'status' => $k->status,
                 'tanggal_mulai' => $k->tanggal_mulai->toDateString(),
                 'tanggal_selesai' => $k->tanggal_selesai->toDateString(),
                 'total_pertemuan' => $total,
                 'terisi' => $terisi,
                 'persen_terisi' => $total > 0 ? round(($terisi / $total) * 100) : 0,
+                'sisa_pertemuan' => max(0, $total - $terisi),
             ];
         })->values();
     }
