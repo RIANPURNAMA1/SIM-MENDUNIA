@@ -564,6 +564,8 @@ export const quizApi = {
 
 export const lmsAdminApi = {
   courses: (params?: Record<string, string | number | undefined>) => api.get('/admin/lms/courses', { params }),
+  // Kehadiran kandidat pada satu pertemuan (kursus manual maupun kelas sensei).
+  lessonKehadiran: (lessonId: number) => api.get(`/admin/lms/lessons/${lessonId}/kehadiran`),
   storeCourse: (data: FormData) => api.post('/admin/lms/courses', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   updateCourse: (id: number, data: FormData) => api.post(`/admin/lms/courses/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   deleteCourse: (id: number) => api.delete(`/admin/lms/courses/${id}`),

@@ -4,7 +4,7 @@ import {
   Activity, ArrowLeft, BarChart3, BookOpen, Calendar, Camera, CheckCircle2, ChevronRight,
   ClipboardList, Download, Eye, FileText, HelpCircle, ImageIcon, Layers, ListChecks, Loader2, Trophy, Users, Video, X,
 } from 'lucide-react'
-import { APP_URL, assignmentApi, guruKelasApi, guruLmsApi, guruQuizApi } from '../../services/api'
+import { APP_URL, assignmentApi, guruKelasApi, guruLmsApi, guruQuizApi, lmsAdminApi } from '../../services/api'
 import { getYouTubeEmbedUrl } from '../../utils/youtube'
 import LessonSlidesViewer from '../../components/LessonSlidesViewer'
 import Swal from 'sweetalert2'
@@ -99,8 +99,10 @@ interface RekapNilaiData {
 }
 
 interface DataSiswaKelas {
-  kelas?: { id: number; nama_kelas: string; level: string; batch_id: number | null } | null
-  siswa: { id: number; nama: string; level: string; absensi: Record<string, string> }[]
+  kelas?: { id: number; nama_kelas?: string | null; level: string | number | null; batch_id: number | null } | null
+  // Endpoint admin mengembalikan tanggal pertemuan yang dipakai untuk absensi.
+  tanggal?: string | null
+  siswa: { id: number; nama: string; level: string | number | null; absensi: Record<string, string> }[]
   dates: string[]
 }
 
@@ -131,6 +133,9 @@ interface ResultParticipant {
 
 const ATT_STATUS: { key: string; label: string; cls: string }[] = [
   { key: 'HADIR', label: 'Hadir', cls: 'bg-emerald-50 text-emerald-600' },
+  // Absensi bisa berstatus TERLAMBAT, jadi ikut ditampilkan agar tidak salah
+  // terbaca sebagai "Belum diisi".
+  { key: 'TERLAMBAT', label: 'Terlambat', cls: 'bg-orange-50 text-orange-600' },
   { key: 'IZIN', label: 'Izin', cls: 'bg-amber-50 text-amber-600' },
   { key: 'SAKIT', label: 'Sakit', cls: 'bg-sky-50 text-sky-600' },
   { key: 'ALPA', label: 'Alpa', cls: 'bg-red-50 text-red-500' },
@@ -215,10 +220,14 @@ export default function AdminLessonDetail() {
   }
 
   const loadKehadiran = (l: LessonDetail) => {
-    const kelasId = l.course?.kelas_sensei_id
-    if (!kelasId) { setKehadiran(null); return }
     setKehadiranLoading(true)
-    guruKelasApi.dataSiswa(kelasId).then(res => setKehadiran(res.data)).catch(() => setKehadiran(null)).finally(() => setKehadiranLoading(false))
+    // Endpoint admin dipakai untuk semua kursus: yang dari Tambah Kelas dibatasi
+    // ke batch + level + tanggal pertemuan, yang manual cukup batch + level.
+    // Endpoint guru tidak bisa dipakai admin karena hanya untuk sensei pemilik kelas.
+    lmsAdminApi.lessonKehadiran(l.id)
+      .then(res => setKehadiran(res.data))
+      .catch(() => setKehadiran(null))
+      .finally(() => setKehadiranLoading(false))
   }
 
   const loadPenilaian = (l: LessonDetail) => {
@@ -284,7 +293,9 @@ export default function AdminLessonDetail() {
   ].filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i)
   const pembahasanPakets = (lesson.link_pakets || []).filter(p => !!p.pivot?.is_pembahasan)
   const materiBank = lesson.link_materis || []
-  const attDate = lesson.pertemuan_date ? lesson.pertemuan_date.slice(0, 10) : ''
+  // Tanggal pertemuan untuk lookup absensi. Endpoint admin memakai tanggal yang
+// sama dengan pertemuanTanggal(), jadi ambil dari sana dulu supaya tidak meleset.
+const attDate = (kehadiran?.tanggal || lesson.pertemuan_date || '').slice(0, 10)
   const penilaianDates = penilaian?.dates || []
 
   const statBadge = (s?: string) => (s === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500')
@@ -745,8 +756,12 @@ export default function AdminLessonDetail() {
             ) : !kehadiran || kehadiran.siswa.length === 0 ? (
               <div className="p-10 text-center">
                 <Users size={28} className="text-slate-300 mx-auto mb-2" />
-                <p className="text-sm font-semibold text-slate-600">Belum ada data kehadiran</p>
-                <p className="text-xs text-slate-400 mt-1">Kelas belum memiliki siswa atau tanggal pertemuan belum diisi</p>
+                <p className="text-sm font-semibold text-slate-600">Belum ada kandidat di pertemuan ini</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  {lesson.course?.batch_id
+                    ? 'Tidak ada kandidat aktif di batch dan level kursus ini'
+                    : 'Kursus ini belum terhubung ke batch, jadi kandidat tidak bisa ditampilkan'}
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto">

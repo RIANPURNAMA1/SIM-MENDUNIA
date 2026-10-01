@@ -470,6 +470,13 @@ export default function QuizKandidat() {
   // Step foto identitas untuk paket bersertifikasi.
   const [fotoStepOpen, setFotoStepOpen] = useState(false)
 
+  // Sertifikat tidak lagi dirender inline di layar hasil, tapi dalam modal
+  // supaya layar hasil tetap ringkas di HP.
+  const [sertifikatOpen, setSertifikatOpen] = useState(false)
+  // Menandai hasil yang baru saja diselesaikan supaya sertifikat langsung
+  // dibuka tanpa perlu klik lagi.
+  const [sertifikatOtomatis, setSertifikatOtomatis] = useState(false)
+
   const [reviewOpen, setReviewOpen] = useState(false)
   const [reviewLoading, setReviewLoading] = useState(false)
   const [reviewErr, setReviewErr] = useState<string | null>(null)
@@ -612,6 +619,80 @@ export default function QuizKandidat() {
     })
   }
 
+  /**
+   * Pindah ke layar hasil. Kalau paket menyalakan sertifikasi dan sertifikatnya
+   * sudah terbit, buka modalnya — otomatis setelah submit, manual saat kandidat
+   * membuka "Lihat Hasil" dari riwayat percobaan.
+   */
+  const tampilkanHasil = (payload: ResultPayload, opsi?: { otomatis?: boolean }) => {
+    setResult(payload)
+    setView('result')
+    const adaSertifikat = !!payload.sertifikat
+    setSertifikatOtomatis(!!(opsi?.otomatis && adaSertifikat))
+    setSertifikatOpen(adaSertifikat)
+  }
+
+  /**
+   * Modal sertifikat. `sertifikatOtomatis` menandai bahwa sertifikat baru saja
+   * terbit di layar ini, bukan dibuka lewat tombol — dipakai untuk banner
+   * selamat.
+   */
+  const renderSertifikatModal = () => {
+    if (!sertifikatOpen || !result?.sertifikat) return null
+    const cert = result.sertifikat
+    return (
+      <div
+        className="fixed inset-0 z-[60] flex items-stretch sm:items-center justify-center bg-black/60 sm:p-4 overflow-y-auto"
+        onClick={() => { setSertifikatOpen(false); setSertifikatOtomatis(false) }}>
+        <div className="bg-white w-full sm:max-w-3xl rounded-none sm:rounded-md p-3 sm:p-5 my-0 sm:my-6"
+          onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-8 h-8 rounded-md bg-amber-600 flex items-center justify-center shrink-0">
+                <Award size={15} className="text-white" />
+              </span>
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold text-slate-800 truncate">Sertifikat Ujian</h3>
+                <p className="text-[10px] text-slate-400 font-medium font-mono truncate">{cert.nomor}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => { setSertifikatOpen(false); setSertifikatOtomatis(false) }}
+              className="w-8 h-8 flex items-center justify-center rounded-md bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors shrink-0"
+              aria-label="Tutup">
+              <X size={15} />
+            </button>
+          </div>
+
+          {sertifikatOtomatis && (
+            <p className="mb-3 flex items-center justify-center gap-1.5 rounded-md bg-amber-50 px-3 py-2 text-[11px] font-bold text-amber-800">
+              <CheckCircle2 size={13} />
+              Selamat, sertifikat Anda sudah terbit
+            </p>
+          )}
+
+          <CertificateCard sertifikat={cert} actionLabel="Unduh / Cetak PDF" />
+        </div>
+      </div>
+    )
+  }
+
+  // Escape menutup modal sertifikat, dan halaman di belakang dikunci agar
+  // tidak ikut ter-scroll di layar sentuh.
+  useEffect(() => {
+    if (!sertifikatOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setSertifikatOpen(false); setSertifikatOtomatis(false) }
+    }
+    document.addEventListener('keydown', onKey)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prev
+    }
+  }, [sertifikatOpen])
+
   // Setelah ujian selesai, kandidat dikembalikan ke halaman materi asal,
   // bukan daftar paket, supaya bisa langsung lanjut ke materi berikutnya.
   const selesaiHasil = () => {
@@ -633,6 +714,7 @@ export default function QuizKandidat() {
       stopStream()
       setView('list')
       setResult(null)
+      setSertifikatOpen(false)
       setQuestions([])
       attemptRef.current = null
       fetchPakets()
@@ -868,12 +950,10 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
               }
             },
           }).then(() => {
-            setResult(res.data.attempt)
-            setView('result')
+            tampilkanHasil(res.data.attempt, { otomatis: true })
           })
         } else {
-          setResult(res.data.attempt)
-          setView('result')
+          tampilkanHasil(res.data.attempt, { otomatis: true })
         }
       }).catch(() => {
         Swal.fire({ icon: 'error', title: 'Gagal mengumpulkan quiz', text: reason })
@@ -898,8 +978,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
     quizApi.attempt(attemptId).then(res => {
       const data = res.data
       if (data.attempt?.status === 'submitted' || data.attempt?.score !== undefined) {
-        setResult(data.attempt)
-        setView('result')
+        tampilkanHasil(data.attempt)
         return
       }
       const packageId = detail?.paket.id ?? paketId ?? 0
@@ -919,8 +998,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
   const openResult = (attemptId: number) => {
     setResultLoading(true)
     quizApi.attempt(attemptId).then(res => {
-      setResult(res.data.attempt)
-      setView('result')
+      tampilkanHasil(res.data.attempt)
     }).catch(() => {
       Swal.fire({ icon: 'error', title: 'Gagal memuat hasil percobaan', text: 'Silakan coba lagi.' })
     }).finally(() => setResultLoading(false))
@@ -1262,11 +1340,20 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
 
             {result.sertifikat && (
               <div className="mt-5 border-t border-[#E5E7EF] pt-5 text-left">
-                <p className="mb-3 flex items-center justify-center gap-1.5 text-xs font-bold text-slate-700">
-                  <Award size={14} className="text-amber-500" />
-                  Sertifikat Ujian
-                </p>
-                <CertificateCard sertifikat={result.sertifikat} />
+                <button
+                  onClick={() => { setSertifikatOtomatis(false); setSertifikatOpen(true) }}
+                  className="w-full flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-3 text-left transition-colors hover:bg-amber-100/70">
+                  <span className="w-9 h-9 rounded-md bg-amber-600 flex items-center justify-center shrink-0">
+                    <Award size={17} className="text-white" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-xs font-bold text-slate-700">Sertifikat Ujian</span>
+                    <span className="block text-[10px] font-medium text-slate-500 font-mono truncate">
+                      {result.sertifikat.nomor}
+                    </span>
+                  </span>
+                  <span className="text-[11px] font-bold text-amber-700 shrink-0">Lihat</span>
+                </button>
               </div>
             )}
 
@@ -1307,6 +1394,8 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
           attemptLabel={`Percobaan #${result.attempt_number}`}
           onClose={() => setReviewOpen(false)}
         />
+
+        {renderSertifikatModal()}
       </div>
     )
   }

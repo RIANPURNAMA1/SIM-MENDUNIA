@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
-import { lmsAdminApi, adminCabangApi, jadwalLevelApi, adminQuizApi, APP_URL, quizReferenceApi } from '../../services/api'
+import { lmsAdminApi, adminCabangApi, jadwalLevelApi, adminQuizApi, cabangApi, APP_URL, quizReferenceApi } from '../../services/api'
 import { getYouTubeEmbedUrl } from '../../utils/youtube'
 import { isQuestionAudioFile, QUESTION_AUDIO_ACCEPT } from '../../utils/questionMedia'
 import CertificateCard, { type Sertifikat } from '../../components/quiz/CertificateCard'
@@ -343,7 +343,7 @@ c. jawaban 3
 a. benar
 *b. salah   [1 poin]`
 
-interface Batch { id: number; nama_batch: string; warna?: string | null }
+interface Batch { id: number; nama_batch: string; warna?: string | null; cabang_id?: number | null }
 interface CourseOption { id: number; title: string }
 interface Category { id: number; name: string; paket_count?: number }
 
@@ -605,11 +605,14 @@ export default function DataCourse() {
   const [search, setSearch] = useState('')
   const [filterLevel, setFilterLevel] = useState('')
   const [filterBatch, setFilterBatch] = useState('')
+  // Filter cabang + batch (level tidak dipakai sebagai filter di list ini).
+  const [filterCabang, setFilterCabang] = useState('')
+  const [cabangOptions, setCabangOptions] = useState<{ id: number; nama_cabang: string }[]>([])
   // Pemisahan asal kursus: '' = semua, 'manual' = dibuat admin, 'sensei' =
   // dibuat dari menu Tambah Kelas dan punya pengajar.
   const [filterSource, setFilterSource] = useState<'' | 'manual' | 'sensei'>('')
   const [refPendingCount, setRefPendingCount] = useState(0)
-  const [courseLevels, setCourseLevels] = useState<string[]>([])
+  
   const [coursePage, setCoursePage] = useState(1)
   const [coursePagination, setCoursePagination] = useState<Pagination>({ current_page: 1, last_page: 1, total: 0, per_page: COURSE_PER_PAGE })
 
@@ -989,6 +992,12 @@ export default function DataCourse() {
 
   useEffect(() => { fetchCourses(); fetchQuizMeta(); fetchCategories() }, [])
   useEffect(() => {
+    if (isAdminCabang) return
+    cabangApi.list()
+      .then(res => setCabangOptions(res.data?.data || res.data || []))
+      .catch(() => {})
+  }, [isAdminCabang])
+  useEffect(() => {
     quizReferenceApi.adminPendingCount().then(res => setRefPendingCount(res.data.pending || 0)).catch(() => {})
   }, [])
   const courseFilterFirstRef = useRef(true)
@@ -998,7 +1007,7 @@ export default function DataCourse() {
     const t = setTimeout(() => { setCoursePage(1); fetchCourses(1) }, 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, filterLevel, filterBatch, filterSource])
+  }, [search, filterLevel, filterBatch, filterSource, filterCabang])
   const bankSearchFirstRef = useRef(true)
   useEffect(() => {
     if (bankSearchFirstRef.current) { bankSearchFirstRef.current = false; return }
@@ -1128,12 +1137,12 @@ export default function DataCourse() {
         level: filterLevel || undefined,
         batch_id: filterBatch || undefined,
         source: filterSource || undefined,
+        // Cabang untuk admin cabang sudah dibatasi server, jadi tak perlu dikirim.
       }).then(res => {
         const list = res.data.courses || []
         setCourses(list)
         setBatches(res.data.batches || [])
         setCoursePagination(res.data.pagination || { current_page: 1, last_page: 1, total: list.length, per_page: COURSE_PER_PAGE })
-        setCourseLevels(res.data.levels || [])
       }).catch(() => {}).finally(() => setLoading(false))
     } else {
       lmsAdminApi.courses({
@@ -1143,11 +1152,11 @@ export default function DataCourse() {
         level: filterLevel || undefined,
         batch_id: filterBatch || undefined,
         source: filterSource || undefined,
+        cabang_id: filterCabang || undefined,
       }).then(res => {
         setCourses(res.data.courses || [])
         setBatches(res.data.batches || [])
         setCoursePagination(res.data.pagination || { current_page: 1, last_page: 1, total: 0, per_page: COURSE_PER_PAGE })
-        if (Array.isArray(res.data.levels)) setCourseLevels(res.data.levels)
       }).catch(() => {}).finally(() => setLoading(false))
     }
     const levelPromise = isAdminCabang ? adminCabangApi.jadwalLevel() : jadwalLevelApi.list()
@@ -2526,19 +2535,24 @@ export default function DataCourse() {
     const matchSearch = c.title.toLowerCase().includes(search.toLowerCase()) || (c.level && c.level.toLowerCase().includes(search.toLowerCase()))
     const matchLevel = !filterLevel || c.level === filterLevel
     const matchBatch = !filterBatch || c.batch_id?.toString() === filterBatch
+    // Cabang diturunkan dari batch kursus; batch null tidak punya cabang.
+    const matchCabang = !filterCabang || batches.find(b => b.id === c.batch_id)?.cabang_id?.toString() === filterCabang
     // Penjaga kedua di sisi klien, karena backend sudah memfilter lewat
     // ?source=. Tanpa ini, halaman terakhir bisa menampilkan jenis yang salah
     // kalau paginasi server berubah.
     const matchSource = !filterSource
       || (filterSource === 'manual' ? !c.kelas_sensei_id : !!c.kelas_sensei_id)
-    return matchSearch && matchLevel && matchBatch && matchSource
+    return matchSearch && matchLevel && matchBatch && matchSource && matchCabang
   })
+
+  // Batch dropdown ikut dipersempit sesuai cabang terpilih, supaya user tidak
+// memilih batch dari cabang lain lalu melihat hasil kosong.
+const visibleBatches = filterCabang
+    ? batches.filter(b => b.cabang_id?.toString() === filterCabang)
+    : batches
 
   const filteredQuizPakets = quizPakets.filter(p => !quizSearch || p.title.toLowerCase().includes(quizSearch.toLowerCase()))
 
-  const uniqueLevels = courseLevels.length > 0
-    ? courseLevels
-    : [...new Set(courses.map(c => c.level).filter(Boolean))] as string[]
   const allBatchLevels: string[] = []
   Object.values(batchLevels).forEach(arr => arr.forEach(l => { if (!allBatchLevels.includes(l)) allBatchLevels.push(l) }))
   const levelOptions = courseForm.batch_id ? [...(batchLevels[Number(courseForm.batch_id)] || [])] : [...allBatchLevels]
@@ -3063,13 +3077,19 @@ export default function DataCourse() {
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari kursus..." className={`${inputCls} pl-9`} />
                 </div>
-                <select value={filterLevel} onChange={e => setFilterLevel(e.target.value)} className={`${inputCls} sm:w-44`}>
-                  <option value="">Semua Level</option>
-                  {uniqueLevels.map(l => <option key={l} value={l}>Level {l}</option>)}
-                </select>
+                {!isAdminCabang && (
+                  <select
+                    value={filterCabang}
+                    onChange={e => { setFilterCabang(e.target.value); setFilterBatch('') }}
+                    className={`${inputCls} sm:w-44`}
+                  >
+                    <option value="">Semua Cabang</option>
+                    {cabangOptions.map(c => <option key={c.id} value={c.id}>{c.nama_cabang}</option>)}
+                  </select>
+                )}
                 <select value={filterBatch} onChange={e => setFilterBatch(e.target.value)} className={`${inputCls} sm:w-44`}>
                   <option value="">Semua Batch</option>
-                  {batches.map(b => <option key={b.id} value={b.id}>{b.nama_batch}</option>)}
+                  {visibleBatches.map(b => <option key={b.id} value={b.id}>{b.nama_batch}</option>)}
                 </select>
               </div>
             </div>
@@ -3153,8 +3173,6 @@ export default function DataCourse() {
                         <th scope="col" className="border border-[#0E6187] px-4 py-3 font-semibold">Kursus</th>
                         <th scope="col" className="border border-[#0E6187] px-4 py-3 font-semibold">Pengajar</th>
                         <th scope="col" className="border border-[#0E6187] px-4 py-3 text-center font-semibold">Pertemuan</th>
-                        <th scope="col" className="border border-[#0E6187] px-4 py-3 text-center font-semibold">File</th>
-                        <th scope="col" className="border border-[#0E6187] px-4 py-3 text-center font-semibold">Urutan</th>
                         <th scope="col" className="border border-[#0E6187] px-4 py-3 text-center font-semibold">Status</th>
                         <th scope="col" className="border border-[#0E6187] px-4 py-3 text-center font-semibold">Aksi</th>
                       </tr>
@@ -3184,10 +3202,6 @@ export default function DataCourse() {
                           <td className="border border-slate-200 px-4 py-3 text-center">
                             <span className="inline-block min-w-[32px] rounded-md bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-600">{c.lessons_count}</span>
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-center">
-                            <span className="inline-block min-w-[32px] rounded-md bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-600">{c.files_count || 0}</span>
-                          </td>
-                          <td className="border border-slate-200 px-4 py-3 text-center text-sm font-semibold text-slate-600">{c.sort}</td>
                           <td className="border border-slate-200 px-4 py-3 text-center">
                             <span className={`inline-block whitespace-nowrap text-[11px] font-bold px-2.5 py-1 rounded-md ${c.status === 'aktif' ? 'bg-emerald-500 text-white' : 'bg-slate-400 text-white'}`}>
                               {c.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
@@ -3253,11 +3267,6 @@ export default function DataCourse() {
                       className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors ${courseTab === 'lessons' ? 'border-[#0E6187] text-[#0E6187]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
                       <BookOpen size={15} /> Daftar Pertemuan
                       <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">{courseLessons.length}</span>
-                    </button>
-                    <button onClick={() => setCourseTab('quiz')}
-                      className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors ${courseTab === 'quiz' ? 'border-[#0E6187] text-[#0E6187]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-                      <ListChecks size={15} /> Quiz
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">{quizPakets.length}</span>
                     </button>
                   </div>
                 ) : (

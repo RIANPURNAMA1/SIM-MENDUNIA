@@ -1882,7 +1882,7 @@ class AdminCabangController extends Controller
 
         $batches = Batch::whereIn('id', $batchIds)
             ->orderBy('nama_batch')
-            ->get(['id', 'nama_batch', 'warna']);
+            ->get(['id', 'nama_batch', 'warna', 'cabang_id']);
 
         $levels = KelasSensei::whereIn('batch_id', $batchIds)
             ->select('level')

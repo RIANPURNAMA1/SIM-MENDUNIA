@@ -737,6 +737,13 @@ class LmsController extends Controller
             $query->where('batch_id', $request->batch_id);
         }
 
+        // Filter cabang: kursus terikat cabang lewat batch-nya (batch.cabang_id).
+        if ($request->cabang_id && !empty($request->cabang_id)) {
+            $query->whereHas('batch', function ($bq) use ($request) {
+                $bq->where('cabang_id', $request->cabang_id);
+            });
+        }
+
         // Pemisahan asal kursus: "manual" = dibuat admin lewat Data Kursus LMS,
         // "sensei" = dibuat sensei lewat menu Tambah Kelas (punya kelas_sensei_id).
         if ($request->source === 'manual') {
@@ -746,7 +753,7 @@ class LmsController extends Controller
         }
 
         $query->orderBy('sort')->orderBy('id');
-        $batches = Batch::aktif()->orderBy('nama_batch')->get(['id', 'nama_batch', 'warna']);
+        $batches = Batch::aktif()->orderBy('nama_batch')->get(['id', 'nama_batch', 'warna', 'cabang_id']);
         $levels = Course::query()->distinct()->pluck('level')->filter()->values();
 
         // Kursus yang dibuat dari "Tambah Kelas" punya kelas_sensei_id. Nama
@@ -843,6 +850,74 @@ class LmsController extends Controller
         }
         $course->delete();
         return response()->json(['message' => 'Course deleted']);
+    }
+
+    /**
+     * Kehadiran kandidat untuk satu pertemuan, dilihat dari sisi admin.
+     *
+     * Endpoint lama (/guru/data-siswa/{kelasId}) hanya bisa dipakai kalau
+     * kursus punya kelas_sensei_id DAN requester adalah sensei pemilik kelas.
+     * Kursus yang dibuat manual lewat Data Kursus LMS tidak punya kelas, jadi
+     * absensinya dicari dari batch + level kursus, lalu dicocokkan dengan tanggal
+     * pertemuan yang dihitung dari kelas sensei (kalau ada).
+     */
+    public function lessonKehadiran($id)
+    {
+        $lesson = Lesson::with('course')->findOrFail($id);
+        $course = $lesson->course;
+
+        $batchId = $course?->batch_id;
+        $level = $course?->level;
+        $tanggal = $lesson->pertemuanTanggal();
+
+        $siswa = collect();
+        if ($batchId) {
+            $siswa = Siswa::where('batch_id', $batchId)
+                ->where('status', 'AKTIF')
+                // Level kosong di tabel siswa berarti kandidat belum ditempatkan,
+                // jadi tetap ikut ditampilkan bersama yang level-nya cocok.
+                ->when($level !== null && $level !== '', fn ($q) => $q->where(fn ($lq) => $lq->where('level', $level)->orWhereNull('level')))
+                ->orderBy('nama')
+                ->get(['id', 'nama', 'level']);
+        }
+
+        $rows = collect();
+        if ($tanggal && $siswa->isNotEmpty()) {
+            $absensi = AbsensiSiswa::whereIn('siswa_id', $siswa->pluck('id'))
+                ->whereDate('tanggal', $tanggal)
+                ->orderBy('id')
+                ->get();
+
+            $kelasId = $course->kelas_sensei_id;
+            $rows = $absensi->groupBy('siswa_id')->map(function ($group) use ($kelasId) {
+                // Satu siswa bisa punya lebih dari satu baris di tanggal yang sama
+                // (satu per kelas sensei). Prioritaskan baris milik kelas kursus ini.
+                return $kelasId
+                    ? ($group->firstWhere('kelas_sensei_id', $kelasId) ?? $group->last())
+                    : $group->last();
+            });
+        }
+
+        $result = $siswa->map(fn ($s) => [
+            'id' => $s->id,
+            'nama' => $s->nama,
+            'level' => $s->level ?: $level,
+            'absensi' => $tanggal && $rows->has($s->id)
+                ? [$tanggal => $rows->get($s->id)->status]
+                : [],
+        ])->values();
+
+        return response()->json([
+            'lesson_id' => $lesson->id,
+            'tanggal' => $tanggal,
+            'kelas' => $course?->kelas_sensei_id ? [
+                'id' => $course->kelas_sensei_id,
+                'batch_id' => $batchId,
+                'level' => $level,
+            ] : null,
+            'siswa' => $result,
+            'dates' => $tanggal ? [$tanggal] : [],
+        ]);
     }
 
     public function categories()

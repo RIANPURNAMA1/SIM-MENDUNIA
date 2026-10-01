@@ -603,6 +603,7 @@ Route::get('/guru/penilaian-rekap/{kelasId}', [GuruDashboardController::class, '
         Route::post('/courses/{id}', [LmsController::class, 'updateCourse']);
         Route::delete('/courses/{id}', [LmsController::class, 'deleteCourse']);
         Route::get('/courses/{courseId}/lessons', [LmsController::class, 'adminLessons']);
+        Route::get('/lessons/{id}/kehadiran', [LmsController::class, 'lessonKehadiran']);
         Route::get('/courses/{courseId}/files', [LmsController::class, 'adminCourseFiles']);
         Route::post('/lessons', [LmsController::class, 'storeLesson']);
         Route::post('/lessons/{id}', [LmsController::class, 'updateLesson']);

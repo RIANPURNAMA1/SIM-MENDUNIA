@@ -720,14 +720,6 @@ export default function QuizBasicPlay() {
 
   const currentSectionName = currentQuestion ? (currentQuestion.section || '').trim() : ''
 
-  // Bagian yang sudah di-"Finish Section" terkunci: nomor soalnya tidak bisa
-  // diklik lagi dan sidebar langsung berpindah ke bagian berikutnya.
-  const activeSection = useMemo(() => {
-    if (!sections.length) return null
-    const nextOpen = sections.findIndex(s => !finishedSections.has(s.startIndex) && s.answered < s.total)
-    return sections[nextOpen >= 0 ? nextOpen : sections.length - 1]
-  }, [sections, finishedSections])
-
   const sectionKeyByIndex = useMemo(() => {
     const map = new Map<number, number>()
     sections.forEach(s => {
@@ -735,6 +727,17 @@ export default function QuizBasicPlay() {
     })
     return map
   }, [sections])
+
+  // Bagian aktif ditentukan oleh soal yang sedang dibuka, bukan "bagian pertama
+  // yang belum tuntas". Kalau pakai latter, begitu semua soal sebuah bagian
+  // terisi view akan melompat ke bagian berikut sementara kandidat masih di
+  // soal terakhir bagian yang sama — tombolnya jadi "Selanjutnya >" dan bagian
+  // itu tidak pernah bisa dikunci lewat "Selesai Bagian".
+  const activeSection = useMemo(() => {
+    if (!sections.length) return null
+    const key = sectionKeyByIndex.get(currentIndex)
+    return sections.find(s => s.startIndex === key) ?? sections[0]
+  }, [sections, currentIndex, sectionKeyByIndex])
 
   const isLockedIndex = (idx: number) => {
     const key = sectionKeyByIndex.get(idx)
@@ -783,6 +786,37 @@ export default function QuizBasicPlay() {
 
     submitManually()
   }
+
+  // Navigasi harus melewati soal bagian yang sudah dikunci. Kalau tidak ada soal
+  // terbuka di arah tujuan, indeks tidak berubah sama sekali — penting, karena
+  // memaksa mendarat di indeks 0 justru menarik kandidat masuk ke bagian yang
+  // barusan dia kunci.
+  const prevUnlockedIndex = (from: number) => {
+    for (let t = from - 1; t >= 0; t--) {
+      if (!isLockedIndex(t)) return t
+    }
+    return -1
+  }
+
+  const nextUnlockedIndex = (from: number) => {
+    for (let t = from + 1; t < questions.length; t++) {
+      if (!isLockedIndex(t)) return t
+    }
+    return -1
+  }
+
+  const canGoPrev = prevUnlockedIndex(currentIndex) >= 0
+  const canGoNext = nextUnlockedIndex(currentIndex) >= 0
+
+  const gotoPrev = () => setCurrentIndex(i => {
+    const t = prevUnlockedIndex(i)
+    return t >= 0 ? t : i
+  })
+
+  const gotoNext = () => setCurrentIndex(i => {
+    const t = nextUnlockedIndex(i)
+    return t >= 0 ? t : i
+  })
 
   const sectionLocalIndex = currentIndex
 
@@ -1083,16 +1117,17 @@ export default function QuizBasicPlay() {
 
         <div className="flex flex-1 items-center justify-end gap-2 md:gap-3">
           <button
-            onClick={() => setCurrentIndex(i => Math.max(0, i - 1))}
-            disabled={currentIndex === 0}
-            className="rounded bg-[#0c4a73] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0e5c8f] disabled:opacity-50 md:px-5"
+            onClick={gotoPrev}
+            disabled={!canGoPrev}
+            title={canGoPrev ? undefined : 'Tidak ada soal terbuka di sebelumnya — bagian sebelumnya sudah selesai'}
+            className="rounded bg-[#0c4a73] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0e5c8f] disabled:cursor-not-allowed disabled:opacity-40 md:px-5"
           >
             &lt; Kembali
           </button>
 
           {!isLastOfSection ? (
             <button
-              onClick={() => setCurrentIndex(i => Math.min(questions.length - 1, i + 1))}
+              onClick={gotoNext}
               className="rounded bg-[#0069b0] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#00568f] md:px-5"
             >
               Selanjutnya &gt;
