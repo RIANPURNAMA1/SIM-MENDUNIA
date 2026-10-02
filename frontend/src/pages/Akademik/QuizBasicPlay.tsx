@@ -397,10 +397,28 @@ export default function QuizBasicPlay() {
             customClass: { popup: 'celebrate-popup' },
             didOpen: celebrateResult,
           }).then(() => {
-            navigate(`/siswa-dashboard/quiz/${paketId}${location.search}`, { replace: true })
+            const searchParams = new URLSearchParams(location.search)
+            const lesson = searchParams.get('lesson')
+            const courseId = searchParams.get('course') || searchParams.get('course_id') || ''
+            if (courseId && lesson) {
+              navigate(`/siswa-dashboard/lms/${courseId}/materi/${lesson}`, { replace: true })
+            } else if (lesson) {
+              navigate(`/siswa-dashboard/lms/materi/${lesson}`, { replace: true })
+            } else {
+              navigate(`/siswa-dashboard/quiz/${paketId}${location.search}`, { replace: true })
+            }
           })
         } else {
-          navigate(`/siswa-dashboard/quiz/${paketId}${location.search}`, { replace: true })
+          const searchParams = new URLSearchParams(location.search)
+          const lesson = searchParams.get('lesson')
+          const courseId = searchParams.get('course') || searchParams.get('course_id') || ''
+          if (courseId && lesson) {
+            navigate(`/siswa-dashboard/lms/${courseId}/materi/${lesson}`, { replace: true })
+          } else if (lesson) {
+            navigate(`/siswa-dashboard/lms/materi/${lesson}`, { replace: true })
+          } else {
+            navigate(`/siswa-dashboard/quiz/${paketId}${location.search}`, { replace: true })
+          }
         }
       }).catch(() => {
         Swal.fire({ icon: 'error', title: 'Gagal mengumpulkan quiz', text: reason })

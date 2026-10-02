@@ -180,10 +180,12 @@ export default function QuizPembahasan({ source }: QuizPembahasanProps) {
       navigate(courseId ? `${base}/course/${courseId}/pertemuan/${lessonId}` : (lessonId ? `${base}/course/${courseId}` : `${base}`))
     } else if (source === 'guru') {
       navigate(lessonId ? `/guru-lms/lesson/${lessonId}` : '/guru-lms')
-    } else if (courseId) {
+    } else if (courseId && lessonId) {
       navigate(`/siswa-dashboard/lms/${courseId}/materi/${lessonId}`)
+    } else if (lessonId) {
+      navigate(`/siswa-dashboard/lms/materi/${lessonId}`)
     } else {
-      navigate(-1)
+      navigate(`/siswa-dashboard/lms/${courseId || ''}`)
     }
   }, [source, location.pathname, courseId, lessonId, navigate])
 
