@@ -276,7 +276,6 @@ export default function QuizPlay() {
         }
       })
       if (!shuffledRef.current) {
-        qs = qs.map(q => ({ ...q, options: q.question_type === 'rating' || q.question_type === 'essay' || (q.selected_index !== null && q.selected_index !== undefined) || (q.selected_indexes && q.selected_indexes.length) ? q.options : shuffleArray(q.options) }))
         shuffledRef.current = true
       }
       setQuestions(qs)

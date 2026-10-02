@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\WebcamSnapshotUpdated;
+use App\Models\Lesson;
+use App\Models\LmsProgress;
 use App\Models\QuizAnswer;
 use App\Models\QuizAttempt;
 use App\Models\QuizPaket;
 use App\Models\QuizQuestion;
 use App\Models\QuizSertifikat;
 use App\Models\Siswa;
-use App\Models\Lesson;
-use App\Models\LmsProgress;
-use App\Events\WebcamSnapshotUpdated;
 use App\Services\QuizSertifikatService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -22,7 +22,7 @@ class QuizController extends Controller
 {
     private function courseLessonsForSiswa(QuizPaket $paket, ?Siswa $siswa)
     {
-        if (!$siswa) {
+        if (! $siswa) {
             return collect();
         }
         $lessons = Lesson::where(function ($q) use ($paket) {
@@ -32,9 +32,10 @@ class QuizController extends Controller
             ->aktif()
             ->orderBy('sort')
             ->get();
-        if ($lessons->count() > 0 || !$paket->course_id) {
+        if ($lessons->count() > 0 || ! $paket->course_id) {
             return $lessons;
         }
+
         // Course-level paket: it is shown inside "Quiz Pertemuan Ini" (first pertemuan).
         // Unlock must only depend on that hosting pertemuan, not on every pertemuan
         // of the course, so the quiz is workable right after that pertemuan's materi
@@ -54,15 +55,16 @@ class QuizController extends Controller
     private function siswaUser()
     {
         $user = Auth::guard('sanctum')->user();
-        if (!$user) {
+        if (! $user) {
             return null;
         }
+
         return Siswa::where('user_id', $user->id)->first();
     }
 
     private function paketVisible(QuizPaket $paket, ?Siswa $siswa)
     {
-        if (!$siswa) {
+        if (! $siswa) {
             return false;
         }
         if ($paket->batch_id && $paket->batch_id != $siswa->batch_id) {
@@ -71,14 +73,16 @@ class QuizController extends Controller
         if ($paket->level && $siswa->level !== null && (string) $paket->level !== (string) $siswa->level) {
             return false;
         }
+
         return $paket->diAjarSensei($siswa);
     }
 
     private function paketTerhubungAktif(QuizPaket $paket, ?Siswa $siswa): bool
     {
-        if (!$siswa) {
+        if (! $siswa) {
             return false;
         }
+
         return Lesson::whereHas('linkPakets', fn ($q) => $q
             ->where('quiz_paket_id', $paket->id)
             ->where('lms_lesson_quiz_pakets.status', 'aktif'))
@@ -91,6 +95,7 @@ class QuizController extends Controller
         if ($paket->status === 'aktif') {
             return true;
         }
+
         // Status global "nonaktif" tidak boleh mematikan paket yang sudah
         // ditautkan aktif (pivot per pertemuan) oleh sensei lain.
         return $this->paketTerhubungAktif($paket, $siswa);
@@ -102,6 +107,7 @@ class QuizController extends Controller
             ->where('id', $id)
             ->where('siswa_id', $siswaId)
             ->firstOrFail();
+
         return $attempt;
     }
 
@@ -132,6 +138,7 @@ class QuizController extends Controller
                 } else {
                     $a?->update(['is_correct' => null, 'earned_points' => null]);
                 }
+
                 continue;
             }
 
@@ -144,6 +151,7 @@ class QuizController extends Controller
                 } else {
                     $a?->update(['is_correct' => false, 'earned_points' => 0]);
                 }
+
                 continue;
             }
 
@@ -177,7 +185,7 @@ class QuizController extends Controller
         try {
             QuizSertifikatService::terbitkan($attempt);
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Penerbitan sertifikat gagal setelah submit: ' . $e->getMessage(), [
+            \Illuminate\Support\Facades\Log::error('Penerbitan sertifikat gagal setelah submit: '.$e->getMessage(), [
                 'attempt_id' => $attempt->id,
                 'paket_id' => $attempt->quiz_paket_id,
                 'siswa_id' => $attempt->siswa_id,
@@ -192,7 +200,7 @@ class QuizController extends Controller
             $sync->syncAttempt($attempt);
             $sync->syncAttemptFromLesson($attempt);
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('QuizAssessmentSync gagal setelah submit: ' . $e->getMessage(), [
+            \Illuminate\Support\Facades\Log::error('QuizAssessmentSync gagal setelah submit: '.$e->getMessage(), [
                 'attempt_id' => $attempt->id,
                 'paket_id' => $attempt->quiz_paket_id,
                 'siswa_id' => $attempt->siswa_id,
@@ -213,6 +221,7 @@ class QuizController extends Controller
         $answered = $attempt->answers()
             ->where(fn ($q) => $q->whereNotNull('selected_index')->orWhereNotNull('answer_text')->orWhereNotNull('selected_indexes'))
             ->count();
+
         return [
             'attempt_id' => $attempt->id,
             'attempt_number' => $attempt->attempt_number,
@@ -239,7 +248,7 @@ class QuizController extends Controller
      */
     private function sertifikatPayload(QuizAttempt $attempt): ?array
     {
-        if (!$attempt->paket?->sertifikasi_aktif) {
+        if (! $attempt->paket?->sertifikasi_aktif) {
             return null;
         }
 
@@ -257,10 +266,11 @@ class QuizController extends Controller
     private function attemptContext(Request $request): array
     {
         $source = $request->input('source', 'paket');
-        if (!in_array($source, ['paket', 'tugas'], true)) {
+        if (! in_array($source, ['paket', 'tugas'], true)) {
             $source = 'paket';
         }
         $sourceId = $request->input('source_id');
+
         return [$source, ($sourceId !== null && $sourceId !== '') ? (int) $sourceId : null];
     }
 
@@ -270,13 +280,14 @@ class QuizController extends Controller
         if ($source === 'tugas') {
             $query->where('source_id', $sourceId);
         }
+
         return $query;
     }
 
     public function index()
     {
         $siswa = $this->siswaUser();
-        if (!$siswa) {
+        if (! $siswa) {
             return response()->json(['pakets' => []]);
         }
 
@@ -297,7 +308,7 @@ class QuizController extends Controller
         $pakets = $query->orderByDesc('created_at')->get();
 
         $result = $pakets->map(function ($p) use ($siswa) {
-            $locked = !$p->diAjarSensei($siswa);
+            $locked = ! $p->diAjarSensei($siswa);
             $attempts = QuizAttempt::where('quiz_paket_id', $p->id)
                 ->where('siswa_id', $siswa->id)
                 ->where('source', 'paket')
@@ -322,12 +333,12 @@ class QuizController extends Controller
                 'passing_score' => (int) $p->passing_score,
                 'attempts_used' => $used,
                 'best_score' => $best === null ? null : (int) $best,
-                'can_start' => !$locked && ($p->max_attempts === 0 || $used < $p->max_attempts),
+                'can_start' => ! $locked && ($p->max_attempts === 0 || $used < $p->max_attempts),
                 'quiz_template' => $p->quiz_template,
                 'in_progress_attempt_id' => $inProgress?->id,
                 'camera_enabled' => (bool) $p->camera_enabled,
                 'block_exit' => (bool) $p->block_exit,
-                'is_unlocked' => !$locked && $this->paketUnlocked($p, $siswa),
+                'is_unlocked' => ! $locked && $this->paketUnlocked($p, $siswa),
                 'locked' => $locked,
                 'sertifikasi_aktif' => (bool) $p->sertifikasi_aktif,
                 'sertifikat_wajib_foto' => (bool) $p->sertifikasi_aktif,
@@ -340,26 +351,27 @@ class QuizController extends Controller
     public function paketDetail(Request $request, $id)
     {
         $siswa = $this->siswaUser();
-        if (!$siswa) {
+        if (! $siswa) {
             return response()->json(['message' => 'Silakan login sebagai siswa terlebih dahulu.'], 404);
         }
 
         [$source, $sourceId] = $this->attemptContext($request);
 
         $paket = QuizPaket::withCount('questions')->find($id);
-        if (!$paket || !$this->paketBisaDiakses($paket, $siswa)) {
+        if (! $paket || ! $this->paketBisaDiakses($paket, $siswa)) {
             return response()->json(['message' => 'Paket soal tidak ditemukan atau sudah ditutup.'], 404);
         }
-        if (!$this->paketVisible($paket, $siswa)) {
+        if (! $this->paketVisible($paket, $siswa)) {
             $reason = [];
             if ($paket->batch_id && $paket->batch_id != $siswa->batch_id) {
-                $reason[] = 'paket ini khusus batch ' . $paket->batch_id;
+                $reason[] = 'paket ini khusus batch '.$paket->batch_id;
             }
             if ($paket->level && (string) $paket->level !== (string) $siswa->level) {
-                $reason[] = 'paket ini khusus level ' . $paket->level;
+                $reason[] = 'paket ini khusus level '.$paket->level;
             }
+
             return response()->json([
-                'message' => 'Paket soal tidak tersedia untuk Anda (' . implode(', ', $reason) . '). Hubungi pengajar bila seharusnya bisa diakses.',
+                'message' => 'Paket soal tidak tersedia untuk Anda ('.implode(', ', $reason).'). Hubungi pengajar bila seharusnya bisa diakses.',
             ], 404);
         }
 
@@ -410,20 +422,21 @@ class QuizController extends Controller
 
             $lessons = $courseLessons->map(function ($l) use ($progresses, $completedSet) {
                 $p = $progresses->get($l->id);
+
                 return [
                     'id' => $l->id,
                     'title' => $l->title,
                     'sort' => $l->sort,
                     'video_url' => $l->video_url,
                     'content' => $l->content,
-                    'has_video' => !empty($l->video_url),
-                    'has_content' => !empty($l->content),
+                    'has_video' => ! empty($l->video_url),
+                    'has_content' => ! empty($l->content),
                     'file_name' => $l->file_name,
-                    'file_url' => $l->file_path ? asset('storage/' . $l->file_path) : null,
+                    'file_url' => $l->file_path ? asset('storage/'.$l->file_path) : null,
                     'slides' => $l->slides->map(fn ($s) => [
                         'id' => $s->id,
                         'file_name' => $s->file_name,
-                        'url' => asset('storage/' . $s->file_path),
+                        'url' => asset('storage/'.$s->file_path),
                     ])->values(),
                     'completed' => isset($completedSet[$l->id]),
                 ];
@@ -461,21 +474,21 @@ class QuizController extends Controller
     public function start(Request $request, $id)
     {
         $siswa = $this->siswaUser();
-        if (!$siswa) {
+        if (! $siswa) {
             return response()->json(['message' => 'Siswa tidak ditemukan'], 401);
         }
 
         [$source, $sourceId] = $this->attemptContext($request);
 
         $paket = QuizPaket::find($id);
-        if (!$paket || !$this->paketBisaDiakses($paket, $siswa)) {
+        if (! $paket || ! $this->paketBisaDiakses($paket, $siswa)) {
             return response()->json(['message' => 'Paket soal tidak ditemukan'], 404);
         }
-        if (!$this->paketVisible($paket, $siswa)) {
+        if (! $this->paketVisible($paket, $siswa)) {
             return response()->json(['message' => 'Paket soal tidak tersedia'], 404);
         }
 
-        if (!$this->paketUnlocked($paket, $siswa)) {
+        if (! $this->paketUnlocked($paket, $siswa)) {
             return response()->json(['message' => 'Selesaikan seluruh materi terlebih dahulu untuk membuka kuis ini'], 422);
         }
 
@@ -517,7 +530,7 @@ class QuizController extends Controller
         if ($paket->sertifikasi_aktif) {
             $tokenFoto = (string) $request->input('sertifikat_foto_token', '');
             $fotoWajah = $this->ambilTokenFotoSertifikat($tokenFoto, $siswa->id, $paket->id);
-            if (!$fotoWajah) {
+            if (! $fotoWajah) {
                 return response()->json([
                     'message' => 'Ambil foto identitas terlebih dahulu untuk memulai ujian tersertifikasi',
                     'code' => 'sertifikasi_foto_required',
@@ -549,6 +562,10 @@ class QuizController extends Controller
             'question' => $q->question,
             'section' => $q->section->name ?? null,
             'options' => $this->optionList($q->options),
+            'correct_index' => $q->correct_index,
+            'correct_indexes' => $q->correctIndexList(),
+            'question_type' => $q->question_type ?? 'choice',
+            'rating_max' => $q->rating_max,
             'points' => $q->points,
             'image_url' => $q->image_url,
             'audio_url' => $q->audio_url,
@@ -558,6 +575,7 @@ class QuizController extends Controller
         if ($paket->shuffle_questions) {
             $questions = $this->shuffleQuestionsBySection($questions, (int) $attempt->id);
         }
+        $questions = $questions->map(fn ($q) => $this->shuffleOptionsForQuestion($q, (int) $attempt->id));
 
         return response()->json([
             'attempt' => [
@@ -585,18 +603,19 @@ class QuizController extends Controller
 
         $result = [];
         foreach ($groups as $group) {
-            $ordered = $group->sortBy(fn ($q) => crc32("{$seed}:q:" . (is_array($q) ? $q['id'] : $q->id)));
+            $ordered = $group->sortBy(fn ($q) => crc32("{$seed}:q:".(is_array($q) ? $q['id'] : $q->id)));
             foreach ($ordered as $q) {
                 $result[] = $q;
             }
         }
+
         return collect($result);
     }
 
     public function uploadWebcam(Request $request, $attemptId)
     {
         $siswa = $this->siswaUser();
-        if (!$siswa) {
+        if (! $siswa) {
             return response()->json(['message' => 'Siswa tidak ditemukan'], 401);
         }
 
@@ -630,7 +649,7 @@ class QuizController extends Controller
 
         return response()->json([
             'message' => 'Foto tersimpan',
-            'webcam_photo' => asset('storage/' . $path),
+            'webcam_photo' => asset('storage/'.$path),
         ]);
     }
 
@@ -642,12 +661,12 @@ class QuizController extends Controller
     public function uploadFotoSertifikat(Request $request, $id)
     {
         $siswa = $this->siswaUser();
-        if (!$siswa) {
+        if (! $siswa) {
             return response()->json(['message' => 'Siswa tidak ditemukan'], 401);
         }
 
         $paket = QuizPaket::find($id);
-        if (!$paket || !$this->paketBisaDiakses($paket, $siswa)) {
+        if (! $paket || ! $this->paketBisaDiakses($paket, $siswa)) {
             return response()->json(['message' => 'Paket soal tidak ditemukan'], 404);
         }
 
@@ -662,7 +681,7 @@ class QuizController extends Controller
         return response()->json([
             'message' => 'Foto identitas tersimpan',
             'sertifikat_foto_token' => $token,
-            'preview_url' => asset('storage/' . $path),
+            'preview_url' => asset('storage/'.$path),
         ]);
     }
 
@@ -711,7 +730,7 @@ class QuizController extends Controller
     {
         $key = $this->cacheKeyFotoSertifikat($token);
         $data = Cache::get($key);
-        if (!is_array($data)) {
+        if (! is_array($data)) {
             return;
         }
         if ((int) ($data['siswa_id'] ?? 0) !== $siswaId || (int) ($data['paket_id'] ?? 0) !== $paketId) {
@@ -731,7 +750,7 @@ class QuizController extends Controller
 
         $key = $this->cacheKeyFotoSertifikat($token);
         $data = Cache::get($key);
-        if (!is_array($data)) {
+        if (! is_array($data)) {
             return null;
         }
         if ((int) ($data['siswa_id'] ?? 0) !== $siswaId || (int) ($data['paket_id'] ?? 0) !== $paketId) {
@@ -740,12 +759,12 @@ class QuizController extends Controller
 
         // Token sudah pernah dipakai untuk memulai percobaan. Menolak di sini
         // yang membuat tiap percobaan wajib punya foto yang diambil saat itu.
-        if (!empty($data['terpakai'])) {
+        if (! empty($data['terpakai'])) {
             return null;
         }
 
         $path = (string) ($data['path'] ?? '');
-        if ($path === '' || !Storage::disk(QuizSertifikatService::DISK_FOTO)->exists($path)) {
+        if ($path === '' || ! Storage::disk(QuizSertifikatService::DISK_FOTO)->exists($path)) {
             Cache::forget($key);
 
             return null;
@@ -756,7 +775,7 @@ class QuizController extends Controller
 
     private function cacheKeyFotoSertifikat(string $token): string
     {
-        return 'sertifikat:foto:' . hash('sha256', $token);
+        return 'sertifikat:foto:'.hash('sha256', $token);
     }
 
     /**
@@ -774,14 +793,14 @@ class QuizController extends Controller
     public function sertifikat($attemptId)
     {
         $siswa = $this->siswaUser();
-        if (!$siswa) {
+        if (! $siswa) {
             return response()->json(['message' => 'Siswa tidak ditemukan'], 401);
         }
 
         $attempt = $this->ownAttempt($attemptId, $siswa->id);
         $sertifikat = QuizSertifikat::where('quiz_attempt_id', $attempt->id)->first();
 
-        if (!$sertifikat) {
+        if (! $sertifikat) {
             return response()->json(['message' => 'Sertifikat belum tersedia untuk percobaan ini'], 404);
         }
 
@@ -799,7 +818,7 @@ class QuizController extends Controller
         $sertifikat = QuizSertifikat::whereRaw('UPPER(kode_verifikasi) = ?', [strtoupper((string) $kode)])
             ->first();
 
-        if (!$sertifikat) {
+        if (! $sertifikat) {
             return response()->json([
                 'valid' => false,
                 'message' => 'Kode sertifikat tidak ditemukan',
@@ -815,7 +834,7 @@ class QuizController extends Controller
     public function show($attemptId)
     {
         $siswa = $this->siswaUser();
-        if (!$siswa) {
+        if (! $siswa) {
             return response()->json(['message' => 'Siswa tidak ditemukan'], 401);
         }
 
@@ -842,6 +861,60 @@ class QuizController extends Controller
 
         $remaining = max(0, (int) $attempt->time_limit_seconds - (int) $attempt->started_at->diffInSeconds(now(), true));
 
+        $mappedQuestions = $questions->map(function ($q) use ($answers) {
+            $a = $answers->get($q->id);
+
+            return [
+                'id' => $q->id,
+                'question' => $q->question,
+                'section' => $q->section->name ?? null,
+                'question_type' => $q->question_type ?? 'choice',
+                'rating_max' => $q->rating_max,
+                'options' => $this->optionList($q->options),
+                'correct_index' => $q->correct_index,
+                'correct_indexes' => $q->correctIndexList(),
+                'points' => $q->points,
+                'image_url' => $q->image_url,
+                'audio_url' => $q->audio_url,
+                'audio_max_plays' => $q->audio_max_plays,
+                'audio_plays' => $a?->audio_plays ?? 0,
+                'selected_index' => $a?->selected_index,
+                'selected_indexes' => QuizQuestion::normalizeIndexes($a?->selected_indexes),
+                'answer_text' => $a?->answer_text,
+            ];
+        });
+        $mappedQuestions = $mappedQuestions->map(function ($q) use ($attempt) {
+            $qShuffled = $this->shuffleOptionsForQuestion($q, (int) $attempt->id);
+            $type = $qShuffled['question_type'] ?? 'choice';
+            if ($type !== 'rating' && $type !== 'essay') {
+                $optionCount = count($qShuffled['options'] ?? []);
+                $indices = $this->getOptionShuffleIndices((int) $attempt->id, (int) $qShuffled['id'], $optionCount);
+                $reverseMap = [];
+                foreach ($indices as $shufIdx => $origIdx) {
+                    $reverseMap[$origIdx] = $shufIdx;
+                }
+                if (isset($q['selected_index']) && $q['selected_index'] !== null) {
+                    $origSel = (int) $q['selected_index'];
+                    if (array_key_exists($origSel, $reverseMap)) {
+                        $qShuffled['selected_index'] = $reverseMap[$origSel];
+                    }
+                }
+                if (! empty($q['selected_indexes']) && is_array($q['selected_indexes'])) {
+                    $mappedSel = [];
+                    foreach ($q['selected_indexes'] as $origSelIdx) {
+                        $origSel = (int) $origSelIdx;
+                        if (array_key_exists($origSel, $reverseMap)) {
+                            $mappedSel[] = $reverseMap[$origSel];
+                        }
+                    }
+                    sort($mappedSel);
+                    $qShuffled['selected_indexes'] = array_values(array_unique($mappedSel));
+                }
+            }
+
+            return $qShuffled;
+        });
+
         return response()->json([
             'attempt' => [
                 'id' => $attempt->id,
@@ -855,32 +928,14 @@ class QuizController extends Controller
             'template' => $attempt->paket->quiz_template,
             'camera_enabled' => (bool) $attempt->paket->camera_enabled,
             'block_exit' => (bool) $attempt->paket->block_exit,
-            'questions' => $questions->map(function ($q) use ($answers) {
-                $a = $answers->get($q->id);
-                return [
-                    'id' => $q->id,
-                    'question' => $q->question,
-                    'section' => $q->section->name ?? null,
-                    'question_type' => $q->question_type ?? 'choice',
-                    'rating_max' => $q->rating_max,
-                    'options' => $this->optionList($q->options),
-                    'points' => $q->points,
-                    'image_url' => $q->image_url,
-                    'audio_url' => $q->audio_url,
-                    'audio_max_plays' => $q->audio_max_plays,
-                    'audio_plays' => $a?->audio_plays ?? 0,
-                    'selected_index' => $a?->selected_index,
-                    'selected_indexes' => QuizQuestion::normalizeIndexes($a?->selected_indexes),
-                    'answer_text' => $a?->answer_text,
-                ];
-            }),
+            'questions' => $mappedQuestions,
         ]);
     }
 
     public function review($attemptId)
     {
         $siswa = $this->siswaUser();
-        if (!$siswa) {
+        if (! $siswa) {
             return response()->json(['message' => 'Silakan login sebagai siswa terlebih dahulu.'], 401);
         }
 
@@ -894,6 +949,7 @@ class QuizController extends Controller
         $answers = $attempt->answers()->get()->keyBy('quiz_question_id');
         $questions = $attempt->paket->questions->values()->map(function ($q) use ($answers) {
             $a = $answers->get($q->id);
+
             return [
                 'id' => $q->id,
                 'question' => $q->question,
@@ -930,7 +986,7 @@ class QuizController extends Controller
     public function answer(Request $request, $attemptId)
     {
         $siswa = $this->siswaUser();
-        if (!$siswa) {
+        if (! $siswa) {
             return response()->json(['message' => 'Siswa tidak ditemukan'], 401);
         }
 
@@ -955,7 +1011,7 @@ class QuizController extends Controller
         $question = QuizQuestion::where('quiz_paket_id', $attempt->quiz_paket_id)
             ->find($data['question_id']);
 
-        if (!$question) {
+        if (! $question) {
             return response()->json(['message' => 'Soal tidak ditemukan pada paket ini'], 422);
         }
 
@@ -972,6 +1028,7 @@ class QuizController extends Controller
             } catch (\Throwable $e) {
                 // Realtime push bersifat opsional: jawaban tetap tersimpan walau server websocket mati.
             }
+
             return response()->json([
                 'question_id' => $question->id,
                 'answer_text' => $answer->answer_text,
@@ -1036,7 +1093,7 @@ class QuizController extends Controller
     public function warn($attemptId)
     {
         $siswa = $this->siswaUser();
-        if (!$siswa) {
+        if (! $siswa) {
             return response()->json(['message' => 'Siswa tidak ditemukan'], 401);
         }
 
@@ -1089,7 +1146,7 @@ class QuizController extends Controller
     public function submit($attemptId)
     {
         $siswa = $this->siswaUser();
-        if (!$siswa) {
+        if (! $siswa) {
             return response()->json(['message' => 'Siswa tidak ditemukan'], 401);
         }
 
@@ -1109,7 +1166,7 @@ class QuizController extends Controller
     public function recordAudioPlay(Request $request, $id, $questionId)
     {
         $siswa = $this->siswaUser();
-        if (!$siswa) {
+        if (! $siswa) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
@@ -1121,12 +1178,13 @@ class QuizController extends Controller
 
         if ($this->isExpired($attempt)) {
             $this->finalize($attempt, true);
+
             return response()->json(['message' => 'Waktu habis'], 422);
         }
 
         $question = $attempt->paket->questions()->where('quiz_questions.id', $questionId)->firstOrFail();
 
-        if (!$question->audio_url) {
+        if (! $question->audio_url) {
             return response()->json(['message' => 'Soal ini bukan soal audio'], 422);
         }
 
@@ -1148,17 +1206,115 @@ class QuizController extends Controller
 
     private function optionList($options)
     {
-        if (!is_array($options)) return [];
+        if (! is_array($options)) {
+            return [];
+        }
+
         return array_map(function ($o) {
             if (is_array($o)) {
                 $path = $o['image_path'] ?? null;
+
                 return [
                     'text' => (string) ($o['text'] ?? ''),
                     'image_path' => $path,
-                    'image_url' => $path ? (str_starts_with($path, 'http') ? $path : asset('storage/' . $path)) : null,
+                    'image_url' => $path ? (str_starts_with($path, 'http') ? $path : asset('storage/'.$path)) : null,
                 ];
             }
+
             return ['text' => (string) $o, 'image_path' => null, 'image_url' => null];
         }, $options);
+    }
+
+    private function getOptionShuffleIndices(int $attemptId, int $questionId, int $optionCount): array
+    {
+        if ($optionCount <= 1) {
+            return range(0, $optionCount - 1);
+        }
+        $seed = crc32("{$attemptId}:q:{$questionId}:opts");
+        $indices = range(0, $optionCount - 1);
+        mt_srand($seed);
+        for ($i = count($indices) - 1; $i > 0; $i--) {
+            $j = mt_rand(0, $i);
+            $tmp = $indices[$i];
+            $indices[$i] = $indices[$j];
+            $indices[$j] = $tmp;
+        }
+        mt_srand();
+
+        return $indices;
+    }
+
+    private function mapIndexToOriginal(int $shuffledIndex, array $shuffleMap): ?int
+    {
+        if ($shuffledIndex < 0) {
+            return null;
+        }
+        if (isset($shuffleMap[$shuffledIndex])) {
+            return (int) $shuffleMap[$shuffledIndex];
+        }
+
+        return null;
+    }
+
+    private function mapIndexesToOriginal(array $shuffledIndexes, array $shuffleMap): array
+    {
+        $mapped = [];
+        foreach ($shuffledIndexes as $idx) {
+            $orig = $this->mapIndexToOriginal((int) $idx, $shuffleMap);
+            if ($orig !== null) {
+                $mapped[] = $orig;
+            }
+        }
+        sort($mapped);
+
+        return array_values(array_unique($mapped));
+    }
+
+    private function shuffleOptionsForQuestion(array $q, int $attemptId): array
+    {
+        $type = $q['question_type'] ?? 'choice';
+        if ($type === 'rating' || $type === 'essay') {
+            return $q;
+        }
+
+        $options = $q['options'] ?? [];
+        $optionCount = count($options);
+        if ($optionCount <= 1) {
+            return $q;
+        }
+
+        $indices = $this->getOptionShuffleIndices((int) $attemptId, (int) $q['id'], $optionCount);
+        $shuffledOptions = array_map(fn ($i) => $options[$i], $indices);
+
+        $result = $q;
+        $result['options'] = $shuffledOptions;
+
+        if (isset($q['correct_index']) && $q['correct_index'] !== null) {
+            $orig = (int) $q['correct_index'];
+            $newIndex = array_search($orig, $indices, true);
+            if ($newIndex !== false) {
+                $result['correct_index'] = $newIndex;
+            } else {
+                $result['correct_index'] = $orig;
+            }
+        }
+
+        if (! empty($q['correct_indexes']) && is_array($q['correct_indexes'])) {
+            $mapped = [];
+            foreach ($q['correct_indexes'] as $origIdx) {
+                $orig = (int) $origIdx;
+                $newIndex = array_search($orig, $indices, true);
+                if ($newIndex !== false) {
+                    $mapped[] = $newIndex;
+                } else {
+                    $mapped[] = $orig;
+                }
+            }
+            sort($mapped);
+            $mapped = array_values(array_unique($mapped));
+            $result['correct_indexes'] = $mapped;
+        }
+
+        return $result;
     }
 }
