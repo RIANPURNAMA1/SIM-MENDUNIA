@@ -1358,9 +1358,9 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
             )}
 
             <div className="flex gap-2 mt-5">
-              <button onClick={() => openReview(result.attempt_id)}
+              <button onClick={selesaiHasil}
                 className="flex-1 text-[11.5px] font-bold text-[#0E6187] bg-white border border-[#0E6187]/30 py-3 rounded-md hover:bg-[#0E6187]/5 transition-colors">
-                Lihat Pembahasan
+                Lihat Hasil Quiz
               </button>
               <button onClick={selesaiHasil}
                 className="flex-1 text-[12px] font-bold text-white bg-[#0E6187] py-3 rounded-md hover:bg-[#0a4d6b] transition-colors">

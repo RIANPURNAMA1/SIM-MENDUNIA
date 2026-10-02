@@ -786,19 +786,17 @@ export default function QuizBasicPlay() {
         setFinishedSections(prev => new Set(prev).add(key))
         setCurrentIndex(nextSection.startIndex)
       }
-      if (unanswered > 0) {
-        Swal.fire({
-          title: `Selesai bagian "${activeSection.name || 'Tanpa nama'}"?`,
-          text: `Masih ada ${unanswered} soal belum dijawab di bagian ini. Soal yang kosong akan dinilai 0 dan bagian ini tidak bisa dibuka lagi.`,
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonColor: '#0069b0',
-          confirmButtonText: 'Ya, Selesai',
-          cancelButtonText: 'Periksa lagi',
-        }).then(res => { if (res.isConfirmed) moveNext() })
-      } else {
-        moveNext()
-      }
+      Swal.fire({
+        title: `Selesai bagian "${activeSection.name || 'Tanpa nama'}"?`,
+        text: unanswered > 0
+          ? `Masih ada ${unanswered} soal belum dijawab di bagian ini. Soal yang kosong akan dinilai 0 dan bagian ini tidak bisa dibuka lagi. Apakah Anda yakin ingin menyelesaikan bagian ini?`
+          : `Anda telah menjawab semua soal di bagian ini. Apakah Anda yakin ingin menyelesaikan bagian ini?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#0069b0',
+        confirmButtonText: 'Ya, Selesai',
+        cancelButtonText: 'Periksa lagi',
+      }).then(res => { if (res.isConfirmed) moveNext() })
       return
     }
 
