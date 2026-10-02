@@ -1053,8 +1053,26 @@ export default function QuizPlay() {
 
         <div className="flex flex-1 items-center justify-end gap-2 md:gap-3">
           <button
-            onClick={() => setCurrentIndex(i => Math.max(0, i - 1))}
-            disabled={currentIndex === 0}
+            onClick={() => setCurrentIndex(i => {
+              const key = sectionKeyByIndex.get(i)
+              if (key !== undefined && finishedSections.has(key)) {
+                const nextOpen = sections.findIndex(s => !finishedSections.has(s.startIndex) && s.answered < s.total)
+                const target = nextOpen >= 0 ? sections[nextOpen].startIndex : i
+                return target
+              }
+              for (let t = i - 1; t >= 0; t--) {
+                if (!isLockedIndex(t)) return t
+              }
+              return i
+            })}
+            disabled={(() => {
+              const key = sectionKeyByIndex.get(currentIndex)
+              if (key !== undefined && finishedSections.has(key)) return true
+              for (let t = currentIndex - 1; t >= 0; t--) {
+                if (!isLockedIndex(t)) return false
+              }
+              return true
+            })()}
             className="rounded bg-[#405640] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#4d664d] disabled:opacity-50 md:px-5"
           >
             &lt; Back
