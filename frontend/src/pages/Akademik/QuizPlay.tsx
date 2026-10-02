@@ -737,8 +737,12 @@ export default function QuizPlay() {
   // diklik lagi dan sidebar langsung berpindah ke bagian berikutnya.
   const activeSection = useMemo(() => {
     if (!sections.length) return null
-    const nextOpen = sections.findIndex(s => !finishedSections.has(s.startIndex) && s.answered < s.total)
-    return sections[nextOpen >= 0 ? nextOpen : sections.length - 1]
+    for (let i = 0; i < sections.length; i++) {
+      if (!finishedSections.has(sections[i].startIndex)) {
+        return sections[i]
+      }
+    }
+    return sections[sections.length - 1]
   }, [sections, finishedSections])
 
   const sectionKeyByIndex = useMemo(() => {
@@ -770,31 +774,31 @@ export default function QuizPlay() {
   const finishSection = () => {
     if (!activeSection) return
     const key = activeSection.startIndex
-    const nextSection = sections.find(s => s.startIndex > key && !finishedSections.has(s.startIndex))
+    const nextSection = sections.find(s => s.startIndex > key)
     const unanswered = activeSection.total - activeSection.answered
 
-    if (nextSection) {
-      const moveNext = () => {
-        setFinishedSections(prev => new Set(prev).add(key))
+    const moveToNextOrSubmit = () => {
+      setFinishedSections(prev => new Set(prev).add(key))
+      if (nextSection) {
         setCurrentIndex(nextSection.startIndex)
-      }
-      if (unanswered > 0) {
-        Swal.fire({
-          title: `Selesai bagian "${activeSection.name || 'Tanpa nama'}"?`,
-          text: `Masih ada ${unanswered} soal belum dijawab di bagian ini. Soal yang kosong akan dinilai 0 dan bagian ini tidak bisa dibuka lagi.`,
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonColor: '#5e8b5d',
-          confirmButtonText: 'Ya, Selesai',
-          cancelButtonText: 'Periksa lagi',
-        }).then(res => { if (res.isConfirmed) moveNext() })
       } else {
-        moveNext()
+        submitManually()
       }
-      return
     }
 
-    submitManually()
+    if (unanswered > 0) {
+      Swal.fire({
+        title: `Selesai bagian "${activeSection.name || 'Tanpa nama'}"?`,
+        text: `Masih ada ${unanswered} soal belum dijawab di bagian ini. Soal yang kosong akan dinilai 0 dan bagian ini tidak bisa dibuka lagi.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#5e8b5d',
+        confirmButtonText: 'Ya, Selesai',
+        cancelButtonText: 'Periksa lagi',
+      }).then(res => { if (res.isConfirmed) moveToNextOrSubmit() })
+    } else {
+      moveToNextOrSubmit()
+    }
   }
 
   const sectionLocalIndex = currentIndex
@@ -1074,9 +1078,14 @@ export default function QuizPlay() {
             onClick={() => setCurrentIndex(i => {
               const key = sectionKeyByIndex.get(i)
               if (key !== undefined && finishedSections.has(key)) {
-                const nextOpen = sections.findIndex(s => !finishedSections.has(s.startIndex) && s.answered < s.total)
-                const target = nextOpen >= 0 ? sections[nextOpen].startIndex : i
-                return target
+                let firstUnlocked = -1
+                for (let s = 0; s < sections.length; s++) {
+                  if (!finishedSections.has(sections[s].startIndex)) {
+                    firstUnlocked = sections[s].startIndex
+                    break
+                  }
+                }
+                return firstUnlocked >= 0 ? firstUnlocked : i
               }
               for (let t = i - 1; t >= 0; t--) {
                 if (!isLockedIndex(t)) return t
