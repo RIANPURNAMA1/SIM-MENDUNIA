@@ -575,7 +575,6 @@ class QuizController extends Controller
         if ($paket->shuffle_questions) {
             $questions = $this->shuffleQuestionsBySection($questions, (int) $attempt->id);
         }
-        $questions = $questions->map(fn ($q) => $this->shuffleOptionsForQuestion($q, (int) $attempt->id));
 
         return response()->json([
             'attempt' => [
@@ -883,37 +882,7 @@ class QuizController extends Controller
                 'answer_text' => $a?->answer_text,
             ];
         });
-        $mappedQuestions = $mappedQuestions->map(function ($q) use ($attempt) {
-            $qShuffled = $this->shuffleOptionsForQuestion($q, (int) $attempt->id);
-            $type = $qShuffled['question_type'] ?? 'choice';
-            if ($type !== 'rating' && $type !== 'essay') {
-                $optionCount = count($qShuffled['options'] ?? []);
-                $indices = $this->getOptionShuffleIndices((int) $attempt->id, (int) $qShuffled['id'], $optionCount);
-                $reverseMap = [];
-                foreach ($indices as $shufIdx => $origIdx) {
-                    $reverseMap[$origIdx] = $shufIdx;
-                }
-                if (isset($q['selected_index']) && $q['selected_index'] !== null) {
-                    $origSel = (int) $q['selected_index'];
-                    if (array_key_exists($origSel, $reverseMap)) {
-                        $qShuffled['selected_index'] = $reverseMap[$origSel];
-                    }
-                }
-                if (! empty($q['selected_indexes']) && is_array($q['selected_indexes'])) {
-                    $mappedSel = [];
-                    foreach ($q['selected_indexes'] as $origSelIdx) {
-                        $origSel = (int) $origSelIdx;
-                        if (array_key_exists($origSel, $reverseMap)) {
-                            $mappedSel[] = $reverseMap[$origSel];
-                        }
-                    }
-                    sort($mappedSel);
-                    $qShuffled['selected_indexes'] = array_values(array_unique($mappedSel));
-                }
-            }
-
-            return $qShuffled;
-        });
+        // Options should NOT be shuffled - preserve original A,B,C order
 
         return response()->json([
             'attempt' => [

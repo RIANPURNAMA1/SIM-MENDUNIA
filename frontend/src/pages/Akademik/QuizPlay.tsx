@@ -275,6 +275,7 @@ export default function QuizPlay() {
           section: q.section ?? null,
         }
       })
+      // Do not shuffle options
       if (!shuffledRef.current) {
         shuffledRef.current = true
       }
