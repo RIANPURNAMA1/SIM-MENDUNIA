@@ -1048,6 +1048,13 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
   }
 
   const openReview = (attemptId: number) => {
+    const searchParams = new URLSearchParams(location.search)
+    const courseId = detail?.paket.course_id || searchParams.get('course_id') || ''
+    const lid = asalLesson ?? (lessonId ? Number(lessonId) : null)
+    if (courseId && lid) {
+      navigate(`/siswa-dashboard/lms/${courseId}/materi/${lid}/pembahasan/${detail?.paket.id}?attempt=${attemptId}`)
+      return
+    }
     setReviewAttemptId(attemptId)
     setReviewOpen(true)
     setReviewLoading(true)
