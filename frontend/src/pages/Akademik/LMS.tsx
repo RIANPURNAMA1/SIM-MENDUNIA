@@ -1884,7 +1884,7 @@ export default function LMS() {
                                 )}
                                 {canDo ? (
                                   <button type="button"
-                                    onClick={() => navigate(`/siswa-dashboard/quiz/${q.id}?lesson=${selectedLesson.id}`)}
+                                    onClick={() => navigate(`/siswa-dashboard/quiz/${q.id}?lesson=${selectedLesson.id}&course_id=${courseId}`)}
                                     className="rounded-md bg-[#0E6187] px-3 py-1.5 text-[10px] font-bold text-white shadow-sm shadow-[#0E6187]/20 hover:bg-[#0B4C6B] active:scale-95 transition-all shrink-0">
                                     Kerjakan
                                   </button>

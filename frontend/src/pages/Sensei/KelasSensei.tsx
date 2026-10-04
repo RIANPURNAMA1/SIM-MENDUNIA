@@ -13,10 +13,10 @@ function formatDate(iso: string) {
 }
 
 const STATUS_STYLE: Record<string, string> = {
-  aktif: "bg-emerald-100 text-emerald-700",
-  proses: "bg-amber-100 text-amber-700",
-  selesai: "bg-blue-100 text-blue-700",
-  dibatalkan: "bg-rose-100 text-rose-700",
+  aktif: "bg-[#ceead6] text-[#137333]",
+  proses: "bg-[#fef7e0] text-[#b06000]",
+  selesai: "bg-[#e8f0fe] text-[#1967d2]",
+  dibatalkan: "bg-[#f6d7d5] text-[#a50e0e]",
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -167,7 +167,7 @@ export default function KelasSenseiPage() {
   };
 
   const statusBadge = (status: string) => (
-    <span className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-semibold ${STATUS_STYLE[status] || "bg-slate-100 text-slate-500"}`}>
+    <span className={`inline-flex px-2 py-0.5 text-[9px] font-semibold ${STATUS_STYLE[status] || "bg-[#f1f3f4] text-[#5f6368]"}`}>
       {STATUS_LABEL[status] || status.charAt(0).toUpperCase() + status.slice(1)}
     </span>
   );
@@ -195,133 +195,133 @@ export default function KelasSenseiPage() {
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
-      <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-4 border-b border-[#dadce0] pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
-            <BookOpen size={20} className="text-white" />
+          <div className="flex h-10 w-10 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]">
+            <BookOpen size={20} />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-slate-800">Kelas</h1>
-            <p className="text-sm text-slate-500">Daftar kelas</p>
+            <h1 className="text-xl font-medium text-[#202124]">Kelas</h1>
+            <p className="text-sm text-[#5f6368]">Daftar kelas</p>
           </div>
         </div>
-        <button onClick={openAddModal} className="inline-flex items-center gap-2 rounded-md bg-slate-800 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-700">
+        <button onClick={openAddModal} className="inline-flex items-center gap-2 bg-[#202124] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#3c4043]">
           <Plus size={16} /> Tambah Kelas
         </button>
       </div>
 
       {/* Filter */}
-      <div className="mb-4 rounded-lg p-4 shadow-sm">
+      <div className="mb-4 p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-500 shrink-0">Dari</span>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+            <span className="text-xs font-semibold text-[#5f6368] shrink-0">Dari</span>
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]" />
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-500 shrink-0">Sampai</span>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+            <span className="text-xs font-semibold text-[#5f6368] shrink-0">Sampai</span>
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]" />
           </div>
-          <select value={filterSensei} onChange={(e) => setFilterSensei(e.target.value)} className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+          <select value={filterSensei} onChange={(e) => setFilterSensei(e.target.value)} className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]">
             <option value="">Semua Sensei</option>
             {listSensei.map((s) => (
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
           </select>
-          <select value={filterBatch} onChange={(e) => setFilterBatch(e.target.value)} className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+          <select value={filterBatch} onChange={(e) => setFilterBatch(e.target.value)} className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]">
             <option value="">Semua Batch</option>
             {listBatch.map((b) => (
               <option key={b.id} value={b.id}>{b.nama_batch}</option>
             ))}
           </select>
-          <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }} className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+          <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }} className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]">
             <option value="">Semua Status</option>
             <option value="aktif">Aktif</option>
             <option value="proses">Proses Pembelajaran</option>
             <option value="selesai">Selesai</option>
             <option value="dibatalkan">Dibatalkan</option>
           </select>
-          <button onClick={applyFilter} className="inline-flex items-center justify-center gap-2 rounded-md bg-slate-800 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-700">
+          <button onClick={applyFilter} className="inline-flex items-center justify-center gap-2 bg-[#202124] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#3c4043]">
             <Search size={16} /> Filter
           </button>
-          <button onClick={resetFilter} className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50">
+          <button onClick={resetFilter} className="inline-flex items-center justify-center gap-2 border border-[#dadce0] bg-white px-3 py-2 text-sm font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]">
             <RotateCcw size={16} /> Reset
           </button>
         </div>
       </div>
 
       {/* Table */}
-      <div className="relative overflow-x-auto rounded-lg border border-slate-200">
-        <table className="w-full min-w-[1000px] border-collapse text-left text-xs text-slate-700">
-          <thead className="bg-slate-50 text-[10px] text-slate-600 uppercase tracking-wide">
+      <div className="relative overflow-x-auto border border-[#dadce0]">
+        <table className="w-full min-w-[1000px] border-collapse text-left text-xs text-[#3c4043]">
+          <thead className="text-[10px] text-[#5f6368]">
             <tr>
-              <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold w-12">No</th>
-               <th className="border border-slate-200 px-3 py-2.5 font-semibold">Batch</th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold">Level</th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold">Nama Sensei</th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold">Tgl Mulai</th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold">Tgl Selesai</th>
-              <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold">Total Pertemuan</th>
-              <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold">Absen Terisi</th>
-              <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold">Alpa</th>
-              <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold">Izin</th>
-              <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold">Tidak Absen Pulang</th>
-              <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold">Pulang Lebih Awal</th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold">Status</th>
-              <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold w-16">Aksi</th>
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 w-12 text-center">No</th>
+               <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5">Batch</th>
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5">Level</th>
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5">Nama Sensei</th>
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5">Tgl Mulai</th>
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5">Tgl Selesai</th>
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Total Pertemuan</th>
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Absen Terisi</th>
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Alpa</th>
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Izin</th>
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Tidak Absen Pulang</th>
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Pulang Lebih Awal</th>
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5">Status</th>
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 w-16 text-center">Aksi</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <tr key={i}>
-                  <td colSpan={14} className="border border-slate-200 px-3 py-3">
-                    <div className="h-3 w-full rounded bg-slate-200/70" />
+                  <td colSpan={14} className="px-6 py-12 text-center">
+                    <div className="h-3 w-full #e8eaed-\[#e8eaed\]" />
                   </td>
                 </tr>
               ))
             ) : filteredData.length === 0 ? (
               <tr>
-                <td colSpan={14} className="border border-slate-200 px-4 py-10 text-center">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                <td colSpan={14} className="px-6 py-12 text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center bg-[#f1f3f4] text-[#80868b]">
                     <BookOpen size={24} />
                   </div>
-                  <p className="mt-3 text-sm font-medium text-slate-600">Belum ada data kelas sensei</p>
+                  <p className="mt-3 text-sm font-medium text-[#5f6368]">Belum ada data kelas sensei</p>
                 </td>
               </tr>
             ) : (
               pagedData.map((item, idx) => (
-                <tr key={item.id} className="bg-white transition hover:bg-slate-50">
-                  <td className="border border-slate-200 px-3 py-2.5 text-center text-slate-400">{(safePage - 1) * perPage + idx + 1}</td>
-                  <td className="border border-slate-200 px-3 py-2.5">
+                <tr key={item.id} className="bg-white transition hover:bg-[#f8f9fa]">
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-center text-[#80868b]">{(safePage - 1) * perPage + idx + 1}</td>
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5">
                     <div className="flex flex-col">
-                      <span className="flex items-center gap-1.5 font-semibold text-slate-800">
-                        <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: item.batch_relasi?.warna || '#3b82f6' }} />
+                      <span className="flex items-center gap-1.5 font-semibold text-[#202124]">
+                        <span className="inline-block h-2.5 w-2.5 shrink-0 ring-1 ring-black/10" style={{ backgroundColor: item.batch_relasi?.warna || '#0E6187' }} />
                         {item.batch_relasi?.nama_batch || item.nama_kelas}
                       </span>
                       {item.batch_relasi?.cabang?.nama_cabang ? (
-                        <span className="mt-0.5 text-[10px] text-slate-400">{item.batch_relasi.cabang.nama_cabang}</span>
+                        <span className="mt-0.5 text-[10px] text-[#80868b]">{item.batch_relasi.cabang.nama_cabang}</span>
                       ) : null}
                     </div>
                   </td>
-                  <td className="border border-slate-200 px-3 py-2.5">
-                    <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-medium text-slate-500">{item.level || "-"}</span>
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5">
+                    <span className="inline-flex bg-[#f1f3f4] px-2 py-0.5 text-[9px] font-medium text-[#5f6368]">{item.level || "-"}</span>
                   </td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-slate-600">{item.user?.name || "-"}</td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-slate-500">{formatDate(item.tanggal_mulai)}</td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-slate-500">{formatDate(item.tanggal_selesai)}</td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-center font-medium">{item.total_pertemuan}</td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-center font-medium">{item.jumlah_absen}</td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-center font-medium">{item.jumlah_alpa}</td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-center font-medium">{item.jumlah_izin}</td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-center font-medium text-rose-600">{item.jumlah_tidak_absen_pulang}</td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-center font-medium text-amber-600">{item.jumlah_pulang_lebih_awal}</td>
-                  <td className="border border-slate-200 px-3 py-2.5">{statusBadge(effectiveStatus(item))}</td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-center">
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-[#5f6368]">{item.user?.name || "-"}</td>
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-[#5f6368]">{formatDate(item.tanggal_mulai)}</td>
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-[#5f6368]">{formatDate(item.tanggal_selesai)}</td>
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-center font-medium">{item.total_pertemuan}</td>
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-center font-medium">{item.jumlah_absen}</td>
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-center font-medium">{item.jumlah_alpa}</td>
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-center font-medium">{item.jumlah_izin}</td>
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-center font-medium text-[#c5221f]">{item.jumlah_tidak_absen_pulang}</td>
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-center font-medium text-[#b06000]">{item.jumlah_pulang_lebih_awal}</td>
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5">{statusBadge(effectiveStatus(item))}</td>
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-center">
                     <div className="flex items-center justify-center gap-1">
-                      <button onClick={() => openEditModal(item)} className="rounded-md p-1.5 text-slate-400 transition hover:bg-blue-50 hover:text-blue-600" title="Edit">
+                      <button onClick={() => openEditModal(item)} className="p-1.5 text-[#80868b] transition hover:bg-[#e8f0fe] hover:text-[#1a73e8]" title="Edit">
                         <Pencil size={14} />
                       </button>
-                      <button onClick={() => handleDelete(item.id, item.nama_kelas)} className="rounded-md p-1.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-500" title="Hapus">
+                      <button onClick={() => handleDelete(item.id, item.nama_kelas)} className="p-1.5 text-[#80868b] transition hover:bg-[#fce8e6] hover:text-[#d93025]" title="Hapus">
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -335,11 +335,11 @@ export default function KelasSenseiPage() {
 
       {/* Pagination */}
       {!loading && filteredData.length > 0 && (
-        <div className="mt-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3 text-sm text-slate-500">
+        <div className="mt-4 flex flex-col gap-3 border border-[#dadce0] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3 text-sm text-[#5f6368]">
             <span>Per halaman</span>
             <select value={perPage} onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
-              className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+              className="border border-[#dadce0] bg-white px-2 py-1.5 text-sm font-medium text-[#3c4043] outline-none transition focus:border-[#1a73e8]">
               {[10, 25, 50, 100].map(n => (
                 <option key={n} value={n}>{n}</option>
               ))}
@@ -348,11 +348,11 @@ export default function KelasSenseiPage() {
           </div>
           <div className="flex items-center gap-1">
             <button onClick={() => setPage(1)} disabled={safePage <= 1}
-              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none">
+              className="border border-[#dadce0] bg-white p-1.5 text-[#5f6368] transition hover:bg-[#f8f9fa] disabled:opacity-30 disabled:pointer-events-none">
               <ChevronsLeft size={16} />
             </button>
             <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage <= 1}
-              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none">
+              className="border border-[#dadce0] bg-white p-1.5 text-[#5f6368] transition hover:bg-[#f8f9fa] disabled:opacity-30 disabled:pointer-events-none">
               <ChevronLeft size={16} />
             </button>
             {(() => {
@@ -370,25 +370,21 @@ export default function KelasSenseiPage() {
               }
               return pages.map((p, i) =>
                 p === '...' ? (
-                  <span key={`dots-${i}`} className="px-1 text-sm text-slate-300">...</span>
+                  <span key={`dots-${i}`} className="px-1 text-sm text-[#9aa0a6]">...</span>
                 ) : (
                   <button key={p} onClick={() => setPage(p)}
-                    className={`min-w-[32px] rounded-md border px-2 py-1.5 text-sm font-medium transition ${
-                      p === safePage
-                        ? 'border-slate-200 bg-slate-800 text-white'
-                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                    }`}>
+                    className={`min-w-[32px] border px-2 py-1.5 text-sm font-medium transition ${ p === safePage ? 'border-[#dadce0] bg-[#202124] text-white' : 'border-[#dadce0] bg-white text-[#5f6368] hover:bg-[#f8f9fa]' }`}>
                     {p}
                   </button>
                 )
               );
             })()}
             <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}
-              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none">
+              className="border border-[#dadce0] bg-white p-1.5 text-[#5f6368] transition hover:bg-[#f8f9fa] disabled:opacity-30 disabled:pointer-events-none">
               <ChevronRight size={16} />
             </button>
             <button onClick={() => setPage(totalPages)} disabled={safePage >= totalPages}
-              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none">
+              className="border border-[#dadce0] bg-white p-1.5 text-[#5f6368] transition hover:bg-[#f8f9fa] disabled:opacity-30 disabled:pointer-events-none">
               <ChevronsRight size={16} />
             </button>
           </div>
@@ -397,26 +393,26 @@ export default function KelasSenseiPage() {
 
       {/* Modal Tambah */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3">
-          <div className="w-full max-w-lg rounded-lg bg-white shadow-xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-              <h3 className="text-sm font-semibold text-slate-800">{editingId ? "Edit Kelas" : "Tambah Kelas"}</h3>
-              <button onClick={closeModal} className="rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
+        <div className="fixed inset-0 z-50 flex items-center justify-center #202124-\[#202124\] px-3">
+          <div className="border border-[#dadce0] w-full max-w-lg bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-[#dadce0] px-4 py-3">
+              <h3 className="text-sm font-semibold text-[#202124]">{editingId ? "Edit Kelas" : "Tambah Kelas"}</h3>
+              <button onClick={closeModal} className="p-1 text-[#80868b] transition hover:bg-[#f1f3f4] hover:text-[#5f6368]">
                 <X size={16} />
               </button>
             </div>
             <div className="px-4 py-4 space-y-3">
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-500">Nama Kelas <span className="text-rose-500">*</span></label>
-                <input type="text" value={form.nama_kelas} onChange={(e) => setForm({ ...form, nama_kelas: e.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="Contoh: Kelas A1" />
+                <label className="mb-1 block text-xs font-semibold text-[#5f6368]">Nama Kelas <span className="text-[#d93025]">*</span></label>
+                <input type="text" value={form.nama_kelas} onChange={(e) => setForm({ ...form, nama_kelas: e.target.value })} className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]" placeholder="Contoh: Kelas A1" />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-500">Level</label>
-                <input type="text" value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="Contoh: Beginner" />
+                <label className="mb-1 block text-xs font-semibold text-[#5f6368]">Level</label>
+                <input type="text" value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })} className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]" placeholder="Contoh: Beginner" />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-500">Sensei <span className="text-rose-500">*</span></label>
-                <select value={form.user_id} onChange={(e) => setForm({ ...form, user_id: e.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                <label className="mb-1 block text-xs font-semibold text-[#5f6368]">Sensei <span className="text-[#d93025]">*</span></label>
+                <select value={form.user_id} onChange={(e) => setForm({ ...form, user_id: e.target.value })} className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]">
                   <option value="">Pilih Sensei</option>
                   {gurus.map((g) => (
                     <option key={g.id} value={g.user_id}>{g.nama}</option>
@@ -424,34 +420,34 @@ export default function KelasSenseiPage() {
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-500">Batch</label>
+                <label className="mb-1 block text-xs font-semibold text-[#5f6368]">Batch</label>
                 <div className="relative">
                   <button type="button" onClick={() => setShowBatchDropdown(!showBatchDropdown)}
-                    className="flex w-full items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    className="flex w-full items-center gap-2 border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]">
                     {selectedBatch ? (
                       <>
-                        <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: selectedBatch.warna || '#3b82f6' }} />
+                        <span className="inline-block h-3 w-3 shrink-0 ring-1 ring-black/10" style={{ backgroundColor: selectedBatch.warna || '#0E6187' }} />
                         <span className="truncate">{selectedBatch.nama_batch}</span>
-                        {selectedBatch.cabang?.nama_cabang ? <span className="ml-auto shrink-0 text-[10px] text-slate-400">{selectedBatch.cabang.nama_cabang}</span> : null}
+                        {selectedBatch.cabang?.nama_cabang ? <span className="ml-auto shrink-0 text-[10px] text-[#80868b]">{selectedBatch.cabang.nama_cabang}</span> : null}
                       </>
                     ) : (
-                      <span className="text-slate-400">Pilih Batch</span>
+                      <span className="text-[#80868b]">Pilih Batch</span>
                     )}
                   </button>
                   {showBatchDropdown && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setShowBatchDropdown(false)} />
-                      <div className="absolute top-full left-0 z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg">
+                      <div className="absolute top-full left-0 z-50 mt-1 max-h-48 w-full overflow-y-auto border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15)]">
                         <button type="button" onClick={() => { setForm({ ...form, batch_id: "" }); setShowBatchDropdown(false); }}
-                          className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-slate-50 ${!form.batch_id ? 'bg-blue-50 font-semibold' : ''}`}>
+                          className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-[#f8f9fa] ${!form.batch_id ? 'bg-[#e8f0fe] font-semibold' : ''}`}>
                           Pilih Batch
                         </button>
                         {listBatch.map((b) => (
                           <button type="button" key={b.id} onClick={() => { setForm({ ...form, batch_id: String(b.id) }); setShowBatchDropdown(false); }}
-                            className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-slate-50 ${String(b.id) === form.batch_id ? 'bg-blue-50 font-semibold' : ''}`}>
-                            <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: b.warna || '#3b82f6' }} />
+                            className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-[#f8f9fa] ${String(b.id) === form.batch_id ? 'bg-[#e8f0fe] font-semibold' : ''}`}>
+                            <span className="inline-block h-3 w-3 shrink-0 ring-1 ring-black/10" style={{ backgroundColor: b.warna || '#0E6187' }} />
                             <span className="truncate">{b.nama_batch}</span>
-                            {b.cabang?.nama_cabang ? <span className="ml-auto shrink-0 text-[10px] text-slate-400">{b.cabang.nama_cabang}</span> : null}
+                            {b.cabang?.nama_cabang ? <span className="ml-auto shrink-0 text-[10px] text-[#80868b]">{b.cabang.nama_cabang}</span> : null}
                           </button>
                         ))}
                       </div>
@@ -461,34 +457,34 @@ export default function KelasSenseiPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-500">Tanggal Mulai <span className="text-slate-400 font-normal">(otomatis dari jadwal)</span></label>
+                  <label className="mb-1 block text-xs font-semibold text-[#5f6368]">Tanggal Mulai <span className="text-[#80868b] font-normal">(otomatis dari jadwal)</span></label>
                   {selectedJadwal ? (
-                    <div className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                    <div className="w-full border border-[#dadce0] bg-[#f8f9fa] px-3 py-2 text-sm text-[#5f6368]">
                       {new Date(selectedJadwal.tanggal_mulai + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </div>
                   ) : (
-                    <input type="date" value={form.tanggal_mulai} onChange={(e) => setForm({ ...form, tanggal_mulai: e.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                    <input type="date" value={form.tanggal_mulai} onChange={(e) => setForm({ ...form, tanggal_mulai: e.target.value })} className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]" />
                   )}
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-500">Tanggal Selesai <span className="text-slate-400 font-normal">(otomatis dari jadwal)</span></label>
+                  <label className="mb-1 block text-xs font-semibold text-[#5f6368]">Tanggal Selesai <span className="text-[#80868b] font-normal">(otomatis dari jadwal)</span></label>
                   {selectedJadwal ? (
-                    <div className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                    <div className="w-full border border-[#dadce0] bg-[#f8f9fa] px-3 py-2 text-sm text-[#5f6368]">
                       {new Date(selectedJadwal.tanggal_selesai + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </div>
                   ) : (
-                    <input type="date" value={form.tanggal_selesai} onChange={(e) => setForm({ ...form, tanggal_selesai: e.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                    <input type="date" value={form.tanggal_selesai} onChange={(e) => setForm({ ...form, tanggal_selesai: e.target.value })} className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]" />
                   )}
                 </div>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-500">Catatan</label>
-                <textarea value={form.catatan} onChange={(e) => setForm({ ...form, catatan: e.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" rows={2} placeholder="Catatan (opsional)" />
+                <label className="mb-1 block text-xs font-semibold text-[#5f6368]">Catatan</label>
+                <textarea value={form.catatan} onChange={(e) => setForm({ ...form, catatan: e.target.value })} className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]" rows={2} placeholder="Catatan (opsional)" />
               </div>
             </div>
-            <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3">
-              <button onClick={closeModal} className="rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">Batal</button>
-              <button onClick={handleAdd} disabled={submitting || !form.nama_kelas || !form.user_id} className="rounded-md bg-slate-800 px-4 py-2 text-xs font-medium text-white transition hover:bg-slate-700 disabled:opacity-50">
+            <div className="flex justify-end gap-2 border-t border-[#dadce0] px-4 py-3">
+              <button onClick={closeModal} className="border border-[#dadce0] bg-white px-4 py-2 text-xs font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]">Batal</button>
+              <button onClick={handleAdd} disabled={submitting || !form.nama_kelas || !form.user_id} className="bg-[#202124] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#3c4043] disabled:opacity-50">
                 {submitting ? "Menyimpan..." : editingId ? "Perbarui" : "Simpan"}
               </button>
             </div>

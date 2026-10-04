@@ -130,7 +130,7 @@ export default function DataAffiliate() {
   if (loading) return (
     <div className="flex h-[calc(100vh-4rem)] items-center justify-center bg-[#f0f2f5]">
       <div className="relative w-14 h-14 flex items-center justify-center">
-        <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
+        <div className="rounded-full absolute inset-0 border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
         <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
       </div>
     </div>
@@ -236,18 +236,18 @@ export default function DataAffiliate() {
 
   const statusBadge = (status: boolean) => {
     return (
-      <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium shadow-sm ${status ? 'border-emerald-200 bg-white text-emerald-700' : 'border-slate-200 bg-white text-slate-500'}`}>
-        <span className={`h-1.5 w-1.5 rounded-full ${status ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+      <span className={`inline-flex items-center gap-1.5 border px-2 py-1 text-[11px] font-medium ${status ? 'border-[#a8dab5] bg-white text-[#137333]' : 'border-[#dadce0] bg-white text-[#5f6368]'}`}>
+        <span className={`h-1.5 w-1.5 ${status ? 'bg-[#188038]' : 'bg-[#9aa0a6]'}`} />
         {status ? 'Aktif' : 'Nonaktif'}
       </span>
     )
   }
 
   const statusUserBadge = (status: string) => {
-    const dot = status === 'AKTIF' ? 'bg-emerald-500' : 'bg-slate-300'
+    const dot = status === 'AKTIF' ? 'bg-[#188038]' : 'bg-[#9aa0a6]'
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 shadow-sm">
-        <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+      <span className="inline-flex items-center gap-1.5 border border-[#dadce0] bg-white px-2 py-1 text-[11px] font-medium text-[#5f6368]">
+        <span className={`h-1.5 w-1.5 ${dot}`} />
         {status}
       </span>
     )
@@ -256,127 +256,127 @@ export default function DataAffiliate() {
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-3 rounded-lg bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-3 border-b border-[#e8eaed] pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#0E6187] text-white border border-blue-100">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]">
             <Users size={20} />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-slate-800">Data Affiliate</h1>
-            <p className="text-sm text-slate-500">Kelola link affiliate dan pantau performa</p>
+            <h1 className="text-xl font-medium text-[#202124]">Data Affiliate</h1>
+            <p className="mt-0.5 text-sm text-[#5f6368]">Kelola link affiliate dan pantau performa</p>
           </div>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
-            <span className="hidden text-slate-500 sm:inline">Daftar Affiliate:</span>
-            <code className="min-w-0 truncate text-slate-700 text-xs sm:text-sm">{`${window.location.origin}/daftar-affiliate`}</code>
+          <div className="flex items-center gap-2 border border-[#dadce0] bg-[#f8f9fa] px-3 py-2 text-sm">
+            <span className="hidden text-[#5f6368] sm:inline">Daftar Affiliate:</span>
+            <code className="min-w-0 truncate text-[#3c4043] text-xs sm:text-sm">{`${window.location.origin}/daftar-affiliate`}</code>
             <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/daftar-affiliate`); setCopiedDaftar(true); setTimeout(() => setCopiedDaftar(false), 2000) }}
-              className="ml-1 shrink-0 rounded-md border border-slate-200 bg-white p-1.5 text-slate-400 transition hover:border-blue-200 hover:text-blue-600">
-              {copiedDaftar ? <CheckCircle size={14} className="text-emerald-500" /> : <Copy size={14} />}
+              className="ml-1 shrink-0 border border-[#dadce0] bg-white p-1.5 text-[#80868b] transition hover:border-[#8ab4f8] hover:text-[#1a73e8]">
+              {copiedDaftar ? <CheckCircle size={14} className="text-[#188038]" /> : <Copy size={14} />}
             </button>
           </div>
           <button onClick={openCreate}
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1">
+            className="inline-flex items-center justify-center gap-2 bg-[#0E6187] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#084c63] focus:outline-none">
             <Plus size={16} /> Generate Link
           </button>
           <button onClick={openImport}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-blue-300 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 shadow-sm transition hover:bg-blue-100">
+            className="inline-flex items-center justify-center gap-2 border border-[#dadce0] bg-white px-4 py-2 text-sm font-medium text-[#1a73e8] transition hover:bg-[#f8f9fa]">
             <Upload size={16} /> Import Excel
           </button>
           <button onClick={handleSyncKomisi} disabled={syncing}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50">
+            className="inline-flex items-center justify-center gap-2 border border-[#dadce0] bg-white px-4 py-2 text-sm font-medium text-[#1a73e8] transition hover:bg-[#f8f9fa] disabled:opacity-50">
             <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} /> Sync Komisi
           </button>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="mb-4 grid grid-cols-3 gap-2 sm:gap-4">
-        <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-          <p className="text-xs text-slate-500 sm:text-sm">Total Link</p>
-          <p className="text-xl font-bold text-slate-800 sm:text-3xl">{links.length}</p>
+      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="border border-[#dadce0] bg-white p-3 sm:p-4">
+          <p className="text-xs font-medium text-[#5f6368]">Total Link</p>
+          <p className="mt-1 text-2xl font-medium text-[#202124]">{links.length}</p>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-          <p className="text-xs text-slate-500 sm:text-sm">Total Views</p>
-          <p className="text-xl font-bold text-slate-800 sm:text-3xl">{links.reduce((s, l) => s + l.views, 0)}</p>
+        <div className="border border-[#dadce0] bg-white p-3 sm:p-4">
+          <p className="text-xs font-medium text-[#5f6368]">Total Views</p>
+          <p className="mt-1 text-2xl font-medium text-[#202124]">{links.reduce((s, l) => s + l.views, 0)}</p>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-          <p className="text-xs text-slate-500 sm:text-sm">Total Pendaftar</p>
-          <p className="text-xl font-bold text-slate-800 sm:text-3xl">{links.reduce((s, l) => s + l.pendaftar_count, 0)}</p>
+        <div className="border border-[#dadce0] bg-white p-3 sm:p-4">
+          <p className="text-xs font-medium text-[#5f6368]">Total Pendaftar</p>
+          <p className="mt-1 text-2xl font-medium text-[#202124]">{links.reduce((s, l) => s + l.pendaftar_count, 0)}</p>
         </div>
       </div>
 
       {/* Affiliate Users Section */}
-      <div className="mb-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-3 sm:px-5 sm:py-4">
-          <UserCheck size={18} className="text-blue-600" />
-          <h2 className="font-semibold text-slate-800">Data Affiliate</h2>
+      <div className="mb-6 overflow-hidden border border-[#dadce0] bg-white">
+        <div className="flex items-center gap-2 border-b border-[#dadce0] px-4 py-3 sm:px-5 sm:py-4">
+          <UserCheck size={18} className="text-[#1a73e8]" />
+          <h2 className="font-semibold text-[#202124]">Data Affiliate</h2>
         </div>
 
         {/* Desktop Table */}
         <div className="hidden overflow-x-auto sm:block">
-          <table className="w-full border-collapse text-left text-sm text-slate-700">
-            <thead className="text-sm text-slate-600">
+          <table className="w-full border-collapse text-left text-sm text-[#3c4043]">
+            <thead className="text-sm text-[#5f6368]">
               <tr>
-                <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Affiliate</th>
-                <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Email</th>
-                <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Total Link</th>
-                <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Kandidat Diundang</th>
-                <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Komisi</th>
-                <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Status</th>
-                <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Bergabung</th>
-                <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Aksi</th>
+                <th scope="col" className="px-4 py-3 text-xs font-medium text-[#5f6368]">Affiliate</th>
+                <th scope="col" className="px-4 py-3 text-xs font-medium text-[#5f6368]">Email</th>
+                <th scope="col" className="px-4 py-3 text-xs font-medium text-[#5f6368] text-center">Total Link</th>
+                <th scope="col" className="px-4 py-3 text-xs font-medium text-[#5f6368] text-center">Kandidat Diundang</th>
+                <th scope="col" className="px-4 py-3 text-xs font-medium text-[#5f6368] text-center">Komisi</th>
+                <th scope="col" className="px-4 py-3 text-xs font-medium text-[#5f6368] text-center">Status</th>
+                <th scope="col" className="px-4 py-3 text-xs font-medium text-[#5f6368]">Bergabung</th>
+                <th scope="col" className="px-4 py-3 text-xs font-medium text-[#5f6368] text-center">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {stats.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="border border-slate-200 px-6 py-10 text-center">
-                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                  <td colSpan={8} className="px-6 py-12 text-center">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center bg-[#f1f3f4] text-[#80868b]">
                       <Users size={24} />
                     </div>
-                    <p className="mt-3 text-sm font-medium text-slate-600">Belum ada affiliate</p>
+                    <p className="mt-3 text-sm font-medium text-[#5f6368]">Belum ada affiliate</p>
                   </td>
                 </tr>
               ) : (
                 stats.map(s => (
-                  <tr key={s.id} className="bg-white transition hover:bg-slate-50">
-                    <td className="border border-slate-200 px-4 py-3">
+                  <tr key={s.id} className="bg-white transition hover:bg-[#f8f9fa]">
+                    <td className="border-b border-[#e8eaed] px-4 py-3">
                       <div className="flex items-center gap-3">
                         <img
                           src={`https://ui-avatars.com/api/?name=${encodeURIComponent(s.name)}&background=e5e7eb&color=6b7280&size=28`}
-                          className="h-8 w-8 rounded-full object-cover"
+                          className="h-8 w-8 object-cover"
                           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                         />
-                        <span className="text-sm font-semibold text-slate-800">{s.name}</span>
+                        <span className="text-sm font-semibold text-[#202124]">{s.name}</span>
                       </div>
                     </td>
-                    <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">{s.email}</td>
-                    <td className="border border-slate-200 px-4 py-3 text-center text-sm font-semibold text-slate-800">{s.affiliate_links_count}</td>
-                    <td className="border border-slate-200 px-4 py-3 text-center">
-                      <span className="inline-flex items-center gap-1.5 rounded-md border border-purple-200 bg-white px-2 py-1 text-[11px] font-medium text-purple-700 shadow-sm">
+                    <td className="border-b border-[#e8eaed] px-4 py-3 text-sm text-[#5f6368]">{s.email}</td>
+                    <td className="border-b border-[#e8eaed] px-4 py-3 text-center text-sm font-semibold text-[#202124]">{s.affiliate_links_count}</td>
+                    <td className="border-b border-[#e8eaed] px-4 py-3 text-center">
+                      <span className="inline-flex items-center gap-1.5 border border-[#dadce0] bg-white px-2 py-1 text-[11px] font-medium text-[#5f6368]">
                         <UserPlus size={12} />
                         {s.affiliate_links_sum_pendaftar_count || 0}
                       </span>
                     </td>
-                    <td className="border border-slate-200 px-4 py-3 text-center">
+                    <td className="border-b border-[#e8eaed] px-4 py-3 text-center">
                       <div className="inline-flex flex-col items-center gap-0.5">
-                        <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-700 shadow-sm">
+                        <span className="inline-flex items-center gap-1.5 border border-[#fdd663] bg-[#fef7e0] px-2 py-1 text-[11px] font-medium text-[#b06000]">
                           Rp {(Number(s.total_komisi_pending || 0) + Number(s.total_komisi_paid || 0)).toLocaleString('id-ID')}
                         </span>
                         {s.total_komisi_paid > 0 && (
-                          <span className="text-[10px] text-emerald-600">Dibayar: Rp {Number(s.total_komisi_paid).toLocaleString('id-ID')}</span>
+                          <span className="text-[10px] text-[#137333]">Dibayar: Rp {Number(s.total_komisi_paid).toLocaleString('id-ID')}</span>
                         )}
                       </div>
                     </td>
-                    <td className="border border-slate-200 px-4 py-3 text-center">{statusUserBadge(s.status)}</td>
-                    <td className="border border-slate-200 px-4 py-3 text-sm text-slate-500">
+                    <td className="border-b border-[#e8eaed] px-4 py-3 text-center">{statusUserBadge(s.status)}</td>
+                    <td className="border-b border-[#e8eaed] px-4 py-3 text-sm text-[#5f6368]">
                       {new Date(s.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </td>
-                    <td className="border border-slate-200 px-4 py-3 text-center">
+                    <td className="border-b border-[#e8eaed] px-4 py-3 text-center">
                       <button
                         onClick={() => openDetail(s.id)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-[11px] font-medium text-blue-700 transition hover:bg-blue-100"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium text-[#1a73e8] transition hover:bg-[#e8f0fe]"
                       >
                         <Eye size={12} /> Detail
                       </button>
@@ -392,51 +392,51 @@ export default function DataAffiliate() {
         <div className="sm:hidden">
           {stats.length === 0 ? (
             <div className="px-6 py-10 text-center">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center bg-[#f1f3f4] text-[#80868b]">
                 <Users size={24} />
               </div>
-              <p className="mt-3 text-sm font-medium text-slate-600">Belum ada affiliate</p>
+              <p className="mt-3 text-sm font-medium text-[#5f6368]">Belum ada affiliate</p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-[#e8eaed]">
               {stats.map(s => (
                 <div key={s.id} className="p-4">
                   <div className="mb-3 flex items-center gap-3">
                     <img
                       src={`https://ui-avatars.com/api/?name=${encodeURIComponent(s.name)}&background=e5e7eb&color=6b7280&size=36`}
-                      className="h-9 w-9 rounded-full object-cover"
+                      className="h-9 w-9 object-cover"
                       onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-slate-800 truncate">{s.name}</p>
-                      <p className="text-xs text-slate-500 truncate">{s.email}</p>
+                      <p className="text-sm font-semibold text-[#202124] truncate">{s.name}</p>
+                      <p className="text-xs text-[#5f6368] truncate">{s.email}</p>
                     </div>
                     {statusUserBadge(s.status)}
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-lg bg-slate-50 px-3 py-2">
-                      <p className="text-slate-400">Link</p>
-                      <p className="font-bold text-slate-800">{s.affiliate_links_count}</p>
+                    <div className="bg-[#f8f9fa] px-3 py-2">
+                      <p className="text-[#80868b]">Link</p>
+                      <p className="font-bold text-[#202124]">{s.affiliate_links_count}</p>
                     </div>
-                    <div className="rounded-lg bg-purple-50 px-3 py-2">
-                      <p className="text-purple-400">Kandidat</p>
-                      <p className="font-bold text-purple-700">{s.affiliate_links_sum_pendaftar_count || 0}</p>
+                    <div className="bg-[#f1f3f4] px-3 py-2">
+                      <p className="text-[#80868b]">Kandidat</p>
+                      <p className="font-bold text-[#5f6368]">{s.affiliate_links_sum_pendaftar_count || 0}</p>
                     </div>
-                    <div className="col-span-2 rounded-lg bg-amber-50 px-3 py-2">
-                      <p className="text-amber-500">Komisi</p>
-                      <p className="font-bold text-amber-700">Rp {(Number(s.total_komisi_pending || 0) + Number(s.total_komisi_paid || 0)).toLocaleString('id-ID')}</p>
+                    <div className="col-span-2 bg-[#fef7e0] px-3 py-2">
+                      <p className="text-[#b06000]">Komisi</p>
+                      <p className="font-bold text-[#b06000]">Rp {(Number(s.total_komisi_pending || 0) + Number(s.total_komisi_paid || 0)).toLocaleString('id-ID')}</p>
                       {s.total_komisi_paid > 0 && (
-                        <p className="text-[10px] text-emerald-600">Dibayar: Rp {Number(s.total_komisi_paid).toLocaleString('id-ID')}</p>
+                        <p className="text-[10px] text-[#137333]">Dibayar: Rp {Number(s.total_komisi_paid).toLocaleString('id-ID')}</p>
                       )}
                     </div>
                   </div>
                   <div className="mt-3 flex items-center justify-between">
-                    <span className="text-[11px] text-slate-400">
+                    <span className="text-[11px] text-[#80868b]">
                       {new Date(s.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </span>
                     <button
                       onClick={() => openDetail(s.id)}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 transition hover:bg-blue-100"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-[#1a73e8] transition hover:bg-[#e8f0fe]"
                     >
                       <Eye size={12} /> Detail
                     </button>
@@ -450,17 +450,17 @@ export default function DataAffiliate() {
 
       {/* Generate Link Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-4" onClick={() => setShowModal(false)}>
-          <div className="w-full max-w-lg rounded-t-xl bg-white p-5 shadow-xl sm:rounded-xl sm:p-6" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#202124]/50 sm:items-center sm:p-4" onClick={() => setShowModal(false)}>
+          <div className="w-full max-w-lg border border-[#dadce0] bg-white p-5 shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] sm:p-6" onClick={e => e.stopPropagation()}>
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-800">Generate Link Affiliate</h2>
-              <button onClick={() => setShowModal(false)} className="rounded-lg p-1 hover:bg-slate-100"><X size={20} /></button>
+              <h2 className="text-lg font-medium text-[#202124]">Generate Link Affiliate</h2>
+              <button onClick={() => setShowModal(false)} className="p-2 text-[#5f6368] transition hover:bg-[#f1f3f4]"><X size={20} /></button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Affiliate</label>
+                <label className="mb-1 block text-sm font-medium text-[#3c4043]">Affiliate</label>
                 <select required value={form.affiliate_id} onChange={e => setForm({ ...form, affiliate_id: e.target.value })}
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                  className="w-full border border-[#dadce0] bg-white px-3 py-2.5 text-sm text-[#3c4043] outline-none focus:border-[#1a73e8]">
                   <option value="">Pilih Affiliate</option>
                   {affiliates.map(a => (
                     <option key={a.id} value={a.id}>{a.name} ({a.email})</option>
@@ -468,9 +468,9 @@ export default function DataAffiliate() {
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Produk / Program</label>
+                <label className="mb-1 block text-sm font-medium text-[#3c4043]">Produk / Program</label>
                 <select required value={form.product_id} onChange={e => setForm({ ...form, product_id: e.target.value })}
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                  className="w-full border border-[#dadce0] bg-white px-3 py-2.5 text-sm text-[#3c4043] outline-none focus:border-[#1a73e8]">
                   <option value="">Pilih Produk</option>
                   {products.map(p => (
                     <option key={p.id} value={p.id}>{p.nama} - Rp {Number(p.harga).toLocaleString('id-ID')}</option>
@@ -478,14 +478,14 @@ export default function DataAffiliate() {
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Nama Link (opsional)</label>
+                <label className="mb-1 block text-sm font-medium text-[#3c4043]">Nama Link (opsional)</label>
                 <input type="text" value={form.nama_link} onChange={e => setForm({ ...form, nama_link: e.target.value })}
                   placeholder="Misal: Promosi Instagram"
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                  className="w-full border border-[#dadce0] bg-white px-3 py-2.5 text-sm text-[#3c4043] outline-none focus:border-[#1a73e8]" />
               </div>
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowModal(false)} className="rounded-lg px-4 py-2 text-sm text-slate-600 transition hover:bg-slate-100">Batal</button>
-                <button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition hover:bg-blue-700">Generate</button>
+                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-sm font-medium text-[#1a73e8] transition hover:bg-[#f8f9fa]">Batal</button>
+                <button type="submit" className="bg-[#0E6187] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#084c63]">Generate</button>
               </div>
             </form>
           </div>
@@ -494,46 +494,46 @@ export default function DataAffiliate() {
 
       {/* Import Excel Modal */}
       {showImport && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-4" onClick={() => setShowImport(false)}>
-          <div className="w-full max-w-2xl rounded-t-xl bg-white p-5 shadow-xl sm:rounded-xl sm:p-6" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#202124]/50 sm:items-center sm:p-4" onClick={() => setShowImport(false)}>
+          <div className="w-full max-w-2xl border border-[#dadce0] bg-white p-5 shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] sm:p-6" onClick={e => e.stopPropagation()}>
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <FileSpreadsheet size={20} className="text-emerald-600" />
-                <h2 className="text-lg font-bold text-gray-800">Import Data Affiliate</h2>
+                <FileSpreadsheet size={20} className="text-[#5f6368]" />
+                <h2 className="text-lg font-medium text-[#202124]">Import Data Affiliate</h2>
               </div>
-              <button onClick={() => setShowImport(false)} className="rounded-lg p-1 hover:bg-slate-100"><X size={20} /></button>
+              <button onClick={() => setShowImport(false)} className="p-2 text-[#5f6368] transition hover:bg-[#f1f3f4]"><X size={20} /></button>
             </div>
 
             {/* File upload */}
             <div className="mb-4">
-              <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center transition hover:border-emerald-400 hover:bg-emerald-50/40">
+              <label className="flex cursor-pointer flex-col items-center justify-center gap-2 border-2 border-dashed border-[#dadce0] bg-[#f8f9fa] px-4 py-6 text-center transition hover:border-[#8ab4f8] hover:bg-[#f1f3f4]">
                 <input type="file" accept=".xlsx,.xls,.csv" className="hidden"
                   onChange={e => { const f = e.target.files?.[0]; if (f) handleImportFile(f) }} />
-                <Upload size={24} className="text-emerald-500" />
-                <p className="text-sm font-medium text-slate-700">
+                <Upload size={24} className="text-[#5f6368]" />
+                <p className="text-sm font-medium text-[#3c4043]">
                   {importFile ? importFile.name : 'Pilih file Excel (kolom Nama & Email)'}
                 </p>
-                <p className="text-[11px] text-slate-400">Format: Nama | Email — akun role Affiliate dibuat otomatis dengan password acak</p>
+                <p className="text-[11px] text-[#80868b]">Format: Nama | Email — akun role Affiliate dibuat otomatis dengan password acak</p>
               </label>
             </div>
 
             {/* Preview */}
             {importRows.length > 0 && (
-              <div className="mb-4 max-h-56 overflow-y-auto rounded-lg border border-slate-200">
-                <table className="w-full text-left text-sm text-slate-700">
-                  <thead className="sticky top-0 bg-slate-50 text-xs text-slate-500">
+              <div className="mb-4 max-h-56 overflow-y-auto border border-[#dadce0]">
+                <table className="w-full text-left text-sm text-[#3c4043]">
+                  <thead className="sticky top-0 bg-[#f8f9fa] text-xs text-[#5f6368]">
                     <tr>
-                      <th className="border-b border-slate-200 px-3 py-2 font-medium">#</th>
-                      <th className="border-b border-slate-200 px-3 py-2 font-medium">Nama</th>
-                      <th className="border-b border-slate-200 px-3 py-2 font-medium">Email</th>
+                      <th className="border-b border-[#dadce0] px-3 py-2 font-medium">#</th>
+                      <th className="border-b border-[#dadce0] px-3 py-2 font-medium">Nama</th>
+                      <th className="border-b border-[#dadce0] px-3 py-2 font-medium">Email</th>
                     </tr>
                   </thead>
                   <tbody>
                     {importRows.map((r, i) => (
-                      <tr key={i} className={i % 2 ? 'bg-white' : 'bg-slate-50/50'}>
-                        <td className="border-b border-slate-100 px-3 py-1.5 text-slate-400">{i + 1}</td>
-                        <td className="border-b border-slate-100 px-3 py-1.5 font-medium text-slate-800">{r.nama}</td>
-                        <td className="border-b border-slate-100 px-3 py-1.5 text-slate-600">{r.email}</td>
+                      <tr key={i} className={i % 2 ? 'bg-white' : 'bg-[#f8f9fa]/50'}>
+                        <td className="border-b border-[#e8eaed] px-3 py-1.5 text-[#80868b]">{i + 1}</td>
+                        <td className="border-b border-[#e8eaed] px-3 py-1.5 font-medium text-[#202124]">{r.nama}</td>
+                        <td className="border-b border-[#e8eaed] px-3 py-1.5 text-[#5f6368]">{r.email}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -543,31 +543,31 @@ export default function DataAffiliate() {
 
             {/* Result */}
             {importResult && (
-              <div className="mb-4 rounded-lg border border-slate-200">
-                <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
+              <div className="mb-4 border border-[#dadce0]">
+                <div className="flex items-center gap-2 border-b border-[#e8eaed] px-4 py-3">
                   {importResult.failed === 0
-                    ? <CheckCircle size={16} className="text-emerald-500" />
-                    : <X size={16} className="text-red-500" />}
-                  <p className="text-sm font-semibold text-slate-800">
+                    ? <CheckCircle size={16} className="text-[#188038]" />
+                    : <X size={16} className="text-[#d93025]" />}
+                  <p className="text-sm font-semibold text-[#202124]">
                     {importResult.success} berhasil, {importResult.failed} gagal
                   </p>
                 </div>
                 {importResult.created.length > 0 && (
                   <div className="max-h-40 overflow-y-auto">
-                    <table className="w-full text-left text-sm text-slate-700">
-                      <thead className="sticky top-0 bg-slate-50 text-xs text-slate-500">
+                    <table className="w-full text-left text-sm text-[#3c4043]">
+                      <thead className="sticky top-0 bg-[#f8f9fa] text-xs text-[#5f6368]">
                         <tr>
-                          <th className="border-b border-slate-100 px-4 py-2 font-medium">Nama</th>
-                          <th className="border-b border-slate-100 px-4 py-2 font-medium">Email</th>
-                          <th className="border-b border-slate-100 px-4 py-2 font-medium">Password</th>
+                          <th className="border-b border-[#e8eaed] px-4 py-2 font-medium">Nama</th>
+                          <th className="border-b border-[#e8eaed] px-4 py-2 font-medium">Email</th>
+                          <th className="border-b border-[#e8eaed] px-4 py-2 font-medium">Password</th>
                         </tr>
                       </thead>
                       <tbody>
                         {importResult.created.map((c, i) => (
                           <tr key={i}>
-                            <td className="border-b border-slate-100 px-4 py-1.5 font-medium text-slate-800">{c.nama}</td>
-                            <td className="border-b border-slate-100 px-4 py-1.5 text-slate-600">{c.email}</td>
-                            <td className="border-b border-slate-100 px-4 py-1.5"><code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-700">{c.password}</code></td>
+                            <td className="border-b border-[#e8eaed] px-4 py-1.5 font-medium text-[#202124]">{c.nama}</td>
+                            <td className="border-b border-[#e8eaed] px-4 py-1.5 text-[#5f6368]">{c.email}</td>
+                            <td className="border-b border-[#e8eaed] px-4 py-1.5"><code className="bg-[#f1f3f4] px-1.5 py-0.5 text-xs text-[#3c4043]">{c.password}</code></td>
                           </tr>
                         ))}
                       </tbody>
@@ -577,7 +577,7 @@ export default function DataAffiliate() {
                 {importResult.errors.length > 0 && (
                   <div className="max-h-32 overflow-y-auto px-4 py-2">
                     {importResult.errors.map((err, i) => (
-                      <p key={i} className="py-0.5 text-xs text-red-600">Baris {err.row}: {err.message}</p>
+                      <p key={i} className="py-0.5 text-xs text-[#c5221f]">Baris {err.row}: {err.message}</p>
                     ))}
                   </div>
                 )}
@@ -585,9 +585,9 @@ export default function DataAffiliate() {
             )}
 
             <div className="flex justify-end gap-3 pt-2">
-              <button type="button" onClick={() => setShowImport(false)} className="rounded-lg px-4 py-2 text-sm text-slate-600 transition hover:bg-slate-100">Tutup</button>
+              <button type="button" onClick={() => setShowImport(false)} className="px-4 py-2 text-sm font-medium text-[#1a73e8] transition hover:bg-[#f8f9fa]">Tutup</button>
               <button type="button" onClick={handleImportSubmit} disabled={importRows.length === 0 || importing}
-                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-50">
+                className="inline-flex items-center gap-2 bg-[#137333] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#188038] disabled:opacity-50">
                 {importing && <Loader2 size={14} className="animate-spin" />}
                 Import {importRows.length > 0 ? `(${importRows.length})` : ''}
               </button>
@@ -598,181 +598,181 @@ export default function DataAffiliate() {
 
       {/* Detail Modal */}
       {detailAffiliate && (
-        <div className="fixed inset-0 z-50 flex bg-black/40 sm:items-center sm:justify-center sm:p-4" onClick={() => setDetailAffiliate(null)}>
-          <div className="h-full w-full overflow-y-auto bg-white sm:max-h-[calc(100vh-2rem)] sm:max-w-6xl sm:overflow-y-auto sm:rounded-xl sm:shadow-xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex bg-[#202124]/50 sm:items-center sm:justify-center sm:p-4" onClick={() => setDetailAffiliate(null)}>
+          <div className="h-full w-full overflow-y-auto bg-white sm:max-h-[calc(100vh-2rem)] sm:max-w-6xl sm:overflow-y-auto sm:border sm:border-[#dadce0] sm:shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]" onClick={e => e.stopPropagation()}>
             {/* Header */}
-            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 sm:px-5 sm:py-4">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#dadce0] bg-white px-4 py-3 sm:px-5 sm:py-4">
               <div className="flex items-center gap-3">
                 <img
                   src={`https://ui-avatars.com/api/?name=${encodeURIComponent(detailAffiliate.affiliate.name)}&background=0D1F3C&color=fff&size=40`}
-                  className="h-10 w-10 shrink-0 rounded-full object-cover"
+                  className="h-10 w-10 shrink-0 object-cover"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                 />
                 <div className="min-w-0">
-                  <h2 className="text-base font-bold text-slate-800 sm:text-lg">{detailAffiliate.affiliate.name}</h2>
-                  <p className="text-xs text-slate-500 truncate">{detailAffiliate.affiliate.email}</p>
+                  <h2 className="text-lg font-medium text-[#202124]">{detailAffiliate.affiliate.name}</h2>
+                  <p className="text-xs text-[#5f6368] truncate">{detailAffiliate.affiliate.email}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium shadow-sm sm:text-xs ${
+                <span className={`inline-flex items-center gap-1.5 border px-2 py-1 text-[11px] font-medium sm:text-xs ${
                   detailAffiliate.affiliate.status === 'AKTIF'
-                    ? 'border-emerald-200 bg-white text-emerald-700'
-                    : 'border-slate-200 bg-white text-slate-500'
+                    ? 'border-[#a8dab5] bg-white text-[#137333]'
+                    : 'border-[#dadce0] bg-white text-[#5f6368]'
                 }`}>
-                  <span className={`h-1.5 w-1.5 rounded-full ${detailAffiliate.affiliate.status === 'AKTIF' ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                  <span className={`h-1.5 w-1.5 ${detailAffiliate.affiliate.status === 'AKTIF' ? 'bg-[#188038]' : 'bg-[#9aa0a6]'}`} />
                   {detailAffiliate.affiliate.status}
                 </span>
-                <button onClick={() => setDetailAffiliate(null)} className="rounded-lg p-1 hover:bg-slate-100"><X size={20} /></button>
+                <button onClick={() => setDetailAffiliate(null)} className="p-2 text-[#5f6368] transition hover:bg-[#f1f3f4]"><X size={20} /></button>
               </div>
             </div>
 
             <div className="space-y-4 px-4 py-4 sm:space-y-5 sm:px-5">
               {/* Stats */}
               <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-center">
-                  <p className="text-[11px] text-slate-500 sm:text-xs">Total Link</p>
-                  <p className="text-lg font-bold text-slate-800 sm:text-xl">{detailAffiliate.stats.total_links}</p>
+                <div className="border border-[#dadce0] bg-white p-3 text-center">
+                  <p className="text-xs font-medium text-[#5f6368]">Total Link</p>
+                  <p className="mt-1 text-xl font-medium text-[#202124]">{detailAffiliate.stats.total_links}</p>
                 </div>
-                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-center">
-                  <p className="text-[11px] text-slate-500 sm:text-xs">Total Views</p>
-                  <p className="text-lg font-bold text-slate-800 sm:text-xl">{detailAffiliate.stats.total_views}</p>
+                <div className="border border-[#dadce0] bg-white p-3 text-center">
+                  <p className="text-xs font-medium text-[#5f6368]">Total Views</p>
+                  <p className="mt-1 text-xl font-medium text-[#202124]">{detailAffiliate.stats.total_views}</p>
                 </div>
-                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-center">
-                  <p className="text-[11px] text-slate-500 sm:text-xs">Total Kandidat</p>
-                  <p className="text-lg font-bold text-slate-800 sm:text-xl">{detailAffiliate.stats.total_pendaftar}</p>
+                <div className="border border-[#dadce0] bg-white p-3 text-center">
+                  <p className="text-xs font-medium text-[#5f6368]">Total Kandidat</p>
+                  <p className="mt-1 text-xl font-medium text-[#202124]">{detailAffiliate.stats.total_pendaftar}</p>
                 </div>
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-center">
-                  <p className="text-[11px] text-amber-600 sm:text-xs">Total Komisi</p>
-                  <p className="text-lg font-bold text-amber-700 sm:text-xl">Rp {Number(detailAffiliate.stats.komisi_paid + detailAffiliate.stats.komisi_pending).toLocaleString('id-ID')}</p>
+                <div className="border border-[#dadce0] bg-white p-3 text-center">
+                  <p className="text-xs font-medium text-[#5f6368]">Total Komisi</p>
+                  <p className="mt-1 text-xl font-medium text-[#202124]">Rp {Number(detailAffiliate.stats.komisi_paid + detailAffiliate.stats.komisi_pending).toLocaleString('id-ID')}</p>
                   {detailAffiliate.stats.komisi_pending > 0 && (
-                    <p className="mt-0.5 text-[10px] text-amber-500">+ Rp {Number(detailAffiliate.stats.komisi_pending).toLocaleString('id-ID')} pending</p>
+                    <p className="mt-0.5 text-[10px] text-[#b06000]">+ Rp {Number(detailAffiliate.stats.komisi_pending).toLocaleString('id-ID')} pending</p>
                   )}
                 </div>
               </div>
 
               {/* Data Diri + Wilayah + Rekening Bank — side by side */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-                  <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
-                    <User size={16} className="text-blue-600" />
-                    <h3 className="text-sm font-semibold text-slate-800">Data Diri</h3>
+                <div className="overflow-hidden border border-[#dadce0] bg-white">
+                  <div className="flex items-center gap-2 border-b border-[#e8eaed] px-4 py-3">
+                    <User size={16} className="text-[#1a73e8]" />
+                    <h3 className="text-sm font-medium text-[#202124]">Data Diri</h3>
                   </div>
                   <div className="space-y-3 px-4 py-3">
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Nama Lengkap</p>
-                      <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.name}</p>
+                      <p className="text-xs text-[#5f6368]">Nama Lengkap</p>
+                      <p className="text-sm font-medium text-[#202124]">{detailAffiliate.affiliate.name}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Email</p>
-                      <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.email}</p>
+                      <p className="text-xs text-[#5f6368]">Email</p>
+                      <p className="text-sm font-medium text-[#202124]">{detailAffiliate.affiliate.email}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-slate-400">No. WhatsApp</p>
-                      <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.no_hp || '-'}</p>
+                      <p className="text-xs text-[#5f6368]">No. WhatsApp</p>
+                      <p className="text-sm font-medium text-[#202124]">{detailAffiliate.affiliate.no_hp || '-'}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Bergabung</p>
-                      <p className="text-sm font-medium text-slate-800">
+                      <p className="text-xs text-[#5f6368]">Bergabung</p>
+                      <p className="text-sm font-medium text-[#202124]">
                         {new Date(detailAffiliate.affiliate.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                       </p>
                     </div>
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Alamat</p>
-                      <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.alamat || '-'}</p>
+                      <p className="text-xs text-[#5f6368]">Alamat</p>
+                      <p className="text-sm font-medium text-[#202124]">{detailAffiliate.affiliate.alamat || '-'}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-                  <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
-                    <MapPin size={16} className="text-emerald-600" />
-                    <h3 className="text-sm font-semibold text-slate-800">Wilayah</h3>
+                <div className="overflow-hidden border border-[#dadce0] bg-white">
+                  <div className="flex items-center gap-2 border-b border-[#e8eaed] px-4 py-3">
+                    <MapPin size={16} className="text-[#137333]" />
+                    <h3 className="text-sm font-medium text-[#202124]">Wilayah</h3>
                   </div>
                   <div className="space-y-3 px-4 py-3">
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Provinsi</p>
-                      <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.provinsi || '-'}</p>
+                      <p className="text-xs text-[#5f6368]">Provinsi</p>
+                      <p className="text-sm font-medium text-[#202124]">{detailAffiliate.affiliate.provinsi || '-'}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Kabupaten / Kota</p>
-                      <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.kabupaten || '-'}</p>
+                      <p className="text-xs text-[#5f6368]">Kabupaten / Kota</p>
+                      <p className="text-sm font-medium text-[#202124]">{detailAffiliate.affiliate.kabupaten || '-'}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Kecamatan</p>
-                      <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.kecamatan || '-'}</p>
+                      <p className="text-xs text-[#5f6368]">Kecamatan</p>
+                      <p className="text-sm font-medium text-[#202124]">{detailAffiliate.affiliate.kecamatan || '-'}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Desa / Kelurahan</p>
-                      <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.desa || '-'}</p>
+                      <p className="text-xs text-[#5f6368]">Desa / Kelurahan</p>
+                      <p className="text-sm font-medium text-[#202124]">{detailAffiliate.affiliate.desa || '-'}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-                  <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
-                    <Landmark size={16} className="text-violet-600" />
-                    <h3 className="text-sm font-semibold text-slate-800">Rekening Bank</h3>
+                <div className="overflow-hidden border border-[#dadce0] bg-white">
+                  <div className="flex items-center gap-2 border-b border-[#e8eaed] px-4 py-3">
+                    <Landmark size={16} className="text-[#1a73e8]" />
+                    <h3 className="text-sm font-medium text-[#202124]">Rekening Bank</h3>
                   </div>
                   <div className="space-y-3 px-4 py-3">
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Nama Bank</p>
-                      <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.bank || '-'}</p>
+                      <p className="text-xs text-[#5f6368]">Nama Bank</p>
+                      <p className="text-sm font-medium text-[#202124]">{detailAffiliate.affiliate.bank || '-'}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-slate-400">No. Rekening</p>
-                      <p className="font-mono text-sm font-medium text-slate-800">{detailAffiliate.affiliate.no_rekening || '-'}</p>
+                      <p className="text-xs text-[#5f6368]">No. Rekening</p>
+                      <p className="font-mono text-sm font-medium text-[#202124]">{detailAffiliate.affiliate.no_rekening || '-'}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-slate-400">Nama Pemilik Rekening</p>
-                      <p className="text-sm font-medium text-slate-800">{detailAffiliate.affiliate.nama_rekening || '-'}</p>
+                      <p className="text-xs text-[#5f6368]">Nama Pemilik Rekening</p>
+                      <p className="text-sm font-medium text-[#202124]">{detailAffiliate.affiliate.nama_rekening || '-'}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Akses Login */}
-              <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-                <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
-                  <KeyRound size={16} className="text-amber-600" />
-                  <h3 className="text-sm font-semibold text-slate-800">Akses Login</h3>
-                  <span className="ml-auto text-[10px] text-slate-400">untuk login affiliate di halaman utama</span>
+              <div className="overflow-hidden border border-[#dadce0] bg-white">
+                <div className="flex items-center gap-2 border-b border-[#e8eaed] px-4 py-3">
+                  <KeyRound size={16} className="text-[#b06000]" />
+                  <h3 className="text-sm font-medium text-[#202124]">Akses Login</h3>
+                  <span className="ml-auto text-[10px] text-[#80868b]">untuk login affiliate di halaman utama</span>
                 </div>
                 <div className="grid grid-cols-1 gap-3 px-4 py-3 sm:grid-cols-2">
                   <div>
-                    <p className="text-[11px] uppercase tracking-wide text-slate-400">Email</p>
+                    <p className="text-xs text-[#5f6368]">Email</p>
                     <div className="mt-0.5 flex items-center gap-2">
-                      <p className="text-sm font-medium text-slate-800 break-all">{detailAffiliate.affiliate.email}</p>
+                      <p className="text-sm font-medium text-[#202124] break-all">{detailAffiliate.affiliate.email}</p>
                       <button
                         onClick={() => { navigator.clipboard.writeText(detailAffiliate.affiliate.email); setCopiedLogin('email'); setTimeout(() => setCopiedLogin(null), 1500) }}
-                        className="shrink-0 rounded p-1 text-slate-400 transition hover:bg-blue-50 hover:text-blue-600"
+                        className="shrink-0 p-1 text-[#80868b] transition hover:bg-[#f8f9fa] hover:text-[#1a73e8]"
                         title="Salin email"
                       >
-                        {copiedLogin === 'email' ? <CheckCircle size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                        {copiedLogin === 'email' ? <CheckCircle size={14} className="text-[#188038]" /> : <Copy size={14} />}
                       </button>
                     </div>
                   </div>
                   <div>
-                    <p className="text-[11px] uppercase tracking-wide text-slate-400">Password</p>
+                    <p className="text-xs text-[#5f6368]">Password</p>
                     <div className="mt-0.5 flex items-center gap-2">
                       {detailAffiliate.affiliate.password_plain ? (
                         <>
-                          <p className="font-mono text-sm font-medium text-slate-800">{showPassword ? detailAffiliate.affiliate.password_plain : '••••••••'}</p>
+                          <p className="font-mono text-sm font-medium text-[#202124]">{showPassword ? detailAffiliate.affiliate.password_plain : '••••••••'}</p>
                           <button
                             onClick={() => setShowPassword(v => !v)}
-                            className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                            className="shrink-0 px-1.5 py-0.5 text-[10px] font-semibold text-[#5f6368] transition hover:bg-[#f1f3f4] hover:text-[#3c4043]"
                           >
                             {showPassword ? 'Sembunyikan' : 'Lihat'}
                           </button>
                           <button
                             onClick={() => { navigator.clipboard.writeText(detailAffiliate.affiliate.password_plain!); setCopiedLogin('pass'); setTimeout(() => setCopiedLogin(null), 1500) }}
-                            className="shrink-0 rounded p-1 text-slate-400 transition hover:bg-blue-50 hover:text-blue-600"
+                            className="shrink-0 p-1 text-[#80868b] transition hover:bg-[#f8f9fa] hover:text-[#1a73e8]"
                             title="Salin password"
                           >
-                            {copiedLogin === 'pass' ? <CheckCircle size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                            {copiedLogin === 'pass' ? <CheckCircle size={14} className="text-[#188038]" /> : <Copy size={14} />}
                           </button>
                         </>
                       ) : (
-                        <p className="text-sm text-slate-400">-</p>
+                        <p className="text-sm text-[#80868b]">-</p>
                       )}
                     </div>
                   </div>
@@ -780,89 +780,88 @@ export default function DataAffiliate() {
               </div>
 
               {/* Links */}
-              <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-                <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
-                  <Link2 size={16} className="text-blue-600" />
-                  <h3 className="text-sm font-semibold text-slate-800">Link Affiliate</h3>
-                  <span className="ml-auto rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">{detailAffiliate.links.length} link</span>
+              <div className="overflow-hidden border border-[#dadce0] bg-white">
+                <div className="flex items-center gap-2 border-b border-[#e8eaed] px-4 py-3">
+                  <Link2 size={16} className="text-[#1a73e8]" />
+                  <h3 className="text-sm font-medium text-[#202124]">Link Affiliate</h3>
+                  <span className="ml-auto bg-[#f1f3f4] px-2 py-0.5 text-[10px] font-medium text-[#5f6368]">{detailAffiliate.links.length} link</span>
                 </div>
                 <div className="px-4 py-3">
                   {detailAffiliate.links.length === 0 ? (
-                    <p className="py-4 text-center text-xs text-slate-400">Belum ada link affiliate</p>
+                    <p className="py-4 text-center text-xs text-[#80868b]">Belum ada link affiliate</p>
                   ) : (
                     <div className="space-y-2">
                       {detailAffiliate.links.map(link => (
-                        <div key={link.id} className="overflow-hidden rounded-lg border border-slate-200">
+                        <div key={link.id} className="overflow-hidden border border-[#dadce0]">
                           <button
                             onClick={() => toggleLink(link.id)}
-                            className="flex w-full items-center gap-2 px-3 py-3 text-left transition hover:bg-slate-50 sm:gap-3 sm:px-4"
+                            className="flex w-full items-center gap-2 px-3 py-3 text-left transition hover:bg-[#f8f9fa] sm:gap-3 sm:px-4"
                           >
-                            {expandedLinks[link.id] ? <ChevronDown size={16} className="shrink-0 text-slate-400" /> : <ChevronRight size={16} className="shrink-0 text-slate-400" />}
-                            <Link2 size={14} className="shrink-0 text-blue-500" />
+                            {expandedLinks[link.id] ? <ChevronDown size={16} className="shrink-0 text-[#80868b]" /> : <ChevronRight size={16} className="shrink-0 text-[#80868b]" />}
+                            <Link2 size={14} className="shrink-0 text-[#1a73e8]" />
                             <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-semibold text-slate-800">{link.nama_link || link.kode}</p>
-                              <p className="truncate text-[10px] text-slate-400 sm:text-xs">{linkBase}{link.kode}</p>
+                              <p className="truncate text-sm font-semibold text-[#202124]">{link.nama_link || link.kode}</p>
+                              <p className="truncate text-[10px] text-[#80868b] sm:text-xs">{linkBase}{link.kode}</p>
                             </div>
                             <div className="hidden shrink-0 items-center gap-1.5 sm:flex">
-                              <span className="text-xs text-slate-500">{link.product?.nama}</span>
+                              <span className="text-xs text-[#5f6368]">{link.product?.nama}</span>
                               {link.product?.komisi && (
-                                <span className="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700">Rp {Number(link.product.komisi).toLocaleString('id-ID')}/org</span>
+                                <span className="bg-[#e8f0fe] px-2 py-0.5 text-[10px] font-medium text-[#1967d2]">Rp {Number(link.product.komisi).toLocaleString('id-ID')}/org</span>
                               )}
-                              <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">{link.views} views</span>
-                              <span className="rounded bg-purple-50 px-2 py-0.5 text-[10px] font-medium text-purple-700">{link.pendaftar_count} kandidat</span>
+                              <span className="bg-[#f1f3f4] px-2 py-0.5 text-[10px] font-medium text-[#5f6368]">{link.views} views</span>
+                              <span className="bg-[#f1f3f4] px-2 py-0.5 text-[10px] font-medium text-[#5f6368]">{link.pendaftar_count} kandidat</span>
                               {link.total_komisi > 0 && (
-                                <span className="rounded bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">Rp {Number(link.total_komisi).toLocaleString('id-ID')}</span>
+                                <span className="bg-[#fef7e0] px-2 py-0.5 text-[10px] font-medium text-[#b06000]">Rp {Number(link.total_komisi).toLocaleString('id-ID')}</span>
                               )}
                             </div>
                           </button>
                           {/* Mobile stats row */}
-                          <div className="flex flex-wrap gap-1.5 border-t border-slate-100 px-3 py-2 sm:hidden">
-                            <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">{link.product?.nama}</span>
+                          <div className="flex flex-wrap gap-1.5 border-t border-[#e8eaed] px-3 py-2 sm:hidden">
+                            <span className="bg-[#f1f3f4] px-2 py-0.5 text-[10px] font-medium text-[#5f6368]">{link.product?.nama}</span>
                             {link.product?.komisi && (
-                              <span className="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700">Rp {Number(link.product.komisi).toLocaleString('id-ID')}/org</span>
+                              <span className="bg-[#e8f0fe] px-2 py-0.5 text-[10px] font-medium text-[#1967d2]">Rp {Number(link.product.komisi).toLocaleString('id-ID')}/org</span>
                             )}
-                            <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">{link.views} views</span>
-                            <span className="rounded bg-purple-50 px-2 py-0.5 text-[10px] font-medium text-purple-700">{link.pendaftar_count} kandidat</span>
+                            <span className="bg-[#f1f3f4] px-2 py-0.5 text-[10px] font-medium text-[#5f6368]">{link.views} views</span>
+                            <span className="bg-[#f1f3f4] px-2 py-0.5 text-[10px] font-medium text-[#5f6368]">{link.pendaftar_count} kandidat</span>
                             {link.total_komisi > 0 && (
-                              <span className="rounded bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">Rp {Number(link.total_komisi).toLocaleString('id-ID')}</span>
+                              <span className="bg-[#fef7e0] px-2 py-0.5 text-[10px] font-medium text-[#b06000]">Rp {Number(link.total_komisi).toLocaleString('id-ID')}</span>
                             )}
                           </div>
                           {expandedLinks[link.id] && (
-                            <div className="border-t border-slate-100 px-3 py-3 sm:px-4">
+                            <div className="border-t border-[#e8eaed] px-3 py-3 sm:px-4">
                               {link.pendaftar.length === 0 ? (
-                                <p className="py-3 text-center text-xs text-slate-400">Belum ada kandidat</p>
+                                <p className="py-3 text-center text-xs text-[#80868b]">Belum ada kandidat</p>
                               ) : (
                                 <div className="space-y-2">
                                   {link.pendaftar.map(p => (
-                                    <div key={p.id} className="flex flex-col gap-2 rounded-lg bg-slate-50 px-3 py-2 sm:flex-row sm:items-center sm:gap-3">
+                                    <div key={p.id} className="flex flex-col gap-2 bg-[#f8f9fa] px-3 py-2 sm:flex-row sm:items-center sm:gap-3">
                                       <div className="flex items-center gap-2 sm:flex-1">
                                         <img
                                           src={`https://ui-avatars.com/api/?name=${encodeURIComponent(p.nama)}&background=e5e7eb&color=6b7280&size=24`}
-                                          className="h-6 w-6 shrink-0 rounded-full"
+                                          className="h-6 w-6 shrink-0"
                                           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                                         />
                                         <div className="min-w-0 flex-1">
-                                          <p className="truncate text-xs font-semibold text-slate-800">{p.nama}</p>
-                                          <p className="truncate text-[10px] text-slate-500">{p.email}</p>
+                                          <p className="truncate text-xs font-semibold text-[#202124]">{p.nama}</p>
+                                          <p className="truncate text-[10px] text-[#5f6368]">{p.email}</p>
                                         </div>
                                       </div>
                                       <div className="flex flex-wrap items-center gap-1.5 pl-8 sm:pl-0">
                                         {p.product?.komisi && (
-                                          <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-600">Rp {Number(p.product.komisi).toLocaleString('id-ID')}/org</span>
+                                          <span className="bg-[#e8f0fe] px-1.5 py-0.5 text-[10px] font-medium text-[#1a73e8]">Rp {Number(p.product.komisi).toLocaleString('id-ID')}/org</span>
                                         )}
-                                        <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                                          p.status_pendaftaran === 'disetujui' ? 'bg-emerald-50 text-emerald-700' :
-                                          p.status_pendaftaran === 'pending' ? 'bg-amber-50 text-amber-700' :
-                                          'bg-red-50 text-red-600'
+                                        <span className={`px-1.5 py-0.5 text-[10px] font-medium ${ p.status_pendaftaran === 'disetujui' ? 'bg-[#e6f4ea] text-[#137333]' :
+                                          p.status_pendaftaran === 'pending' ? 'bg-[#fef7e0] text-[#b06000]' :
+                                          'bg-[#fce8e6] text-[#c5221f]'
                                         }`}>{p.status_pendaftaran}</span>
                                         {p.status_kandidat === 'Mengundurkan Diri' ? (
-                                          <span className="rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-medium text-red-600">Mengundurkan Diri</span>
+                                          <span className="bg-[#fce8e6] px-1.5 py-0.5 text-[10px] font-medium text-[#c5221f]">Mengundurkan Diri</span>
                                         ) : (p.komisi_diperoleh > 0 || p.komisi_pending > 0) && (
-                                          <span className="text-[10px] font-medium text-amber-600">
+                                          <span className="text-[10px] font-medium text-[#b06000]">
                                             {p.komisi_diperoleh > 0 ? `Rp ${Number(p.komisi_diperoleh).toLocaleString('id-ID')}` : `Rp ${Number(p.komisi_pending).toLocaleString('id-ID')} (pending)`}
                                           </span>
                                         )}
-                                        <span className="text-[10px] text-slate-400">
+                                        <span className="text-[10px] text-[#80868b]">
                                           {new Date(p.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                                         </span>
                                       </div>
@@ -881,8 +880,8 @@ export default function DataAffiliate() {
             </div>
 
             {/* Mobile close button at bottom */}
-            <div className="sticky bottom-0 border-t border-slate-200 bg-white p-4 sm:hidden">
-              <button onClick={() => setDetailAffiliate(null)} className="w-full rounded-lg border border-slate-200 bg-white py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+            <div className="sticky bottom-0 border-t border-[#dadce0] bg-white p-4 sm:hidden">
+              <button onClick={() => setDetailAffiliate(null)} className="w-full border border-[#dadce0] bg-white py-2.5 text-sm font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]">
                 Tutup
               </button>
             </div>

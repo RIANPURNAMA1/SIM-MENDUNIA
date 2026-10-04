@@ -458,18 +458,19 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       <aside
         className={`
-        w-64 bg-[#0E6187] h-[100dvh] max-h-[100dvh] flex flex-col fixed left-0 top-0 z-40 overflow-hidden
-        transition-transform duration-300 ease-in-out shadow-[8px_0_30px_rgba(0,0,0,0.15)]
+        w-64 bg-white h-[100dvh] max-h-[100dvh] flex flex-col fixed left-0 top-0 z-40 overflow-hidden border-r border-slate-200
+        transition-transform duration-300 ease-in-out shadow-[8px_0_30px_rgba(15,23,42,0.06)]
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0
       `}
       >
         <div className="relative flex items-center justify-center px-5 py-4  flex-shrink-0">
-          <img src="/logo-sm1.png" alt="SIM Mendunia" className="h-14 w-auto" />
+          <img src="/logo-sm2.png" alt="SIM Mendunia" className="h-10 w-auto dark:hidden" />
+          <img src="/logo-sm1.png" alt="SIM Mendunia" className="hidden h-10 w-auto dark:block" />
           <button
             onClick={onClose}
             aria-label="Tutup sidebar"
-            className="lg:hidden absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+            className="lg:hidden absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors"
           >
             <X size={18} />
           </button>
@@ -489,7 +490,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   key={item.label}
                   to={child.href}
                   onClick={handleNavClick}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm transition-all duration-200 ${active ? "bg-white/15 text-white font-medium shadow-sm" : "text-gray-300 hover:bg-white/10 hover:text-white"}`}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm transition-all duration-200 ${active ? "bg-[#0E6187] text-white font-medium shadow-sm" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}
                 >
                   <Icon size={18} />
                   <span>{item.label}</span>
@@ -503,7 +504,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               <div key={group.label}>
                 <button
                   onClick={() => toggleGroup(group.label)}
-                  className={`flex items-center justify-between w-full px-3 py-2.5 rounded-sm text-sm transition-all duration-200 ${isOpen || groupActive ? "text-white bg-white/10 shadow-sm" : "text-gray-300 hover:bg-white/10 hover:text-white"}`}
+                  className={`flex items-center justify-between w-full px-3 py-2.5 rounded-sm text-sm transition-all duration-200 ${isOpen || groupActive ? "text-slate-900 bg-slate-100 font-medium" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}
                 >
                   <div className="flex items-center gap-3">
                     <Icon size={18} />
@@ -525,7 +526,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   />
                 </button>
                 {(isOpen || groupActive) && (
-                  <div className="ml-4 mr-1 mt-1 space-y-1 border-l border-white/10 pl-3 py-1">
+                  <div className="ml-4 mr-1 mt-1 space-y-1 border-l border-slate-200 pl-3 py-1">
                     {group.children.map((child) => {
                       const ChildIcon = iconMap[child.icon];
                       const active = isActive(child.href);
@@ -534,7 +535,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                           key={child.label}
                           to={child.href}
                           onClick={() => handleNavClick(child.label)}
-                          className={`flex items-center gap-3 px-3 py-2 rounded-sm text-sm transition-all duration-200 ${active ? "bg-white/15 text-white font-medium" : "text-gray-400 hover:bg-white/10 hover:text-white"}`}
+                          className={`flex items-center gap-3 px-3 py-2 rounded-sm text-sm transition-all duration-200 ${active ? "bg-[#0E6187] text-white font-medium shadow-sm" : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"}`}
                         >
                           <ChildIcon size={14} />
                           <span>{child.label}</span>
@@ -566,12 +567,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           })}
         </nav>
 
-        <div className="border-t border-white/10 px-3 py-3 bg-white/5 flex-shrink-0">
+        <div className="border-t border-slate-200 px-3 py-3 bg-slate-50 flex-shrink-0">
           <button
             onClick={() => {
               logout();
             }}
-            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200"
+            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm text-red-500 hover:bg-red-50 hover:text-red-600 transition-all duration-200"
           >
             <LogOut size={18} />
             <span>Logout</span>

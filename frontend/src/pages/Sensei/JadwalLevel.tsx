@@ -155,26 +155,26 @@ export default function JadwalLevelPage() {
 
   const statusBadge = (item?: JadwalLevelItem) => {
     if (!item) {
-      return <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-medium text-slate-500">Belum diatur</span>;
+      return <span className="inline-flex items-center gap-1 bg-[#f1f3f4] px-2.5 py-1 text-[10px] font-medium text-[#5f6368]">Belum diatur</span>;
     }
     if (item.status === "menunggu") {
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-medium text-amber-700">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
+        <span className="inline-flex items-center gap-1 bg-[#feefc3] px-2.5 py-1 text-[10px] font-medium text-[#b06000]">
+          <span className="h-1.5 w-1.5 animate-pulse bg-[#e37400]" />
           Menunggu Approval
         </span>
       );
     }
     if (item.status === "disetujui") {
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-medium text-emerald-700">
+        <span className="inline-flex items-center gap-1 border border-[#a8dab5] bg-[#e6f4ea] px-2.5 py-1 text-[10px] font-medium text-[#137333]">
           <Check size={10} />
           Disetujui
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-1 text-[10px] font-medium text-rose-700">
+      <span className="inline-flex items-center gap-1 border border-[#f6aea9] bg-[#fce8e6] px-2.5 py-1 text-[10px] font-medium text-[#a50e0e]">
         <X size={10} />
         Ditolak
       </span>
@@ -196,7 +196,7 @@ export default function JadwalLevelPage() {
   if (loading) {
     return (
       <div className="px-3 py-3 sm:px-6 sm:py-4">
-        <div className="rounded-lg border border-slate-200 p-8 text-center text-sm text-slate-400">Memuat data...</div>
+        <div className="border border-[#dadce0] p-8 text-center text-sm text-[#80868b]">Memuat data...</div>
       </div>
     );
   }
@@ -204,39 +204,39 @@ export default function JadwalLevelPage() {
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       {/* Breadcrumb */}
-      <nav className="mb-4 flex items-center gap-1.5 text-xs text-slate-500" aria-label="Breadcrumb">
-        <Link to="/" className="flex items-center gap-1 transition-colors hover:text-[#0E6187]">
+      <nav className="mb-4 flex items-center gap-1.5 text-xs text-[#5f6368]" aria-label="Breadcrumb">
+        <Link to="/" className="flex items-center gap-1 transition-colors hover:text-[#1a73e8]">
           <LayoutDashboard size={13} />
           <span>Beranda</span>
         </Link>
-        <ChevronRight size={12} className="text-slate-300" />
-        <span className="font-medium text-slate-700">Jadwal Level</span>
+        <ChevronRight size={12} className="text-[#9aa0a6]" />
+        <span className="font-medium text-[#3c4043]">Jadwal Level</span>
       </nav>
 
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-4 border-b border-[#dadce0] pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
-            <Calendar size={20} className="text-white" />
+          <div className="flex h-10 w-10 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]">
+            <Calendar size={20} />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-slate-800">Jadwal Level</h1>
-            <p className="text-sm text-slate-500">Atur tanggal mulai dan selesai setiap tahapan per batch, lalu diverifikasi oleh Manager / HR</p>
+            <h1 className="text-xl font-medium text-[#202124]">Jadwal Level</h1>
+            <p className="text-sm text-[#5f6368]">Atur tanggal mulai dan selesai setiap tahapan per batch, lalu diverifikasi oleh Manager / HR</p>
           </div>
         </div>
       </div>
 
       {/* Banner pengajuan untuk approver */}
       {canApprove && totalPending > 0 && (
-        <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-red-500 text-white">
+        <div className="mb-4 flex items-start gap-3 border border-[#f6aea9] bg-[#fce8e6] px-4 py-3">
+          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center bg-[#d93025] text-white">
             <ThumbsUp size={14} />
           </div>
-          <div className="text-xs text-red-800">
+          <div className="text-xs text-[#8a0e0b]">
             <p className="font-semibold">
               {totalPending} pengajuan jadwal menunggu persetujuan
             </p>
-            <p className="mt-0.5 text-red-600">
+            <p className="mt-0.5 text-[#c5221f]">
               Buka cabang dan batch yang ditandai merah untuk melihat detail lalu menyetujui atau menolak.
             </p>
           </div>
@@ -247,10 +247,10 @@ export default function JadwalLevelPage() {
       {!selectedCabang && !selectedBatch && (
         <>
           {cabangs.length === 0 && !hasUnassigned ? (
-            <div className="rounded-lg border border-slate-200 p-8 text-center">
-              <Calendar size={32} className="mx-auto mb-2 text-slate-300" />
-              <p className="text-sm font-medium text-slate-500">Belum ada batch aktif</p>
-              <p className="text-xs text-slate-400">Silakan tambah batch terlebih dahulu</p>
+            <div className="border border-[#dadce0] p-8 text-center">
+              <Calendar size={32} className="mx-auto mb-2 text-[#9aa0a6]" />
+              <p className="text-sm font-medium text-[#5f6368]">Belum ada batch aktif</p>
+              <p className="text-xs text-[#80868b]">Silakan tambah batch terlebih dahulu</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -262,20 +262,20 @@ export default function JadwalLevelPage() {
                     <button
                       key={cabang.id}
                       onClick={() => setSelectedCabang(cabang)}
-                      className={`group rounded-lg border bg-white p-4 text-left shadow-sm transition hover:shadow-md ${pending > 0 ? "border-red-300 ring-1 ring-red-100 hover:border-red-400" : "border-slate-200 hover:border-blue-300"}`}
+                      className={`group border bg-white p-4 text-left transition hover: ${pending > 0 ? "border-[#f28b82] ring-1 ring-[#f6d7d5] hover:border-[#ee675c]" : "border-[#dadce0] hover:border-[#8ab4f8]"}`}
                     >
                       <div className="mb-2 flex items-center justify-between">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600 group-hover:bg-blue-100">
+                        <div className="flex h-10 w-10 items-center justify-center bg-[#e8f0fe] text-[#1a73e8] group-hover:bg-[#d2e3fc]">
                           <Building2 size={20} />
                         </div>
                         {pending > 0 && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                          <span className="inline-flex items-center gap-1 bg-[#d93025] px-2 py-0.5 text-[10px] font-bold text-white">
                             {pending} pengajuan
                           </span>
                         )}
                       </div>
-                      <h3 className="text-sm font-semibold text-slate-800">{cabang.nama_cabang}</h3>
-                      <p className="mt-1 text-xs text-slate-400">{batchesByCabang(cabang.id).length} batch</p>
+                      <h3 className="text-sm font-semibold text-[#202124]">{cabang.nama_cabang}</h3>
+                      <p className="mt-1 text-xs text-[#80868b]">{batchesByCabang(cabang.id).length} batch</p>
                     </button>
                   );
                 })}
@@ -284,20 +284,20 @@ export default function JadwalLevelPage() {
                 return (
                   <button
                     onClick={() => setSelectedCabang({ id: 0, nama_cabang: "Tanpa Cabang" })}
-                    className={`group rounded-lg border border-dashed bg-white p-4 text-left shadow-sm transition hover:shadow-md ${pending > 0 ? "border-red-300 ring-1 ring-red-100 hover:border-red-400" : "border-slate-300 hover:border-slate-400"}`}
+                    className={`group border border-dashed bg-white p-4 text-left transition hover: ${pending > 0 ? "border-[#f28b82] ring-1 ring-[#f6d7d5] hover:border-[#ee675c]" : "border-[#dadce0] hover:border-[#bdc1c6]"}`}
                   >
                     <div className="mb-2 flex items-center justify-between">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-50 text-slate-500 group-hover:bg-slate-100">
+                      <div className="flex h-10 w-10 items-center justify-center bg-[#f8f9fa] text-[#5f6368] group-hover:bg-[#f1f3f4]">
                         <Building2 size={20} />
                       </div>
                       {pending > 0 && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                        <span className="inline-flex items-center gap-1 bg-[#d93025] px-2 py-0.5 text-[10px] font-bold text-white">
                           {pending} pengajuan
                         </span>
                       )}
                     </div>
-                    <h3 className="text-sm font-semibold text-slate-600">Tanpa Cabang</h3>
-                    <p className="mt-1 text-xs text-slate-400">{cabangTanpaCabang.length} batch</p>
+                    <h3 className="text-sm font-semibold text-[#5f6368]">Tanpa Cabang</h3>
+                    <p className="mt-1 text-xs text-[#80868b]">{cabangTanpaCabang.length} batch</p>
                   </button>
                 );
               })()}
@@ -311,16 +311,16 @@ export default function JadwalLevelPage() {
         <div>
           <button
             onClick={() => setSelectedCabang(null)}
-            className="mb-3 inline-flex items-center gap-1 text-xs font-medium text-slate-500 transition hover:text-slate-800"
+            className="mb-3 inline-flex items-center gap-1 text-xs font-medium text-[#5f6368] transition hover:text-[#202124]"
           >
             <ChevronLeft size={14} /> Kembali
           </button>
-          <h2 className="mb-3 text-base font-semibold text-slate-800">{selectedCabang.nama_cabang}</h2>
+          <h2 className="mb-3 text-base font-semibold text-[#202124]">{selectedCabang.nama_cabang}</h2>
           {(() => {
             const list = selectedCabang.id === 0 ? cabangTanpaCabang : batchesByCabang(selectedCabang.id);
             if (list.length === 0) {
               return (
-                <div className="rounded-lg border border-slate-200 p-8 text-center text-sm text-slate-400">
+                <div className="border border-[#dadce0] p-8 text-center text-sm text-[#80868b]">
                   Tidak ada batch di cabang ini
                 </div>
               );
@@ -335,20 +335,20 @@ export default function JadwalLevelPage() {
                       <button
                         key={batch.id}
                         onClick={() => setSelectedBatch(batch)}
-                        className={`group rounded-lg border bg-white p-4 text-left shadow-sm transition hover:shadow-md ${pending > 0 ? "border-red-300 ring-1 ring-red-100 hover:border-red-400" : "border-slate-200 hover:border-emerald-300"}`}
+                        className={`group border bg-white p-4 text-left transition hover: ${pending > 0 ? "border-[#f28b82] ring-1 ring-[#f6d7d5] hover:border-[#ee675c]" : "border-[#dadce0] hover:border-[#a8dab5]"}`}
                       >
                         <div className="mb-2 flex items-center justify-between">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100">
+                          <div className="flex h-10 w-10 items-center justify-center bg-[#e6f4ea] text-[#137333] group-hover:bg-[#084c63]">
                             <Layers size={20} />
                           </div>
                           {pending > 0 && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                            <span className="inline-flex items-center gap-1 bg-[#d93025] px-2 py-0.5 text-[10px] font-bold text-white">
                               {pending} pengajuan
                             </span>
                           )}
                         </div>
-                        <h3 className="text-sm font-semibold text-slate-800">{batch.nama_batch}</h3>
-                        <p className="mt-1 text-xs text-slate-400">{selectedCabang.nama_cabang}</p>
+                        <h3 className="text-sm font-semibold text-[#202124]">{batch.nama_batch}</h3>
+                        <p className="mt-1 text-xs text-[#80868b]">{selectedCabang.nama_cabang}</p>
                       </button>
                     );
                   })}
@@ -363,20 +363,20 @@ export default function JadwalLevelPage() {
         <div>
           <button
             onClick={() => { setSelectedBatch(null); setSelectedCabang(null); }}
-            className="mb-3 inline-flex items-center gap-1 text-xs font-medium text-slate-500 transition hover:text-slate-800"
+            className="mb-3 inline-flex items-center gap-1 text-xs font-medium text-[#5f6368] transition hover:text-[#202124]"
           >
             <ChevronLeft size={14} /> Kembali
           </button>
-          <h2 className="mb-3 text-base font-semibold text-slate-800">{selectedBatch.nama_batch}</h2>
-          <div className="rounded-lg border border-slate-200 shadow-sm">
+          <h2 className="mb-3 text-base font-semibold text-[#202124]">{selectedBatch.nama_batch}</h2>
+          <div className="border border-[#dadce0] ">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[600px] border-collapse text-left text-xs text-slate-700">
-                <thead className="bg-slate-50 text-[10px] text-slate-600 uppercase tracking-wide">
+              <table className="w-full min-w-[600px] border-collapse text-left text-xs text-[#3c4043]">
+                <thead className="text-[10px] text-[#5f6368] ">
                   <tr>
-                    <th className="border border-slate-200 px-3 py-2.5 font-semibold">Tahapan</th>
-                    <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold">Tanggal</th>
-                    <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold">Status</th>
-                    <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold">Aksi</th>
+                    <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5">Tahapan</th>
+                    <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Tanggal</th>
+                    <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Status</th>
+                    <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -384,39 +384,39 @@ export default function JadwalLevelPage() {
                     const key = buildKey(selectedBatch.id, s.level);
                     const item = jadwalMap[key];
                     return (
-                      <tr key={s.level} className="bg-white transition hover:bg-slate-50">
-                        <td className="border border-slate-200 px-3 py-2.5 font-semibold text-slate-700">{s.label}</td>
-                        <td className="border border-slate-200 px-3 py-2.5 text-center">
+                      <tr key={s.level} className="bg-white transition hover:bg-[#f8f9fa]">
+                        <td className="border-b border-[#e8eaed] px-3 py-2.5 font-semibold text-[#3c4043]">{s.label}</td>
+                        <td className="border-b border-[#e8eaed] px-3 py-2.5 text-center">
                           {item ? (
                             <div className="flex flex-col items-center gap-1">
-                              <span className="inline-flex rounded-md bg-emerald-100 px-3 py-1.5 text-[10px] font-medium text-emerald-700 whitespace-nowrap">
+                              <span className="inline-flex bg-[#0E6187] px-3 py-1.5 text-[10px] font-medium text-white whitespace-nowrap">
                                 {formatDate(item.tanggal_mulai)} - {formatDate(item.tanggal_selesai)}
                               </span>
                               {item.status === "ditolak" && item.rejection_reason && (
-                                <span className="max-w-[220px] text-[9px] italic leading-snug text-rose-500">
+                                <span className="max-w-[220px] text-[9px] italic leading-snug text-[#d93025]">
                                   Alasan: {item.rejection_reason}
                                 </span>
                               )}
                             </div>
                           ) : (
-                            <span className="text-[10px] text-slate-400">Belum diatur</span>
+                            <span className="text-[10px] text-[#80868b]">Belum diatur</span>
                           )}
                         </td>
-                        <td className="border border-slate-200 px-3 py-2.5 text-center">
+                        <td className="border-b border-[#e8eaed] px-3 py-2.5 text-center">
                           <div className="flex flex-col items-center gap-0.5">
                             {statusBadge(item)}
                             {item?.approved_by && (
-                              <span className="text-[9px] text-slate-400">
+                              <span className="text-[9px] text-[#80868b]">
                                 oleh {item.approved_by}{item.approved_at ? ` • ${new Date(item.approved_at).toLocaleDateString("id-ID")}` : ""}
                               </span>
                             )}
                           </div>
                         </td>
-                        <td className="border border-slate-200 px-3 py-2.5 text-center">
+                        <td className="border-b border-[#e8eaed] px-3 py-2.5 text-center">
                           <div className="flex items-center justify-center gap-1">
                             <button
                               onClick={() => openModal(selectedBatch, s.level, s.label, item)}
-                              className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-[10px] font-medium text-slate-500 transition hover:border-blue-400 hover:text-blue-600"
+                              className="inline-flex items-center gap-1 border border-[#dadce0] bg-white px-3 py-1.5 text-[10px] font-medium text-[#5f6368] transition hover:border-[#8ab4f8] hover:text-[#1a73e8]"
                             >
                               {item ? <Pencil size={12} /> : <Plus size={12} />}
                               {item ? "Edit" : "Atur"}
@@ -425,7 +425,7 @@ export default function JadwalLevelPage() {
                               <>
                                 <button
                                   onClick={() => handleApprove(selectedBatch, s.level, s.label)}
-                                  className="inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-[10px] font-medium text-emerald-700 transition hover:bg-emerald-100"
+                                  className="inline-flex items-center gap-1 border border-[#a8dab5] bg-[#e6f4ea] px-2.5 py-1.5 text-[10px] font-medium text-[#137333] transition hover:bg-[#084c63]"
                                   title="Setujui"
                                 >
                                   <ThumbsUp size={12} />
@@ -433,7 +433,7 @@ export default function JadwalLevelPage() {
                                 </button>
                                 <button
                                   onClick={() => openReject(selectedBatch, s.level, s.label)}
-                                  className="inline-flex items-center gap-1 rounded-md border border-rose-300 bg-rose-50 px-2.5 py-1.5 text-[10px] font-medium text-rose-700 transition hover:bg-rose-100"
+                                  className="inline-flex items-center gap-1 border border-[#f28b82] bg-[#fce8e6] px-2.5 py-1.5 text-[10px] font-medium text-[#a50e0e] transition hover:bg-[#f6d7d5]"
                                   title="Tolak"
                                 >
                                   <ThumbsDown size={12} />
@@ -444,7 +444,7 @@ export default function JadwalLevelPage() {
                             {item && (
                               <button
                                 onClick={() => handleDelete(selectedBatch, s.level, s.label)}
-                                className="rounded-md border border-slate-300 bg-white p-1.5 text-slate-500 transition hover:bg-rose-50 hover:text-rose-600"
+                                className="border border-[#dadce0] bg-white p-1.5 text-[#5f6368] transition hover:bg-[#fce8e6] hover:text-[#c5221f]"
                                 title="Hapus"
                               >
                                 <Trash2 size={12} />
@@ -464,37 +464,37 @@ export default function JadwalLevelPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3">
-          <div className="w-full max-w-sm rounded-lg bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-              <h3 className="text-sm font-semibold text-slate-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#202124]/50 px-3">
+          <div className="border border-[#dadce0] w-full max-w-sm bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]">
+            <div className="flex items-center justify-between border-b border-[#dadce0] px-4 py-3">
+              <h3 className="text-sm font-semibold text-[#202124]">
                 {form.tanggal_mulai ? "Edit" : "Atur"} Jadwal - {form.batch_nama} {form.levelLabel}
               </h3>
-              <button onClick={() => setShowModal(false)} className="rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
+              <button onClick={() => setShowModal(false)} className="p-1 text-[#80868b] transition hover:bg-[#f1f3f4] hover:text-[#5f6368]">
                 <X size={16} />
               </button>
             </div>
             <div className="px-4 py-4 space-y-3">
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-500">Batch</label>
-                <input type="text" value={form.batch_nama} readOnly className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none" />
+                <label className="mb-1 block text-xs font-semibold text-[#5f6368]">Batch</label>
+                <input type="text" value={form.batch_nama} readOnly className="w-full border border-[#dadce0] bg-[#f8f9fa] px-3 py-2 text-sm text-[#3c4043] outline-none" />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-500">Tahapan</label>
-                <input type="text" value={form.levelLabel} readOnly className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none" />
+                <label className="mb-1 block text-xs font-semibold text-[#5f6368]">Tahapan</label>
+                <input type="text" value={form.levelLabel} readOnly className="w-full border border-[#dadce0] bg-[#f8f9fa] px-3 py-2 text-sm text-[#3c4043] outline-none" />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-500">Tanggal Mulai <span className="text-rose-500">*</span></label>
-                <input type="date" value={form.tanggal_mulai} onChange={(e) => setForm({ ...form, tanggal_mulai: e.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                <label className="mb-1 block text-xs font-semibold text-[#5f6368]">Tanggal Mulai <span className="text-[#d93025]">*</span></label>
+                <input type="date" value={form.tanggal_mulai} onChange={(e) => setForm({ ...form, tanggal_mulai: e.target.value })} className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] focus:border-[#1a73e8]" />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-500">Tanggal Selesai <span className="text-rose-500">*</span></label>
-                <input type="date" value={form.tanggal_selesai} onChange={(e) => setForm({ ...form, tanggal_selesai: e.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                <label className="mb-1 block text-xs font-semibold text-[#5f6368]">Tanggal Selesai <span className="text-[#d93025]">*</span></label>
+                <input type="date" value={form.tanggal_selesai} onChange={(e) => setForm({ ...form, tanggal_selesai: e.target.value })} className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] focus:border-[#1a73e8]" />
               </div>
             </div>
-            <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3">
-              <button onClick={() => setShowModal(false)} className="rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">Batal</button>
-              <button onClick={handleSave} disabled={submitting || !form.tanggal_mulai || !form.tanggal_selesai} className="rounded-md bg-slate-800 px-4 py-2 text-xs font-medium text-white transition hover:bg-slate-700 disabled:opacity-50">
+            <div className="flex justify-end gap-2 border-t border-[#dadce0] px-4 py-3">
+              <button onClick={() => setShowModal(false)} className="border border-[#dadce0] bg-white px-4 py-2 text-xs font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]">Batal</button>
+              <button onClick={handleSave} disabled={submitting || !form.tanggal_mulai || !form.tanggal_selesai} className="bg-[#202124] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#3c4043] disabled:opacity-50">
                 {submitting ? "Menyimpan..." : "Simpan"}
               </button>
             </div>
@@ -504,29 +504,29 @@ export default function JadwalLevelPage() {
 
       {/* Modal Tolak */}
       {showRejectModal && rejectTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3">
-          <div className="w-full max-w-sm rounded-lg bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-              <h3 className="text-sm font-semibold text-slate-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#202124]/50 px-3">
+          <div className="border border-[#dadce0] w-full max-w-sm bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]">
+            <div className="flex items-center justify-between border-b border-[#dadce0] px-4 py-3">
+              <h3 className="text-sm font-semibold text-[#202124]">
                 Tolak Jadwal - {rejectTarget.batch.nama_batch} {rejectTarget.label}
               </h3>
-              <button onClick={() => setShowRejectModal(false)} className="rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
+              <button onClick={() => setShowRejectModal(false)} className="p-1 text-[#80868b] transition hover:bg-[#f1f3f4] hover:text-[#5f6368]">
                 <X size={16} />
               </button>
             </div>
             <div className="px-4 py-4">
-              <label className="mb-1 block text-xs font-semibold text-slate-500">Alasan Penolakan</label>
+              <label className="mb-1 block text-xs font-semibold text-[#5f6368]">Alasan Penolakan</label>
               <textarea
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
                 rows={3}
                 placeholder="Tulis alasan penolakan agar admin cabang bisa memperbaiki..."
-                className="w-full resize-none rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-rose-400 focus:ring-1 focus:ring-rose-400"
+                className="w-full resize-none border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#ee675c] focus:border-[#1a73e8] focus:ring-[#ee675c]"
               />
             </div>
-            <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3">
-              <button onClick={() => setShowRejectModal(false)} className="rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">Batal</button>
-              <button onClick={handleReject} disabled={rejecting} className="rounded-md bg-rose-600 px-4 py-2 text-xs font-medium text-white transition hover:bg-rose-700 disabled:opacity-50">
+            <div className="flex justify-end gap-2 border-t border-[#dadce0] px-4 py-3">
+              <button onClick={() => setShowRejectModal(false)} className="border border-[#dadce0] bg-white px-4 py-2 text-xs font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]">Batal</button>
+              <button onClick={handleReject} disabled={rejecting} className="bg-[#c5221f] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#a50e0e] disabled:opacity-50">
                 {rejecting ? "Menyimpan..." : "Tolak"}
               </button>
             </div>

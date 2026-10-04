@@ -124,27 +124,32 @@ export default function RekapSiswaPage() {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
-          <BarChart3 className="w-6 h-6 text-[#0E6187]" />
-          <h1 className="text-xl font-bold text-gray-800">Rekap Absensi Siswa</h1>
+    <div className="px-3 py-3 sm:px-6 sm:py-4">
+      <div className="mb-4 flex flex-col gap-4 border-b border-[#dadce0] pb-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]">
+            <BarChart3 size={20} />
+          </div>
+          <div>
+            <h1 className="text-xl font-medium text-[#202124]">Rekap Absensi Siswa</h1>
+            <p className="text-sm text-[#5f6368]">Rekap kehadiran siswa per batch dan level</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={handleExportExcel} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium">
+          <button onClick={handleExportExcel} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0E6187] text-white hover:bg-[#084c63] text-sm font-medium">
             <Download className="w-4 h-4" /> Excel
           </button>
-          <button onClick={handleExportPdf} className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 text-white rounded-lg hover:bg-rose-700 text-sm font-medium">
+          <button onClick={handleExportPdf} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#c5221f] text-white hover:bg-[#a50e0e] text-sm font-medium">
             <Download className="w-4 h-4" /> PDF
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4">
+      <div className="bg-white border border-[#dadce0] p-4 mb-4">
           <div className="flex flex-wrap items-end gap-3">
             <div className="w-44">
-              <label className="block text-xs font-medium text-gray-500 mb-1">Cabang</label>
-              <select value={filterCabang} onChange={(e) => handleCabangChange(e.target.value)} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]">
+              <label className="block text-xs font-medium text-[#5f6368] mb-1">Cabang</label>
+              <select value={filterCabang} onChange={(e) => handleCabangChange(e.target.value)} className="w-full px-3 py-1.5 border border-[#dadce0] text-sm focus:border-[#1a73e8]">
                 <option value="">Semua Cabang</option>
                 {cabangList.map((c) => (
                   <option key={c.id} value={c.id}>{c.nama_cabang}</option>
@@ -152,33 +157,33 @@ export default function RekapSiswaPage() {
               </select>
             </div>
             <div className="w-44">
-              <label className="block text-xs font-medium text-gray-500 mb-1">Batch</label>
+              <label className="block text-xs font-medium text-[#5f6368] mb-1">Batch</label>
               <div className="relative">
                 <button
                   onClick={() => setShowBatchDropdown(!showBatchDropdown)}
-                  className="flex w-full items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-slate-700 outline-none transition focus:ring-2 focus:ring-[#0E6187]"
+                  className="flex w-full items-center gap-2 border border-[#dadce0] bg-white px-3 py-1.5 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
                 >
                   {filterBatch ? (() => {
                     const b = batchList.find(x => String(x.id) === filterBatch)
                     return <>
-                      {b?.warna ? <span className="inline-block w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: b.warna }} /> : null}
+                      {b?.warna ? <span className="inline-block w-3 h-3 shrink-0" style={{ backgroundColor: b.warna }} /> : null}
                       <span className="truncate">{b?.nama_batch || filterBatch}</span>
                     </>
-                  })() : <span className="text-slate-500">Semua Batch</span>}
-                  <svg className="ml-auto h-4 w-4 shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                  })() : <span className="text-[#5f6368]">Semua Batch</span>}
+                  <svg className="ml-auto h-4 w-4 shrink-0 text-[#80868b]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                 </button>
                 {showBatchDropdown && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setShowBatchDropdown(false)} />
-                    <div className="absolute top-full left-0 mt-1 z-50 rounded-md border border-slate-200 bg-white shadow-lg max-h-48 overflow-y-auto min-w-[180px]">
+                    <div className="absolute top-full left-0 mt-1 z-50 border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15)] max-h-48 overflow-y-auto min-w-[180px]">
                       <button onClick={() => { setFilterBatch(''); setShowBatchDropdown(false); setPage(1) }}
-                        className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition hover:bg-slate-50 ${!filterBatch ? 'bg-blue-50 font-semibold' : ''}`}>
+                        className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition hover:bg-[#f8f9fa] ${!filterBatch ? 'bg-[#e8f0fe] font-semibold' : ''}`}>
                         Semua Batch
                       </button>
                       {batchList.map(b => (
                         <button key={b.id} onClick={() => { setFilterBatch(String(b.id)); setShowBatchDropdown(false); setPage(1) }}
-                          className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition hover:bg-slate-50 ${String(b.id) === filterBatch ? 'bg-blue-50 font-semibold' : ''}`}>
-                          {b.warna ? <span className="inline-block w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: b.warna }} /> : null}
+                          className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition hover:bg-[#f8f9fa] ${String(b.id) === filterBatch ? 'bg-[#e8f0fe] font-semibold' : ''}`}>
+                          {b.warna ? <span className="inline-block w-3 h-3 shrink-0" style={{ backgroundColor: b.warna }} /> : null}
                           {b.nama_batch}
                         </button>
                       ))}
@@ -188,8 +193,8 @@ export default function RekapSiswaPage() {
               </div>
           </div>
           <div className="w-28">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Level</label>
-            <select value={filterLevel} onChange={(e) => setFilterLevel(e.target.value)} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]">
+            <label className="block text-xs font-medium text-[#5f6368] mb-1">Level</label>
+            <select value={filterLevel} onChange={(e) => setFilterLevel(e.target.value)} className="w-full px-3 py-1.5 border border-[#dadce0] text-sm focus:border-[#1a73e8]">
               <option value="">Semua</option>
               {levels.map((l) => (
                 <option key={l} value={l}>Level {l}</option>
@@ -197,109 +202,120 @@ export default function RekapSiswaPage() {
             </select>
           </div>
           <div className="w-40">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Dari Tanggal</label>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]" />
+            <label className="block text-xs font-medium text-[#5f6368] mb-1">Dari Tanggal</label>
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-3 py-1.5 border border-[#dadce0] text-sm focus:border-[#1a73e8]" />
           </div>
           <div className="w-40">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Sampai Tanggal</label>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]" />
+            <label className="block text-xs font-medium text-[#5f6368] mb-1">Sampai Tanggal</label>
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-3 py-1.5 border border-[#dadce0] text-sm focus:border-[#1a73e8]" />
           </div>
-          <button onClick={handleFilter} className="flex items-center gap-1 px-3 py-1.5 bg-[#0E6187] text-white rounded-lg hover:bg-[#0a1629] text-sm">
+          <button onClick={handleFilter} className="btn btn-primary btn-sm">
             <Search className="w-4 h-4" /> Cari
           </button>
-          <button onClick={resetFilter} className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 text-sm">
+          <button onClick={resetFilter} className="btn btn-neutral btn-sm">
             <RotateCcw className="w-4 h-4" /> Reset
           </button>
         </div>
       </div>
 
-      <div className="relative overflow-x-auto">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-full border-collapse text-left text-sm text-slate-700">
-            <thead className="text-sm text-slate-600">
-              <tr>
-                <th className="border border-slate-200 px-4 py-3 font-medium w-10">#</th>
-                <th className="border border-slate-200 px-4 py-3 font-medium">Nama</th>
-                <th className="border border-slate-200 px-4 py-3 font-medium">Batch</th>
-                <th className="border border-slate-200 px-4 py-3 text-center font-medium">Lv</th>
-                <th className="border border-slate-200 px-4 py-3 font-medium">Tgl Mulai Kelas</th>
-                <th className="border border-slate-200 px-4 py-3 font-medium">Tgl Selesai Kelas</th>
-                <th className="border border-slate-200 px-4 py-3 text-center font-medium">Total Pertemuan</th>
-                <th className="border border-slate-200 px-4 py-3 text-center font-medium text-emerald-700">HADIR</th>
-                <th className="border border-slate-200 px-4 py-3 text-center font-medium text-amber-700">TERLAMBAT</th>
-                <th className="border border-slate-200 px-4 py-3 text-center font-medium text-blue-700">IZIN</th>
-                <th className="border border-slate-200 px-4 py-3 text-center font-medium text-sky-700">SAKIT</th>
-                <th className="border border-slate-200 px-4 py-3 text-center font-medium text-rose-700">ALPA</th>
-                <th className="border border-slate-200 px-4 py-3 text-center font-medium text-purple-700">TIDAK ABSEN PULANG</th>
-                <th className="border border-slate-200 px-4 py-3 text-center font-medium text-slate-700">Total Hadir</th>
-                <th className="border border-slate-200 px-4 py-3 text-center font-medium text-slate-700">%</th>
-                <th className="border border-slate-200 px-4 py-3 text-center font-medium text-slate-700">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={16} className="border border-slate-200 px-4 py-12 text-center text-sm text-slate-400">Memuat data...</td></tr>
-              ) : rekap.length === 0 ? (
-                <tr><td colSpan={16} className="border border-slate-200 px-4 py-12 text-center text-sm text-slate-400">Belum ada data rekap untuk periode ini</td></tr>              ) : pagedList.map((item, idx) => {
-                const isUndur = item.status_kandidat === 'Mengundurkan Diri';
-                return (
-                <tr key={item.id} className={`${isUndur ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-slate-50'}`}>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-500">{(safePage - 1) * perPage + idx + 1}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm font-medium text-slate-800">
-                    {item.nama}
-                    {isUndur && (
-                      <span className="ml-2 inline-block rounded bg-red-100 px-1.5 py-0.5 align-middle text-[10px] font-bold text-red-700">
-                        Mengundurkan Diri
-                      </span>
-                    )}
-                  </td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">{item.batch}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-center text-slate-600">{item.level ?? '-'}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">{formatDateShort(item.kelas_tanggal_mulai)}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">{formatDateShort(item.kelas_tanggal_selesai)}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-center text-slate-600">{item.total_pertemuan ?? '-'}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-center font-medium text-emerald-700">{item.hadir}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-center font-medium text-amber-700">{item.terlambat}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-center font-medium text-blue-700">{item.izin}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-center font-medium text-sky-700">{item.sakit}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-center font-medium text-rose-700">{item.alpa}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-center font-medium text-purple-700">{item.tidak_absen_pulang}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-center font-semibold text-slate-800">{item.total_hadir}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-center font-semibold text-slate-800">{item.persentase}%</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-center text-slate-600">{item.total}</td>
-                </tr>
-              );
-              })}
-            </tbody>
-            {rekap.length > 0 && (
-              <tfoot>
-                <tr className="font-semibold">
-                  <td colSpan={7} className="border border-slate-200 px-4 py-3 text-sm text-slate-800">Total</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-center text-emerald-700">{totals.hadir}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-center text-amber-700">{totals.terlambat}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-center text-blue-700">{totals.izin}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-center text-sky-700">{totals.sakit}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-center text-rose-700">{totals.alpa}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-center text-purple-700">{totals.tidakAbsenPulang}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-center text-slate-800">{totals.total_hadir}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-center text-slate-800">
-                    {totals.total > 0 ? ((totals.total_hadir / totals.total) * 100).toFixed(1) : 0}%
-                  </td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-center text-slate-800">{totals.total}</td>
-                </tr>
-              </tfoot>
-            )}
-          </table>
-        </div>
+      {/* Table */}
+      <div className="border border-[#dadce0] bg-white">
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="relative w-14 h-14 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full border-2 border-[#1a73e8]/10 border-t-[#1a73e8] animate-spin" />
+              <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="max-h-[calc(100vh-260px)] overflow-auto">
+              <table className="w-full min-w-[1900px] border-collapse text-left text-sm text-black">
+                <thead className="sticky top-0 z-20 bg-white">
+                  <tr>
+                    <th className="border-b border-[#e8eaed] px-3 py-3 text-xs font-medium text-[#5f6368] text-center w-12">#</th>
+                    <th className="border-b border-[#e8eaed] px-3 py-3 text-xs font-medium text-[#5f6368]">Nama</th>
+                    <th className="border-b border-[#e8eaed] px-3 py-3 text-xs font-medium text-[#5f6368]">Batch</th>
+                    <th className="border-b border-[#e8eaed] px-3 py-3 text-xs font-medium text-[#5f6368] text-center">Lv</th>
+                    <th className="border-b border-[#e8eaed] px-3 py-3 text-xs font-medium text-[#5f6368]">Tgl Mulai Kelas</th>
+                    <th className="border-b border-[#e8eaed] px-3 py-3 text-xs font-medium text-[#5f6368]">Tgl Selesai Kelas</th>
+                    <th className="border-b border-[#e8eaed] px-3 py-3 text-xs font-medium text-[#5f6368] text-center">Total Pertemuan</th>
+                    <th className="border-b border-[#e8eaed] px-3 py-3 text-xs font-medium text-[#5f6368] text-center">HADIR</th>
+                    <th className="border-b border-[#e8eaed] px-3 py-3 text-xs font-medium text-[#5f6368] text-center">TERLAMBAT</th>
+                    <th className="border-b border-[#e8eaed] px-3 py-3 text-xs font-medium text-[#5f6368] text-center">IZIN</th>
+                    <th className="border-b border-[#e8eaed] px-3 py-3 text-xs font-medium text-[#5f6368] text-center">SAKIT</th>
+                    <th className="border-b border-[#e8eaed] px-3 py-3 text-xs font-medium text-[#5f6368] text-center">ALPA</th>
+                    <th className="border-b border-[#e8eaed] px-3 py-3 text-xs font-medium text-[#5f6368] text-center">TIDAK ABSEN PULANG</th>
+                    <th className="border-b border-[#e8eaed] px-3 py-3 text-xs font-medium text-[#5f6368] text-center">Total Hadir</th>
+                    <th className="border-b border-[#e8eaed] px-3 py-3 text-xs font-medium text-[#5f6368] text-center">%</th>
+                    <th className="border-b border-[#e8eaed] px-3 py-3 text-xs font-medium text-[#5f6368] text-center">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rekap.length === 0 ? (
+                    <tr><td colSpan={16} className="px-6 py-12 text-center text-sm text-[#80868b]">Belum ada data rekap untuk periode ini</td></tr>
+                  ) : pagedList.map((item, idx) => {
+                    const isUndur = item.status_kandidat === 'Mengundurkan Diri';
+                    return (
+                    <tr key={item.id} className={`${isUndur ? 'bg-[#fce8e6]' : 'bg-white'} transition hover:bg-[#f8f9fa] group`}>
+                      <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black text-center">{(safePage - 1) * perPage + idx + 1}</td>
+                      <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-medium text-[#202124]">
+                        {item.nama}
+                        {isUndur && (
+                          <span className="ml-2 inline-block bg-[#f6d7d5] px-1.5 py-0.5 align-middle text-[10px] font-medium text-[#a50e0e]">
+                            Mengundurkan Diri
+                          </span>
+                        )}
+                      </td>
+                      <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black">{item.batch}</td>
+                      <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black text-center">{item.level ?? '-'}</td>
+                      <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black whitespace-nowrap">{formatDateShort(item.kelas_tanggal_mulai)}</td>
+                      <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black whitespace-nowrap">{formatDateShort(item.kelas_tanggal_selesai)}</td>
+                      <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black text-center">{item.total_pertemuan ?? '-'}</td>
+                      <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black text-center font-medium text-[#137333]">{item.hadir}</td>
+                      <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black text-center font-medium text-[#b06000]">{item.terlambat}</td>
+                      <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black text-center font-medium text-[#1967d2]">{item.izin}</td>
+                      <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black text-center font-medium text-[#1967d2]">{item.sakit}</td>
+                      <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black text-center font-medium text-[#a50e0e]">{item.alpa}</td>
+                      <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black text-center font-medium text-[#7627bb]">{item.tidak_absen_pulang}</td>
+                      <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black text-center font-medium text-[#202124]">{item.total_hadir}</td>
+                      <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black text-center font-medium text-[#202124]">{item.persentase}%</td>
+                      <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black text-center">{item.total}</td>
+                    </tr>
+                  );
+                  })}
+                </tbody>
+                {rekap.length > 0 && (
+                  <tfoot className="sticky bottom-0 z-10 bg-[#f8f9fa]">
+                    <tr>
+                      <td colSpan={7} className="border-t border-[#e8eaed] px-3 py-3 text-xs font-medium text-[#202124]">Total</td>
+                      <td className="border-t border-[#e8eaed] px-3 py-3 text-xs font-medium text-center text-[#137333]">{totals.hadir}</td>
+                      <td className="border-t border-[#e8eaed] px-3 py-3 text-xs font-medium text-center text-[#b06000]">{totals.terlambat}</td>
+                      <td className="border-t border-[#e8eaed] px-3 py-3 text-xs font-medium text-center text-[#1967d2]">{totals.izin}</td>
+                      <td className="border-t border-[#e8eaed] px-3 py-3 text-xs font-medium text-center text-[#1967d2]">{totals.sakit}</td>
+                      <td className="border-t border-[#e8eaed] px-3 py-3 text-xs font-medium text-center text-[#a50e0e]">{totals.alpa}</td>
+                      <td className="border-t border-[#e8eaed] px-3 py-3 text-xs font-medium text-center text-[#7627bb]">{totals.tidakAbsenPulang}</td>
+                      <td className="border-t border-[#e8eaed] px-3 py-3 text-xs font-medium text-center text-[#202124]">{totals.total_hadir}</td>
+                      <td className="border-t border-[#e8eaed] px-3 py-3 text-xs font-medium text-center text-[#202124]">
+                        {totals.total > 0 ? ((totals.total_hadir / totals.total) * 100).toFixed(1) : 0}%
+                      </td>
+                      <td className="border-t border-[#e8eaed] px-3 py-3 text-xs font-medium text-center text-[#202124]">{totals.total}</td>
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Pagination */}
       {!loading && rekap.length > 0 && (
-        <div className="mt-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3 text-sm text-slate-500">
+        <div className="mt-4 flex flex-col gap-3 border border-[#dadce0] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3 text-sm text-[#5f6368]">
             <span>Per halaman</span>
             <select value={perPage} onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1) }}
-              className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+              className="border border-[#dadce0] bg-white px-2 py-1.5 text-sm font-medium text-[#3c4043] outline-none transition focus:border-[#1a73e8]">
               {[25, 50, 100, 200].map(n => (
                 <option key={n} value={n}>{n}</option>
               ))}
@@ -308,11 +324,11 @@ export default function RekapSiswaPage() {
           </div>
           <div className="flex items-center gap-1">
             <button onClick={() => setPage(1)} disabled={safePage <= 1}
-              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none">
+              className="border border-[#dadce0] bg-white p-1.5 text-[#5f6368] transition hover:bg-[#f8f9fa] disabled:opacity-30 disabled:pointer-events-none">
               <ChevronsLeft size={16} />
             </button>
             <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage <= 1}
-              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none">
+              className="border border-[#dadce0] bg-white p-1.5 text-[#5f6368] transition hover:bg-[#f8f9fa] disabled:opacity-30 disabled:pointer-events-none">
               <ChevronLeft size={16} />
             </button>
             {(() => {
@@ -330,25 +346,21 @@ export default function RekapSiswaPage() {
               }
               return pages.map((p, i) =>
                 p === '...' ? (
-                  <span key={`dots-${i}`} className="px-1 text-sm text-slate-300">...</span>
+                  <span key={`dots-${i}`} className="px-1 text-sm text-[#9aa0a6]">...</span>
                 ) : (
                   <button key={p} onClick={() => setPage(p)}
-                    className={`min-w-[32px] rounded-md border px-2 py-1.5 text-sm font-medium transition ${
-                      p === safePage
-                        ? 'border-slate-200 bg-slate-800 text-white'
-                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                    }`}>
+                    className={`min-w-[32px] border px-2 py-1.5 text-sm font-medium transition ${ p === safePage ? 'border-[#dadce0] bg-[#202124] text-white' : 'border-[#dadce0] bg-white text-[#5f6368] hover:bg-[#f8f9fa]' }`}>
                     {p}
                   </button>
                 )
               )
             })()}
             <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}
-              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none">
+              className="border border-[#dadce0] bg-white p-1.5 text-[#5f6368] transition hover:bg-[#f8f9fa] disabled:opacity-30 disabled:pointer-events-none">
               <ChevronRight size={16} />
             </button>
             <button onClick={() => setPage(totalPages)} disabled={safePage >= totalPages}
-              className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none">
+              className="border border-[#dadce0] bg-white p-1.5 text-[#5f6368] transition hover:bg-[#f8f9fa] disabled:opacity-30 disabled:pointer-events-none">
               <ChevronsRight size={16} />
             </button>
           </div>

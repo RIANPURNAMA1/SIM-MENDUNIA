@@ -241,26 +241,26 @@ export default function BatchesPage() {
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       {/* Breadcrumb */}
-      <nav className="mb-4 flex items-center gap-1.5 text-xs text-slate-500" aria-label="Breadcrumb">
-        <Link to={isAdminCabang ? "/admin-cabang" : "/"} className="flex items-center gap-1 transition-colors hover:text-[#0E6187]">
+      <nav className="mb-4 flex items-center gap-1.5 text-xs text-[#5f6368]" aria-label="Breadcrumb">
+        <Link to={isAdminCabang ? "/admin-cabang" : "/"} className="flex items-center gap-1 transition-colors hover:text-[#1a73e8]">
           <LayoutDashboard size={13} />
           <span>Beranda</span>
         </Link>
-        <ChevronRight size={12} className="text-slate-300" />
-        <span className="font-medium text-slate-700">Batch</span>
+        <ChevronRight size={12} className="text-[#9aa0a6]" />
+        <span className="font-medium text-[#3c4043]">Batch</span>
       </nav>
 
-      <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-4 border-b border-[#dadce0] pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
-            <Layers size={20} className="text-white" />
+          <div className="flex h-10 w-10 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]">
+            <Layers size={20} />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-slate-800">Batch</h1>
-            <p className="text-sm text-slate-500">Kelola data batch siswa</p>
+            <h1 className="text-xl font-medium text-[#202124]">Batch</h1>
+            <p className="text-sm text-[#5f6368]">Kelola data batch siswa</p>
           </div>
         </div>
-        <button onClick={openAdd} className="inline-flex items-center gap-2 rounded-md bg-slate-800 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-700">
+        <button onClick={openAdd} className="inline-flex items-center gap-2 bg-[#202124] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#3c4043]">
           <Plus size={16} /> Tambah Batch
         </button>
       </div>
@@ -268,13 +268,13 @@ export default function BatchesPage() {
       {/* Filter Cabang */}
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
-          <Filter size={15} className="text-slate-400" />
-          <span className="text-xs font-medium text-slate-500">Filter Cabang:</span>
+          <Filter size={15} className="text-[#80868b]" />
+          <span className="text-xs font-medium text-[#5f6368]">Filter Cabang:</span>
         </div>
         <select
           value={filterCabang}
           onChange={(e) => { setFilterCabang(e.target.value ? Number(e.target.value) : ""); setPage(1); }}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          className="border border-[#dadce0] bg-white px-3 py-2 text-xs text-[#3c4043] outline-none transition focus:border-[#1a73e8] focus:border-[#1a73e8]"
         >
           <option value="">Semua Cabang</option>
           {cabangList.map((c) => (
@@ -282,82 +282,82 @@ export default function BatchesPage() {
           ))}
         </select>
         {filterCabang && (
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-[#80868b]">
             Menampilkan {data.length} batch
           </span>
         )}
       </div>
 
-      <div className="relative overflow-x-auto rounded-lg border border-slate-200">
-        <table className="w-full min-w-[600px] border-collapse text-left text-xs text-slate-700">
-          <thead className="bg-slate-50 text-[10px] text-slate-600 uppercase tracking-wide">
+      <div className="relative overflow-x-auto border border-[#dadce0]">
+        <table className="w-full min-w-[600px] border-collapse text-left text-xs text-[#3c4043]">
+          <thead className="text-[10px] text-[#5f6368] ">
             <tr>
-              <th className="border border-slate-200 px-3 py-2.5 text-center w-12 font-semibold">No</th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold">Nama Batch</th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold">Cabang</th>
-              <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold">Status</th>
-              <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold">Kuota</th>
-              <th className="border border-slate-200 px-3 py-2.5 text-center font-semibold w-28">Aksi</th>
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 w-12 text-center">No</th>
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5">Nama Batch</th>
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5">Cabang</th>
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Status</th>
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Kuota</th>
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 w-28 text-center">Aksi</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <tr key={i}>
-                  <td colSpan={6} className="border border-slate-200 px-3 py-3"><div className="h-3 w-full rounded bg-slate-200/70" /></td>
+                  <td colSpan={6} className="px-6 py-12 text-center"><div className="h-3 w-full bg-[#e8eaed]/70" /></td>
                 </tr>
               ))
             ) : filteredData.length === 0 ? (
               <tr>
-                <td colSpan={6} className="border border-slate-200 px-4 py-10 text-center">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400"><Layers size={24} /></div>
-                  <p className="mt-3 text-sm font-medium text-slate-600">
+                <td colSpan={6} className="px-6 py-12 text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center bg-[#f1f3f4] text-[#80868b]"><Layers size={24} /></div>
+                  <p className="mt-3 text-sm font-medium text-[#5f6368]">
                     {filterCabang ? "Tidak ada batch untuk cabang ini" : "Belum ada data batch"}
                   </p>
                 </td>
               </tr>
             ) : (
               filteredData.map((item, idx) => (
-                <tr key={item.id} className="bg-white transition hover:bg-slate-50">
-                  <td className="border border-slate-200 px-3 py-2.5 text-center text-slate-400">{idx + 1}</td>
-                  <td className="border border-slate-200 px-3 py-2.5 font-semibold text-slate-800">
-                    <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold text-white" style={{ backgroundColor: item.warna || '#3b82f6' }}>
+                <tr key={item.id} className="bg-white transition hover:bg-[#f8f9fa]">
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-center text-[#80868b]">{idx + 1}</td>
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 font-semibold text-[#202124]">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-bold text-white" style={{ backgroundColor: item.warna || '#3b82f6' }}>
                       {item.nama_batch}
                     </span>
                   </td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-slate-600">
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-[#5f6368]">
                     {item.cabang ? (
                       <span className="inline-flex items-center gap-1">
-                        <Building2 size={12} className="text-slate-400" />
+                        <Building2 size={12} className="text-[#80868b]" />
                         {item.cabang.nama_cabang}
                       </span>
                     ) : (
-                      <span className="text-slate-300">—</span>
+                      <span className="text-[#9aa0a6]">—</span>
                     )}
                   </td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-center">
-                    <span className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-semibold ${item.status === "AKTIF" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-center">
+                    <span className={`inline-flex px-2 py-0.5 text-[9px] font-semibold ${item.status === "AKTIF" ? "bg-[#0E6187] text-white" : "bg-[#f1f3f4] text-[#5f6368]"}`}>
                       {item.status}
                     </span>
                   </td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-center">
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-center">
                     {item.kuota ? (
-                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-medium ${item.is_penuh ? 'bg-red-100 text-red-700' : 'bg-sky-100 text-sky-700'}`}>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-medium ${item.is_penuh ? 'bg-[#f6d7d5] text-[#a50e0e]' : 'bg-[#d2e3fc] text-[#1967d2]'}`}>
                         {item.siswas_count}/{item.kuota}
                         {item.is_penuh && <span className="font-semibold">Penuh</span>}
                       </span>
                     ) : (
-                      <span className="inline-flex rounded-full bg-sky-100 px-2 py-0.5 text-[9px] font-medium text-sky-700">
+                      <span className="inline-flex bg-[#d2e3fc] px-2 py-0.5 text-[9px] font-medium text-[#1967d2]">
                         {item.siswas_count} siswa
                       </span>
                     )}
                   </td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-center">
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-center">
                     <div className="flex items-center justify-center gap-1">
-                      <button onClick={() => openEdit(item)} className="rounded-md p-1.5 text-slate-400 transition hover:bg-amber-50 hover:text-amber-600" title="Edit"><Pencil size={13} /></button>
-                      <button onClick={() => handleDelete(item)} className="rounded-md p-1.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-500" title="Hapus"><Trash2 size={13} /></button>
-                      <button onClick={() => handleToggleStatus(item)} className="rounded-md p-1.5 text-slate-400 transition hover:bg-blue-50 hover:text-blue-500" title="Aktif/Nonaktif"><RotateCcw size={13} /></button>
-                      <button onClick={() => handleTogglePenuh(item)} className={`rounded-md p-1.5 transition ${item.is_penuh_manual ? 'text-red-500 hover:bg-red-50 hover:text-red-700' : 'text-slate-400 hover:bg-orange-50 hover:text-orange-500'}`} title={item.is_penuh_manual ? 'Tandai Tidak Penuh' : 'Tandai Penuh'}><Ban size={13} /></button>
+                      <button onClick={() => openEdit(item)} className="p-1.5 text-[#80868b] transition hover:bg-[#fef7e0] hover:text-[#b06000]" title="Edit"><Pencil size={13} /></button>
+                      <button onClick={() => handleDelete(item)} className="p-1.5 text-[#80868b] transition hover:bg-[#fce8e6] hover:text-[#d93025]" title="Hapus"><Trash2 size={13} /></button>
+                      <button onClick={() => handleToggleStatus(item)} className="p-1.5 text-[#80868b] transition hover:bg-[#e8f0fe] hover:text-[#1a73e8]" title="Aktif/Nonaktif"><RotateCcw size={13} /></button>
+                      <button onClick={() => handleTogglePenuh(item)} className={`p-1.5 transition ${item.is_penuh_manual ? 'text-[#d93025] hover:bg-[#fce8e6] hover:text-[#a50e0e]' : 'text-[#80868b] hover:bg-[#fef7e0] hover:text-[#e37400]'}`} title={item.is_penuh_manual ? 'Tandai Tidak Penuh' : 'Tandai Penuh'}><Ban size={13} /></button>
                     </div>
                   </td>
                 </tr>
@@ -367,17 +367,17 @@ export default function BatchesPage() {
         </table>
         {/* Pagination */}
         {!loading && lastPage > 1 && (
-          <div className="flex items-center justify-between border-t border-slate-200 bg-white px-4 py-3">
-            <span className="text-xs text-slate-500">
+          <div className="flex items-center justify-between border-t border-[#dadce0] bg-white px-4 py-3">
+            <span className="text-xs text-[#5f6368]">
               {total} batch — halaman {page} dari {lastPage}
             </span>
             <div className="flex items-center gap-1">
               <button onClick={() => fetchData(1)} disabled={page === 1}
-                className="rounded border border-slate-300 px-2.5 py-1 text-xs text-slate-600 transition hover:bg-slate-100 disabled:opacity-40">
+                className="border border-[#dadce0] px-2.5 py-1 text-xs text-[#5f6368] transition hover:bg-[#f1f3f4] disabled:opacity-40">
                 Awal
               </button>
               <button onClick={() => fetchData(page - 1)} disabled={page === 1}
-                className="rounded border border-slate-300 px-2.5 py-1 text-xs text-slate-600 transition hover:bg-slate-100 disabled:opacity-40">
+                className="border border-[#dadce0] px-2.5 py-1 text-xs text-[#5f6368] transition hover:bg-[#f1f3f4] disabled:opacity-40">
                 Prev
               </button>
               {Array.from({ length: Math.min(lastPage, 5) }, (_, i) => {
@@ -386,17 +386,17 @@ export default function BatchesPage() {
                 if (p > lastPage) return null;
                 return (
                   <button key={p} onClick={() => fetchData(p)}
-                    className={`rounded border px-2.5 py-1 text-xs transition ${p === page ? 'border-slate-800 bg-slate-800 text-white' : 'border-slate-300 text-slate-600 hover:bg-slate-100'}`}>
+                    className={`border px-2.5 py-1 text-xs transition ${p === page ? 'border-[#3c4043] bg-[#202124] text-white' : 'border-[#dadce0] text-[#5f6368] hover:bg-[#f1f3f4]'}`}>
                     {p}
                   </button>
                 );
               })}
               <button onClick={() => fetchData(page + 1)} disabled={page === lastPage}
-                className="rounded border border-slate-300 px-2.5 py-1 text-xs text-slate-600 transition hover:bg-slate-100 disabled:opacity-40">
+                className="border border-[#dadce0] px-2.5 py-1 text-xs text-[#5f6368] transition hover:bg-[#f1f3f4] disabled:opacity-40">
                 Next
               </button>
               <button onClick={() => fetchData(lastPage)} disabled={page === lastPage}
-                className="rounded border border-slate-300 px-2.5 py-1 text-xs text-slate-600 transition hover:bg-slate-100 disabled:opacity-40">
+                className="border border-[#dadce0] px-2.5 py-1 text-xs text-[#5f6368] transition hover:bg-[#f1f3f4] disabled:opacity-40">
                 Akhir
               </button>
             </div>
@@ -419,44 +419,44 @@ export default function BatchesPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3">
-          <div className="w-full max-w-sm rounded-lg bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-              <h3 className="text-sm font-semibold text-slate-800">{editId ? "Edit Batch" : "Tambah Batch"}</h3>
-              <button onClick={() => { setShowModal(false); setNamaBatch(""); setCabangId(""); setKuota(""); setWarna("#3b82f6"); setLinkGrup(""); setEditId(null); }} className="rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"><X size={16} /></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#202124]/50 px-3">
+          <div className="border border-[#dadce0] w-full max-w-sm bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]">
+            <div className="flex items-center justify-between border-b border-[#dadce0] px-4 py-3">
+              <h3 className="text-sm font-semibold text-[#202124]">{editId ? "Edit Batch" : "Tambah Batch"}</h3>
+              <button onClick={() => { setShowModal(false); setNamaBatch(""); setCabangId(""); setKuota(""); setWarna("#3b82f6"); setLinkGrup(""); setEditId(null); }} className="p-1 text-[#80868b] transition hover:bg-[#f1f3f4] hover:text-[#5f6368]"><X size={16} /></button>
             </div>
             <form onSubmit={handleSave}>
               <div className="px-4 py-4 space-y-4">
                 {editId ? (
                   <div>
-                    <label className="mb-1 block text-xs font-semibold text-slate-500">Nama Batch <span className="text-rose-500">*</span></label>
-                    <input type="text" value={namaBatch} onChange={(e) => setNamaBatch(e.target.value)} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="Contoh: Batch 14" required autoFocus />
+                    <label className="mb-1 block text-xs font-semibold text-[#5f6368]">Nama Batch <span className="text-[#d93025]">*</span></label>
+                    <input type="text" value={namaBatch} onChange={(e) => setNamaBatch(e.target.value)} className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] focus:border-[#1a73e8]" placeholder="Contoh: Batch 14" required autoFocus />
                   </div>
                 ) : (
                   <>
                     <div>
-                      <label className="mb-1 block text-xs font-semibold text-slate-500">Nama Batch <span className="text-rose-500">*</span></label>
-                      <input type="text" value={namaBatch} onChange={(e) => setNamaBatch(e.target.value)} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="Batch" />
-                      <p className="mt-1 text-[10px] text-slate-400">Isi untuk 1 batch. Kosongi jika ingin buat banyak batch otomatis.</p>
+                      <label className="mb-1 block text-xs font-semibold text-[#5f6368]">Nama Batch <span className="text-[#d93025]">*</span></label>
+                      <input type="text" value={namaBatch} onChange={(e) => setNamaBatch(e.target.value)} className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] focus:border-[#1a73e8]" placeholder="Batch" />
+                      <p className="mt-1 text-[10px] text-[#80868b]">Isi untuk 1 batch. Kosongi jika ingin buat banyak batch otomatis.</p>
                     </div>
-                    <div className="border-t border-slate-200 pt-3">
-                      <p className="mb-2 text-xs font-semibold text-slate-500">Buat Banyak Batch Otomatis</p>
+                    <div className="border-t border-[#dadce0] pt-3">
+                      <p className="mb-2 text-xs font-semibold text-[#5f6368]">Buat Banyak Batch Otomatis</p>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="mb-1 block text-[11px] font-medium text-slate-400">Prefiks Nama</label>
-                          <input type="text" value={batchPrefix} onChange={(e) => setBatchPrefix(e.target.value)} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="Batch" />
+                          <label className="mb-1 block text-[11px] font-medium text-[#80868b]">Prefiks Nama</label>
+                          <input type="text" value={batchPrefix} onChange={(e) => setBatchPrefix(e.target.value)} className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] focus:border-[#1a73e8]" placeholder="Batch" />
                         </div>
                         <div>
-                          <label className="mb-1 block text-[11px] font-medium text-slate-400">Dari</label>
-                          <input type="number" min="1" value={batchDari} onChange={(e) => setBatchDari(e.target.value)} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                          <label className="mb-1 block text-[11px] font-medium text-[#80868b]">Dari</label>
+                          <input type="number" min="1" value={batchDari} onChange={(e) => setBatchDari(e.target.value)} className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] focus:border-[#1a73e8]" />
                         </div>
                         <div>
-                          <label className="mb-1 block text-[11px] font-medium text-slate-400">Sampai</label>
-                          <input type="number" min="1" value={batchSampai} onChange={(e) => setBatchSampai(e.target.value)} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                          <label className="mb-1 block text-[11px] font-medium text-[#80868b]">Sampai</label>
+                          <input type="number" min="1" value={batchSampai} onChange={(e) => setBatchSampai(e.target.value)} className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] focus:border-[#1a73e8]" />
                         </div>
                         <div className="flex items-end pb-1">
                           {batchPrefix.trim() && batchDari && batchSampai && Number(batchDari) <= Number(batchSampai) && (
-                            <span className="text-[11px] text-emerald-600 font-medium">
+                            <span className="text-[11px] text-[#137333] font-medium">
                               Akan buat {Number(batchSampai) - Number(batchDari) + 1} batch
                             </span>
                           )}
@@ -466,8 +466,8 @@ export default function BatchesPage() {
                   </>
                 )}
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-500">Cabang</label>
-                  <select value={cabangId} onChange={(e) => setCabangId(e.target.value ? Number(e.target.value) : "")} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                  <label className="mb-1 block text-xs font-semibold text-[#5f6368]">Cabang</label>
+                  <select value={cabangId} onChange={(e) => setCabangId(e.target.value ? Number(e.target.value) : "")} className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] focus:border-[#1a73e8]">
                     <option value="">Pilih Cabang</option>
                     {cabangList.map((c) => (
                       <option key={c.id} value={c.id}>{c.nama_cabang}</option>
@@ -475,31 +475,31 @@ export default function BatchesPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-500">Kuota Siswa <span className="font-normal text-slate-400">(kosongi jika tidak terbatas)</span></label>
-                  <input type="number" min="1" value={kuota} onChange={(e) => setKuota(e.target.value)} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="Contoh: 50" />
+                  <label className="mb-1 block text-xs font-semibold text-[#5f6368]">Kuota Siswa <span className="font-normal text-[#80868b]">(kosongi jika tidak terbatas)</span></label>
+                  <input type="number" min="1" value={kuota} onChange={(e) => setKuota(e.target.value)} className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] focus:border-[#1a73e8]" placeholder="Contoh: 50" />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-500">Warna Badge</label>
+                  <label className="mb-1 block text-xs font-semibold text-[#5f6368]">Warna Badge</label>
                   <div className="flex items-center gap-2">
-                    <input type="color" value={warna} onChange={e => setWarna(e.target.value)} className="h-9 w-9 cursor-pointer rounded border border-slate-300 p-0.5" />
+                    <input type="color" value={warna} onChange={e => setWarna(e.target.value)} className="h-9 w-9 cursor-pointer border border-[#dadce0] p-0.5" />
                     <div className="flex flex-wrap gap-1.5">
                       {['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4','#f97316','#14b8a6','#6366f1','#84cc16','#e11d48'].map(c => (
-                        <button key={c} type="button" onClick={() => setWarna(c)} className={`h-6 w-6 rounded-full border-2 transition ${warna === c ? 'border-slate-800 scale-110' : 'border-transparent hover:scale-110'}`} style={{ backgroundColor: c }} />
+                        <button key={c} type="button" onClick={() => setWarna(c)} className={`h-6 w-6 border-2 transition ${warna === c ? 'border-[#3c4043] scale-110' : 'border-transparent hover:scale-110'}`} style={{ backgroundColor: c }} />
                       ))}
                     </div>
                   </div>
                   <div className="mt-2">
-                    <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-white" style={{ backgroundColor: warna }}>{namaBatch || 'Preview'}</span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-white" style={{ backgroundColor: warna }}>{namaBatch || 'Preview'}</span>
                   </div>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-500">Link Grup</label>
-                  <input type="url" value={linkGrup} onChange={(e) => setLinkGrup(e.target.value)} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="https://chat.whatsapp.com/..." />
+                  <label className="mb-1 block text-xs font-semibold text-[#5f6368]">Link Grup</label>
+                  <input type="url" value={linkGrup} onChange={(e) => setLinkGrup(e.target.value)} className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] focus:border-[#1a73e8]" placeholder="https://chat.whatsapp.com/..." />
                 </div>
               </div>
-              <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3">
-                <button type="button" onClick={() => { setShowModal(false); setNamaBatch(""); setCabangId(""); setKuota(""); setWarna("#3b82f6"); setLinkGrup(""); setEditId(null); }} className="rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">Batal</button>
-                <button type="submit" disabled={submitting || (editId ? !namaBatch.trim() : (!namaBatch.trim() && !isBulk))} className="rounded-md bg-slate-800 px-4 py-2 text-xs font-medium text-white transition hover:bg-slate-700 disabled:opacity-50">
+              <div className="flex justify-end gap-2 border-t border-[#dadce0] px-4 py-3">
+                <button type="button" onClick={() => { setShowModal(false); setNamaBatch(""); setCabangId(""); setKuota(""); setWarna("#3b82f6"); setLinkGrup(""); setEditId(null); }} className="border border-[#dadce0] bg-white px-4 py-2 text-xs font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]">Batal</button>
+                <button type="submit" disabled={submitting || (editId ? !namaBatch.trim() : (!namaBatch.trim() && !isBulk))} className="bg-[#202124] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#3c4043] disabled:opacity-50">
                   {submitting ? "Menyimpan..." : editId ? "Simpan" : isBulk ? `Buat ${Number(batchSampai) - Number(batchDari) + 1} Batch` : "Simpan"}
                 </button>
               </div>

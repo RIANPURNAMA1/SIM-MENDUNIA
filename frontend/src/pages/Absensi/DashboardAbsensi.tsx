@@ -178,7 +178,7 @@ export default function DashboardAbsensi() {
         labels: ['Hadir', 'Terlambat', 'Belum Absen', 'Cuti / Izin / Sakit'],
         datasets: [{
           data: [hadir, terlambat, belumAbsenChart, izin],
-          backgroundColor: ['#3b82f6', '#f59e0b', '#ef4444', '#10b981'],
+          backgroundColor: ['#0E6187', '#e37400', '#d93025', '#188038'],
           borderWidth: 0,
         }],
       },
@@ -210,7 +210,7 @@ export default function DashboardAbsensi() {
           {
             label: 'Hadir',
             data: grafik.map((d: any) => d.hadir),
-            borderColor: '#3b82f6',
+            borderColor: '#0E6187',
             backgroundColor: ctx ? (() => {
               const g = ctx.createLinearGradient(0, 0, 0, 200)
               g.addColorStop(0, 'rgba(59, 130, 246, 0.25)')
@@ -220,13 +220,13 @@ export default function DashboardAbsensi() {
             fill: true,
             tension: 0.4,
             pointRadius: 3,
-            pointBackgroundColor: '#3b82f6',
+            pointBackgroundColor: '#0E6187',
             borderWidth: 2,
           },
           {
             label: 'Terlambat',
             data: grafik.map((d: any) => d.terlambat),
-            borderColor: '#f59e0b',
+            borderColor: '#e37400',
             backgroundColor: ctx ? (() => {
               const g = ctx.createLinearGradient(0, 0, 0, 200)
               g.addColorStop(0, 'rgba(245, 158, 11, 0.2)')
@@ -236,13 +236,13 @@ export default function DashboardAbsensi() {
             fill: true,
             tension: 0.4,
             pointRadius: 3,
-            pointBackgroundColor: '#f59e0b',
+            pointBackgroundColor: '#e37400',
             borderWidth: 2,
           },
           {
             label: 'Izin / Sakit',
             data: grafik.map((d: any) => d.izin),
-            borderColor: '#10b981',
+            borderColor: '#188038',
             backgroundColor: ctx ? (() => {
               const g = ctx.createLinearGradient(0, 0, 0, 200)
               g.addColorStop(0, 'rgba(16, 185, 129, 0.2)')
@@ -252,7 +252,7 @@ export default function DashboardAbsensi() {
             fill: true,
             tension: 0.4,
             pointRadius: 3,
-            pointBackgroundColor: '#10b981',
+            pointBackgroundColor: '#188038',
             borderWidth: 2,
           },
         ],
@@ -276,12 +276,12 @@ export default function DashboardAbsensi() {
         scales: {
           x: {
             grid: { display: false },
-            ticks: { font: { size: 10 }, color: '#94a3b8' },
+            ticks: { font: { size: 10 }, color: '#80868b' },
           },
           y: {
             beginAtZero: true,
             grid: { color: 'rgba(0,0,0,0.04)' },
-            ticks: { font: { size: 10 }, color: '#94a3b8', stepSize: 1 },
+            ticks: { font: { size: 10 }, color: '#80868b', stepSize: 1 },
           },
         },
       },
@@ -301,7 +301,7 @@ export default function DashboardAbsensi() {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="relative w-14 h-14 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
+          <div className="absolute inset-0 rounded-full border-2 border-[#1a73e8] border-t-[#1a73e8] animate-spin" />
           <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
         </div>
       </div>
@@ -311,19 +311,19 @@ export default function DashboardAbsensi() {
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-4 border-b border-[#dadce0] pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white border border-blue-100">
+          <div className="flex h-10 w-10 items-center justify-center bg-[#e8f0fe] text-[#1a73e8]">
             <CalendarCheck size={20} />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-slate-800">Selamat {getGreeting()}, {userName}</h1>
-            <p className="text-sm text-slate-500">{formatDateLong()}</p>
+            <h1 className="text-xl font-medium text-[#202124]">Selamat {getGreeting()}, {userName}</h1>
+            <p className="text-sm text-[#5f6368]">{formatDateLong()}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <span className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm">
-            <Timer size={16} className="text-blue-600" />
+          <span className="inline-flex items-center gap-2 border border-[#dadce0] bg-white px-4 py-2 text-sm font-medium text-[#3c4043]">
+            <Timer size={16} className="text-[#1a73e8]" />
             {time} WIB
           </span>
         </div>
@@ -331,14 +331,14 @@ export default function DashboardAbsensi() {
 
       {/* Wave Chart */}
       {grafik.length > 0 && (
-        <div className="mb-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mb-4 border border-[#dadce0] bg-white p-5">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50">
-                <TrendingUp size={16} className="text-indigo-600" />
+              <div className="flex h-8 w-8 items-center justify-center bg-[#e8f0fe]">
+                <TrendingUp size={16} className="text-[#1a73e8]" />
               </div>
               <div>
-                <h3 className="border-l-4 border-blue-600 pl-3 text-sm font-bold uppercase text-slate-700">Grafik Absensi (7 Hari)</h3>
+                <h3 className="text-sm font-medium text-[#202124]">Grafik Absensi (7 Hari)</h3>
               </div>
             </div>
           </div>
@@ -350,47 +350,47 @@ export default function DashboardAbsensi() {
 
       {/* Row 1: 2 Cards */}
       <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 className="mb-4 border-l-4 border-blue-600 pl-3 text-sm font-bold uppercase text-slate-700">Karyawan</h3>
+        <div className="border border-[#dadce0] bg-white p-5">
+          <h3 className="mb-4 text-sm font-medium text-[#202124]">Karyawan</h3>
           <div className="grid grid-cols-2 gap-4">
             <div className="flex items-center gap-2">
-              <UserCheck size={28} className="text-blue-500" />
+              <UserCheck size={28} className="text-[#1a73e8]" />
               <div>
-                <p className="text-xs text-slate-500">Laki - Laki</p>
-                <p className="font-bold text-slate-800">{pctLaki}% <span className="text-[10px] font-normal text-slate-400">({lakiCount} Orang)</span></p>
+                <p className="text-xs text-[#5f6368]">Laki - Laki</p>
+                <p className="font-medium text-[#202124]">{pctLaki}% <span className="text-[10px] font-normal text-[#80868b]">({lakiCount} Orang)</span></p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <UserCheck size={28} className="text-orange-400" />
+              <UserCheck size={28} className="text-[#f9ab00]" />
               <div>
-                <p className="text-xs text-slate-500">Perempuan</p>
-                <p className="font-bold text-slate-800">{pctPerempuan}% <span className="text-[10px] font-normal text-slate-400">({perempuanCount} Orang)</span></p>
+                <p className="text-xs text-[#5f6368]">Perempuan</p>
+                <p className="font-medium text-[#202124]">{pctPerempuan}% <span className="text-[10px] font-normal text-[#80868b]">({perempuanCount} Orang)</span></p>
               </div>
             </div>
-            <div className="col-span-2 mt-2 flex items-center justify-between border-t border-slate-100 pt-2">
-              <span className="text-xs text-slate-500">Total Karyawan</span>
-              <span className="text-lg font-bold text-[#0E6187]">{totalKaryawan} Orang</span>
+            <div className="col-span-2 mt-2 flex items-center justify-between border-t border-[#e8eaed] pt-2">
+              <span className="text-xs text-[#5f6368]">Total Karyawan</span>
+              <span className="text-sm font-medium text-[#202124]">{totalKaryawan} Orang</span>
             </div>
           </div>
         </div>
 
-        <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 className="mb-4 border-l-4 border-blue-600 pl-3 text-sm font-bold uppercase text-slate-700">Pengaturan</h3>
+        <div className="border border-[#dadce0] bg-white p-5">
+          <h3 className="mb-4 text-sm font-medium text-[#202124]">Pengaturan</h3>
           <div className="mb-4 grid grid-cols-2 gap-2 text-xs">
-            <Link to="/cabang" className="flex items-center gap-1 font-medium text-teal-600 hover:underline">
+            <Link to="/cabang" className="flex items-center gap-1 font-medium text-[#137333] hover:underline">
               <MapPin size={14} /> Lokasi Absensi
             </Link>
-            <Link to="/izin-cuti" className="flex items-center gap-1 font-medium text-teal-600 hover:underline">
+            <Link to="/izin-cuti" className="flex items-center gap-1 font-medium text-[#137333] hover:underline">
               <FileText size={14} /> Approval Izin
             </Link>
-            <Link to="/shift" className="flex items-center gap-1 font-medium text-teal-600 hover:underline">
+            <Link to="/shift" className="flex items-center gap-1 font-medium text-[#137333] hover:underline">
               <Clock size={14} /> Jam Kerja
             </Link>
-            <Link to="/approval-lembur" className="flex items-center gap-1 font-medium text-teal-600 hover:underline">
+            <Link to="/approval-lembur" className="flex items-center gap-1 font-medium text-[#137333] hover:underline">
               <Calendar size={14} /> Approval Lembur
             </Link>
           </div>
-          <div className="flex gap-2 border-t border-slate-100 pt-3">
+          <div className="flex gap-2 border-t border-[#e8eaed] pt-3">
             <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" className="h-8" alt="Google Play" />
             <img src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Download_on_the_App_Store_Badge.svg" className="h-8" alt="App Store" />
           </div>
@@ -399,45 +399,45 @@ export default function DashboardAbsensi() {
 
       {/* Row 2: Rekap + Pengajuan */}
       <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
+        <div className="border border-[#dadce0] bg-white p-5 lg:col-span-2">
           <div className="mb-6 flex items-center justify-between">
-            <h3 className="border-l-4 border-blue-600 pl-3 text-sm font-bold uppercase text-slate-700">Rekap Absensi Hari Ini</h3>
-            <span className="text-xs font-medium text-slate-400">{formatDateLong()}</span>
+            <h3 className="text-sm font-medium text-[#202124]">Rekap Absensi Hari Ini</h3>
+            <span className="text-xs font-medium text-[#80868b]">{formatDateLong()}</span>
           </div>
 
           <div className="flex flex-col items-center gap-8 md:flex-row">
             <div className="relative h-48 w-48 flex-shrink-0">
               <canvas ref={donutRef} />
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-xs text-slate-500">Belum Absen</span>
-                <span className="text-2xl font-bold text-slate-800">{belumAbsen}</span>
+                <span className="text-xs text-[#5f6368]">Belum Absen</span>
+                <span className="text-2xl font-medium text-[#202124]">{belumAbsen}</span>
               </div>
             </div>
 
             <div className="w-full flex-1 text-sm">
               <div className="grid grid-cols-1 gap-1">
                 {[
-                  { label: 'Hadir', value: hadirCount, color: 'text-blue-600' },
-                  { label: 'Terlambat', value: terlambatCount, color: 'text-orange-500' },
-                  { label: 'Belum Absen', value: belumAbsen, color: 'text-red-600', highlight: true },
-                  { label: 'Cuti / Izin / Sakit', value: izinSakitCount, color: 'text-teal-600' },
+                  { label: 'Hadir', value: hadirCount, color: 'text-[#1a73e8]' },
+                  { label: 'Terlambat', value: terlambatCount, color: 'text-[#e37400]' },
+                  { label: 'Belum Absen', value: belumAbsen, color: 'text-[#c5221f]', highlight: true },
+                  { label: 'Cuti / Izin / Sakit', value: izinSakitCount, color: 'text-[#137333]' },
                 ].map((item) => (
                   <div key={item.label}
-                    className={`flex justify-between p-2 ${item.highlight ? 'bg-red-50/50' : 'border-b border-slate-50'}`}>
-                    <span className={item.highlight ? 'font-medium text-slate-700' : 'text-slate-500'}>{item.label}</span>
-                    <span className={`font-bold ${item.color}`}>
-                      {item.value} <small className="font-normal italic text-slate-400">Karyawan</small>
+                    className={`flex justify-between p-2 ${item.highlight ? 'bg-[#fce8e6]' : 'border-b border-[#f8f9fa]'}`}>
+                    <span className={item.highlight ? 'font-medium text-[#3c4043]' : 'text-[#5f6368]'}>{item.label}</span>
+                    <span className={`font-medium ${item.color}`}>
+                      {item.value} <small className="font-normal italic text-[#80868b]">Karyawan</small>
                     </span>
                   </div>
                 ))}
               </div>
               <div className="mt-4 flex gap-2">
                 <Link to="/data-kehadiran"
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-teal-500 px-4 py-2 text-xs font-medium text-white transition hover:bg-teal-600">
+                  className="inline-flex items-center gap-1.5 bg-[#188038] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#137333]">
                   <Calendar size={14} /> Kalender Absensi
                 </Link>
                 <Link to="/data-kehadiran"
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-teal-500 px-4 py-2 text-xs font-medium text-teal-600 transition hover:bg-teal-50">
+                  className="inline-flex items-center gap-1.5 border border-[#188038] px-4 py-2 text-xs font-medium text-[#137333] transition hover:bg-[#e6f4ea]">
                   Lihat Semua
                 </Link>
               </div>
@@ -445,70 +445,70 @@ export default function DashboardAbsensi() {
           </div>
         </div>
 
-        <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="mb-6 border-l-4 border-blue-600 pl-3 text-sm font-bold uppercase text-slate-700">Daftar Pengajuan</h3>
+        <div className="border border-[#dadce0] bg-white p-5">
+          <h3 className="mb-6 text-sm font-medium text-[#202124]">Daftar Pengajuan</h3>
           <div className="custom-scrollbar max-h-[300px] space-y-4 overflow-y-auto pr-2">
             {izinPending.length === 0 ? (
-              <p className="text-center text-sm text-slate-400 py-4">Tidak ada pengajuan pending</p>
+              <p className="text-center text-sm text-[#80868b] py-4">Tidak ada pengajuan pending</p>
             ) : (
               izinPending.map((item) => (
-                <div key={item.id} className={`rounded-lg bg-slate-50 p-3 border-l-4 ${item.jenis_izin === 'SAKIT' ? 'border-red-500' : 'border-teal-500'}`}>
+                <div key={item.id} className={`bg-[#f8f9fa] p-3 border-l-4 ${item.jenis_izin === 'SAKIT' ? 'border-[#d93025]' : 'border-[#188038]'}`}>
                   <div className="mb-1 flex items-start justify-between">
-                    <p className="flex items-center gap-1 text-[10px] font-bold text-slate-500">
+                    <p className="flex items-center gap-1 text-[10px] font-medium text-[#5f6368]">
                       <Clock size={12} /> {item.tgl_mulai ? new Date(item.tgl_mulai).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
                     </p>
-                    <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold text-white ${item.jenis_izin === 'SAKIT' ? 'bg-red-500' : 'bg-teal-500'}`}>
+                    <span className={`px-1.5 py-0.5 text-[10px] font-medium text-white ${item.jenis_izin === 'SAKIT' ? 'bg-[#d93025]' : 'bg-[#188038]'}`}>
                       {item.jenis_izin}
                     </span>
                   </div>
-                  <p className="text-xs font-bold uppercase text-slate-700">{item.user?.name || '-'}</p>
-                  <p className="text-[10px] text-slate-400">Belum Disetujui oleh Admin</p>
+                  <p className="text-xs font-medium text-[#3c4043]">{item.user?.name || '-'}</p>
+                  <p className="text-[10px] text-[#80868b]">Belum Disetujui oleh Admin</p>
                 </div>
               ))
             )}
           </div>
           <Link to="/izin-cuti"
-            className="mt-6 flex w-full items-center justify-center gap-1 rounded-lg border border-blue-600 py-2.5 text-xs font-bold text-blue-600 transition hover:bg-blue-50">
+            className="mt-6 flex w-full items-center justify-center gap-1 border border-[#1a73e8] py-2.5 text-xs font-medium text-[#1a73e8] transition hover:bg-[#e8f0fe]">
             LIHAT SEMUA <ArrowRight size={12} />
           </Link>
         </div>
       </div>
 
       {/* Riwayat Absensi */}
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+      <div className="overflow-hidden border border-[#dadce0] bg-white">
+        <div className="flex items-center justify-between border-b border-[#e8eaed] px-5 py-4">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50">
-              <CalendarCheck size={16} className="text-blue-600" />
+            <div className="flex h-8 w-8 items-center justify-center bg-[#e8f0fe]">
+              <CalendarCheck size={16} className="text-[#1a73e8]" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-slate-800">Riwayat Absensi Hari Ini</h3>
-              <p className="text-[11px] text-slate-400">Seluruh karyawan</p>
+              <h3 className="text-sm font-medium text-[#202124]">Riwayat Absensi Hari Ini</h3>
+              <p className="text-[11px] text-[#80868b]">Seluruh karyawan</p>
             </div>
           </div>
-          <Link to="/data-kehadiran" className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700">
+          <Link to="/data-kehadiran" className="flex items-center gap-1 text-xs font-medium text-[#1a73e8] hover:text-[#1967d2]">
             Lihat Semua <ArrowRight size={12} />
           </Link>
         </div>
         {/* Filter */}
-        <div className="border-b border-slate-100 px-5 py-3">
+        <div className="border-b border-[#e8eaed] px-5 py-3">
           <div className="flex flex-wrap items-center gap-3">
             <select value={filterCabang} onChange={(e) => setFilterCabang(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+              className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]">
               <option value="">Semua Cabang</option>
               {listCabang.map((c) => (
                 <option key={c.id} value={c.id}>{c.nama_cabang}</option>
               ))}
             </select>
             <select value={filterDivisi} onChange={(e) => setFilterDivisi(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+              className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]">
               <option value="">Semua Divisi</option>
               {listDivisi.map((d) => (
                 <option key={d.id} value={d.id}>{d.nama_divisi}</option>
               ))}
             </select>
             <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+              className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]">
               <option value="">Semua Status</option>
               <option value="HADIR">Hadir</option>
               <option value="TERLAMBAT">Terlambat</option>
@@ -516,12 +516,12 @@ export default function DashboardAbsensi() {
               <option value="ALPA">Alpa</option>
             </select>
             <button onClick={() => fetchKehadiran()}
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-slate-800 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-700">
+              className="inline-flex items-center justify-center gap-2 bg-[#202124] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#3c4043]">
               <Search size={16} />
               Filter
             </button>
             <button onClick={() => { setFilterCabang(''); setFilterDivisi(''); setFilterStatus('') }}
-              className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50">
+              className="inline-flex items-center justify-center gap-2 border border-[#dadce0] bg-white px-3 py-2 text-sm font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]">
               <RotateCcw size={16} />
               Reset
             </button>
@@ -530,18 +530,18 @@ export default function DashboardAbsensi() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
-                <th className="px-5 py-3 text-left font-semibold">Karyawan</th>
-                <th className="px-5 py-3 text-left font-semibold">Shift</th>
-                <th className="px-5 py-3 text-left font-semibold">Jam Masuk</th>
-                <th className="px-5 py-3 text-left font-semibold">Jam Pulang</th>
-                <th className="px-5 py-3 text-left font-semibold">Status</th>
+              <tr className="border-b border-[#f8f9fa] text-[11px] text-[#5f6368]">
+                <th className="text-xs font-medium text-[#5f6368] px-5 py-3 text-left">Karyawan</th>
+                <th className="text-xs font-medium text-[#5f6368] px-5 py-3 text-left">Shift</th>
+                <th className="text-xs font-medium text-[#5f6368] px-5 py-3 text-left">Jam Masuk</th>
+                <th className="text-xs font-medium text-[#5f6368] px-5 py-3 text-left">Jam Pulang</th>
+                <th className="text-xs font-medium text-[#5f6368] px-5 py-3 text-left">Status</th>
               </tr>
             </thead>
             <tbody>
               {riwayat.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-8 text-sm text-slate-400">Belum ada absensi hari ini</td>
+                  <td colSpan={5} className="px-6 py-12 text-center">Belum ada absensi hari ini</td>
                 </tr>
               ) : (
                 riwayat.map((row, i) => {
@@ -553,29 +553,29 @@ export default function DashboardAbsensi() {
                   const statusKey = row.status?.toLowerCase() === 'hadir' ? 'Hadir'
                     : row.status?.toLowerCase() === 'terlambat' ? 'Terlambat'
                     : 'Lainnya'
-                  const statusClass = statusKey === 'Hadir' ? 'bg-green-50 text-green-700'
-                    : statusKey === 'Terlambat' ? 'bg-orange-50 text-orange-600'
-                    : 'bg-blue-50 text-blue-600'
-                  const dotClass = statusKey === 'Hadir' ? 'bg-green-500'
-                    : statusKey === 'Terlambat' ? 'bg-orange-500' : 'bg-blue-500'
+                  const statusClass = statusKey === 'Hadir' ? 'bg-[#e6f4ea] text-[#137333]'
+                    : statusKey === 'Terlambat' ? 'bg-[#fef7e0] text-[#b06000]'
+                    : 'bg-[#e8f0fe] text-[#1a73e8]'
+                  const dotClass = statusKey === 'Hadir' ? 'bg-[#188038]'
+                    : statusKey === 'Terlambat' ? 'bg-[#e37400]' : 'bg-[#0E6187]'
                   return (
-                    <tr key={row.id || i} className="border-b border-slate-50 transition hover:bg-slate-50">
+                    <tr key={row.id || i} className="border-b border-[#f8f9fa] transition hover:bg-[#f8f9fa]">
                       <td className="whitespace-nowrap px-5 py-3">
                         <div className="flex flex-col">
-                          <span className="font-medium text-slate-800">{row.user?.name || '-'}</span>
-                          {row.user?.nip && <span className="text-[11px] text-slate-400">{row.user.nip}</span>}
+                          <span className="font-medium text-[#202124]">{row.user?.name || '-'}</span>
+                          {row.user?.nip && <span className="text-[11px] text-[#80868b]">{row.user.nip}</span>}
                         </div>
                       </td>
-                      <td className="whitespace-nowrap px-5 py-3 text-slate-600">{shiftLabel}</td>
+                      <td className="whitespace-nowrap px-5 py-3 text-[#5f6368]">{shiftLabel}</td>
                       <td className="whitespace-nowrap px-5 py-3">
-                        <span className={`font-medium ${jamMasuk === '-' ? 'text-slate-400' : 'text-slate-800'}`}>{jamMasuk}</span>
+                        <span className={`font-medium ${jamMasuk === '-' ? 'text-[#80868b]' : 'text-[#202124]'}`}>{jamMasuk}</span>
                       </td>
                       <td className="whitespace-nowrap px-5 py-3">
-                        <span className={`font-medium ${jamKeluar === '-' ? 'text-slate-400' : 'text-slate-800'}`}>{jamKeluar}</span>
+                        <span className={`font-medium ${jamKeluar === '-' ? 'text-[#80868b]' : 'text-[#202124]'}`}>{jamKeluar}</span>
                       </td>
                       <td className="px-5 py-3">
-                        <span className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-bold ${statusClass}`}>
-                          <span className={`h-2 w-2 rounded-full ${dotClass}`} />
+                        <span className={`inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-1 text-[11px] font-medium ${statusClass}`}>
+                          <span className={`h-2 w-2 ${dotClass}`} />
                           {row.status}
                         </span>
                       </td>

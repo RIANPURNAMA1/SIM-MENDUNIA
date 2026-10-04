@@ -63,12 +63,12 @@ interface KandidatStats {
 
 const BATCH_SEGMENTS = [
   { label: 'Kandidat Aktif', color: '#0E6187' },
-  { label: 'Proses Belajar', color: '#14919c' },
-  { label: 'Calon Kandidat', color: '#7cc5d8' },
-  { label: 'Lulus Pendidikan', color: '#10b981' },
-  { label: 'Mengundurkan Diri', color: '#ef4444' },
-  { label: 'Cuti', color: '#f59e0b' },
-  { label: 'Lainnya', color: '#94a3b8' },
+  { label: 'Proses Belajar', color: '#188038' },
+  { label: 'Calon Kandidat', color: '#0b8043' },
+  { label: 'Lulus Pendidikan', color: '#188038' },
+  { label: 'Mengundurkan Diri', color: '#d93025' },
+  { label: 'Cuti', color: '#e37400' },
+  { label: 'Lainnya', color: '#80868b' },
 ]
 
 const stackTotalPlugin = {
@@ -77,7 +77,7 @@ const stackTotalPlugin = {
     const ctx = chart.ctx
     ctx.save()
     ctx.font = '600 11px system-ui, sans-serif'
-    ctx.fillStyle = '#334155'
+    ctx.fillStyle = '#3c4043'
     ctx.textAlign = 'center'
     chart.getDatasetMeta(0).data.forEach((bar: any, i: number) => {
       let top = bar.y
@@ -169,7 +169,7 @@ export default function DashboardKandidat() {
         countStatus('Lulus Pendidikan'),
         cutiCount,
       ],
-      backgroundColor: ['#0E6187', '#14919c', '#7cc5d8', '#ef4444', '#10b981', '#f59e0b'],
+      backgroundColor: ['#0E6187', '#188038', '#0b8043', '#d93025', '#188038', '#e37400'],
       borderColor: '#ffffff',
       borderWidth: 2,
       hoverOffset: 6,
@@ -239,23 +239,23 @@ export default function DashboardKandidat() {
       {
         label: 'Disetujui',
         data: monthlyData.map(d => d.disetujui),
-        borderColor: '#10b981',
+        borderColor: '#188038',
         backgroundColor: 'rgba(16, 185, 129, 0.12)',
         fill: true,
         tension: 0.4,
         pointRadius: 3,
-        pointBackgroundColor: '#10b981',
+        pointBackgroundColor: '#188038',
         borderWidth: 2,
       },
       {
         label: 'Ditolak',
         data: monthlyData.map(d => d.ditolak),
-        borderColor: '#ef4444',
+        borderColor: '#d93025',
         backgroundColor: 'rgba(239, 68, 68, 0.08)',
         fill: true,
         tension: 0.4,
         pointRadius: 3,
-        pointBackgroundColor: '#ef4444',
+        pointBackgroundColor: '#d93025',
         borderWidth: 2,
       },
     ],
@@ -280,11 +280,11 @@ export default function DashboardKandidat() {
     scales: {
       x: {
         grid: { display: false },
-        ticks: { font: { size: 10 }, color: '#94a3b8' },
+        ticks: { font: { size: 10 }, color: '#80868b' },
       },
       y: {
         beginAtZero: true,
-        ticks: { stepSize: 1, font: { size: 10 }, color: '#94a3b8' },
+        ticks: { stepSize: 1, font: { size: 10 }, color: '#80868b' },
         grid: { color: 'rgba(0,0,0,0.04)' },
       },
     },
@@ -297,7 +297,7 @@ export default function DashboardKandidat() {
       countMap[nama] = (countMap[nama] || 0) + 1
     })
     const sorted = Object.entries(countMap).sort((a, b) => b[1] - a[1])
-    const colors = ['#0E6187', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6']
+    const colors = ['#0E6187', '#188038', '#e37400', '#d93025', '#8430ce', '#137333', '#a50e0e', '#0d652d']
     return {
       labels: sorted.map(([name]) => name),
       datasets: [{
@@ -332,12 +332,12 @@ export default function DashboardKandidat() {
     scales: {
       x: {
         beginAtZero: true,
-        ticks: { stepSize: 1, font: { size: 10 }, color: '#94a3b8' },
+        ticks: { stepSize: 1, font: { size: 10 }, color: '#80868b' },
         grid: { color: 'rgba(0,0,0,0.04)' },
       },
       y: {
         grid: { display: false },
-        ticks: { font: { size: 11, weight: 'bold' as const }, color: '#334155' },
+        ticks: { font: { size: 11 }, color: '#80868b' },
       },
     },
   }
@@ -399,14 +399,14 @@ export default function DashboardKandidat() {
       x: {
         stacked: true,
         grid: { display: false },
-        ticks: { font: { size: 10 }, color: '#334155', maxRotation: 45, minRotation: 0, autoSkip: false },
+        ticks: { font: { size: 10 }, color: '#3c4043', maxRotation: 45, minRotation: 0, autoSkip: false },
       },
       y: {
         stacked: true,
         beginAtZero: true,
-        ticks: { stepSize: 1, precision: 0, font: { size: 10 }, color: '#94a3b8' },
+        ticks: { stepSize: 1, precision: 0, font: { size: 10 }, color: '#80868b' },
         grid: { color: 'rgba(0,0,0,0.04)' },
-        title: { display: true, text: 'Jumlah kandidat', font: { size: 10 }, color: '#94a3b8' },
+        title: { display: true, text: 'Jumlah kandidat', font: { size: 10 }, color: '#80868b' },
       },
     },
   }
@@ -427,7 +427,7 @@ export default function DashboardKandidat() {
     return (
       <div className="flex min-h-[400px] items-center justify-center p-6">
         <div className="relative w-14 h-14 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
+          <div className="absolute inset-0 rounded-full border-2 border-[#1a73e8] border-t-[#1a73e8] animate-spin" />
           <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
         </div>
       </div>
@@ -443,16 +443,16 @@ export default function DashboardKandidat() {
 
   const statusBadge = (status: string) => {
     const map: Record<string, { bg: string; text: string; label: string }> = {
-      pending: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Pending' },
-      disetujui: { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'Disetujui' },
-      ditolak: { bg: 'bg-red-100', text: 'text-red-700', label: 'Ditolak' },
-      unpaid: { bg: 'bg-slate-100', text: 'text-slate-600', label: 'Belum Bayar' },
-      processing: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Proses' },
-      verified: { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'Lunas' },
+      pending: { bg: 'bg-[#fef7e0]', text: 'text-[#b06000]', label: 'Pending' },
+      disetujui: { bg: 'bg-[#e6f4ea]', text: 'text-[#137333]', label: 'Disetujui' },
+      ditolak: { bg: 'bg-[#fce8e6]', text: 'text-[#a50e0e]', label: 'Ditolak' },
+      unpaid: { bg: 'bg-[#f1f3f4]', text: 'text-[#5f6368]', label: 'Belum Bayar' },
+      processing: { bg: 'bg-[#e8f0fe]', text: 'text-[#1967d2]', label: 'Proses' },
+      verified: { bg: 'bg-[#e6f4ea]', text: 'text-[#137333]', label: 'Lunas' },
     }
-    const s = map[status] || { bg: 'bg-slate-100', text: 'text-slate-600', label: status }
+    const s = map[status] || { bg: 'bg-[#f1f3f4]', text: 'text-[#5f6368]', label: status }
     return (
-      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${s.bg} ${s.text}`}>
+      <span className={`text-xs font-medium px-2.5 py-1 ${s.bg} ${s.text}`}>
         {s.label}
       </span>
     )
@@ -465,14 +465,14 @@ export default function DashboardKandidat() {
   return (
     <div className="px-3 sm:px-6 py-3 sm:py-4">
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-4 border-b border-[#dadce0] pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187]">
-            <FileText size={20} className="text-white" />
+          <div className="flex h-10 w-10 items-center justify-center bg-[#e8f0fe] text-[#1a73e8]">
+            <FileText size={20} />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-slate-800">Dashboard Kandidat</h1>
-            <p className="text-sm text-slate-500">Kelola kandidat, pendaftaran, pembayaran, dan affiliate</p>
+            <h1 className="text-xl font-medium text-[#202124]">Dashboard Kandidat</h1>
+            <p className="text-sm text-[#5f6368]">Kelola kandidat, pendaftaran, pembayaran, dan affiliate</p>
           </div>
         </div>
       </div>
@@ -491,13 +491,13 @@ export default function DashboardKandidat() {
         ].map((stat) => {
           const Icon = stat.icon
           return (
-            <div key={stat.label} className="flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-              <div className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-[#0E6187]/10 sm:h-10 sm:w-10">
-                <Icon size={16} className="text-[#0E6187]" />
+            <div key={stat.label} className="flex min-w-0 items-center gap-3 border border-[#dadce0] bg-white p-3 sm:p-4">
+              <div className="flex h-9 w-9 flex-none items-center justify-center bg-[#f1f3f4] sm:h-10 sm:w-10">
+                <Icon size={16} className="text-[#1a73e8]" />
               </div>
               <div className="min-w-0">
-                <p className="truncate text-[10px] text-slate-500 sm:text-xs">{stat.label}</p>
-                <p className="break-words text-base font-bold leading-tight text-slate-800 sm:text-xl lg:text-2xl">{stat.value}</p>
+                <p className="truncate text-[10px] text-[#5f6368] sm:text-xs">{stat.label}</p>
+                <p className="break-words text-base font-medium leading-tight text-[#202124] sm:text-xl lg:text-2xl">{stat.value}</p>
               </div>
             </div>
           )
@@ -509,14 +509,14 @@ export default function DashboardKandidat() {
         {stats.map((stat, idx) => {
           const Icon = stat.icon
           return (
-            <div key={idx} className="flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="flex h-10 w-10 flex-none items-center justify-center rounded-lg bg-[#0E6187]/10">
-                <Icon size={17} className="text-[#0E6187]" />
+            <div key={idx} className="flex min-w-0 items-center gap-3 border border-[#dadce0] bg-white p-4">
+              <div className="flex h-10 w-10 flex-none items-center justify-center bg-[#f1f3f4]">
+                <Icon size={17} className="text-[#1a73e8]" />
               </div>
               <div className="min-w-0">
-                <p className="truncate text-xs text-slate-500">{stat.label}</p>
-                <p className="break-words text-xl font-bold leading-tight text-slate-800 lg:text-2xl">{stat.value}</p>
-                <p className="mt-0.5 text-[11px] text-slate-400">Tahun 2026</p>
+                <p className="truncate text-xs text-[#5f6368]">{stat.label}</p>
+                <p className="break-words text-xl font-medium leading-tight text-[#202124] lg:text-2xl">{stat.value}</p>
+                <p className="mt-0.5 text-[11px] text-[#80868b]">Tahun 2026</p>
               </div>
             </div>
           )
@@ -525,14 +525,14 @@ export default function DashboardKandidat() {
 
       {/* Chart Section */}
       <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="border border-[#dadce0] bg-white p-4">
           <div className="flex items-center gap-3 mb-5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0E6187]/5">
-              <BarChart3 size={18} className="text-[#0E6187]" />
+            <div className="flex h-9 w-9 items-center justify-center bg-[#f8f9fa]">
+              <BarChart3 size={18} className="text-[#1a73e8]" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-slate-800">Grafik Pendaftaran</h2>
-              <p className="text-xs text-slate-400">Tren pendaftaran 6 bulan terakhir</p>
+              <h2 className="text-sm font-medium text-[#202124]">Grafik Pendaftaran</h2>
+              <p className="text-xs text-[#80868b]">Tren pendaftaran 6 bulan terakhir</p>
             </div>
           </div>
           <div className="h-72 sm:h-80">
@@ -540,21 +540,21 @@ export default function DashboardKandidat() {
           </div>
         </div>
 
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="border border-[#dadce0] bg-white p-4">
           <div className="flex items-center gap-3 mb-5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10">
-              <TrendingUp size={18} className="text-emerald-600" />
+            <div className="flex h-9 w-9 items-center justify-center bg-[#f1f3f4]">
+              <TrendingUp size={18} className="text-[#137333]" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-slate-800">Program Terlaris</h2>
-              <p className="text-xs text-slate-400">Jumlah pendaftar per program</p>
+              <h2 className="text-sm font-medium text-[#202124]">Program Terlaris</h2>
+              <p className="text-xs text-[#80868b]">Jumlah pendaftar per program</p>
             </div>
           </div>
           <div className="h-72 sm:h-80">
             {programChartData.labels.length > 0 ? (
               <Bar data={programChartData} options={programChartOptions} />
             ) : (
-              <div className="flex h-full items-center justify-center text-sm text-slate-400">Belum ada data</div>
+              <div className="flex h-full items-center justify-center text-sm text-[#80868b]">Belum ada data</div>
             )}
           </div>
         </div>
@@ -562,14 +562,14 @@ export default function DashboardKandidat() {
 
       {/* Grafik Status Kandidat */}
       <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="border border-[#dadce0] bg-white p-4">
           <div className="flex items-center gap-3 mb-5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0E6187]/5">
-              <Users size={18} className="text-[#0E6187]" />
+            <div className="flex h-9 w-9 items-center justify-center bg-[#f8f9fa]">
+              <Users size={18} className="text-[#1a73e8]" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-slate-800">Status Kandidat</h2>
-              <p className="text-xs text-slate-400">Distribusi kandidat berdasarkan status</p>
+              <h2 className="text-sm font-medium text-[#202124]">Status Kandidat</h2>
+              <p className="text-xs text-[#80868b]">Distribusi kandidat berdasarkan status</p>
             </div>
           </div>
           <div className="h-72 sm:h-80">
@@ -577,38 +577,38 @@ export default function DashboardKandidat() {
           </div>
         </div>
 
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="border border-[#dadce0] bg-white p-4">
           <div className="flex items-center gap-3 mb-5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0E6187]/5">
-              <Layers size={18} className="text-[#0E6187]" />
+            <div className="flex h-9 w-9 items-center justify-center bg-[#f8f9fa]">
+              <Layers size={18} className="text-[#1a73e8]" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-slate-800">Rincian per Status</h2>
-              <p className="text-xs text-slate-400">Jumlah kandidat tiap status</p>
+              <h2 className="text-sm font-medium text-[#202124]">Rincian per Status</h2>
+              <p className="text-xs text-[#80868b]">Jumlah kandidat tiap status</p>
             </div>
           </div>
           <div className="space-y-2.5">
             {[
               { label: 'Kandidat Aktif', value: countStatus('Kandidat Aktif'), color: 'bg-[#0E6187]' },
-              { label: 'Calon Kandidat', value: countStatus('Calon Kandidat'), color: 'bg-[#14919c]' },
-              { label: 'Proses Belajar', value: countStatus('Proses Belajar'), color: 'bg-[#7cc5d8]' },
-              { label: 'Mengundurkan Diri', value: countStatus('Mengundurkan Diri'), color: 'bg-red-500' },
-              { label: 'Lulus Pendidikan', value: countStatus('Lulus Pendidikan'), color: 'bg-emerald-500' },
-              { label: 'Cuti', value: cutiCount, color: 'bg-amber-500' },
+              { label: 'Calon Kandidat', value: countStatus('Calon Kandidat'), color: 'bg-[#188038]' },
+              { label: 'Proses Belajar', value: countStatus('Proses Belajar'), color: 'bg-[#0b8043]' },
+              { label: 'Mengundurkan Diri', value: countStatus('Mengundurkan Diri'), color: 'bg-[#d93025]' },
+              { label: 'Lulus Pendidikan', value: countStatus('Lulus Pendidikan'), color: 'bg-[#188038]' },
+              { label: 'Cuti', value: cutiCount, color: 'bg-[#e37400]' },
             ].map(row => {
               const total = statusChartData.datasets[0].data.reduce((a: number, b: number) => a + b, 0) || 1
               const pct = Math.round(row.value / total * 100)
               return (
                 <div key={row.label}>
                   <div className="mb-1 flex items-center justify-between text-xs">
-                    <span className="flex items-center gap-2 text-slate-600">
-                      <span className={`inline-block h-2.5 w-2.5 rounded-full ${row.color}`} />
+                    <span className="flex items-center gap-2 text-[#5f6368]">
+                      <span className={`inline-block h-2.5 w-2.5 ${row.color}`} />
                       {row.label}
                     </span>
-                    <span className="font-semibold text-slate-700">{row.value} <span className="font-normal text-slate-400">({pct}%)</span></span>
+                    <span className="font-medium text-[#3c4043]">{row.value} <span className="font-normal text-[#80868b]">({pct}%)</span></span>
                   </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
-                    <div className={`h-full rounded-full ${row.color}`} style={{ width: `${pct}%` }} />
+                  <div className="h-1.5 overflow-hidden bg-[#f1f3f4]">
+                    <div className={`h-full ${row.color}`} style={{ width: `${pct}%` }} />
                   </div>
                 </div>
               )
@@ -618,15 +618,15 @@ export default function DashboardKandidat() {
       </div>
 
       {/* Grafik Kandidat per Batch */}
-      <div className="mb-6 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mb-6 border border-[#dadce0] bg-white p-4">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0E6187]/5">
-              <Layers size={18} className="text-[#0E6187]" />
+            <div className="flex h-9 w-9 items-center justify-center bg-[#f8f9fa]">
+              <Layers size={18} className="text-[#1a73e8]" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-slate-800">Kandidat per Batch</h2>
-              <p className="text-xs text-slate-400">Komposisi kandidat tiap batch berdasarkan status</p>
+              <h2 className="text-sm font-medium text-[#202124]">Kandidat per Batch</h2>
+              <p className="text-xs text-[#80868b]">Komposisi kandidat tiap batch berdasarkan status</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -635,9 +635,9 @@ export default function DashboardKandidat() {
               { label: 'Total Kandidat', value: totalKandidatPerBatch },
               { label: 'Rata-rata/Batch', value: rataRataPerBatch },
             ].map(s => (
-              <div key={s.label} className="rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-center">
-                <p className="text-[10px] uppercase tracking-wide text-slate-400">{s.label}</p>
-                <p className="text-sm font-bold text-slate-700">{s.value}</p>
+              <div key={s.label} className="border border-[#dadce0] bg-[#f8f9fa] px-3 py-1.5 text-center">
+                <p className="text-[10px] text-[#80868b]">{s.label}</p>
+                <p className="text-sm font-medium text-[#3c4043]">{s.value}</p>
               </div>
             ))}
           </div>
@@ -648,18 +648,18 @@ export default function DashboardKandidat() {
             <div className="h-72 sm:h-96">
               <Bar data={batchChartData} options={batchChartOptions} plugins={[stackTotalPlugin]} />
             </div>
-            <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+            <div className="mt-4 flex flex-wrap gap-2 border-t border-[#e8eaed] pt-3">
               {batchRows.map(r => (
-                <div key={r.nama} className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px]">
-                  <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: r.warna || '#cbd5e1' }} />
-                  <span className="text-slate-600">{r.nama}</span>
-                  <span className="font-semibold text-slate-800">{r.total}</span>
+                <div key={r.nama} className="flex items-center gap-1.5 border border-[#dadce0] bg-white px-2.5 py-1 text-[11px]">
+                  <span className="inline-block h-2.5 w-2.5" style={{ backgroundColor: r.warna || '#bdc1c6' }} />
+                  <span className="text-[#5f6368]">{r.nama}</span>
+                  <span className="font-medium text-[#202124]">{r.total}</span>
                 </div>
               ))}
             </div>
           </>
         ) : (
-          <div className="flex h-72 items-center justify-center text-sm text-slate-400">Belum ada data kandidat per batch</div>
+          <div className="flex h-72 items-center justify-center text-sm text-[#80868b]">Belum ada data kandidat per batch</div>
         )}
       </div>
 
@@ -668,12 +668,12 @@ export default function DashboardKandidat() {
         {breakdownStats.map((s, i) => {
           const Icon = s.icon
           return (
-            <div key={i} className="flex min-w-0 flex-col rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-              <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-[#0E6187]/10">
-                <Icon size={16} className="text-[#0E6187]" />
+            <div key={i} className="flex min-w-0 flex-col border border-[#dadce0] bg-white p-3 sm:p-4">
+              <div className="mb-2 flex h-9 w-9 items-center justify-center bg-[#f1f3f4]">
+                <Icon size={16} className="text-[#1a73e8]" />
               </div>
-              <p className="truncate text-[11px] text-slate-500">{s.label}</p>
-              <p className="text-xl font-bold leading-tight text-slate-800">{s.value}</p>
+              <p className="truncate text-[11px] text-[#5f6368]">{s.label}</p>
+              <p className="text-2xl font-medium leading-tight text-[#202124]">{s.value}</p>
             </div>
           )
         })}
@@ -682,22 +682,22 @@ export default function DashboardKandidat() {
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Pendaftaran Terbaru */}
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="border border-[#dadce0] bg-white p-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-slate-800">Pendaftaran Terbaru</h2>
-            <Link to="/pendaftar" className="text-xs font-semibold text-[#0E6187] hover:underline">
+            <h2 className="text-sm font-medium text-[#202124]">Pendaftaran Terbaru</h2>
+            <Link to="/pendaftar" className="text-xs font-medium text-[#1a73e8] hover:underline">
               Lihat Semua →
             </Link>
           </div>
           <div className="space-y-3">
             {pendaftarTerbaru.length === 0 ? (
-              <p className="py-6 text-center text-sm text-slate-400">Belum ada pendaftaran</p>
+              <p className="py-6 text-center text-sm text-[#80868b]">Belum ada pendaftaran</p>
             ) : (
               pendaftarTerbaru.map((item) => (
-                <div key={item.id} className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
+                <div key={item.id} className="flex items-center justify-between bg-[#f8f9fa] p-3">
                   <div>
-                    <p className="text-sm font-medium text-slate-800">{item.nama}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-sm font-medium text-[#202124]">{item.nama}</p>
+                    <p className="text-xs text-[#5f6368]">
                       {new Date(item.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </p>
                   </div>
@@ -709,16 +709,16 @@ export default function DashboardKandidat() {
         </div>
 
         {/* Tagihan */}
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="border border-[#dadce0] bg-white p-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-slate-800">Tagihan Terbaru</h2>
-            <Link to="/tagihan" className="text-xs font-semibold text-[#0E6187] hover:underline">
+            <h2 className="text-sm font-medium text-[#202124]">Tagihan Terbaru</h2>
+            <Link to="/tagihan" className="text-xs font-medium text-[#1a73e8] hover:underline">
               Lihat Semua →
             </Link>
           </div>
           <div className="space-y-3">
             {tagihanData.length === 0 ? (
-              <p className="py-6 text-center text-sm text-slate-400">Belum ada tagihan</p>
+              <p className="py-6 text-center text-sm text-[#80868b]">Belum ada tagihan</p>
             ) : (
               tagihanData.map((item) => {
                 const harga = Number(item.product?.harga || 0)
@@ -727,10 +727,10 @@ export default function DashboardKandidat() {
                 const dibayar = Number(item.nominal || 0)
                 const sisa = Math.max(0, tagihan - dibayar)
                 return (
-                  <div key={item.id} className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
+                  <div key={item.id} className="flex items-center justify-between bg-[#f8f9fa] p-3">
                     <div>
-                      <p className="text-sm font-medium text-slate-800">{item.nama}</p>
-                      <p className="text-xs font-semibold text-slate-700">
+                      <p className="text-sm font-medium text-[#202124]">{item.nama}</p>
+                      <p className="text-xs font-medium text-[#3c4043]">
                         {sisa > 0 ? `Rp ${sisa.toLocaleString('id-ID')}` : 'Lunas'}
                       </p>
                     </div>
@@ -743,60 +743,60 @@ export default function DashboardKandidat() {
         </div>
 
         {/* Pembayaran Masuk */}
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="border border-[#dadce0] bg-white p-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-slate-800">Pembayaran Masuk</h2>
-            <Link to="/pembayaran" className="text-xs font-semibold text-[#0E6187] hover:underline">
+            <h2 className="text-sm font-medium text-[#202124]">Pembayaran Masuk</h2>
+            <Link to="/pembayaran" className="text-xs font-medium text-[#1a73e8] hover:underline">
               Lihat Semua →
             </Link>
           </div>
           <div className="space-y-2">
-            <div className="rounded-lg bg-slate-50 p-3">
+            <div className="bg-[#f8f9fa] p-3">
               <div className="mb-1 flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-600">Bulan Ini</span>
-                <span className="text-base font-bold text-emerald-600">
+                <span className="text-xs font-medium text-[#5f6368]">Bulan Ini</span>
+                <span className="text-base font-medium text-[#137333]">
                   Rp {totalPembayaranBulanIni.toLocaleString('id-ID')}
                 </span>
               </div>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-[#5f6368]">
                 {totalPembayaranBulanLalu > 0
                   ? `${pctChange >= 0 ? '+' : ''}${pctChange}% dari bulan sebelumnya`
                   : 'Belum ada data bulan lalu'}
               </p>
             </div>
-            <div className="rounded-lg bg-slate-50 p-3">
+            <div className="bg-[#f8f9fa] p-3">
               <div className="mb-1 flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-600">Total Semua</span>
-                <span className="text-base font-bold text-[#0E6187]">
+                <span className="text-xs font-medium text-[#5f6368]">Total Semua</span>
+                <span className="text-base font-medium text-[#1a73e8]">
                   Rp {pendaftar.filter(p => p.status_pembayaran === 'verified').reduce((s, p) => s + Number(p.nominal || 0), 0).toLocaleString('id-ID')}
                 </span>
               </div>
-              <p className="mt-1 text-xs text-slate-500">{pendaftar.filter(p => p.status_pembayaran === 'verified').length} transaksi</p>
+              <p className="mt-1 text-xs text-[#5f6368]">{pendaftar.filter(p => p.status_pembayaran === 'verified').length} transaksi</p>
             </div>
           </div>
         </div>
 
         {/* Affiliate Aktif */}
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="border border-[#dadce0] bg-white p-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-slate-800">Affiliate Aktif</h2>
-            <Link to="/data-affiliate" className="text-xs font-semibold text-[#0E6187] hover:underline">
+            <h2 className="text-sm font-medium text-[#202124]">Affiliate Aktif</h2>
+            <Link to="/data-affiliate" className="text-xs font-medium text-[#1a73e8] hover:underline">
               Lihat Semua →
             </Link>
           </div>
           <div className="space-y-3">
             {affiliateAktif.length === 0 ? (
-              <p className="py-6 text-center text-sm text-slate-400">Belum ada affiliate</p>
+              <p className="py-6 text-center text-sm text-[#80868b]">Belum ada affiliate</p>
             ) : (
               affiliateAktif.slice(0, 5).map((item) => (
-                <div key={item.id} className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
+                <div key={item.id} className="flex items-center justify-between bg-[#f8f9fa] p-3">
                   <div>
-                    <p className="text-sm font-medium text-slate-800">{item.affiliate?.name || '-'}</p>
-                    <p className="text-xs text-slate-500">{item.product?.nama || '-'}</p>
+                    <p className="text-sm font-medium text-[#202124]">{item.affiliate?.name || '-'}</p>
+                    <p className="text-xs text-[#5f6368]">{item.product?.nama || '-'}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-slate-800">{item.pendaftar_count} daftar</p>
-                    <span className="text-xs font-semibold text-emerald-600">Aktif</span>
+                    <p className="text-sm font-medium text-[#202124]">{item.pendaftar_count} daftar</p>
+                    <span className="text-xs font-medium text-[#137333]">Aktif</span>
                   </div>
                 </div>
               ))

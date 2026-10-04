@@ -696,13 +696,18 @@ export default function QuizKandidat() {
   // Setelah ujian selesai, kandidat dikembalikan ke halaman materi asal,
   // bukan daftar paket, supaya bisa langsung lanjut ke materi berikutnya.
   const selesaiHasil = () => {
-    const courseId = detail?.paket.course_id
+    const courseId = detail?.paket.course_id || Number(searchParams.get('course_id')) || null
     const lid = asalLesson ?? (lessonId ? Number(lessonId) : null)
 
+    stopTimers()
+    stopStream()
+
     if (courseId && lid) {
-      stopTimers()
-      stopStream()
       navigate(`/siswa-dashboard/lms/${courseId}/materi/${lid}`)
+      return
+    }
+    if (courseId) {
+      navigate(`/siswa-dashboard/lms/${courseId}`)
       return
     }
     goBack()
@@ -1166,7 +1171,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
   if (view === 'play') {
     const lowTime = remaining <= 60
     return (
-      <div className="min-h-screen bg-[#f0f2f5] pb-24 lg:pb-8">
+      <div className="min-h-screen bg-[#f8f9fa] pb-24 lg:pb-8">
         {/* Sticky Header */}
         <div className="bg-[#0E6187] text-white sticky top-0 z-30 shadow-sm">
           <div className="max-w-lg mx-auto px-4 py-3">
@@ -1288,7 +1293,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
         </div>
 
         {/* Bottom nav */}
-        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden">
+        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[#dadce0] bg-white/95 backdrop-blur lg:hidden">
           <div className="mx-auto grid max-w-lg grid-cols-5">
             {bottomNav.map(nav => {
               const Icon = nav.icon
@@ -1310,74 +1315,70 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
   if (view === 'result' && result) {
     const lulus = result.passing_score > 0 && (result.score ?? 0) >= result.passing_score
     return (
-      <div className="min-h-screen bg-[#f0f2f5] pb-24 lg:pb-8">
+      <div className="min-h-screen bg-[#f8f9fa] pb-24 lg:pb-8">
         <div className="max-w-lg mx-auto px-4 py-8">
-          <div className="bg-white rounded-md border border-[#E5E7EF] p-6 text-center">
-            <div className={`w-16 h-16 mx-auto rounded-md flex items-center justify-center ${lulus ? 'bg-emerald-50' : 'bg-[#0E6187]/[0.06]'}`}>
-              {lulus ? <Award size={30} className="text-emerald-500" /> : <ListChecks size={30} className="text-[#0E6187]" />}
+          <div className="bg-white border border-[#dadce0] p-6 text-center">
+            <div className={`w-16 h-16 mx-auto flex items-center justify-center ${lulus ? 'bg-[#e6f4ea]' : 'bg-[#e8f0fe]'}`}>
+              {lulus ? <Award size={30} className="text-[#188038]" /> : <ListChecks size={30} className="text-[#1a73e8]" />}
             </div>
-            <h1 className="text-lg font-bold text-slate-800 mt-4">{lulus ? 'Selamat, Anda lulus!' : 'Quiz Selesai'}</h1>
-            <p className="text-[11px] text-slate-400 font-medium mt-1">{paketTitleRef.current} · Percobaan #{result.attempt_number}
-              {result.auto_submitted && <span className="ml-1 text-[10px] font-bold text-orange-500">(Dikumpulkan otomatis)</span>}
+            <h1 className="text-xl font-medium text-[#202124] mt-4">{lulus ? 'Selamat, Anda lulus!' : 'Quiz Selesai'}</h1>
+            <p className="text-sm text-[#5f6368] mt-1">{paketTitleRef.current} · Percobaan #{result.attempt_number}
+              {result.auto_submitted && <span className="ml-1 text-xs text-[#b06000]">(Dikumpulkan otomatis)</span>}
             </p>
 
             <div className="mt-5">
-              <p className={`text-5xl font-black tabular-nums ${lulus ? 'text-emerald-500' : result.passing_score > 0 ? 'text-red-500' : 'text-[#0E6187]'}`}>{Number(result.score) || 0}</p>
-              <p className="text-[10px] font-bold text-slate-400 mt-1">Nilai Akhir · Lulus jika ≥ {result.passing_score}</p>
+              <p className={`text-5xl font-medium tabular-nums ${lulus ? 'text-[#188038]' : result.passing_score > 0 ? 'text-[#d93025]' : 'text-[#1a73e8]'}`}>{Number(result.score) || 0}</p>
+              <p className="text-xs text-[#5f6368] mt-1">Nilai Akhir · Lulus jika ≥ {result.passing_score}</p>
             </div>
 
             <div className="grid grid-cols-3 gap-2 mt-6">
-              <div className="bg-slate-50 rounded-md p-3">
-                <p className="text-sm font-bold text-slate-700">{result.correct_count ?? 0}/{result.total_count ?? 0}</p>
-                <p className="text-[9.5px] text-slate-400 font-semibold mt-0.5">Benar</p>
+              <div className="bg-[#f8f9fa] border border-[#e8eaed] p-3">
+                <p className="text-base font-medium text-[#202124]">{result.correct_count ?? 0}/{result.total_count ?? 0}</p>
+                <p className="text-xs text-[#5f6368] mt-0.5">Benar</p>
               </div>
-              <div className="bg-slate-50 rounded-md p-3">
-                <p className="text-sm font-bold text-slate-700">{result.answered_count}</p>
-                <p className="text-[9.5px] text-slate-400 font-semibold mt-0.5">Terjawab</p>
+              <div className="bg-[#f8f9fa] border border-[#e8eaed] p-3">
+                <p className="text-base font-medium text-[#202124]">{result.answered_count}</p>
+                <p className="text-xs text-[#5f6368] mt-0.5">Terjawab</p>
               </div>
-              <div className="bg-slate-50 rounded-md p-3">
-                <p className="text-sm font-bold text-slate-700">{result.warnings}</p>
-                <p className="text-[9.5px] text-slate-400 font-semibold mt-0.5">Peringatan</p>
+              <div className="bg-[#f8f9fa] border border-[#e8eaed] p-3">
+                <p className="text-base font-medium text-[#202124]">{result.warnings}</p>
+                <p className="text-xs text-[#5f6368] mt-0.5">Peringatan</p>
               </div>
             </div>
 
-            <p className="text-[10.5px] text-slate-400 font-medium mt-5 leading-relaxed">
+            <p className="text-xs text-[#5f6368] mt-5 leading-relaxed">
               Kunci jawaban dan rekap detail hanya dapat dilihat oleh instruktur/guru.
             </p>
 
             {result.sertifikat && (
-              <div className="mt-5 border-t border-[#E5E7EF] pt-5 text-left">
+              <div className="mt-5 border-t border-[#dadce0] pt-5 text-left">
                 <button
                   onClick={() => { setSertifikatOtomatis(false); setSertifikatOpen(true) }}
-                  className="w-full flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-3 text-left transition-colors hover:bg-amber-100/70">
-                  <span className="w-9 h-9 rounded-md bg-amber-600 flex items-center justify-center shrink-0">
+                  className="w-full flex items-center gap-3 border border-[#fdd663] bg-[#fef7e0] px-3.5 py-3 text-left transition-colors hover:bg-[#fef7e0]/80">
+                  <span className="w-9 h-9 bg-[#e37400] flex items-center justify-center shrink-0">
                     <Award size={17} className="text-white" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-xs font-bold text-slate-700">Sertifikat Ujian</span>
-                    <span className="block text-[10px] font-medium text-slate-500 font-mono truncate">
+                    <span className="block text-sm font-medium text-[#202124]">Sertifikat Ujian</span>
+                    <span className="block text-xs text-[#5f6368] font-mono truncate">
                       {result.sertifikat.nomor}
                     </span>
                   </span>
-                  <span className="text-[11px] font-bold text-amber-700 shrink-0">Lihat</span>
+                  <span className="text-xs font-medium text-[#b06000] shrink-0">Lihat</span>
                 </button>
               </div>
             )}
 
-            <div className="flex gap-2 mt-5">
+            <div className="mt-5">
               <button onClick={selesaiHasil}
-                className="flex-1 text-[11.5px] font-bold text-[#0E6187] bg-white border border-[#0E6187]/30 py-3 rounded-md hover:bg-[#0E6187]/5 transition-colors">
-                Lihat Hasil Quiz
-              </button>
-              <button onClick={selesaiHasil}
-                className="flex-1 text-[12px] font-bold text-white bg-[#0E6187] py-3 rounded-md hover:bg-[#0a4d6b] transition-colors">
-                Selesai
+                className="btn btn-primary btn-lg btn-block">
+                <ArrowLeft size={16} /> Kembali
               </button>
             </div>
           </div>
         </div>
 
-        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden">
+        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[#dadce0] bg-white/95 backdrop-blur lg:hidden">
           <div className="mx-auto grid max-w-lg grid-cols-5">
             {bottomNav.map(nav => {
               const Icon = nav.icon
@@ -1431,7 +1432,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
         }).catch(() => {})
       }
       return (
-        <div className="min-h-screen bg-[#f0f2f5] pb-24 lg:pb-8">
+        <div className="min-h-screen bg-[#f8f9fa] pb-24 lg:pb-8">
           {/* Hero */}
           <div className="relative h-52 bg-gradient-to-br from-[#0E6187] to-[#1a3355] overflow-hidden">
             {paket.cover_url && (
@@ -1653,7 +1654,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
           </div>
 
           {/* Bottom nav */}
-          <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden">
+          <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[#dadce0] bg-white/95 backdrop-blur lg:hidden">
             <div className="mx-auto grid max-w-lg grid-cols-5">
               {bottomNav.map(nav => {
                 const Icon = nav.icon
@@ -1673,7 +1674,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
     }
 
     return (
-      <div className="min-h-screen bg-[#f0f2f5] pb-24 lg:pb-8">
+      <div className="min-h-screen bg-[#f8f9fa] pb-24 lg:pb-8">
         {/* Hero */}
         <div className="relative h-52 bg-gradient-to-br from-[#0E6187] to-[#1a3355] overflow-hidden">
           {detail.paket.cover_url && (
@@ -1772,7 +1773,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
         </div>
 
         {/* Bottom nav */}
-        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden">
+        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[#dadce0] bg-white/95 backdrop-blur lg:hidden">
           <div className="mx-auto grid max-w-lg grid-cols-5">
             {bottomNav.map(nav => {
               const Icon = nav.icon
@@ -1860,7 +1861,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
     }
 
     return (
-      <div className="min-h-screen bg-[#f0f2f5] pb-24 lg:pb-8">
+      <div className="min-h-screen bg-[#f8f9fa] pb-24 lg:pb-8">
         <div className="max-w-lg mx-auto px-4 py-6 pb-4">
           <button onClick={goBack}
             className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 hover:text-slate-800 transition-colors mb-4">
@@ -2017,7 +2018,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
                 <Camera size={18} className="text-slate-600" />
               </div>
               <h2 className="text-sm font-bold text-slate-800">Aktifkan kamera pengawas</h2>
-              <p className="text-[11px] text-slate-400 font-medium mt-1">
+              <p className="text-sm text-[#5f6368] mt-1">
                 Kamera akan merekam Anda saat mengerjakan quiz. Izinkan akses kamera untuk memulai.
               </p>
 
@@ -2060,7 +2061,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
           </div>
         )}
 
-        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden">
+        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[#dadce0] bg-white/95 backdrop-blur lg:hidden">
           <div className="mx-auto grid max-w-lg grid-cols-5">
             {bottomNav.map(nav => {
               const Icon = nav.icon
@@ -2090,7 +2091,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
 
   // ==================== LIST VIEW ====================
   return (
-    <div className="min-h-screen bg-[#f0f2f5] pb-24 lg:pb-8">
+    <div className="min-h-screen bg-[#f8f9fa] pb-24 lg:pb-8">
       <header className="bg-[#0E6187] px-4 pb-6 pt-5 text-white">
         <div className="mx-auto max-w-lg">
           <div className="flex items-center gap-2">
@@ -2114,8 +2115,8 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
         ) : pakets.length === 0 ? (
           <div className="bg-white rounded-md border border-dashed border-[#E5E7EF] p-10 text-center">
             <ListChecks size={28} className="text-slate-300 mx-auto mb-2" />
-            <p className="text-sm font-bold text-slate-700">Belum ada paket soal</p>
-            <p className="text-[11px] text-slate-400 font-medium mt-1">Guru/instruktur belum membuka quiz untuk Anda</p>
+            <p className="text-base font-medium text-[#202124]">Belum ada paket soal</p>
+            <p className="text-sm text-[#5f6368] mt-1">Guru/instruktur belum membuka quiz untuk Anda</p>
           </div>
         ) : (
           pakets.map(p => {
@@ -2171,7 +2172,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
       </div>
 
       {/* Bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[#dadce0] bg-white/95 backdrop-blur lg:hidden">
         <div className="mx-auto grid max-w-lg grid-cols-5">
           {bottomNav.map(nav => {
             const Icon = nav.icon

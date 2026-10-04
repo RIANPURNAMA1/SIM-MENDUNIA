@@ -119,9 +119,9 @@ export default function DataPencairanKomisi() {
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
-      <div className="mb-4 flex flex-col gap-4 rounded-lg bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between border border-slate-200">
+      <div className="mb-4 flex flex-col gap-4 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between border border-slate-200">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
+          <div className="flex h-10 w-10 items-center justify-center bg-[#0E6187] text-white">
             <Wallet size={20} />
           </div>
           <div>
@@ -132,26 +132,26 @@ export default function DataPencairanKomisi() {
       </div>
 
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-2">
-        <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="border border-slate-200 bg-white p-3 shadow-sm">
           <p className="text-xs font-medium text-slate-500">Total Komisi</p>
           <p className="text-lg font-bold text-slate-800">Rp {fmt(totalKomisi)}</p>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="border border-slate-200 bg-white p-3 shadow-sm">
           <p className="text-xs font-medium text-slate-500">Total Affiliate</p>
           <p className="text-lg font-bold text-slate-800">{filtered.length}</p>
         </div>
       </div>
 
-      <div className="mb-4 rounded-lg bg-white p-4 shadow-sm border border-slate-200">
+      <div className="mb-4 bg-white p-4 shadow-sm border border-slate-200">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input type="text" value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Cari nama affiliate, email, no rekening, atau no hp..."
-              className="w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+              className="w-full border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
           </div>
           <button onClick={() => setSearch('')}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50">
+            className="inline-flex items-center justify-center gap-2 border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50">
             <RotateCcw size={14} /> Reset
           </button>
         </div>
@@ -160,19 +160,19 @@ export default function DataPencairanKomisi() {
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="relative w-14 h-14 flex items-center justify-center">
-            <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
+            <div className="rounded-full absolute inset-0 border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
             <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
           </div>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-lg border border-slate-200 bg-white px-6 py-10 text-center shadow-sm">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+        <div className="border border-slate-200 bg-white px-6 py-10 text-center shadow-sm">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center bg-slate-100 text-slate-400">
             <Wallet size={24} />
           </div>
           <p className="mt-3 text-sm font-medium text-slate-600">Belum ada data komisi</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="overflow-x-auto border border-slate-200 bg-white shadow-sm">
           <table className="w-full min-w-full border-collapse text-left text-sm text-slate-700">
             <thead className="bg-slate-50 text-sm text-slate-600">
               <tr>
@@ -217,7 +217,7 @@ export default function DataPencairanKomisi() {
                       </td>
                       <td className="border border-slate-200 px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0E6187] text-xs font-bold text-white">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center bg-[#0E6187] text-xs font-bold text-white">
                             {aff.affiliate_nama.charAt(0)}
                           </div>
                           <div>
@@ -239,7 +239,7 @@ export default function DataPencairanKomisi() {
                       </td>
                       <td className="border border-slate-200 px-4 py-3 text-center">
                         <button onClick={() => setExpandedAffiliate(open ? null : affKey)}
-                          className="inline-flex items-center justify-center rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
+                          className="inline-flex items-center justify-center p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
                           {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                         </button>
                       </td>
@@ -254,7 +254,7 @@ export default function DataPencairanKomisi() {
                               <span><strong>No. Rekening:</strong> {aff.no_rekening || '-'}</span>
                               <span><strong>No. HP:</strong> {aff.no_hp || '-'}</span>
                             </div>
-                            <div className="overflow-x-auto rounded-lg border border-slate-200">
+                            <div className="overflow-x-auto border border-slate-200">
                               <table className="w-full min-w-[500px] border-collapse text-left text-sm text-slate-700">
                                 <thead>
                                   <tr className="bg-white text-xs text-slate-500">

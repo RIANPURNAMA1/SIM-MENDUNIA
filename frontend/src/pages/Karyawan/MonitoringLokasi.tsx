@@ -109,7 +109,7 @@ export default function MonitoringLokasiPage() {
         const popup = `
           <div style="font-size:12px;line-height:1.5">
             <b>${item.user?.name || "-"}</b><br/>
-            <span style="color:#059669">&#9679; Masuk</span> ${item.jam_masuk || "-"}<br/>
+            <span style="color:#137333">&#9679; Masuk</span> ${item.jam_masuk || "-"}<br/>
             ${item.tanggal}<br/>
             ${item.cabang?.nama_cabang || "-"}
           </div>`;
@@ -123,7 +123,7 @@ export default function MonitoringLokasiPage() {
         const popup = `
           <div style="font-size:12px;line-height:1.5">
             <b>${item.user?.name || "-"}</b><br/>
-            <span style="color:#2563eb">&#9679; Pulang</span> ${item.jam_keluar || "-"}<br/>
+            <span style="color:#1a73e8">&#9679; Pulang</span> ${item.jam_keluar || "-"}<br/>
             ${item.tanggal}<br/>
             ${item.cabang?.nama_cabang || "-"}
           </div>`;
@@ -152,43 +152,43 @@ export default function MonitoringLokasiPage() {
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
-      <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-4 border-b border-[#dadce0] pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
-            <MapPin size={20} className="text-white" />
+          <div className="flex h-10 w-10 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]">
+            <MapPin size={20} />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-slate-800">Monitoring Lokasi</h1>
-            <p className="text-sm text-slate-500">Pantau lokasi absensi karyawan</p>
+            <h1 className="text-xl font-medium text-[#202124]">Monitoring Lokasi</h1>
+            <p className="text-sm text-[#5f6368]">Pantau lokasi absensi karyawan</p>
           </div>
         </div>
       </div>
 
       {/* Filter */}
-      <div className="mb-4 rounded-lg p-4 shadow-sm">
+      <div className="mb-4 p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-500 shrink-0">Dari</span>
+            <span className="text-xs font-semibold text-[#5f6368] shrink-0">Dari</span>
             <input
               type="date"
               value={tglMulai}
               onChange={(e) => setTglMulai(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
             />
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-500 shrink-0">Sampai</span>
+            <span className="text-xs font-semibold text-[#5f6368] shrink-0">Sampai</span>
             <input
               type="date"
               value={tglSelesai}
               onChange={(e) => setTglSelesai(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
             />
           </div>
           <select
             value={filterCabang}
             onChange={(e) => setFilterCabang(e.target.value)}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
           >
             <option value="">Semua Cabang</option>
             {listCabang.map((c) => (
@@ -197,14 +197,14 @@ export default function MonitoringLokasiPage() {
           </select>
           <button
             onClick={fetchData}
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-slate-800 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-700"
+            className="inline-flex items-center justify-center gap-2 bg-[#202124] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#3c4043]"
           >
             <Search size={16} />
             Filter
           </button>
           <button
             onClick={resetFilter}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="inline-flex items-center justify-center gap-2 border border-[#dadce0] bg-white px-3 py-2 text-sm font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]"
           >
             <RotateCcw size={16} />
             Reset
@@ -215,93 +215,87 @@ export default function MonitoringLokasiPage() {
       {/* Summary */}
       {!loading && (
         <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
-            <span className="block text-lg font-bold text-emerald-600">{masukCount}</span>
-            <p className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">Check In</p>
+          <div className="border border-[#dadce0] bg-white px-3 py-2 text-center">
+            <span className="block text-lg font-bold text-[#137333]">{masukCount}</span>
+            <p className="text-[10px] font-semibold tracking-wider text-[#5f6368] uppercase">Check In</p>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
-            <span className="block text-lg font-bold text-blue-600">{pulangCount}</span>
-            <p className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">Check Out</p>
+          <div className="border border-[#dadce0] bg-white px-3 py-2 text-center">
+            <span className="block text-lg font-bold text-[#1a73e8]">{pulangCount}</span>
+            <p className="text-[10px] font-semibold tracking-wider text-[#5f6368] uppercase">Check Out</p>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-center shadow-sm">
-            <span className="block text-lg font-bold text-slate-900">{data.length}</span>
-            <p className="text-[10px] font-bold tracking-wider text-slate-600 uppercase">Total</p>
+          <div className="border border-[#dadce0] bg-[#f8f9fa] px-3 py-2 text-center">
+            <span className="block text-lg font-bold text-[#202124]">{data.length}</span>
+            <p className="text-[10px] font-bold tracking-wider text-[#5f6368] uppercase">Total</p>
           </div>
         </div>
       )}
 
       {/* Map */}
-      <div className="mb-4 overflow-hidden rounded-lg border border-slate-200 shadow-sm">
+      <div className="mb-4 overflow-hidden border border-[#dadce0]">
         <div ref={mapContainerRef} className="h-[400px] w-full sm:h-[500px]" />
       </div>
 
       {/* Table */}
-      <div className="relative overflow-x-auto rounded-lg border border-slate-200">
-        <table className="w-full min-w-full border-collapse text-left text-xs text-slate-700">
-          <thead className="bg-slate-50 text-[10px] text-slate-600 uppercase tracking-wide">
+      <div className="relative overflow-x-auto border border-[#dadce0]">
+        <table className="w-full min-w-full border-collapse text-left text-xs text-[#3c4043]">
+          <thead className="text-[10px] text-[#5f6368]">
             <tr>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold">Karyawan</th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold">Cabang</th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold">Tanggal</th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold">Jam Masuk</th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold">Jam Pulang</th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold">Status</th>
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5">Karyawan</th>
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5">Cabang</th>
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5">Tanggal</th>
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5">Jam Masuk</th>
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5">Jam Pulang</th>
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5">Status</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i}>
-                  <td colSpan={6} className="border border-slate-200 px-3 py-3">
-                    <div className="h-3 w-full rounded bg-slate-200/70" />
+                  <td colSpan={6} className="px-6 py-12 text-center">
+                    <div className="h-3 w-full bg-[#e8eaed]" />
                   </td>
                 </tr>
               ))
             ) : data.length === 0 ? (
               <tr>
-                <td colSpan={6} className="border border-slate-200 px-4 py-10 text-center">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                <td colSpan={6} className="px-6 py-12 text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center bg-[#f1f3f4] text-[#80868b]">
                     <MapPin size={24} />
                   </div>
-                  <p className="mt-3 text-sm font-medium text-slate-600">Tidak ada data lokasi</p>
-                  <p className="text-xs text-slate-400">Coba ubah rentang tanggal atau filter</p>
+                  <p className="mt-3 text-sm font-medium text-[#5f6368]">Tidak ada data lokasi</p>
+                  <p className="text-xs text-[#80868b]">Coba ubah rentang tanggal atau filter</p>
                 </td>
               </tr>
             ) : (
               data.map((item, idx) => (
-                <tr key={idx} className="bg-white transition hover:bg-slate-50">
-                  <td className="border border-slate-200 px-3 py-2.5">
-                    <div className="font-semibold text-slate-800">{item.user?.name || "-"}</div>
-                    <div className="text-[9px] text-slate-400">{item.user?.nip || ""}</div>
+                <tr key={idx} className="bg-white transition hover:bg-[#f8f9fa]">
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5">
+                    <div className="font-semibold text-[#202124]">{item.user?.name || "-"}</div>
+                    <div className="text-[9px] text-[#80868b]">{item.user?.nip || ""}</div>
                   </td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-slate-500">
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-[#5f6368]">
                     {item.cabang?.nama_cabang || "-"}
                   </td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-slate-500">{item.tanggal}</td>
-                  <td className="border border-slate-200 px-3 py-2.5">
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-[#5f6368]">{item.tanggal}</td>
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5">
                     {item.lat_masuk ? (
                       <span className="inline-flex items-center gap-1">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                        <span className="h-1.5 w-1.5 bg-[#0E6187]" />
                         {item.jam_masuk || "-"}
                       </span>
                     ) : "-"}
                   </td>
-                  <td className="border border-slate-200 px-3 py-2.5">
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5">
                     {item.lat_pulang ? (
                       <span className="inline-flex items-center gap-1">
-                        <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                        <span className="h-1.5 w-1.5 bg-[#0E6187]" />
                         {item.jam_keluar || "-"}
                       </span>
                     ) : "-"}
                   </td>
-                  <td className="border border-slate-200 px-3 py-2.5">
-                    <span className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-semibold ${
-                      item.status === "HADIR" ? "bg-emerald-100 text-emerald-700" :
-                      item.status === "TERLAMBAT" ? "bg-amber-100 text-amber-700" :
-                      item.status === "IZIN" ? "bg-blue-100 text-blue-700" :
-                      item.status === "ALPA" ? "bg-rose-100 text-rose-700" :
-                      "bg-slate-100 text-slate-600"
-                    }`}>
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5">
+                    <span className={`inline-flex px-2 py-0.5 text-[9px] font-semibold ${ item.status === "HADIR" ? "bg-[#0E6187] text-white" : item.status === "TERLAMBAT" ? "bg-[#fef7e0] text-[#b06000]" : item.status === "IZIN" ? "bg-[#e8f0fe] text-[#1967d2]" : item.status === "ALPA" ? "bg-[#f6d7d5] text-[#a50e0e]" : "bg-[#f1f3f4] text-[#5f6368]" }`}>
                       {item.status}
                     </span>
                   </td>

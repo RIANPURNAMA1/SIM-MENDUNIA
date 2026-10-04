@@ -30,14 +30,14 @@ interface PaymentItem {
 
 const statusBadge = (status: string) => {
   const map: Record<string, { bg: string; text: string; label: string; icon: typeof Clock }> = {
-    pending: { bg: 'bg-amber-50 border-amber-200', text: 'text-amber-700', label: 'Pending', icon: Clock },
-    verified: { bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700', label: 'Verified', icon: CheckCircle },
-    ditolak: { bg: 'bg-red-50 border-red-200', text: 'text-red-600', label: 'Ditolak', icon: XCircle },
+    pending: { bg: 'bg-[#fef7e0] border-[#fdd663]', text: 'text-[#b06000]', label: 'Pending', icon: Clock },
+    verified: { bg: 'bg-[#e6f4ea] border-[#a8dab5]', text: 'text-[#137333]', label: 'Verified', icon: CheckCircle },
+    ditolak: { bg: 'bg-[#fce8e6] border-[#f6aea9]', text: 'text-[#c5221f]', label: 'Ditolak', icon: XCircle },
   }
-  const s = map[status] || { bg: 'bg-slate-50 border-slate-200', text: 'text-slate-600', label: status, icon: Clock }
+  const s = map[status] || { bg: 'bg-[#f8f9fa] border-[#dadce0]', text: 'text-[#5f6368]', label: status, icon: Clock }
   const Icon = s.icon
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${s.bg} ${s.text}`}>
+    <span className={`inline-flex items-center gap-1.5 border px-2.5 py-1 text-[11px] font-semibold ${s.bg} ${s.text}`}>
       <Icon size={12} />
       {s.label}
     </span>
@@ -107,33 +107,33 @@ export default function Pembayaran() {
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       {/* Breadcrumb */}
-      <nav className="mb-4 flex items-center gap-1.5 text-xs text-slate-500" aria-label="Breadcrumb">
-        <Link to="/" className="flex items-center gap-1 transition-colors hover:text-[#0E6187]">
+      <nav className="mb-4 flex items-center gap-1.5 text-xs text-[#5f6368]" aria-label="Breadcrumb">
+        <Link to="/" className="flex items-center gap-1 transition-colors hover:text-[#1a73e8]">
           <LayoutDashboard size={13} />
           <span>Beranda</span>
         </Link>
-        <ChevronRight size={12} className="text-slate-300" />
-        <Link to="/pendaftar" className="transition-colors hover:text-[#0E6187]">
+        <ChevronRight size={12} className="text-[#9aa0a6]" />
+        <Link to="/pendaftar" className="transition-colors hover:text-[#1a73e8]">
           Manage Kandidat
         </Link>
-        <ChevronRight size={12} className="text-slate-300" />
-        <span className="font-medium text-slate-700">Riwayat Pembayaran</span>
+        <ChevronRight size={12} className="text-[#9aa0a6]" />
+        <span className="font-medium text-[#3c4043]">Riwayat Pembayaran</span>
       </nav>
 
-      <div className="mb-4 flex flex-col gap-3 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-3 border-b border-[#dadce0] pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
-            <Wallet size={20} className="text-white" />
+          <div className="flex h-10 w-10 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]">
+            <Wallet size={20} />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-slate-800">Data Pembayaran</h1>
-            <p className="text-sm text-slate-500">{data.length} total pembayaran</p>
+            <h1 className="text-xl font-medium text-[#202124]">Data Pembayaran</h1>
+            <p className="text-sm text-[#5f6368]">{data.length} total pembayaran</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setShowCatatan(!showCatatan)}
-            className="inline-flex items-center gap-2 rounded-md bg-[#0E6187] px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#1a5e6f]"
+            className="inline-flex items-center gap-2 bg-[#0E6187] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#1a5e6f]"
           >
             {showCatatan ? <FileText size={16} /> : <Images size={16} />}
             {showCatatan ? 'Tabel' : 'Catatan'}
@@ -142,42 +142,42 @@ export default function Pembayaran() {
       </div>
 
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-          <p className="text-xs font-medium text-slate-500">Total Transaksi</p>
-          <p className="text-lg font-bold text-slate-800">{stats.count}</p>
+        <div className="border border-[#dadce0] bg-white p-3">
+          <p className="text-xs font-medium text-[#5f6368]">Total Transaksi</p>
+          <p className="text-lg font-bold text-[#202124]">{stats.count}</p>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-          <p className="text-xs font-medium text-slate-500">Total Nominal</p>
-          <p className="text-lg font-bold text-slate-800">Rp {fmt(stats.total)}</p>
+        <div className="border border-[#dadce0] bg-white p-3">
+          <p className="text-xs font-medium text-[#5f6368]">Total Nominal</p>
+          <p className="text-lg font-bold text-[#202124]">Rp {fmt(stats.total)}</p>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-          <p className="text-xs font-medium text-emerald-600">Terverifikasi</p>
-          <p className="text-lg font-bold text-emerald-700">Rp {fmt(stats.verified)}</p>
+        <div className="border border-[#dadce0] bg-white p-3">
+          <p className="text-xs font-medium text-[#137333]">Terverifikasi</p>
+          <p className="text-lg font-bold text-[#137333]">Rp {fmt(stats.verified)}</p>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-          <p className="text-xs font-medium text-amber-600">Pending</p>
-          <p className="text-lg font-bold text-amber-700">{stats.pending}</p>
+        <div className="border border-[#dadce0] bg-white p-3">
+          <p className="text-xs font-medium text-[#b06000]">Pending</p>
+          <p className="text-lg font-bold text-[#b06000]">{stats.pending}</p>
         </div>
       </div>
 
-      <div className="mb-4 rounded-lg p-4 shadow-sm">
+      <div className="mb-4 p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative flex-1">
-            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#80868b]" />
             <input
               type="text"
               placeholder="Cari kandidat..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full border border-[#dadce0] bg-white py-2 pl-9 pr-3 text-sm text-[#3c4043] outline-none transition placeholder:text-[#80868b] focus:border-[#1a73e8] focus:border-[#1a73e8]"
             />
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Filter size={14} className="text-slate-400" />
+            <Filter size={14} className="text-[#80868b]" />
             <select
               value={filterStatus}
               onChange={e => setFilterStatus(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="border border-[#dadce0] bg-white px-2 py-2 text-sm text-[#3c4043] outline-none focus:border-[#1a73e8] focus:border-[#1a73e8]"
             >
               <option value="">Semua Status</option>
               <option value="pending">Pending</option>
@@ -188,18 +188,18 @@ export default function Pembayaran() {
               type="date"
               value={startDate}
               onChange={e => setStartDate(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="border border-[#dadce0] bg-white px-2 py-2 text-sm text-[#3c4043] outline-none focus:border-[#1a73e8] focus:border-[#1a73e8]"
             />
-            <span className="text-slate-400 text-sm">-</span>
+            <span className="text-[#80868b] text-sm">-</span>
             <input
               type="date"
               value={endDate}
               onChange={e => setEndDate(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="border border-[#dadce0] bg-white px-2 py-2 text-sm text-[#3c4043] outline-none focus:border-[#1a73e8] focus:border-[#1a73e8]"
             />
             <button
               onClick={() => { setSearch(''); setFilterStatus(''); setStartDate(''); setEndDate('') }}
-              className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+              className="inline-flex items-center justify-center gap-2 border border-[#dadce0] bg-white px-3 py-2 text-sm font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]"
             >
               <RotateCcw size={14} />
               Reset
@@ -209,88 +209,88 @@ export default function Pembayaran() {
       </div>
 
       {!showCatatan ? (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-          <table className="w-full min-w-full border-collapse text-left text-sm text-slate-700">
-            <thead className="text-sm text-slate-600">
+        <div className="overflow-x-auto border border-[#dadce0] bg-white">
+          <table className="w-full min-w-full border-collapse text-left text-sm text-[#3c4043]">
+            <thead className="text-sm text-[#5f6368]">
               <tr>
-                <th className="border border-slate-200 px-4 py-3 font-medium">Tanggal</th>
-                <th className="border border-slate-200 px-4 py-3 font-medium">Kategori</th>
-                <th className="border border-slate-200 px-4 py-3 font-medium">Keterangan</th>
-                <th className="border border-slate-200 px-4 py-3 text-right font-medium">Nominal</th>
-                <th className="border border-slate-200 px-4 py-3 font-medium">Status</th>
-                <th className="border border-slate-200 px-4 py-3 font-medium">Cabang</th>
-                <th className="border border-slate-200 px-4 py-3 font-medium">Oleh</th>
-                <th className="border border-slate-200 px-4 py-3 text-center font-medium">Aksi</th>
+                <th className="text-xs font-medium text-[#5f6368] px-4 py-3">Tanggal</th>
+                <th className="text-xs font-medium text-[#5f6368] px-4 py-3">Kategori</th>
+                <th className="text-xs font-medium text-[#5f6368] px-4 py-3">Keterangan</th>
+                <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-right">Nominal</th>
+                <th className="text-xs font-medium text-[#5f6368] px-4 py-3">Status</th>
+                <th className="text-xs font-medium text-[#5f6368] px-4 py-3">Cabang</th>
+                <th className="text-xs font-medium text-[#5f6368] px-4 py-3">Oleh</th>
+                <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
-                    <td colSpan={8} className="border border-slate-200 px-4 py-3">
-                      <div className="h-3 bg-slate-200/70 rounded w-full animate-pulse" />
+                    <td colSpan={8} className="px-6 py-12 text-center">
+                      <div className="h-3 bg-[#e8eaed]/70 w-full animate-pulse" />
                     </td>
                   </tr>
                 ))
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="border border-slate-200 px-6 py-10 text-center">
-                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                  <td colSpan={8} className="px-6 py-12 text-center">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center bg-[#f1f3f4] text-[#80868b]">
                       <CreditCard size={24} />
                     </div>
-                    <p className="mt-3 text-sm font-medium text-slate-600">Belum ada pembayaran</p>
+                    <p className="mt-3 text-sm font-medium text-[#5f6368]">Belum ada pembayaran</p>
                   </td>
                 </tr>
               ) : (
                 filtered.map(p => (
-                  <tr key={p.id} className="bg-white transition hover:bg-slate-50">
-                    <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
+                  <tr key={p.id} className="bg-white transition hover:bg-[#f8f9fa]">
+                    <td className="border-b border-[#e8eaed] border-b border-b px-4 py-3 text-sm text-[#5f6368] whitespace-nowrap">
                       {new Date(p.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </td>
-                    <td className="border border-slate-200 px-4 py-3">
-                      <span className="rounded bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
+                    <td className="border-b border-[#e8eaed] border-b border-b px-4 py-3">
+                      <span className="bg-[#e8f0fe] px-2 py-0.5 text-[11px] font-semibold text-[#1967d2]">
                         {p.kategori?.nama || '-'}
                       </span>
                     </td>
-                    <td className="border border-slate-200 px-4 py-3">
+                    <td className="border-b border-[#e8eaed] border-b border-b px-4 py-3">
                       <div className="flex items-center gap-3">
                         <img
                           src={`https://ui-avatars.com/api/?name=${encodeURIComponent(p.pendaftar?.nama || '?')}&background=e5e7eb&color=6b7280&size=28`}
-                          className="h-8 w-8 rounded-full object-cover shrink-0"
+                          className="h-8 w-8 object-cover shrink-0"
                           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                         />
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold text-slate-800 truncate">{p.pendaftar?.nama || '-'}</p>
-                          <p className="text-xs text-slate-500 truncate">{p.pendaftar?.product?.nama || ''}</p>
+                          <p className="text-sm font-semibold text-[#202124] truncate">{p.pendaftar?.nama || '-'}</p>
+                          <p className="text-xs text-[#5f6368] truncate">{p.pendaftar?.product?.nama || ''}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="border border-slate-200 px-4 py-3 text-right text-sm font-bold text-slate-800 whitespace-nowrap">
+                    <td className="border-b border-[#e8eaed] border-b border-b px-4 py-3 text-right text-sm font-bold text-[#202124] whitespace-nowrap">
                       Rp {fmt(nominalTampil(p))}
                     </td>
-                    <td className="border border-slate-200 px-4 py-3">
+                    <td className="border-b border-[#e8eaed] border-b border-b px-4 py-3">
                       {statusBadge(p.status)}
                     </td>
-                    <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">
-                      {p.pendaftar?.batch?.nama_batch || <span className="text-slate-300">-</span>}
+                    <td className="border-b border-[#e8eaed] border-b border-b px-4 py-3 text-sm text-[#5f6368]">
+                      {p.pendaftar?.batch?.nama_batch || <span className="text-[#9aa0a6]">-</span>}
                     </td>
-                    <td className="border border-slate-200 px-4 py-3">
-                      <div className="text-sm text-slate-700">
+                    <td className="border-b border-[#e8eaed] border-b border-b px-4 py-3">
+                      <div className="text-sm text-[#3c4043]">
                         <p className="font-medium">{p.pendaftar?.nama || '-'}</p>
-                        <p className="text-xs text-slate-500">{p.pendaftar?.email || ''}</p>
+                        <p className="text-xs text-[#5f6368]">{p.pendaftar?.email || ''}</p>
                       </div>
                     </td>
-                    <td className="border border-slate-200 px-4 py-3 text-center">
+                    <td className="border-b border-[#e8eaed] border-b border-b px-4 py-3 text-center">
                       {p.bukti_pembayaran ? (
                         <button
                           onClick={() => setPreviewImg(`${APP_URL}/storage/${p.bukti_pembayaran}`)}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+                          className="inline-flex items-center gap-1.5 border border-[#dadce0] px-3 py-1.5 text-xs font-medium text-[#5f6368] transition hover:border-[#aecbfa] hover:bg-[#e8f0fe] hover:text-[#1a73e8]"
                         >
                           <Eye size={13} />
                           Lihat
                         </button>
                       ) : (
-                        <span className="text-xs text-slate-400">Manual</span>
+                        <span className="text-xs text-[#80868b]">Manual</span>
                       )}
                     </td>
                   </tr>
@@ -298,7 +298,7 @@ export default function Pembayaran() {
               )}
             </tbody>
           </table>
-          <div className="border-t border-slate-200 px-4 py-3 text-sm text-slate-500">
+          <div className="border-t border-[#dadce0] px-4 py-3 text-sm text-[#5f6368]">
             Menampilkan {filtered.length} dari {data.length} pembayaran
           </div>
         </div>
@@ -306,20 +306,20 @@ export default function Pembayaran() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {loading ? (
             Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="border border-slate-200 rounded-xl overflow-hidden animate-pulse">
-                <div className="h-40 bg-slate-200/70" />
+              <div key={i} className="border border-[#dadce0] overflow-hidden animate-pulse">
+                <div className="h-40 bg-[#e8eaed]/70" />
                 <div className="p-3 space-y-2">
-                  <div className="h-3 bg-slate-200/70 rounded w-1/3" />
-                  <div className="h-4 bg-slate-200/70 rounded w-1/2" />
-                  <div className="h-3 bg-slate-200/70 rounded w-2/3" />
+                  <div className="h-3 bg-[#e8eaed]/70 w-1/3" />
+                  <div className="h-4 bg-[#e8eaed]/70 w-1/2" />
+                  <div className="h-3 bg-[#e8eaed]/70 w-2/3" />
                 </div>
               </div>
             ))
           ) : filtered.length === 0 ? (
-            <div className="col-span-full text-center py-10 text-sm text-slate-400">Belum ada catatan</div>
+            <div className="col-span-full text-center py-10 text-sm text-[#80868b]">Belum ada catatan</div>
           ) : (
             groupedByPendaftar.map(group => (
-              <div key={group.id} className="border border-slate-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow bg-white">
+              <div key={group.id} className="border border-[#dadce0] overflow-hidden hover: transition- bg-white">
                 {group.bukti ? (
                   <img
                     src={`${APP_URL}/storage/${group.bukti}`}
@@ -328,32 +328,32 @@ export default function Pembayaran() {
                     onClick={() => setPreviewImg(`${APP_URL}/storage/${group.bukti}`)}
                   />
                 ) : (
-                  <div className="h-40 bg-slate-100 flex items-center justify-center">
-                    <Camera size={32} className="text-slate-300" />
+                  <div className="h-40 bg-[#f1f3f4] flex items-center justify-center">
+                    <Camera size={32} className="text-[#9aa0a6]" />
                   </div>
                 )}
                 <div className="p-3">
                   <div className="flex items-center justify-between mb-1">
                     <div className="min-w-0">
-                      <p className="text-sm font-bold text-slate-800 truncate">{group.pendaftar?.nama || '-'}</p>
-                      <p className="text-[10px] text-slate-400 truncate">{group.pendaftar?.email || ''}</p>
+                      <p className="text-sm font-bold text-[#202124] truncate">{group.pendaftar?.nama || '-'}</p>
+                      <p className="text-[10px] text-[#80868b] truncate">{group.pendaftar?.email || ''}</p>
                     </div>
                     <div className="shrink-0 ml-2">
                       {statusBadge(group.items[0]?.status || 'pending')}
                     </div>
                   </div>
-                  <p className="text-xs text-slate-500 truncate">{group.pendaftar?.product?.nama || 'Tanpa keterangan'}</p>
-                  <div className="mt-2 pt-2 border-t border-slate-100 space-y-1.5">
+                  <p className="text-xs text-[#5f6368] truncate">{group.pendaftar?.product?.nama || 'Tanpa keterangan'}</p>
+                  <div className="mt-2 pt-2 border-t border-[#e8eaed] space-y-1.5">
                     {group.items.map(item => (
                       <div key={item.id} className="flex items-center justify-between gap-2 text-xs">
-                        <span className="text-slate-600 truncate">
+                        <span className="text-[#5f6368] truncate">
                           {item.kategori?.nama || '-'}
-                          <span className="text-slate-400"> · {new Date(item.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                          <span className="text-[#80868b]"> · {new Date(item.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                         </span>
-                        <span className="font-semibold text-slate-800 whitespace-nowrap">Rp {fmt(nominalTampil(item))}</span>
+                        <span className="font-semibold text-[#202124] whitespace-nowrap">Rp {fmt(nominalTampil(item))}</span>
                       </div>
                     ))}
-                    <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-100 text-xs font-bold text-slate-800">
+                    <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-[#e8eaed] text-xs font-bold text-[#202124]">
                       <span>Total</span>
                       <span>Rp {fmt(group.items.reduce((s, item) => s + Number(nominalTampil(item)), 0))}</span>
                     </div>
@@ -367,16 +367,16 @@ export default function Pembayaran() {
 
       {previewImg && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" onClick={() => setPreviewImg(null)}>
-          <div className="absolute inset-0 bg-black/70" />
-          <div className="relative max-w-2xl w-full bg-white rounded-2xl shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
-              <h3 className="text-sm font-semibold text-slate-800">Bukti Pembayaran</h3>
-              <button onClick={() => setPreviewImg(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
+          <div className="absolute inset-0 bg-[#202124]/60" />
+          <div className="border border-[#dadce0] relative max-w-2xl w-full bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[#dadce0]">
+              <h3 className="text-sm font-semibold text-[#202124]">Bukti Pembayaran</h3>
+              <button onClick={() => setPreviewImg(null)} className="p-1 text-[#80868b] hover:bg-[#f1f3f4] hover:text-[#5f6368] transition-colors">
                 <XCircle size={18} />
               </button>
             </div>
             <div className="p-2">
-              <img src={previewImg} alt="Preview" className="w-full h-auto rounded-lg object-contain max-h-[70vh]" />
+              <img src={previewImg} alt="Preview" className="w-full h-auto object-contain max-h-[70vh]" />
             </div>
           </div>
         </div>

@@ -11,13 +11,13 @@ const MONTHS_IND = [
 const DAY_NAMES = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
 const STATUS_OPTIONS = [
-  { value: "HADIR", label: "Hadir", color: "text-emerald-600" },
-  { value: "TERLAMBAT", label: "Terlambat", color: "text-amber-600" },
-  { value: "IZIN", label: "Izin", color: "text-blue-600" },
-  { value: "ALPA", label: "Alpa", color: "text-rose-600" },
-  { value: "PULANG LEBIH AWAL", label: "Pulang Lebih Awal", color: "text-orange-600" },
-  { value: "TIDAK ABSEN PULANG", label: "Tidak Absen Pulang", color: "text-rose-600" },
-  { value: "LIBUR", label: "Libur", color: "text-slate-500" },
+  { value: "HADIR", label: "Hadir", color: "text-[#137333]" },
+  { value: "TERLAMBAT", label: "Terlambat", color: "text-[#b06000]" },
+  { value: "IZIN", label: "Izin", color: "text-[#1a73e8]" },
+  { value: "ALPA", label: "Alpa", color: "text-[#c5221f]" },
+  { value: "PULANG LEBIH AWAL", label: "Pulang Lebih Awal", color: "text-[#b06000]" },
+  { value: "TIDAK ABSEN PULANG", label: "Tidak Absen Pulang", color: "text-[#c5221f]" },
+  { value: "LIBUR", label: "Libur", color: "text-[#5f6368]" },
 ];
 
 export default function RekapJadwalShiftPage() {
@@ -126,25 +126,25 @@ export default function RekapJadwalShiftPage() {
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
-      <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-4 border-b border-[#dadce0] pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
-            <CalendarCheck size={20} className="text-white" />
+          <div className="flex h-10 w-10 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]">
+            <CalendarCheck size={20} />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-slate-800">Rekap Jadwal Shift</h1>
-            <p className="text-sm text-slate-500">Kalender kehadiran per karyawan</p>
+            <h1 className="text-xl font-medium text-[#202124]">Rekap Jadwal Shift</h1>
+            <p className="text-sm text-[#5f6368]">Kalender kehadiran per karyawan</p>
           </div>
         </div>
       </div>
 
       {/* Filter */}
-      <div className="mb-4 rounded-lg p-4 shadow-sm">
+      <div className="mb-4 p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <select
             value={selectedUserId}
             onChange={(e) => setSelectedUserId(e.target.value ? Number(e.target.value) : "")}
-            className="min-w-[200px] rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="min-w-[200px] border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
           >
             <option value="">Pilih Karyawan</option>
             {listKaryawan.map((k) => (
@@ -156,7 +156,7 @@ export default function RekapJadwalShiftPage() {
           <select
             value={bulan}
             onChange={(e) => setBulan(Number(e.target.value))}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
           >
             {MONTHS_IND.map((name, idx) => (
               <option key={idx} value={idx + 1}>{name}</option>
@@ -165,7 +165,7 @@ export default function RekapJadwalShiftPage() {
           <select
             value={tahun}
             onChange={(e) => setTahun(Number(e.target.value))}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
           >
             {Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i).map((y) => (
               <option key={y} value={y}>{y}</option>
@@ -174,7 +174,7 @@ export default function RekapJadwalShiftPage() {
           <button
             onClick={fetchData}
             disabled={!selectedUserId || loading}
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-slate-800 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-700 disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 bg-[#202124] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#3c4043] disabled:opacity-50"
           >
             <Search size={16} />
             Tampilkan
@@ -186,7 +186,7 @@ export default function RekapJadwalShiftPage() {
               setTahun(now.getFullYear());
               setRekapData({});
             }}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="inline-flex items-center justify-center gap-2 border border-[#dadce0] bg-white px-3 py-2 text-sm font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]"
           >
             <RotateCcw size={16} />
             Reset
@@ -197,29 +197,29 @@ export default function RekapJadwalShiftPage() {
       {/* Summary */}
       {!loading && Object.keys(rekapData).length > 0 && (
         <div className="mb-4 grid grid-cols-3 gap-2 sm:grid-cols-6">
-          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
-            <span className="block text-lg font-bold text-emerald-600">{s.hadir}</span>
-            <p className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">Hadir</p>
+          <div className="border border-[#dadce0] bg-white px-3 py-2 text-center">
+            <span className="block text-lg font-bold text-[#137333]">{s.hadir}</span>
+            <p className="text-[10px] font-semibold tracking-wider text-[#5f6368] uppercase">Hadir</p>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
-            <span className="block text-lg font-bold text-amber-600">{s.terlambat}</span>
-            <p className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">Telat</p>
+          <div className="border border-[#dadce0] bg-white px-3 py-2 text-center">
+            <span className="block text-lg font-bold text-[#b06000]">{s.terlambat}</span>
+            <p className="text-[10px] font-semibold tracking-wider text-[#5f6368] uppercase">Telat</p>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
-            <span className="block text-lg font-bold text-blue-600">{s.izin}</span>
-            <p className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">Izin</p>
+          <div className="border border-[#dadce0] bg-white px-3 py-2 text-center">
+            <span className="block text-lg font-bold text-[#1a73e8]">{s.izin}</span>
+            <p className="text-[10px] font-semibold tracking-wider text-[#5f6368] uppercase">Izin</p>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
-            <span className="block text-lg font-bold text-rose-600">{s.alpa}</span>
-            <p className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">Alpa</p>
+          <div className="border border-[#dadce0] bg-white px-3 py-2 text-center">
+            <span className="block text-lg font-bold text-[#c5221f]">{s.alpa}</span>
+            <p className="text-[10px] font-semibold tracking-wider text-[#5f6368] uppercase">Alpa</p>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
-            <span className="block text-lg font-bold text-slate-500">{s.libur}</span>
-            <p className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">Libur</p>
+          <div className="border border-[#dadce0] bg-white px-3 py-2 text-center">
+            <span className="block text-lg font-bold text-[#5f6368]">{s.libur}</span>
+            <p className="text-[10px] font-semibold tracking-wider text-[#5f6368] uppercase">Libur</p>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-center shadow-sm">
-            <span className="block text-lg font-bold text-slate-800">{s.belumAbsen}</span>
-            <p className="text-[10px] font-bold tracking-wider text-slate-600 uppercase">Blm Absen</p>
+          <div className="border border-[#dadce0] bg-[#f8f9fa] px-3 py-2 text-center">
+            <span className="block text-lg font-bold text-[#202124]">{s.belumAbsen}</span>
+            <p className="text-[10px] font-bold tracking-wider text-[#5f6368] uppercase">Blm Absen</p>
           </div>
         </div>
       )}
@@ -227,30 +227,30 @@ export default function RekapJadwalShiftPage() {
       {/* Legend */}
       {!loading && Object.keys(rekapData).length > 0 && (
         <div className="mb-3 flex flex-wrap gap-2 text-[10px] font-semibold">
-          <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-emerald-500" /> Hadir</span>
-          <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-amber-400" /> Telat</span>
-          <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-blue-400" /> Izin</span>
-          <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-rose-500" /> Alpa</span>
-          <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-slate-400" /> Libur</span>
-          <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm border border-slate-300 bg-white" /> Blm Absen</span>
+          <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 bg-[#0E6187]" /> Hadir</span>
+          <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 bg-[#f9ab00]" /> Telat</span>
+          <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 bg-[#0E6187]" /> Izin</span>
+          <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 bg-[#d93025]" /> Alpa</span>
+          <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 bg-[#bdc1c6]" /> Libur</span>
+          <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 border border-[#dadce0] bg-white" /> Blm Absen</span>
         </div>
       )}
 
       {/* Calendar Grid */}
-      <div className="overflow-x-auto rounded-lg border border-slate-200">
+      <div className="overflow-x-auto border border-[#dadce0]">
         {!selectedUserId ? (
-          <div className="flex flex-col items-center justify-center px-4 py-16 text-slate-400">
+          <div className="flex flex-col items-center justify-center px-4 py-16 text-[#80868b]">
             <CalendarCheck size={40} className="mb-3" />
-            <p className="text-sm font-medium text-slate-500">Pilih karyawan dan tekan Tampilkan</p>
+            <p className="text-sm font-medium text-[#5f6368]">Pilih karyawan dan tekan Tampilkan</p>
           </div>
         ) : loading ? (
-          <div className="px-4 py-16 text-center text-sm text-slate-400">Memuat data...</div>
+          <div className="px-4 py-16 text-center text-sm text-[#80868b]">Memuat data...</div>
         ) : (
           <div className="min-w-[700px]">
             {/* Header */}
-            <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
+            <div className="grid grid-cols-7 border-b border-[#dadce0] bg-[#f8f9fa]">
               {DAY_NAMES.map((name) => (
-                <div key={name} className="border-r border-slate-200 px-2 py-2 text-center text-[10px] font-bold tracking-wider text-slate-500 uppercase last:border-r-0">
+                <div key={name} className="border-r border-[#dadce0] px-2 py-2 text-center text-[10px] font-bold tracking-wider text-[#5f6368] uppercase last:border-r-0">
                   {name}
                 </div>
               ))}
@@ -259,7 +259,7 @@ export default function RekapJadwalShiftPage() {
             <div className="grid grid-cols-7">
               {calendarDays.map((day, idx) => {
                 if (day === null) {
-                  return <div key={`empty-${idx}`} className="border-b border-r border-slate-100 bg-slate-50/50 last:border-r-0" />;
+                  return <div key={`empty-${idx}`} className="border-b border-r border-[#e8eaed] bg-[#f8f9fa] last:border-r-0" />;
                 }
                 const ds = dateStr(day);
                 const dayData = rekapData[ds];
@@ -268,17 +268,17 @@ export default function RekapJadwalShiftPage() {
                 return (
                   <div
                     key={ds}
-                    className={`relative min-h-[70px] border-b border-r border-slate-100 p-1.5 transition last:border-r-0 ${isEmpty ? "bg-slate-50/30" : "cursor-pointer hover:bg-slate-50"}`}
+                    className={`relative min-h-[70px] border-b border-r border-[#e8eaed] p-1.5 transition last:border-r-0 ${isEmpty ? "bg-[#f8f9fa]" : "cursor-pointer hover:bg-[#f8f9fa]"}`}
                     onClick={() => dayData && handleCellClick(ds, dayData)}
                     title={dayData ? dayData.shifts.map((s) => `${s.shift_nama}: ${s.status}`).join(", ") : ""}
                   >
-                    <span className={`text-[10px] font-bold ${isEmpty ? "text-slate-300" : "text-slate-600"}`}>
+                    <span className={`text-[10px] font-bold ${isEmpty ? "text-[#9aa0a6]" : "text-[#5f6368]"}`}>
                       {day}
                     </span>
                     {dayData?.shifts.map((sh, si) => (
                       <div
                         key={si}
-                        className={`mt-0.5 inline-flex items-center justify-center rounded px-1 py-0.5 text-[9px] font-bold leading-tight ${statusColorClass(sh.status)}`}
+                        className={`mt-0.5 inline-flex items-center justify-center px-1 py-0.5 text-[9px] font-bold leading-tight ${statusColorClass(sh.status)}`}
                         style={{ minWidth: 16, minHeight: 16 }}
                       >
                         {sh.initial}
@@ -294,44 +294,44 @@ export default function RekapJadwalShiftPage() {
 
       {/* Modal */}
       {modal.show && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3">
-          <div className="w-full max-w-sm rounded-lg bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-              <h3 className="text-sm font-semibold text-slate-800">Ubah Status</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#202124] px-3">
+          <div className="border border-[#dadce0] w-full max-w-sm bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]">
+            <div className="flex items-center justify-between border-b border-[#dadce0] px-4 py-3">
+              <h3 className="text-sm font-semibold text-[#202124]">Ubah Status</h3>
               <button
                 onClick={() => setModal({ show: false, tanggal: "", shift: { shift_id: null, shift_nama: "", status: "" }, submitting: false })}
-                className="rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                className="p-1 text-[#80868b] transition hover:bg-[#f1f3f4] hover:text-[#5f6368]"
               >
                 <X size={16} />
               </button>
             </div>
             <div className="px-4 py-4">
-              <p className="mb-1 text-xs text-slate-500">Tanggal</p>
-              <p className="mb-3 text-sm font-semibold text-slate-800">{modal.tanggal}</p>
-              <p className="mb-1 text-xs text-slate-500">Shift</p>
-              <p className="mb-3 text-sm font-semibold text-slate-800">{modal.shift.shift_nama}</p>
-              <label className="mb-1 block text-xs text-slate-500">Status</label>
+              <p className="mb-1 text-xs text-[#5f6368]">Tanggal</p>
+              <p className="mb-3 text-sm font-semibold text-[#202124]">{modal.tanggal}</p>
+              <p className="mb-1 text-xs text-[#5f6368]">Shift</p>
+              <p className="mb-3 text-sm font-semibold text-[#202124]">{modal.shift.shift_nama}</p>
+              <label className="mb-1 block text-xs text-[#5f6368]">Status</label>
               <select
                 value={modal.shift.status}
                 onChange={(e) => setModal((prev) => ({ ...prev, shift: { ...prev.shift, status: e.target.value } }))}
-                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
               >
                 {STATUS_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
             </div>
-            <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3">
+            <div className="flex justify-end gap-2 border-t border-[#dadce0] px-4 py-3">
               <button
                 onClick={() => setModal({ show: false, tanggal: "", shift: { shift_id: null, shift_nama: "", status: "" }, submitting: false })}
-                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                className="border border-[#dadce0] bg-white px-4 py-2 text-xs font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]"
               >
                 Batal
               </button>
               <button
                 onClick={handleUpdateStatus}
                 disabled={modal.submitting}
-                className="rounded-md bg-slate-800 px-4 py-2 text-xs font-medium text-white transition hover:bg-slate-700 disabled:opacity-50"
+                className="bg-[#202124] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#3c4043] disabled:opacity-50"
               >
                 {modal.submitting ? "Menyimpan..." : "Simpan"}
               </button>
@@ -345,12 +345,12 @@ export default function RekapJadwalShiftPage() {
 
 function statusColorClass(status: string): string {
   switch (status) {
-    case "HADIR": return "bg-emerald-500 text-white";
-    case "TERLAMBAT": return "bg-amber-400 text-white";
-    case "IZIN": return "bg-blue-400 text-white";
+    case "HADIR": return "bg-[#188038] text-white";
+    case "TERLAMBAT": return "bg-[#f9ab00] text-white";
+    case "IZIN": return "bg-[#0E6187] text-white";
     case "ALPA":
-    case "TIDAK ABSEN PULANG": return "bg-rose-500 text-white";
-    case "LIBUR": return "bg-slate-400 text-white";
-    default: return "border border-slate-300 bg-white text-slate-600";
+    case "TIDAK ABSEN PULANG": return "bg-[#d93025] text-white";
+    case "LIBUR": return "bg-[#bdc1c6] text-white";
+    default: return "border border-[#dadce0] bg-white text-[#5f6368]";
   }
 }

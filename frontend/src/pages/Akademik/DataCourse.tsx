@@ -519,9 +519,9 @@ interface LessonSlideData {
 
 type View = 'list' | 'quiz' | 'bank' | 'materi-bank' | 'quiz-questions' | 'quiz-results' | 'quiz-materi' | 'rekap-nilai'
 
-const inputCls = 'w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white'
-const labelCls = 'block text-sm font-medium text-slate-700 mb-1'
-const primaryBtn = 'inline-flex items-center gap-2 bg-[#0E6187] hover:bg-[#0E6187]/90 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm disabled:opacity-50'
+const inputCls = 'w-full px-3.5 py-2.5 border border-[#dadce0] text-sm focus:outline-none focus:border-[#1a73e8] focus:border-[#1a73e8] bg-white'
+const labelCls = 'block text-sm font-medium text-[#3c4043] mb-1'
+const primaryBtn = 'inline-flex items-center gap-2 bg-[#0E6187] hover:bgbg-[#e8f0fe] text-white px-4 py-2.5 text-sm font-semibold transition-colors  disabled:opacity-50'
 
 const emptyPaketForm = {
   title: '', description: '', course_id: '', batch_id: '', level: '', category: '',
@@ -543,7 +543,7 @@ const DEFAULT_SECTIONS = ['Script and Vocabulary', 'Grammar', 'Reading', 'Listen
 const SenseiBadge = ({ nama, namaKelas }: { nama?: string | null; namaKelas?: string | null }) => {
   if (!nama) {
     return (
-      <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap text-slate-400">
+      <span className="inline-flex shrink-0 items-center gap-1 bg-[#f1f3f4] px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap text-[#80868b]">
         <UserRound size={10} /> Manual
       </span>
     )
@@ -551,7 +551,7 @@ const SenseiBadge = ({ nama, namaKelas }: { nama?: string | null; namaKelas?: st
   return (
     <span
       title={namaKelas ? `Pengajar: ${nama} · Kelas ${namaKelas}` : `Pengajar: ${nama}`}
-      className="inline-flex max-w-[150px] shrink-0 items-center gap-1 rounded-md bg-[#0E6187]/10 px-2 py-0.5 text-[10px] font-bold whitespace-nowrap text-[#0E6187]"
+      className="inline-flex max-w-[150px] shrink-0 items-center gap-1 bgbg-[#f1f3f4] px-2 py-0.5 text-[10px] font-bold whitespace-nowrap text-[#1a73e8]"
     >
       <UserRound size={10} className="shrink-0" />
       <span className="truncate">{nama}</span>
@@ -846,7 +846,7 @@ export default function DataCourse() {
       showCancelButton: true,
       confirmButtonText: 'Hapus',
       cancelButtonText: 'Batal',
-      confirmButtonColor: '#d33',
+      confirmButtonColor: '#d93025',
     })
     if (!confirm.isConfirmed) return
     try {
@@ -1114,7 +1114,7 @@ export default function DataCourse() {
   const deleteCourseCat = (cat: LmsCategory) => {
     Swal.fire({
       title: 'Hapus kategori?', text: `"${cat.name}" beserta kursus didalamnya akan dilepas dari kategori ini`, icon: 'warning',
-      showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Hapus', cancelButtonText: 'Batal',
+      showCancelButton: true, confirmButtonColor: '#d93025', confirmButtonText: 'Hapus', cancelButtonText: 'Batal',
     }).then(res => {
       if (res.isConfirmed) {
         lmsAdminApi.deleteCategory(cat.id).then(() => {
@@ -1355,7 +1355,7 @@ export default function DataCourse() {
       text: `"${lesson.title}" akan dihapus`,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#dc2626',
+      confirmButtonColor: '#d93025',
       confirmButtonText: 'Hapus',
       cancelButtonText: 'Batal',
     }).then(res => {
@@ -1653,7 +1653,7 @@ export default function DataCourse() {
       text: `"${lesson.title}" akan dihapus`,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#dc2626',
+      confirmButtonColor: '#d93025',
       confirmButtonText: 'Hapus',
       cancelButtonText: 'Batal',
     }).then(res => {
@@ -1785,7 +1785,7 @@ export default function DataCourse() {
       text: `"${m.title}" akan dihapus dari bank`,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#dc2626',
+      confirmButtonColor: '#d93025',
       confirmButtonText: 'Hapus',
       cancelButtonText: 'Batal',
     }).then(res => {
@@ -1900,7 +1900,7 @@ export default function DataCourse() {
   const deleteCourse = (course: Course) => {
     Swal.fire({
       title: 'Hapus kursus?', text: `"${course.title}" akan dihapus termasuk semua pelajaran di dalamnya`, icon: 'warning',
-      showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Hapus', cancelButtonText: 'Batal',
+      showCancelButton: true, confirmButtonColor: '#d93025', confirmButtonText: 'Hapus', cancelButtonText: 'Batal',
     }).then(res => {
       if (res.isConfirmed) {
         lmsAdminApi.deleteCourse(course.id).then(() => {
@@ -2005,7 +2005,7 @@ export default function DataCourse() {
   const deletePaket = (p: QuizPaket) => {
     Swal.fire({
       title: 'Hapus paket soal?', text: `"${p.title}" beserta semua soal & riwayat pengerjaan akan dihapus`, icon: 'warning',
-      showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Hapus', cancelButtonText: 'Batal',
+      showCancelButton: true, confirmButtonColor: '#d93025', confirmButtonText: 'Hapus', cancelButtonText: 'Batal',
     }).then(res => {
       if (res.isConfirmed) {
         adminQuizApi.deletePaket(p.id).then(() => {
@@ -2043,7 +2043,7 @@ export default function DataCourse() {
   const deleteCategory = (c: Category) => {
     Swal.fire({
       title: 'Hapus kategori?', text: `Kategori "${c.name}" akan dihapus dari daftar`, icon: 'warning',
-      showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Hapus', cancelButtonText: 'Batal',
+      showCancelButton: true, confirmButtonColor: '#d93025', confirmButtonText: 'Hapus', cancelButtonText: 'Batal',
     }).then(res => {
       if (res.isConfirmed) {
         adminQuizApi.deleteCategory(c.id).then(() => {
@@ -2402,7 +2402,7 @@ export default function DataCourse() {
       showCancelButton: true,
       confirmButtonText: 'Ya, hapus',
       cancelButtonText: 'Batal',
-      confirmButtonColor: '#dc2626',
+      confirmButtonColor: '#d93025',
     }).then(async result => {
       if (!result.isConfirmed || !activeQuizPaket) return
       try {
@@ -2447,7 +2447,7 @@ export default function DataCourse() {
   const deleteQuestion = (q: Question) => {
     Swal.fire({
       title: 'Hapus soal?', text: 'Soal ini akan dihapus dari paket', icon: 'warning',
-      showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Hapus', cancelButtonText: 'Batal',
+      showCancelButton: true, confirmButtonColor: '#d93025', confirmButtonText: 'Hapus', cancelButtonText: 'Batal',
     }).then(res => {
       if (res.isConfirmed && activeQuizPaket) {
         adminQuizApi.deleteQuestion(q.id).then(() => {
@@ -2516,7 +2516,7 @@ export default function DataCourse() {
         : 'Hapus semua percobaan paket ini agar kandidat bisa mengerjakan quiz dari awal?',
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#dc2626',
+      confirmButtonColor: '#d93025',
       confirmButtonText: 'Ya, Reset',
       cancelButtonText: 'Batal',
     }).then(res => {
@@ -2567,97 +2567,97 @@ const visibleBatches = filterCabang
   const renderPaketTable = (pakets: QuizPaket[], source: 'course' | 'bank') => {
     const noOffset = source === 'bank' ? (bankPagination.current_page - 1) * bankPagination.per_page : 0
     return (
-    <div className="bg-white border-2 border-slate-200 overflow-hidden">
+    <div className="bg-white border-2 border-[#dadce0] overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm border-collapse">
-          <thead className="bg-[#0E6187] text-white">
+          <thead>
             <tr>
-              <th className="w-10 px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">No</th>
-              <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Paket Soal</th>
-              <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Soal</th>
-              <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Dikerjakan</th>
-              <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Peserta</th>
-              <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Nilai Terbaik</th>
-              <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Status</th>
-              <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Aksi</th>
+              <th className="text-xs font-medium text-[#5f6368] w-10 px-4 py-3 text-left">No</th>
+              <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-left">Paket Soal</th>
+              <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-center">Soal</th>
+              <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-center">Dikerjakan</th>
+              <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-center">Peserta</th>
+              <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-center">Nilai Terbaik</th>
+              <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-center">Status</th>
+              <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-center">Aksi</th>
             </tr>
           </thead>
           <tbody className="bg-white">
             {pakets.map((p, idx) => (
-              <tr key={p.id} className="hover:bg-[#0E6187]/5 transition-colors">
-                <td className="px-4 py-3 text-sm text-slate-500 border border-slate-200">{noOffset + idx + 1}</td>
-                <td className="px-4 py-3 border border-slate-200">
+              <tr key={p.id} className="hover:bgbg-[#f8f9fa] transition-colors">
+                <td className="border-b border-[#e8eaed] px-4 py-3 text-sm text-[#5f6368]">{noOffset + idx + 1}</td>
+                <td className="border-b border-[#e8eaed] px-4 py-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-slate-800 font-semibold truncate max-w-xs">{p.title}</p>
+                      <p className="text-[#202124] font-semibold truncate max-w-xs">{p.title}</p>
                       {p.category && (
-                        <span className="inline-block text-[10px] font-semibold px-2 py-0.5 bg-[#0E6187]/[0.08] text-[#0E6187] shrink-0">{p.category}</span>
+                        <span className="inline-block text-[10px] font-semibold px-2 py-0.5 bgbg-[#f1f3f4] text-[#1a73e8] shrink-0">{p.category}</span>
                       )}
                       {p.penilaian_ulangan && (
                         <span
                           title="Skor terbaik kandidat otomatis masuk ke Nilai Ulangan saat paket dipakai di pertemuan"
-                          className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 bg-emerald-50 text-emerald-600 shrink-0"
+                          className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 bg-[#e6f4ea] text-[#137333] shrink-0"
                         >
                           <Award size={10} /> Ulangan
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-[#80868b] mt-0.5">
                       {[p.batch?.nama_batch, p.level && `Level ${p.level}`].filter(Boolean).join(' · ') || 'Semua kandidat'}
                     </p>
                     {source === 'bank' && p.course_id && (
-                      <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold px-1.5 py-0.5 bg-amber-50 text-amber-600 shrink-0">
+                      <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold px-1.5 py-0.5 bg-[#fef7e0] text-[#b06000] shrink-0">
                         <Link2 size={10} /> Terhubung ke kursus
                       </span>
                     )}
                   </div>
                 </td>
-                <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800 border border-slate-200">{p.questions_count}</td>
-                <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800 border border-slate-200">{p.attempts_count}</td>
-                <td className="px-4 py-3 text-center text-sm font-semibold text-slate-800 border border-slate-200">{p.participants}</td>
-                <td className="px-4 py-3 text-center text-sm font-semibold text-[#0E6187] border border-slate-200">{Number(p.best_score) || '-'}</td>
-                <td className="px-4 py-3 text-center border border-slate-200">
+                <td className="border-b border-[#e8eaed] px-4 py-3 text-center text-sm font-semibold text-[#202124]">{p.questions_count}</td>
+                <td className="border-b border-[#e8eaed] px-4 py-3 text-center text-sm font-semibold text-[#202124]">{p.attempts_count}</td>
+                <td className="border-b border-[#e8eaed] px-4 py-3 text-center text-sm font-semibold text-[#202124]">{p.participants}</td>
+                <td className="border-b border-[#e8eaed] px-4 py-3 text-center text-sm font-semibold text-[#1a73e8]">{Number(p.best_score) || '-'}</td>
+                <td className="border-b border-[#e8eaed] px-4 py-3 text-center">
                   <div className="flex items-center justify-center gap-1.5">
                     {!isAdminCabang && (
                       <button onClick={() => togglePaket(p)}
-                        className={`relative w-10 h-[22px] border border-slate-300 transition-colors shrink-0 ${p.status === 'aktif' ? 'bg-emerald-500' : 'bg-slate-200'}`}
+                        className={`relative w-10 h-[22px] border border-[#dadce0] transition-colors shrink-0 ${p.status === 'aktif' ? 'bg-[#0E6187]' : 'bg-[#e8eaed]'}`}
                         title={p.status === 'aktif' ? 'Tutup paket' : 'Buka paket'}>
                         <span className={`absolute top-[2px] w-[16px] h-[16px] bg-white shadow transition-all ${p.status === 'aktif' ? 'left-[20px]' : 'left-[2px]'}`} />
                       </button>
                     )}
-                    <span className={`text-[11px] font-semibold ${p.status === 'aktif' ? 'text-emerald-600' : 'text-slate-500'}`}>
+                    <span className={`text-[11px] font-semibold ${p.status === 'aktif' ? 'text-[#137333]' : 'text-[#5f6368]'}`}>
                       {p.status === 'aktif' ? 'Dibuka' : 'Ditutup'}
                     </span>
                   </div>
                 </td>
-                <td className="px-4 py-3 border border-slate-200">
+                <td className="border-b border-[#e8eaed] px-4 py-3">
                   <div className="flex items-center justify-center gap-1">
                     <button onClick={() => openMateri(p, source)}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0E6187] bg-[#0E6187]/[0.08] px-2 py-1.5 hover:bg-[#0E6187]/15 transition-colors">
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1a73e8] bgbg-[#f1f3f4] px-2 py-1.5 hover:bgbg-[#f1f3f4] transition-colors">
                       <BookOpen size={13} /> Materi
                     </button>
                     <button onClick={() => openQuizQuestions(p, source)}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-[#0E6187] px-2 py-1.5 hover:bg-[#0E6187]/90 transition-colors">
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-[#0E6187] px-2 py-1.5 hover:bgbg-[#e8f0fe] transition-colors">
                       <ListChecks size={13} /> Soal
                     </button>
                     <button onClick={() => openQuizResults(p, source)}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0E6187] bg-[#0E6187]/[0.08] px-2 py-1.5 hover:bg-[#0E6187]/15 transition-colors">
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1a73e8] bgbg-[#f1f3f4] px-2 py-1.5 hover:bgbg-[#f1f3f4] transition-colors">
                       <Eye size={13} /> Hasil
                     </button>
                     {source === 'course' && (
                       <button onClick={() => openQuizMonitor(p)}
-                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-600 bg-red-50 px-2 py-1.5 hover:bg-red-100 transition-colors">
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#c5221f] bg-[#fce8e6] px-2 py-1.5 hover:bg-[#f6d7d5] transition-colors">
                         <Radio size={13} /> Monitoring
                       </button>
                     )}
                     {!isAdminCabang && (
                       <>
-                        <div className="w-px h-4 bg-slate-200 mx-1"></div>
-                        <button onClick={() => openEditPaket(p)} className="p-1.5 hover:bg-slate-100 transition-colors" title="Edit">
-                          <Pencil size={13} className="text-slate-600" />
+                        <div className="w-px h-4 bg-[#e8eaed] mx-1"></div>
+                        <button onClick={() => openEditPaket(p)} className="p-1.5 hover:bg-[#f1f3f4] transition-colors" title="Edit">
+                          <Pencil size={13} className="text-[#5f6368]" />
                         </button>
-                        <button onClick={() => deletePaket(p)} className="p-1.5 bg-red-50 hover:bg-red-100 transition-colors" title="Hapus">
-                          <Trash2 size={13} className="text-red-500" />
+                        <button onClick={() => deletePaket(p)} className="p-1.5 bg-[#fce8e6] hover:bg-[#f6d7d5] transition-colors" title="Hapus">
+                          <Trash2 size={13} className="text-[#d93025]" />
                         </button>
                       </>
                     )}
@@ -2677,13 +2677,13 @@ const visibleBatches = filterCabang
     const start = pg.total === 0 ? 0 : (pg.current_page - 1) * pg.per_page + 1
     const end = Math.min(pg.current_page * pg.per_page, pg.total)
     return (
-      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-lg border border-slate-200 px-4 py-2 text-xs text-slate-500">
-        <span>Menampilkan <b className="text-slate-700">{start}-{end}</b> dari <b className="text-slate-700">{pg.total}</b> {label}</span>
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border border-[#dadce0] px-4 py-2 text-xs text-[#5f6368]">
+        <span>Menampilkan <b className="text-[#3c4043]">{start}-{end}</b> dari <b className="text-[#3c4043]">{pg.total}</b> {label}</span>
         <div className="flex items-center gap-1">
           <button
             disabled={pg.current_page <= 1}
             onClick={() => onPage(Math.max(1, pg.current_page - 1))}
-            className="rounded border border-slate-300 p-1 text-slate-500 transition hover:bg-slate-100 disabled:opacity-30"
+            className="border border-[#dadce0] p-1 text-[#5f6368] transition hover:bg-[#f1f3f4] disabled:opacity-30"
           >
             <ChevronLeft size={14} />
           </button>
@@ -2691,12 +2691,10 @@ const visibleBatches = filterCabang
             .filter((p) => Math.abs(p - pg.current_page) <= 2 || p === 1 || p === pg.last_page)
             .map((p, i, arr) => (
               <span key={p} className="inline-flex items-center">
-                {i > 0 && arr[i - 1] !== p - 1 && <span className="px-1 text-slate-300">...</span>}
+                {i > 0 && arr[i - 1] !== p - 1 && <span className="px-1 text-[#9aa0a6]">...</span>}
                 <button
                   onClick={() => onPage(p)}
-                  className={`min-w-[24px] rounded px-1.5 py-0.5 text-center text-xs font-medium transition ${
-                    p === pg.current_page ? "bg-slate-800 text-white" : "text-slate-500 hover:bg-slate-100"
-                  }`}
+                  className={`min-w-[24px] px-1.5 py-0.5 text-center text-xs font-medium transition ${ p === pg.current_page ? "bg-[#202124] text-white" : "text-[#5f6368] hover:bg-[#f1f3f4]" }`}
                 >
                   {p}
                 </button>
@@ -2705,7 +2703,7 @@ const visibleBatches = filterCabang
           <button
             disabled={pg.current_page >= pg.last_page}
             onClick={() => onPage(Math.min(pg.last_page, pg.current_page + 1))}
-            className="rounded border border-slate-300 p-1 text-slate-500 transition hover:bg-slate-100 disabled:opacity-30"
+            className="border border-[#dadce0] p-1 text-[#5f6368] transition hover:bg-[#f1f3f4] disabled:opacity-30"
           >
             <ChevronRight size={14} />
           </button>
@@ -2740,8 +2738,8 @@ const visibleBatches = filterCabang
 
   // ==================== GRAFIK PERSENTASE PER BAGIAN ====================
   // Warna bar mengikuti performa: >=80 hijau, >=50 kuning, else merah.
-  const pctColor = (pct: number) => (pct >= 80 ? '#16a34a' : pct >= 50 ? '#f59e0b' : '#dc2626')
-  const pctTextColor = (pct: number) => (pct >= 80 ? 'text-emerald-600' : pct >= 50 ? 'text-amber-600' : 'text-red-500')
+  const pctColor = (pct: number) => (pct >= 80 ? '#188038' : pct >= 50 ? '#e37400' : '#d93025')
+  const pctTextColor = (pct: number) => (pct >= 80 ? 'text-[#137333]' : pct >= 50 ? 'text-[#b06000]' : 'text-[#d93025]')
 
   // Percobaan terbaik = submitted dengan skor tertinggi (fallback: attempt terakhir).
   const rBestAttempt = (par: Participant): AttemptRow | null => {
@@ -2828,64 +2826,64 @@ const visibleBatches = filterCabang
   const renderParticipantRow = (par: Participant, idx: number) => {
     const secChart = rCandidateSections(par)
     return (
-    <tr key={par.siswa_id} className="bg-white hover:bg-[#0E6187]/5 transition-colors">
-      <td className="px-4 py-3 text-xs font-bold text-slate-400 border border-slate-200">{idx + 1}</td>
-      <td className="px-4 py-3 border border-slate-200">
+    <tr key={par.siswa_id} className="bg-white hover:bgbg-[#f8f9fa] transition-colors">
+      <td className="border-b border-[#e8eaed] px-4 py-3 text-xs font-bold text-[#80868b]">{idx + 1}</td>
+      <td className="border-b border-[#e8eaed] px-4 py-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 border-2 border-[#0E6187] bg-[#0E6187]/10 flex items-center justify-center shrink-0">
-            <span className="text-sm font-black text-[#0E6187]">{par.nama.trim().charAt(0).toUpperCase() || '?'}</span>
+          <div className="w-10 h-10 border-2 border-[#1a73e8] bgbg-[#f1f3f4] flex items-center justify-center shrink-0">
+            <span className="text-sm font-black text-[#1a73e8]">{par.nama.trim().charAt(0).toUpperCase() || '?'}</span>
           </div>
-          <p className="font-semibold text-slate-800 truncate">{par.nama}</p>
+          <p className="font-semibold text-[#202124] truncate">{par.nama}</p>
         </div>
       </td>
-      <td className="px-4 py-3 border border-slate-200">
-        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600">
-          <Building2 size={13} className="text-slate-400 shrink-0" /> {par.cabang || '-'}
+      <td className="border-b border-[#e8eaed] px-4 py-3">
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#5f6368]">
+          <Building2 size={13} className="text-[#80868b] shrink-0" /> {par.cabang || '-'}
         </span>
       </td>
-      <td className="px-4 py-3 border border-slate-200">
-        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600">
-          <Users size={13} className="text-[#0E6187] shrink-0" /> {par.batch || '-'}
+      <td className="border-b border-[#e8eaed] px-4 py-3">
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#5f6368]">
+          <Users size={13} className="text-[#1a73e8] shrink-0" /> {par.batch || '-'}
         </span>
       </td>
-      <td className="px-4 py-3 border border-slate-200">
+      <td className="border-b border-[#e8eaed] px-4 py-3">
         {par.level !== null && par.level !== '' ? (
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600">
-            <Layers size={13} className="text-emerald-500 shrink-0" /> Level {par.level}
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#5f6368]">
+            <Layers size={13} className="text-[#188038] shrink-0" /> Level {par.level}
           </span>
         ) : '-'}
       </td>
-      <td className="px-4 py-3 border border-slate-200">
+      <td className="border-b border-[#e8eaed] px-4 py-3">
         <div className="flex flex-wrap gap-1.5">
           {par.attempts.map(a => (
             <button key={a.attempt_id} onClick={() => openAttemptDetail(a.attempt_id)}
               title={`${fmtDate(a.started_at)} · ${a.warnings} peringatan`}
-              className="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-300 px-2.5 py-1.5 hover:bg-[#0E6187]/5 hover:border-[#0E6187] transition-colors group">
-              <span className="text-[11px] font-bold text-slate-500">#{a.attempt_number}</span>
-              <span className={`text-xs font-semibold ${a.status === 'submitted' ? 'text-slate-700' : 'text-slate-400'}`}>
+              className="inline-flex items-center gap-1.5 bg-[#f8f9fa] border border-[#dadce0] px-2.5 py-1.5 hover:bgbg-[#f8f9fa] hover:border-[#1a73e8] transition-colors group">
+              <span className="text-[11px] font-bold text-[#5f6368]">#{a.attempt_number}</span>
+              <span className={`text-xs font-semibold ${a.status === 'submitted' ? 'text-[#3c4043]' : 'text-[#80868b]'}`}>
                 {a.status === 'submitted' ? (Number(a.score) || 0) + ' poin' : 'Belum selesai'}
-                {a.auto_submitted && <span className="ml-1 text-[9px] font-bold text-orange-500">AUTO</span>}
+                {a.auto_submitted && <span className="ml-1 text-[9px] font-bold text-[#e37400]">AUTO</span>}
               </span>
-              {a.webcam_photo && <Camera size={12} className="text-slate-400 shrink-0" />}
+              {a.webcam_photo && <Camera size={12} className="text-[#80868b] shrink-0" />}
             </button>
           ))}
         </div>
       </td>
-      <td className="px-4 py-3 text-right border border-slate-200">
-        <p className="text-lg font-black text-[#0E6187]">{Number(par.best_score) || 0}</p>
-        <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">poin</p>
+      <td className="border-b border-[#e8eaed] px-4 py-3 text-right">
+        <p className="text-lg font-black text-[#1a73e8]">{Number(par.best_score) || 0}</p>
+        <p className="text-[10px] text-[#5f6368] font-medium">poin</p>
       </td>
-      <td className="px-4 py-3 border border-slate-200">
+      <td className="border-b border-[#e8eaed] px-4 py-3">
         {secChart ? (
           <div className="min-w-[170px]">
-            <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400 mb-1">Percobaan #{secChart.attempt.attempt_number}</p>
+            <p className="text-[9px] font-bold text-[#80868b] mb-1">Percobaan #{secChart.attempt.attempt_number}</p>
             <div className="space-y-1">
               {secChart.rows.map(s => (
                 <div key={s.id} className="flex items-center gap-1.5"
                   title={`${s.name}: ${s.correct} benar dari ${s.total} soal (${s.percent}%)`}>
-                  <span className="w-14 text-[10px] text-slate-500 truncate shrink-0">{s.name}</span>
-                  <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full rounded-full transition-all duration-500"
+                  <span className="w-14 text-[10px] text-[#5f6368] truncate shrink-0">{s.name}</span>
+                  <div className="flex-1 h-1.5 bg-[#f1f3f4] overflow-hidden">
+                    <div className="h-full transition-all duration-500"
                       style={{ width: `${Math.max(s.percent, s.percent > 0 ? 5 : 0)}%`, backgroundColor: pctColor(s.percent) }} />
                   </div>
                   <span className={`w-9 text-right text-[10px] font-bold shrink-0 ${pctTextColor(s.percent)}`}>{s.percent}%</span>
@@ -2894,13 +2892,13 @@ const visibleBatches = filterCabang
             </div>
           </div>
         ) : (
-          <span className="text-xs text-slate-300">-</span>
+          <span className="text-xs text-[#9aa0a6]">-</span>
         )}
       </td>
-      <td className="px-4 py-3 text-right whitespace-nowrap border border-slate-200">
+      <td className="border-b border-[#e8eaed] px-4 py-3 text-right whitespace-nowrap">
         {!isAdminCabang && (
           <button onClick={() => resetAttempts(par.siswa_id, par.nama)}
-            className="inline-flex items-center gap-1.5 text-[11px] font-bold text-red-500 hover:text-white hover:bg-red-500 border-2 border-red-200 px-2.5 py-1.5 transition-colors">
+            className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#d93025] hover:text-white hover:bg-[#d93025] border-2 border-[#f28b82] px-2.5 py-1.5 transition-colors">
             <RotateCcw size={12} /> Reset
           </button>
         )}
@@ -2917,12 +2915,12 @@ const visibleBatches = filterCabang
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-slate-100 text-slate-600 border border-slate-200 shrink-0">
+            <div className="flex h-11 w-11 items-center justify-center bg-[#f1f3f4] text-[#5f6368] border border-[#dadce0] shrink-0">
               <BookOpen size={22} />
             </div>
             <div className="min-w-0">
-              <h1 className="text-lg font-bold text-slate-800">Data Kursus LMS</h1>
-              <p className="text-sm text-slate-500">Kelola kursus, materi pembelajaran, dan quiz kandidat</p>
+              <h1 className="text-lg font-bold text-[#202124]">Data Kursus LMS</h1>
+              <p className="text-sm text-[#5f6368]">Kelola kursus, materi pembelajaran, dan quiz kandidat</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -2932,7 +2930,7 @@ const visibleBatches = filterCabang
                   <button onClick={openCreatePaket} className={primaryBtn}>
                     <Plus size={16} /> Buat Paket
                   </button>
-                  <button onClick={openBankPicker} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:border-slate-300 text-[12px]">
+                  <button onClick={openBankPicker} className="inline-flex items-center gap-1.5 border border-[#dadce0] bg-white px-3 py-2 text-sm font-semibold text-[#5f6368] hover:border-[#dadce0] text-[12px]">
                     <ListChecks size={15} /> Paket Soal dari Bank
                   </button>
                 </>
@@ -2963,69 +2961,69 @@ const visibleBatches = filterCabang
               {!isAdminCabang && (
                 <>
                   <button onClick={openBank}
-                    className="group bg-white rounded-xl border border-slate-200 p-4 flex flex-col items-start gap-3 text-left hover:border-[#0E6187]/40 hover:shadow-sm transition-all">
-                    <div className="w-11 h-11 rounded-xl bg-[#0E6187] text-white flex items-center justify-center group-hover:scale-105 transition-transform">
+                    className="group bg-white border border-[#dadce0] p-4 flex flex-col items-start gap-3 text-left hover:border-[#1a73e8] transition-all">
+                    <div className="w-11 h-11 bg-[#0E6187] text-white flex items-center justify-center group-hover:scale-105 transition-transform">
                       <ListChecks size={22} />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-slate-800">Bank Paket Soal</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">Kelola paket soal &amp; pembahasan</p>
+                      <p className="text-sm font-bold text-[#202124]">Bank Paket Soal</p>
+                      <p className="text-[11px] text-[#80868b] mt-0.5 leading-snug">Kelola paket soal &amp; pembahasan</p>
                     </div>
                   </button>
                   <button onClick={openMateriBank}
-                    className="group bg-white rounded-xl border border-slate-200 p-4 flex flex-col items-start gap-3 text-left hover:border-[#0E6187]/40 hover:shadow-sm transition-all">
-                    <div className="w-11 h-11 rounded-xl bg-amber-500 text-white flex items-center justify-center group-hover:scale-105 transition-transform">
+                    className="group bg-white border border-[#dadce0] p-4 flex flex-col items-start gap-3 text-left hover:border-[#1a73e8] transition-all">
+                    <div className="w-11 h-11 bg-[#e37400] text-white flex items-center justify-center group-hover:scale-105 transition-transform">
                       <BookOpen size={22} />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-slate-800">Bank Materi</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">Materi, modul &amp; video pembelajaran</p>
+                      <p className="text-sm font-bold text-[#202124]">Bank Materi</p>
+                      <p className="text-[11px] text-[#80868b] mt-0.5 leading-snug">Materi, modul &amp; video pembelajaran</p>
                     </div>
                   </button>
                   <button onClick={openWelcomeSettings}
-                    className="group bg-white rounded-xl border border-slate-200 p-4 flex flex-col items-start gap-3 text-left hover:border-[#0E6187]/40 hover:shadow-sm transition-all">
-                    <div className="w-11 h-11 rounded-xl bg-violet-500 text-white flex items-center justify-center group-hover:scale-105 transition-transform">
+                    className="group bg-white border border-[#dadce0] p-4 flex flex-col items-start gap-3 text-left hover:border-[#1a73e8] transition-all">
+                    <div className="w-11 h-11 bg-[#8430ce] text-white flex items-center justify-center group-hover:scale-105 transition-transform">
                       <Settings size={22} />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-slate-800">Pengaturan</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">Tampilan, sambutan &amp; quiz kursus</p>
+                      <p className="text-sm font-bold text-[#202124]">Pengaturan</p>
+                      <p className="text-[11px] text-[#80868b] mt-0.5 leading-snug">Tampilan, sambutan &amp; quiz kursus</p>
                     </div>
                   </button>
                   <button onClick={openCreateCourseCat}
-                    className="group bg-white rounded-xl border border-slate-200 p-4 flex flex-col items-start gap-3 text-left hover:border-[#0E6187]/40 hover:shadow-sm transition-all">
-                    <div className="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center group-hover:scale-105 transition-transform">
+                    className="group bg-white border border-[#dadce0] p-4 flex flex-col items-start gap-3 text-left hover:border-[#1a73e8] transition-all">
+                    <div className="w-11 h-11 bg-[#0E6187] text-white flex items-center justify-center group-hover:scale-105 transition-transform">
                       <Tags size={22} />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-slate-800">Kelola Kategori</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">Atur kategori &amp; urutan kursus</p>
+                      <p className="text-sm font-bold text-[#202124]">Kelola Kategori</p>
+                      <p className="text-[11px] text-[#80868b] mt-0.5 leading-snug">Atur kategori &amp; urutan kursus</p>
                     </div>
                   </button>
                 </>
               )}
               <button onClick={() => navigate(`${base}/quiz-referensi`)}
-                className="group bg-white rounded-xl border border-slate-200 p-4 flex flex-col items-start gap-3 text-left hover:border-[#0E6187]/40 hover:shadow-sm transition-all">
-                <div className="relative w-11 h-11 rounded-xl bg-sky-500 text-white flex items-center justify-center group-hover:scale-105 transition-transform">
+                className="group bg-white border border-[#dadce0] p-4 flex flex-col items-start gap-3 text-left hover:border-[#1a73e8] transition-all">
+                <div className="relative w-11 h-11 bg-[#0E6187] text-white flex items-center justify-center group-hover:scale-105 transition-transform">
                   <FileCheck2 size={22} />
                   {refPendingCount > 0 && (
-                    <span className="absolute -top-2 -right-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow">{refPendingCount}</span>
+                    <span className="absolute -top-2 -right-2 flex h-5 min-w-5 items-center justify-center bg-[#d93025] px-1 text-[10px] font-bold text-white">{refPendingCount}</span>
                   )}
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-slate-800">Referensi Quiz</p>
-                  <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">Quiz kunci jawaban dari sensei</p>
+                  <p className="text-sm font-bold text-[#202124]">Referensi Quiz</p>
+                  <p className="text-[11px] text-[#80868b] mt-0.5 leading-snug">Quiz kunci jawaban dari sensei</p>
                 </div>
               </button>
               {!isAdminCabang && (
                 <button onClick={openCreateCourse}
-                  className="group bg-[#0E6187] text-white rounded-xl p-4 flex flex-col items-start gap-3 text-left hover:bg-[#0E6187]/90 shadow-sm hover:shadow-md transition-all">
-                  <div className="w-11 h-11 rounded-xl bg-white text-[#0E6187] flex items-center justify-center group-hover:scale-105 transition-transform">
+                  className="group bg-white border border-[#1a73e8] p-4 flex flex-col items-start gap-3 text-left hover:bg-[#f8f9fa] transition-all">
+                  <div className="w-11 h-11 bg-[#0E6187] text-white flex items-center justify-center group-hover:scale-105 transition-transform">
                     <Plus size={22} />
                   </div>
                   <div>
-                    <p className="text-sm font-bold">Buat Kursus</p>
-                    <p className="text-[11px] text-[#0E6187]/80 text-white/80 mt-0.5 leading-snug">Tambah kursus baru</p>
+                    <p className="text-sm font-bold text-[#1a73e8]">Buat Kursus</p>
+                    <p className="text-[11px] text-[#5f6368] mt-0.5 leading-snug">Tambah kursus baru</p>
                   </div>
                 </button>
               )}
@@ -3033,7 +3031,7 @@ const visibleBatches = filterCabang
 
             {/* Pemisahan asal kursus: tombol kecil di pojok kiri atas tabel */}
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[10px] font-semibold text-slate-400 mr-0.5">Asal Kursus:</span>
+              <span className="text-[10px] font-semibold text-[#80868b] mr-0.5">Asal Kursus:</span>
               {([
                 { key: '', label: 'Semua' },
                 { key: 'manual', label: 'Manual' },
@@ -3049,11 +3047,7 @@ const visibleBatches = filterCabang
                         ? 'Kursus dibuat dari menu Tambah Kelas, ada pengajarnya'
                         : 'Tampilkan semua kursus'
                   }
-                  className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-bold transition-colors ${
-                    filterSource === opt.key
-                      ? 'border-[#0E6187] bg-[#0E6187] text-white'
-                      : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
-                  }`}
+                  className={`inline-flex items-center gap-1 border px-2 py-1 text-[10px] font-bold transition-colors ${ filterSource === opt.key ? 'border-[#1a73e8] bg-[#0E6187] text-white' : 'border-[#dadce0] bg-white text-[#5f6368] hover:bg-[#f8f9fa]' }`}
                 >
                   {opt.key === 'sensei' ? <UserCheck size={10} /> : opt.key === 'manual' ? <UserRound size={10} /> : <Layers size={10} />}
                   {opt.label}
@@ -3064,17 +3058,17 @@ const visibleBatches = filterCabang
             {/* Heading + filter */}
             <div className="flex flex-col lg:flex-row lg:items-center gap-3">
               <div className="flex items-center gap-2 lg:shrink-0">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600 border border-slate-200">
+                <div className="flex h-9 w-9 items-center justify-center bg-[#f1f3f4] text-[#5f6368] border border-[#dadce0]">
                   <LayoutGrid size={18} />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-slate-800 leading-tight">Daftar Kursus Saat Ini</h2>
-                  <p className="text-xs text-slate-400">{coursePagination.total} kursus</p>
+                  <h2 className="text-base font-bold text-[#202124] leading-tight">Daftar Kursus Saat Ini</h2>
+                  <p className="text-xs text-[#80868b]">{coursePagination.total} kursus</p>
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-3 flex-1">
                 <div className="relative flex-1">
-                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#80868b]" />
                   <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari kursus..." className={`${inputCls} pl-9`} />
                 </div>
                 {!isAdminCabang && (
@@ -3095,16 +3089,16 @@ const visibleBatches = filterCabang
             </div>
 
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-20 text-slate-400 text-sm gap-2">
-                <Loader2 size={24} className="animate-spin text-[#0E6187]" /> Memuat kursus...
+              <div className="flex flex-col items-center justify-center py-20 text-[#80868b] text-sm gap-2">
+                <Loader2 size={24} className="animate-spin text-[#1a73e8]" /> Memuat kursus...
               </div>
             ) : filteredCourses.length === 0 ? (
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-14 text-center">
-                <div className="w-14 h-14 mx-auto rounded-lg bg-[#0E6187]/10 flex items-center justify-center mb-3">
-                  <BookOpen size={28} className="text-[#0E6187]" />
+              <div className="bg-white border border-[#dadce0] p-14 text-center">
+                <div className="w-14 h-14 mx-auto bgbg-[#f1f3f4] flex items-center justify-center mb-3">
+                  <BookOpen size={28} className="text-[#1a73e8]" />
                 </div>
-                <p className="text-slate-800 font-semibold">Belum ada kursus</p>
-                <p className="text-slate-500 text-sm mt-1">Buat kursus untuk materi pembelajaran kandidat</p>
+                <p className="text-[#202124] font-semibold">Belum ada kursus</p>
+                <p className="text-[#5f6368] text-sm mt-1">Buat kursus untuk materi pembelajaran kandidat</p>
                 {!isAdminCabang && (
                   <button onClick={openCreateCourse} className={`${primaryBtn} mt-5`}>
                     <Plus size={16} /> Buat Kursus
@@ -3112,50 +3106,50 @@ const visibleBatches = filterCabang
                 )}
               </div>
             ) : (
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="bg-white border border-[#dadce0] overflow-hidden">
                 {/* ===== LIST MOBILE (card) ===== */}
-                <div className="md:hidden divide-y divide-slate-100">
+                <div className="md:hidden divide-y divide-[#e8eaed]">
                   {filteredCourses.map(c => (
                     <div key={c.id} className="p-4">
                       <div className="flex items-start justify-between gap-3">
-                        <p className="text-sm font-semibold text-slate-800 leading-snug">{c.title}</p>
-                        <span className={`shrink-0 inline-block text-[10px] font-semibold px-2 py-0.5 rounded ${c.status === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
+                        <p className="text-sm font-semibold text-[#202124] leading-snug">{c.title}</p>
+                        <span className={`shrink-0 inline-block text-[10px] font-semibold px-2 py-0.5 ${c.status === 'aktif' ? 'bg-[#e6f4ea] text-[#137333]' : 'bg-[#f1f3f4] text-[#5f6368]'}`}>
                           {c.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
                         </span>
                       </div>
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                         {c.category && (
-                          <span className="inline-block px-1.5 py-0.5 text-[10px] font-bold bg-indigo-50 text-indigo-600 rounded">
+                          <span className="inline-block px-1.5 py-0.5 text-[10px] font-bold bg-[#e8f0fe] text-[#1a73e8]">
                             {c.category.name}
                           </span>
                         )}
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-[#80868b]">
                           {[c.batch_id && batches.find(b => b.id === c.batch_id)?.nama_batch, c.level && `Level ${c.level}`].filter(Boolean).join(' · ') || 'Semua kandidat'}
                         </p>
                         <SenseiBadge nama={c.sensei_nama} namaKelas={c.nama_kelas} />
                       </div>
                       <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">
+                        <span className="inline-flex items-center gap-1 bg-[#f1f3f4] px-2 py-1 text-[11px] font-semibold text-[#5f6368]">
                           <BookOpen size={12} /> {c.lessons_count} Pertemuan
                         </span>
-                        <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">
+                        <span className="inline-flex items-center gap-1 bg-[#f1f3f4] px-2 py-1 text-[11px] font-semibold text-[#5f6368]">
                           <FileText size={12} /> {c.files_count || 0} File
                         </span>
-                        <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">
+                        <span className="inline-flex items-center gap-1 bg-[#f1f3f4] px-2 py-1 text-[11px] font-semibold text-[#5f6368]">
                           <ListChecks size={12} /> Urutan {c.sort}
                         </span>
                       </div>
                       <div className="mt-3 flex items-center gap-2">
                         <button onClick={() => openCourseDetail(c)}
-                          className="flex-1 inline-flex items-center justify-center gap-1 text-[11px] font-semibold text-white bg-[#0E6187] px-3 py-2 rounded-lg hover:bg-[#0E6187]/90 transition-colors">
+                          className="flex-1 inline-flex items-center justify-center gap-1 text-[11px] font-semibold text-white bg-[#0E6187] px-3 py-2 hover:bgbg-[#e8f0fe] transition-colors">
                           <ListChecks size={13} /> Buka
                         </button>
                         {!isAdminCabang && (
                           <>
-                            <button onClick={() => openEditCourse(c)} className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors" title="Edit">
+                            <button onClick={() => openEditCourse(c)} className="px-3 py-2 border border-[#dadce0] bg-white text-[#5f6368] hover:bg-[#f8f9fa] transition-colors" title="Edit">
                               <Pencil size={13} />
                             </button>
-                            <button onClick={() => deleteCourse(c)} className="px-3 py-2 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors" title="Hapus">
+                            <button onClick={() => deleteCourse(c)} className="px-3 py-2 bg-[#fce8e6] text-[#d93025] hover:bg-[#f6d7d5] transition-colors" title="Hapus">
                               <Trash2 size={13} />
                             </button>
                           </>
@@ -3166,64 +3160,64 @@ const visibleBatches = filterCabang
                 </div>
                 {/* ===== LIST DESKTOP (table) ===== */}
                 <div className="hidden md:block overflow-x-auto">
-                  <table className="w-full min-w-full border-collapse text-left text-sm text-slate-700">
-                    <thead className="bg-[#0E6187] text-sm text-white">
+                  <table className="w-full min-w-full border-collapse text-left text-sm text-[#3c4043]">
+                    <thead>
                       <tr>
-                        <th scope="col" className="w-12 border border-[#0E6187] px-4 py-3 font-semibold">No</th>
-                        <th scope="col" className="border border-[#0E6187] px-4 py-3 font-semibold">Kursus</th>
-                        <th scope="col" className="border border-[#0E6187] px-4 py-3 font-semibold">Pengajar</th>
-                        <th scope="col" className="border border-[#0E6187] px-4 py-3 text-center font-semibold">Pertemuan</th>
-                        <th scope="col" className="border border-[#0E6187] px-4 py-3 text-center font-semibold">Status</th>
-                        <th scope="col" className="border border-[#0E6187] px-4 py-3 text-center font-semibold">Aksi</th>
+                        <th scope="col" className="text-xs font-medium text-[#5f6368] w-12 px-4 py-3">No</th>
+                        <th scope="col" className="text-xs font-medium text-[#5f6368] px-4 py-3">Kursus</th>
+                        <th scope="col" className="text-xs font-medium text-[#5f6368] px-4 py-3">Pengajar</th>
+                        <th scope="col" className="text-xs font-medium text-[#5f6368] px-4 py-3 text-center">Pertemuan</th>
+                        <th scope="col" className="text-xs font-medium text-[#5f6368] px-4 py-3 text-center">Status</th>
+                        <th scope="col" className="text-xs font-medium text-[#5f6368] px-4 py-3 text-center">Aksi</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredCourses.map((c, idx) => (
-                        <tr key={c.id} className="bg-white transition hover:bg-slate-50">
-                          <td className="border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-400">{(coursePagination.current_page - 1) * coursePagination.per_page + idx + 1}</td>
-                          <td className="border border-slate-200 px-4 py-3">
+                        <tr key={c.id} className="bg-white transition hover:bg-[#f8f9fa]">
+                          <td className="border-b border-[#e8eaed] px-4 py-3 text-sm font-semibold text-[#80868b]">{(coursePagination.current_page - 1) * coursePagination.per_page + idx + 1}</td>
+                          <td className="border-b border-[#e8eaed] px-4 py-3">
                             <div className="min-w-0">
-                              <p className="text-slate-800 font-semibold truncate max-w-xs">{c.title}</p>
+                              <p className="text-[#202124] font-semibold truncate max-w-xs">{c.title}</p>
                               <div className="flex flex-wrap items-center gap-1.5 mt-1">
                                 {c.category && (
-                                  <span className="inline-block px-2 py-0.5 text-[10px] font-bold bg-indigo-50 text-indigo-600 rounded-md">
+                                  <span className="inline-block px-2 py-0.5 text-[10px] font-bold bg-[#e8f0fe] text-[#1a73e8]">
                                     {c.category.name}
                                   </span>
                                 )}
-                                <p className="text-xs text-slate-400">
+                                <p className="text-xs text-[#80868b]">
                                   {[c.batch_id && batches.find(b => b.id === c.batch_id)?.nama_batch, c.level && `Level ${c.level}`].filter(Boolean).join(' · ') || 'Semua kandidat'}
                                 </p>
                               </div>
                             </div>
                           </td>
-                          <td className="border border-slate-200 px-4 py-3">
+                          <td className="border-b border-[#e8eaed] px-4 py-3">
                             <SenseiBadge nama={c.sensei_nama} namaKelas={c.nama_kelas} />
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-center">
-                            <span className="inline-block min-w-[32px] rounded-md bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-600">{c.lessons_count}</span>
+                          <td className="border-b border-[#e8eaed] px-4 py-3 text-center">
+                            <span className="inline-block min-w-[32px] bg-[#f8f9fa] px-2.5 py-1.5 text-xs font-bold text-[#5f6368]">{c.lessons_count}</span>
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-center">
-                            <span className={`inline-block whitespace-nowrap text-[11px] font-bold px-2.5 py-1 rounded-md ${c.status === 'aktif' ? 'bg-emerald-500 text-white' : 'bg-slate-400 text-white'}`}>
+                          <td className="border-b border-[#e8eaed] px-4 py-3 text-center">
+                            <span className={`inline-block whitespace-nowrap text-[11px] font-bold px-2.5 py-1 ${c.status === 'aktif' ? 'bg-[#0E6187] text-white' : 'bg-[#bdc1c6] text-white'}`}>
                               {c.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
                             </span>
                           </td>
-                          <td className="border border-slate-200 px-4 py-3">
+                          <td className="border-b border-[#e8eaed] px-4 py-3">
                             <div className="flex items-center justify-center gap-1.5">
                               <button onClick={() => openCourseDetail(c)}
-                                className="inline-flex items-center gap-1.5 rounded-md bg-[#0E6187] px-3 py-1.5 text-[11px] font-bold text-white hover:bg-[#0E6187]/90 transition-colors">
+                                className="inline-flex items-center gap-1.5 bg-[#0E6187] px-3 py-1.5 text-[11px] font-bold text-white hover:bgbg-[#e8f0fe] transition-colors">
                                 <BookOpen size={13} /> Buka
                               </button>
                               {!isAdminCabang && (
                                 <>
-                                  <button onClick={() => openEditCourse(c)} className="p-1.5 rounded-md text-slate-400 hover:bg-amber-50 hover:text-amber-600 transition-colors" title="Edit">
+                                  <button onClick={() => openEditCourse(c)} className="p-1.5 text-[#80868b] hover:bg-[#fef7e0] hover:text-[#b06000] transition-colors" title="Edit">
                                     <Pencil size={14} />
                                   </button>
-                                  <button onClick={() => deleteCourse(c)} className="p-1.5 rounded-md text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors" title="Hapus">
+                                  <button onClick={() => deleteCourse(c)} className="p-1.5 text-[#80868b] hover:bg-[#fce8e6] hover:text-[#d93025] transition-colors" title="Hapus">
                                     <Trash2 size={14} />
                                   </button>
                                 </>
                               )}
-                              {isAdminCabang && <span className="text-xs text-slate-300">—</span>}
+                              {isAdminCabang && <span className="text-xs text-[#9aa0a6]">—</span>}
                             </div>
                           </td>
                         </tr>
@@ -3240,40 +3234,40 @@ const visibleBatches = filterCabang
         {/* ==================== COURSE DETAIL (PERTEMUAN + QUIZ) ==================== */}
         {view === 'quiz' && activeCourse && (
           <>
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200">
+            <div className="bg-white border border-[#dadce0]">
               <div className="p-5">
-                <button onClick={backToList} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#0E6187] transition-colors">
+                <button onClick={backToList} className="flex items-center gap-1.5 text-sm text-[#5f6368] hover:text-[#1a73e8] transition-colors">
                   <ChevronUp size={15} className="-rotate-90" /> Kembali
                 </button>
                 <div className="flex items-center gap-3 mt-4">
-                  <div className="w-11 h-11 rounded-xl bg-slate-100 text-slate-600 border border-slate-200 flex items-center justify-center shrink-0">
+                  <div className="w-11 h-11 bg-[#f1f3f4] text-[#5f6368] border border-[#dadce0] flex items-center justify-center shrink-0">
                     <BookOpen size={22} />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-lg font-bold text-slate-800 truncate">{activeCourse.title}</h2>
-                    <p className="text-sm text-slate-500">
+                    <h2 className="text-lg font-bold text-[#202124] truncate">{activeCourse.title}</h2>
+                    <p className="text-sm text-[#5f6368]">
                       {[activeCourse.batch_id && batches.find(b => b.id === activeCourse.batch_id)?.nama_batch, activeCourse.level && `Level ${activeCourse.level}`].filter(Boolean).join(' · ') || 'Semua kandidat'}
                       {' · '}{activeCourse.kelas_sensei_id ? `${courseLessons.length} pertemuan · ` : ''}{quizPakets.length} paket soal
                     </p>
                   </div>
                   <button onClick={() => openQuizMonitorById(activeCourse.id)}
-                    className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-red-500 px-3 py-2 text-[12px] font-bold text-white hover:bg-red-600 transition-colors shrink-0">
+                    className="ml-auto inline-flex items-center gap-1.5 bg-[#d93025] px-3 py-2 text-[12px] font-bold text-white hover:bg-[#c5221f] transition-colors shrink-0">
                     <Radio size={14} /> Monitoring
                   </button>
                 </div>
                 {activeCourse.kelas_sensei_id ? (
-                  <div className="mt-4 border-b border-slate-200 flex gap-1">
+                  <div className="mt-4 border-b border-[#dadce0] flex gap-1">
                     <button onClick={() => setCourseTab('lessons')}
-                      className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors ${courseTab === 'lessons' ? 'border-[#0E6187] text-[#0E6187]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+                      className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors ${courseTab === 'lessons' ? 'border-[#1a73e8] text-[#1a73e8]' : 'border-transparent text-[#5f6368] hover:text-[#3c4043]'}`}>
                       <BookOpen size={15} /> Daftar Pertemuan
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">{courseLessons.length}</span>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 bg-[#f1f3f4] text-[#5f6368]">{courseLessons.length}</span>
                     </button>
                   </div>
                 ) : (
                   <div className="mt-4 pb-1">
-                    <h3 className="flex items-center gap-2 text-sm font-bold text-slate-700">
-                      <ListChecks size={15} className="text-[#0E6187]" /> Daftar Paket Soal
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">{quizPakets.length}</span>
+                    <h3 className="flex items-center gap-2 text-sm font-bold text-[#3c4043]">
+                      <ListChecks size={15} className="text-[#1a73e8]" /> Daftar Paket Soal
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 bg-[#f1f3f4] text-[#5f6368]">{quizPakets.length}</span>
                     </h3>
                   </div>
                 )}
@@ -3282,18 +3276,18 @@ const visibleBatches = filterCabang
 
             {/* ======= Daftar Pertemuan tab ======= */}
             {courseTab === 'lessons' && (
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+              <div className="bg-white border border-[#dadce0] overflow-hidden">
                 {courseLessonsLoading ? (
-                  <div className="flex flex-col items-center justify-center py-20 text-slate-400 text-sm gap-2">
-                    <Loader2 size={24} className="animate-spin text-[#0E6187]" /> Memuat pertemuan...
+                  <div className="flex flex-col items-center justify-center py-20 text-[#80868b] text-sm gap-2">
+                    <Loader2 size={24} className="animate-spin text-[#1a73e8]" /> Memuat pertemuan...
                   </div>
                 ) : courseLessons.length === 0 ? (
                   <div className="p-14 text-center">
-                    <div className="w-14 h-14 mx-auto rounded-lg bg-[#0E6187]/10 flex items-center justify-center mb-3">
-                      <BookOpen size={28} className="text-[#0E6187]" />
+                    <div className="w-14 h-14 mx-auto bgbg-[#f1f3f4] flex items-center justify-center mb-3">
+                      <BookOpen size={28} className="text-[#1a73e8]" />
                     </div>
-                    <p className="text-slate-800 font-semibold">Belum ada pertemuan</p>
-                    <p className="text-slate-500 text-sm mt-1">Tambahkan pertemuan & materi pembelajaran untuk kursus "{activeCourse.title}"</p>
+                    <p className="text-[#202124] font-semibold">Belum ada pertemuan</p>
+                    <p className="text-[#5f6368] text-sm mt-1">Tambahkan pertemuan & materi pembelajaran untuk kursus "{activeCourse.title}"</p>
                     {!isAdminCabang && (
                       <button onClick={openCreateCourseLesson} className={`${primaryBtn} mt-5`}>
                         <Plus size={16} /> Tambah Pertemuan
@@ -3301,50 +3295,50 @@ const visibleBatches = filterCabang
                     )}
                   </div>
                 ) : (
-                  <div className="divide-y divide-slate-100">
+                  <div className="divide-y divide-[#e8eaed]">
                     {courseLessons.map((lesson, idx) => (
                       <div key={lesson.id} onClick={() => navigate(`${base}/course/${activeCourse.id}/pertemuan/${lesson.id}`)}
-                        className="flex items-center gap-3 px-5 py-4 hover:bg-slate-50/60 transition-colors group cursor-pointer">
+                        className="flex items-center gap-3 px-5 py-4 hover:#f8f9fa-\[#f8f9fa\] transition-colors group cursor-pointer">
                         {!isAdminCabang && (
                           <div className="flex flex-col items-center gap-0.5">
                             <button onClick={(e) => { e.stopPropagation(); moveCourseLesson(idx, 'up') }} disabled={idx === 0}
-                              className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20">
+                              className="p-0.5 text-[#80868b] hover:text-[#1a73e8] disabled:opacity-20">
                               <ChevronUp size={14} />
                             </button>
-                            <span className="text-[10px] font-bold text-slate-400 w-5 text-center">{idx + 1}</span>
+                            <span className="text-[10px] font-bold text-[#80868b] w-5 text-center">{idx + 1}</span>
                             <button onClick={(e) => { e.stopPropagation(); moveCourseLesson(idx, 'down') }} disabled={idx === courseLessons.length - 1}
-                              className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20">
+                              className="p-0.5 text-[#80868b] hover:text-[#1a73e8] disabled:opacity-20">
                               <ChevronDown size={14} />
                             </button>
                           </div>
                         )}
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${lesson.status === 'aktif' ? 'bg-[#0E6187]/10 text-[#0E6187]' : 'bg-slate-100 text-slate-300'}`}>
+                        <div className={`w-9 h-9 flex items-center justify-center shrink-0 ${lesson.status === 'aktif' ? 'bgbg-[#f1f3f4] text-[#1a73e8]' : 'bg-[#f1f3f4] text-[#9aa0a6]'}`}>
                           {lesson.video_url ? <Video size={16} /> : lesson.slides?.length ? <ImageIcon size={16} /> : <FileText size={16} />}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-semibold truncate ${lesson.status === 'aktif' ? 'text-slate-800' : 'text-slate-400'}`}>{lesson.title}</p>
+                          <p className={`text-sm font-semibold truncate ${lesson.status === 'aktif' ? 'text-[#202124]' : 'text-[#80868b]'}`}>{lesson.title}</p>
                           <div className="flex items-center gap-2 mt-1">
-                            {lesson.video_url && <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400"><Video size={10} /> Video</span>}
-                            {lesson.content && <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400"><FileText size={10} /> Materi</span>}
-                            {lesson.file_name && <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400"><FileText size={10} /> PDF</span>}
-                            {!!lesson.slides?.length && <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400"><ImageIcon size={10} /> {lesson.slides.length} Slide</span>}
-                            <span className={`text-[10px] font-semibold ${lesson.status === 'aktif' ? 'text-emerald-600' : 'text-slate-400'}`}>
+                            {lesson.video_url && <span className="flex items-center gap-1 text-[10px] font-medium text-[#80868b]"><Video size={10} /> Video</span>}
+                            {lesson.content && <span className="flex items-center gap-1 text-[10px] font-medium text-[#80868b]"><FileText size={10} /> Materi</span>}
+                            {lesson.file_name && <span className="flex items-center gap-1 text-[10px] font-medium text-[#80868b]"><FileText size={10} /> PDF</span>}
+                            {!!lesson.slides?.length && <span className="flex items-center gap-1 text-[10px] font-medium text-[#80868b]"><ImageIcon size={10} /> {lesson.slides.length} Slide</span>}
+                            <span className={`text-[10px] font-semibold ${lesson.status === 'aktif' ? 'text-[#137333]' : 'text-[#80868b]'}`}>
                               {lesson.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
                             </span>
                           </div>
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
                           <button onClick={(e) => { e.stopPropagation(); openLessonMonitor(lesson) }}
-                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-600 bg-red-50 px-2 py-1.5 hover:bg-red-100 transition-colors" title="Monitoring kandidat">
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#c5221f] bg-[#fce8e6] px-2 py-1.5 hover:bg-[#f6d7d5] transition-colors" title="Monitoring kandidat">
                             <Radio size={13} /> Monitoring
                           </button>
                         </div>
                         {!isAdminCabang && (
                           <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={(e) => { e.stopPropagation(); openEditCourseLesson(lesson) }} className="p-2 rounded-lg text-slate-400 hover:bg-amber-50 hover:text-amber-600 transition-colors" title="Edit">
+                            <button onClick={(e) => { e.stopPropagation(); openEditCourseLesson(lesson) }} className="p-2 text-[#80868b] hover:bg-[#fef7e0] hover:text-[#b06000] transition-colors" title="Edit">
                               <Edit3 size={14} />
                             </button>
-                            <button onClick={(e) => { e.stopPropagation(); deleteCourseLesson(lesson) }} className="p-2 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors" title="Hapus">
+                            <button onClick={(e) => { e.stopPropagation(); deleteCourseLesson(lesson) }} className="p-2 text-[#80868b] hover:bg-[#fce8e6] hover:text-[#d93025] transition-colors" title="Hapus">
                               <Trash2 size={14} />
                             </button>
                           </div>
@@ -3360,21 +3354,21 @@ const visibleBatches = filterCabang
             {courseTab === 'quiz' && (
               <>
                 <div className="relative">
-                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#80868b]" />
                   <input value={quizSearch} onChange={e => setQuizSearch(e.target.value)} placeholder="Cari paket soal..." className={`${inputCls} pl-9`} />
                 </div>
 
                 {quizLoading ? (
-                  <div className="flex flex-col items-center justify-center py-20 text-slate-400 text-sm gap-2">
-                    <Loader2 size={24} className="animate-spin text-[#0E6187]" /> Memuat paket soal...
+                  <div className="flex flex-col items-center justify-center py-20 text-[#80868b] text-sm gap-2">
+                    <Loader2 size={24} className="animate-spin text-[#1a73e8]" /> Memuat paket soal...
                   </div>
                 ) : filteredQuizPakets.length === 0 ? (
-                  <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-14 text-center">
-                    <div className="w-14 h-14 mx-auto rounded-lg bg-[#0E6187]/10 flex items-center justify-center mb-3">
-                      <ListChecks size={28} className="text-[#0E6187]" />
+                  <div className="bg-white border border-[#dadce0] p-14 text-center">
+                    <div className="w-14 h-14 mx-auto bgbg-[#f1f3f4] flex items-center justify-center mb-3">
+                      <ListChecks size={28} className="text-[#1a73e8]" />
                     </div>
-                    <p className="text-slate-800 font-semibold">Belum ada paket soal</p>
-                    <p className="text-slate-500 text-sm mt-1">Buat paket soal MCQ untuk kursus "{activeCourse.title}"</p>
+                    <p className="text-[#202124] font-semibold">Belum ada paket soal</p>
+                    <p className="text-[#5f6368] text-sm mt-1">Buat paket soal MCQ untuk kursus "{activeCourse.title}"</p>
                     {!isAdminCabang && (
                       <button onClick={openCreatePaket} className={`${primaryBtn} mt-5`}>
                         <Plus size={16} /> Buat Paket Soal
@@ -3390,24 +3384,24 @@ const visibleBatches = filterCabang
         {/* ==================== BANK PAKET SOAL VIEW ==================== */}
         {view === 'bank' && (
           <div className="space-y-4">
-            <button onClick={backToList} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#0E6187] transition-colors">
+            <button onClick={backToList} className="flex items-center gap-1.5 text-sm text-[#5f6368] hover:text-[#1a73e8] transition-colors">
               <ArrowLeft size={15} /> Kembali
             </button>
 
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="bg-white border border-[#dadce0] overflow-hidden">
               <div className="p-5 flex items-center justify-between gap-3 flex-wrap">
                 <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-xl bg-slate-100 text-slate-600 border border-slate-200 flex items-center justify-center shrink-0">
+                  <div className="w-11 h-11 bg-[#f1f3f4] text-[#5f6368] border border-[#dadce0] flex items-center justify-center shrink-0">
                     <ListChecks size={22} />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-lg font-bold text-slate-800 truncate">Bank Paket Soal</h2>
-                    <p className="text-sm text-slate-500">Semua paket soal tersimpan di sini, termasuk yang sudah terhubung ke kursus</p>
+                    <h2 className="text-lg font-bold text-[#202124] truncate">Bank Paket Soal</h2>
+                    <p className="text-sm text-[#5f6368]">Semua paket soal tersimpan di sini, termasuk yang sudah terhubung ke kursus</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <button onClick={openRekap}
-                    className="inline-flex items-center gap-2 rounded-lg border border-[#0E6187]/25 bg-[#0E6187]/[0.06] px-4 py-2.5 text-sm font-semibold text-[#0E6187] transition-colors hover:bg-[#0E6187]/10">
+                    className="inline-flex items-center gap-2 border border-[#1a73e8] bg-[#f1f3f4] px-4 py-2.5 text-sm font-semibold text-[#1a73e8] transition-colors hover:bgbg-[#f1f3f4]">
                     <BarChart3 size={16} /> Rekap Nilai
                   </button>
                   {bankCategory !== '' ? (
@@ -3415,37 +3409,35 @@ const visibleBatches = filterCabang
                       <Plus size={16} /> Buat Paket Soal
                     </button>
                   ) : (
-                    <span className="hidden md:inline-flex items-center gap-1.5 text-xs font-medium text-slate-400">
+                    <span className="hidden md:inline-flex items-center gap-1.5 text-xs font-medium text-[#80868b]">
                       Pilih kategori paket di atas untuk membuat paket baru
                     </span>
                   )}
                 </div>
               </div>
 
-              <div className="border-t border-slate-100 px-5 py-4">
+              <div className="border-t border-[#e8eaed] px-5 py-4">
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <div>
-                    <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                      <LayoutGrid size={15} className="text-[#0E6187]" /> Kategori Paket
+                    <h3 className="text-sm font-bold text-[#202124] flex items-center gap-2">
+                      <LayoutGrid size={15} className="text-[#1a73e8]" /> Kategori Paket
                     </h3>
-                    <p className="text-[11px] text-slate-400">Pilih kategori untuk menampilkan paket soal sesuai kategorinya</p>
+                    <p className="text-[11px] text-[#80868b]">Pilih kategori untuk menampilkan paket soal sesuai kategorinya</p>
                   </div>
                   <button onClick={() => setShowCategoryModal(true)}
-                    className="shrink-0 inline-flex items-center gap-1 text-sm font-medium text-[#0E6187] px-3 py-1.5 rounded-lg border border-[#0E6187]/20 hover:bg-[#0E6187]/[0.06] transition-colors">
+                    className="shrink-0 inline-flex items-center gap-1 text-sm font-medium text-[#1a73e8] px-3 py-1.5 border border-[#1a73e8] hover:bg-[#f1f3f4] transition-colors">
                     <LayoutGrid size={13} /> + Kelola
                   </button>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                   <button onClick={() => selectBankCategory('')}
-                    className={`flex items-center gap-2.5 rounded-xl border px-3.5 py-3 text-left transition-all ${
-                      bankCategory === '' ? 'bg-[#0E6187] border-[#0E6187] text-white shadow-sm shadow-[#0E6187]/25' : 'bg-white border-slate-200 hover:border-[#0E6187]/40 hover:shadow-sm'
-                    }`}>
-                    <span className={`w-9 h-9 shrink-0 rounded-lg flex items-center justify-center ${bankCategory === '' ? 'bg-white/15 text-white' : 'bg-[#0E6187]/10 text-[#0E6187]'}`}>
+                    className={`flex items-center gap-2.5 border px-3.5 py-3 text-left transition-all ${ bankCategory === '' ? 'bg-[#0E6187] border-[#1a73e8] text-white shadow-[#1a73e8]/25' : 'bg-white border-[#dadce0] hover:border-[#1a73e8] hover:' }`}>
+                    <span className={`w-9 h-9 shrink-0 flex items-center justify-center ${bankCategory === '' ? 'bg-white/15 text-white' : 'bgbg-[#f1f3f4] text-[#1a73e8]'}`}>
                       <LayoutGrid size={15} />
                     </span>
                     <span className="flex-1 min-w-0">
                       <span className="block text-xs font-bold truncate">Semua Paket</span>
-                      <span className={`block text-[10px] font-medium ${bankCategory === '' ? 'text-white/75' : 'text-slate-400'}`}>{bankTotalPakets} paket</span>
+                      <span className={`block text-[10px] font-medium ${bankCategory === '' ? 'text-white/75' : 'text-[#80868b]'}`}>{bankTotalPakets} paket</span>
                     </span>
                   </button>
                   {quizCategories.map(c => {
@@ -3453,15 +3445,13 @@ const visibleBatches = filterCabang
                     const active = bankCategory === c.name
                     return (
                       <button key={c.id} onClick={() => selectBankCategory(c.name)}
-                        className={`flex items-center gap-2.5 rounded-xl border px-3.5 py-3 text-left transition-all ${
-                          active ? 'bg-[#0E6187] border-[#0E6187] text-white shadow-sm shadow-[#0E6187]/25' : 'bg-white border-slate-200 hover:border-[#0E6187]/40 hover:shadow-sm'
-                        }`}>
-                        <span className={`w-9 h-9 shrink-0 rounded-lg flex items-center justify-center ${active ? 'bg-white/15 text-white' : 'bg-[#0E6187]/10 text-[#0E6187]'}`}>
+                        className={`flex items-center gap-2.5 border px-3.5 py-3 text-left transition-all ${ active ? 'bg-[#0E6187] border-[#1a73e8] text-white shadow-[#1a73e8]/25' : 'bg-white border-[#dadce0] hover:border-[#1a73e8] hover:' }`}>
+                        <span className={`w-9 h-9 shrink-0 flex items-center justify-center ${active ? 'bg-white/15 text-white' : 'bgbg-[#f1f3f4] text-[#1a73e8]'}`}>
                           <LayoutGrid size={15} />
                         </span>
                         <span className="flex-1 min-w-0">
                           <span className="block text-xs font-bold truncate">{c.name}</span>
-                          <span className={`block text-[10px] font-medium ${active ? 'text-white/75' : 'text-slate-400'}`}>{catCount} paket</span>
+                          <span className={`block text-[10px] font-medium ${active ? 'text-white/75' : 'text-[#80868b]'}`}>{catCount} paket</span>
                         </span>
                       </button>
                     )
@@ -3471,25 +3461,25 @@ const visibleBatches = filterCabang
             </div>
 
             <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#80868b]" />
               <input value={bankSearch} onChange={e => setBankSearch(e.target.value)}
                 placeholder={bankCategory ? `Cari paket soal pada ${bankCategory}...` : 'Cari paket soal...'}
                 className={`${inputCls} pl-9`} />
             </div>
 
             {bankLoading ? (
-              <div className="flex flex-col items-center justify-center py-20 text-slate-400 text-sm gap-2">
-                <Loader2 size={24} className="animate-spin text-[#0E6187]" /> Memuat paket soal...
+              <div className="flex flex-col items-center justify-center py-20 text-[#80868b] text-sm gap-2">
+                <Loader2 size={24} className="animate-spin text-[#1a73e8]" /> Memuat paket soal...
               </div>
             ) : bankPakets.length === 0 ? (
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 px-8 py-14 text-center">
-                <div className="w-14 h-14 mx-auto rounded-xl bg-[#0E6187]/10 flex items-center justify-center mb-3">
-                  <ListChecks size={28} className="text-[#0E6187]" />
+              <div className="bg-white border border-[#dadce0] px-8 py-14 text-center">
+                <div className="w-14 h-14 mx-auto bgbg-[#f1f3f4] flex items-center justify-center mb-3">
+                  <ListChecks size={28} className="text-[#1a73e8]" />
                 </div>
-                <p className="text-slate-800 font-semibold">
+                <p className="text-[#202124] font-semibold">
                   {bankSearch.trim() ? 'Tidak ada paket yang cocok dengan pencarian' : bankCategory ? `Belum ada paket soal pada kategori "${bankCategory}"` : 'Belum ada paket soal di bank'}
                 </p>
-                <p className="text-slate-500 text-sm mt-1">
+                <p className="text-[#5f6368] text-sm mt-1">
                   {bankSearch.trim() ? 'Coba ubah kata kunci pencarian atau ganti kategori.' : bankCategory ? 'Buat paket soal baru untuk mengisi kategori ini, lalu hubungkan ke kursus nanti.' : 'Buat paket soal untuk disimpan di bank dan hubungkan ke kursus nanti'}
                 </p>
                 {!bankSearch.trim() && (
@@ -3499,8 +3489,8 @@ const visibleBatches = filterCabang
                     </button>
                   ) : (
                     <p className="mt-5 inline-flex flex-col items-center gap-1">
-                      <span className="text-xs font-semibold text-slate-500">Buat paket butuh kategori</span>
-                      <span className="text-[11px] text-slate-400">Pilih salah satu kategori paket di atas terlebih dahulu</span>
+                      <span className="text-xs font-semibold text-[#5f6368]">Buat paket butuh kategori</span>
+                      <span className="text-[11px] text-[#80868b]">Pilih salah satu kategori paket di atas terlebih dahulu</span>
                     </p>
                   )
                 )}
@@ -3514,22 +3504,22 @@ const visibleBatches = filterCabang
         {/* ==================== REKAP NILAI KANDIDAT VIEW ==================== */}
         {view === 'rekap-nilai' && (
           <div className="space-y-4">
-            <button onClick={backToBankFromRekap} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#0E6187] transition-colors">
+            <button onClick={backToBankFromRekap} className="flex items-center gap-1.5 text-sm text-[#5f6368] hover:text-[#1a73e8] transition-colors">
               <ArrowLeft size={15} /> Kembali
             </button>
 
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="bg-white border border-[#dadce0] overflow-hidden">
               <div className="p-5 flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl bg-[#0E6187]/10 text-[#0E6187] border border-[#0E6187]/20 flex items-center justify-center shrink-0">
+                <div className="w-11 h-11 bgbg-[#f1f3f4] text-[#1a73e8] border border-[#1a73e8] flex items-center justify-center shrink-0">
                   <BarChart3 size={22} />
                 </div>
                 <div className="min-w-0">
-                  <h2 className="text-lg font-bold text-slate-800 truncate">Rekap Nilai Kandidat</h2>
-                  <p className="text-sm text-slate-500">Rekap nilai kandidat per kategori paket, dikelompokkan berdasarkan batch dan level</p>
+                  <h2 className="text-lg font-bold text-[#202124] truncate">Rekap Nilai Kandidat</h2>
+                  <p className="text-sm text-[#5f6368]">Rekap nilai kandidat per kategori paket, dikelompokkan berdasarkan batch dan level</p>
                 </div>
               </div>
 
-              <div className="border-t border-slate-100 px-5 py-4">
+              <div className="border-t border-[#e8eaed] px-5 py-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   <div>
                     <label className={labelCls}>Kategori Paket</label>
@@ -3558,7 +3548,7 @@ const visibleBatches = filterCabang
                   <div>
                     <label className={labelCls}>Cari Kandidat</label>
                     <div className="relative">
-                      <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#80868b]" />
                       <input value={rekapSearch}
                         onChange={e => setRekapSearch(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') { setRekapPage(1); fetchRekap(1) } }}
@@ -3569,7 +3559,7 @@ const visibleBatches = filterCabang
                 </div>
                 {(rekapCategory || rekapBatch || rekapLevel || rekapSearch) && (
                   <button onClick={() => { setRekapCategory(''); setRekapBatch(''); setRekapLevel(''); setRekapSearch(''); setRekapPage(1); fetchRekap(1) }}
-                    className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-[#0E6187] transition-colors">
+                    className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[#5f6368] hover:text-[#1a73e8] transition-colors">
                     <X size={13} /> Reset filter
                   </button>
                 )}
@@ -3577,13 +3567,13 @@ const visibleBatches = filterCabang
             </div>
 
             {rekapLoading && !rekap ? (
-              <div className="flex flex-col items-center justify-center py-20 text-slate-400 text-sm gap-2">
-                <Loader2 size={24} className="animate-spin text-[#0E6187]" /> Memuat rekap nilai...
+              <div className="flex flex-col items-center justify-center py-20 text-[#80868b] text-sm gap-2">
+                <Loader2 size={24} className="animate-spin text-[#1a73e8]" /> Memuat rekap nilai...
               </div>
             ) : !rekap ? (
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 px-8 py-14 text-center">
-                <p className="text-slate-800 font-semibold">Gagal memuat rekap nilai</p>
-                <p className="text-slate-500 text-sm mt-1">Coba muat ulang halaman atau periksa koneksi ke server.</p>
+              <div className="bg-white border border-[#dadce0] px-8 py-14 text-center">
+                <p className="text-[#202124] font-semibold">Gagal memuat rekap nilai</p>
+                <p className="text-[#5f6368] text-sm mt-1">Coba muat ulang halaman atau periksa koneksi ke server.</p>
                 <button onClick={() => fetchRekap(rekapPage)} className={`${primaryBtn} mt-5`}>
                   <RotateCcw size={16} /> Coba Lagi
                 </button>
@@ -3592,36 +3582,36 @@ const visibleBatches = filterCabang
               <>
                 <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2.5">
                   {[
-                    { label: 'Paket Soal', value: rekap.ringkasan.total_paket, color: 'text-[#0E6187]' },
-                    { label: 'Kandidat', value: rekap.ringkasan.total_kandidat, color: 'text-slate-800' },
-                    { label: 'Rata-rata', value: rekap.ringkasan.rata_rata, color: 'text-slate-800' },
-                    { label: 'Tertinggi', value: rekap.ringkasan.tertinggi, color: 'text-emerald-600' },
-                    { label: 'Terendah', value: rekap.ringkasan.terendah, color: 'text-amber-600' },
-                    { label: 'Rata-rata 70+', value: rekap.ringkasan.lulus, color: 'text-[#0E6187]' },
+                    { label: 'Paket Soal', value: rekap.ringkasan.total_paket, color: 'text-[#1a73e8]' },
+                    { label: 'Kandidat', value: rekap.ringkasan.total_kandidat, color: 'text-[#202124]' },
+                    { label: 'Rata-rata', value: rekap.ringkasan.rata_rata, color: 'text-[#202124]' },
+                    { label: 'Tertinggi', value: rekap.ringkasan.tertinggi, color: 'text-[#137333]' },
+                    { label: 'Terendah', value: rekap.ringkasan.terendah, color: 'text-[#b06000]' },
+                    { label: 'Rata-rata 70+', value: rekap.ringkasan.lulus, color: 'text-[#1a73e8]' },
                   ].map(k => (
-                    <div key={k.label} className="rounded-xl border border-slate-200 bg-white px-3.5 py-3">
-                      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{k.label}</p>
+                    <div key={k.label} className="border border-[#dadce0] bg-white px-3.5 py-3">
+                      <p className="text-[10px] font-semibold text-[#80868b]">{k.label}</p>
                       <p className={`mt-1 text-xl font-bold ${k.color}`}>{k.value}</p>
                     </div>
                   ))}
                 </div>
 
                 {rekap.paket.length > 0 && (
-                  <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div className="px-5 py-3.5 border-b border-slate-100">
-                      <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                        <ListChecks size={15} className="text-[#0E6187]" /> Paket Soal dalam Filter
-                        <span className="text-[11px] font-medium text-slate-400">({rekap.paket.length})</span>
+                  <div className="bg-white border border-[#dadce0] overflow-hidden">
+                    <div className="px-5 py-3.5 border-b border-[#e8eaed]">
+                      <h3 className="text-sm font-bold text-[#202124] flex items-center gap-2">
+                        <ListChecks size={15} className="text-[#1a73e8]" /> Paket Soal dalam Filter
+                        <span className="text-[11px] font-medium text-[#80868b]">({rekap.paket.length})</span>
                       </h3>
                     </div>
                     <div className="flex flex-wrap gap-2 p-4">
                       {rekap.paket.map(pk => (
-                        <div key={pk.id} className="rounded-lg border border-slate-200 bg-slate-50/60 px-3 py-2 min-w-[180px]">
-                          <p className="text-xs font-bold text-slate-700 truncate" title={pk.title}>{pk.title}</p>
-                          <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-slate-400">
-                            <span className="rounded bg-white px-1.5 py-0.5 font-semibold text-slate-500 border border-slate-200">{pk.category}</span>
-                            {pk.level && <span className="rounded bg-white px-1.5 py-0.5 font-semibold text-slate-500 border border-slate-200">Level {pk.level}</span>}
-                            {pk.batch_name && <span className="rounded bg-white px-1.5 py-0.5 font-semibold text-slate-500 border border-slate-200">{pk.batch_name}</span>}
+                        <div key={pk.id} className="border border-[#dadce0] #f8f9fa-\[#f8f9fa\] px-3 py-2 min-w-[180px]">
+                          <p className="text-xs font-bold text-[#3c4043] truncate" title={pk.title}>{pk.title}</p>
+                          <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-[#80868b]">
+                            <span className="bg-white px-1.5 py-0.5 font-semibold text-[#5f6368] border border-[#dadce0]">{pk.category}</span>
+                            {pk.level && <span className="bg-white px-1.5 py-0.5 font-semibold text-[#5f6368] border border-[#dadce0]">Level {pk.level}</span>}
+                            {pk.batch_name && <span className="bg-white px-1.5 py-0.5 font-semibold text-[#5f6368] border border-[#dadce0]">{pk.batch_name}</span>}
                             <span>{pk.questions_count} soal</span>
                           </p>
                         </div>
@@ -3630,14 +3620,14 @@ const visibleBatches = filterCabang
                   </div>
                 )}
 
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="bg-white border border-[#dadce0] overflow-hidden">
                   {rekap.kandidat.length === 0 ? (
                     <div className="px-8 py-14 text-center">
-                      <div className="w-14 h-14 mx-auto rounded-xl bg-[#0E6187]/10 flex items-center justify-center mb-3">
-                        <BarChart3 size={28} className="text-[#0E6187]" />
+                      <div className="w-14 h-14 mx-auto bgbg-[#f1f3f4] flex items-center justify-center mb-3">
+                        <BarChart3 size={28} className="text-[#1a73e8]" />
                       </div>
-                      <p className="text-slate-800 font-semibold">Belum ada nilai kandidat</p>
-                      <p className="text-slate-500 text-sm mt-1">
+                      <p className="text-[#202124] font-semibold">Belum ada nilai kandidat</p>
+                      <p className="text-[#5f6368] text-sm mt-1">
                         {rekap.paket.length === 0
                           ? 'Belum ada paket soal pada filter ini.'
                           : 'Belum ada kandidat yang mengerjakan paket soal pada filter ini.'}
@@ -3647,69 +3637,65 @@ const visibleBatches = filterCabang
                     <>
                       <div className="overflow-x-auto">
                         <table className="min-w-full text-sm">
-                          <thead className="bg-slate-50 text-slate-600">
+                          <thead className="text-[#5f6368]">
                             <tr>
-                              <th className="border border-slate-200 px-3 py-3 text-center font-semibold w-12">#</th>
-                              <th className="border border-slate-200 px-4 py-3 text-left font-semibold">Kandidat</th>
-                              <th className="border border-slate-200 px-3 py-3 text-center font-semibold">Batch</th>
-                              <th className="border border-slate-200 px-3 py-3 text-center font-semibold">Level</th>
+                              <th className="text-xs font-medium text-[#5f6368] px-3 py-3 w-12 text-center">#</th>
+                              <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-left">Kandidat</th>
+                              <th className="text-xs font-medium text-[#5f6368] px-3 py-3 text-center">Batch</th>
+                              <th className="text-xs font-medium text-[#5f6368] px-3 py-3 text-center">Level</th>
                               {rekap.paket.map(pk => (
                                 <th key={pk.id} title={pk.title}
-                                  className="border border-slate-200 px-3 py-3 text-center font-semibold max-w-[110px]">
+                                  className="border border-[#dadce0] px-3 py-3 text-center font-semibold max-w-[110px]">
                                   <span className="block truncate">{pk.title}</span>
                                 </th>
                               ))}
-                              <th className="border border-slate-200 px-3 py-3 text-center font-semibold">Rata-rata</th>
-                              <th className="border border-slate-200 px-3 py-3 text-center font-semibold">Terbaik</th>
+                              <th className="text-xs font-medium text-[#5f6368] px-3 py-3 text-center">Rata-rata</th>
+                              <th className="text-xs font-medium text-[#5f6368] px-3 py-3 text-center">Terbaik</th>
                             </tr>
                           </thead>
                           <tbody>
                             {rekap.kandidat.map(k => {
-                              const avgColor = k.rata_rata >= 70 ? 'text-emerald-600' : k.rata_rata >= 50 ? 'text-amber-600' : 'text-red-500'
+                              const avgColor = k.rata_rata >= 70 ? 'text-[#137333]' : k.rata_rata >= 50 ? 'text-[#b06000]' : 'text-[#d93025]'
                               const batchNama = rekap.filters.batch.find(b => b.id === k.batch_id)?.nama
                               return (
-                                <tr key={k.siswa_id} className="hover:bg-slate-50/70 transition-colors">
-                                  <td className="border border-slate-200 px-3 py-3 text-center">
-                                    <span className={`inline-flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold ${
-                                      k.peringkat === 1 ? 'bg-amber-100 text-amber-700'
-                                        : k.peringkat === 2 ? 'bg-slate-200 text-slate-600'
-                                        : k.peringkat === 3 ? 'bg-orange-100 text-orange-700'
-                                        : 'bg-slate-50 text-slate-400'}`}>
+                                <tr key={k.siswa_id} className="hover:#f8f9fa-\[#f8f9fa\] transition-colors">
+                                  <td className="border-b border-[#e8eaed] px-3 py-3 text-center">
+                                    <span className={`inline-flex h-6 w-6 items-center justify-center text-xs font-bold ${ k.peringkat === 1 ? 'bg-[#fef7e0] text-[#b06000]' : k.peringkat === 2 ? 'bg-[#e8eaed] text-[#5f6368]' : k.peringkat === 3 ? 'bg-[#fef7e0] text-[#b06000]' : 'bg-[#f8f9fa] text-[#80868b]'}`}>
                                       {k.peringkat}
                                     </span>
                                   </td>
-                                  <td className="border border-slate-200 px-4 py-3">
-                                    <p className="font-semibold text-slate-800 truncate">{k.nama}</p>
-                                    <p className="text-[11px] text-slate-400 truncate">
+                                  <td className="border-b border-[#e8eaed] px-4 py-3">
+                                    <p className="font-semibold text-[#202124] truncate">{k.nama}</p>
+                                    <p className="text-[11px] text-[#80868b] truncate">
                                       {[k.no_registrasi, k.nik && `NIK ${k.nik}`].filter(Boolean).join(' · ') || '—'}
                                     </p>
                                   </td>
-                                  <td className="border border-slate-200 px-3 py-3 text-center">
+                                  <td className="border-b border-[#e8eaed] px-3 py-3 text-center">
                                     {batchNama ? (
-                                      <span className="rounded-md px-2 py-0.5 text-[11px] font-semibold text-slate-600 bg-slate-100">{batchNama}</span>
-                                    ) : <span className="text-slate-300">—</span>}
+                                      <span className="px-2 py-0.5 text-[11px] font-semibold text-[#5f6368] bg-[#f1f3f4]">{batchNama}</span>
+                                    ) : <span className="text-[#9aa0a6]">—</span>}
                                   </td>
-                                  <td className="border border-slate-200 px-3 py-3 text-center">
+                                  <td className="border-b border-[#e8eaed] px-3 py-3 text-center">
                                     {k.level ? (
-                                      <span className="rounded-md bg-[#0E6187]/10 px-2 py-0.5 text-[11px] font-semibold text-[#0E6187]">L{k.level}</span>
-                                    ) : <span className="text-slate-300">—</span>}
+                                      <span className="bgbg-[#f1f3f4] px-2 py-0.5 text-[11px] font-semibold text-[#1a73e8]">L{k.level}</span>
+                                    ) : <span className="text-[#9aa0a6]">—</span>}
                                   </td>
                                   {rekap.paket.map(pk => {
                                     const val = k.scores[String(pk.id)]
                                     if (val === undefined) return (
-                                      <td key={pk.id} className="border border-slate-200 px-3 py-3 text-center text-slate-300">—</td>
+                                      <td key={pk.id} className="border border-[#dadce0] px-3 py-3 text-center text-[#9aa0a6]">—</td>
                                     )
                                     return (
-                                      <td key={pk.id} className="border border-slate-200 px-3 py-3 text-center">
-                                        <span className={`text-xs font-bold ${val >= 70 ? 'text-emerald-600' : val >= 50 ? 'text-amber-600' : 'text-red-500'}`}>{val}</span>
+                                      <td key={pk.id} className="border border-[#dadce0] px-3 py-3 text-center">
+                                        <span className={`text-xs font-bold ${val >= 70 ? 'text-[#137333]' : val >= 50 ? 'text-[#b06000]' : 'text-[#d93025]'}`}>{val}</span>
                                       </td>
                                     )
                                   })}
-                                  <td className="border border-slate-200 px-3 py-3 text-center">
-                                    <span className={`inline-block min-w-[42px] rounded-md bg-slate-50 px-2.5 py-1.5 text-xs font-bold ${avgColor}`}>{k.rata_rata}</span>
+                                  <td className="border-b border-[#e8eaed] px-3 py-3 text-center">
+                                    <span className={`inline-block min-w-[42px] bg-[#f8f9fa] px-2.5 py-1.5 text-xs font-bold ${avgColor}`}>{k.rata_rata}</span>
                                   </td>
-                                  <td className="border border-slate-200 px-3 py-3 text-center">
-                                    <span className="inline-block min-w-[38px] rounded-md bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-700">{k.terbaik}</span>
+                                  <td className="border-b border-[#e8eaed] px-3 py-3 text-center">
+                                    <span className="inline-block min-w-[38px] bg-[#f8f9fa] px-2.5 py-1.5 text-xs font-bold text-[#3c4043]">{k.terbaik}</span>
                                   </td>
                                 </tr>
                               )
@@ -3717,7 +3703,7 @@ const visibleBatches = filterCabang
                           </tbody>
                         </table>
                       </div>
-                      <div className="border-t border-slate-100 px-4 py-2.5 text-[11px] text-slate-400">
+                      <div className="border-t border-[#e8eaed] px-4 py-2.5 text-[11px] text-[#80868b]">
                         Nilai = attempt terbaik per paket (0-100). Rata-rata dihitung dari paket yang dikerjakan kandidat tersebut.
                       </div>
                     </>
@@ -3733,90 +3719,90 @@ const visibleBatches = filterCabang
         {/* ==================== BANK MATERI VIEW ==================== */}
         {view === 'materi-bank' && (
           <div className="space-y-4">
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-              <button onClick={backToList} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#0E6187] transition-colors">
+            <div className="bg-white border border-[#dadce0] p-5">
+              <button onClick={backToList} className="flex items-center gap-1.5 text-sm text-[#5f6368] hover:text-[#1a73e8] transition-colors">
                 <ArrowLeft size={15} /> Kembali
               </button>
               <div className="flex items-center gap-3 mt-3">
-                <div className="w-11 h-11 rounded-xl bg-slate-100 text-slate-600 border border-slate-200 flex items-center justify-center shrink-0">
+                <div className="w-11 h-11 bg-[#f1f3f4] text-[#5f6368] border border-[#dadce0] flex items-center justify-center shrink-0">
                   <BookOpen size={22} />
                 </div>
                 <div className="min-w-0">
-                  <h2 className="text-lg font-bold text-slate-800 truncate">Bank Materi</h2>
-                  <p className="text-sm text-slate-500">Semua materi pembelajaran tersimpan di sini, termasuk yang sudah terhubung ke pertemuan</p>
+                  <h2 className="text-lg font-bold text-[#202124] truncate">Bank Materi</h2>
+                  <p className="text-sm text-[#5f6368]">Semua materi pembelajaran tersimpan di sini, termasuk yang sudah terhubung ke pertemuan</p>
                 </div>
               </div>
             </div>
 
             <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#80868b]" />
               <input value={bankMateriSearch} onChange={e => setBankMateriSearch(e.target.value)} placeholder="Cari materi..." className={`${inputCls} pl-9`} />
             </div>
 
             {bankMateriLoading ? (
-              <div className="flex flex-col items-center justify-center py-20 text-slate-400 text-sm gap-2">
-                <Loader2 size={24} className="animate-spin text-[#0E6187]" /> Memuat materi...
+              <div className="flex flex-col items-center justify-center py-20 text-[#80868b] text-sm gap-2">
+                <Loader2 size={24} className="animate-spin text-[#1a73e8]" /> Memuat materi...
               </div>
             ) : filteredBankMateris.length === 0 ? (
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-14 text-center">
-                <div className="w-14 h-14 mx-auto rounded-lg bg-[#0E6187]/10 flex items-center justify-center mb-3">
-                  <BookOpen size={28} className="text-[#0E6187]" />
+              <div className="bg-white border border-[#dadce0] p-14 text-center">
+                <div className="w-14 h-14 mx-auto bgbg-[#f1f3f4] flex items-center justify-center mb-3">
+                  <BookOpen size={28} className="text-[#1a73e8]" />
                 </div>
-                <p className="text-slate-800 font-semibold">Belum ada materi di bank</p>
-                <p className="text-slate-500 text-sm mt-1">Buat materi untuk disimpan di bank dan hubungkan ke pertemuan nanti</p>
+                <p className="text-[#202124] font-semibold">Belum ada materi di bank</p>
+                <p className="text-[#5f6368] text-sm mt-1">Buat materi untuk disimpan di bank dan hubungkan ke pertemuan nanti</p>
                 <button onClick={openCreateMateri} className={`${primaryBtn} mt-5`}>
                   <Plus size={16} /> Buat Materi
                 </button>
               </div>
             ) : (
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-                <div className="divide-y divide-slate-100">
+              <div className="bg-white border border-[#dadce0] overflow-hidden">
+                <div className="divide-y divide-[#e8eaed]">
                   {filteredBankMateris.map(m => (
                     <div key={m.id} className="flex items-center gap-3 px-5 py-4">
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-[#0E6187]/10 text-[#0E6187]">
+                      <div className="w-9 h-9 flex items-center justify-center shrink-0 bgbg-[#f1f3f4] text-[#1a73e8]">
                         <FileText size={16} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-slate-800 truncate">{m.title}</p>
+                        <p className="text-sm font-semibold text-[#202124] truncate">{m.title}</p>
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
                           {m.course && (
-                            <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                            <span className="flex items-center gap-1 text-[10px] font-medium text-[#80868b]">
                               <BookOpen size={10} /> {m.course.title}
                             </span>
                           )}
                           {m.video_url && (
-                            <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                            <span className="flex items-center gap-1 text-[10px] font-medium text-[#80868b]">
                               <Video size={10} /> Video
                             </span>
                           )}
                           {m.content && (
-                            <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                            <span className="flex items-center gap-1 text-[10px] font-medium text-[#80868b]">
                               <FileText size={10} /> Materi
                             </span>
                           )}
                           {m.file_name && (
-                            <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                            <span className="flex items-center gap-1 text-[10px] font-medium text-[#80868b]">
                               <FileText size={10} /> PDF
                             </span>
                           )}
                           {m.slides && m.slides.length > 0 && (
-                            <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                            <span className="flex items-center gap-1 text-[10px] font-medium text-[#80868b]">
                               <ImageIcon size={10} /> {m.slides.length} slide
                             </span>
                           )}
-                          <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                          <span className="flex items-center gap-1 text-[10px] font-medium text-[#80868b]">
                             <Link2 size={10} /> Terhubung ke {m.lessons_count} pertemuan
                           </span>
-                          <span className={`text-[10px] font-semibold ${m.status === 'aktif' ? 'text-emerald-500' : 'text-slate-400'}`}>
+                          <span className={`text-[10px] font-semibold ${m.status === 'aktif' ? 'text-[#188038]' : 'text-[#80868b]'}`}>
                             {m.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
                           </span>
                         </div>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        <button onClick={() => openEditMateri(m)} className="p-2 text-slate-400 hover:text-[#0E6187] hover:bg-slate-100 rounded-lg transition-colors" title="Edit">
+                        <button onClick={() => openEditMateri(m)} className="p-2 text-[#80868b] hover:text-[#1a73e8] hover:bg-[#f1f3f4] transition-colors" title="Edit">
                           <Edit3 size={16} />
                         </button>
-                        <button onClick={() => handleDeleteMateri(m)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Hapus">
+                        <button onClick={() => handleDeleteMateri(m)} className="p-2 text-[#80868b] hover:text-[#d93025] hover:bg-[#fce8e6] transition-colors" title="Hapus">
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -3831,29 +3817,29 @@ const visibleBatches = filterCabang
         {/* ==================== QUIZ MATERI VIEW ==================== */}
         {view === 'quiz-materi' && materiPaket && (
           <div className="space-y-4">
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-              <button onClick={backFromMateri} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#0E6187] transition-colors">
+            <div className="bg-white border border-[#dadce0] p-5">
+              <button onClick={backFromMateri} className="flex items-center gap-1.5 text-sm text-[#5f6368] hover:text-[#1a73e8] transition-colors">
                 <ArrowLeft size={15} /> Kembali
               </button>
               <div className="flex items-center justify-between mt-3">
                 <div className="min-w-0">
-                  <h2 className="text-lg font-bold text-slate-800 truncate">{materiPaket.title}</h2>
-                  <p className="text-sm text-slate-500 mt-0.5">{materiLessons.length} materi pelajaran</p>
+                  <h2 className="text-lg font-bold text-[#202124] truncate">{materiPaket.title}</h2>
+                  <p className="text-sm text-[#5f6368] mt-0.5">{materiLessons.length} materi pelajaran</p>
                 </div>
               </div>
             </div>
 
             {materiLoading ? (
-              <div className="flex flex-col items-center justify-center py-20 text-slate-400 text-sm gap-2">
-                <Loader2 size={24} className="animate-spin text-[#0E6187]" /> Memuat materi...
+              <div className="flex flex-col items-center justify-center py-20 text-[#80868b] text-sm gap-2">
+                <Loader2 size={24} className="animate-spin text-[#1a73e8]" /> Memuat materi...
               </div>
             ) : materiLessons.length === 0 ? (
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-14 text-center">
-                <div className="w-14 h-14 mx-auto rounded-lg bg-[#0E6187]/10 flex items-center justify-center mb-3">
-                  <BookOpen size={28} className="text-[#0E6187]" />
+              <div className="bg-white border border-[#dadce0] p-14 text-center">
+                <div className="w-14 h-14 mx-auto bgbg-[#f1f3f4] flex items-center justify-center mb-3">
+                  <BookOpen size={28} className="text-[#1a73e8]" />
                 </div>
-                <p className="text-slate-800 font-semibold">Belum ada materi</p>
-                <p className="text-slate-500 text-sm mt-1">Tambahkan materi/modul & video pembelajaran untuk kursus ini</p>
+                <p className="text-[#202124] font-semibold">Belum ada materi</p>
+                <p className="text-[#5f6368] text-sm mt-1">Tambahkan materi/modul & video pembelajaran untuk kursus ini</p>
                 {!isAdminCabang && (
                   <button onClick={openCreateLesson} className={`${primaryBtn} mt-5`}>
                     <Plus size={16} /> Tambah Materi
@@ -3861,51 +3847,49 @@ const visibleBatches = filterCabang
                 )}
               </div>
             ) : (
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-                <div className="divide-y divide-slate-100">
+              <div className="bg-white border border-[#dadce0] overflow-hidden">
+                <div className="divide-y divide-[#e8eaed]">
                   {materiLessons.map((lesson, idx) => (
                     <div key={lesson.id} className="flex items-center gap-3 px-5 py-4">
                       {!isAdminCabang && (
                         <div className="flex flex-col">
                           <button onClick={() => moveLesson(idx, 'up')} disabled={idx === 0}
-                            className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20">
+                            className="p-0.5 text-[#80868b] hover:text-[#1a73e8] disabled:opacity-20">
                             <ChevronUp size={14} />
                           </button>
                           <button onClick={() => moveLesson(idx, 'down')} disabled={idx === materiLessons.length - 1}
-                            className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20">
+                            className="p-0.5 text-[#80868b] hover:text-[#1a73e8] disabled:opacity-20">
                             <ChevronDown size={14} />
                           </button>
                         </div>
                       )}
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold text-white ${
-                        lesson.status === 'aktif' ? 'bg-[#0E6187]' : 'bg-slate-300'
-                      }`}>
+                      <div className={`w-9 h-9 flex items-center justify-center shrink-0 text-xs font-bold text-white ${ lesson.status === 'aktif' ? 'bg-[#0E6187]' : 'bg-[#e8eaed]' }`}>
                         {idx + 1}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-slate-800 truncate">{lesson.title}</p>
+                        <p className="text-sm font-semibold text-[#202124] truncate">{lesson.title}</p>
                         <div className="flex items-center gap-2 mt-1">
                           {lesson.video_url && (
-                            <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                            <span className="flex items-center gap-1 text-[10px] font-medium text-[#80868b]">
                               <Video size={10} /> Video
                             </span>
                           )}
                           {lesson.content && (
-                            <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                            <span className="flex items-center gap-1 text-[10px] font-medium text-[#80868b]">
                               <FileText size={10} /> Materi
                             </span>
                           )}
                           {lesson.file_name && (
-                            <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                            <span className="flex items-center gap-1 text-[10px] font-medium text-[#80868b]">
                               <FileText size={10} /> PDF
                             </span>
                           )}
                           {!!lesson.slides?.length && (
-                            <span className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                            <span className="flex items-center gap-1 text-[10px] font-medium text-[#80868b]">
                               <ImageIcon size={10} /> {lesson.slides.length} Slide
                             </span>
                           )}
-                          <span className={`text-[10px] font-semibold ${lesson.status === 'aktif' ? 'text-emerald-500' : 'text-slate-400'}`}>
+                          <span className={`text-[10px] font-semibold ${lesson.status === 'aktif' ? 'text-[#188038]' : 'text-[#80868b]'}`}>
                             {lesson.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
                           </span>
                         </div>
@@ -3913,12 +3897,12 @@ const visibleBatches = filterCabang
                       {!isAdminCabang && (
                         <>
                           <button onClick={() => openEditLesson(lesson)}
-                            className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors" title="Edit">
-                            <Edit3 size={15} className="text-slate-600" />
+                            className="w-9 h-9 flex items-center justify-center bg-[#f1f3f4] hover:bg-[#e8eaed] transition-colors" title="Edit">
+                            <Edit3 size={15} className="text-[#5f6368]" />
                           </button>
                           <button onClick={() => handleDeleteLesson(lesson)}
-                            className="w-9 h-9 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 transition-colors" title="Hapus">
-                            <Trash2 size={15} className="text-red-500" />
+                            className="w-9 h-9 flex items-center justify-center bg-[#fce8e6] hover:bg-[#f6d7d5] transition-colors" title="Hapus">
+                            <Trash2 size={15} className="text-[#d93025]" />
                           </button>
                         </>
                       )}
@@ -3933,23 +3917,23 @@ const visibleBatches = filterCabang
         {/* ==================== QUIZ QUESTIONS VIEW ==================== */}
         {view === 'quiz-questions' && activeQuizPaket && (
           <div className="space-y-4">
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-              <button onClick={backToQuiz} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#0E6187] transition-colors">
+            <div className="bg-white border border-[#dadce0] p-5">
+              <button onClick={backToQuiz} className="flex items-center gap-1.5 text-sm text-[#5f6368] hover:text-[#1a73e8] transition-colors">
                 <ArrowLeft size={15} /> Kembali
               </button>
               <div className="flex items-center justify-between mt-3">
                 <div className="min-w-0">
-                  <h2 className="text-lg font-bold text-slate-800 truncate">{activeQuizPaket.title}</h2>
-                  <p className="text-sm text-slate-500 mt-0.5">{questions.length} soal</p>
+                  <h2 className="text-lg font-bold text-[#202124] truncate">{activeQuizPaket.title}</h2>
+                  <p className="text-sm text-[#5f6368] mt-0.5">{questions.length} soal</p>
                 </div>
                 {!isAdminCabang && (
                   <div className="flex items-center gap-2 shrink-0">
                     <button onClick={openSectionManager}
-                      className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-[#0E6187] border border-slate-200 hover:border-[#0E6187]/40 bg-white px-3.5 py-2.5 rounded-lg transition-colors">
+                      className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#5f6368] hover:text-[#1a73e8] border border-[#dadce0] hover:border-[#1a73e8] bg-white px-3.5 py-2.5 transition-colors">
                       <Settings2 size={16} /> Kelola Bagian
                     </button>
                     <button onClick={openImportModal}
-                      className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#0E6187] hover:bg-[#0E6187]/5 border border-[#0E6187]/30 px-3.5 py-2.5 rounded-lg transition-colors">
+                      className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#1a73e8] hover:bgbg-[#f8f9fa] border border-[#1a73e8] px-3.5 py-2.5 transition-colors">
                       <ClipboardPaste size={16} /> Import Banyak
                     </button>
                     <button onClick={openCreateQuestion} className={primaryBtn}>
@@ -3961,82 +3945,82 @@ const visibleBatches = filterCabang
             </div>
 
             {!qLoading && questions.length > 0 && (
-              <div className="flex items-center gap-2 overflow-x-auto px-3 py-2.5 bg-white rounded-lg shadow-sm border border-slate-200">
-                <ListChecks size={15} className="text-slate-400 shrink-0" />
+              <div className="flex items-center gap-2 overflow-x-auto px-3 py-2.5 bg-white border border-[#dadce0]">
+                <ListChecks size={15} className="text-[#80868b] shrink-0" />
                 <button onClick={() => setSectionFilter('all')}
-                  className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${qSectionFilter === 'all' ? 'bg-[#0E6187] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                  className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${qSectionFilter === 'all' ? 'bg-[#0E6187] text-white' : 'bg-[#f1f3f4] text-[#5f6368] hover:bg-[#e8eaed]'}`}>
                   Semua
-                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${qSectionFilter === 'all' ? 'bg-white/25' : 'bg-white'}`}>{questions.length}</span>
+                  <span className={`px-1.5 py-0.5 text-[10px] font-bold ${qSectionFilter === 'all' ? 'bg-white/25' : 'bg-white'}`}>{questions.length}</span>
                 </button>
                 {sectionFilterOptions.map(s => (
                   <button key={s.id} onClick={() => setSectionFilter(s.id)}
-                    className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${qSectionFilter === s.id ? 'bg-[#0E6187] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                    className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${qSectionFilter === s.id ? 'bg-[#0E6187] text-white' : 'bg-[#f1f3f4] text-[#5f6368] hover:bg-[#e8eaed]'}`}>
                     {s.name}
-                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${qSectionFilter === s.id ? 'bg-white/25' : 'bg-white'}`}>{s.questions_count ?? 0}</span>
+                    <span className={`px-1.5 py-0.5 text-[10px] font-bold ${qSectionFilter === s.id ? 'bg-white/25' : 'bg-white'}`}>{s.questions_count ?? 0}</span>
                   </button>
                 ))}
                 {questions.some(q => q.section_id == null) && (
                   <button onClick={() => setSectionFilter('none')}
-                    className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${qSectionFilter === 'none' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                    className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${qSectionFilter === 'none' ? 'bg-[#3c4043] text-white' : 'bg-[#f1f3f4] text-[#5f6368] hover:bg-[#e8eaed]'}`}>
                     Tanpa Bagian
-                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${qSectionFilter === 'none' ? 'bg-white/25' : 'bg-white'}`}>{questions.filter(q => q.section_id == null).length}</span>
+                    <span className={`px-1.5 py-0.5 text-[10px] font-bold ${qSectionFilter === 'none' ? 'bg-white/25' : 'bg-white'}`}>{questions.filter(q => q.section_id == null).length}</span>
                   </button>
                 )}
               </div>
             )}
 
             {qLoading ? (
-              <div className="flex flex-col items-center justify-center py-16 text-slate-400 text-sm gap-2">
-                <Loader2 size={24} className="animate-spin text-[#0E6187]" /> Memuat soal...
+              <div className="flex flex-col items-center justify-center py-16 text-[#80868b] text-sm gap-2">
+                <Loader2 size={24} className="animate-spin text-[#1a73e8]" /> Memuat soal...
               </div>
             ) : questions.length === 0 ? (
-              <div className="bg-white rounded-lg shadow-sm border border-dashed border-slate-300 p-14 text-center">
-                <BookOpen size={28} className="text-slate-300 mx-auto mb-2" />
-                <p className="text-slate-700 font-semibold">Belum ada soal</p>
-                <p className="text-slate-500 text-sm mt-1">Tambahkan minimal 1 soal untuk paket ini</p>
+              <div className="bg-white border border-dashed border-[#dadce0] p-14 text-center">
+                <BookOpen size={28} className="text-[#9aa0a6] mx-auto mb-2" />
+                <p className="text-[#3c4043] font-semibold">Belum ada soal</p>
+                <p className="text-[#5f6368] text-sm mt-1">Tambahkan minimal 1 soal untuk paket ini</p>
               </div>
             ) : filteredQuestions.length === 0 ? (
-              <div className="bg-white rounded-lg shadow-sm border border-dashed border-slate-300 p-14 text-center">
-                <ListChecks size={28} className="text-slate-300 mx-auto mb-2" />
-                <p className="text-slate-700 font-semibold">Tidak ada soal pada bagian ini</p>
-                <p className="text-slate-500 text-sm mt-1">Pilih bagian lain atau klik "Semua" untuk menampilkan seluruh soal</p>
+              <div className="bg-white border border-dashed border-[#dadce0] p-14 text-center">
+                <ListChecks size={28} className="text-[#9aa0a6] mx-auto mb-2" />
+                <p className="text-[#3c4043] font-semibold">Tidak ada soal pada bagian ini</p>
+                <p className="text-[#5f6368] text-sm mt-1">Pilih bagian lain atau klik "Semua" untuk menampilkan seluruh soal</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {questionGroups.map(g => (
                   <div key={g.section || '__none'}>
                     <div className="flex items-center gap-2 px-1 pt-2 pb-1">
-                      <span className="w-1 h-5 rounded-full bg-[#0E6187]" />
-                      <span className="text-sm font-bold text-slate-700 uppercase tracking-wide">{g.section || 'Umum'}</span>
-                      <span className="text-xs text-slate-400 font-medium">{g.items.length} soal</span>
+                      <span className="w-1 h-5 bg-[#0E6187]" />
+                      <span className="text-sm font-bold text-[#3c4043]">{g.section || 'Umum'}</span>
+                      <span className="text-xs text-[#80868b] font-medium">{g.items.length} soal</span>
                     </div>
                     <div className="space-y-3">
                       {g.items.map((q, qi) => {
                         const gi = orderedQuestions.findIndex(x => x.id === q.id)
                         return (
-                          <div key={q.id} className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+                          <div key={q.id} className="bg-white border border-[#dadce0] p-5">
                             <div className="flex items-start gap-3">
                               {!isAdminCabang && (
                                 <div className="flex flex-col items-center gap-1 mt-1">
-                                  <button onClick={() => moveQuestion(q, 'up')} className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20" disabled={qi === 0}>
+                                  <button onClick={() => moveQuestion(q, 'up')} className="p-0.5 text-[#80868b] hover:text-[#1a73e8] disabled:opacity-20" disabled={qi === 0}>
                                     <ChevronUp size={16} />
                                   </button>
-                                  <button onClick={() => moveQuestion(q, 'down')} className="p-0.5 text-slate-400 hover:text-[#0E6187] disabled:opacity-20" disabled={qi === g.items.length - 1}>
+                                  <button onClick={() => moveQuestion(q, 'down')} className="p-0.5 text-[#80868b] hover:text-[#1a73e8] disabled:opacity-20" disabled={qi === g.items.length - 1}>
                                     <ChevronDown size={16} />
                                   </button>
                                 </div>
                               )}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-start justify-between gap-2">
-                                  <span className="text-sm font-bold text-slate-400 shrink-0 mt-0.5">#{gi + 1}</span>
-                                  <div className="text-[15px] font-semibold text-slate-800 leading-snug flex-1 min-w-0 [&_p]:my-0.5 [&_h1]:text-base [&_h2]:text-base [&_h3]:text-base [&_h4]:text-base [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-bold [&_h4]:font-bold [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5 [&_img]:max-h-40 [&_img]:rounded-lg [&_img]:my-1.5 [&_img]:border [&_img]:border-slate-200" dangerouslySetInnerHTML={{ __html: cleanQuillHtml(q.question) }} />
+                                  <span className="text-sm font-bold text-[#80868b] shrink-0 mt-0.5">#{gi + 1}</span>
+                                  <div className="text-[15px] font-semibold text-[#202124] leading-snug flex-1 min-w-0 [&_p]:my-0.5 [&_h1]:text-base [&_h2]:text-base [&_h3]:text-base [&_h4]:text-base [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-bold [&_h4]:font-bold [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5 [&_img]:max-h-40 [&_img]: [&_img]:my-1.5 [&_img]:border [&_img]:border-[#dadce0]" dangerouslySetInnerHTML={{ __html: cleanQuillHtml(q.question) }} />
                                   {!isAdminCabang && (
                                     <div className="flex items-center gap-1.5 shrink-0">
-                                      <button onClick={() => openEditQuestion(q)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors" title="Edit">
-                                        <Pencil size={14} className="text-slate-600" />
+                                      <button onClick={() => openEditQuestion(q)} className="w-9 h-9 flex items-center justify-center bg-[#f1f3f4] hover:bg-[#e8eaed] transition-colors" title="Edit">
+                                        <Pencil size={14} className="text-[#5f6368]" />
                                       </button>
-                                      <button onClick={() => deleteQuestion(q)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 transition-colors" title="Hapus">
-                                        <Trash2 size={14} className="text-red-500" />
+                                      <button onClick={() => deleteQuestion(q)} className="w-9 h-9 flex items-center justify-center bg-[#fce8e6] hover:bg-[#f6d7d5] transition-colors" title="Hapus">
+                                        <Trash2 size={14} className="text-[#d93025]" />
                                       </button>
                                     </div>
                                   )}
@@ -4050,11 +4034,11 @@ const visibleBatches = filterCabang
                                     <div className="mt-3 space-y-2">
                                       {qMediaUrl && (
                                         <img src={qMediaUrl} alt="Gambar soal"
-                                          className="max-h-44 rounded-lg border border-slate-200 object-contain" />
+                                          className="max-h-44 border border-[#dadce0] object-contain" />
                                       )}
                                       {qAudioUrl && (
                                         <div className="flex items-center gap-2">
-                                          <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-bold shrink-0">
+                                          <span className="px-2 py-0.5 bg-[#fef7e0] text-[#b06000] text-[10px] font-bold shrink-0">
                                             AUDIO{q.audio_max_plays ? ` · ${q.audio_max_plays}x` : ''}
                                           </span>
                                           <audio src={qAudioUrl} controls className="h-8" />
@@ -4065,10 +4049,10 @@ const visibleBatches = filterCabang
                                 })()}
                                 <div className="mt-3 space-y-2">
                                   {q.question_type === 'rating' ? (
-                                    <div className="flex items-center gap-2.5 text-sm px-3.5 py-2 rounded-lg bg-violet-50 text-violet-700 font-semibold">
-                                      <span className="px-2 py-0.5 rounded-full bg-violet-500 text-white text-[10px] font-bold shrink-0">SKALA</span>
+                                    <div className="flex items-center gap-2.5 text-sm px-3.5 py-2 bg-[#f3e8fd] text-[#7627bb] font-semibold">
+                                      <span className="px-2 py-0.5 bg-[#8430ce] text-white text-[10px] font-bold shrink-0">SKALA</span>
                                       <span>Rating 1–{q.rating_max || q.options.length}</span>
-                                      <span className="ml-auto text-[10px] font-bold text-violet-400 shrink-0">TANPA KUNCI</span>
+                                      <span className="ml-auto text-[10px] font-bold text-[#8430ce] shrink-0">TANPA KUNCI</span>
                                     </div>
                                   ) : ((() => {
                                     const isMultiQ = q.question_type === 'multi'
@@ -4082,19 +4066,19 @@ const visibleBatches = filterCabang
                                       const optUrl = optRaw && !optRaw.startsWith('http') ? `${APP_URL}/storage/${optRaw}` : optRaw
                                       const isKey = keySet.has(oi)
                                       return (
-                                        <div key={oi} className={`flex items-center gap-2.5 text-sm px-3.5 py-2 rounded-lg ${isKey ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'bg-slate-50 text-slate-600'}`}>
-                                          <span className={`w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0 ${isMultiQ ? 'rounded-md' : 'rounded-full'} ${isKey ? 'bg-emerald-500 text-white' : 'bg-white border border-slate-200 text-slate-400'}`}>
+                                        <div key={oi} className={`flex items-center gap-2.5 text-sm px-3.5 py-2 ${isKey ? 'bg-[#e6f4ea] text-[#137333] font-semibold' : 'bg-[#f8f9fa] text-[#5f6368]'}`}>
+                                          <span className={`w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0 ${isMultiQ ? '' : ''} ${isKey ? 'bg-[#0E6187] text-white' : 'bg-white border border-[#dadce0] text-[#80868b]'}`}>
                                             {String.fromCharCode(65 + oi)}
                                           </span>
-                                          {optUrl && <img src={optUrl} className="h-6 w-6 rounded object-cover shrink-0" alt="" />}
+                                          {optUrl && <img src={optUrl} className="h-6 w-6 object-cover shrink-0" alt=""/>}
                                           {optLabel && <span>{optLabel}</span>}
-                                          {isKey && <span className="ml-auto text-[10px] font-bold text-emerald-500 shrink-0">BENAR</span>}
+                                          {isKey && <span className="ml-auto text-[10px] font-bold text-[#188038] shrink-0">BENAR</span>}
                                         </div>
                                       )
                                     })
                                   })())}
                                 </div>
-                                <p className="text-xs text-slate-400 font-medium mt-3">Skor: {q.points} poin</p>
+                                <p className="text-xs text-[#80868b] font-medium mt-3">Skor: {q.points} poin</p>
                               </div>
                             </div>
                           </div>
@@ -4105,11 +4089,11 @@ const visibleBatches = filterCabang
                 ))}
 
                 {qTotalPages > 1 && (
-                  <div className="flex items-center justify-between bg-white rounded-lg shadow-sm border border-slate-200 px-4 py-3">
+                  <div className="flex items-center justify-between bg-white border border-[#dadce0] px-4 py-3">
                     <button
                       onClick={() => setQPage(safeQPage - 1)}
                       disabled={safeQPage <= 1}
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-[#0E6187] disabled:opacity-40 disabled:hover:text-slate-600 transition-colors">
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-[#5f6368] hover:text-[#1a73e8] disabled:opacity-40 disabled:hover:text-[#5f6368] transition-colors">
                       <ChevronLeft size={14} /> Sebelumnya
                     </button>
                     <div className="flex items-center gap-1">
@@ -4123,9 +4107,9 @@ const visibleBatches = filterCabang
                         for (let p = start; p <= end; p++) pages.push(p)
                         if (end < total) pages.push('…', total)
                         return pages.map((p, idx) => p === '…'
-                          ? <span key={`e${idx}`} className="px-1 text-xs text-slate-400">…</span>
+                          ? <span key={`e${idx}`} className="px-1 text-xs text-[#80868b]">…</span>
                           : <button key={p} onClick={() => setQPage(p as number)}
-                              className={`w-8 h-8 rounded-lg text-xs font-bold transition-colors ${p === safeQPage ? 'bg-[#0E6187] text-white' : 'text-slate-500 hover:bg-slate-100'}`}>
+                              className={`w-8 h-8 text-xs font-bold transition-colors ${p === safeQPage ? 'bg-[#0E6187] text-white' : 'text-[#5f6368] hover:bg-[#f1f3f4]'}`}>
                               {p}
                             </button>)
                       })()}
@@ -4133,7 +4117,7 @@ const visibleBatches = filterCabang
                     <button
                       onClick={() => setQPage(safeQPage + 1)}
                       disabled={safeQPage >= qTotalPages}
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-[#0E6187] disabled:opacity-40 disabled:hover:text-slate-600 transition-colors">
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-[#5f6368] hover:text-[#1a73e8] disabled:opacity-40 disabled:hover:text-[#5f6368] transition-colors">
                       Berikutnya <ChevronRight size={14} />
                     </button>
                   </div>
@@ -4146,21 +4130,21 @@ const visibleBatches = filterCabang
         {/* ==================== QUIZ RESULTS VIEW ==================== */}
         {view === 'quiz-results' && activeQuizPaket && (
           <div className="space-y-4">
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-              <button onClick={backToQuiz} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#0E6187] transition-colors">
+            <div className="bg-white border border-[#dadce0] p-5">
+              <button onClick={backToQuiz} className="flex items-center gap-1.5 text-sm text-[#5f6368] hover:text-[#1a73e8] transition-colors">
                 <ArrowLeft size={15} /> Kembali
               </button>
               <div className="flex items-center gap-3 mt-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
+                <div className="flex h-10 w-10 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]">
                   <Award size={20} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-lg font-bold text-slate-800 truncate">Hasil · {activeQuizPaket.title}</h2>
-                  <p className="text-sm text-slate-500 mt-0.5">{participants.length} peserta mengerjakan{rGroupedMode && rGrouped.length > 1 ? ` · ${rGrouped.length} grup` : ''}{rHasFilter ? ` · filter: ${rFiltered.length}` : ''}</p>
+                  <h2 className="text-lg font-bold text-[#202124] truncate">Hasil · {activeQuizPaket.title}</h2>
+                  <p className="text-sm text-[#5f6368] mt-0.5">{participants.length} peserta mengerjakan{rGroupedMode && rGrouped.length > 1 ? ` · ${rGrouped.length} grup` : ''}{rHasFilter ? ` · filter: ${rFiltered.length}` : ''}</p>
                 </div>
                 {participants.length > 0 && !isAdminCabang && (
                   <button onClick={() => resetAttempts()}
-                    className="inline-flex items-center gap-1.5 text-[11px] font-bold text-red-500 hover:text-red-600 border border-red-200 rounded-lg px-3 py-2 hover:bg-red-50 transition-colors shrink-0">
+                    className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#d93025] hover:text-[#c5221f] border border-[#f28b82] px-3 py-2 hover:bg-[#fce8e6] transition-colors shrink-0">
                     <RotateCcw size={12} /> Reset Semua
                   </button>
                 )}
@@ -4168,7 +4152,7 @@ const visibleBatches = filterCabang
               {participants.length > 0 && (
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   <div className="relative flex-1 min-w-[180px]">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#80868b]" />
                     <input value={rFSearch} onChange={e => { setRFSearch(e.target.value); setRPage(1) }}
                       placeholder="Sik nama kandidat..."
                       className={`${inputCls} pl-9`} />
@@ -4187,7 +4171,7 @@ const visibleBatches = filterCabang
                   </select>
                   {rHasFilter && (
                     <button onClick={resetResultFilters}
-                      className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#0E6187] hover:text-[#0E6187]/80 border border-[#0E6187]/30 rounded-lg px-3 py-2 hover:bg-[#0E6187]/5 transition-colors shrink-0">
+                      className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#1a73e8] hover:text-[#1967d2] border border-[#1a73e8] px-3 py-2 hover:bgbg-[#f8f9fa] transition-colors shrink-0">
                       <X size={12} /> Batal Filter
                     </button>
                   )}
@@ -4195,7 +4179,7 @@ const visibleBatches = filterCabang
               )}
               {participants.length > 0 && (
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <label className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Grup berdasarkan</label>
+                  <label className="text-[11px] font-bold text-[#5f6368]">Grup berdasarkan</label>
                   <select value={rGroupBy}
                     onChange={e => { setRGroupBy(e.target.value as typeof rGroupBy); setRPage(1); setRCollapsed({}) }}
                     className={`${inputCls} sm:w-64`}>
@@ -4208,11 +4192,11 @@ const visibleBatches = filterCabang
                   {rGroupedMode && rGrouped.length > 1 && (
                     <div className="flex items-center gap-2">
                       <button onClick={() => setRCollapsed(() => Object.fromEntries(rGrouped.map(g => [g.name, false])))}
-                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-[11px] font-bold text-slate-500 hover:bg-slate-50 transition-colors">
+                        className="inline-flex items-center gap-1 border border-[#dadce0] px-3 py-2 text-[11px] font-bold text-[#5f6368] hover:bg-[#f8f9fa] transition-colors">
                         <ChevronDown size={12} /> Buka Semua
                       </button>
                       <button onClick={() => setRCollapsed(() => Object.fromEntries(rGrouped.map(g => [g.name, true])))}
-                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-[11px] font-bold text-slate-500 hover:bg-slate-50 transition-colors">
+                        className="inline-flex items-center gap-1 border border-[#dadce0] px-3 py-2 text-[11px] font-bold text-[#5f6368] hover:bg-[#f8f9fa] transition-colors">
                         <ChevronUp size={12} /> Tutup Semua
                       </button>
                     </div>
@@ -4223,63 +4207,63 @@ const visibleBatches = filterCabang
 
             {!rLoading && participants.length > 0 && rFiltered.length > 0 && (
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <div className="bg-white rounded-lg border border-slate-200 px-4 py-3 flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0E6187]/10 text-[#0E6187] shrink-0">
+                <div className="bg-white border border-[#dadce0] px-4 py-3 flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center bgbg-[#f1f3f4] text-[#1a73e8] shrink-0">
                     <Users size={16} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-lg font-black text-slate-800 leading-none">{rFiltered.length}</p>
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mt-1">Peserta</p>
+                    <p className="text-lg font-black text-[#202124] leading-none">{rFiltered.length}</p>
+                    <p className="text-[10px] font-bold text-[#80868b] mt-1">Peserta</p>
                   </div>
                 </div>
-                <div className="bg-white rounded-lg border border-slate-200 px-4 py-3 flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 shrink-0">
+                <div className="bg-white border border-[#dadce0] px-4 py-3 flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368] shrink-0">
                     <Award size={16} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-lg font-black text-slate-800 leading-none">{rFiltered.length > 0 ? Math.round(rFiltered.reduce((a, b) => a + (Number(b.best_score) || 0), 0) / rFiltered.length) : 0}</p>
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mt-1">Rata-rata</p>
+                    <p className="text-lg font-black text-[#202124] leading-none">{rFiltered.length > 0 ? Math.round(rFiltered.reduce((a, b) => a + (Number(b.best_score) || 0), 0) / rFiltered.length) : 0}</p>
+                    <p className="text-[10px] font-bold text-[#80868b] mt-1">Rata-rata</p>
                   </div>
                 </div>
-                <div className="bg-white rounded-lg border border-slate-200 px-4 py-3 flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 shrink-0">
+                <div className="bg-white border border-[#dadce0] px-4 py-3 flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center #e37400-\[#e37400\] text-[#b06000] shrink-0">
                     <Building2 size={16} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-lg font-black text-slate-800 leading-none">{rGroupedMode ? rGrouped.length : new Set(rFiltered.map(rCabangOf)).size}</p>
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mt-1">{rGroupedMode ? 'Grup' : 'Cabang'}</p>
+                    <p className="text-lg font-black text-[#202124] leading-none">{rGroupedMode ? rGrouped.length : new Set(rFiltered.map(rCabangOf)).size}</p>
+                    <p className="text-[10px] font-bold text-[#80868b] mt-1">{rGroupedMode ? 'Grup' : 'Cabang'}</p>
                   </div>
                 </div>
-                <div className="bg-white rounded-lg border border-slate-200 px-4 py-3 flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/10 text-violet-600 shrink-0">
+                <div className="bg-white border border-[#dadce0] px-4 py-3 flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center #8430ce-\[#8430ce\] text-[#7627bb] shrink-0">
                     <Layers size={16} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-lg font-black text-slate-800 leading-none">{rFiltered.reduce((a, b) => a + ((Number(b.best_score) || 0) >= 60 ? 1 : 0), 0)}</p>
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mt-1">Lulus (≥60)</p>
+                    <p className="text-lg font-black text-[#202124] leading-none">{rFiltered.reduce((a, b) => a + ((Number(b.best_score) || 0) >= 60 ? 1 : 0), 0)}</p>
+                    <p className="text-[10px] font-bold text-[#80868b] mt-1">Lulus (≥60)</p>
                   </div>
                 </div>
               </div>
             )}
 
             {!rLoading && rFiltered.length > 0 && rSectionStats.length > 0 && (
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+              <div className="bg-white border border-[#dadce0] p-5">
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                   <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0E6187]/10 text-[#0E6187] shrink-0">
+                    <div className="flex h-8 w-8 items-center justify-center bgbg-[#f1f3f4] text-[#1a73e8] shrink-0">
                       <BarChart3 size={15} />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-slate-800">Persentase Benar per Bagian</h3>
-                      <p className="text-[11px] text-slate-500">
+                      <h3 className="text-sm font-bold text-[#202124]">Persentase Benar per Bagian</h3>
+                      <p className="text-[11px] text-[#5f6368]">
                         Rata-rata dari {rFiltered.length} kandidat{rHasFilter ? ' (sesuai filter)' : ''} · dari percobaan terbaik masing-masing
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 text-[10px] font-semibold text-slate-500">
-                    {[['≥80 Bagus', '#16a34a'], ['50-79 Cukup', '#f59e0b'], ['<50 Lemah', '#dc2626']].map(([label, color]) => (
+                  <div className="flex items-center gap-3 text-[10px] font-semibold text-[#5f6368]">
+                    {[['≥80 Bagus', '#188038'], ['50-79 Cukup', '#e37400'], ['<50 Lemah', '#d93025']].map(([label, color]) => (
                       <span key={label} className="inline-flex items-center gap-1">
-                        <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: color }} /> {label}
+                        <span className="w-2.5 h-2.5" style={{ backgroundColor: color }} /> {label}
                       </span>
                     ))}
                   </div>
@@ -4287,10 +4271,10 @@ const visibleBatches = filterCabang
                 <div className="mt-4 space-y-3">
                   {rSectionStats.map(s => (
                     <div key={s.id} className="flex items-center gap-3">
-                      <span className="w-28 sm:w-40 text-[11px] font-semibold text-slate-600 truncate shrink-0" title={s.name}>{s.name}</span>
-                      <div className="flex-1 h-5 bg-slate-100 rounded-md overflow-hidden relative">
+                      <span className="w-28 sm:w-40 text-[11px] font-semibold text-[#5f6368] truncate shrink-0" title={s.name}>{s.name}</span>
+                      <div className="flex-1 h-5 bg-[#f1f3f4] overflow-hidden relative">
                         <div
-                          className="h-full rounded-md transition-all duration-500 flex items-center justify-end pr-1.5"
+                          className="h-full transition-all duration-500 flex items-center justify-end pr-1.5"
                           style={{ width: `${Math.max(s.percent, s.percent > 0 ? 6 : 0)}%`, backgroundColor: pctColor(s.percent) }}
                         >
                           {s.percent >= 12 && <span className="text-[9px] font-black text-white">{s.percent}%</span>}
@@ -4306,37 +4290,37 @@ const visibleBatches = filterCabang
             )}
 
             {rLoading ? (
-              <div className="flex flex-col items-center justify-center py-16 text-slate-400 text-sm gap-2">
-                <Loader2 size={24} className="animate-spin text-[#0E6187]" /> Memuat hasil...
+              <div className="flex flex-col items-center justify-center py-16 text-[#80868b] text-sm gap-2">
+                <Loader2 size={24} className="animate-spin text-[#1a73e8]" /> Memuat hasil...
               </div>
             ) : participants.length === 0 ? (
-              <div className="bg-white rounded-lg shadow-sm border border-dashed border-slate-300 p-14 text-center">
-                <Users size={28} className="text-slate-300 mx-auto mb-2" />
-                <p className="text-slate-700 font-semibold">Belum ada peserta</p>
-                <p className="text-slate-500 text-sm mt-1">Hasil akan muncul setelah kandidat mengerjakan quiz</p>
+              <div className="bg-white border border-dashed border-[#dadce0] p-14 text-center">
+                <Users size={28} className="text-[#9aa0a6] mx-auto mb-2" />
+                <p className="text-[#3c4043] font-semibold">Belum ada peserta</p>
+                <p className="text-[#5f6368] text-sm mt-1">Hasil akan muncul setelah kandidat mengerjakan quiz</p>
               </div>
             ) : rFiltered.length === 0 ? (
-              <div className="bg-white rounded-lg shadow-sm border border-dashed border-slate-300 p-14 text-center">
-                <Search size={28} className="text-slate-300 mx-auto mb-2" />
-                <p className="text-slate-700 font-semibold">Belum ada hasil dengan filter ini</p>
-                <p className="text-slate-500 text-sm mt-1">Perubah filter atau klik "Batal Filter" untuk melihat semua peserta</p>
+              <div className="bg-white border border-dashed border-[#dadce0] p-14 text-center">
+                <Search size={28} className="text-[#9aa0a6] mx-auto mb-2" />
+                <p className="text-[#3c4043] font-semibold">Belum ada hasil dengan filter ini</p>
+                <p className="text-[#5f6368] text-sm mt-1">Perubah filter atau klik "Batal Filter" untuk melihat semua peserta</p>
               </div>
             ) : (
               <>
-                <div className="bg-white border-2 border-slate-200 overflow-hidden">
+                <div className="bg-white border-2 border-[#dadce0] overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm border-collapse">
                       <thead>
                         <tr className="bg-[#0E6187] text-white">
-                          <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide w-10 border border-[#0E6187]">#</th>
-                          <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Nama Kandidat</th>
-                          <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Cabang</th>
-                          <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Batch</th>
-                          <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Level</th>
-                          <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Riwayat Percobaan</th>
-                          <th className="text-right px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Nilai Terbaik</th>
-                          <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Persentase per Bagian</th>
-                          <th className="text-right px-4 py-3 text-[11px] font-bold uppercase tracking-wide border border-[#0E6187]">Aksi</th>
+                          <th className="text-xs font-medium text-[#5f6368] px-4 py-3 w-10 text-left">#</th>
+                          <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-left">Nama Kandidat</th>
+                          <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-left">Cabang</th>
+                          <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-left">Batch</th>
+                          <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-left">Level</th>
+                          <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-left">Riwayat Percobaan</th>
+                          <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-right">Nilai Terbaik</th>
+                          <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-left">Persentase per Bagian</th>
+                          <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-right">Aksi</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -4345,29 +4329,29 @@ const visibleBatches = filterCabang
                             const isCollapsed = !!rCollapsed[group.name]
                             return (
                             <Fragment key={group.name}>
-                              <tr className="bg-gradient-to-r from-[#0E6187]/8 to-[#0E6187]/3">
-                                <td colSpan={9} className="p-0 border border-slate-200">
+                              <tr className="bg-[#e8f0fe]">
+                                <td colSpan={9} className="px-6 py-12 text-center">
                                   <button onClick={() => setRCollapsed(c => ({ ...c, [group.name]: !c[group.name] }))}
-                                    className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-[#0E6187]/10 transition-colors">
+                                    className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bgbg-[#f1f3f4] transition-colors">
                                     <span className="flex items-center gap-2.5 min-w-0">
-                                      <span className={`flex h-8 w-8 items-center justify-center rounded-lg bg-[#0E6187] text-white shrink-0 transition-transform ${isCollapsed ? '' : 'rotate-0'}`}>
+                                      <span className={`flex h-8 w-8 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368] shrink-0 transition-transform ${isCollapsed ? '' : 'rotate-0'}`}>
                                         <Building2 size={15} />
                                       </span>
                                       <span className="min-w-0">
-                                        <span className="text-sm font-bold text-slate-800 block truncate">{group.name}</span>
-                                        <span className="text-[11px] text-slate-500">{group.total} peserta</span>
+                                        <span className="text-sm font-bold text-[#202124] block truncate">{group.name}</span>
+                                        <span className="text-[11px] text-[#5f6368]">{group.total} peserta</span>
                                       </span>
                                     </span>
                                     <span className="flex items-center gap-4 shrink-0">
                                       <span className="hidden sm:flex items-center gap-3 text-[11px]">
-                                        <span className="text-slate-500">Rata-rata: <b className="text-slate-700">{group.avg}</b></span>
-                                        <span className="text-slate-300">|</span>
-                                        <span className="text-slate-500">Terbaik: <b className="text-[#0E6187]">{group.best}</b></span>
+                                        <span className="text-[#5f6368]">Rata-rata: <b className="text-[#3c4043]">{group.avg}</b></span>
+                                        <span className="text-[#9aa0a6]">|</span>
+                                        <span className="text-[#5f6368]">Terbaik: <b className="text-[#1a73e8]">{group.best}</b></span>
                                       </span>
-                                      <span className="sm:hidden text-[11px] text-slate-500">
-                                        <b className="text-[#0E6187]">{group.best}</b> poin
+                                      <span className="sm:hidden text-[11px] text-[#5f6368]">
+                                        <b className="text-[#1a73e8]">{group.best}</b> poin
                                       </span>
-                                      <ChevronDown size={16} className={`text-slate-400 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`} />
+                                      <ChevronDown size={16} className={`text-[#80868b] transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`} />
                                     </span>
                                   </button>
                                 </td>
@@ -4392,45 +4376,45 @@ const visibleBatches = filterCabang
 
       {/* ==================== COURSE CATEGORY MODAL ==================== */}
       {showCourseCatModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[10vh] pb-8 px-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-              <h3 className="font-semibold text-slate-800">{editingCourseCat ? 'Edit Kategori' : 'Tambah Kategori'}</h3>
-              <button onClick={() => setShowCourseCatModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
-                <X size={20} className="text-slate-400" />
+        <div className="fixed inset-0 #202124-\[#202124\] z-50 flex items-start justify-center pt-[10vh] pb-8 px-4 overflow-y-auto">
+          <div className="border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-md overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#dadce0] flex items-center justify-between">
+              <h3 className="font-semibold text-[#202124]">{editingCourseCat ? 'Edit Kategori' : 'Tambah Kategori'}</h3>
+              <button onClick={() => setShowCourseCatModal(false)} className="p-1.5 hover:bg-[#f1f3f4] transition-colors">
+                <X size={20} className="text-[#80868b]" />
               </button>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className={labelCls}>Nama Kategori <span className="text-red-500">*</span></label>
+                <label className={labelCls}>Nama Kategori <span className="text-[#d93025]">*</span></label>
                 <input type="text" value={courseCatForm.name} onChange={e => setCourseCatForm({ ...courseCatForm, name: e.target.value })}
                   className={inputCls} placeholder="Contoh: Bimbingan, Psikotes, Bahasa Jepang..." />
               </div>
               <div className="flex justify-end gap-2 pt-1">
-                <button onClick={() => setShowCourseCatModal(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+                <button onClick={() => setShowCourseCatModal(false)} className="border border-[#dadce0] px-4 py-2 text-sm font-semibold text-[#5f6368] hover:bg-[#f8f9fa] transition-colors">
                   Batal
                 </button>
-                <button onClick={saveCourseCat} disabled={savingCourseCat} className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[#0E6187] hover:bg-[#0E6187]/90 disabled:opacity-60 transition-colors">
+                <button onClick={saveCourseCat} disabled={savingCourseCat} className="px-4 py-2 text-sm font-semibold text-white bg-[#0E6187] hover:bgbg-[#e8f0fe] disabled:opacity-60 transition-colors">
                   {savingCourseCat ? 'Menyimpan...' : 'Simpan'}
                 </button>
               </div>
-              <div className="border-t border-slate-100 pt-4">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-2">Daftar Kategori</p>
+              <div className="border-t border-[#e8eaed] pt-4">
+                <p className="text-[11px] font-semibold text-[#80868b] mb-2">Daftar Kategori</p>
                 <div className="space-y-1.5 max-h-64 overflow-y-auto">
                   {categories.length === 0 && (
-                    <p className="text-sm text-slate-400 text-center py-4">Belum ada kategori. Buat via form di atas.</p>
+                    <p className="text-sm text-[#80868b] text-center py-4">Belum ada kategori. Buat via form di atas.</p>
                   )}
                   {categories.map(cat => (
-                    <div key={cat.id} className="flex items-center gap-2 rounded-lg border border-slate-100 px-3 py-2">
+                    <div key={cat.id} className="flex items-center gap-2 border border-[#e8eaed] px-3 py-2">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-slate-700 truncate">{cat.name}</p>
-                        <p className="text-[10px] text-slate-400">{cat.courses_count} kursus</p>
+                        <p className="text-sm font-semibold text-[#3c4043] truncate">{cat.name}</p>
+                        <p className="text-[10px] text-[#80868b]">{cat.courses_count} kursus</p>
                       </div>
-                      <button onClick={() => openEditCourseCat(cat)} className="p-1.5 rounded-md bg-slate-100 hover:bg-slate-200 transition-colors" title="Edit">
-                        <Pencil size={13} className="text-slate-600" />
+                      <button onClick={() => openEditCourseCat(cat)} className="p-1.5 bg-[#f1f3f4] hover:bg-[#e8eaed] transition-colors" title="Edit">
+                        <Pencil size={13} className="text-[#5f6368]" />
                       </button>
-                      <button onClick={() => deleteCourseCat(cat)} className="p-1.5 rounded-md bg-red-50 hover:bg-red-100 transition-colors" title="Hapus">
-                        <Trash2 size={13} className="text-red-500" />
+                      <button onClick={() => deleteCourseCat(cat)} className="p-1.5 bg-[#fce8e6] hover:bg-[#f6d7d5] transition-colors" title="Hapus">
+                        <Trash2 size={13} className="text-[#d93025]" />
                       </button>
                     </div>
                   ))}
@@ -4443,17 +4427,17 @@ const visibleBatches = filterCabang
 
       {/* ==================== COURSE MODAL ==================== */}
       {showCourseModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[8vh] pb-8 px-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-              <h3 className="font-semibold text-slate-800">{editingCourse ? 'Edit Kursus' : 'Tambah Kursus'}</h3>
-              <button onClick={() => setShowCourseModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
-                <X size={20} className="text-slate-400" />
+        <div className="fixed inset-0 #202124-\[#202124\] z-50 flex items-start justify-center pt-[8vh] pb-8 px-4 overflow-y-auto">
+          <div className="border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#dadce0] flex items-center justify-between">
+              <h3 className="font-semibold text-[#202124]">{editingCourse ? 'Edit Kursus' : 'Tambah Kursus'}</h3>
+              <button onClick={() => setShowCourseModal(false)} className="p-1.5 hover:bg-[#f1f3f4] transition-colors">
+                <X size={20} className="text-[#80868b]" />
               </button>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className={labelCls}>Judul Kursus <span className="text-red-500">*</span></label>
+                <label className={labelCls}>Judul Kursus <span className="text-[#d93025]">*</span></label>
                 <input type="text" value={courseForm.title} onChange={e => setCourseForm({ ...courseForm, title: e.target.value })}
                   className={inputCls} placeholder="Masukkan judul kursus" />
               </div>
@@ -4461,16 +4445,16 @@ const visibleBatches = filterCabang
                 <label className={labelCls}>Deskripsi</label>
                 <div className="relative">
                   {uploadingImg && (
-                    <div className="absolute inset-0 z-10 bg-white/70 flex items-center justify-center rounded-lg">
-                      <div className="flex items-center gap-2 text-sm text-slate-500">
-                        <div className="w-4 h-4 border-2 border-slate-300 border-t-[#0E6187] rounded-full animate-spin" /> Mengupload...
+                    <div className="absolute inset-0 z-10 bg-white/70 flex items-center justify-center">
+                      <div className="flex items-center gap-2 text-sm text-[#5f6368]">
+                        <div className="w-4 h-4 rounded-full border-2 border-[#dadce0] border-t-[#1a73e8] animate-spin" /> Mengupload...
                       </div>
                     </div>
                   )}
                   <ReactQuill ref={quillRef} value={courseForm.description}
                     onChange={value => setCourseForm({ ...courseForm, description: value })}
                     modules={quillModules} formats={quillFormats} theme="snow" placeholder="Deskripsi kursus"
-                    className="[&_.ql-editor]:min-h-[200px] [&_.ql-editor]:text-sm [&_.ql-container]:rounded-b-lg [&_.ql-toolbar]:rounded-t-lg [&_.ql-toolbar]:border-slate-200 [&_.ql-container]:border-slate-200" />
+                    className="[&_.ql-editor]:min-h-[200px] [&_.ql-editor]:text-sm [&_.ql-toolbar]:border-[#dadce0] [&_.ql-container]:border-[#dadce0]" />
                 </div>
               </div>
               <div>
@@ -4486,7 +4470,7 @@ const visibleBatches = filterCabang
                   <label className={labelCls}>Level</label>
                   <select value={courseForm.level} onChange={e => setCourseForm({ ...courseForm, level: e.target.value })}
                     disabled={levelOptions.length === 0}
-                    className={`${inputCls} disabled:bg-slate-50 disabled:text-slate-400`}>
+                    className={`${inputCls} disabled:bg-[#f8f9fa] disabled:text-[#80868b]`}>
                     <option value="">{levelOptions.length === 0 ? 'Belum ada jadwal level' : courseForm.batch_id ? 'Pilih Level' : 'Semua Batch - Pilih Level'}</option>
                     {levelOptions.map(l => <option key={l} value={l}>Level {l}</option>)}
                   </select>
@@ -4495,27 +4479,27 @@ const visibleBatches = filterCabang
                   <label className={labelCls}>Batch</label>
                   <div className="relative">
                     <button type="button" onClick={() => setShowBatchDropdown(!showBatchDropdown)}
-                      className="flex w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-left focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                      className="flex w-full items-center gap-2 border border-[#dadce0] bg-white px-3 py-2.5 text-sm text-left focus:outline-none focus:border-[#1a73e8] focus:border-[#1a73e8]">
                       {courseForm.batch_id ? (
                         <span className="flex items-center gap-2 truncate">
-                          <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: batches.find(b => String(b.id) === courseForm.batch_id)?.warna || '#3b82f6' }} />
-                          <span className="truncate text-slate-700">{batches.find(b => String(b.id) === courseForm.batch_id)?.nama_batch || 'Semua Batch'}</span>
+                          <span className="inline-block h-3 w-3 shrink-0 ring-1 ring-black/10" style={{ backgroundColor: batches.find(b => String(b.id) === courseForm.batch_id)?.warna || '#0E6187' }} />
+                          <span className="truncate text-[#3c4043]">{batches.find(b => String(b.id) === courseForm.batch_id)?.nama_batch || 'Semua Batch'}</span>
                         </span>
-                      ) : <span className="text-slate-400">Pilih Batch...</span>}
-                      <svg className={`ml-auto h-4 w-4 shrink-0 text-slate-400 transition-transform ${showBatchDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                      ) : <span className="text-[#80868b]">Pilih Batch...</span>}
+                      <svg className={`ml-auto h-4 w-4 shrink-0 text-[#80868b] transition-transform ${showBatchDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                     </button>
                     {showBatchDropdown && (
-                      <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[200px] rounded-xl border border-slate-200 bg-white py-1 shadow-xl max-h-60 overflow-y-auto">
+                      <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[200px] border border-[#dadce0] bg-white py-1 shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] max-h-60 overflow-y-auto">
                         <button type="button" onClick={() => { setCourseForm(prev => ({ ...prev, batch_id: '', level: '' })); setShowBatchDropdown(false) }}
-                          className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${!courseForm.batch_id ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}>
-                          <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: '#94a3b8' }} />
+                          className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${!courseForm.batch_id ? 'bg-[#e8f0fe] text-[#1967d2] font-medium' : 'text-[#3c4043] hover:bg-[#f8f9fa]'}`}>
+                          <span className="inline-block h-3 w-3 shrink-0 ring-1 ring-black/10" style={{ backgroundColor: '#80868b' }} />
                           <span className="truncate">Semua Batch</span>
                         </button>
                         {batches.map(b => (
                           <button key={b.id} type="button"
                             onClick={() => { setCourseForm(prev => { const levels = batchLevels[b.id] || []; const keepLevel = prev.level && levels.includes(prev.level) ? prev.level : ''; return { ...prev, batch_id: String(b.id), level: String(b.id) === prev.batch_id ? prev.level : keepLevel } }); setShowBatchDropdown(false) }}
-                            className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${String(b.id) === courseForm.batch_id ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}>
-                            <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: b.warna || '#3b82f6' }} />
+                            className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${String(b.id) === courseForm.batch_id ? 'bg-[#e8f0fe] text-[#1967d2] font-medium' : 'text-[#3c4043] hover:bg-[#f8f9fa]'}`}>
+                            <span className="inline-block h-3 w-3 shrink-0 ring-1 ring-black/10" style={{ backgroundColor: b.warna || '#0E6187' }} />
                             <span className="truncate">{b.nama_batch}</span>
                           </button>
                         ))}
@@ -4540,7 +4524,7 @@ const visibleBatches = filterCabang
               <div>
                 <label className={labelCls}>Gambar</label>
                 <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors">
+                  <label className="flex items-center gap-2 px-4 py-2.5 border border-[#dadce0] text-sm text-[#5f6368] hover:bg-[#f8f9fa] cursor-pointer transition-colors">
                     <ImageIcon size={16} /> Pilih Gambar
                     <input type="file" accept="image/*" className="hidden" onChange={e => {
                       const file = e.target.files?.[0]
@@ -4548,9 +4532,9 @@ const visibleBatches = filterCabang
                     }} />
                   </label>
                   {imagePreview && (
-                    <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-slate-200">
+                    <div className="relative w-14 h-14 overflow-hidden border border-[#dadce0]">
                       <img src={imagePreview} alt="" className="w-full h-full object-cover" />
-                      <button onClick={() => { setImageFile(null); setImagePreview(null) }} className="absolute top-0.5 right-0.5 bg-black/50 rounded-full p-0.5">
+                      <button onClick={() => { setImageFile(null); setImagePreview(null) }} className="absolute top-0.5 right-0.5 #202124-\[#202124\] p-0.5">
                         <X size={10} className="text-white" />
                       </button>
                     </div>
@@ -4571,13 +4555,13 @@ const visibleBatches = filterCabang
                   <button
                     type="button"
                     onClick={() => setShowPasswordCourse(!showPasswordCourse)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#80868b] hover:text-[#5f6368] transition-colors"
                     title={showPasswordCourse ? 'Sembunyikan' : 'Tampilkan'}
                   >
                     {showPasswordCourse ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
-                <p className="mt-1.5 text-[11px] text-slate-400">Kosongkan jika kursus terbuka tanpa password. Siswa akan diminta memasukkan password ini saat membuka kursus.</p>
+                <p className="mt-1.5 text-[11px] text-[#80868b]">Kosongkan jika kursus terbuka tanpa password. Siswa akan diminta memasukkan password ini saat membuka kursus.</p>
               </div>
               <div>
                 <label className={labelCls}>Alert Kursus (opsional)</label>
@@ -4586,20 +4570,20 @@ const visibleBatches = filterCabang
                   className={`${inputCls} resize-none`} />
                 <div className="mt-2 flex items-center gap-2">
                   <button type="button" onClick={() => setCourseForm({ ...courseForm, alert_active: true })}
-                    className={`flex-1 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${courseForm.alert_active ? 'border-[#0E6187] bg-[#0E6187] text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'}`}>
+                    className={`flex-1 border px-3 py-2 text-sm font-semibold transition-colors ${courseForm.alert_active ? 'border-[#1a73e8] bg-[#0E6187] text-white' : 'border-[#dadce0] bg-white text-[#5f6368] hover:border-[#dadce0]'}`}>
                     Aktif
                   </button>
                   <button type="button" onClick={() => setCourseForm({ ...courseForm, alert_active: false })}
-                    className={`flex-1 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${!courseForm.alert_active ? 'border-[#0E6187] bg-[#0E6187] text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'}`}>
+                    className={`flex-1 border px-3 py-2 text-sm font-semibold transition-colors ${!courseForm.alert_active ? 'border-[#1a73e8] bg-[#0E6187] text-white' : 'border-[#dadce0] bg-white text-[#5f6368] hover:border-[#dadce0]'}`}>
                     Nonaktif
                   </button>
                 </div>
-                <p className="mt-1.5 text-[11px] text-slate-400">Alert yang aktif akan tampil di dashboard siswa kursus terkait.</p>
+                <p className="mt-1.5 text-[11px] text-[#80868b]">Alert yang aktif akan tampil di dashboard siswa kursus terkait.</p>
               </div>
             </div>
-            <div className="px-5 py-4 border-t border-slate-200 flex justify-end gap-3">
-              <button onClick={() => setShowCourseModal(false)} className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Batal</button>
-              <button onClick={saveCourse} disabled={savingCourse} className="px-4 py-2.5 bg-[#0E6187] text-white rounded-lg text-sm font-semibold hover:bg-[#0E6187]/90 disabled:opacity-50 transition-colors">
+            <div className="px-5 py-4 border-t border-[#dadce0] flex justify-end gap-3">
+              <button onClick={() => setShowCourseModal(false)} className="px-4 py-2.5 text-sm font-medium text-[#5f6368] hover:bg-[#f1f3f4] transition-colors">Batal</button>
+              <button onClick={saveCourse} disabled={savingCourse} className="px-4 py-2.5 bg-[#0E6187] text-white text-sm font-semibold hover:bgbg-[#e8f0fe] disabled:opacity-50 transition-colors">
                 {savingCourse ? 'Menyimpan...' : editingCourse ? 'Simpan' : 'Buat Kursus'}
               </button>
             </div>
@@ -4609,11 +4593,11 @@ const visibleBatches = filterCabang
 
       {/* ==================== QUIZ PAKET MODAL ==================== */}
       {showPaketModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-start justify-center pt-[6vh] pb-6 px-4 overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[88vh]">
+        <div className="fixed inset-0 #202124-\[#202124\] z-50 flex items-start justify-center pt-[6vh] pb-6 px-4 overflow-y-auto">
+          <div className="border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-3xl overflow-hidden flex flex-col max-h-[88vh]">
             <div className="bg-[#0E6187] px-5 py-4 flex items-center justify-between gap-3 shrink-0">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-md bg-white/15 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 bg-white/15 flex items-center justify-center shrink-0">
                   <FileCheck2 size={20} className="text-white" />
                 </div>
                 <div className="min-w-0">
@@ -4624,42 +4608,42 @@ const visibleBatches = filterCabang
                 </div>
               </div>
               <button onClick={() => setShowPaketModal(false)}
-                className="p-1.5 rounded-md text-white/70 hover:text-white hover:bg-white/15 transition-colors shrink-0">
+                className="p-1.5 text-white/70 hover:text-white hover:bg-white/15 transition-colors shrink-0">
                 <X size={20} />
               </button>
             </div>
             <div className="p-5 space-y-4 overflow-y-auto flex-1">
               {/* STEP 1 */}
-              <div className="rounded-md border border-slate-200 p-4">
+              <div className="border border-[#dadce0] p-4">
                 <div className="flex items-start gap-3 mb-3">
-                  <span className="w-6 h-6 shrink-0 rounded-md bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">1</span>
+                  <span className="w-6 h-6 shrink-0 bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">1</span>
                   <div>
-                    <h4 className="text-sm font-semibold text-slate-800 leading-tight">Informasi Paket</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">Judul, keterangan, dan gambar sampul paket soal</p>
+                    <h4 className="text-sm font-semibold text-[#202124] leading-tight">Informasi Paket</h4>
+                    <p className="text-xs text-[#5f6368] mt-0.5">Judul, keterangan, dan gambar sampul paket soal</p>
                   </div>
                 </div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Judul Paket <span className="text-red-500">*</span></label>
+                <label className="block text-xs font-semibold text-[#5f6368] mb-1.5">Judul Paket <span className="text-[#d93025]">*</span></label>
                 <input type="text" value={paketForm.title} onChange={e => setPaketForm({ ...paketForm, title: e.target.value })}
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-white"
+                  className="w-full px-3.5 py-2.5 border border-[#dadce0] text-sm focus:outline-none  focus:border-[#1a73e8] bg-white"
                   placeholder="Contoh: Quiz Evaluasi Mingguan" />
-                <label className="block text-xs font-semibold text-slate-600 mt-3 mb-1.5">Deskripsi <span className="text-slate-400 font-normal">(opsional)</span></label>
+                <label className="block text-xs font-semibold text-[#5f6368] mt-3 mb-1.5">Deskripsi <span className="text-[#80868b] font-normal">(opsional)</span></label>
                 <textarea value={paketForm.description} onChange={e => setPaketForm({ ...paketForm, description: e.target.value })}
                   rows={2} placeholder="Petunjuk atau materi singkat..."
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-md text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-white" />
-                <label className="block text-xs font-semibold text-slate-600 mt-3 mb-1.5">Cover Paket <span className="text-slate-400 font-normal">(opsional)</span></label>
+                  className="w-full px-3.5 py-2.5 border border-[#dadce0] text-sm resize-none focus:outline-none  focus:border-[#1a73e8] bg-white" />
+                <label className="block text-xs font-semibold text-[#5f6368] mt-3 mb-1.5">Cover Paket <span className="text-[#80868b] font-normal">(opsional)</span></label>
                 <div className="flex items-center gap-3">
-                  <div className="w-28 h-20 rounded-md overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center shrink-0">
-                    {coverPreview ? <img src={coverPreview} alt="Cover" className="w-full h-full object-cover" /> : <BookOpen size={20} className="text-slate-300" />}
+                  <div className="w-28 h-20 overflow-hidden border border-[#dadce0] bg-[#f8f9fa] flex items-center justify-center shrink-0">
+                    {coverPreview ? <img src={coverPreview} alt="Cover" className="w-full h-full object-cover" /> : <BookOpen size={20} className="text-[#9aa0a6]" />}
                   </div>
                   <div className="space-y-2">
                     <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverSelect} />
                     <button type="button" onClick={() => coverInputRef.current?.click()} disabled={uploadingCover}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0E6187] hover:bg-[#0E6187]/10 border border-[#0E6187]/30 bg-[#0E6187]/5 px-2.5 py-1.5 rounded-md transition-colors disabled:opacity-50">
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1a73e8] hover:bgbg-[#f1f3f4] border border-[#1a73e8] bgbg-[#f8f9fa] px-2.5 py-1.5 transition-colors disabled:opacity-50">
                       {uploadingCover ? <><Loader2 size={14} className="animate-spin" /> Mengunggah...</> : <><ImageIcon size={14} /> {coverPreview ? 'Ganti Cover' : 'Pilih Gambar'}</>}
                     </button>
                     {coverPreview && (
                       <button type="button" onClick={() => { setPaketForm({ ...paketForm, cover_image: '' }); setCoverPreview('') }}
-                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-500 hover:bg-red-50 px-2 py-1.5 rounded-md transition-colors">
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#d93025] hover:bg-[#fce8e6] px-2 py-1.5 transition-colors">
                         <Trash2 size={11} /> Hapus cover
                       </button>
                     )}
@@ -4667,33 +4651,33 @@ const visibleBatches = filterCabang
                 </div>
               </div>
               {/* STEP 2 */}
-              <div className="rounded-md border border-slate-200 p-4">
+              <div className="border border-[#dadce0] p-4">
                 <div className="flex items-start gap-3 mb-3">
-                  <span className="w-6 h-6 shrink-0 rounded-md bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">2</span>
+                  <span className="w-6 h-6 shrink-0 bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">2</span>
                   <div>
-                    <h4 className="text-sm font-semibold text-slate-800 leading-tight">Klasifikasi Paket</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">Tentukan level kandidat dan kategori paket soal</p>
+                    <h4 className="text-sm font-semibold text-[#202124] leading-tight">Klasifikasi Paket</h4>
+                    <p className="text-xs text-[#5f6368] mt-0.5">Tentukan level kandidat dan kategori paket soal</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Level</label>
+                    <label className="block text-xs font-semibold text-[#5f6368] mb-1.5">Level</label>
                     <select value={paketForm.level} onChange={e => setPaketForm({ ...paketForm, level: e.target.value })}
-                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-white">
+                      className="w-full px-3.5 py-2.5 border border-[#dadce0] text-sm focus:outline-none  focus:border-[#1a73e8] bg-white">
                       <option value="">Semua level</option>
                       {[1,2,3,4].map(lv => <option key={lv} value={lv}>Level {lv}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Kategori Paket</label>
+                    <label className="block text-xs font-semibold text-[#5f6368] mb-1.5">Kategori Paket</label>
                     <div className="flex items-center gap-2">
                       <select value={paketForm.category} onChange={e => setPaketForm({ ...paketForm, category: e.target.value })}
-                        className="flex-1 min-w-0 px-3.5 py-2.5 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-white">
+                        className="flex-1 min-w-0 px-3.5 py-2.5 border border-[#dadce0] text-sm focus:outline-none  focus:border-[#1a73e8] bg-white">
                         <option value="">Pilih kategori</option>
                         {quizCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                       </select>
                       <button type="button" onClick={() => setShowCategoryModal(true)}
-                        className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-[#0E6187] hover:bg-[#0E6187]/10 border border-[#0E6187]/30 bg-[#0E6187]/5 px-2.5 py-2.5 rounded-md transition-colors">
+                        className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-[#1a73e8] hover:bgbg-[#f1f3f4] border border-[#1a73e8] bgbg-[#f8f9fa] px-2.5 py-2.5 transition-colors">
                         <Settings2 size={13} /> Kelola
                       </button>
                     </div>
@@ -4702,209 +4686,197 @@ const visibleBatches = filterCabang
               </div>
 
               {/* STEP 3 */}
-              <div className="rounded-md border border-slate-200 p-4">
+              <div className="border border-[#dadce0] p-4">
                 <div className="flex items-start gap-3 mb-3">
-                  <span className="w-6 h-6 shrink-0 rounded-md bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">3</span>
+                  <span className="w-6 h-6 shrink-0 bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">3</span>
                   <div>
-                    <h4 className="text-sm font-semibold text-slate-800 leading-tight">Aturan Pengerjaan</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">Batas waktu, percobaan, peringatan, dan nilai kelulusan</p>
+                    <h4 className="text-sm font-semibold text-[#202124] leading-tight">Aturan Pengerjaan</h4>
+                    <p className="text-xs text-[#5f6368] mt-0.5">Batas waktu, percobaan, peringatan, dan nilai kelulusan</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Durasi (menit)</label>
+                    <label className="block text-xs font-semibold text-[#5f6368] mb-1.5">Durasi (menit)</label>
                     <input type="number" min={1} max={180} value={paketForm.time_limit_minutes}
                       onChange={e => setPaketForm({ ...paketForm, time_limit_minutes: e.target.value })}
-                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-white" />
+                      className="w-full px-3.5 py-2.5 border border-[#dadce0] text-sm focus:outline-none  focus:border-[#1a73e8] bg-white" />
                   </div>
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <label className="block text-xs font-semibold text-slate-600">Maks Percobaan</label>
+                      <label className="block text-xs font-semibold text-[#5f6368]">Maks Percobaan</label>
                       <button type="button"
                         onClick={() => setPaketForm({ ...paketForm, max_attempts: Number(paketForm.max_attempts) === 0 ? '3' : '0' })}
                         title="Tanpa batas (unlimited)"
-                        className={`relative w-10 h-[22px] rounded-full transition-colors ${Number(paketForm.max_attempts) === 0 ? 'bg-[#0E6187]' : 'bg-slate-300'}`}>
-                        <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${Number(paketForm.max_attempts) === 0 ? 'left-[20px]' : 'left-[2px]'}`} />
+                        className={`relative w-10 h-[22px] transition-colors ${Number(paketForm.max_attempts) === 0 ? 'bg-[#0E6187]' : 'bg-[#e8eaed]'}`}>
+                        <span className={`absolute top-[2px] w-[18px] h-[18px] bg-white shadow transition-all ${Number(paketForm.max_attempts) === 0 ? 'left-[20px]' : 'left-[2px]'}`} />
                       </button>
                     </div>
                     {Number(paketForm.max_attempts) === 0 ? (
-                      <div className="px-3.5 py-2.5 rounded-md bg-[#0E6187]/5 border border-[#0E6187]/20 text-xs font-semibold text-[#0E6187]">
+                      <div className="px-3.5 py-2.5 bgbg-[#f8f9fa] border border-[#1a73e8] text-xs font-semibold text-[#1a73e8]">
                         Tanpa batas (unlimited)
                       </div>
                     ) : (
                       <input type="number" min={1} max={10} value={paketForm.max_attempts}
                         onChange={e => setPaketForm({ ...paketForm, max_attempts: e.target.value })}
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-white" />
+                        className="w-full px-3.5 py-2.5 border border-[#dadce0] text-sm focus:outline-none  focus:border-[#1a73e8] bg-white" />
                     )}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3 mt-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Maks Peringatan</label>
+                    <label className="block text-xs font-semibold text-[#5f6368] mb-1.5">Maks Peringatan</label>
                     <input type="number" min={1} max={10} value={paketForm.max_warnings}
                       onChange={e => setPaketForm({ ...paketForm, max_warnings: e.target.value })}
-                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-white" />
+                      className="w-full px-3.5 py-2.5 border border-[#dadce0] text-sm focus:outline-none  focus:border-[#1a73e8] bg-white" />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Nilai Lulus (0-200)</label>
+                    <label className="block text-xs font-semibold text-[#5f6368] mb-1.5">Nilai Lulus (0-200)</label>
                     <input type="number" min={0} max={200} value={paketForm.passing_score}
                       onChange={e => setPaketForm({ ...paketForm, passing_score: e.target.value })}
-                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-white" />
+                      className="w-full px-3.5 py-2.5 border border-[#dadce0] text-sm focus:outline-none  focus:border-[#1a73e8] bg-white" />
                   </div>
                 </div>
-                <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 px-3.5 py-3 mt-3">
+                <div className="flex items-center justify-between gap-3 border border-[#dadce0] bg-[#f8f9fa] px-3.5 py-3 mt-3">
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-slate-700">Acak urutan soal</p>
-                    <p className="text-[11px] text-slate-500 mt-0.5">Soal tampil beda urutan tiap percobaan</p>
+                    <p className="text-sm font-semibold text-[#3c4043]">Acak urutan soal</p>
+                    <p className="text-[11px] text-[#5f6368] mt-0.5">Soal tampil beda urutan tiap percobaan</p>
                   </div>
                   <button type="button" onClick={() => setPaketForm({ ...paketForm, shuffle_questions: !paketForm.shuffle_questions })}
-                    className={`relative w-10 h-[22px] shrink-0 rounded-full transition-colors ${paketForm.shuffle_questions ? 'bg-[#0E6187]' : 'bg-slate-300'}`}>
-                    <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${paketForm.shuffle_questions ? 'left-[20px]' : 'left-[2px]'}`} />
+                    className={`relative w-10 h-[22px] shrink-0 transition-colors ${paketForm.shuffle_questions ? 'bg-[#0E6187]' : 'bg-[#e8eaed]'}`}>
+                    <span className={`absolute top-[2px] w-[18px] h-[18px] bg-white shadow transition-all ${paketForm.shuffle_questions ? 'left-[20px]' : 'left-[2px]'}`} />
                   </button>
                 </div>
               </div>
               {/* STEP 4 */}
-              <div className="rounded-md border border-slate-200 p-4">
+              <div className="border border-[#dadce0] p-4">
                 <div className="flex items-start gap-3 mb-3">
-                  <span className="w-6 h-6 shrink-0 rounded-md bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">4</span>
+                  <span className="w-6 h-6 shrink-0 bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">4</span>
                   <div>
-                    <h4 className="text-sm font-semibold text-slate-800 leading-tight">Template & Keamanan</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">Pilih tampilan quiz, nyalakan pengawasan, dan tentukan status paket</p>
+                    <h4 className="text-sm font-semibold text-[#202124] leading-tight">Template & Keamanan</h4>
+                    <p className="text-xs text-[#5f6368] mt-0.5">Pilih tampilan quiz, nyalakan pengawasan, dan tentukan status paket</p>
                   </div>
                 </div>
 
-                <label className="block text-xs font-semibold text-slate-600 mb-2">Template UI Quiz</label>
+                <label className="block text-xs font-semibold text-[#5f6368] mb-2">Template UI Quiz</label>
                 <div className="grid grid-cols-2 gap-3">
                   <button type="button" onClick={() => setPaketForm({ ...paketForm, quiz_template: 'basic' })}
-                    className={`flex items-center gap-3 border-2 rounded-md px-3.5 py-3 text-left transition-all ${
-                      paketForm.quiz_template !== 'jft'
-                        ? 'border-[#0E6187] bg-[#0E6187]/5 ring-1 ring-[#0E6187]/20'
-                        : 'border-slate-200 hover:border-slate-300'
-                    }`}>
-                    <span className={`w-10 h-10 shrink-0 flex items-center justify-center rounded-md ${
-                      paketForm.quiz_template !== 'jft' ? 'bg-[#0E6187] text-white' : 'bg-slate-100 text-slate-400'
-                    }`}>
+                    className={`flex items-center gap-3 border-2 px-3.5 py-3 text-left transition-all ${ paketForm.quiz_template !== 'jft' ? 'border-[#1a73e8] bgbg-[#f8f9fa] ring-1 ring-[#1a73e8]' : 'border-[#dadce0] hover:border-[#dadce0]' }`}>
+                    <span className={`w-10 h-10 shrink-0 flex items-center justify-center ${ paketForm.quiz_template !== 'jft' ? 'bg-[#0E6187] text-white' : 'bg-[#f1f3f4] text-[#80868b]' }`}>
                       <LayoutGrid size={18} />
                     </span>
                     <span>
-                      <span className="block text-sm font-semibold text-slate-800">Basic</span>
-                      <span className="block text-[11px] text-slate-400 mt-0.5">Sederhana & fokus</span>
+                      <span className="block text-sm font-semibold text-[#202124]">Basic</span>
+                      <span className="block text-[11px] text-[#80868b] mt-0.5">Sederhana & fokus</span>
                     </span>
                   </button>
                   <button type="button" onClick={() => setPaketForm({ ...paketForm, quiz_template: 'jft' })}
-                    className={`flex items-center gap-3 border-2 rounded-md px-3.5 py-3 text-left transition-all ${
-                      paketForm.quiz_template === 'jft'
-                        ? 'border-[#1f2022] bg-[#1f2022] ring-1 ring-[#1f2022]/20'
-                        : 'border-slate-200 hover:border-slate-300'
-                    }`}>
-                    <span className={`w-10 h-10 shrink-0 flex items-center justify-center rounded-md ${
-                      paketForm.quiz_template === 'jft' ? 'bg-[#5e8b5d] text-white' : 'bg-slate-100 text-slate-400'
-                    }`}>
+                    className={`flex items-center gap-3 border-2 px-3.5 py-3 text-left transition-all ${ paketForm.quiz_template === 'jft' ? 'border-[#1f2022] bg-[#1f2022] ring-1 ring-[#1f2022]' : 'border-[#dadce0] hover:border-[#dadce0]' }`}>
+                    <span className={`w-10 h-10 shrink-0 flex items-center justify-center ${ paketForm.quiz_template === 'jft' ? 'bg-[#188038] text-white' : 'bg-[#f1f3f4] text-[#80868b]' }`}>
                       <ShieldCheck size={18} />
                     </span>
                     <span>
-                      <span className={`block text-sm font-semibold ${paketForm.quiz_template === 'jft' ? 'text-white' : 'text-slate-800'}`}>JFT UI</span>
-                      <span className={`block text-[11px] mt-0.5 ${paketForm.quiz_template === 'jft' ? 'text-white/60' : 'text-slate-400'}`}>Kamera & pengawasan</span>
+                      <span className={`block text-sm font-semibold ${paketForm.quiz_template === 'jft' ? 'text-white' : 'text-[#202124]'}`}>JFT UI</span>
+                      <span className={`block text-[11px] mt-0.5 ${paketForm.quiz_template === 'jft' ? 'text-white/60' : 'text-[#80868b]'}`}>Kamera & pengawasan</span>
                     </span>
                   </button>
                 </div>
-                <p className="text-[11px] text-slate-500 mt-2 leading-relaxed rounded-md bg-slate-50 border border-slate-200 px-3 py-2">
+                <p className="text-[11px] text-[#5f6368] mt-2 leading-relaxed bg-[#f8f9fa] border border-[#dadce0] px-3 py-2">
                   {paketForm.quiz_template === 'jft'
                     ? 'JFT UI: tampilan quiz lengkap dengan pengawasan kamera. Sistem mengambil foto berkala & memberi peringatan.'
                     : 'Basic: tampilan quiz sederhana dengan kamera pengawas & keamanan aktif — foto berkala & peringatan otomatis.'}
                 </p>
 
-                <div className="mt-3 rounded-md border border-slate-200 p-3.5">
+                <div className="mt-3 border border-[#dadce0] p-3.5">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
-                      <span className={`flex h-9 w-9 flex-none items-center justify-center rounded-md ${paketForm.penilaian_ulangan ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                      <span className={`flex h-9 w-9 flex-none items-center justify-center ${paketForm.penilaian_ulangan ? 'bg-[#0E6187] text-white' : 'bg-[#f1f3f4] text-[#80868b]'}`}>
                         <Award size={17} />
                       </span>
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-slate-700">Nilai Ulangan</p>
-                        <p className="text-[11px] text-slate-500 mt-0.5">Skor terbaik kandidat otomatis masuk ke Nilai Ulangan saat paket dipakai di pertemuan</p>
+                        <p className="text-sm font-semibold text-[#3c4043]">Nilai Ulangan</p>
+                        <p className="text-[11px] text-[#5f6368] mt-0.5">Skor terbaik kandidat otomatis masuk ke Nilai Ulangan saat paket dipakai di pertemuan</p>
                       </div>
                     </div>
                     <button type="button" onClick={() => setPaketForm({ ...paketForm, penilaian_ulangan: !paketForm.penilaian_ulangan })}
                       title={paketForm.penilaian_ulangan ? 'Matikan masuk penilaian ulangan' : 'Aktifkan masuk penilaian ulangan'}
-                      className={`relative w-10 h-[22px] shrink-0 rounded-full transition-colors ${paketForm.penilaian_ulangan ? 'bg-emerald-500' : 'bg-slate-300'}`}>
-                      <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${paketForm.penilaian_ulangan ? 'left-[20px]' : 'left-[2px]'}`} />
+                      className={`relative w-10 h-[22px] shrink-0 transition-colors ${paketForm.penilaian_ulangan ? 'bg-[#0E6187]' : 'bg-[#e8eaed]'}`}>
+                      <span className={`absolute top-[2px] w-[18px] h-[18px] bg-white shadow transition-all ${paketForm.penilaian_ulangan ? 'left-[20px]' : 'left-[2px]'}`} />
                     </button>
                   </div>
-                  <p className={`mt-2 text-[11px] leading-relaxed rounded-md border px-3 py-2 ${paketForm.penilaian_ulangan ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>
+                  <p className={`mt-2 text-[11px] leading-relaxed border px-3 py-2 ${paketForm.penilaian_ulangan ? 'border-[#a8dab5] bg-[#e6f4ea] text-[#137333]' : 'border-[#dadce0] bg-[#f8f9fa] text-[#5f6368]'}`}>
                     {paketForm.penilaian_ulangan
                       ? 'Aktif secara default: saat paket ditambahkan ke pertemuan, tombol "Nilai Ulangan" langsung berstatus Masuk Penilaian. Guru tetap bisa mengubahnya per pertemuan.'
                       : 'Nonaktif secara default: guru perlu menekan tombol "Nilai Ulangan" di halaman pertemuan agar skor kandidat masuk ke penilaian.'}
                   </p>
                 </div>
 
-                <div className="mt-3 rounded-md border border-slate-200 p-3.5">
+                <div className="mt-3 border border-[#dadce0] p-3.5">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
-                      <span className={`flex h-9 w-9 flex-none items-center justify-center rounded-md ${paketForm.sertifikasi_aktif ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                      <span className={`flex h-9 w-9 flex-none items-center justify-center ${paketForm.sertifikasi_aktif ? 'bg-[#e37400] text-white' : 'bg-[#f1f3f4] text-[#80868b]'}`}>
                         <Award size={17} />
                       </span>
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-slate-700">Sertifikasi Ujian</p>
-                        <p className="text-[11px] text-slate-500 mt-0.5">Kandidat wajib foto identitas sebelum mulai, lalu mendapat sertifikat nilai otomatis</p>
+                        <p className="text-sm font-semibold text-[#3c4043]">Sertifikasi Ujian</p>
+                        <p className="text-[11px] text-[#5f6368] mt-0.5">Kandidat wajib foto identitas sebelum mulai, lalu mendapat sertifikat nilai otomatis</p>
                       </div>
                     </div>
                     <button type="button" onClick={() => setPaketForm({ ...paketForm, sertifikasi_aktif: !paketForm.sertifikasi_aktif })}
                       title={paketForm.sertifikasi_aktif ? 'Matikan sertifikasi' : 'Aktifkan sertifikasi'}
-                      className={`relative w-10 h-[22px] shrink-0 rounded-full transition-colors ${paketForm.sertifikasi_aktif ? 'bg-amber-500' : 'bg-slate-300'}`}>
-                      <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${paketForm.sertifikasi_aktif ? 'left-[20px]' : 'left-[2px]'}`} />
+                      className={`relative w-10 h-[22px] shrink-0 transition-colors ${paketForm.sertifikasi_aktif ? 'bg-[#e37400]' : 'bg-[#e8eaed]'}`}>
+                      <span className={`absolute top-[2px] w-[18px] h-[18px] bg-white shadow transition-all ${paketForm.sertifikasi_aktif ? 'left-[20px]' : 'left-[2px]'}`} />
                     </button>
                   </div>
 
                   {paketForm.sertifikasi_aktif && (
                     <div className="mt-3 space-y-3">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Judul sertifikat</label>
+                        <label className="block text-xs font-semibold text-[#5f6368] mb-1.5">Judul sertifikat</label>
                         <input
                           type="text"
                           value={paketForm.sertifikat_judul}
                           onChange={e => setPaketForm({ ...paketForm, sertifikat_judul: e.target.value })}
                           placeholder="Kosongkan untuk memakai judul paket"
-                          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-[#0E6187] focus:outline-none focus:ring-1 focus:ring-[#0E6187]"
+                          className="w-full border border-[#dadce0] px-3 py-2 text-sm text-[#202124] focus:border-[#1a73e8] focus:outline-none focus:border-[#1a73e8]"
                         />
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-xs font-semibold text-slate-600 mb-1.5">Penerbit</label>
+                          <label className="block text-xs font-semibold text-[#5f6368] mb-1.5">Penerbit</label>
                           <input
                             type="text"
                             value={paketForm.sertifikat_penerbit}
                             onChange={e => setPaketForm({ ...paketForm, sertifikat_penerbit: e.target.value })}
                             placeholder="Kosongkan untuk nama aplikasi"
-                            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-[#0E6187] focus:outline-none focus:ring-1 focus:ring-[#0E6187]"
+                            className="w-full border border-[#dadce0] px-3 py-2 text-sm text-[#202124] focus:border-[#1a73e8] focus:outline-none focus:border-[#1a73e8]"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-semibold text-slate-600 mb-1.5">Masa berlaku (hari)</label>
+                          <label className="block text-xs font-semibold text-[#5f6368] mb-1.5">Masa berlaku (hari)</label>
                           <input
                             type="number"
                             min={0}
                             value={paketForm.sertifikat_berlaku_hari}
                             onChange={e => setPaketForm({ ...paketForm, sertifikat_berlaku_hari: e.target.value })}
                             placeholder="0 = tidak ada masa berlaku"
-                            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-[#0E6187] focus:outline-none focus:ring-1 focus:ring-[#0E6187]"
+                            className="w-full border border-[#dadce0] px-3 py-2 text-sm text-[#202124] focus:border-[#1a73e8] focus:outline-none focus:border-[#1a73e8]"
                           />
                         </div>
                       </div>
 
-                      <div className="flex items-start gap-2.5 rounded-md border border-slate-200 bg-slate-50 px-3.5 py-3">
-                        <Camera size={16} className="mt-0.5 shrink-0 text-slate-400" />
+                      <div className="flex items-start gap-2.5 border border-[#dadce0] bg-[#f8f9fa] px-3.5 py-3">
+                        <Camera size={16} className="mt-0.5 shrink-0 text-[#80868b]" />
                         <div>
-                          <p className="text-sm font-semibold text-slate-700">Foto identitas selalu wajib</p>
-                          <p className="text-[11px] text-slate-500 mt-0.5">
+                          <p className="text-sm font-semibold text-[#3c4043]">Foto identitas selalu wajib</p>
+                          <p className="text-[11px] text-[#5f6368] mt-0.5">
                             Saat sertifikasi aktif, kandidat harus memotret wajah sebelum ujian bisa dimulai. Foto ini
                             dipakai sebagai foto pada sertifikat.
                           </p>
                         </div>
                       </div>
 
-                      <p className="text-[11px] leading-relaxed rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">
+                      <p className="text-[11px] leading-relaxed border border-[#fdd663] bg-[#fef7e0] px-3 py-2 text-[#b06000]">
                         Sertifikat terbit untuk setiap percobaan, lulus maupun tidak, dan memuat nilai, rincian per
                         bagian, foto identitas, serta kode verifikasi publik. Kandidat boleh memiliki lebih dari satu
                         sertifikat dari paket ini.
@@ -4914,59 +4886,59 @@ const visibleBatches = filterCabang
                 </div>
 
                 <div className="space-y-2 mt-3">
-                  <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 px-3.5 py-3">
+                  <div className="flex items-center justify-between gap-3 border border-[#dadce0] bg-[#f8f9fa] px-3.5 py-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-700">Keamanan kamera</p>
-                      <p className="text-[11px] text-slate-500 mt-0.5">Sistem mengambil foto berkala & mendeteksi wajah selama pengerjaan</p>
+                      <p className="text-sm font-semibold text-[#3c4043]">Keamanan kamera</p>
+                      <p className="text-[11px] text-[#5f6368] mt-0.5">Sistem mengambil foto berkala & mendeteksi wajah selama pengerjaan</p>
                     </div>
                     <button type="button" onClick={() => setPaketForm({ ...paketForm, camera_enabled: !paketForm.camera_enabled })}
-                      className={`relative w-10 h-[22px] shrink-0 rounded-full transition-colors ${paketForm.camera_enabled ? 'bg-[#0E6187]' : 'bg-slate-300'}`}>
-                      <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${paketForm.camera_enabled ? 'left-[20px]' : 'left-[2px]'}`} />
+                      className={`relative w-10 h-[22px] shrink-0 transition-colors ${paketForm.camera_enabled ? 'bg-[#0E6187]' : 'bg-[#e8eaed]'}`}>
+                      <span className={`absolute top-[2px] w-[18px] h-[18px] bg-white shadow transition-all ${paketForm.camera_enabled ? 'left-[20px]' : 'left-[2px]'}`} />
                     </button>
                   </div>
-                  <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 px-3.5 py-3">
+                  <div className="flex items-center justify-between gap-3 border border-[#dadce0] bg-[#f8f9fa] px-3.5 py-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-700">Kunci saat keluar / tutup aplikasi</p>
-                      <p className="text-[11px] text-slate-500 mt-0.5">Keluar atau menutup aplikasi saat quiz berjalan memicu peringatan</p>
+                      <p className="text-sm font-semibold text-[#3c4043]">Kunci saat keluar / tutup aplikasi</p>
+                      <p className="text-[11px] text-[#5f6368] mt-0.5">Keluar atau menutup aplikasi saat quiz berjalan memicu peringatan</p>
                     </div>
                     <button type="button" onClick={() => setPaketForm({ ...paketForm, block_exit: !paketForm.block_exit })}
-                      className={`relative w-10 h-[22px] shrink-0 rounded-full transition-colors ${paketForm.block_exit ? 'bg-[#0E6187]' : 'bg-slate-300'}`}>
-                      <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${paketForm.block_exit ? 'left-[20px]' : 'left-[2px]'}`} />
+                      className={`relative w-10 h-[22px] shrink-0 transition-colors ${paketForm.block_exit ? 'bg-[#0E6187]' : 'bg-[#e8eaed]'}`}>
+                      <span className={`absolute top-[2px] w-[18px] h-[18px] bg-white shadow transition-all ${paketForm.block_exit ? 'left-[20px]' : 'left-[2px]'}`} />
                     </button>
                   </div>
-                  <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 px-3.5 py-3">
+                  <div className="flex items-center justify-between gap-3 border border-[#dadce0] bg-[#f8f9fa] px-3.5 py-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-700">Buka paket sekarang</p>
-                      <p className="text-[11px] text-slate-500 mt-0.5">Kandidat bisa langsung melihat & mulai quiz</p>
+                      <p className="text-sm font-semibold text-[#3c4043]">Buka paket sekarang</p>
+                      <p className="text-[11px] text-[#5f6368] mt-0.5">Kandidat bisa langsung melihat & mulai quiz</p>
                     </div>
                     <button type="button" onClick={() => setPaketForm({ ...paketForm, status: paketForm.status === 'aktif' ? 'nonaktif' : 'aktif' })}
-                      className={`relative w-10 h-[22px] shrink-0 rounded-full transition-colors ${paketForm.status === 'aktif' ? 'bg-emerald-500' : 'bg-slate-300'}`}>
-                      <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${paketForm.status === 'aktif' ? 'left-[20px]' : 'left-[2px]'}`} />
+                      className={`relative w-10 h-[22px] shrink-0 transition-colors ${paketForm.status === 'aktif' ? 'bg-[#0E6187]' : 'bg-[#e8eaed]'}`}>
+                      <span className={`absolute top-[2px] w-[18px] h-[18px] bg-white shadow transition-all ${paketForm.status === 'aktif' ? 'left-[20px]' : 'left-[2px]'}`} />
                     </button>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="px-5 py-3.5 border-t border-slate-200 bg-slate-50 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
-              <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500">
-                <span className={`shrink-0 inline-flex items-center gap-1.5 rounded-md px-2 py-1 font-bold ${paketForm.status === 'aktif' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>
-                  <span className="w-1.5 h-1.5 rounded-full bg-current" />
+            <div className="px-5 py-3.5 border-t border-[#dadce0] bg-[#f8f9fa] flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
+              <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-[#5f6368]">
+                <span className={`shrink-0 inline-flex items-center gap-1.5 px-2 py-1 font-bold ${paketForm.status === 'aktif' ? 'bg-[#e6f4ea] text-[#137333]' : 'bg-[#e8eaed] text-[#5f6368]'}`}>
+                  <span className="w-1.5 h-1.5 bg-current" />
                   {paketForm.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
                 </span>
-                <span className="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-[#0E6187]/10 text-[#0E6187] px-2 py-1 font-bold">
+                <span className="shrink-0 inline-flex items-center gap-1.5 bgbg-[#f1f3f4] text-[#1a73e8] px-2 py-1 font-bold">
                   <Clock size={12} /> {paketForm.time_limit_minutes || 0} menit
                 </span>
-                <span className="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-slate-200 text-slate-600 px-2 py-1 font-bold">
+                <span className="shrink-0 inline-flex items-center gap-1.5 bg-[#e8eaed] text-[#5f6368] px-2 py-1 font-bold">
                   <Repeat size={12} /> {Number(paketForm.max_attempts) === 0 ? 'Tanpa batas' : `${paketForm.max_attempts}x percobaan`}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={() => setShowPaketModal(false)}
-                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-md text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 transition-colors">
+                  className="flex-1 sm:flex-none px-4 py-2.5 text-sm font-semibold text-[#5f6368] bg-white border border-[#dadce0] hover:bg-[#f1f3f4] transition-colors">
                   Batal
                 </button>
                 <button onClick={savePaket} disabled={savingPaket}
-                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-white bg-[#0E6187] hover:bg-[#0E6187]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-[#0E6187] hover:bgbg-[#e8f0fe] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                   {savingPaket ? <><Loader2 size={15} className="animate-spin" /> Menyimpan...</> : editingPaket ? 'Simpan Perubahan' : 'Buat Paket Soal'}
                 </button>
               </div>
@@ -4977,54 +4949,54 @@ const visibleBatches = filterCabang
 
       {/* ==================== BANK PICKER MODAL ==================== */}
       {showBankPickerModal && activeCourse && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[10vh] pb-8 px-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-              <h3 className="font-semibold text-slate-800">Paket Soal dari Bank</h3>
-              <button onClick={() => setShowBankPickerModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
-                <X size={20} className="text-slate-400" />
+        <div className="fixed inset-0 #202124-\[#202124\] z-50 flex items-start justify-center pt-[10vh] pb-8 px-4 overflow-y-auto">
+          <div className="border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#dadce0] flex items-center justify-between">
+              <h3 className="font-semibold text-[#202124]">Paket Soal dari Bank</h3>
+              <button onClick={() => setShowBankPickerModal(false)} className="p-1.5 hover:bg-[#f1f3f4] transition-colors">
+                <X size={20} className="text-[#80868b]" />
               </button>
             </div>
             <div className="p-5">
-              <p className="text-sm text-slate-500 mb-4">
-                Centang paket soal dari bank untuk ditambahkan ke kursus <span className="font-semibold text-slate-700">"{activeCourse.title}"</span>
+              <p className="text-sm text-[#5f6368] mb-4">
+                Centang paket soal dari bank untuk ditambahkan ke kursus <span className="font-semibold text-[#3c4043]">"{activeCourse.title}"</span>
               </p>
               {bankPickerLoading ? (
-                <div className="flex flex-col items-center justify-center py-16 text-slate-400 text-sm gap-2">
-                  <Loader2 size={24} className="animate-spin text-[#0E6187]" /> Memuat paket soal...
+                <div className="flex flex-col items-center justify-center py-16 text-[#80868b] text-sm gap-2">
+                  <Loader2 size={24} className="animate-spin text-[#1a73e8]" /> Memuat paket soal...
                 </div>
               ) : bankPickerPakets.length === 0 ? (
                 <div className="py-14 text-center">
-                  <div className="w-14 h-14 mx-auto rounded-lg bg-[#0E6187]/10 flex items-center justify-center mb-3">
-                    <ListChecks size={28} className="text-[#0E6187]" />
+                  <div className="w-14 h-14 mx-auto bgbg-[#f1f3f4] flex items-center justify-center mb-3">
+                    <ListChecks size={28} className="text-[#1a73e8]" />
                   </div>
-                  <p className="text-slate-800 font-semibold">Bank kosong</p>
-                  <p className="text-slate-500 text-sm mt-1">Belum ada paket soal di bank paket</p>
+                  <p className="text-[#202124] font-semibold">Bank kosong</p>
+                  <p className="text-[#5f6368] text-sm mt-1">Belum ada paket soal di bank paket</p>
                 </div>
               ) : (
-                <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden max-h-[50vh] overflow-y-auto">
+                <div className="divide-y divide-[#e8eaed] border border-[#dadce0] overflow-hidden max-h-[50vh] overflow-y-auto">
                   {bankPickerPakets.map(p => (
-                    <label key={p.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors">
+                    <label key={p.id} className="flex items-center gap-3 px-4 py-3 hover:bg-[#f8f9fa] cursor-pointer transition-colors">
                       <input
                         type="checkbox"
                         checked={bankPickedIds.includes(p.id)}
                         onChange={() => toggleBankPick(p.id)}
-                        className="w-4 h-4 rounded border-slate-300 text-[#0E6187] focus:ring-[#0E6187]"
+                        className="w-4 h-4 border-[#dadce0] text-[#1a73e8]"
                       />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-semibold text-slate-800 truncate">{p.title}</p>
+                          <p className="text-sm font-semibold text-[#202124] truncate">{p.title}</p>
                           {p.category && (
-                            <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#0E6187]/[0.08] text-[#0E6187] shrink-0">{p.category}</span>
+                            <span className="inline-block text-[10px] font-semibold px-2 py-0.5 bgbg-[#f1f3f4] text-[#1a73e8] shrink-0">{p.category}</span>
                           )}
                         </div>
-                        <p className="text-xs text-slate-400 mt-0.5">
+                        <p className="text-xs text-[#80868b] mt-0.5">
                           {[p.batch?.nama_batch, p.level && `Level ${p.level}`].filter(Boolean).join(' · ') || 'Semua kandidat'}
                         </p>
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-slate-500 shrink-0">
+                      <div className="flex items-center gap-3 text-xs text-[#5f6368] shrink-0">
                         <span>{p.questions_count} soal</span>
-                        <span className={`font-semibold ${p.status === 'aktif' ? 'text-emerald-600' : 'text-slate-500'}`}>
+                        <span className={`font-semibold ${p.status === 'aktif' ? 'text-[#137333]' : 'text-[#5f6368]'}`}>
                           {p.status === 'aktif' ? 'Dibuka' : 'Ditutup'}
                         </span>
                       </div>
@@ -5033,10 +5005,10 @@ const visibleBatches = filterCabang
                 </div>
               )}
             </div>
-            <div className="px-5 py-4 border-t border-slate-200 flex justify-end gap-3">
-              <button onClick={() => setShowBankPickerModal(false)} className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Batal</button>
+            <div className="px-5 py-4 border-t border-[#dadce0] flex justify-end gap-3">
+              <button onClick={() => setShowBankPickerModal(false)} className="px-4 py-2.5 text-sm font-medium text-[#5f6368] hover:bg-[#f1f3f4] transition-colors">Batal</button>
               <button onClick={assignSelectedPakets} disabled={assigningPakets || bankPickedIds.length === 0}
-                className="px-4 py-2.5 bg-[#0E6187] text-white rounded-lg text-sm font-semibold hover:bg-[#0E6187]/90 disabled:opacity-50 transition-colors">
+                className="px-4 py-2.5 bg-[#0E6187] text-white text-sm font-semibold hover:bgbg-[#e8f0fe] disabled:opacity-50 transition-colors">
                 {assigningPakets ? 'Menambahkan...' : `Tambahkan ${bankPickedIds.length > 0 ? `(${bankPickedIds.length})` : ''}`}
               </button>
             </div>
@@ -5046,20 +5018,20 @@ const visibleBatches = filterCabang
 
       {/* ==================== LESSON (MATERI) MODAL ==================== */}
       {showLessonModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[6vh] pb-8 px-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+        <div className="fixed inset-0 #202124-\[#202124\] z-50 flex items-start justify-center pt-[6vh] pb-8 px-4 overflow-y-auto">
+          <div className="border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#dadce0] flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-slate-800">{editingLesson ? 'Edit Materi' : (lessonSource === 'course' ? 'Tambah Pertemuan' : 'Tambah Materi')}</h3>
-                <p className="text-xs text-slate-400">{activeCourse?.title}</p>
+                <h3 className="font-semibold text-[#202124]">{editingLesson ? 'Edit Materi' : (lessonSource === 'course' ? 'Tambah Pertemuan' : 'Tambah Materi')}</h3>
+                <p className="text-xs text-[#80868b]">{activeCourse?.title}</p>
               </div>
-              <button onClick={() => setShowLessonModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
-                <X size={20} className="text-slate-400" />
+              <button onClick={() => setShowLessonModal(false)} className="p-1.5 hover:bg-[#f1f3f4] transition-colors">
+                <X size={20} className="text-[#80868b]" />
               </button>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className={labelCls}>Judul Materi <span className="text-red-500">*</span></label>
+                <label className={labelCls}>Judul Materi <span className="text-[#d93025]">*</span></label>
                 <input value={lessonForm.title} onChange={e => setLessonForm({ ...lessonForm, title: e.target.value })}
                   placeholder="Judul pelajaran" className={inputCls} />
               </div>
@@ -5069,15 +5041,15 @@ const visibleBatches = filterCabang
                   <input value={lessonForm.video_url} onChange={e => setLessonForm({ ...lessonForm, video_url: e.target.value })}
                     placeholder="https://youtube.com/..." className={inputCls} />
                   {lessonForm.video_url && (
-                    <button onClick={() => setLessonForm({ ...lessonForm, video_url: '' })} className="shrink-0 px-3 flex items-center text-slate-400 hover:text-red-500 transition-colors" title="Hapus video">
+                    <button onClick={() => setLessonForm({ ...lessonForm, video_url: '' })} className="shrink-0 px-3 flex items-center text-[#80868b] hover:text-[#d93025] transition-colors" title="Hapus video">
                       <X size={18} />
                     </button>
                   )}
                 </div>
                 {lessonForm.video_url && (
                   <div className="mt-3">
-                    <p className="text-xs font-medium text-slate-500 mb-1.5 flex items-center gap-1"><Video size={12} /> Pratinjau video</p>
-                    <div className="rounded-lg overflow-hidden border border-slate-200 bg-black aspect-video">
+                    <p className="text-xs font-medium text-[#5f6368] mb-1.5 flex items-center gap-1"><Video size={12} /> Pratinjau video</p>
+                    <div className="overflow-hidden border border-[#dadce0] bg-black aspect-video">
                       <iframe
                         src={getYouTubeEmbedUrl(lessonForm.video_url) || lessonForm.video_url}
                         className="w-full h-full"
@@ -5093,9 +5065,9 @@ const visibleBatches = filterCabang
                 <ReactQuill ref={materiQuillRef} value={lessonForm.content}
                   onChange={value => setLessonForm({ ...lessonForm, content: value })}
                   modules={quillModules} formats={quillFormats} theme="snow" placeholder="Tulis materi pembelajaran di sini..."
-                  className="[&_.ql-editor]:min-h-[160px] [&_.ql-editor]:text-sm [&_.ql-container]:rounded-b-lg [&_.ql-toolbar]:rounded-t-lg [&_.ql-toolbar]:border-slate-200 [&_.ql-container]:border-slate-200" />
+                  className="[&_.ql-editor]:min-h-[160px] [&_.ql-editor]:text-sm [&_.ql-toolbar]:border-[#dadce0] [&_.ql-container]:border-[#dadce0]" />
               </div>
-              <div className="border-t border-slate-100 pt-4">
+              <div className="border-t border-[#e8eaed] pt-4">
                 <LessonMediaFields
                   pdfName={lessonPdfName}
                   pdfSize={lessonPdfSize}
@@ -5133,9 +5105,9 @@ const visibleBatches = filterCabang
                 </div>
               </div>
             </div>
-            <div className="px-5 py-4 border-t border-slate-200 flex justify-end gap-3">
-              <button onClick={() => setShowLessonModal(false)} className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Batal</button>
-              <button onClick={handleSaveLesson} disabled={savingLesson} className="px-4 py-2.5 bg-[#0E6187] text-white rounded-lg text-sm font-semibold hover:bg-[#0E6187]/90 disabled:opacity-50 transition-colors">
+            <div className="px-5 py-4 border-t border-[#dadce0] flex justify-end gap-3">
+              <button onClick={() => setShowLessonModal(false)} className="px-4 py-2.5 text-sm font-medium text-[#5f6368] hover:bg-[#f1f3f4] transition-colors">Batal</button>
+              <button onClick={handleSaveLesson} disabled={savingLesson} className="px-4 py-2.5 bg-[#0E6187] text-white text-sm font-semibold hover:bgbg-[#e8f0fe] disabled:opacity-50 transition-colors">
                 {savingLesson ? 'Menyimpan...' : editingLesson ? 'Simpan Perubahan' : (lessonSource === 'course' ? 'Tambah Pertemuan' : 'Tambah Materi')}
               </button>
             </div>
@@ -5145,25 +5117,25 @@ const visibleBatches = filterCabang
 
       {/* ==================== BANK MATERI MODAL ==================== */}
       {showMateriModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[6vh] pb-8 px-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+        <div className="fixed inset-0 #202124-\[#202124\] z-50 flex items-start justify-center pt-[6vh] pb-8 px-4 overflow-y-auto">
+          <div className="border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#dadce0] flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-slate-800">{editingMateri ? 'Edit Materi Bank' : 'Buat Materi'}</h3>
-                <p className="text-xs text-slate-400">Disimpan di Bank Materi</p>
+                <h3 className="font-semibold text-[#202124]">{editingMateri ? 'Edit Materi Bank' : 'Buat Materi'}</h3>
+                <p className="text-xs text-[#80868b]">Disimpan di Bank Materi</p>
               </div>
-              <button onClick={() => setShowMateriModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
-                <X size={20} className="text-slate-400" />
+              <button onClick={() => setShowMateriModal(false)} className="p-1.5 hover:bg-[#f1f3f4] transition-colors">
+                <X size={20} className="text-[#80868b]" />
               </button>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className={labelCls}>Judul Materi <span className="text-red-500">*</span></label>
+                <label className={labelCls}>Judul Materi <span className="text-[#d93025]">*</span></label>
                 <input value={materiForm.title} onChange={e => setMateriForm({ ...materiForm, title: e.target.value })}
                   placeholder="Judul materi" className={inputCls} />
               </div>
               <div>
-                <label className={labelCls}>Tautan ke Kursus <span className="text-slate-400 font-normal">(opsional)</span></label>
+                <label className={labelCls}>Tautan ke Kursus <span className="text-[#80868b] font-normal">(opsional)</span></label>
                 <select value={materiForm.course_id} onChange={e => setMateriForm({ ...materiForm, course_id: e.target.value })} className={inputCls}>
                   <option value="">Tanpa kursus</option>
                   {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
@@ -5175,15 +5147,15 @@ const visibleBatches = filterCabang
                   <input value={materiForm.video_url} onChange={e => setMateriForm({ ...materiForm, video_url: e.target.value })}
                     placeholder="https://youtube.com/..." className={inputCls} />
                   {materiForm.video_url && (
-                    <button onClick={() => setMateriForm({ ...materiForm, video_url: '' })} className="shrink-0 px-3 flex items-center text-slate-400 hover:text-red-500 transition-colors">
+                    <button onClick={() => setMateriForm({ ...materiForm, video_url: '' })} className="shrink-0 px-3 flex items-center text-[#80868b] hover:text-[#d93025] transition-colors">
                       <X size={18} />
                     </button>
                   )}
                 </div>
                 {materiForm.video_url && (
                   <div className="mt-3">
-                    <p className="text-xs font-medium text-slate-500 mb-1.5 flex items-center gap-1"><Video size={12} /> Pratinjau video</p>
-                    <div className="rounded-lg overflow-hidden border border-slate-200 bg-black aspect-video">
+                    <p className="text-xs font-medium text-[#5f6368] mb-1.5 flex items-center gap-1"><Video size={12} /> Pratinjau video</p>
+                    <div className="overflow-hidden border border-[#dadce0] bg-black aspect-video">
                       <iframe src={getYouTubeEmbedUrl(materiForm.video_url) || materiForm.video_url} className="w-full h-full" allowFullScreen title="Preview Video" />
                     </div>
                   </div>
@@ -5194,9 +5166,9 @@ const visibleBatches = filterCabang
                 <ReactQuill ref={bankMateriQuillRef} value={materiForm.content}
                   onChange={value => setMateriForm({ ...materiForm, content: value })}
                   modules={quillModules} formats={quillFormats} theme="snow" placeholder="Tulis materi pembelajaran di sini..."
-                  className="[&_.ql-editor]:min-h-[160px] [&_.ql-editor]:text-sm [&_.ql-container]:rounded-b-lg [&_.ql-toolbar]:rounded-t-lg [&_.ql-toolbar]:border-slate-200 [&_.ql-container]:border-slate-200" />
+                  className="[&_.ql-editor]:min-h-[160px] [&_.ql-editor]:text-sm [&_.ql-toolbar]:border-[#dadce0] [&_.ql-container]:border-[#dadce0]" />
               </div>
-              <div className="border-t border-slate-100 pt-4">
+              <div className="border-t border-[#e8eaed] pt-4">
                 <LessonMediaFields
                   pdfName={materiPdfName}
                   pdfSize={materiPdfSize}
@@ -5234,9 +5206,9 @@ const visibleBatches = filterCabang
                 </div>
               </div>
             </div>
-            <div className="px-5 py-4 border-t border-slate-200 flex justify-end gap-3">
-              <button onClick={() => setShowMateriModal(false)} className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Batal</button>
-              <button onClick={handleSaveMateri} disabled={savingMateri} className="px-4 py-2.5 bg-[#0E6187] text-white rounded-lg text-sm font-semibold hover:bg-[#0E6187]/90 disabled:opacity-50 transition-colors">
+            <div className="px-5 py-4 border-t border-[#dadce0] flex justify-end gap-3">
+              <button onClick={() => setShowMateriModal(false)} className="px-4 py-2.5 text-sm font-medium text-[#5f6368] hover:bg-[#f1f3f4] transition-colors">Batal</button>
+              <button onClick={handleSaveMateri} disabled={savingMateri} className="px-4 py-2.5 bg-[#0E6187] text-white text-sm font-semibold hover:bgbg-[#e8f0fe] disabled:opacity-50 transition-colors">
                 {savingMateri ? 'Menyimpan...' : editingMateri ? 'Simpan Perubahan' : 'Buat Materi'}
               </button>
             </div>
@@ -5255,12 +5227,12 @@ const visibleBatches = filterCabang
               ? 'Skala penilaian 1 sampai 9 per soal'
               : 'Soal terbuka, peserta mengetik jawaban sendiri'
         return (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-stretch justify-center p-2 sm:p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col h-full max-h-[96vh]">
+        <div className="fixed inset-0 #202124-\[#202124\] z-50 flex items-stretch justify-center p-2 sm:p-4">
+          <div className="border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-6xl overflow-hidden flex flex-col h-full max-h-[96vh]">
             {/* HEADER */}
             <div className="bg-[#0E6187] px-5 py-4 flex items-center justify-between gap-3 shrink-0">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-md bg-white/15 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 bg-white/15 flex items-center justify-center shrink-0">
                   <ClipboardPaste size={20} className="text-white" />
                 </div>
                 <div className="min-w-0">
@@ -5271,7 +5243,7 @@ const visibleBatches = filterCabang
                 </div>
               </div>
               <button onClick={() => setShowImportModal(false)}
-                className="p-1.5 rounded-md text-white/70 hover:text-white hover:bg-white/15 transition-colors shrink-0">
+                className="p-1.5 text-white/70 hover:text-white hover:bg-white/15 transition-colors shrink-0">
                 <X size={20} />
               </button>
             </div>
@@ -5279,12 +5251,12 @@ const visibleBatches = filterCabang
             {/* BODY */}
             <div className="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1 min-h-0">
               {/* STEP 1 */}
-              <div className="rounded-md border border-slate-200 p-4">
+              <div className="border border-[#dadce0] p-4">
                 <div className="flex items-start gap-3 mb-3">
-                  <span className="w-6 h-6 shrink-0 rounded-md bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">1</span>
+                  <span className="w-6 h-6 shrink-0 bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">1</span>
                   <div>
-                    <h4 className="text-sm font-semibold text-slate-800 leading-tight">Pilih Jenis Soal</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">{typeDesc}</p>
+                    <h4 className="text-sm font-semibold text-[#202124] leading-tight">Pilih Jenis Soal</h4>
+                    <p className="text-xs text-[#5f6368] mt-0.5">{typeDesc}</p>
                   </div>
                 </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -5295,7 +5267,7 @@ const visibleBatches = filterCabang
                             // Parse ulang karena cara pemenggalan baris berbeda per jenis soal.
                             setImportParse(parseQuestionImport(importText, t))
                           }}
-                          className={`py-2.5 rounded-md text-xs sm:text-sm font-semibold border transition-colors ${importType === t ? 'bg-[#0E6187] text-white border-[#0E6187] shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-[#0E6187]/40 hover:bg-slate-50'}`}>
+                          className={`py-2.5 text-xs sm:text-sm font-semibold border transition-colors ${importType === t ? 'bg-[#0E6187] text-white border-[#1a73e8] ' : 'bg-white text-[#5f6368] border-[#dadce0] hover:border-[#1a73e8] hover:bg-[#f8f9fa]'}`}>
                           {t === 'choice' ? 'Pilihan Ganda' : t === 'multi' ? 'Pilihan Ganda (Multi)' : t === 'rating' ? 'Skala 1-9' : 'Esai'}
                         </button>
                       ))}
@@ -5303,28 +5275,28 @@ const visibleBatches = filterCabang
               </div>
 
               {/* STEP 2 */}
-              <div className="rounded-md border border-slate-200 p-4">
+              <div className="border border-[#dadce0] p-4">
                 <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
                   <div className="flex items-start gap-3">
-                    <span className="w-6 h-6 shrink-0 rounded-md bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">2</span>
+                    <span className="w-6 h-6 shrink-0 bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">2</span>
                     <div>
-                      <h4 className="text-sm font-semibold text-slate-800 leading-tight">Tempel Soal</h4>
-                      <p className="text-xs text-slate-500 mt-0.5">1 soal per baris &middot; awalan a./b./c. = opsi &middot; <span className="font-mono font-semibold text-slate-600">*</span> = kunci</p>
+                      <h4 className="text-sm font-semibold text-[#202124] leading-tight">Tempel Soal</h4>
+                      <p className="text-xs text-[#5f6368] mt-0.5">1 soal per baris &middot; awalan a./b./c. = opsi &middot; <span className="font-mono font-semibold text-[#5f6368]">*</span> = kunci</p>
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
                     <button type="button" onClick={() => importImgInputRef.current?.click()} disabled={!!importingMedia}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-700 hover:text-violet-800 border border-violet-200 hover:border-violet-400 bg-violet-50 hover:bg-violet-100 px-2.5 py-1.5 rounded-md transition-colors disabled:opacity-50">
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#7627bb] hover:text-[#7627bb] border border-[#e8def8] hover:border-[#8430ce] bg-[#f3e8fd] hover:bg-[#f3e8fd] px-2.5 py-1.5 transition-colors disabled:opacity-50">
                       <ImageIcon size={13} />
                       {importingMedia === 'gambar' ? 'Mengunggah...' : 'Upload Gambar'}
                     </button>
                     <button type="button" onClick={() => importAudioInputRef.current?.click()} disabled={!!importingMedia}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700 hover:text-amber-800 border border-amber-200 hover:border-amber-400 bg-amber-50 hover:bg-amber-100 px-2.5 py-1.5 rounded-md transition-colors disabled:opacity-50">
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#b06000] hover:text-[#b06000] border border-[#fdd663] hover:border-[#f9ab00] bg-[#fef7e0] hover:bg-[#fef7e0] px-2.5 py-1.5 transition-colors disabled:opacity-50">
                       <Mic size={13} />
                       {importingMedia === 'audio' ? 'Mengunggah...' : 'Upload Audio'}
                     </button>
                     <button type="button" onClick={() => onImportTextChange(importSample)}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0E6187] hover:bg-[#0E6187]/10 border border-[#0E6187]/30 bg-[#0E6187]/5 px-2.5 py-1.5 rounded-md transition-colors">
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1a73e8] hover:bgbg-[#f1f3f4] border border-[#1a73e8] bgbg-[#f8f9fa] px-2.5 py-1.5 transition-colors">
                       <FileText size={13} />
                       Isi Contoh
                     </button>
@@ -5334,55 +5306,55 @@ const visibleBatches = filterCabang
                   onChange={e => { onImportFile(e.target.files?.[0], 'gambar'); e.target.value = '' }} />
                 <input ref={importAudioInputRef} type="file" accept={QUESTION_AUDIO_ACCEPT} className="hidden"
                   onChange={e => { onImportFile(e.target.files?.[0], 'audio'); e.target.value = '' }} />
-                <div className="mt-2.5 rounded-md border border-slate-200 bg-slate-50/60 p-2.5">
+                <div className="mt-2.5 border border-[#dadce0] #f8f9fa-\[#f8f9fa\] p-2.5">
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                    <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                    <p className="flex items-center gap-1.5 text-[11px] font-bold text-[#5f6368]">
                       <ImageIcon size={12} /> Media Terunggah
-                      <span className="rounded-md bg-slate-200 px-1.5 py-0.5 text-[10px] text-slate-600">{importMedia.length}</span>
+                      <span className="bg-[#e8eaed] px-1.5 py-0.5 text-[10px] text-[#5f6368]">{importMedia.length}</span>
                     </p>
                     {importMedia.length > 0 && (
                       <button type="button" onClick={insertAllImportTags}
-                        className="inline-flex items-center gap-1 rounded-md border border-[#0E6187]/30 bg-[#0E6187]/5 px-2 py-1 text-[11px] font-semibold text-[#0E6187] transition-colors hover:bg-[#0E6187]/10">
+                        className="inline-flex items-center gap-1 border border-[#1a73e8] bgbg-[#f8f9fa] px-2 py-1 text-[11px] font-semibold text-[#1a73e8] transition-colors hover:bgbg-[#f1f3f4]">
                         <Plus size={12} /> Sisipkan semua ke teks soal
                       </button>
                     )}
                   </div>
 
                   {importMedia.length === 0 ? (
-                    <p className="rounded-md border border-dashed border-slate-300 bg-white px-3 py-2.5 text-center text-[11px] text-slate-400">
-                      Belum ada media. Klik <span className="font-semibold text-violet-600">Upload Gambar</span> atau{' '}
-                      <span className="font-semibold text-amber-600">Upload Audio</span> &mdash; link akan muncul di sini,
-                      lalu tekan <span className="font-semibold text-slate-500">Sisip</span> untuk menempelkannya ke soal.
+                    <p className="border border-dashed border-[#dadce0] bg-white px-3 py-2.5 text-center text-[11px] text-[#80868b]">
+                      Belum ada media. Klik <span className="font-semibold text-[#7627bb]">Upload Gambar</span> atau{' '}
+                      <span className="font-semibold text-[#b06000]">Upload Audio</span> &mdash; link akan muncul di sini,
+                      lalu tekan <span className="font-semibold text-[#5f6368]">Sisip</span> untuk menempelkannya ke soal.
                     </p>
                   ) : (
                     <div className="max-h-44 space-y-1.5 overflow-y-auto pr-1">
                       {importMedia.map((m, i) => (
-                        <div key={`${m.url}-${i}`} className="flex flex-wrap items-center gap-2 rounded-md border border-slate-200 bg-white p-1.5 shadow-sm sm:flex-nowrap">
+                        <div key={`${m.url}-${i}`} className="flex flex-wrap items-center gap-2 border border-[#dadce0] bg-white p-1.5 sm:flex-nowrap">
                           {m.type === 'gambar' ? (
                             <img src={mediaUrl(m.url)} alt={m.name}
-                              className="h-10 w-10 shrink-0 rounded-md border border-slate-200 object-cover" />
+                              className="h-10 w-10 shrink-0 border border-[#dadce0] object-cover" />
                           ) : (
-                            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md border border-slate-200 bg-amber-50 text-amber-600">
+                            <span className="grid h-10 w-10 shrink-0 place-items-center border border-[#dadce0] bg-[#fef7e0] text-[#b06000]">
                               <Mic size={16} />
                             </span>
                           )}
                           <div className="min-w-0 flex-1">
                             <input readOnly value={mediaUrl(m.url)} onFocus={e => e.currentTarget.select()}
-                              className="w-full truncate rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-[11px] text-slate-600 focus:border-[#0E6187]/40 focus:outline-none" />
-                            <p className="mt-0.5 truncate px-0.5 text-[10px] text-slate-400">{m.type === 'gambar' ? 'Gambar' : 'Audio'} &middot; {m.name}</p>
+                              className="w-full truncate border border-[#dadce0] bg-[#f8f9fa] px-2 py-1 font-mono text-[11px] text-[#5f6368]  focus:outline-none" />
+                            <p className="mt-0.5 truncate px-0.5 text-[10px] text-[#80868b]">{m.type === 'gambar' ? 'Gambar' : 'Audio'} &middot; {m.name}</p>
                           </div>
                           {m.type === 'audio' && <audio src={mediaUrl(m.url)} controls className="h-7 w-24 shrink-0" />}
                           <div className="flex shrink-0 items-center gap-1">
                             <button type="button" onClick={() => insertImportTag(m)} title="Sisipkan tag ke teks soal"
-                              className="inline-flex items-center gap-1 rounded-md bg-[#0E6187]/10 px-2 py-1 text-[11px] font-bold text-[#0E6187] transition-colors hover:bg-[#0E6187]/20">
+                              className="inline-flex items-center gap-1 bgbg-[#f1f3f4] px-2 py-1 text-[11px] font-bold text-[#1a73e8] transition-colors hover:bgbg-[#f1f3f4]">
                               <Plus size={12} /> Sisip
                             </button>
                             <button type="button" onClick={() => copyImportMedia(m)} title="Salin link"
-                              className="rounded-md bg-slate-100 p-1.5 text-slate-500 transition-colors hover:bg-slate-200">
+                              className="bg-[#f1f3f4] p-1.5 text-[#5f6368] transition-colors hover:bg-[#e8eaed]">
                               <Copy size={12} />
                             </button>
                             <button type="button" onClick={() => removeImportMedia(i)} title="Hapus media ini"
-                              className="rounded-md bg-red-50 p-1.5 text-red-500 transition-colors hover:bg-red-100">
+                              className="bg-[#fce8e6] p-1.5 text-[#d93025] transition-colors hover:bg-[#f6d7d5]">
                               <X size={12} />
                             </button>
                           </div>
@@ -5393,49 +5365,49 @@ const visibleBatches = filterCabang
                 </div>
                 <textarea ref={importTextRef} value={importText} onChange={e => onImportTextChange(e.target.value)}
                   rows={20} placeholder={'## Vocabulary\n[Arti kata "watashi" adalah...]\n*a. saya\nb. kamu\nc. dia\nd. kami   [2 poin]\n\n[A：ぼくは (student) です。\nB： benar!]\na. teacher\nb. student\n*c. sensei\nd. gakusei   [5 poin]'}
-                  className="mt-2.5 w-full min-h-[300px] lg:min-h-[40vh] max-h-[62vh] px-3.5 py-3 border border-slate-200 rounded-md text-[13px] leading-relaxed font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-slate-50/50" />
+                  className="mt-2.5 w-full min-h-[300px] lg:min-h-[40vh] max-h-[62vh] px-3.5 py-3 border border-[#dadce0] text-[13px] leading-relaxed font-mono resize-y focus:outline-none  focus:border-[#1a73e8] #f8f9fa-\[#f8f9fa\]" />
 
                 {/* PANDUAN */}
-                <details className="mt-3 rounded-md border border-amber-200 bg-amber-50/60 p-3 group">
-                  <summary className="flex items-center gap-1.5 text-xs font-bold text-amber-800 cursor-pointer select-none list-none">
+                <details className="mt-3 border border-[#fdd663] #fef7e0-\[#fef7e0\] p-3 group">
+                  <summary className="flex items-center gap-1.5 text-xs font-bold text-[#b06000] cursor-pointer select-none list-none">
                     <FileText size={13} /> Panduan Penulisan
                     <ChevronDown size={13} className="ml-auto transition-transform group-open:rotate-180" />
                   </summary>
-                  <ul className="mt-2 space-y-1.5 text-[11px] leading-relaxed text-amber-900/90">
+                  <ul className="mt-2 space-y-1.5 text-[11px] leading-relaxed text-[#b06000]">
                     <li className="flex gap-1.5">
-                      <span className="text-amber-500 font-bold">&bull;</span>
+                      <span className="text-[#e37400] font-bold">&bull;</span>
                       <span><span className="font-mono font-semibold">## Nama bagian</span> untuk mengelompokkan soal (opsional)</span>
                     </li>
                     <li className="flex gap-1.5">
-                      <span className="text-amber-500 font-bold">&bull;</span>
+                      <span className="text-[#e37400] font-bold">&bull;</span>
                       <span>Opsi diawali <span className="font-mono font-semibold">a.</span> / <span className="font-mono font-semibold">b.</span> / <span className="font-mono font-semibold">c.</span> dst, beri <span className="font-mono font-semibold">*</span> di depan opsi yang benar</span>
                     </li>
                     <li className="flex gap-1.5">
-                      <span className="text-amber-500 font-bold">&bull;</span>
+                      <span className="text-[#e37400] font-bold">&bull;</span>
                       <span>Di akhir soal/opsi boleh gunakan <span className="font-mono font-semibold">[2 poin]</span> untuk bobot skor</span>
                     </li>
                     <li className="flex gap-1.5">
-                      <span className="text-amber-500 font-bold">&bull;</span>
+                      <span className="text-[#e37400] font-bold">&bull;</span>
                       <span>Media soal: <span className="font-mono font-semibold">[gambar:URL]</span>, <span className="font-mono font-semibold">[audio:URL]</span>, dan <span className="font-mono font-semibold">[maks:2]</span> untuk batas putar audio</span>
                     </li>
                     <li className="flex gap-1.5">
-                      <span className="text-amber-500 font-bold">&bull;</span>
+                      <span className="text-[#e37400] font-bold">&bull;</span>
                       <span>Upload Gambar/Audio hanya menyimpan file &mdash; link-nya muncul di kotak <span className="font-semibold">Media Terunggah</span>. Tekan <span className="font-semibold">Sisip</span> untuk menempel tag ke posisi kursor, atau <span className="font-semibold">Salin</span> untuk menyalin link</span>
                     </li>
                     <li className="flex gap-1.5">
-                      <span className="text-amber-500 font-bold">&bull;</span>
+                      <span className="text-[#e37400] font-bold">&bull;</span>
                       <span><span className="font-mono font-semibold">[isi soal]</span> &mdash; paling aman untuk soal panjang/dialog. Stem ditulis dalam kurung siku, boleh beberapa baris sampai penutup <span className="font-mono font-semibold">]</span>, selalu memulai soal baru</span>
                     </li>
                     <li className="flex gap-1.5">
-                      <span className="text-amber-500 font-bold">&bull;</span>
+                      <span className="text-[#e37400] font-bold">&bull;</span>
                       <span>Tanpa kurung siku pun aman: selama opsi belum dimulai, baris berikutnya digabung ke stem soal yang sama</span>
                     </li>
                     <li className="flex gap-1.5">
-                      <span className="text-amber-500 font-bold">&bull;</span>
+                      <span className="text-[#e37400] font-bold">&bull;</span>
                       <span>Opsi diawali a. / b. / c. dst, beri * di depan opsi yang benar</span>
                     </li>
                     <li className="flex gap-1.5">
-                      <span className="text-amber-500 font-bold">&bull;</span>
+                      <span className="text-[#e37400] font-bold">&bull;</span>
                       <span>Bisa juga tempel dari Excel/Google Sheets: <span className="font-mono font-semibold">soal [TAB] opsiA [TAB] opsiB [TAB] opsiC [TAB] kunci [TAB] bagian [TAB] bobot</span></span>
                     </li>
                   </ul>
@@ -5444,41 +5416,41 @@ const visibleBatches = filterCabang
 
               {/* STEP 3 */}
               {importParse.length > 0 && (
-                <div className="rounded-md border border-slate-200 p-4">
+                <div className="border border-[#dadce0] p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                     <div className="flex items-start gap-3">
-                      <span className="w-6 h-6 shrink-0 rounded-md bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">3</span>
+                      <span className="w-6 h-6 shrink-0 bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">3</span>
                       <div>
-                        <h4 className="text-sm font-semibold text-slate-800 leading-tight">Pratinjau Soal</h4>
-                        <p className="text-xs text-slate-500 mt-0.5">Periksa dulu sebelum disimpan &middot; jenis: {typeLabel}</p>
+                        <h4 className="text-sm font-semibold text-[#202124] leading-tight">Pratinjau Soal</h4>
+                        <p className="text-xs text-[#5f6368] mt-0.5">Periksa dulu sebelum disimpan &middot; jenis: {typeLabel}</p>
                       </div>
                     </div>
-                    <span className="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-[#0E6187]/10 text-[#0E6187] px-2.5 py-1.5 text-xs font-bold">
+                    <span className="shrink-0 inline-flex items-center gap-1.5 bgbg-[#f1f3f4] text-[#1a73e8] px-2.5 py-1.5 text-xs font-bold">
                       <ListChecks size={13} /> {importParse.length} soal
                     </span>
                   </div>
 
                   <div className="space-y-2 max-h-[30vh] overflow-y-auto pr-1">
                     {importParse.map((q, i) => (
-                      <div key={i} className="flex items-start gap-2.5 border border-slate-200 rounded-md px-3 py-2.5 bg-white hover:border-slate-300 transition-colors">
-                        <span className="w-6 h-6 flex items-center justify-center rounded-md bg-[#0E6187] text-white text-[11px] font-bold shrink-0">{i + 1}</span>
+                      <div key={i} className="flex items-start gap-2.5 border border-[#dadce0] px-3 py-2.5 bg-white hover:border-[#dadce0] transition-colors">
+                        <span className="w-6 h-6 flex items-center justify-center bg-[#0E6187] text-white text-[11px] font-bold shrink-0">{i + 1}</span>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[11px] font-bold text-[#0E6187] bg-[#0E6187]/5 px-1.5 py-0.5 rounded-md">{q.section || 'Tanpa bagian'}</span>
-                            {q.image_path && <span className="text-[11px] font-bold text-violet-700 bg-violet-50 px-1.5 py-0.5 rounded-md">Gambar</span>}
-                            {q.audio_path && <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-md">Audio{q.audio_max_plays ? ` · ${q.audio_max_plays}x` : ''}</span>}
-                            <span className="text-[11px] font-semibold text-slate-400">{q.points} poin</span>
+                            <span className="text-[11px] font-bold text-[#1a73e8] bgbg-[#f8f9fa] px-1.5 py-0.5">{q.section || 'Tanpa bagian'}</span>
+                            {q.image_path && <span className="text-[11px] font-bold text-[#7627bb] bg-[#f3e8fd] px-1.5 py-0.5">Gambar</span>}
+                            {q.audio_path && <span className="text-[11px] font-bold text-[#b06000] bg-[#fef7e0] px-1.5 py-0.5">Audio{q.audio_max_plays ? ` · ${q.audio_max_plays}x` : ''}</span>}
+                            <span className="text-[11px] font-semibold text-[#80868b]">{q.points} poin</span>
                           </div>
-                          <p className="text-sm font-semibold text-slate-800 mt-1 line-clamp-2">{q.question || '(tanpa teks)'}</p>
+                          <p className="text-sm font-semibold text-[#202124] mt-1 line-clamp-2">{q.question || '(tanpa teks)'}</p>
                           {q.image_path && (
                             <img src={mediaUrl(q.image_path)} alt="media soal"
-                              className="mt-2 max-h-40 rounded-md border border-slate-200 object-contain" />
+                              className="mt-2 max-h-40 border border-[#dadce0] object-contain" />
                           )}
                           {q.audio_path && (
                             <div className="mt-2 flex items-center gap-2">
                               <audio src={mediaUrl(q.audio_path)} controls className="h-8" />
                               {q.audio_max_plays && (
-                                <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-md">maks {q.audio_max_plays}x</span>
+                                <span className="text-[11px] font-semibold text-[#b06000] bg-[#fef7e0] px-1.5 py-0.5">maks {q.audio_max_plays}x</span>
                               )}
                             </div>
                           )}
@@ -5490,11 +5462,11 @@ const visibleBatches = filterCabang
                                   : q.correct_index === oi
                                 return (
                                 <span key={oi}
-                                  className={`flex items-center gap-1.5 text-[11px] px-1.5 py-0.5 rounded-md font-medium ${isKey ? 'bg-emerald-500 text-white font-bold' : 'bg-slate-100 text-slate-600'}`}>
+                                  className={`flex items-center gap-1.5 text-[11px] px-1.5 py-0.5 font-medium ${isKey ? 'bg-[#0E6187] text-white font-bold' : 'bg-[#f1f3f4] text-[#5f6368]'}`}>
                                   {String.fromCharCode(65 + oi)}.
                                   {o.image_path ? (
                                     <img src={mediaUrl(o.image_path)} alt={o.text || `opsi ${oi + 1}`}
-                                      className="h-7 w-7 object-cover rounded-md border border-slate-200" />
+                                      className="h-7 w-7 object-cover border border-[#dadce0]" />
                                   ) : (
                                     <span>{o.text}</span>
                                   )}
@@ -5505,7 +5477,7 @@ const visibleBatches = filterCabang
                           )}
                         </div>
                         <button type="button" onClick={() => removeImportQ(i)} title="Hapus soal ini"
-                          className="p-1.5 rounded-md bg-red-50 hover:bg-red-100 text-red-500 shrink-0 transition-colors">
+                          className="p-1.5 bg-[#fce8e6] hover:bg-[#f6d7d5] text-[#d93025] shrink-0 transition-colors">
                           <X size={14} />
                         </button>
                       </div>
@@ -5515,24 +5487,24 @@ const visibleBatches = filterCabang
               )}
 
               {importError && (
-                <p className="rounded-md bg-red-50 border border-red-200 px-3 py-2.5 text-sm font-semibold text-red-600">{importError}</p>
+                <p className="bg-[#fce8e6] border border-[#f28b82] px-3 py-2.5 text-sm font-semibold text-[#c5221f]">{importError}</p>
               )}
             </div>
 
             {/* FOOTER */}
-            <div className="px-5 py-3.5 border-t border-slate-200 bg-slate-50 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
-              <p className="text-xs text-slate-500 text-center sm:text-left">
+            <div className="px-5 py-3.5 border-t border-[#dadce0] bg-[#f8f9fa] flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
+              <p className="text-xs text-[#5f6368] text-center sm:text-left">
                 {importParse.length > 0
-                  ? <>Siap menyimpan <span className="font-bold text-slate-700">{importParse.length} soal</span> ({typeLabel})</>
+                  ? <>Siap menyimpan <span className="font-bold text-[#3c4043]">{importParse.length} soal</span> ({typeLabel})</>
                   : 'Belum ada soal yang terdeteksi'}
               </p>
               <div className="flex items-center gap-2">
                 <button onClick={() => setShowImportModal(false)}
-                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-md text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 transition-colors">
+                  className="flex-1 sm:flex-none px-4 py-2.5 text-sm font-semibold text-[#5f6368] bg-white border border-[#dadce0] hover:bg-[#f1f3f4] transition-colors">
                   Batal
                 </button>
                 <button onClick={saveImport} disabled={savingImport || importParse.length === 0}
-                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-white bg-[#0E6187] hover:bg-[#0E6187]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-[#0E6187] hover:bgbg-[#e8f0fe] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                   {savingImport ? <><Loader2 size={15} className="animate-spin" /> Menyimpan...</> : `Simpan ${importParse.length} Soal`}
                 </button>
               </div>
@@ -5544,11 +5516,11 @@ const visibleBatches = filterCabang
 
       {/* ==================== QUESTION MODAL ==================== */}
       {showQuestionModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-start justify-center pt-[6vh] pb-6 px-4 overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[88vh]">
+        <div className="fixed inset-0 #202124-\[#202124\] z-50 flex items-start justify-center pt-[6vh] pb-6 px-4 overflow-y-auto">
+          <div className="border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-3xl overflow-hidden flex flex-col max-h-[88vh]">
             <div className="bg-[#0E6187] px-5 py-4 flex items-center justify-between gap-3 shrink-0">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-md bg-white/15 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 bg-white/15 flex items-center justify-center shrink-0">
                   <ListChecks size={20} className="text-white" />
                 </div>
                 <div className="min-w-0">
@@ -5559,24 +5531,24 @@ const visibleBatches = filterCabang
                 </div>
               </div>
               <button onClick={() => setShowQuestionModal(false)}
-                className="p-1.5 rounded-md text-white/70 hover:text-white hover:bg-white/15 transition-colors shrink-0">
+                className="p-1.5 text-white/70 hover:text-white hover:bg-white/15 transition-colors shrink-0">
                 <X size={20} />
               </button>
             </div>
             <div className="p-5 space-y-4 overflow-y-auto flex-1">
               {/* STEP 1 */}
-              <div className="rounded-md border border-slate-200 p-4">
+              <div className="border border-[#dadce0] p-4">
                 <div className="flex items-start gap-3 mb-3">
-                  <span className="w-6 h-6 shrink-0 rounded-md bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">1</span>
+                  <span className="w-6 h-6 shrink-0 bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">1</span>
                   <div>
-                    <h4 className="text-sm font-semibold text-slate-800 leading-tight">Isi Soal</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">Tulis pertanyaan dan tentukan bagian / materi soalnya</p>
+                    <h4 className="text-sm font-semibold text-[#202124] leading-tight">Isi Soal</h4>
+                    <p className="text-xs text-[#5f6368] mt-0.5">Tulis pertanyaan dan tentukan bagian / materi soalnya</p>
                   </div>
                 </div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                  Pertanyaan <span className="text-slate-400 font-normal">(opsional, boleh kosong jika soal berupa gambar)</span>
+                <label className="block text-xs font-semibold text-[#5f6368] mb-1.5">
+                  Pertanyaan <span className="text-[#80868b] font-normal">(opsional, boleh kosong jika soal berupa gambar)</span>
                 </label>
-                <div className="rounded-md border border-slate-200 overflow-hidden bg-white [&_.ql-toolbar]:rounded-t-md [&_.ql-container]:rounded-b-md [&_.ql-editor]:min-h-[110px]">
+                <div className="border border-[#dadce0] overflow-hidden bg-white [&_.ql-editor]:min-h-[110px]">
                   <ReactQuill ref={questionQuillRef} value={qForm.question}
                     onChange={v => setQForm({ ...qForm, question: v })}
                     modules={questionQuillModules} formats={quillFormats} theme="snow"
@@ -5584,79 +5556,79 @@ const visibleBatches = filterCabang
                 </div>
 
                 <div className="flex items-center justify-between gap-2 mt-4 mb-1.5">
-                  <label className="block text-xs font-semibold text-slate-600">
-                    Bagian / Materi Soal <span className="text-slate-400 font-normal">(opsional)</span>
+                  <label className="block text-xs font-semibold text-[#5f6368]">
+                    Bagian / Materi Soal <span className="text-[#80868b] font-normal">(opsional)</span>
                   </label>
                   <button onClick={openSectionManager} type="button"
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0E6187] hover:bg-[#0E6187]/10 px-2 py-1 rounded-md transition-colors">
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1a73e8] hover:bgbg-[#f1f3f4] px-2 py-1 transition-colors">
                     <Settings2 size={12} /> Kelola bagian
                   </button>
                 </div>
                 <select value={qForm.section_id} onChange={e => setQForm({ ...qForm, section_id: e.target.value })}
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-white">
+                  className="w-full px-3.5 py-2.5 border border-[#dadce0] text-sm focus:outline-none  focus:border-[#1a73e8] bg-white">
                   <option value="">Tanpa bagian</option>
                   {quizSections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
-                <p className="text-[11px] text-slate-400 mt-1.5">Contoh: Vocabulary, Grammar, Reading, Listening, Conversation</p>
+                <p className="text-[11px] text-[#80868b] mt-1.5">Contoh: Vocabulary, Grammar, Reading, Listening, Conversation</p>
               </div>
               {/* STEP 2 */}
-              <div className="rounded-md border border-slate-200 p-4">
+              <div className="border border-[#dadce0] p-4">
                 <div className="flex items-start gap-3 mb-3">
-                  <span className="w-6 h-6 shrink-0 rounded-md bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">2</span>
+                  <span className="w-6 h-6 shrink-0 bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">2</span>
                   <div>
-                    <h4 className="text-sm font-semibold text-slate-800 leading-tight">Media Soal <span className="text-xs text-slate-400 font-normal">(opsional)</span></h4>
-                    <p className="text-xs text-slate-500 mt-0.5">Lampirkan gambar atau rekaman suara pendukung soal</p>
+                    <h4 className="text-sm font-semibold text-[#202124] leading-tight">Media Soal <span className="text-xs text-[#80868b] font-normal">(opsional)</span></h4>
+                    <p className="text-xs text-[#5f6368] mt-0.5">Lampirkan gambar atau rekaman suara pendukung soal</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className={`rounded-md border border-slate-200 p-3 ${qForm.image_path ? 'bg-slate-50' : ''}`}>
+                  <div className={`border border-[#dadce0] p-3 ${qForm.image_path ? 'bg-[#f8f9fa]' : ''}`}>
                     <div className="flex items-center gap-2 mb-2">
-                      <ImageIcon size={14} className="text-violet-600" />
-                      <span className="text-xs font-semibold text-slate-600">Gambar Soal</span>
+                      <ImageIcon size={14} className="text-[#7627bb]" />
+                      <span className="text-xs font-semibold text-[#5f6368]">Gambar Soal</span>
                     </div>
                     {qForm.image_url ? (
                       <div className="relative">
                         <img src={qForm.image_url} alt="Pra-preview"
-                          className="w-full h-28 object-contain bg-white border border-slate-200 rounded-md" />
+                          className="w-full h-28 object-contain bg-white border border-[#dadce0]" />
                         <button onClick={() => setQForm({ ...qForm, image_path: '', image_url: '' })}
-                          className="absolute top-1.5 right-1.5 p-1 rounded-md bg-red-500 text-white hover:bg-red-600 transition-colors" title="Hapus gambar">
+                          className="absolute top-1.5 right-1.5 p-1 bg-[#d93025] text-white hover:bg-[#c5221f] transition-colors" title="Hapus gambar">
                           <X size={12} />
                         </button>
                       </div>
                     ) : (
-                      <label className={`flex flex-col items-center justify-center gap-1 h-28 rounded-md border border-dashed border-slate-300 cursor-pointer hover:bg-violet-50 hover:border-violet-400 transition-colors ${uploadingQMedia === 'image' ? 'opacity-50 pointer-events-none' : ''}`}>
-                        {uploadingQMedia === 'image' ? <Loader2 size={18} className="animate-spin text-[#0E6187]" /> : <UploadCloud size={18} className="text-slate-400" />}
-                        <span className="text-[11px] font-semibold text-slate-500">{uploadingQMedia === 'image' ? 'Mengunggah...' : 'Pilih gambar'}</span>
+                      <label className={`flex flex-col items-center justify-center gap-1 h-28 border border-dashed border-[#dadce0] cursor-pointer hover:bg-[#f3e8fd] hover:border-[#8430ce] transition-colors ${uploadingQMedia === 'image' ? 'opacity-50 pointer-events-none' : ''}`}>
+                        {uploadingQMedia === 'image' ? <Loader2 size={18} className="animate-spin text-[#1a73e8]" /> : <UploadCloud size={18} className="text-[#80868b]" />}
+                        <span className="text-[11px] font-semibold text-[#5f6368]">{uploadingQMedia === 'image' ? 'Mengunggah...' : 'Pilih gambar'}</span>
                         <input type="file" accept="image/*" className="hidden" disabled={!!uploadingQMedia}
                           onChange={e => { uploadQuestionMedia(e.target.files?.[0], 'image'); e.target.value = '' }} />
                       </label>
                     )}
                   </div>
-                  <div className={`rounded-md border border-slate-200 p-3 ${qForm.audio_path ? 'bg-slate-50' : ''}`}>
+                  <div className={`border border-[#dadce0] p-3 ${qForm.audio_path ? 'bg-[#f8f9fa]' : ''}`}>
                     <div className="flex items-center gap-2 mb-2">
-                      <Mic size={14} className="text-amber-600" />
-                      <span className="text-xs font-semibold text-slate-600">Suara Soal</span>
+                      <Mic size={14} className="text-[#b06000]" />
+                      <span className="text-xs font-semibold text-[#5f6368]">Suara Soal</span>
                     </div>
                     {qForm.audio_url ? (
                       <div className="space-y-2">
                         <audio src={qForm.audio_url} controls className="w-full h-9" />
-                        <label className="text-[11px] font-medium text-slate-600 block mb-1 flex items-center gap-1">
-                          <Repeat size={11} /> Maksimal putar <span className="text-slate-400 font-normal">(kali mendengarkan)</span>
+                        <label className="text-[11px] font-medium text-[#5f6368] block mb-1 flex items-center gap-1">
+                          <Repeat size={11} /> Maksimal putar <span className="text-[#80868b] font-normal">(kali mendengarkan)</span>
                         </label>
                         <div className="flex items-center gap-2">
                           <input type="number" min={1} max={99} value={qForm.audio_max_plays}
                             onChange={e => setQForm({ ...qForm, audio_max_plays: e.target.value })}
-                            className="w-24 px-3.5 py-2.5 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-white" />
+                            className="w-24 px-3.5 py-2.5 border border-[#dadce0] text-sm focus:outline-none  focus:border-[#1a73e8] bg-white" />
                           <button onClick={() => setQForm({ ...qForm, audio_path: '', audio_url: '', audio_max_plays: '2' })}
-                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-500 hover:bg-red-50 px-2 py-1.5 rounded-md transition-colors">
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#d93025] hover:bg-[#fce8e6] px-2 py-1.5 transition-colors">
                             <Trash2 size={11} /> Hapus
                           </button>
                         </div>
                       </div>
                     ) : (
-                      <label className={`flex flex-col items-center justify-center gap-1 h-28 rounded-md border border-dashed border-slate-300 cursor-pointer hover:bg-amber-50 hover:border-amber-400 transition-colors ${uploadingQMedia === 'audio' ? 'opacity-50 pointer-events-none' : ''}`}>
-                        {uploadingQMedia === 'audio' ? <Loader2 size={18} className="animate-spin text-[#0E6187]" /> : <UploadCloud size={18} className="text-slate-400" />}
-                        <span className="text-[11px] font-semibold text-slate-500">{uploadingQMedia === 'audio' ? 'Mengunggah...' : 'Pilih audio (MP3/WAV/MP4)'}</span>
+                      <label className={`flex flex-col items-center justify-center gap-1 h-28 border border-dashed border-[#dadce0] cursor-pointer hover:bg-[#fef7e0] hover:border-[#f9ab00] transition-colors ${uploadingQMedia === 'audio' ? 'opacity-50 pointer-events-none' : ''}`}>
+                        {uploadingQMedia === 'audio' ? <Loader2 size={18} className="animate-spin text-[#1a73e8]" /> : <UploadCloud size={18} className="text-[#80868b]" />}
+                        <span className="text-[11px] font-semibold text-[#5f6368]">{uploadingQMedia === 'audio' ? 'Mengunggah...' : 'Pilih audio (MP3/WAV/MP4)'}</span>
                         <input type="file" accept={QUESTION_AUDIO_ACCEPT} className="hidden" disabled={!!uploadingQMedia}
                           onChange={e => { uploadQuestionMedia(e.target.files?.[0], 'audio'); e.target.value = '' }} />
                       </label>
@@ -5665,80 +5637,80 @@ const visibleBatches = filterCabang
                 </div>
               </div>
               {/* STEP 3 */}
-              <div className="rounded-md border border-slate-200 p-4">
+              <div className="border border-[#dadce0] p-4">
                 <div className="flex items-start gap-3 mb-3">
-                  <span className="w-6 h-6 shrink-0 rounded-md bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">3</span>
+                  <span className="w-6 h-6 shrink-0 bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">3</span>
                   <div>
-                    <h4 className="text-sm font-semibold text-slate-800 leading-tight">Tipe Jawaban</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">Tentukan format jawaban yang dicari dari kandidat</p>
+                    <h4 className="text-sm font-semibold text-[#202124] leading-tight">Tipe Jawaban</h4>
+                    <p className="text-xs text-[#5f6368] mt-0.5">Tentukan format jawaban yang dicari dari kandidat</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                   <button type="button" onClick={() => setQForm({ ...qForm, question_type: 'choice' })}
-                    className={`relative flex items-center gap-2.5 border rounded-md px-3.5 py-3 text-left transition-colors ${qForm.question_type === 'choice' ? 'border-[#0E6187] bg-[#0E6187]/5 ring-1 ring-[#0E6187]/20' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
-                    <span className={`w-9 h-9 flex items-center justify-center rounded-md text-xs font-bold shrink-0 ${qForm.question_type === 'choice' ? 'bg-[#0E6187] text-white' : 'bg-slate-100 text-slate-500'}`}>A/B/C</span>
+                    className={`relative flex items-center gap-2.5 border px-3.5 py-3 text-left transition-colors ${qForm.question_type === 'choice' ? 'border-[#1a73e8] bgbg-[#f8f9fa] ring-1 ring-[#1a73e8]' : 'border-[#dadce0] text-[#5f6368] hover:border-[#dadce0]'}`}>
+                    <span className={`w-9 h-9 flex items-center justify-center text-xs font-bold shrink-0 ${qForm.question_type === 'choice' ? 'bg-[#0E6187] text-white' : 'bg-[#f1f3f4] text-[#5f6368]'}`}>A/B/C</span>
                     <span>
-                      <span className="block text-sm font-semibold text-slate-700">Pilihan Ganda</span>
-                      <span className="block text-[11px] text-slate-400 mt-0.5 leading-snug">Satu kunci jawaban</span>
+                      <span className="block text-sm font-semibold text-[#3c4043]">Pilihan Ganda</span>
+                      <span className="block text-[11px] text-[#80868b] mt-0.5 leading-snug">Satu kunci jawaban</span>
                     </span>
                   </button>
                   <button type="button" onClick={() => setQForm({ ...qForm, question_type: 'multi' })}
-                    className={`relative flex items-center gap-2.5 border rounded-md px-3.5 py-3 text-left transition-colors ${qForm.question_type === 'multi' ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500/20' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
-                    <span className={`w-9 h-9 flex items-center justify-center rounded-md text-[10px] font-bold shrink-0 ${qForm.question_type === 'multi' ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500'}`}>A/B/C+</span>
+                    className={`relative flex items-center gap-2.5 border px-3.5 py-3 text-left transition-colors ${qForm.question_type === 'multi' ? 'border-[#188038] bg-[#e6f4ea] ring-1 ring-[#188038]' : 'border-[#dadce0] text-[#5f6368] hover:border-[#dadce0]'}`}>
+                    <span className={`w-9 h-9 flex items-center justify-center text-[10px] font-bold shrink-0 ${qForm.question_type === 'multi' ? 'bg-[#0E6187] text-white' : 'bg-[#f1f3f4] text-[#5f6368]'}`}>A/B/C+</span>
                     <span>
-                      <span className="block text-sm font-semibold text-slate-700">Pilihan Ganda (Multi)</span>
-                      <span className="block text-[11px] text-slate-400 mt-0.5 leading-snug">Kunci boleh lebih dari satu</span>
+                      <span className="block text-sm font-semibold text-[#3c4043]">Pilihan Ganda (Multi)</span>
+                      <span className="block text-[11px] text-[#80868b] mt-0.5 leading-snug">Kunci boleh lebih dari satu</span>
                     </span>
                   </button>
                   <button type="button" onClick={() => setQForm({ ...qForm, question_type: 'rating' })}
-                    className={`relative flex items-center gap-2.5 border rounded-md px-3.5 py-3 text-left transition-colors ${qForm.question_type === 'rating' ? 'border-violet-500 bg-violet-50 ring-1 ring-violet-500/20' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
-                    <span className={`w-9 h-9 flex items-center justify-center rounded-md text-xs font-bold shrink-0 ${qForm.question_type === 'rating' ? 'bg-violet-500 text-white' : 'bg-slate-100 text-slate-500'}`}>1-9</span>
+                    className={`relative flex items-center gap-2.5 border px-3.5 py-3 text-left transition-colors ${qForm.question_type === 'rating' ? 'border-[#8430ce] bg-[#f3e8fd] ring-1 ring-[#8430ce]' : 'border-[#dadce0] text-[#5f6368] hover:border-[#dadce0]'}`}>
+                    <span className={`w-9 h-9 flex items-center justify-center text-xs font-bold shrink-0 ${qForm.question_type === 'rating' ? 'bg-[#8430ce] text-white' : 'bg-[#f1f3f4] text-[#5f6368]'}`}>1-9</span>
                     <span>
-                      <span className="block text-sm font-semibold text-slate-700">Skala Rating</span>
-                      <span className="block text-[11px] text-slate-400 mt-0.5 leading-snug">Nilai bebas 1-{qForm.rating_max} tanpa kunci</span>
+                      <span className="block text-sm font-semibold text-[#3c4043]">Skala Rating</span>
+                      <span className="block text-[11px] text-[#80868b] mt-0.5 leading-snug">Nilai bebas 1-{qForm.rating_max} tanpa kunci</span>
                     </span>
                   </button>
                   <button type="button" onClick={() => setQForm({ ...qForm, question_type: 'essay' })}
-                    className={`relative flex items-center gap-2.5 border rounded-md px-3.5 py-3 text-left transition-colors ${qForm.question_type === 'essay' ? 'border-amber-500 bg-amber-50 ring-1 ring-amber-500/20' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
-                    <span className={`w-9 h-9 flex items-center justify-center rounded-md text-xs font-bold shrink-0 ${qForm.question_type === 'essay' ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-500'}`}>TEXT</span>
+                    className={`relative flex items-center gap-2.5 border px-3.5 py-3 text-left transition-colors ${qForm.question_type === 'essay' ? 'border-[#e37400] bg-[#fef7e0] ring-1 ring-[#e37400]' : 'border-[#dadce0] text-[#5f6368] hover:border-[#dadce0]'}`}>
+                    <span className={`w-9 h-9 flex items-center justify-center text-xs font-bold shrink-0 ${qForm.question_type === 'essay' ? 'bg-[#e37400] text-white' : 'bg-[#f1f3f4] text-[#5f6368]'}`}>TEXT</span>
                     <span>
-                      <span className="block text-sm font-semibold text-slate-700">Esai / Uraian</span>
-                      <span className="block text-[11px] text-slate-400 mt-0.5 leading-snug">Jawaban teks, nilai via kunci</span>
+                      <span className="block text-sm font-semibold text-[#3c4043]">Esai / Uraian</span>
+                      <span className="block text-[11px] text-[#80868b] mt-0.5 leading-snug">Jawaban teks, nilai via kunci</span>
                     </span>
                   </button>
                 </div>
 
                 <div className="mt-4">
                   {qForm.question_type === 'rating' ? (
-                    <div className="rounded-md border border-violet-200 bg-violet-50/50 p-3">
-                      <label className="block text-xs font-semibold text-slate-700 mb-2">Skala Penilaian <span className="text-red-500">*</span></label>
+                    <div className="border border-[#e8def8] #f3e8fd-\[#f3e8fd\] p-3">
+                      <label className="block text-xs font-semibold text-[#3c4043] mb-2">Skala Penilaian <span className="text-[#d93025]">*</span></label>
                       <div className="flex items-center gap-4 flex-wrap">
                         <input type="number" min={2} max={10} value={qForm.rating_max}
                           onChange={e => setQForm({ ...qForm, rating_max: e.target.value })}
-                          className="w-[110px] px-3.5 py-2.5 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 bg-white" />
+                          className="w-[110px] px-3.5 py-2.5 border border-[#dadce0] text-sm focus:outline-none focus:border-[#1a73e8] focus:ring-[#8430ce] focus:border-[#8430ce] bg-white" />
                         <div className="flex gap-1.5 flex-wrap">
                           {Array.from({ length: Math.min(10, Math.max(2, Number(qForm.rating_max) || 9)) }, (_, i) => (
-                            <span key={i} className="w-8 h-8 flex items-center justify-center rounded-md bg-white border border-violet-200 text-sm font-bold text-violet-600">
+                            <span key={i} className="w-8 h-8 flex items-center justify-center bg-white border border-[#e8def8] text-sm font-bold text-[#7627bb]">
                               {i + 1}
                             </span>
                           ))}
                         </div>
                       </div>
-                      <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">Kandidat memilih nilai 1 sampai {Math.min(10, Math.max(2, Number(qForm.rating_max) || 9))}. Jawaban bersifat penilaian bebas (tidak ada benar/salah), poin penuh diberikan jika diisi.</p>
+                      <p className="text-[11px] text-[#5f6368] mt-2 leading-relaxed">Kandidat memilih nilai 1 sampai {Math.min(10, Math.max(2, Number(qForm.rating_max) || 9))}. Jawaban bersifat penilaian bebas (tidak ada benar/salah), poin penuh diberikan jika diisi.</p>
                     </div>
                   ) : qForm.question_type === 'essay' ? (
-                    <div className="rounded-md border border-amber-200 bg-amber-50/50 p-3">
-                      <label className="block text-xs font-semibold text-slate-700 mb-2">Kunci Jawaban <span className="text-slate-400 font-normal">(opsional)</span></label>
+                    <div className="border border-[#fdd663] #fef7e0-\[#fef7e0\] p-3">
+                      <label className="block text-xs font-semibold text-[#3c4043] mb-2">Kunci Jawaban <span className="text-[#80868b] font-normal">(opsional)</span></label>
                       <textarea value={qForm.keyword} onChange={e => setQForm({ ...qForm, keyword: e.target.value })}
                         placeholder="Contoh: karena, transportasi umum, 1847"
                         rows={2}
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-md text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 bg-white" />
-                      <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">Jika diisi, jawaban siswa yang mengandung kata kunci otomatis diberi poin penuh saat submit. Jika dikosongkan, jawaban menunggu penilaian manual.</p>
+                        className="w-full px-3.5 py-2.5 border border-[#dadce0] text-sm resize-none focus:outline-none focus:border-[#1a73e8] focus:ring-[#e37400] focus:border-[#e37400] bg-white" />
+                      <p className="text-[11px] text-[#5f6368] mt-2 leading-relaxed">Jika diisi, jawaban siswa yang mengandung kata kunci otomatis diberi poin penuh saat submit. Jika dikosongkan, jawaban menunggu penilaian manual.</p>
                     </div>
                   ) : (
-                    <div className="rounded-md border border-slate-200 p-3">
+                    <div className="border border-[#dadce0] p-3">
                       <div className="flex items-center justify-between gap-2 mb-2">
-                        <label className="block text-xs font-semibold text-slate-700">Opsi Jawaban <span className="text-red-500">* (min 2)</span></label>
+                        <label className="block text-xs font-semibold text-[#3c4043]">Opsi Jawaban <span className="text-[#d93025]">* (min 2)</span></label>
                         {(() => {
                           const isMultiType = qForm.question_type === 'multi'
                           const validKeys = isMultiType
@@ -5746,8 +5718,8 @@ const visibleBatches = filterCabang
                             : (qOptions.some((o, i) => qForm.correct_index === String(i) && (o.text.trim() || o.image_path)) ? [Number(qForm.correct_index)] : [])
                           const hasKey = validKeys.length > 0
                           return (
-                            <span className={`shrink-0 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-bold ${hasKey ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
-                              <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                            <span className={`shrink-0 inline-flex items-center gap-1.5 px-2 py-1 text-[11px] font-bold ${hasKey ? 'bg-[#e6f4ea] text-[#137333]' : 'bg-[#fef7e0] text-[#b06000]'}`}>
+                              <span className="w-1.5 h-1.5 bg-current" />
                               {isMultiType ? 'Kunci' : 'Kunci'}: {hasKey ? validKeys.map(i => String.fromCharCode(65 + i)).join(', ') : 'belum dipilih'}
                             </span>
                           )
@@ -5770,22 +5742,22 @@ const visibleBatches = filterCabang
                           }
                           return (
                           <div key={oi}
-                            className={`flex items-center gap-2 rounded-md border px-2 py-1.5 transition-colors ${isKey ? 'border-emerald-300 bg-emerald-50/50' : 'border-slate-200 bg-white'}`}>
+                            className={`flex items-center gap-2 border px-2 py-1.5 transition-colors ${isKey ? 'border-[#a8dab5] #e6f4ea-\[#e6f4ea\]' : 'border-[#dadce0] bg-white'}`}>
                             <button onClick={toggleKey}
                               title={isMultiType ? 'Tandai/lepas jawaban benar' : 'Tandai sebagai jawaban benar'}
-                              className={`w-7 h-7 shrink-0 flex items-center justify-center border-2 text-xs font-bold transition-colors ${isMultiType ? 'rounded-md' : 'rounded-full'} ${isKey ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-200 text-slate-400 hover:border-[#0E6187] hover:text-[#0E6187]'}`}>
+                              className={`w-7 h-7 shrink-0 flex items-center justify-center border-2 text-xs font-bold transition-colors ${isMultiType ? '' : ''} ${isKey ? 'border-[#188038] bg-[#0E6187] text-white' : 'border-[#dadce0] text-[#80868b] hover:border-[#1a73e8] hover:text-[#1a73e8]'}`}>
                               {String.fromCharCode(65 + oi)}
                             </button>
                             <input value={opt.text} onChange={e => { const arr = [...qOptions]; arr[oi] = { ...arr[oi], text: e.target.value }; setQOptions(arr) }}
                               placeholder={opt.image_path ? `Opsi ${String.fromCharCode(65 + oi)} (gambar)` : `Opsi ${String.fromCharCode(65 + oi)}`}
-                              className="flex-1 min-w-0 px-3 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-white" />
+                              className="flex-1 min-w-0 px-3 py-2 border border-[#dadce0] text-sm focus:outline-none  focus:border-[#1a73e8] bg-white" />
                             <div className="relative shrink-0 h-9 w-9">
                               <label title="Unggah gambar jawaban"
-                                className={`w-9 h-9 flex items-center justify-center rounded-md border transition-colors cursor-pointer ${opt.image_path ? 'border-transparent' : 'border-slate-200 bg-slate-50 hover:border-[#0E6187] hover:text-[#0E6187] text-slate-400'} ${uploadingOptImg === oi ? 'opacity-50 pointer-events-none' : ''}`}>
+                                className={`w-9 h-9 flex items-center justify-center border transition-colors cursor-pointer ${opt.image_path ? 'border-transparent' : 'border-[#dadce0] bg-[#f8f9fa] hover:border-[#1a73e8] hover:text-[#1a73e8] text-[#80868b]'} ${uploadingOptImg === oi ? 'opacity-50 pointer-events-none' : ''}`}>
                                 {uploadingOptImg === oi
-                                  ? <Loader2 size={14} className="animate-spin text-[#0E6187]" />
+                                  ? <Loader2 size={14} className="animate-spin text-[#1a73e8]" />
                                   : opt.image_path
-                                    ? <img src={opt.image_url || ''} className="w-9 h-9 rounded-md object-cover" alt={`Opsi ${String.fromCharCode(65 + oi)}`} />
+                                    ? <img src={opt.image_url || ''} className="w-9 h-9 object-cover" alt={`Opsi ${String.fromCharCode(65 + oi)}`} />
                                     : <ImageIcon size={14} />}
                                 <input type="file" accept="image/*" className="hidden" disabled={uploadingOptImg !== null}
                                   onChange={e => { uploadOptionImage(e.target.files?.[0], oi); e.target.value = '' }} />
@@ -5793,7 +5765,7 @@ const visibleBatches = filterCabang
                               {opt.image_path && (
                                 <button onClick={() => setQOptions(prev => prev.map((o, i) => i === oi ? { ...o, image_path: null, image_url: null } : o))}
                                   title="Hapus gambar opsi"
-                                  className="absolute -top-1.5 -right-1.5 w-5 h-5 flex items-center justify-center rounded-md bg-red-500 text-white shadow">
+                                  className="absolute -top-1.5 -right-1.5 w-5 h-5 flex items-center justify-center bg-[#d93025] text-white">
                                   <X size={11} />
                                 </button>
                               )}
@@ -5804,7 +5776,7 @@ const visibleBatches = filterCabang
                                 const cur = qForm.correct_indexes || []
                                 setQForm({ ...qForm, correct_indexes: cur.filter(i => i !== oi).map(i => i > oi ? i - 1 : i) })
                               }} title="Hapus opsi"
-                                className="p-1.5 rounded-md text-red-400 hover:bg-red-50 hover:text-red-500 shrink-0 transition-colors">
+                                className="p-1.5 text-[#d93025] hover:bg-[#fce8e6] hover:text-[#d93025] shrink-0 transition-colors">
                                 <X size={14} />
                               </button>
                             )}
@@ -5814,14 +5786,14 @@ const visibleBatches = filterCabang
                       </div>
                       {qOptions.length < 6 && (
                         <button onClick={() => setQOptions([...qOptions, { text: '', image_path: null, image_url: null }])}
-                          className="mt-2 w-full py-2 flex items-center justify-center gap-1.5 text-xs font-semibold text-[#0E6187] bg-[#0E6187]/5 hover:bg-[#0E6187]/10 border border-dashed border-[#0E6187]/40 rounded-md transition-colors">
+                          className="mt-2 w-full py-2 flex items-center justify-center gap-1.5 text-xs font-semibold text-[#1a73e8] bgbg-[#f8f9fa] hover:bgbg-[#f1f3f4] border border-dashed border-[#1a73e8] transition-colors">
                           <Plus size={13} /> Tambah opsi
                         </button>
                       )}
-                      <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
+                      <p className="text-[11px] text-[#5f6368] mt-2 leading-relaxed">
                         {qForm.question_type === 'multi'
-                          ? <>Klik huruf <span className="font-bold text-emerald-600">A/B/C...</span> untuk menandai <span className="font-bold">satu atau lebih</span> kunci jawaban. Jawaban dinilai benar hanya bila pilihan kandidat sama persis dengan kunci. Klik ikon <span className="font-bold text-[#0E6187]">gambar</span> untuk menjadikan opsi berupa gambar.</>
-                          : <>Klik huruf <span className="font-bold text-emerald-600">A/B/C...</span> untuk menandai kunci jawaban. Klik ikon <span className="font-bold text-[#0E6187]">gambar</span> di kanan opsi untuk menjadikan opsi berupa gambar.</>}
+                          ? <>Klik huruf <span className="font-bold text-[#137333]">A/B/C...</span> untuk menandai <span className="font-bold">satu atau lebih</span> kunci jawaban. Jawaban dinilai benar hanya bila pilihan kandidat sama persis dengan kunci. Klik ikon <span className="font-bold text-[#1a73e8]">gambar</span> untuk menjadikan opsi berupa gambar.</>
+                          : <>Klik huruf <span className="font-bold text-[#137333]">A/B/C...</span> untuk menandai kunci jawaban. Klik ikon <span className="font-bold text-[#1a73e8]">gambar</span> di kanan opsi untuk menjadikan opsi berupa gambar.</>}
                       </p>
                     </div>
                   )}
@@ -5829,25 +5801,25 @@ const visibleBatches = filterCabang
               </div>
 
               {/* STEP 4 */}
-              <div className="rounded-md border border-slate-200 p-4">
+              <div className="border border-[#dadce0] p-4">
                 <div className="flex items-start gap-3 mb-3">
-                  <span className="w-6 h-6 shrink-0 rounded-md bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">4</span>
+                  <span className="w-6 h-6 shrink-0 bg-[#0E6187] text-white flex items-center justify-center text-xs font-bold">4</span>
                   <div>
-                    <h4 className="text-sm font-semibold text-slate-800 leading-tight">Bobot Skor</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">Poin yang didapat kandidat bila menjawab benar</p>
+                    <h4 className="text-sm font-semibold text-[#202124] leading-tight">Bobot Skor</h4>
+                    <p className="text-xs text-[#5f6368] mt-0.5">Poin yang didapat kandidat bila menjawab benar</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <input type="number" min={1} value={qForm.points} onChange={e => setQForm({ ...qForm, points: e.target.value })}
-                    className="w-32 px-3.5 py-2.5 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187] bg-white" />
-                  <span className="inline-flex items-center gap-1.5 rounded-md bg-[#0E6187]/10 text-[#0E6187] px-2.5 py-1.5 text-xs font-bold">
+                    className="w-32 px-3.5 py-2.5 border border-[#dadce0] text-sm focus:outline-none  focus:border-[#1a73e8] bg-white" />
+                  <span className="inline-flex items-center gap-1.5 bgbg-[#f1f3f4] text-[#1a73e8] px-2.5 py-1.5 text-xs font-bold">
                     <Award size={13} /> {qForm.points || 0} poin
                   </span>
                 </div>
               </div>
             </div>
-            <div className="px-5 py-3.5 border-t border-slate-200 bg-slate-50 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
-              <p className="text-xs text-slate-500 text-center sm:text-left">
+            <div className="px-5 py-3.5 border-t border-[#dadce0] bg-[#f8f9fa] flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
+              <p className="text-xs text-[#5f6368] text-center sm:text-left">
                 {qForm.question_type === 'choice'
                   ? 'Pastikan kunci jawaban sudah ditandai pada salah satu opsi.'
                   : qForm.question_type === 'multi'
@@ -5858,11 +5830,11 @@ const visibleBatches = filterCabang
               </p>
               <div className="flex items-center gap-2">
                 <button onClick={() => setShowQuestionModal(false)}
-                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-md text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 transition-colors">
+                  className="flex-1 sm:flex-none px-4 py-2.5 text-sm font-semibold text-[#5f6368] bg-white border border-[#dadce0] hover:bg-[#f1f3f4] transition-colors">
                   Batal
                 </button>
                 <button onClick={saveQuestion} disabled={savingQuestion}
-                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-white bg-[#0E6187] hover:bg-[#0E6187]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-[#0E6187] hover:bgbg-[#e8f0fe] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                   {savingQuestion ? <><Loader2 size={15} className="animate-spin" /> Menyimpan...</> : editingQuestion ? 'Simpan Perubahan' : 'Tambah Soal'}
                 </button>
               </div>
@@ -5873,40 +5845,40 @@ const visibleBatches = filterCabang
 
       {/* ==================== SECTION LIST MODAL ==================== */}
       {showSectionListModal && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4" onClick={() => setShowSectionListModal(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center #202124-\[#202124\] p-4" onClick={() => setShowSectionListModal(false)}>
+          <div className="border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-[#dadce0] flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-slate-800">Kelola Bagian / Materi Soal</h3>
-                <p className="text-xs text-slate-400 mt-0.5">{activeQuizPaket?.title}</p>
+                <h3 className="font-semibold text-[#202124]">Kelola Bagian / Materi Soal</h3>
+                <p className="text-xs text-[#80868b] mt-0.5">{activeQuizPaket?.title}</p>
               </div>
-              <button onClick={() => setShowSectionListModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
-                <X size={20} className="text-slate-400" />
+              <button onClick={() => setShowSectionListModal(false)} className="p-1.5 hover:bg-[#f1f3f4] transition-colors">
+                <X size={20} className="text-[#80868b]" />
               </button>
             </div>
             <div className="p-5">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-semibold text-slate-500">{quizSections.length} bagian</p>
+                <p className="text-xs font-semibold text-[#5f6368]">{quizSections.length} bagian</p>
                 <button onClick={openAddSection}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#0E6187] text-white rounded-lg text-xs font-semibold hover:bg-[#0E6187]/90 transition-colors">
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#0E6187] text-white text-xs font-semibold hover:bgbg-[#e8f0fe] transition-colors">
                   <Plus size={13} /> Tambah Bagian
                 </button>
               </div>
               {quizSections.length === 0 ? (
-                <p className="text-center text-xs text-slate-400 py-8">Belum ada bagian. Klik "Tambah Bagian" untuk membuatnya.</p>
+                <p className="text-center text-xs text-[#80868b] py-8">Belum ada bagian. Klik "Tambah Bagian" untuk membuatnya.</p>
               ) : (
                 <div className="space-y-2">
                   {quizSections.map(s => (
-                    <div key={s.id} className="flex items-center justify-between gap-2 border border-slate-200 rounded-lg px-3.5 py-2.5 hover:bg-slate-50 transition-colors">
+                    <div key={s.id} className="flex items-center justify-between gap-2 border border-[#dadce0] px-3.5 py-2.5 hover:bg-[#f8f9fa] transition-colors">
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-slate-700 truncate">{s.name}</p>
-                        <p className="text-[11px] text-slate-400">{s.questions_count ?? 0} soal</p>
+                        <p className="text-sm font-medium text-[#3c4043] truncate">{s.name}</p>
+                        <p className="text-[11px] text-[#80868b]">{s.questions_count ?? 0} soal</p>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        <button onClick={() => openEditSection(s)} className="p-1.5 text-slate-400 hover:text-[#0E6187] hover:bg-[#0E6187]/10 rounded-lg transition-colors" title="Edit">
+                        <button onClick={() => openEditSection(s)} className="p-1.5 text-[#80868b] hover:text-[#1a73e8] hover:bgbg-[#f1f3f4] transition-colors" title="Edit">
                           <Pencil size={15} />
                         </button>
-                        <button onClick={() => deleteSection(s)} className="p-1.5 text-red-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Hapus">
+                        <button onClick={() => deleteSection(s)} className="p-1.5 text-[#d93025] hover:text-[#d93025] hover:bg-[#fce8e6] transition-colors" title="Hapus">
                           <Trash2 size={15} />
                         </button>
                       </div>
@@ -5921,27 +5893,27 @@ const visibleBatches = filterCabang
 
       {/* ==================== SECTION ADD/EDIT MODAL ==================== */}
       {showSectionModal && (
-        <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/40 p-4" onClick={() => setShowSectionModal(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-              <h3 className="font-semibold text-slate-800">{editingQSection ? 'Edit Bagian' : 'Tambah Bagian'}</h3>
-              <button onClick={() => setShowSectionModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
-                <X size={20} className="text-slate-400" />
+        <div className="fixed inset-0 z-[75] flex items-center justify-center #202124-\[#202124\] p-4" onClick={() => setShowSectionModal(false)}>
+          <div className="border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-[#dadce0] flex items-center justify-between">
+              <h3 className="font-semibold text-[#202124]">{editingQSection ? 'Edit Bagian' : 'Tambah Bagian'}</h3>
+              <button onClick={() => setShowSectionModal(false)} className="p-1.5 hover:bg-[#f1f3f4] transition-colors">
+                <X size={20} className="text-[#80868b]" />
               </button>
             </div>
             <div className="p-5">
-              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Nama Bagian</label>
+              <label className="block text-xs font-semibold text-[#5f6368] mb-1.5">Nama Bagian</label>
               <input
                 value={qSectionName}
                 onChange={e => setQSectionName(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') saveSection() }}
                 placeholder="Contoh: Vocabulary, Grammar, Listening..."
-                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="w-full px-3.5 py-2.5 border border-[#dadce0] text-sm focus:outline-none focus:border-[#1a73e8] focus:border-[#1a73e8]"
                 autoFocus />
             </div>
-            <div className="px-5 py-4 border-t border-slate-200 flex items-center justify-end gap-2">
-              <button onClick={() => setShowSectionModal(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Batal</button>
-              <button onClick={saveSection} disabled={savingSection} className="px-4 py-2 bg-[#0E6187] text-white rounded-lg text-sm font-semibold hover:bg-[#0E6187]/90 disabled:opacity-50 transition-colors">
+            <div className="px-5 py-4 border-t border-[#dadce0] flex items-center justify-end gap-2">
+              <button onClick={() => setShowSectionModal(false)} className="px-4 py-2 text-sm font-medium text-[#5f6368] hover:bg-[#f1f3f4] transition-colors">Batal</button>
+              <button onClick={saveSection} disabled={savingSection} className="px-4 py-2 bg-[#0E6187] text-white text-sm font-semibold hover:bgbg-[#e8f0fe] disabled:opacity-50 transition-colors">
                 {savingSection ? 'Menyimpan...' : editingQSection ? 'Simpan Perubahan' : 'Tambah'}
               </button>
             </div>
@@ -5951,15 +5923,15 @@ const visibleBatches = filterCabang
 
       {/* ==================== CATEGORY MODAL ==================== */}
       {showCategoryModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => setShowCategoryModal(false)}>
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 sticky top-0 bg-white">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center #202124-\[#202124\] p-4" onClick={() => setShowCategoryModal(false)}>
+          <div className="border border-[#dadce0] bg-white w-full max-w-md shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#dadce0] sticky top-0 bg-white">
               <div>
-                <h2 className="text-lg font-semibold text-slate-800">Kelola Kategori Paket</h2>
-                <p className="text-sm text-slate-400">Tambahkan atau hapus kategori quiz</p>
+                <h2 className="text-lg font-semibold text-[#202124]">Kelola Kategori Paket</h2>
+                <p className="text-sm text-[#80868b]">Tambahkan atau hapus kategori quiz</p>
               </div>
-              <button onClick={() => setShowCategoryModal(false)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
-                <X size={20} className="text-slate-400" />
+              <button onClick={() => setShowCategoryModal(false)} className="p-2 hover:bg-[#f1f3f4] transition-colors">
+                <X size={20} className="text-[#80868b]" />
               </button>
             </div>
             <div className="p-5 space-y-4">
@@ -5973,11 +5945,11 @@ const visibleBatches = filterCabang
               </div>
               <div className="space-y-2">
                 {quizCategories.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-6">Belum ada kategori</p>
+                  <p className="text-sm text-[#80868b] text-center py-6">Belum ada kategori</p>
                 ) : quizCategories.map(c => (
-                  <div key={c.id} className="flex items-center justify-between bg-slate-50 rounded-lg px-4 py-2.5">
-                    <span className="text-sm font-medium text-slate-700">{c.name}</span>
-                    <button onClick={() => deleteCategory(c)} className="p-1.5 text-red-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Hapus">
+                  <div key={c.id} className="flex items-center justify-between bg-[#f8f9fa] px-4 py-2.5">
+                    <span className="text-sm font-medium text-[#3c4043]">{c.name}</span>
+                    <button onClick={() => deleteCategory(c)} className="p-1.5 text-[#d93025] hover:text-[#d93025] hover:bg-[#fce8e6] transition-colors" title="Hapus">
                       <Trash2 size={15} />
                     </button>
                   </div>
@@ -5990,45 +5962,45 @@ const visibleBatches = filterCabang
 
       {/* ==================== ATTEMPT DETAIL MODAL ==================== */}
       {showDetailModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[8vh] pb-8 px-4 overflow-y-auto" onClick={() => setShowDetailModal(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+        <div className="fixed inset-0 #202124-\[#202124\] z-50 flex items-start justify-center pt-[8vh] pb-8 px-4 overflow-y-auto" onClick={() => setShowDetailModal(false)}>
+          <div className="border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-[#dadce0] flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-slate-800">Detail Pengerjaan</h3>
-                <p className="text-xs text-slate-400">{detail?.siswa?.nama || 'Kandidat'} · Percobaan #{detail?.attempt?.attempt_number}</p>
+                <h3 className="font-semibold text-[#202124]">Detail Pengerjaan</h3>
+                <p className="text-xs text-[#80868b]">{detail?.siswa?.nama || 'Kandidat'} · Percobaan #{detail?.attempt?.attempt_number}</p>
               </div>
-              <button onClick={() => setShowDetailModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
-                <X size={20} className="text-slate-400" />
+              <button onClick={() => setShowDetailModal(false)} className="p-1.5 hover:bg-[#f1f3f4] transition-colors">
+                <X size={20} className="text-[#80868b]" />
               </button>
             </div>
             <div className="p-5 space-y-4">
               {detailLoading || !detail ? (
-                <div className="text-center text-sm text-slate-400 py-12">Memuat detail...</div>
+                <div className="text-center text-sm text-[#80868b] py-12">Memuat detail...</div>
               ) : (
                 <>
                   <div className="grid grid-cols-3 gap-2">
-                    <div className="bg-slate-50 rounded-lg p-3 text-center">
-                      <p className="text-lg font-bold text-slate-800">{Number(detail.attempt.score) || 0}</p>
-                      <p className="text-[10px] text-slate-500 font-medium">Skor</p>
+                    <div className="bg-[#f8f9fa] p-3 text-center">
+                      <p className="text-lg font-bold text-[#202124]">{Number(detail.attempt.score) || 0}</p>
+                      <p className="text-[10px] text-[#5f6368] font-medium">Skor</p>
                     </div>
-                    <div className="bg-slate-50 rounded-lg p-3 text-center">
-                      <p className="text-lg font-bold text-slate-800">{detail.attempt.correct_count}/{detail.attempt.total_count}</p>
-                      <p className="text-[10px] text-slate-500 font-medium">Benar</p>
+                    <div className="bg-[#f8f9fa] p-3 text-center">
+                      <p className="text-lg font-bold text-[#202124]">{detail.attempt.correct_count}/{detail.attempt.total_count}</p>
+                      <p className="text-[10px] text-[#5f6368] font-medium">Benar</p>
                     </div>
-                    <div className="bg-slate-50 rounded-lg p-3 text-center">
-                      <p className="text-lg font-bold text-slate-800">{detail.attempt.warnings}</p>
-                      <p className="text-[10px] text-slate-500 font-medium">Peringatan</p>
+                    <div className="bg-[#f8f9fa] p-3 text-center">
+                      <p className="text-lg font-bold text-[#202124]">{detail.attempt.warnings}</p>
+                      <p className="text-[10px] text-[#5f6368] font-medium">Peringatan</p>
                     </div>
                   </div>
                   {detail.sertifikat && (
                     <div>
                       <div className="mb-2 flex items-center justify-between gap-2">
-                        <p className="text-sm font-medium text-slate-700 flex items-center gap-1.5"><Award size={12} /> Sertifikat</p>
+                        <p className="text-sm font-medium text-[#3c4043] flex items-center gap-1.5"><Award size={12} /> Sertifikat</p>
                         <a
                           href={`/verifikasi-sertifikat/${detail.sertifikat.kode_verifikasi}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-[11px] font-semibold text-[#0E6187] hover:underline"
+                          className="text-[11px] font-semibold text-[#1a73e8] hover:underline"
                         >
                           Cek keaslian
                         </a>
@@ -6038,27 +6010,27 @@ const visibleBatches = filterCabang
                   )}
                   {detail.attempt.webcam_photo && (
                     <div>
-                      <p className="text-sm font-medium text-slate-700 mb-2 flex items-center gap-1.5"><Camera size={12} /> Foto Pengerjaan</p>
-                      <img src={detail.attempt.webcam_photo} alt="Webcam" className="w-full rounded-lg border border-slate-200 max-h-52 object-cover" />
+                      <p className="text-sm font-medium text-[#3c4043] mb-2 flex items-center gap-1.5"><Camera size={12} /> Foto Pengerjaan</p>
+                      <img src={detail.attempt.webcam_photo} alt="Webcam" className="w-full border border-[#dadce0] max-h-52 object-cover" />
                     </div>
                   )}
                   <div className="space-y-3">
                     {detail.questions.map((q, i) => (
-                      <div key={q.id} className="border border-slate-200 rounded-lg p-4">
+                      <div key={q.id} className="border border-[#dadce0] p-4">
                         <div className="flex items-start justify-between gap-2">
-                          <p className="text-sm font-bold text-slate-800 leading-snug shrink-0">{i + 1}.</p>
-                          <div className="text-sm font-bold text-slate-800 leading-snug min-w-0 flex-1 [&_img]:max-h-40 [&_img]:rounded [&_img]:my-1" dangerouslySetInnerHTML={{ __html: cleanQuillHtml(q.question) }} />
-                          <span className={`text-[10px] font-bold shrink-0 px-2 py-0.5 rounded-full ${q.question_type === 'essay' && q.is_correct === null && q.answer_text?.trim() ? 'bg-amber-50 text-amber-600' : q.is_correct === true ? 'bg-emerald-50 text-emerald-600' : q.is_correct === false ? 'bg-red-50 text-red-500' : 'bg-slate-100 text-slate-500'}`}>
+                          <p className="text-sm font-bold text-[#202124] leading-snug shrink-0">{i + 1}.</p>
+                          <div className="text-sm font-bold text-[#202124] leading-snug min-w-0 flex-1 [&_img]:max-h-40 [&_img]: [&_img]:my-1" dangerouslySetInnerHTML={{ __html: cleanQuillHtml(q.question) }} />
+                          <span className={`text-[10px] font-bold shrink-0 px-2 py-0.5 ${q.question_type === 'essay' && q.is_correct === null && q.answer_text?.trim() ? 'bg-[#fef7e0] text-[#b06000]' : q.is_correct === true ? 'bg-[#e6f4ea] text-[#137333]' : q.is_correct === false ? 'bg-[#fce8e6] text-[#d93025]' : 'bg-[#f1f3f4] text-[#5f6368]'}`}>
                             {q.question_type === 'essay' && q.is_correct === null && q.answer_text?.trim() ? 'BELUM DINILAI' : q.is_correct === true ? 'BENAR' : q.is_correct === false ? 'SALAH' : 'TIDAK DIJAWAB'}
                           </span>
                         </div>
                         {(q as any).image_url && (
-                          <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
-                            <img src={(q as any).image_url} alt="Soal" className="max-h-40 mx-auto object-contain rounded" />
+                          <div className="mt-2 border border-[#dadce0] bg-[#f8f9fa] p-2">
+                            <img src={(q as any).image_url} alt="Soal" className="max-h-40 mx-auto object-contain" />
                           </div>
                         )}
                         {(q as any).audio_url && (
-                          <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
+                          <div className="mt-2 border border-[#dadce0] bg-[#f8f9fa] p-2">
                             <audio src={(q as any).audio_url} controls className="w-full h-9" />
                           </div>
                         )}
@@ -6070,43 +6042,43 @@ const visibleBatches = filterCabang
                                   const isSelected = q.selected_index === oi
                                   const optLabel = typeof opt === 'string' ? opt : ((opt as { text?: string }).text ?? '')
                                   return (
-                                    <span key={oi} className={`w-8 h-8 flex items-center justify-center rounded-full text-[11px] font-bold border-2 ${isSelected ? 'border-violet-500 bg-violet-500 text-white' : 'border-slate-200 bg-slate-50 text-slate-400'}`}>
+                                    <span key={oi} className={`w-8 h-8 flex items-center justify-center text-[11px] font-bold border-2 ${isSelected ? 'border-[#8430ce] bg-[#8430ce] text-white' : 'border-[#dadce0] bg-[#f8f9fa] text-[#80868b]'}`}>
                                       {optLabel}
                                     </span>
                                   )
                                 })}
                               </div>
-                              <p className="text-xs text-slate-500 mt-1.5">
-                                Jawaban: <span className="font-bold text-violet-600">{q.selected_index !== null && q.selected_index !== undefined ? (typeof q.options[q.selected_index] === 'string' ? q.options[q.selected_index] : ((q.options[q.selected_index] as { text?: string }).text ?? '')) : 'Tidak diisi'}</span>
-                                {q.is_correct === true && <span className="ml-2 text-[9.5px] font-bold text-violet-500">TERISI · POIN DIBERIKAN</span>}
+                              <p className="text-xs text-[#5f6368] mt-1.5">
+                                Jawaban: <span className="font-bold text-[#7627bb]">{q.selected_index !== null && q.selected_index !== undefined ? (typeof q.options[q.selected_index] === 'string' ? q.options[q.selected_index] : ((q.options[q.selected_index] as { text?: string }).text ?? '')) : 'Tidak diisi'}</span>
+                                {q.is_correct === true && <span className="ml-2 text-[9.5px] font-bold text-[#8430ce]">TERISI · POIN DIBERIKAN</span>}
                               </p>
                             </div>
                           ) : q.question_type === 'essay' ? (
                             <div>
-                              <p className="text-[11px] font-bold text-slate-600 mb-1.5">Jawaban Siswa</p>
-                              <p className="text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 whitespace-pre-wrap min-h-[44px]">
-                                {q.answer_text?.trim() ? q.answer_text : <span className="text-slate-400">Tidak diisi</span>}
+                              <p className="text-[11px] font-bold text-[#5f6368] mb-1.5">Jawaban Siswa</p>
+                              <p className="text-xs text-[#3c4043] bg-[#f8f9fa] border border-[#dadce0] px-3 py-2.5 whitespace-pre-wrap min-h-[44px]">
+                                {q.answer_text?.trim() ? q.answer_text : <span className="text-[#80868b]">Tidak diisi</span>}
                               </p>
                               {q.keyword && (
-                                <p className="text-[10px] text-amber-600 font-semibold mt-1.5"><span className="font-bold">Kata kunci:</span> {q.keyword}</p>
+                                <p className="text-[10px] text-[#b06000] font-semibold mt-1.5"><span className="font-bold">Kata kunci:</span> {q.keyword}</p>
                               )}
                               {q.answer_text?.trim() && (
                                 <div className="flex items-center gap-2 mt-3">
                                   <div>
-                                    <label className="text-[10px] font-semibold text-slate-600 block mb-1">Nilai (0-{q.points})</label>
+                                    <label className="text-[10px] font-semibold text-[#5f6368] block mb-1">Nilai (0-{q.points})</label>
                                     <input type="number" min={0} max={q.points}
                                       value={grades[q.id] ?? ''}
                                       onChange={e => setGrades(g => ({ ...g, [q.id]: e.target.value }))}
-                                      className="w-24 text-xs border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 focus:border-[#0E6187]"
+                                      className="w-24 text-xs border border-[#dadce0] px-3 py-2 focus:outline-none  focus:border-[#1a73e8]"
                                       placeholder="-" />
                                   </div>
                                   <button type="button" disabled={savingGrade !== null || !grades[q.id]?.trim()}
                                     onClick={() => saveGrade(q.id)}
-                                    className="self-end text-[11px] font-bold text-white bg-[#0E6187] px-3.5 py-2 rounded-lg disabled:opacity-40 hover:bg-[#0E6187]/90">
+                                    className="self-end text-[11px] font-bold text-white bg-[#0E6187] px-3.5 py-2 disabled:opacity-40 hover:bgbg-[#e8f0fe]">
                                     {savingGrade === q.id ? 'Menyimpan...' : 'Simpan Nilai'}
                                   </button>
                                   {q.earned_points !== null && q.earned_points !== undefined && (
-                                    <span className={`self-end text-[11px] font-bold px-2 py-1 rounded-full ${q.is_correct === true ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                                    <span className={`self-end text-[11px] font-bold px-2 py-1 ${q.is_correct === true ? 'bg-[#e6f4ea] text-[#137333]' : 'bg-[#fef7e0] text-[#b06000]'}`}>
                                       {q.earned_points}/{q.points} poin
                                     </span>
                                   )}
@@ -6129,11 +6101,11 @@ const visibleBatches = filterCabang
                               const optUrl = optRaw && !optRaw.startsWith('http') ? `${APP_URL}/storage/${optRaw}` : optRaw
                               return (
                                 <div key={oi}
-                                  className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg font-medium ${isCorrect ? 'bg-emerald-50 text-emerald-700 font-bold' : isSelected ? 'bg-red-50 text-red-500 font-bold' : 'bg-slate-50 text-slate-600'}`}>
-                                  <span className={`w-4 h-4 flex items-center justify-center text-[9px] font-bold shrink-0 ${isMultiQ ? 'rounded-md' : 'rounded-full'} ${isCorrect ? 'bg-emerald-500 text-white' : isSelected ? 'bg-red-500 text-white' : 'bg-slate-200 text-slate-400'}`}>
+                                  className={`flex items-center gap-2 text-xs px-3 py-1.5 font-medium ${isCorrect ? 'bg-[#e6f4ea] text-[#137333] font-bold' : isSelected ? 'bg-[#fce8e6] text-[#d93025] font-bold' : 'bg-[#f8f9fa] text-[#5f6368]'}`}>
+                                  <span className={`w-4 h-4 flex items-center justify-center text-[9px] font-bold shrink-0 ${isMultiQ ? '' : ''} ${isCorrect ? 'bg-[#0E6187] text-white' : isSelected ? 'bg-[#d93025] text-white' : 'bg-[#e8eaed] text-[#80868b]'}`}>
                                     {String.fromCharCode(65 + oi)}
                                   </span>
-                                  {optUrl && <img src={optUrl} className="h-5 w-5 rounded object-cover shrink-0" alt="" />}
+                                  {optUrl && <img src={optUrl} className="h-5 w-5 object-cover shrink-0" alt=""/>}
                                   <span className="flex-1">{optLabel}</span>
                                   {isCorrect && <span className="text-[9px] font-bold shrink-0">KUNCI</span>}
                                   {isSelected && <span className="text-[9px] font-bold shrink-0">JAWABAN</span>}
@@ -6154,20 +6126,20 @@ const visibleBatches = filterCabang
 
       {/* ==================== WELCOME VIDEO SETTINGS MODAL ==================== */}
       {showWelcomeSettings && (
-        <div className="fixed inset-0 z-[70] bg-black/50 flex items-center justify-center p-4" onClick={() => setShowWelcomeSettings(false)}>
-          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[88vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+        <div className="fixed inset-0 z-[70] #202124-\[#202124\] flex items-center justify-center p-4" onClick={() => setShowWelcomeSettings(false)}>
+          <div className="border border-[#dadce0] bg-white max-w-lg w-full max-h-[88vh] overflow-y-auto shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#e8eaed] sticky top-0 bg-white z-10">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-lg bg-[#0E6187]/10 flex items-center justify-center">
-                  <Settings size={18} className="text-[#0E6187]" />
+                <div className="w-9 h-9 bgbg-[#f1f3f4] flex items-center justify-center">
+                  <Settings size={18} className="text-[#1a73e8]" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-gray-900">Pengaturan LMS</h2>
-                  <p className="text-[10px] text-gray-400 font-medium">Video Selamat Datang untuk halaman siswa</p>
+                  <h2 className="text-sm font-bold text-[#202124]">Pengaturan LMS</h2>
+                  <p className="text-[10px] text-[#80868b] font-medium">Video Selamat Datang untuk halaman siswa</p>
                 </div>
               </div>
               <button onClick={() => setShowWelcomeSettings(false)}
-                className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 transition-colors">
+                className="w-8 h-8 hover:bg-[#f1f3f4] flex items-center justify-center text-[#80868b] transition-colors">
                 <X size={18} />
               </button>
             </div>
@@ -6175,17 +6147,17 @@ const visibleBatches = filterCabang
             <div className="p-5 space-y-4">
               {welcomeLoading ? (
                 <div className="flex items-center justify-center py-10">
-                  <div className="w-6 h-6 border-2 border-[#0E6187] border-t-transparent rounded-full animate-spin" />
+                  <div className="w-6 h-6 rounded-full border-2 border-[#1a73e8] border-t-transparent animate-spin" />
                 </div>
               ) : (
                 <>
-                  <p className="text-[11px] text-gray-500 leading-relaxed">
-                    Video ini akan pertunjukan di atas daftar kursus pada halaman <b className="text-gray-700">Kelas Mendunia</b> siswa.
-                    Mengunggah file video <b className="text-gray-700">mp4 / webm</b> ucapan untuk siswa atau memakai <b className="text-gray-700">URL YouTube</b>.
+                  <p className="text-[11px] text-[#5f6368] leading-relaxed">
+                    Video ini akan pertunjukan di atas daftar kursus pada halaman <b className="text-[#3c4043]">Kelas Mendunia</b> siswa.
+                    Mengunggah file video <b className="text-[#3c4043]">mp4 / webm</b> ucapan untuk siswa atau memakai <b className="text-[#3c4043]">URL YouTube</b>.
                   </p>
 
                   {welcomeVideoUrl && (
-                    <div className="overflow-hidden rounded-xl border border-gray-200">
+                    <div className="overflow-hidden border border-[#dadce0]">
                       <iframe
                         src={getYouTubeEmbedUrl(welcomeVideoUrl) || welcomeVideoUrl}
                         allowFullScreen
@@ -6197,34 +6169,34 @@ const visibleBatches = filterCabang
                   )}
 
                   {welcomeVideo && (
-                    <div className="overflow-hidden rounded-xl border border-gray-200">
+                    <div className="overflow-hidden border border-[#dadce0]">
                       <video src={`${APP_URL}/storage/${welcomeVideo}`} controls
                         className="w-full aspect-video bg-black" />
                     </div>
                   )}
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1.5">File Video Selamat Datang</label>
+                    <label className="block text-xs font-bold text-[#3c4043] mb-1.5">File Video Selamat Datang</label>
                     {welcomeFile ? (
-                      <div className="flex items-center gap-3 p-3 bg-[#0E6187]/5 border-2 border-[#0E6187]/20 rounded-xl">
-                        <Video size={18} className="text-[#0E6187] shrink-0" />
+                      <div className="flex items-center gap-3 p-3 bgbg-[#f8f9fa] border-2 border-[#1a73e8]">
+                        <Video size={18} className="text-[#1a73e8] shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold text-gray-800 truncate">{welcomeFile.name}</p>
-                          <p className="text-[10px] text-gray-400 mt-0.5">{(welcomeFile.size / (1024 * 1024)).toFixed(1)} MB</p>
+                          <p className="text-xs font-bold text-[#202124] truncate">{welcomeFile.name}</p>
+                          <p className="text-[10px] text-[#80868b] mt-0.5">{(welcomeFile.size / (1024 * 1024)).toFixed(1)} MB</p>
                         </div>
                         <button onClick={() => setWelcomeFile(null)}
-                          className="p-2 rounded-lg text-gray-400 hover:text-red-500 transition-colors">
+                          className="p-2 text-[#80868b] hover:text-[#d93025] transition-colors">
                           <Trash2 size={14} />
                         </button>
                       </div>
                     ) : (
-                      <label className="flex flex-col items-center gap-2 px-4 py-6 border-2 border-dashed border-gray-200 rounded-xl text-xs text-gray-400 hover:border-[#0E6187]/30 hover:bg-gray-50 cursor-pointer transition-all">
-                        <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center">
-                          <Upload size={18} className="text-gray-300" />
+                      <label className="flex flex-col items-center gap-2 px-4 py-6 border-2 border-dashed border-[#dadce0] text-xs text-[#80868b] hover:border-[#1a73e8] hover:bg-[#f8f9fa] cursor-pointer transition-all">
+                        <div className="w-10 h-10 bg-[#f1f3f4] flex items-center justify-center">
+                          <Upload size={18} className="text-[#9aa0a6]" />
                         </div>
                         <div className="text-center">
-                          <p className="text-[11px] font-bold text-gray-500">Klik untuk diseleksi video</p>
-                          <p className="text-[9px] text-gray-400 mt-0.5">mp4, webm, mov · max 200 MB</p>
+                          <p className="text-[11px] font-bold text-[#5f6368]">Klik untuk diseleksi video</p>
+                          <p className="text-[9px] text-[#80868b] mt-0.5">mp4, webm, mov · max 200 MB</p>
                         </div>
                         <input
                           type="file"
@@ -6242,29 +6214,29 @@ const visibleBatches = filterCabang
 
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-gray-200" />
+                      <div className="w-full border-t border-[#dadce0]" />
                     </div>
                     <div className="relative flex justify-center">
-                      <span className="bg-white px-3 text-[10px] font-semibold text-gray-400 uppercase">atau</span>
+                      <span className="bg-white px-3 text-[10px] font-semibold text-[#80868b] uppercase">atau</span>
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1.5">URL Video YouTube</label>
+                    <label className="block text-xs font-bold text-[#3c4043] mb-1.5">URL Video YouTube</label>
                     <div className="flex gap-2">
                       <input
                         type="url"
                         value={welcomeUrlInput}
                         onChange={e => setWelcomeUrlInput(e.target.value)}
                         placeholder="https://www.youtube.com/watch?v=..."
-                        className="flex-1 min-w-0 rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-xs outline-none transition focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187]/30"
+                        className="flex-1 min-w-0 border border-[#dadce0] bg-white px-3.5 py-2.5 text-xs outline-none transition "
                       />
                       <button onClick={handleSaveWelcomeUrl} disabled={!welcomeUrlInput.trim() || welcomeSaving}
-                        className="shrink-0 rounded-xl bg-[#0E6187] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#0E6187]/90 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                        className="shrink-0 bg-[#0E6187] px-4 py-2.5 text-xs font-semibold text-white hover:bgbg-[#e8f0fe] transition disabled:opacity-50 disabled:cursor-not-allowed">
                         {welcomeSaving ? 'Menyimpan...' : 'Simpan URL'}
                       </button>
                     </div>
-                    <p className="text-[10px] text-gray-400 mt-1.5">
+                    <p className="text-[10px] text-[#80868b] mt-1.5">
                       Dukung tautan <b>youtube.com/watch</b>, <b>youtu.be</b>, <b>youtube.com/shorts</b>, dan <b>playlist</b>.
                     </p>
                   </div>
@@ -6273,20 +6245,20 @@ const visibleBatches = filterCabang
             </div>
 
             {!welcomeLoading && (
-              <div className="px-5 py-4 border-t border-gray-100 flex justify-end gap-3">
+              <div className="px-5 py-4 border-t border-[#e8eaed] flex justify-end gap-3">
                 {(welcomeVideo || welcomeVideoUrl) && (
                   <button
                     onClick={handleDeleteWelcomeVideo}
-                    className="rounded-lg border border-red-200 text-red-600 px-4 py-2.5 text-xs font-semibold hover:bg-red-50 transition-colors">
+                    className="border border-[#f28b82] text-[#c5221f] px-4 py-2.5 text-xs font-semibold hover:bg-[#fce8e6] transition-colors">
                     Hapus
                   </button>
                 )}
                 <button onClick={() => setShowWelcomeSettings(false)}
-                  className="rounded-lg border border-gray-300 px-4 py-2.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
+                  className="border border-[#dadce0] px-4 py-2.5 text-xs font-semibold text-[#5f6368] hover:bg-[#f8f9fa] transition-colors">
                   Tutup
                 </button>
                 <button onClick={handleSaveWelcomeVideo} disabled={!welcomeFile || welcomeSaving}
-                  className="rounded-lg bg-[#0E6187] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#0E6187]/90 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                  className="bg-[#0E6187] px-4 py-2.5 text-xs font-semibold text-white hover:bgbg-[#e8f0fe] transition disabled:opacity-50 disabled:cursor-not-allowed">
                   {welcomeSaving ? 'Menyimpan...' : 'Simpan Video'}
                 </button>
               </div>

@@ -44,9 +44,9 @@ export default function ClosingPasukan() {
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
-      <div className="mb-4 flex flex-col gap-4 rounded-lg bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between border border-slate-200">
+      <div className="mb-4 flex flex-col gap-4 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between border border-slate-200">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
+          <div className="flex h-10 w-10 items-center justify-center bg-[#0E6187] text-white">
             <Handshake size={20} />
           </div>
           <div>
@@ -59,13 +59,13 @@ export default function ClosingPasukan() {
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="relative w-14 h-14 flex items-center justify-center">
-            <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
+            <div className="rounded-full absolute inset-0 border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
             <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
           </div>
         </div>
       ) : data.length === 0 ? (
-        <div className="rounded-lg border border-slate-200 bg-white px-6 py-10 text-center shadow-sm">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+        <div className="border border-slate-200 bg-white px-6 py-10 text-center shadow-sm">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center bg-slate-100 text-slate-400">
             <Handshake size={24} />
           </div>
           <p className="mt-3 text-sm font-medium text-slate-600">Belum ada data closing</p>
@@ -85,13 +85,13 @@ function CabangCard({ cabang }: { cabang: Cabang }) {
   const [open, setOpen] = useState(true)
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+    <div className="border border-slate-200 bg-white shadow-sm overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
         className="flex w-full items-center justify-between bg-slate-50 px-4 py-3 transition hover:bg-slate-100"
       >
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0E6187] text-white text-xs font-bold">
+          <div className="flex h-8 w-8 items-center justify-center bg-[#0E6187] text-white text-xs font-bold">
             {cabang.cabang_nama.charAt(0)}
           </div>
           <div className="text-left">
@@ -109,7 +109,7 @@ function CabangCard({ cabang }: { cabang: Cabang }) {
               <h4 className="mb-3 flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
                 <span>Batch {batch.batch_nama} &middot; {batch.total} kandidat</span>
                 {batch.total_komisi > 0 && (
-                  <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold normal-case tracking-normal text-emerald-700">
+                  <span className="bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold normal-case tracking-normal text-emerald-700">
                     Komisi: Rp {batch.total_komisi.toLocaleString('id-ID')}
                   </span>
                 )}
@@ -137,11 +137,11 @@ function CabangCard({ cabang }: { cabang: Cabang }) {
                         <td className="border border-slate-200 px-3 py-2 text-sm text-slate-600">{item.pasukan}</td>
                         <td className="border border-slate-200 px-3 py-2 text-center">
                           {item.status_kandidat === 'Mengundurkan Diri' ? (
-                            <span className="inline-flex rounded-full bg-red-50 px-2.5 py-0.5 text-[10px] font-semibold text-red-700">
+                            <span className="inline-flex bg-red-50 px-2.5 py-0.5 text-[10px] font-semibold text-red-700">
                               Mengundurkan Diri
                             </span>
                           ) : (
-                            <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
+                            <span className={`inline-flex px-2.5 py-0.5 text-[10px] font-semibold ${
                               item.status === 'disetujui' ? 'bg-emerald-50 text-emerald-700' :
                               item.status === 'ditolak' ? 'bg-red-50 text-red-700' :
                               'bg-amber-50 text-amber-700'

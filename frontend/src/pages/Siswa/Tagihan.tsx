@@ -123,12 +123,12 @@ const STATUS_MAP: Record<string, Record<string, string>> = {
 }
 
 const STATUS_OPTIONS = [
-  { val: 'waiting_payment', label: 'Menunggu Pembayaran', icon: Clock, iconColor: 'text-white', bg: 'bg-slate-600 hover:bg-slate-700 border-slate-600' },
-  { val: 'confirmed', label: 'Menunggu Verifikasi', icon: BadgeCheck, iconColor: 'text-white', bg: 'bg-amber-500 hover:bg-amber-600 border-amber-500' },
-  { val: 'proses', label: 'Proses', icon: RefreshCw, iconColor: 'text-white', bg: 'bg-blue-500 hover:bg-blue-600 border-blue-500' },
-  { val: 'selesai', label: 'Pembayaran dikonfirmasi', icon: CheckCircle2, iconColor: 'text-white', bg: 'bg-emerald-600 hover:bg-emerald-700 border-emerald-600' },
-  { val: 'batal', label: 'Batal', icon: Ban, iconColor: 'text-white', bg: 'bg-red-500 hover:bg-red-600 border-red-500' },
-  { val: 'ditangguhkan', label: 'Ditangguhkan', icon: Banknote, iconColor: 'text-white', bg: 'bg-orange-500 hover:bg-orange-600 border-orange-500' },
+  { val: 'waiting_payment', label: 'Menunggu Pembayaran', icon: Clock, iconColor: 'text-white', bg: 'bg-[#5f6368] hover:bg-[#3c4043] border-[#80868b]' },
+  { val: 'confirmed', label: 'Menunggu Verifikasi', icon: BadgeCheck, iconColor: 'text-white', bg: 'bg-[#e37400] hover:bg-[#b06000] border-[#e37400]' },
+  { val: 'proses', label: 'Proses', icon: RefreshCw, iconColor: 'text-white', bg: 'bg-[#0E6187] hover:bg-[#0a4d6b] border-[#1a73e8]' },
+  { val: 'selesai', label: 'Pembayaran dikonfirmasi', icon: CheckCircle2, iconColor: 'text-white', bg: 'bg-[#137333] hover:bg-[#137333] border-[#137333]' },
+  { val: 'batal', label: 'Batal', icon: Ban, iconColor: 'text-white', bg: 'bg-[#d93025] hover:bg-[#c5221f] border-[#d93025]' },
+  { val: 'ditangguhkan', label: 'Ditangguhkan', icon: Banknote, iconColor: 'text-white', bg: 'bg-[#e37400] hover:bg-[#b06000] border-[#e37400]' },
 ]
 
 const STATUS_CONFIRM: Record<string, { title: string; text: string; confirmText: string; icon: 'warning' | 'info' | 'question' }> = {
@@ -191,14 +191,14 @@ function UbahStatusGrid({ pendaftarId, pendaftar, onChanged }: { pendaftarId: nu
                 Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal memperbarui status' })
               }
             }}
-            className={`flex items-center justify-between gap-2 rounded-md border px-3 py-2.5 text-left text-sm font-medium transition ${opt.bg} ${isActive ? 'cursor-default opacity-100 ring-2 ring-offset-1 ring-[#0E6187]' : 'cursor-pointer hover:brightness-95'}`}
+            className={`flex items-center justify-between gap-2 border px-3 py-2.5 text-left text-sm font-medium transition ${opt.bg} ${isActive ? 'cursor-default opacity-100 ring-2 ring-offset-1 ring-[#1a73e8]' : 'cursor-pointer hover:brightness-95'}`}
           >
             <span className="flex items-center gap-2">
               <Icon size={15} className={opt.iconColor} />
               <span className="text-white">{opt.label}</span>
             </span>
             {isActive && (
-              <span className="flex-none rounded bg-white/25 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+              <span className="flex-none bg-white/25 px-1.5 py-0.5 text-[9px] font-bold text-white">
                 saat ini
               </span>
             )}
@@ -469,16 +469,16 @@ export default function Tagihan() {
   const statusBadge = (status: string, dibayar: number, tagihan: number) => {
     const isLunas = dibayar >= tagihan && tagihan > 0
     const map: Record<string, { bg: string; text: string; label: string; icon: typeof Clock }> = {
-      unpaid: { bg: 'bg-slate-600', text: 'text-white', label: 'Belum Bayar', icon: AlertCircle },
-      processing: { bg: 'bg-blue-500', text: 'text-white', label: 'Proses', icon: Clock },
-      partial: { bg: 'bg-orange-500', text: 'text-white', label: 'Belum Lunas', icon: Clock },
-      verified: { bg: 'bg-emerald-600', text: 'text-white', label: 'Lunas', icon: CheckCircle },
+      unpaid: { bg: 'bg-[#5f6368]', text: 'text-white', label: 'Belum Bayar', icon: AlertCircle },
+      processing: { bg: 'bg-[#0E6187]', text: 'text-white', label: 'Proses', icon: Clock },
+      partial: { bg: 'bg-[#e37400]', text: 'text-white', label: 'Belum Lunas', icon: Clock },
+      verified: { bg: 'bg-[#137333]', text: 'text-white', label: 'Lunas', icon: CheckCircle },
     }
     const key = status === 'verified' && !isLunas ? 'partial' : status
-    const s = map[key] || { bg: 'bg-slate-100', text: 'text-slate-600', label: status, icon: Clock }
+    const s = map[key] || { bg: 'bg-[#f1f3f4]', text: 'text-[#5f6368]', label: status, icon: Clock }
     const Icon = s.icon
     return (
-      <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold ${s.bg} ${s.text}`}>
+      <span className={`inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 text-[11px] font-semibold ${s.bg} ${s.text}`}>
         <Icon size={12} />
         {s.label}
       </span>
@@ -559,32 +559,32 @@ export default function Tagihan() {
   }
 
   const renderBatchMenu = () => (
-    <div className="mb-4 overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
-      <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
+    <div className="mb-4 overflow-hidden border border-[#dadce0] bg-white ">
+      <div className="flex items-center justify-between gap-3 border-b border-[#dadce0] bg-[#f8f9fa] px-4 py-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 flex-none items-center justify-center rounded-md bg-[#0E6187]">
+          <div className="flex h-8 w-8 flex-none items-center justify-center bg-[#0E6187]">
             <Users size={15} className="text-white" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-slate-800">Daftar Batch</h2>
-            <p className="text-xs text-slate-500">Pilih batch untuk melihat data tagihan kandidat</p>
+            <h2 className="text-sm font-bold text-[#202124]">Daftar Batch</h2>
+            <p className="text-xs text-[#5f6368]">Pilih batch untuk melihat data tagihan kandidat</p>
           </div>
         </div>
         <div className="flex flex-none items-center gap-1.5">
           <button
             onClick={() => scrollBatches(-1)}
             title="Geser ke kiri"
-            className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-700"
+            className="flex h-7 w-7 items-center justify-center border border-[#dadce0] bg-white text-[#5f6368] transition hover:bg-[#f8f9fa] hover:text-[#3c4043]"
           >
             <ChevronLeft size={14} />
           </button>
-          <span className="rounded-md bg-[#0E6187]/10 px-2.5 py-1 text-xs font-semibold text-[#0E6187] whitespace-nowrap">
+          <span className="bg-[#0E6187]/10 px-2.5 py-1 text-xs font-semibold text-[#1a73e8] whitespace-nowrap">
             {renderGroups.length} batch
           </span>
           <button
             onClick={() => scrollBatches(1)}
             title="Geser ke kanan"
-            className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-700"
+            className="flex h-7 w-7 items-center justify-center border border-[#dadce0] bg-white text-[#5f6368] transition hover:bg-[#f8f9fa] hover:text-[#3c4043]"
           >
             <ChevronRight size={14} />
           </button>
@@ -599,16 +599,12 @@ export default function Tagihan() {
             <button
               key={group.batchId}
               onClick={() => selectBatch(group.batchId)}
-              className={`relative flex w-[170px] flex-none snap-start items-center justify-between gap-2 rounded-md border p-2 text-left transition-all ${
-                isActive
-                  ? 'border-[#0E6187] bg-[#0E6187]/5 shadow-sm ring-1 ring-[#0E6187]/20'
-                  : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 hover:shadow-sm'
-              }`}
+              className={`relative flex w-[170px] flex-none snap-start items-center justify-between gap-2 border p-2 text-left transition-all ${ isActive ? 'border-[#1a73e8] bg-[#0E6187]/5 ring-1 ring-[#1a73e8]/20' : 'border-[#dadce0] bg-white hover:border-[#dadce0] hover:bg-[#f8f9fa] hover:' }`}
             >
               {group.pendingCount > 0 && (
                 <span
                   title={`${group.pendingCount} pembayaran menunggu verifikasi`}
-                  className="absolute -right-1.5 -top-1.5 flex h-5 min-w-[20px] items-center justify-center gap-0.5 rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white animate-pulse"
+                  className="absolute -right-1.5 -top-1.5 flex h-5 min-w-[20px] items-center justify-center gap-0.5 bg-[#d93025] px-1 text-[10px] font-bold text-white ring-2 ring-white animate-pulse"
                 >
                   <Bell size={10} />
                   {group.pendingCount}
@@ -616,36 +612,32 @@ export default function Tagihan() {
               )}
               <span className="flex min-w-0 items-center gap-2">
                 <span
-                  className="flex h-7 w-7 flex-none items-center justify-center rounded-md"
+                  className="flex h-7 w-7 flex-none items-center justify-center"
                   style={{ backgroundColor: color }}
                 >
                   <Receipt size={13} className="text-white" />
                 </span>
                 <span className="min-w-0">
                   <span className="flex flex-wrap items-center gap-1">
-                    <span className="truncate text-xs font-semibold text-slate-800">{group.batchName}</span>
+                    <span className="truncate text-xs font-semibold text-[#202124]">{group.batchName}</span>
                     {group.hasPending && group.pendingCount === 0 && (
-                      <span className="inline-flex items-center gap-0.5 rounded bg-red-100 px-1 py-0.5 text-[9px] font-bold text-red-600">
+                      <span className="inline-flex items-center gap-0.5 bg-[#f6d7d5] px-1 py-0.5 text-[9px] font-bold text-[#c5221f]">
                         <Bell size={9} />
                         proses
                       </span>
                     )}
                     {isActive && (
-                      <span className="inline-flex items-center gap-0.5 rounded bg-[#0E6187]/10 px-1 py-0.5 text-[9px] font-bold text-[#0E6187]">
+                      <span className="inline-flex items-center gap-0.5 bg-[#0E6187]/10 px-1 py-0.5 text-[9px] font-bold text-[#1a73e8]">
                         <CheckCircle size={9} />
                         Aktif
                       </span>
                     )}
                   </span>
-                  <span className="block text-[10px] text-slate-500">{group.totalPendaftar} kandidat</span>
+                  <span className="block text-[10px] text-[#5f6368]">{group.totalPendaftar} kandidat</span>
                 </span>
               </span>
 
-              <span className={`flex h-6 w-6 flex-none items-center justify-center rounded border transition-colors ${
-                isActive
-                  ? 'border-[#0E6187] bg-[#0E6187] text-white'
-                  : 'border-slate-200 bg-white text-slate-400 hover:border-slate-300 hover:text-slate-600'
-              }`}>
+              <span className={`flex h-6 w-6 flex-none items-center justify-center border transition-colors ${ isActive ? 'border-[#1a73e8] bg-[#0E6187] text-white' : 'border-[#dadce0] bg-white text-[#80868b] hover:border-[#dadce0] hover:text-[#5f6368]' }`}>
                 <ChevronRight size={12} />
               </span>
             </button>
@@ -654,11 +646,11 @@ export default function Tagihan() {
       </div>
 
       {activeBatchId === null && (
-        <div className="flex items-center gap-3 border-t border-slate-200 bg-slate-50 px-4 py-3">
-          <div className="flex h-8 w-8 flex-none items-center justify-center rounded-md border border-slate-200 bg-white text-slate-400">
+        <div className="flex items-center gap-3 border-t border-[#dadce0] bg-[#f8f9fa] px-4 py-3">
+          <div className="flex h-8 w-8 flex-none items-center justify-center border border-[#dadce0] bg-white text-[#80868b]">
             <Search size={15} />
           </div>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-[#5f6368]">
             Belum ada batch dipilih. Klik salah satu batch di atas untuk menampilkan tabel data tagihan.
           </p>
         </div>
@@ -685,32 +677,32 @@ export default function Tagihan() {
     }
 
     return (
-      <div key={batchId} className="mb-6 overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
+      <div key={batchId} className="mb-6 overflow-hidden border border-[#dadce0] bg-white ">
         <button
           onClick={() => selectBatch(batchId)}
-          className={`w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors ${group.hasPending ? 'bg-red-50 hover:bg-red-100/60' : 'bg-white hover:bg-slate-50'}`}
+          className={`w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors ${group.hasPending ? 'bg-[#fce8e6] hover:bg-[#f6d7d5]/60' : 'bg-white hover:bg-[#f8f9fa]'}`}
         >
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-8 w-8 flex-none items-center justify-center rounded-md" style={{ backgroundColor: group.batchWarna || '#0E6187' }}>
+            <div className="flex h-8 w-8 flex-none items-center justify-center" style={{ backgroundColor: group.batchWarna || '#0E6187' }}>
               <Receipt size={14} className="text-white" />
             </div>
             <div className="min-w-0 text-left">
-              <h3 className="flex flex-wrap items-center gap-2 text-sm font-bold text-slate-800">
-                <span className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-0.5 text-xs font-bold text-white" style={{ backgroundColor: group.batchWarna || '#0E6187' }}>{batchName}</span>
+              <h3 className="flex flex-wrap items-center gap-2 text-sm font-bold text-[#202124]">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-bold text-white" style={{ backgroundColor: group.batchWarna || '#0E6187' }}>{batchName}</span>
                 {group.hasPending && (
-                  <span className="inline-flex items-center rounded-md bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-600">ada pengajuan</span>
+                  <span className="inline-flex items-center bg-[#f6d7d5] px-2 py-0.5 text-[10px] font-bold text-[#c5221f]">ada pengajuan</span>
                 )}
               </h3>
-              <p className="text-xs text-slate-500">{group.totalPendaftar} kandidat</p>
+              <p className="text-xs text-[#5f6368]">{group.totalPendaftar} kandidat</p>
             </div>
           </div>
           <div className="flex flex-none items-center gap-4">
             <div className="hidden items-center gap-4 text-xs sm:flex">
-              <span className="text-slate-500">Tagihan: <span className="font-bold text-slate-700">Rp {fmt(groupTagihan)}</span></span>
-              <span className="text-emerald-600">Dibayar: <span className="font-bold">Rp {fmt(groupDibayar)}</span></span>
-              <span className="text-red-600">Sisa: <span className="font-bold">Rp {fmt(groupSisa)}</span></span>
+              <span className="text-[#5f6368]">Tagihan: <span className="font-bold text-[#3c4043]">Rp {fmt(groupTagihan)}</span></span>
+              <span className="text-[#137333]">Dibayar: <span className="font-bold">Rp {fmt(groupDibayar)}</span></span>
+              <span className="text-[#c5221f]">Sisa: <span className="font-bold">Rp {fmt(groupSisa)}</span></span>
             </div>
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#5f6368]">
               {isOpen ? 'Tutup' : 'Lihat Tagihan'}
               <ChevronDown size={14} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </span>
@@ -718,10 +710,10 @@ export default function Tagihan() {
         </button>
 
         {isOpen && (
-          <div className="overflow-x-auto border-t border-slate-200">
+          <div className="overflow-x-auto border-t border-[#dadce0]">
             {selectedLunasIds.size > 0 && (
-              <div className="flex items-center gap-3 border-b border-slate-200 bg-blue-50/50 px-4 py-2">
-                <span className="text-xs font-medium text-slate-600">{selectedLunasIds.size} pendaftar dipilih</span>
+              <div className="flex items-center gap-3 border-b border-[#dadce0] bg-[#e8f0fe]/50 px-4 py-2">
+                <span className="text-xs font-medium text-[#5f6368]">{selectedLunasIds.size} pendaftar dipilih</span>
                 <button onClick={async () => {
                   setBulkLunasLoading(true)
                   try {
@@ -734,52 +726,52 @@ export default function Tagihan() {
                   } finally {
                     setBulkLunasLoading(false)
                   }
-                }} disabled={bulkLunasLoading} className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50">
+                }} disabled={bulkLunasLoading} className="bg-[#0E6187] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#084c63] disabled:opacity-50">
                   {bulkLunasLoading ? 'Memproses...' : 'Set Lunas'}
                 </button>
-                <button onClick={() => setSelectedLunasIds(new Set())} className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50">
+                <button onClick={() => setSelectedLunasIds(new Set())} className="border border-[#dadce0] bg-white px-3 py-1.5 text-xs font-medium text-[#5f6368] transition hover:bg-[#f8f9fa]">
                   Batal Pilih
                 </button>
               </div>
             )}
-            <table className="w-full min-w-[900px] border-collapse text-left text-sm text-slate-700">
-              <thead className="bg-[#0e6187]">
+            <table className="w-full min-w-[900px] border-collapse text-left text-sm text-[#3c4043]">
+              <thead className="">
                   <tr>
-                    <th scope="col" className="border border-slate-600 px-3 py-3 text-center font-medium text-white w-[40px]">
+                    <th scope="col" className="text-xs font-medium text-[#5f6368] px-3 py-3 w-[40px] text-center">
                       <input type="checkbox" checked={pagedItems.length > 0 && pagedItems.every(p => selectedLunasIds.has(p.id))} onChange={() => {
                         if (pagedItems.every(p => selectedLunasIds.has(p.id))) {
                           setSelectedLunasIds(prev => { const n = new Set(prev); pagedItems.forEach(p => n.delete(p.id)); return n })
                         } else {
                           setSelectedLunasIds(prev => { const n = new Set(prev); pagedItems.forEach(p => n.add(p.id)); return n })
                         }
-                      }} className="h-4 w-4 rounded border-white/50 bg-white/20 text-white focus:ring-0 cursor-pointer" />
+                      }} className="h-4 w-4 border-[#dadce0] bg-white text-[#1a73e8] focus:ring-0 cursor-pointer" />
                     </th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 font-medium text-white w-[220px]">Pendaftar</th>
+                    <th scope="col" className="text-xs font-medium text-[#5f6368] px-4 py-3 w-[220px]">Pendaftar</th>
                   {kategoriColumns.map(col => {
                     const k = col.kategori
                     return (
                       <th
                         key={k.id}
                         scope="col"
-                        className="border border-slate-600 px-4 py-3 text-right font-medium text-white min-w-[120px] w-[130px]"
+                        className="border border-[#dadce0] px-4 py-3 text-right font-medium text-[#3c4043] min-w-[120px] w-[130px]"
                       >
                         {k.nama}
                       </th>
                     )
                   })}
-                  <th scope="col" className="border border-slate-600 px-4 py-3 text-right font-medium text-white w-[120px]">Tagihan</th>
-                  <th scope="col" className="border border-slate-600 px-4 py-3 text-right font-medium text-white w-[120px]">Dibayar</th>
-                  <th scope="col" className="border border-slate-600 px-4 py-3 text-right font-medium text-white w-[120px]">Sisa</th>
-                  <th scope="col" className="border border-slate-600 px-4 py-3 text-center font-medium text-white w-[110px]">Status</th>
-                    <th scope="col" className="border border-slate-600 px-4 py-3 text-center font-medium text-white w-[80px]">Aksi</th>
+                  <th scope="col" className="text-xs font-medium text-[#5f6368] px-4 py-3 w-[120px] text-right">Tagihan</th>
+                  <th scope="col" className="text-xs font-medium text-[#5f6368] px-4 py-3 w-[120px] text-right">Dibayar</th>
+                  <th scope="col" className="text-xs font-medium text-[#5f6368] px-4 py-3 w-[120px] text-right">Sisa</th>
+                  <th scope="col" className="text-xs font-medium text-[#5f6368] px-4 py-3 w-[110px] text-center">Status</th>
+                    <th scope="col" className="text-xs font-medium text-[#5f6368] px-4 py-3 w-[80px] text-center">Aksi</th>
                   </tr>
                 </thead>
               <tbody>
                 {isLoading && (
                   <tr>
-                    <td colSpan={kategoriColumns.length + 6} className="border border-slate-200 px-4 py-8 text-center text-sm text-slate-400">
+                    <td colSpan={kategoriColumns.length + 6} className="border border-[#dadce0] px-4 py-8 text-center text-sm text-[#80868b]">
                       <div className="flex items-center justify-center gap-2">
-                        <Loader size={16} className="animate-spin text-[#0E6187]" />
+                        <Loader size={16} className="animate-spin text-[#1a73e8]" />
                         Memuat data...
                       </div>
                     </td>
@@ -788,34 +780,34 @@ export default function Tagihan() {
                 {!isLoading && pagedItems.map(p => {
                   const { tagihan, dibayar, sisa } = calcRow(p, kats)
                   return (
-                    <tr key={p.id} className={`transition ${p.is_cuti ? 'bg-yellow-100 hover:bg-yellow-200/70' : p.status_kandidat === 'Mengundurkan Diri' ? 'bg-red-100 hover:bg-red-200/70' : 'bg-white hover:bg-slate-50'} ${selectedLunasIds.has(p.id) ? '!bg-blue-50/50' : ''}`}>
-                      <td className="border border-slate-200 px-3 py-3 text-center">
+                    <tr key={p.id} className={`transition ${p.is_cuti ? 'bg-[#feefc3] hover:bg-[#fdd663]/70' : p.status_kandidat === 'Mengundurkan Diri' ? 'bg-[#f6d7d5] hover:bg-[#f6aea9]/70' : 'bg-white hover:bg-[#f8f9fa]'} ${selectedLunasIds.has(p.id) ? '!bg-[#e8f0fe]/50' : ''}`}>
+                      <td className="border-b border-[#e8eaed] px-3 py-3 text-center">
                         <input type="checkbox" checked={selectedLunasIds.has(p.id)} onChange={() => {
                           setSelectedLunasIds(prev => { const n = new Set(prev); if (n.has(p.id)) n.delete(p.id); else n.add(p.id); return n })
-                        }} className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                        }} className="h-4 w-4 border-[#dadce0] text-[#1a73e8] focus:ring-[#1a73e8] cursor-pointer" />
                       </td>
-                      <td className="border border-slate-200 px-4 py-3">
+                      <td className="border-b border-[#e8eaed] px-4 py-3">
                         <div className="flex items-center gap-3">
                           <img
                             src={`https://ui-avatars.com/api/?name=${encodeURIComponent(p.nama)}&background=e5e7eb&color=6b7280&size=28`}
-                            className="h-8 w-8 rounded-full object-cover shrink-0"
+                            className="h-8 w-8 object-cover shrink-0"
                             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                           />
                           <div className="min-w-0">
-                            <div className="text-sm font-semibold text-slate-800 truncate flex items-center gap-1">
+                            <div className="text-sm font-semibold text-[#202124] truncate flex items-center gap-1">
                               {p.nama}
                               {pendingPembayaran.some((pp: any) => pp.pendaftar_id === p.id) && (
                                 <button
                                   onClick={() => { setSelectedPendingPendaftarId(p.id); setShowPendingModal(true) }}
                                   title="Ada pembayaran menunggu verifikasi"
-                                  className="inline-flex items-center gap-1 rounded-full bg-red-500 px-2 py-1 text-[11px] font-bold text-white shadow-sm transition-colors hover:bg-red-600 shrink-0"
+                                  className="inline-flex items-center gap-1 bg-[#d93025] px-2 py-1 text-[11px] font-bold text-white transition-colors hover:bg-[#c5221f] shrink-0"
                                 >
                                   <Bell size={12} className="animate-pulse" />
                                   {pendingPembayaran.filter((pp: any) => pp.pendaftar_id === p.id).length}
                                 </button>
                               )}
                             </div>
-                            <div className="text-xs text-slate-500 truncate">{p.email}</div>
+                            <div className="text-xs text-[#5f6368] truncate">{p.email}</div>
                           </div>
                         </div>
                       </td>
@@ -825,7 +817,7 @@ export default function Tagihan() {
                         const isUnpaid = p.status_pembayaran === 'unpaid'
                         if (!relevant) {
                           return (
-                            <td key={k.id} className="border border-slate-200 px-4 py-3 text-right text-sm text-slate-300 min-w-[120px]">-</td>
+                            <td key={k.id} className="border border-[#dadce0] px-4 py-3 text-right text-sm text-[#9aa0a6] min-w-[120px]">-</td>
                           )
                         }
                         const key = `${p.id}_${k.id}`
@@ -839,11 +831,11 @@ export default function Tagihan() {
                         const isPartial = val > 0 && !isLunas
                         if (isUnpaid) {
                           return (
-                            <td key={k.id} className="border border-slate-200 px-4 py-3 text-right text-sm text-slate-300 min-w-[120px]">-</td>
+                            <td key={k.id} className="border border-[#dadce0] px-4 py-3 text-right text-sm text-[#9aa0a6] min-w-[120px]">-</td>
                           )
                         }
                         return (
-                          <td key={k.id} className="border border-slate-200 px-4 py-3 text-right whitespace-nowrap min-w-[120px]">
+                          <td key={k.id} className="border border-[#dadce0] px-4 py-3 text-right whitespace-nowrap min-w-[120px]">
                             <input
                               ref={el => { inputRefs.current[key] = el }}
                               type="text"
@@ -862,45 +854,45 @@ export default function Tagihan() {
                                 })
                               }}
                               onKeyDown={e => handleKeyDown(e, key, p, kats)}
-                              className={`w-full bg-transparent text-right text-sm outline-none transition ${isChanged ? 'font-semibold text-[#0E6187]' : isLunas ? 'font-semibold text-emerald-700' : isPartial ? 'font-semibold text-orange-600' : 'text-slate-500'} placeholder:text-slate-300 focus:bg-[#0E6187]/5 focus:rounded focus:px-1`}
+                              className={`w-full bg-transparent text-right text-sm outline-none transition ${isChanged ? 'font-semibold text-[#1a73e8]' : isLunas ? 'font-semibold text-[#137333]' : isPartial ? 'font-semibold text-[#b06000]' : 'text-[#5f6368]'} placeholder:text-[#9aa0a6] focus:bg-[#0E6187]/5 focus:px-1`}
                               placeholder="-"
                             />
                             {biayaKatRaw > 0 && (
-                              <div className="text-[10px] text-slate-400 mt-0.5">Rp {fmt(biayaKatRaw)}</div>
+                              <div className="text-[10px] text-[#80868b] mt-0.5">Rp {fmt(biayaKatRaw)}</div>
                             )}
                           </td>
                         )
                       })}
-                      <td className="border border-slate-200 px-4 py-3 text-right text-sm font-semibold text-slate-800 whitespace-nowrap">
+                      <td className="border-b border-[#e8eaed] px-4 py-3 text-right text-sm font-semibold text-[#202124] whitespace-nowrap">
                         Rp {fmt(tagihan)}
                       </td>
-                      <td className="border border-slate-200 px-4 py-3 text-right text-sm font-semibold text-emerald-700 whitespace-nowrap">
+                      <td className="border-b border-[#e8eaed] px-4 py-3 text-right text-sm font-semibold text-[#137333] whitespace-nowrap">
                         Rp {fmt(dibayar)}
                       </td>
-                      <td className="border border-slate-200 px-4 py-3 text-right text-sm font-semibold text-red-600 whitespace-nowrap">
+                      <td className="border-b border-[#e8eaed] px-4 py-3 text-right text-sm font-semibold text-[#c5221f] whitespace-nowrap">
                         {sisa > 0 ? `Rp ${fmt(sisa)}` : '-'}
                       </td>
-                      <td className="border border-slate-200 px-4 py-3 text-center whitespace-nowrap">
+                      <td className="border-b border-[#e8eaed] px-4 py-3 text-center whitespace-nowrap">
                         {statusBadge(p.status_pembayaran, dibayar, tagihan)}
                       </td>
-                      <td className="border border-slate-200 px-4 py-3 text-center">
+                      <td className="border-b border-[#e8eaed] px-4 py-3 text-center">
                         <div className="relative flex justify-center" ref={openActionId === p.id ? actionRef : undefined}>
                           <button
                             onClick={() => setOpenActionId(openActionId === p.id ? null : p.id)}
-                            className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
+                            className="border border-[#dadce0] bg-white p-1.5 text-[#5f6368] transition hover:border-[#dadce0] hover:bg-[#f8f9fa] hover:text-[#3c4043]"
                             title="Aksi"
                           >
                             <MoreHorizontal size={16} />
                           </button>
                           {openActionId === p.id && (
-                            <div className="absolute right-0 top-full z-30 mt-1 w-52 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+                            <div className="absolute right-0 top-full z-30 mt-1 w-52 border border-[#dadce0] bg-white py-1 shadow-[0_1px_3px_rgba(60,64,67,0.15)]">
                               <Link to={`/pendaftar/${p.id}/invoice`} onClick={() => setOpenActionId(null)}
-                                className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
-                                <FileText size={14} className="text-slate-400" />
+                                className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-[#3c4043] hover:bg-[#f8f9fa] transition-colors">
+                                <FileText size={14} className="text-[#80868b]" />
                                 <span>Lihat Invoice</span>
                               </Link>
-                              <div className="my-1 border-t border-slate-100" />
-                              <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Status</p>
+                              <div className="my-1 border-t border-[#e8eaed]" />
+                              <p className="px-3 py-1 text-[10px] font-semibold r text-[#80868b]">Status</p>
                               {(() => {
                                 const { tagihan, dibayar } = calcRow(p, kats)
                                 const isLunas = dibayar >= tagihan && tagihan > 0
@@ -920,17 +912,17 @@ export default function Tagihan() {
                                         Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal mengubah status pembayaran', confirmButtonColor: '#0E6187' })
                                       }
                                     }}
-                                    className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                                    className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-[#3c4043] hover:bg-[#f8f9fa] transition-colors"
                                   >
                                     {isLunas
-                                      ? <XCircle size={14} className="text-red-400" />
-                                      : <CheckCircle size={14} className="text-emerald-400" />}
+                                      ? <XCircle size={14} className="text-[#ee675c]" />
+                                      : <CheckCircle size={14} className="text-[#81c995]" />}
                                     <span>{isLunas ? 'Batalkan Lunas' : 'Set Lunas'}</span>
                                   </button>
                                 )
                               })()}
-                              <div className="my-1 border-t border-slate-100" />
-                              <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Pembayaran</p>
+                              <div className="my-1 border-t border-[#e8eaed]" />
+                              <p className="px-3 py-1 text-[10px] font-semibold r text-[#80868b]">Pembayaran</p>
                               <button
                                 onClick={async () => {
                                   setOpenActionId(null)
@@ -942,9 +934,9 @@ export default function Tagihan() {
                                     console.error(err)
                                   }
                                 }}
-                                className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                                className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-[#3c4043] hover:bg-[#f8f9fa] transition-colors"
                               >
-                                <DollarSign size={14} className="text-emerald-400" />
+                                <DollarSign size={14} className="text-[#81c995]" />
                                 <span>Input Pembayaran</span>
                               </button>
                             </div>
@@ -957,28 +949,28 @@ export default function Tagihan() {
               </tbody>
               {!isLoading && (
               <tfoot>
-                <tr className="bg-slate-50 font-semibold text-sm">
-                  <td className="border border-slate-200 px-4 py-3" colSpan={kategoriColumns.length + 1}>
-                    <span className="text-slate-500">Total {batchName}</span>
+                <tr className="bg-[#f8f9fa] font-semibold text-sm">
+                  <td className="border-b border-[#e8eaed] px-4 py-3" colSpan={kategoriColumns.length + 1}>
+                    <span className="text-[#5f6368]">Total {batchName}</span>
                   </td>
-                  <td className="border border-slate-200 px-4 py-3 text-right text-slate-800">Rp {fmt(groupTagihan)}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-right text-emerald-700">Rp {fmt(groupDibayar)}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-right text-red-600">{groupSisa > 0 ? `Rp ${fmt(groupSisa)}` : '-'}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-center text-slate-500">{group.totalPendaftar} orang</td>
+                  <td className="border-b border-[#e8eaed] px-4 py-3 text-right text-[#202124]">Rp {fmt(groupTagihan)}</td>
+                  <td className="border-b border-[#e8eaed] px-4 py-3 text-right text-[#137333]">Rp {fmt(groupDibayar)}</td>
+                  <td className="border-b border-[#e8eaed] px-4 py-3 text-right text-[#c5221f]">{groupSisa > 0 ? `Rp ${fmt(groupSisa)}` : '-'}</td>
+                  <td className="border-b border-[#e8eaed] px-4 py-3 text-center text-[#5f6368]">{group.totalPendaftar} orang</td>
                 </tr>
               </tfoot>
               )}
             </table>
             {!isLoading && totalPages > 1 && (
-              <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3">
-                <span className="text-sm text-slate-500">
+              <div className="flex items-center justify-between border-t border-[#dadce0] px-4 py-3">
+                <span className="text-sm text-[#5f6368]">
                   Menampilkan {pagedItems.length} dari {cand?.total || pagedItems.length} pendaftar
                 </span>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => setPage(safePage - 1)}
                     disabled={safePage <= 1}
-                    className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none"
+                    className="border border-[#dadce0] bg-white p-1.5 text-[#5f6368] transition hover:bg-[#f8f9fa] disabled:opacity-30 disabled:pointer-events-none"
                   >
                     <ChevronLeft size={16} />
                   </button>
@@ -997,16 +989,12 @@ export default function Tagihan() {
                     }
                     return pages.map((pg: number | string, i: number) =>
                       typeof pg !== 'number' ? (
-                        <span key={`e${i}`} className="px-1 text-sm text-slate-400">…</span>
+                        <span key={`e${i}`} className="px-1 text-sm text-[#80868b]">…</span>
                       ) : (
                         <button
                           key={pg}
                           onClick={() => setPage(pg)}
-                          className={`min-w-[32px] rounded-md border px-2 py-1 text-center text-sm transition ${
-                            pg === safePage
-                              ? 'border-[#0E6187] bg-[#0E6187] font-medium text-white'
-                              : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                          }`}
+                          className={`min-w-[32px] border px-2 py-1 text-center text-sm transition ${ pg === safePage ? 'border-[#1a73e8] bg-[#0E6187] font-medium text-white' : 'border-[#dadce0] bg-white text-[#5f6368] hover:bg-[#f8f9fa]' }`}
                         >
                           {pg}
                         </button>
@@ -1016,7 +1004,7 @@ export default function Tagihan() {
                   <button
                     onClick={() => setPage(safePage + 1)}
                     disabled={safePage >= totalPages}
-                    className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none"
+                    className="border border-[#dadce0] bg-white p-1.5 text-[#5f6368] transition hover:bg-[#f8f9fa] disabled:opacity-30 disabled:pointer-events-none"
                   >
                     <ChevronRight size={16} />
                   </button>
@@ -1032,46 +1020,46 @@ export default function Tagihan() {
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       {/* Breadcrumb */}
-      <nav className="mb-4 flex items-center gap-1.5 text-xs text-slate-500" aria-label="Breadcrumb">
-        <Link to="/" className="flex items-center gap-1 transition-colors hover:text-[#0E6187]">
+      <nav className="mb-4 flex items-center gap-1.5 text-xs text-[#5f6368]" aria-label="Breadcrumb">
+        <Link to="/" className="flex items-center gap-1 transition-colors hover:text-[#1a73e8]">
           <LayoutDashboard size={13} />
           <span>Beranda</span>
         </Link>
-        <ChevronRight size={12} className="text-slate-300" />
-        <Link to="/pendaftar" className="transition-colors hover:text-[#0E6187]">
+        <ChevronRight size={12} className="text-[#9aa0a6]" />
+        <Link to="/pendaftar" className="transition-colors hover:text-[#1a73e8]">
           Manage Kandidat
         </Link>
-        <ChevronRight size={12} className="text-slate-300" />
-        <span className="font-medium text-slate-700">Tagihan</span>
+        <ChevronRight size={12} className="text-[#9aa0a6]" />
+        <span className="font-medium text-[#3c4043]">Tagihan</span>
       </nav>
 
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-4  p-4  sm:flex-row sm:items-center sm:justify-between ">
+      <div className="mb-4 flex flex-col gap-4 border-b border-[#dadce0] pb-4 sm:flex-row sm:items-center sm:justify-between ">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
+          <div className="flex h-10 w-10 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]">
             <Receipt size={20} />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-slate-800">Tagihan</h1>
-            <p className="text-sm text-slate-500">Kelola tagihan pendaftaran</p>
+            <h1 className="text-xl font-medium text-[#202124]">Tagihan</h1>
+            <p className="text-sm text-[#5f6368]">Kelola tagihan pendaftaran</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => { setSelectedPendingPendaftarId(null); setShowPendingModal(true) }}
-            className={`relative inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium shadow-sm transition ${pendingPembayaran.length > 0 ? 'border-red-200 bg-red-50 text-red-600 hover:bg-red-100' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}
+            className={`relative inline-flex items-center gap-2 border px-3 py-2 text-sm font-medium transition ${pendingPembayaran.length > 0 ? 'border-[#f6aea9] bg-[#fce8e6] text-[#c5221f] hover:bg-[#f6d7d5]' : 'border-[#dadce0] bg-white text-[#3c4043] hover:bg-[#f8f9fa]'}`}
           >
             <Bell size={16} />
             <span>Verifikasi</span>
             {pendingPembayaran.length > 0 && (
-              <span className="absolute -top-2 -right-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white animate-pulse">
+              <span className="absolute -top-2 -right-2 inline-flex h-5 min-w-[20px] items-center justify-center bg-[#d93025] px-1 text-[10px] font-bold text-white ring-2 ring-white animate-pulse">
                 {new Set(pendingPembayaran.map((pp: any) => pp.pendaftar_id)).size}
               </span>
             )}
           </button>
           <button
             onClick={() => setShowFilter(v => !v)}
-            className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium shadow-sm transition ${showFilter ? 'bg-[#1a3a5c] text-white' : 'bg-[#0E6187] text-white hover:bg-[#1a3a5c]'}`}
+            className={`inline-flex items-center gap-2 px-3 py-2 text-sm font-medium transition ${showFilter ? 'bg-[#1a3a5c] text-white' : 'bg-[#0E6187] text-white hover:bg-[#1a3a5c]'}`}
           >
             <Search size={16} />
             Filter
@@ -1089,13 +1077,13 @@ export default function Tagihan() {
         ].map(stat => {
           const Icon = stat.icon
           return (
-            <div key={stat.label} className="flex min-w-0 items-center gap-3 rounded-sm border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-              <div className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-[#0E6187]/10 sm:h-10 sm:w-10">
-                <Icon size={16} className="text-[#0E6187]" />
+            <div key={stat.label} className="flex min-w-0 items-center gap-3 border border-[#dadce0] bg-white p-3 sm:p-4">
+              <div className="flex h-9 w-9 flex-none items-center justify-center bg-[#0E6187]/10 sm:h-10 sm:w-10">
+                <Icon size={16} className="text-[#1a73e8]" />
               </div>
               <div className="min-w-0">
-                <p className="truncate text-[10px] text-slate-500 sm:text-xs">{stat.label}</p>
-                <p className="break-words text-base font-bold leading-tight text-slate-800 sm:text-xl lg:text-2xl">{stat.value}</p>
+                <p className="truncate text-[10px] text-[#5f6368] sm:text-xs">{stat.label}</p>
+                <p className="break-words text-base font-bold leading-tight text-[#202124] sm:text-xl lg:text-2xl">{stat.value}</p>
               </div>
             </div>
           )
@@ -1104,16 +1092,16 @@ export default function Tagihan() {
 
       {/* Filter */}
       {showFilter && (
-      <div className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mb-4 border border-[#dadce0] bg-white p-4 ">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
           <div className="relative sm:col-span-2 md:col-span-3 lg:col-span-2">
-            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#80868b]" />
             <input
               type="text"
               placeholder="Cari nama/email..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full border border-[#dadce0] bg-white py-2 pl-9 pr-3 text-sm text-[#3c4043] outline-none transition placeholder:text-[#80868b] focus:border-[#1a73e8] focus:border-[#1a73e8]"
             />
           </div>
           <div className="relative">
@@ -1123,7 +1111,7 @@ export default function Tagihan() {
               value={filterDateFrom}
               onFocus={e => { e.target.type = 'date'; e.target.showPicker?.() }}
               onChange={e => { setFilterDateFrom(e.target.value); if (e.target.value) e.target.type = 'date'; else e.target.type = 'text' }}
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] focus:border-[#1a73e8]"
             />
           </div>
           <div className="relative">
@@ -1133,32 +1121,32 @@ export default function Tagihan() {
               value={filterDateTo}
               onFocus={e => { e.target.type = 'date'; e.target.showPicker?.() }}
               onChange={e => { setFilterDateTo(e.target.value); if (e.target.value) e.target.type = 'date'; else e.target.type = 'text' }}
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] focus:border-[#1a73e8]"
             />
           </div>
           <div className="relative">
             <button onClick={() => setShowBatchDropdown(!showBatchDropdown)}
-              className="flex items-center gap-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+              className="flex items-center gap-2 w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] focus:border-[#1a73e8]">
               {filterBatch ? (() => {
                 const b = batches.find(x => String(x.id) === filterBatch)
                 return <>
-                  {b?.warna ? <span className="inline-block w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: b.warna }} /> : null}
+                  {b?.warna ? <span className="inline-block w-3 h-3 shrink-0" style={{ backgroundColor: b.warna }} /> : null}
                   <span className="truncate">{b?.nama_batch || filterBatch}</span>
                 </>
-              })() : <span className="text-slate-500">Semua Batch</span>}
+              })() : <span className="text-[#5f6368]">Semua Batch</span>}
             </button>
             {showBatchDropdown && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowBatchDropdown(false)} />
-                <div className="absolute top-full left-0 mt-1 w-full z-50 rounded-md border border-slate-200 bg-white shadow-lg max-h-48 overflow-y-auto">
+                <div className="absolute top-full left-0 mt-1 w-full z-50 border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15)] max-h-48 overflow-y-auto">
                   <button onClick={() => { setFilterBatch(''); setShowBatchDropdown(false) }}
-                    className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition hover:bg-slate-50 ${!filterBatch ? 'bg-blue-50 font-semibold' : ''}`}>
+                    className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition hover:bg-[#f8f9fa] ${!filterBatch ? 'bg-[#e8f0fe] font-semibold' : ''}`}>
                     Semua Batch
                   </button>
                   {batches.map(b => (
                     <button key={b.id} onClick={() => { setFilterBatch(String(b.id)); setShowBatchDropdown(false) }}
-                      className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition hover:bg-slate-50 ${String(b.id) === filterBatch ? 'bg-blue-50 font-semibold' : ''}`}>
-                      {b.warna ? <span className="inline-block w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: b.warna }} /> : null}
+                      className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition hover:bg-[#f8f9fa] ${String(b.id) === filterBatch ? 'bg-[#e8f0fe] font-semibold' : ''}`}>
+                      {b.warna ? <span className="inline-block w-3 h-3 shrink-0" style={{ backgroundColor: b.warna }} /> : null}
                       {b.nama_batch}
                     </button>
                   ))}
@@ -1167,14 +1155,14 @@ export default function Tagihan() {
             )}
           </div>
           <select value={filterProduct} onChange={e => setFilterProduct(e.target.value)}
-            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] focus:border-[#1a73e8]">
             <option value="">Semua Program</option>
             {products.map(p => (
               <option key={p.id} value={p.nama}>{p.nama}</option>
             ))}
           </select>
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] focus:border-[#1a73e8]">
             <option value="">Semua Status</option>
             <option value="unpaid">Belum Bayar</option>
             <option value="processing">Proses</option>
@@ -1183,7 +1171,7 @@ export default function Tagihan() {
           </select>
           <button
             onClick={() => { setSearch(''); setFilterStatus(''); setFilterBatch(''); setFilterProduct(''); setFilterDateFrom(''); setFilterDateTo(''); setPendingChanges({}); activeBatchRef.current = null; setActiveBatchId(null); setCandidates({}); setSelectedLunasIds(new Set()) }}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 w-full sm:w-auto"
+            className="inline-flex items-center justify-center gap-2 border border-[#dadce0] bg-white px-3 py-2 text-sm font-medium text-[#3c4043] transition hover:bg-[#f8f9fa] w-full sm:w-auto"
           >
             <RotateCcw size={16} />
             Reset
@@ -1196,16 +1184,16 @@ export default function Tagihan() {
       {loading && groupsMeta.length === 0 ? (
         <div className="flex items-center justify-center py-20">
           <div className="relative w-14 h-14 flex items-center justify-center">
-            <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
+            <div className="absolute inset-0 rounded-full border-2 border-[#1a73e8]/10 border-t-[#1a73e8] animate-spin" />
             <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
           </div>
         </div>
       ) : renderGroups.length === 0 ? (
-        <div className="rounded-lg border border-slate-200 bg-white px-6 py-10 text-center shadow-sm">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+        <div className="border border-[#dadce0] bg-white px-6 py-10 text-center ">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center bg-[#f1f3f4] text-[#80868b]">
             <Receipt size={24} />
           </div>
-          <p className="mt-3 text-sm font-medium text-slate-600">Tidak ada tagihan ditemukan</p>
+          <p className="mt-3 text-sm font-medium text-[#5f6368]">Tidak ada tagihan ditemukan</p>
         </div>
       ) : (
         <>
@@ -1217,39 +1205,39 @@ export default function Tagihan() {
       {/* Summary */}
       {!loading && renderGroups.length > 0 && (
         <div className="mt-2 flex items-center justify-between">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-[#5f6368]">
             {batchTotal} batch &middot; {stats.count} pendaftar
           </p>
-          <div className="flex items-center gap-3 text-[10px] text-slate-500">
-            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-600" /> Lunas</span>
-            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500" /> Belum Lunas</span>
-            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-300" /> Belum Bayar</span>
+          <div className="flex items-center gap-3 text-[10px] text-[#5f6368]">
+            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 bg-[#0E6187]" /> Lunas</span>
+            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 bg-[#d93025]" /> Belum Lunas</span>
+            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 bg-[#e8eaed]" /> Belum Bayar</span>
           </div>
         </div>
       )}
 
       {/* Floating save bar */}
       {pendingCount > 0 && (
-        <div className="sticky bottom-4 z-40 mt-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-lg sm:flex-row sm:items-center sm:justify-between">
+        <div className="sticky bottom-4 z-40 mt-4 flex flex-col gap-3 border border-[#dadce0] bg-white px-4 py-3 shadow-[0_1px_3px_rgba(60,64,67,0.15)] sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0E6187]/10">
-              <AlertCircle size={17} className="text-[#0E6187]" />
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-[#0E6187]/10">
+              <AlertCircle size={17} className="text-[#1a73e8]" />
             </span>
-            <p className="text-sm text-slate-600">
-              <span className="font-bold text-[#0E6187]">{pendingCount}</span> perubahan belum disimpan
+            <p className="text-sm text-[#5f6368]">
+              <span className="font-bold text-[#1a73e8]">{pendingCount}</span> perubahan belum disimpan
             </p>
           </div>
           <div className="flex items-center justify-end gap-2">
             <button
               onClick={() => setPendingChanges({})}
-              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+              className="border border-[#dadce0] bg-white px-4 py-2 text-xs font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]"
             >
               Batal
             </button>
             <button
               onClick={handleSaveInline}
               disabled={savingInline}
-              className="inline-flex items-center gap-1.5 rounded-md bg-[#0E6187] px-5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#0a4f6e] disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 bg-[#0E6187] px-5 py-2 text-xs font-semibold text-white transition hover:bg-[#0a4f6e] disabled:opacity-50"
             >
               <Save size={14} />
               {savingInline ? 'Menyimpan...' : 'Simpan'}
@@ -1260,29 +1248,29 @@ export default function Tagihan() {
 
       {/* Modal Bayar Manual */}
       {modalBayar && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-6" onClick={() => setModalBayar(null)}>
-          <div className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-xl bg-white shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#202124]/50 px-3 py-6" onClick={() => setModalBayar(null)}>
+          <div className="border border-[#dadce0] w-full max-w-lg max-h-[85vh] overflow-y-auto bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-[#dadce0] px-5 py-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50">
-                  <DollarSign size={18} className="text-emerald-600" />
+                <div className="flex h-9 w-9 items-center justify-center bg-[#e6f4ea]">
+                  <DollarSign size={18} className="text-[#137333]" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-800">Input Pembayaran Manual</h3>
-                  <p className="text-xs text-slate-500">{modalBayar.pendaftar.nama}</p>
+                  <h3 className="text-sm font-bold text-[#202124]">Input Pembayaran Manual</h3>
+                  <p className="text-xs text-[#5f6368]">{modalBayar.pendaftar.nama}</p>
                 </div>
               </div>
-              <button onClick={() => setModalBayar(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"><X size={17} /></button>
+              <button onClick={() => setModalBayar(null)} className="p-1 text-[#80868b] hover:bg-[#f1f3f4] hover:text-[#5f6368]"><X size={17} /></button>
             </div>
             <div className="px-5 py-4 space-y-3">
               {modalBayar.items.map((item, i) => (
                 <div key={item.kategori_id} className="flex items-center gap-3">
                   <div className="flex-1">
-                    <label className="block text-xs font-medium text-slate-600">{item.nama}</label>
-                    <p className="text-[10px] text-slate-400">Biaya: Rp {fmt(item.biaya)}</p>
+                    <label className="block text-xs font-medium text-[#5f6368]">{item.nama}</label>
+                    <p className="text-[10px] text-[#80868b]">Biaya: Rp {fmt(item.biaya)}</p>
                   </div>
                   <div className="relative w-36">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-medium text-slate-400">Rp</span>
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-medium text-[#80868b]">Rp</span>
                     <input
                       type="text"
                       value={item.dibayar ? Number(item.dibayar).toLocaleString('id-ID') : ''}
@@ -1292,17 +1280,17 @@ export default function Tagihan() {
                         newItems[i] = { ...newItems[i], dibayar: raw === '' ? 0 : Number(raw.replace(/\D/g, '')) }
                         setModalBayar({ ...modalBayar, items: newItems })
                       }}
-                      className="w-full rounded-md border border-slate-300 bg-white py-2 pl-8 pr-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      className="w-full border border-[#dadce0] bg-white py-2 pl-8 pr-3 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] focus:border-[#1a73e8]"
                       placeholder="0"
                     />
                   </div>
                 </div>
               ))}
             </div>
-            <div className="flex items-center justify-between border-t border-slate-200 px-5 py-3">
-              <p className="text-[11px] text-slate-400">Kosongi jika belum bayar</p>
+            <div className="flex items-center justify-between border-t border-[#dadce0] px-5 py-3">
+              <p className="text-[11px] text-[#80868b]">Kosongi jika belum bayar</p>
               <div className="flex gap-2">
-                <button onClick={() => setModalBayar(null)} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">Batal</button>
+                <button onClick={() => setModalBayar(null)} className="border border-[#dadce0] bg-white px-4 py-2 text-xs font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]">Batal</button>
                 <button
                   onClick={async () => {
                     if (!modalBayar) return
@@ -1333,7 +1321,7 @@ export default function Tagihan() {
                     }
                   }}
                   disabled={saving}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-5 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 bg-[#0E6187] px-5 py-2 text-xs font-medium text-white transition hover:bg-[#084c63] disabled:opacity-50"
                 >
                   {saving ? 'Menyimpan...' : 'Simpan Pembayaran'}
                 </button>
@@ -1352,11 +1340,11 @@ export default function Tagihan() {
           ? filteredPembayaran[0]?.pendaftar?.nama || ''
           : ''
         return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-3 py-6" onClick={() => { setShowPendingModal(false); setSelectedPendingPendaftarId(null) }}>
-          <div className="flex max-h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#202124]/50 px-3 py-6" onClick={() => { setShowPendingModal(false); setSelectedPendingPendaftarId(null) }}>
+          <div className="border border-[#dadce0] flex max-h-[88vh] w-full max-w-4xl flex-col overflow-hidden bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]" onClick={e => e.stopPropagation()}>
             <div className="flex flex-none items-center justify-between gap-3 bg-[#0E6187] px-4 py-3.5 sm:px-5">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-10 w-10 flex-none items-center justify-center rounded-md bg-white/15">
+                <div className="flex h-10 w-10 flex-none items-center justify-center bg-white/15">
                   <Bell size={19} className="text-white" />
                 </div>
                 <div className="min-w-0">
@@ -1367,14 +1355,14 @@ export default function Tagihan() {
                 </div>
               </div>
               <div className="flex flex-none items-center gap-2">
-                <span className="inline-flex items-center gap-1 rounded-md bg-amber-400 px-2.5 py-1 text-xs font-bold text-white">
+                <span className="inline-flex items-center gap-1 bg-[#f9ab00] px-2.5 py-1 text-xs font-bold text-white">
                   <Bell size={12} />
                   {filteredPembayaran.length}
                 </span>
                 <button
                   onClick={() => { setShowPendingModal(false); setSelectedPendingPendaftarId(null) }}
                   title="Tutup"
-                  className="rounded-md p-1.5 text-white/70 transition hover:bg-white/15 hover:text-white"
+                  className="p-1.5 text-white/70 transition hover:bg-white/15 hover:text-white"
                 >
                   <X size={18} />
                 </button>
@@ -1382,33 +1370,33 @@ export default function Tagihan() {
             </div>
             {filteredPembayaran.length === 0 ? (
               <div className="px-5 py-14 text-center">
-                <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-500">
+                <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center bg-[#e6f4ea] text-[#188038]">
                   <CheckCircle size={28} />
                 </div>
-                <p className="text-sm font-semibold text-slate-700">Tidak ada pembayaran yang perlu diverifikasi</p>
-                <p className="mt-1 text-xs text-slate-500">Semua bukti pembayaran sudah diproses.</p>
+                <p className="text-sm font-semibold text-[#3c4043]">Tidak ada pembayaran yang perlu diverifikasi</p>
+                <p className="mt-1 text-xs text-[#5f6368]">Semua bukti pembayaran sudah diproses.</p>
               </div>
             ) : (
-              <div className="flex-1 space-y-3 overflow-y-auto bg-slate-50 p-3 sm:p-4">
+              <div className="flex-1 space-y-3 overflow-y-auto bg-[#f8f9fa] p-3 sm:p-4">
                 {filteredPembayaran.map((pp: any) => (
-                  <div key={pp.id} className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
-                    <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div key={pp.id} className="overflow-hidden border border-[#dadce0] bg-white ">
+                    <div className="flex flex-col gap-3 border-b border-[#e8eaed] p-4 sm:flex-row sm:items-start sm:justify-between">
                       <div className="flex min-w-0 items-center gap-3">
                         <img
                           src={`https://ui-avatars.com/api/?name=${encodeURIComponent(pp.pendaftar?.nama || '?')}&background=0E6187&color=ffffff&size=64`}
                           alt=""
-                          className="h-11 w-11 flex-none rounded-full object-cover"
+                          className="h-11 w-11 flex-none object-cover"
                           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                         />
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-bold text-slate-800">{pp.pendaftar?.nama}</p>
-                          <p className="truncate text-xs text-slate-500">{pp.pendaftar?.email}</p>
+                          <p className="truncate text-sm font-bold text-[#202124]">{pp.pendaftar?.nama}</p>
+                          <p className="truncate text-xs text-[#5f6368]">{pp.pendaftar?.email}</p>
                           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                            <span className="rounded bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
+                            <span className="bg-[#e8f0fe] px-2 py-0.5 text-[11px] font-semibold text-[#1967d2]">
                               {pp.kategori?.nama || pp.kategori?.kode || 'Tagihan'}
                             </span>
-                            <span className="inline-flex items-center gap-1 rounded bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-600">
-                              <Clock size={11} className="text-slate-400" />
+                            <span className="inline-flex items-center gap-1 bg-[#f8f9fa] px-2 py-0.5 text-[11px] font-medium text-[#5f6368]">
+                              <Clock size={11} className="text-[#80868b]" />
                               {new Date(pp.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                               {' · '}
                               {new Date(pp.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
@@ -1419,8 +1407,8 @@ export default function Tagihan() {
 
                       <div className="flex flex-none items-center justify-between gap-2 sm:flex-col sm:items-end">
                         <div className="text-left sm:text-right">
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Nominal</p>
-                          <p className="text-lg font-bold leading-tight text-emerald-600">
+                          <p className="text-[10px] font-semibold r text-[#80868b]">Nominal</p>
+                          <p className="text-lg font-bold leading-tight text-[#137333]">
                             Rp {Number(pp.jumlah).toLocaleString('id-ID')}
                           </p>
                         </div>
@@ -1429,7 +1417,7 @@ export default function Tagihan() {
                             href={`${APP_URL}/storage/${pp.bukti_pembayaran}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 rounded-md border border-[#0E6187] bg-white px-3 py-1.5 text-xs font-semibold text-[#0E6187] transition hover:bg-[#0E6187] hover:text-white"
+                            className="inline-flex items-center gap-1.5 border border-[#1a73e8] bg-white px-3 py-1.5 text-xs font-semibold text-[#1a73e8] transition hover:bg-[#0a4d6b] hover:text-white"
                           >
                             <Eye size={14} /> Lihat Bukti
                           </a>
@@ -1437,27 +1425,27 @@ export default function Tagihan() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-2 border-b border-slate-100 p-4 sm:grid-cols-2">
-                      <div className="flex items-center gap-2.5 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-                        <UserRound size={14} className="flex-none text-slate-400" />
+                    <div className="grid grid-cols-1 gap-2 border-b border-[#e8eaed] p-4 sm:grid-cols-2">
+                      <div className="flex items-center gap-2.5 border border-[#dadce0] bg-[#f8f9fa] px-3 py-2">
+                        <UserRound size={14} className="flex-none text-[#80868b]" />
                         <div className="min-w-0">
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Nama Pengirim</p>
-                          <p className="truncate text-xs font-semibold text-slate-700">{pp.pendaftar?.nama_pengirim || pp.pendaftar?.nama_rekening || '-'}</p>
+                          <p className="text-[10px] font-semibold r text-[#80868b]">Nama Pengirim</p>
+                          <p className="truncate text-xs font-semibold text-[#3c4043]">{pp.pendaftar?.nama_pengirim || pp.pendaftar?.nama_rekening || '-'}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2.5 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-                        <Landmark size={14} className="flex-none text-slate-400" />
+                      <div className="flex items-center gap-2.5 border border-[#dadce0] bg-[#f8f9fa] px-3 py-2">
+                        <Landmark size={14} className="flex-none text-[#80868b]" />
                         <div className="min-w-0">
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Bank / Sumber</p>
-                          <p className="truncate text-xs font-semibold text-slate-700">{pp.pendaftar?.bank_pengirim || pp.pendaftar?.bank_asal || '-'}</p>
+                          <p className="text-[10px] font-semibold r text-[#80868b]">Bank / Sumber</p>
+                          <p className="truncate text-xs font-semibold text-[#3c4043]">{pp.pendaftar?.bank_pengirim || pp.pendaftar?.bank_asal || '-'}</p>
                         </div>
                       </div>
                     </div>
 
                     <div className="p-4">
                       <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-xs font-bold text-slate-700">Ubah Status Pembayaran</p>
-                        <p className="text-[11px] text-slate-400">Status saat ini ditandai, klik aksi lain untuk mengubah</p>
+                        <p className="text-xs font-bold text-[#3c4043]">Ubah Status Pembayaran</p>
+                        <p className="text-[11px] text-[#80868b]">Status saat ini ditandai, klik aksi lain untuk mengubah</p>
                       </div>
                       <UbahStatusGrid pendaftarId={pp.pendaftar_id} pendaftar={pp.pendaftar} onChanged={refreshAll} />
                     </div>
@@ -1466,11 +1454,11 @@ export default function Tagihan() {
               </div>
             )}
 
-            <div className="flex flex-none flex-col gap-2 border-t border-slate-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-[11px] text-slate-500">Periksa bukti pembayaran sebelum mengubah status kandidat.</p>
+            <div className="flex flex-none flex-col gap-2 border-t border-[#dadce0] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-[11px] text-[#5f6368]">Periksa bukti pembayaran sebelum mengubah status kandidat.</p>
               <button
                 onClick={() => { setShowPendingModal(false); setSelectedPendingPendaftarId(null) }}
-                className="inline-flex items-center justify-center rounded-md bg-[#0E6187] px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#1a3a5c]"
+                className="inline-flex items-center justify-center bg-[#0E6187] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#1a3a5c]"
               >
                 Tutup
               </button>

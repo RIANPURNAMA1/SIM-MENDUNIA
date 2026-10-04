@@ -254,34 +254,34 @@ export default function DataPengeluaran() {
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
-      <div className="mb-4 flex flex-col gap-3 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-3 border-b border-[#dadce0] pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
-            <Wallet size={20} className="text-white" />
+          <div className="flex h-10 w-10 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]">
+            <Wallet size={20} />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-slate-800">Data Pengeluaran</h1>
-            <p className="text-sm text-slate-500">{totalItems} total pengeluaran</p>
+            <h1 className="text-xl font-medium text-[#202124]">Data Pengeluaran</h1>
+            <p className="text-sm text-[#5f6368]">{totalItems} total pengeluaran</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setShowCatatan(!showCatatan)}
-            className="inline-flex items-center gap-2 rounded-md bg-[#0E6187] px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#1a5e6f]"
+            className="inline-flex items-center gap-2 bg-[#0E6187] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#084c63]"
           >
             {showCatatan ? <FileText size={16} /> : <Images size={16} />}
             {showCatatan ? 'Tabel' : 'Catatan'}
           </button>
           <button
             onClick={() => setShowRekap(true)}
-            className="inline-flex items-center gap-2 rounded-md bg-[#0E6187] px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#1a5e6f]"
+            className="inline-flex items-center gap-2 bg-[#0E6187] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#084c63]"
           >
             <FileText size={16} />
             Rekap Bulanan
           </button>
           <button
             onClick={openCreate}
-            className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700"
+            className="inline-flex items-center gap-2 bg-[#0E6187] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#084c63]"
           >
             <Plus size={16} />
             Input Pengeluaran
@@ -289,24 +289,24 @@ export default function DataPengeluaran() {
         </div>
       </div>
 
-      <div className="mb-4 rounded-lg p-4 shadow-sm">
+      <div className="mb-4 p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative flex-1">
-            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#80868b]" />
             <input
               type="text"
               placeholder="Cari keterangan..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full border border-[#dadce0] bg-white py-2 pl-9 pr-3 text-sm text-[#3c4043] outline-none transition placeholder:text-[#80868b] focus:border-[#1a73e8]"
             />
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Filter size={14} className="text-slate-400" />
+            <Filter size={14} className="text-[#80868b]" />
             <select
               value={filterKategori}
               onChange={e => setFilterKategori(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="border border-[#dadce0] bg-white px-2 py-2 text-sm text-[#3c4043] outline-none focus:border-[#1a73e8]"
             >
               <option value="">Semua Kategori</option>
               {kategoris.map(k => (
@@ -317,7 +317,7 @@ export default function DataPengeluaran() {
               <select
                 value={filterCabang}
                 onChange={e => setFilterCabang(e.target.value)}
-                className="rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="border border-[#dadce0] bg-white px-2 py-2 text-sm text-[#3c4043] outline-none focus:border-[#1a73e8]"
               >
                 <option value="">Semua Cabang</option>
                 {cabangs.map(c => (
@@ -329,15 +329,15 @@ export default function DataPengeluaran() {
               type="date"
               value={filterMulai}
               onChange={e => setFilterMulai(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="border border-[#dadce0] bg-white px-2 py-2 text-sm text-[#3c4043] outline-none focus:border-[#1a73e8]"
               placeholder="Dari tanggal"
             />
-            <span className="text-slate-400 text-sm">-</span>
+            <span className="text-[#80868b] text-sm">-</span>
             <input
               type="date"
               value={filterSampai}
               onChange={e => setFilterSampai(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="border border-[#dadce0] bg-white px-2 py-2 text-sm text-[#3c4043] outline-none focus:border-[#1a73e8]"
               placeholder="Sampai tanggal"
             />
           </div>
@@ -346,78 +346,78 @@ export default function DataPengeluaran() {
 
       <div className="relative overflow-x-auto">
         {!showCatatan ? (
-        <table className="w-full min-w-full border-collapse text-left text-sm text-slate-700">
-          <thead className="text-sm text-slate-600">
+        <table className="w-full min-w-full border-collapse text-left text-sm text-[#3c4043]">
+          <thead className="text-sm text-[#5f6368]">
             <tr>
-              <th className="border border-slate-200 px-4 py-3 font-medium">Tanggal</th>
-              <th className="border border-slate-200 px-4 py-3 font-medium">Kategori</th>
-              <th className="border border-slate-200 px-4 py-3 font-medium">Keterangan</th>
-              <th className="border border-slate-200 px-4 py-3 text-right font-medium">Nominal</th>
-              <th className="border border-slate-200 px-4 py-3 font-medium">Cabang</th>
-              <th className="border border-slate-200 px-4 py-3 font-medium">Oleh</th>
-              <th className="border border-slate-200 px-4 py-3 text-center font-medium">Aksi</th>
+              <th className="text-xs font-medium text-[#5f6368] px-4 py-3">Tanggal</th>
+              <th className="text-xs font-medium text-[#5f6368] px-4 py-3">Kategori</th>
+              <th className="text-xs font-medium text-[#5f6368] px-4 py-3">Keterangan</th>
+              <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-right">Nominal</th>
+              <th className="text-xs font-medium text-[#5f6368] px-4 py-3">Cabang</th>
+              <th className="text-xs font-medium text-[#5f6368] px-4 py-3">Oleh</th>
+              <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-center">Aksi</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i}>
-                  <td colSpan={7} className="border border-slate-200 px-4 py-3">
-                    <div className="h-3 bg-slate-200/70 rounded w-full animate-pulse" />
+                  <td colSpan={7} className="px-6 py-12 text-center">
+                    <div className="h-3 bg-[#e8eaed] w-full animate-pulse" />
                   </td>
                 </tr>
               ))
             ) : data.length === 0 ? (
               <tr>
-                <td colSpan={7} className="border border-slate-200 px-6 py-10 text-center">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                <td colSpan={7} className="px-6 py-12 text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center bg-[#f1f3f4] text-[#80868b]">
                     <Wallet size={24} />
                   </div>
-                  <p className="mt-3 text-sm font-medium text-slate-600">Belum ada pengeluaran</p>
+                  <p className="mt-3 text-sm font-medium text-[#5f6368]">Belum ada pengeluaran</p>
                 </td>
               </tr>
             ) : (
               data.map(item => (
-                <tr key={item.id} className="bg-white transition hover:bg-slate-50">
-                  <td className="border border-slate-200 px-4 py-3 text-sm whitespace-nowrap">
+                <tr key={item.id} className="bg-white transition hover:bg-[#f8f9fa]">
+                  <td className="border-b border-[#e8eaed] px-4 py-3 text-sm whitespace-nowrap">
                     {new Date(item.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
                   </td>
-                  <td className="border border-slate-200 px-4 py-3">
-                    <span className="inline-flex items-center px-2.5 py-1 bg-orange-50 text-orange-700 text-xs font-semibold rounded-lg">
+                  <td className="border-b border-[#e8eaed] px-4 py-3">
+                    <span className="inline-flex items-center px-2.5 py-1 bg-[#fef7e0] text-[#b06000] text-xs font-semibold">
                       {item.kategori?.kode}
                     </span>
                   </td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm max-w-[200px] truncate">
+                  <td className="border-b border-[#e8eaed] px-4 py-3 text-sm max-w-[200px] truncate">
                     {item.keterangan || '-'}
                   </td>
-                  <td className="border border-slate-200 px-4 py-3 text-right font-semibold text-red-600 whitespace-nowrap">
+                  <td className="border-b border-[#e8eaed] px-4 py-3 text-right font-semibold text-[#c5221f] whitespace-nowrap">
                     {formatRupiah(item.nominal)}
                   </td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-500">
+                  <td className="border-b border-[#e8eaed] px-4 py-3 text-sm text-[#5f6368]">
                     {item.cabang?.nama_cabang || '-'}
                   </td>
-                  <td className="border border-slate-200 px-4 py-3 text-sm text-slate-500">
+                  <td className="border-b border-[#e8eaed] px-4 py-3 text-sm text-[#5f6368]">
                     {item.user?.name}
                   </td>
-                  <td className="border border-slate-200 px-4 py-3 text-center">
+                  <td className="border-b border-[#e8eaed] px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-1">
                       <button
                         onClick={() => { setDetailItem(item); setShowDetail(true) }}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                        className="p-1.5 text-[#80868b] hover:text-[#1a73e8] hover:bg-[#e8f0fe] transition-colors"
                         title="Detail"
                       >
                         <Eye size={15} />
                       </button>
                       <button
                         onClick={() => openEdit(item)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                        className="p-1.5 text-[#80868b] hover:text-[#1a73e8] hover:bg-[#e8f0fe] transition-colors"
                         title="Edit"
                       >
                         <Edit3 size={15} />
                       </button>
                       <button
                         onClick={() => { setDeleteItem(item); setShowDelete(true) }}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        className="p-1.5 text-[#80868b] hover:text-[#c5221f] hover:bg-[#fce8e6] transition-colors"
                         title="Hapus"
                       >
                         <Trash2 size={15} />
@@ -433,24 +433,24 @@ export default function DataPengeluaran() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {loading ? (
             Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="border border-slate-200 rounded-xl overflow-hidden animate-pulse">
-                <div className="h-40 bg-slate-200/70" />
+              <div key={i} className="border border-[#dadce0] overflow-hidden animate-pulse">
+                <div className="h-40 bg-[#e8eaed]" />
                 <div className="p-3 space-y-2">
-                  <div className="h-3 bg-slate-200/70 rounded w-1/3" />
-                  <div className="h-4 bg-slate-200/70 rounded w-1/2" />
-                  <div className="h-3 bg-slate-200/70 rounded w-2/3" />
+                  <div className="h-3 bg-[#e8eaed] w-1/3" />
+                  <div className="h-4 bg-[#e8eaed] w-1/2" />
+                  <div className="h-3 bg-[#e8eaed] w-2/3" />
                 </div>
               </div>
             ))
           ) : data.length === 0 ? (
-            <div className="col-span-full text-center py-10 text-sm text-slate-400">Belum ada catatan</div>
+            <div className="col-span-full text-center py-10 text-sm text-[#80868b]">Belum ada catatan</div>
           ) : (
             data.map(item => (
-              <div key={item.id} className="border border-slate-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow bg-white">
+              <div key={item.id} className="border border-[#dadce0] overflow-hidden hover: transition-shadow bg-white">
                 {item.bukti ? (
                   item.bukti.endsWith('.pdf') ? (
-                    <a href={`${APP_URL}/storage/${item.bukti}`} target="_blank" rel="noreferrer" className="block h-40 bg-slate-100 flex items-center justify-center">
-                      <FileText size={32} className="text-slate-400" />
+                    <a href={`${APP_URL}/storage/${item.bukti}`} target="_blank" rel="noreferrer" className="block h-40 bg-[#f1f3f4] flex items-center justify-center">
+                      <FileText size={32} className="text-[#80868b]" />
                     </a>
                   ) : (
                     <img
@@ -461,39 +461,39 @@ export default function DataPengeluaran() {
                     />
                   )
                 ) : (
-                  <div className="h-40 bg-slate-100 flex items-center justify-center">
-                    <Wallet size={32} className="text-slate-300" />
+                  <div className="h-40 bg-[#f1f3f4] flex items-center justify-center">
+                    <Wallet size={32} className="text-[#80868b]" />
                   </div>
                 )}
                 <div className="p-3">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="inline-flex px-2 py-0.5 bg-orange-50 text-orange-700 text-[10px] font-semibold rounded">
+                    <span className="inline-flex px-2 py-0.5 bg-[#fef7e0] text-[#b06000] text-[10px] font-semibold">
                       {item.kategori?.kode}
                     </span>
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-[#80868b]">
                       {new Date(item.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </span>
                   </div>
-                  <p className="text-sm font-bold text-red-600 mt-1">{formatRupiah(item.nominal)}</p>
-                  <p className="text-xs text-slate-500 mt-1 truncate">{item.keterangan || 'Tanpa keterangan'}</p>
-                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
+                  <p className="text-sm font-medium text-[#c5221f] mt-1">{formatRupiah(item.nominal)}</p>
+                  <p className="text-xs text-[#5f6368] mt-1 truncate">{item.keterangan || 'Tanpa keterangan'}</p>
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#e8eaed]">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-[#0E6187] flex items-center justify-center text-[10px] font-bold text-white">
+                      <div className="w-6 h-6 bg-[#0E6187] flex items-center justify-center text-[10px] font-medium text-white">
                         {item.user?.name?.charAt(0)}
                       </div>
-                      <span className="text-xs text-slate-600">{item.user?.name}</span>
+                      <span className="text-xs text-[#5f6368]">{item.user?.name}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => openEdit(item)}
-                        className="p-1 rounded text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                        className="p-1 text-[#80868b] hover:text-[#1a73e8] hover:bg-[#e8f0fe] transition-colors"
                         title="Edit"
                       >
                         <Edit3 size={13} />
                       </button>
                       <button
                         onClick={() => { setDeleteItem(item); setShowDelete(true) }}
-                        className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        className="p-1 text-[#80868b] hover:text-[#c5221f] hover:bg-[#fce8e6] transition-colors"
                         title="Hapus"
                       >
                         <Trash2 size={13} />
@@ -510,19 +510,19 @@ export default function DataPengeluaran() {
 
       {totalPages > 1 && (
         <div className="mt-4 flex items-center justify-between">
-          <p className="text-sm text-slate-500">Halaman {page} dari {totalPages}</p>
+          <p className="text-sm text-[#5f6368]">Halaman {page} dari {totalPages}</p>
           <div className="flex gap-1">
             <button
               onClick={() => { setPage(p => Math.max(1, p - 1)); fetchData(Math.max(1, page - 1)) }}
               disabled={page <= 1}
-              className="px-3 py-1.5 text-sm rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+              className="px-3 py-1.5 text-sm border border-[#dadce0] text-[#5f6368] hover:bg-[#f8f9fa] disabled:opacity-50"
             >
               Prev
             </button>
             <button
               onClick={() => { setPage(p => Math.min(totalPages, p + 1)); fetchData(Math.min(totalPages, page + 1)) }}
               disabled={page >= totalPages}
-              className="px-3 py-1.5 text-sm rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+              className="px-3 py-1.5 text-sm border border-[#dadce0] text-[#5f6368] hover:bg-[#f8f9fa] disabled:opacity-50"
             >
               Next
             </button>
@@ -532,33 +532,33 @@ export default function DataPengeluaran() {
 
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-8 sm:pt-10 p-3 sm:p-4" onClick={() => setShowForm(false)}>
-          <div className="absolute inset-0 bg-black/40" />
-          <div className="relative bg-white rounded-2xl w-full max-w-md shadow-xl" onClick={e => e.stopPropagation()}>
+          <div className="absolute inset-0 bg-[#202124]" />
+          <div className="border border-[#dadce0] relative bg-white w-full max-w-md shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]" onClick={e => e.stopPropagation()}>
             <form onSubmit={handleSave}>
-              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-[#e8eaed] sticky top-0 bg-white z-10">
                 <div>
-                  <h5 className="font-bold text-gray-900 m-0">
+                  <h5 className="text-base font-medium text-[#202124] m-0">
                     {editItem ? 'Edit Pengeluaran' : 'Input Pengeluaran'}
                   </h5>
-                  <span className="text-[11px] text-orange-600 font-medium">
+                  <span className="text-[11px] text-[#b06000] font-medium">
                     {editItem ? 'Perbarui data pengeluaran' : 'Catat pengeluaran baru'}
                   </span>
                 </div>
-                <button type="button" onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+                <button type="button" onClick={() => setShowForm(false)} className="p-1.5 hover:bg-[#f1f3f4] text-[#80868b]">
                   <X size={18} />
                 </button>
               </div>
               <div className="p-5 space-y-4">
                 {error && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{error}</div>
+                  <div className="p-3 bg-[#fce8e6] border border-[#f28b82] text-sm text-[#c5221f]">{error}</div>
                 )}
                 {cabangs.length > 0 && (
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Cabang</label>
+                    <label className="block text-xs font-semibold text-[#3c4043] mb-1">Cabang</label>
                     <select
                       value={form.cabang_id}
                       onChange={e => setForm({ ...form, cabang_id: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                      className="w-full px-3 py-2 text-sm border border-[#dadce0] focus:outline-none focus:border-[#1a73e8] focus:ring-[#e37400] focus:border-[#e37400]"
                     >
                       <option value="">Pilih Cabang (Opsional)</option>
                       {cabangs.map(c => (
@@ -568,8 +568,8 @@ export default function DataPengeluaran() {
                   </div>
                 )}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Kategori <span className="text-red-500">*</span>
+                  <label className="block text-xs font-semibold text-[#3c4043] mb-1">
+                    Kategori <span className="text-[#d93025]">*</span>
                   </label>
                   <SearchableSelect
                     value={form.kategori_id}
@@ -580,20 +580,20 @@ export default function DataPengeluaran() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Tanggal <span className="text-red-500">*</span>
+                  <label className="block text-xs font-semibold text-[#3c4043] mb-1">
+                    Tanggal <span className="text-[#d93025]">*</span>
                   </label>
                   <input
                     type="date"
                     required
                     value={form.tanggal}
                     onChange={e => setForm({ ...form, tanggal: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                    className="w-full px-3 py-2 text-sm border border-[#dadce0] focus:outline-none focus:border-[#1a73e8] focus:ring-[#e37400] focus:border-[#e37400]"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Nominal (Rp) <span className="text-red-500">*</span>
+                  <label className="block text-xs font-semibold text-[#3c4043] mb-1">
+                    Nominal (Rp) <span className="text-[#d93025]">*</span>
                   </label>
                   <input
                     type="number"
@@ -602,31 +602,31 @@ export default function DataPengeluaran() {
                     value={form.nominal}
                     onChange={e => setForm({ ...form, nominal: e.target.value })}
                     placeholder="0"
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                    className="w-full px-3 py-2 text-sm border border-[#dadce0] focus:outline-none focus:border-[#1a73e8] focus:ring-[#e37400] focus:border-[#e37400]"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Keterangan</label>
+                  <label className="block text-xs font-semibold text-[#3c4043] mb-1">Keterangan</label>
                   <textarea
                     value={form.keterangan}
                     onChange={e => setForm({ ...form, keterangan: e.target.value })}
                     placeholder="Keterangan pengeluaran..."
                     rows={2}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 resize-none"
+                    className="w-full px-3 py-2 text-sm border border-[#dadce0] focus:outline-none focus:border-[#1a73e8] focus:ring-[#e37400] focus:border-[#e37400] resize-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Bukti (opsional)</label>
+                  <label className="block text-xs font-semibold text-[#3c4043] mb-1">Bukti (opsional)</label>
                   <div className="flex gap-2">
                     <button
                       type="button"
                       onClick={() => setShowCamera(true)}
-                      className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border-2 border-dashed border-blue-300 bg-blue-50 text-blue-700 text-sm font-medium hover:bg-blue-100 transition-colors"
+                      className="flex-1 flex items-center justify-center gap-2 py-2.5 border-2 border-dashed border-[#1a73e8] bg-[#e8f0fe] text-[#1967d2] text-sm font-medium hover:bg-[#e8f0fe] transition-colors"
                     >
                       <Camera size={16} />
                       Ambil Foto
                     </button>
-                    <label className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border-2 border-dashed border-orange-300 bg-orange-50 text-orange-700 text-sm font-medium hover:bg-orange-100 transition-colors cursor-pointer">
+                    <label className="flex-1 flex items-center justify-center gap-2 py-2.5 border-2 border-dashed border-[#fdd663] bg-[#fef7e0] text-[#b06000] text-sm font-medium hover:bg-[#fef7e0] transition-colors cursor-pointer">
                       <Upload size={16} />
                       Pilih File
                       <input
@@ -648,18 +648,18 @@ export default function DataPengeluaran() {
                   {(buktiPreview || buktiFile) && (
                     <div className="mt-2 relative">
                       {buktiPreview && (
-                        <img src={buktiPreview} alt="Preview" className="w-full max-h-40 object-contain rounded-lg border border-slate-200" />
+                        <img src={buktiPreview} alt="Preview" className="w-full max-h-40 object-contain border border-[#dadce0]" />
                       )}
                       {!buktiPreview && buktiFile && (
-                        <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border border-slate-200">
-                          <FileText size={16} className="text-slate-400" />
-                          <span className="text-xs text-slate-600 truncate">{buktiFile.name}</span>
+                        <div className="flex items-center gap-2 p-2 bg-[#f8f9fa] border border-[#dadce0]">
+                          <FileText size={16} className="text-[#80868b]" />
+                          <span className="text-xs text-[#5f6368] truncate">{buktiFile.name}</span>
                         </div>
                       )}
                       <button
                         type="button"
                         onClick={() => { setBuktiFile(null); setBuktiPreview(null) }}
-                        className="absolute top-1 right-1 p-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
+                        className="absolute top-1 right-1 p-1 bg-[#d93025] text-white hover:bg-[#c5221f] transition-colors"
                       >
                         <X size={12} />
                       </button>
@@ -667,10 +667,10 @@ export default function DataPengeluaran() {
                   )}
                 </div>
                 <div className="flex gap-2 pt-2">
-                  <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-2.5 text-sm font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+                  <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-2.5 text-sm font-medium border border-[#dadce0] text-[#5f6368] hover:bg-[#f8f9fa] transition-colors">
                     Batal
                   </button>
-                  <button type="submit" disabled={saving} className="flex-1 py-2.5 text-sm font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors">
+                  <button type="submit" disabled={saving} className="flex-1 py-2.5 text-sm font-medium bg-[#0E6187] text-white hover:bg-[#084c63] disabled:opacity-50 transition-colors">
                     {saving ? 'Menyimpan...' : editItem ? 'Simpan' : 'Catat'}
                   </button>
                 </div>
@@ -682,46 +682,46 @@ export default function DataPengeluaran() {
 
       {showDetail && detailItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" onClick={() => setShowDetail(false)}>
-          <div className="absolute inset-0 bg-black/40" />
-          <div className="relative bg-white rounded-2xl w-full max-w-md shadow-xl p-5 sm:p-6" onClick={e => e.stopPropagation()}>
+          <div className="absolute inset-0 bg-[#202124]" />
+          <div className="border border-[#dadce0] relative bg-white w-full max-w-md shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] p-5 sm:p-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-gray-900">Detail Pengeluaran</h3>
-              <button onClick={() => setShowDetail(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+              <h3 className="text-base font-medium text-[#202124]">Detail Pengeluaran</h3>
+              <button onClick={() => setShowDetail(false)} className="p-1.5 hover:bg-[#f1f3f4] text-[#80868b]">
                 <X size={18} />
               </button>
             </div>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-slate-500">Tanggal</span>
+                <span className="text-[#5f6368]">Tanggal</span>
                 <span className="font-medium">{new Date(detailItem.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Kategori</span>
-                <span className="font-medium px-2 py-0.5 bg-orange-50 text-orange-700 rounded text-xs">{detailItem.kategori?.nama}</span>
+                <span className="text-[#5f6368]">Kategori</span>
+                <span className="font-medium px-2 py-0.5 bg-[#fef7e0] text-[#b06000] text-xs">{detailItem.kategori?.nama}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Nominal</span>
-                <span className="font-bold text-red-600">{formatRupiah(detailItem.nominal)}</span>
+                <span className="text-[#5f6368]">Nominal</span>
+                <span className="font-medium text-[#c5221f]">{formatRupiah(detailItem.nominal)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Cabang</span>
+                <span className="text-[#5f6368]">Cabang</span>
                 <span className="font-medium">{detailItem.cabang?.nama_cabang || '-'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Keterangan</span>
+                <span className="text-[#5f6368]">Keterangan</span>
                 <span className="font-medium text-right max-w-[200px]">{detailItem.keterangan || '-'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Dicatat oleh</span>
+                <span className="text-[#5f6368]">Dicatat oleh</span>
                 <span className="font-medium">{detailItem.user?.name}</span>
               </div>
               {detailItem.bukti && (
-                <div className="pt-2 border-t border-slate-100">
-                  <p className="text-slate-500 mb-2">Bukti:</p>
+                <div className="pt-2 border-t border-[#e8eaed]">
+                  <p className="text-[#5f6368] mb-2">Bukti:</p>
                   {detailItem.bukti.endsWith('.pdf') ? (
-                    <a href={`${APP_URL}/storage/${detailItem.bukti}`} target="_blank" rel="noreferrer" className="text-blue-600 underline text-sm">Lihat PDF</a>
+                    <a href={`${APP_URL}/storage/${detailItem.bukti}`} target="_blank" rel="noreferrer" className="text-[#1a73e8] underline text-sm">Lihat PDF</a>
                   ) : (
-                    <img src={`${APP_URL}/storage/${detailItem.bukti}`} alt="Bukti" className="max-w-full rounded-lg border" />
+                    <img src={`${APP_URL}/storage/${detailItem.bukti}`} alt="Bukti" className="max-w-full border" />
                   )}
                 </div>
               )}
@@ -732,23 +732,23 @@ export default function DataPengeluaran() {
 
       {showDelete && deleteItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" onClick={() => setShowDelete(false)}>
-          <div className="absolute inset-0 bg-black/40" />
-          <div className="relative bg-white rounded-2xl w-full max-w-sm shadow-xl p-5 sm:p-6 text-center" onClick={e => e.stopPropagation()}>
-            <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Trash2 size={24} className="text-red-500" />
+          <div className="absolute inset-0 bg-[#202124]" />
+          <div className="border border-[#dadce0] relative bg-white w-full max-w-sm shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] p-5 sm:p-6 text-center" onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-12 bg-[#fce8e6] flex items-center justify-center mx-auto mb-3">
+              <Trash2 size={24} className="text-[#d93025]" />
             </div>
-            <h3 className="font-semibold text-gray-900 mb-1">Hapus Pengeluaran</h3>
-            <p className="text-sm text-gray-500 mb-2">
+            <h3 className="font-semibold text-[#202124] mb-1">Hapus Pengeluaran</h3>
+            <p className="text-sm text-[#5f6368] mb-2">
               Yakin ingin menghapus pengeluaran ini?
             </p>
-            <p className="text-sm font-semibold text-red-600 mb-5">
+            <p className="text-sm font-semibold text-[#c5221f] mb-5">
               {formatRupiah(deleteItem.nominal)} - {deleteItem.kategori?.nama}
             </p>
             <div className="flex gap-2">
-              <button onClick={() => setShowDelete(false)} className="flex-1 py-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+              <button onClick={() => setShowDelete(false)} className="flex-1 py-2 text-sm font-medium border border-[#dadce0] text-[#5f6368] hover:bg-[#f8f9fa] transition-colors">
                 Batal
               </button>
-              <button onClick={handleDelete} disabled={deleting} className="flex-1 py-2 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors">
+              <button onClick={handleDelete} disabled={deleting} className="flex-1 py-2 text-sm font-medium bg-[#c5221f] text-white hover:bg-[#a50e0e] disabled:opacity-50 transition-colors">
                 {deleting ? 'Menghapus...' : 'Hapus'}
               </button>
             </div>
@@ -758,21 +758,21 @@ export default function DataPengeluaran() {
 
       {showRekap && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-8 sm:pt-10 p-3 sm:p-4" onClick={() => setShowRekap(false)}>
-          <div className="absolute inset-0 bg-black/40" />
-          <div className="relative bg-white rounded-2xl w-full max-w-lg shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h5 className="font-bold text-gray-900">Rekap Pengeluaran</h5>
-              <button onClick={() => setShowRekap(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+          <div className="absolute inset-0 bg-[#202124]" />
+          <div className="border border-[#dadce0] relative bg-white w-full max-w-lg shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#e8eaed]">
+              <h5 className="text-base font-medium text-[#202124]">Rekap Pengeluaran</h5>
+              <button onClick={() => setShowRekap(false)} className="p-1.5 hover:bg-[#f1f3f4] text-[#80868b]">
                 <X size={18} />
               </button>
             </div>
             <div className="p-5">
               <div className="flex items-center gap-2 mb-4">
-                <label className="text-sm font-medium text-slate-600">Tahun:</label>
+                <label className="text-sm font-medium text-[#5f6368]">Tahun:</label>
                 <select
                   value={rekapTahun}
                   onChange={e => setRekapTahun(Number(e.target.value))}
-                  className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+                  className="border border-[#dadce0] px-2 py-1.5 text-sm"
                 >
                   {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(y => (
                     <option key={y} value={y}>{y}</option>
@@ -783,37 +783,37 @@ export default function DataPengeluaran() {
               {rekapData && (
                 <>
                   <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="rounded-lg bg-red-50 p-3 text-center">
-                      <p className="text-xs text-slate-500 mb-1">Total {rekapData.tahun}</p>
-                      <p className="text-lg font-bold text-red-600">{formatRupiah(rekapData.total_tahun)}</p>
+                    <div className="bg-[#fce8e6] p-3 text-center">
+                      <p className="text-xs text-[#5f6368] mb-1">Total {rekapData.tahun}</p>
+                      <p className="text-lg font-medium text-[#c5221f]">{formatRupiah(rekapData.total_tahun)}</p>
                     </div>
-                    <div className="rounded-lg bg-slate-50 p-3 text-center">
-                      <p className="text-xs text-slate-500 mb-1">Total Semua</p>
-                      <p className="text-lg font-bold text-slate-700">{formatRupiah(rekapData.total_semua)}</p>
+                    <div className="bg-[#f8f9fa] p-3 text-center">
+                      <p className="text-xs text-[#5f6368] mb-1">Total Semua</p>
+                      <p className="text-lg font-medium text-[#3c4043]">{formatRupiah(rekapData.total_semua)}</p>
                     </div>
                   </div>
 
                   {rekapData.rekap.length > 0 ? (
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="text-left text-slate-500 border-b">
-                          <th className="pb-2 font-medium">Bulan</th>
-                          <th className="pb-2 font-medium text-center">Jumlah</th>
-                          <th className="pb-2 font-medium text-right">Total</th>
+                        <tr className="text-left text-[#5f6368] border-b">
+                          <th className="text-xs font-medium text-[#5f6368] pb-2">Bulan</th>
+                          <th className="text-xs font-medium text-[#5f6368] pb-2 text-center">Jumlah</th>
+                          <th className="text-xs font-medium text-[#5f6368] pb-2 text-right">Total</th>
                         </tr>
                       </thead>
                       <tbody>
                         {rekapData.rekap.map(r => (
-                          <tr key={r.bulan} className="border-b border-slate-100">
+                          <tr key={r.bulan} className="border-b border-[#e8eaed]">
                             <td className="py-2 font-medium">{r.nama_bulan}</td>
-                            <td className="py-2 text-center text-slate-500">{r.jumlah} transaksi</td>
-                            <td className="py-2 text-right font-semibold text-red-600">{formatRupiah(r.total)}</td>
+                            <td className="py-2 text-center text-[#5f6368]">{r.jumlah} transaksi</td>
+                            <td className="py-2 text-right font-semibold text-[#c5221f]">{formatRupiah(r.total)}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   ) : (
-                    <p className="text-sm text-center text-slate-400 py-4">Tidak ada data pengeluaran tahun ini</p>
+                    <p className="text-sm text-center text-[#80868b] py-4">Tidak ada data pengeluaran tahun ini</p>
                   )}
                 </>
               )}
@@ -824,14 +824,14 @@ export default function DataPengeluaran() {
 
       {showCamera && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4" onClick={() => { stopCamera(); setShowCamera(false) }}>
-          <div className="absolute inset-0 bg-black/60" />
-          <div className="relative bg-black rounded-2xl w-full max-w-sm shadow-xl overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-4 py-3 bg-slate-900">
+          <div className="absolute inset-0 bg-[#202124]" />
+          <div className="border border-[#dadce0] relative bg-black w-full max-w-sm shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 bg-[#202124]">
               <div className="flex items-center gap-2">
                 <Camera size={18} className="text-white" />
                 <h3 className="text-sm font-semibold text-white">Ambil Foto Bukti</h3>
               </div>
-              <button onClick={() => { stopCamera(); setShowCamera(false) }} className="p-1 rounded-lg hover:bg-white/10 text-white">
+              <button onClick={() => { stopCamera(); setShowCamera(false) }} className="p-1 hover:bg-white/10 text-white">
                 <X size={18} />
               </button>
             </div>
@@ -846,20 +846,20 @@ export default function DataPengeluaran() {
               <button
                 type="button"
                 onClick={switchCamera}
-                className="absolute top-3 right-3 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors backdrop-blur-sm"
+                className="absolute top-3 right-3 p-2 bg-[#202124] text-white hover:bg-[#084c63] transition-colors backdrop-blur-sm"
                 title="Ganti kamera"
               >
                 <RotateCcw size={18} />
               </button>
-              <div className="absolute bottom-3 left-3 px-2 py-1 rounded bg-black/50 text-white text-[10px] font-medium backdrop-blur-sm">
+              <div className="absolute bottom-3 left-3 px-2 py-1 bg-[#202124] text-white text-[10px] font-medium backdrop-blur-sm">
                 {facingMode === 'environment' ? 'Kamera Belakang' : 'Kamera Depan'}
               </div>
             </div>
-            <div className="flex items-center justify-center gap-6 py-4 bg-slate-900">
+            <div className="flex items-center justify-center gap-6 py-4 bg-[#202124]">
               <button
                 type="button"
                 onClick={() => { stopCamera(); setShowCamera(false) }}
-                className="px-4 py-2 rounded-lg bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-colors"
+                className="px-4 py-2 bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-colors"
               >
                 Batal
               </button>
@@ -867,9 +867,9 @@ export default function DataPengeluaran() {
                 type="button"
                 onClick={capturePhoto}
                 disabled={!cameraReady}
-                className="w-14 h-14 rounded-full bg-white border-4 border-slate-400 hover:border-emerald-400 disabled:opacity-40 transition-all flex items-center justify-center"
+                className="w-14 h-14 bg-white border-4 border-[#bdc1c6] hover:border-[#81c995] disabled:opacity-40 transition-all flex items-center justify-center"
               >
-                <div className="w-10 h-10 rounded-full bg-emerald-500" />
+                <div className="w-10 h-10 bg-[#0E6187]" />
               </button>
               <div className="w-16" />
             </div>

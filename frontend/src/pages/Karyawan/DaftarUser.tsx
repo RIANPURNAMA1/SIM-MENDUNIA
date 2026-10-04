@@ -212,18 +212,18 @@ export default function DaftarUserPage() {
 
   const roleBadge = (role: string) => {
     const colors: Record<string, string> = {
-      ADMIN: 'bg-purple-100 text-purple-700',
-      HR: 'bg-blue-100 text-blue-700',
-      MANAGER: 'bg-amber-100 text-amber-700',
-      KARYAWAN: 'bg-emerald-100 text-emerald-700',
-      GURU: 'bg-sky-100 text-sky-700',
-      ACCOUNTING: 'bg-teal-100 text-teal-700',
-      KANDIDAT: 'bg-rose-100 text-rose-700',
-      AFFILIATE: 'bg-orange-100 text-orange-700',
-      ADMIN_CABANG: 'bg-indigo-100 text-indigo-700',
+      ADMIN: 'bg-[#e8def8] text-[#8430ce]',
+      HR: 'bg-[#e8f0fe] text-[#1967d2]',
+      MANAGER: 'bg-[#fef7e0] text-[#b06000]',
+      KARYAWAN: 'bg-[#e6f4ea] text-[#137333]',
+      GURU: 'bg-[#e8f0fe] text-[#1967d2]',
+      ACCOUNTING: 'bg-[#e6f4ea] text-[#137333]',
+      KANDIDAT: 'bg-[#fce8e6] text-[#a50e0e]',
+      AFFILIATE: 'bg-[#fef7e0] text-[#b06000]',
+      ADMIN_CABANG: 'bg-[#e8f0fe] text-[#1967d2]',
     }
     return (
-      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${colors[role] || 'bg-slate-100 text-slate-600'}`}>
+      <span className={`text-[10px] font-semibold px-2 py-0.5 ${colors[role] || 'bg-[#f1f3f4] text-[#5f6368]'}`}>
         {role === 'ADMIN_CABANG' ? 'ADMIN CABANG' : role}
       </span>
     )
@@ -241,19 +241,19 @@ export default function DaftarUserPage() {
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-4 border-b border-[#dadce0] pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
-            <List size={20} className="text-white" />
+          <div className="flex h-10 w-10 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]">
+            <List size={20} />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-slate-800">Daftar User</h1>
-            <p className="text-sm text-slate-500">Manajemen akun seluruh pengguna sistem</p>
+            <h1 className="text-xl font-medium text-[#202124]">Daftar User</h1>
+            <p className="text-sm text-[#5f6368]">Manajemen akun seluruh pengguna sistem</p>
           </div>
         </div>
         <button
           onClick={openCreateModal}
-          className="inline-flex items-center gap-2 rounded-lg bg-[#0E6187] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#1a5e6f]"
+          className="inline-flex items-center gap-2 bg-[#0E6187] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#084c63]"
         >
           <UserPlus size={16} />
           Tambah User
@@ -261,19 +261,19 @@ export default function DaftarUserPage() {
       </div>
 
       {/* Filter */}
-      <div className="mb-4 rounded-lg p-4 shadow-sm">
+      <div className="mb-4 p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative flex-1">
-            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#80868b]" />
             <input
               type="text" placeholder="Cari nama, email, atau NIP..."
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-              className="w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full border border-[#dadce0] bg-white py-2 pl-9 pr-3 text-sm text-[#3c4043] outline-none transition placeholder:text-[#80868b] focus:border-[#1a73e8]"
             />
           </div>
           <select value={filterRole} onChange={(e) => { setFilterRole(e.target.value); setPage(1) }}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]">
             <option value="">Semua Role</option>
             <option value="ADMIN">ADMIN</option>
             <option value="HR">HR</option>
@@ -286,13 +286,13 @@ export default function DaftarUserPage() {
             <option value="ADMIN_CABANG">ADMIN CABANG</option>
           </select>
           <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(1) }}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]">
             <option value="">Semua Status</option>
             <option value="AKTIF">AKTIF</option>
             <option value="NONAKTIF">NONAKTIF</option>
           </select>
           <button onClick={resetFilter}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50">
+            className="inline-flex items-center justify-center gap-2 border border-[#dadce0] bg-white px-3 py-2 text-sm font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]">
             <RotateCcw size={16} />
             Reset
           </button>
@@ -301,29 +301,29 @@ export default function DaftarUserPage() {
 
       {/* Table */}
       <div className="relative overflow-x-auto">
-        <div className="overflow-x-auto rounded-lg border border-slate-200">
-          <table className="w-full min-w-full border-collapse text-left text-sm text-slate-700">
-            <thead className="bg-slate-50 text-sm text-slate-600">
+        <div className="overflow-x-auto border border-[#dadce0]">
+          <table className="w-full min-w-full border-collapse text-left text-sm text-[#3c4043]">
+            <thead className="text-sm text-[#5f6368]">
               <tr>
-                <th className="border border-slate-200 px-4 py-3 font-medium">User</th>
-                <th className="border border-slate-200 px-4 py-3 font-medium">Email</th>
-                <th className="border border-slate-200 px-4 py-3 font-medium text-center">Role</th>
-                <th className="border border-slate-200 px-4 py-3 font-medium">Divisi</th>
-                <th className="border border-slate-200 px-4 py-3 font-medium text-center">Status</th>
-                <th className="border border-slate-200 px-4 py-3 font-medium">Terakhir Login</th>
-                <th className="border border-slate-200 px-4 py-3 font-medium text-center">Aksi</th>
+                <th className="text-xs font-medium text-[#5f6368] px-4 py-3">User</th>
+                <th className="text-xs font-medium text-[#5f6368] px-4 py-3">Email</th>
+                <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-center">Role</th>
+                <th className="text-xs font-medium text-[#5f6368] px-4 py-3">Divisi</th>
+                <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-center">Status</th>
+                <th className="text-xs font-medium text-[#5f6368] px-4 py-3">Terakhir Login</th>
+                <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
-                    <td colSpan={7} className="border border-slate-200 px-4 py-3">
+                    <td colSpan={7} className="px-6 py-12 text-center">
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-slate-200/70" />
+                        <div className="h-8 w-8 bg-[#e8eaed]" />
                         <div className="flex-1 space-y-2">
-                          <div className="h-3 w-40 rounded bg-slate-200/70" />
-                          <div className="h-2.5 w-24 rounded bg-slate-100" />
+                          <div className="h-3 w-40 bg-[#e8eaed]" />
+                          <div className="h-2.5 w-24 bg-[#f1f3f4]" />
                         </div>
                       </div>
                     </td>
@@ -331,63 +331,63 @@ export default function DaftarUserPage() {
                 ))
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="border border-slate-200 px-6 py-10 text-center">
-                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                  <td colSpan={7} className="px-6 py-12 text-center">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center bg-[#f1f3f4] text-[#80868b]">
                       <List size={24} />
                     </div>
-                    <p className="mt-3 text-sm font-medium text-slate-600">Tidak ada data user</p>
+                    <p className="mt-3 text-sm font-medium text-[#5f6368]">Tidak ada data user</p>
                   </td>
                 </tr>
               ) : (
                 data.map((item) => (
-                  <tr key={item.id} className="bg-white transition hover:bg-slate-50">
-                    <td className="border border-slate-200 px-4 py-3">
+                  <tr key={item.id} className="bg-white transition hover:bg-[#f8f9fa]">
+                    <td className="border-b border-[#e8eaed] px-4 py-3">
                       <div className="flex items-center gap-3">
                         <img
                           src={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=e5e7eb&color=6b7280&size=28`}
-                          className="h-8 w-8 rounded-full object-cover"
+                          className="h-8 w-8 object-cover"
                           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                         />
                         <div>
-                          <div className="text-sm font-semibold text-slate-800">{item.name}</div>
-                          <div className="text-xs text-slate-500">{item.nip || '-'}</div>
+                          <div className="text-sm font-semibold text-[#202124]">{item.name}</div>
+                          <div className="text-xs text-[#5f6368]">{item.nip || '-'}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">{item.email}</td>
-                    <td className="border border-slate-200 px-4 py-3 text-center">{roleBadge(item.role)}</td>
-                    <td className="border border-slate-200 px-4 py-3 text-sm text-slate-600">
-                      {item.divisi?.nama_divisi || <span className="text-slate-400">-</span>}
+                    <td className="border-b border-[#e8eaed] px-4 py-3 text-sm text-[#5f6368]">{item.email}</td>
+                    <td className="border-b border-[#e8eaed] px-4 py-3 text-center">{roleBadge(item.role)}</td>
+                    <td className="border-b border-[#e8eaed] px-4 py-3 text-sm text-[#5f6368]">
+                      {item.divisi?.nama_divisi || <span className="text-[#80868b]">-</span>}
                     </td>
-                    <td className="border border-slate-200 px-4 py-3 text-center">
+                    <td className="border-b border-[#e8eaed] px-4 py-3 text-center">
                       <label className="inline-flex cursor-pointer items-center gap-1.5">
                         <input
                           type="checkbox"
-                          className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                          className="h-4 w-4 border-[#dadce0] text-[#1a73e8] focus:ring-[#1a73e8]"
                           checked={item.status === 'AKTIF'}
                           onChange={() => handleToggleStatus(item)}
                           disabled={togglingId === item.id}
                         />
-                        <span className={`text-[10px] font-semibold ${item.status === 'AKTIF' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        <span className={`text-[10px] font-semibold ${item.status === 'AKTIF' ? 'text-[#137333]' : 'text-[#c5221f]'}`}>
                           {item.status}
                         </span>
                       </label>
                     </td>
-                    <td className="border border-slate-200 px-4 py-3 text-xs text-slate-500">
+                    <td className="border-b border-[#e8eaed] px-4 py-3 text-xs text-[#5f6368]">
                       {item.last_login ? new Date(item.last_login).toLocaleString('id-ID') : 'Belum pernah'}
                     </td>
-                    <td className="border border-slate-200 px-4 py-3 text-center">
+                    <td className="border-b border-[#e8eaed] px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-1.5">
                         <button
                           onClick={() => openEditModal(item)}
-                          className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+                          className="border border-[#dadce0] bg-white p-2 text-[#5f6368] transition hover:border-[#e8f0fe] hover:bg-[#e8f0fe] hover:text-[#1a73e8]"
                           title="Edit"
                         >
                           <Pencil size={15} />
                         </button>
                         <button
                           onClick={() => { setSelected(item); setShowDelete(true) }}
-                          className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+                          className="border border-[#dadce0] bg-white p-2 text-[#5f6368] transition hover:border-[#f28b82] hover:bg-[#fce8e6] hover:text-[#c5221f]"
                           title="Hapus"
                         >
                           <Trash2 size={15} />
@@ -404,17 +404,17 @@ export default function DaftarUserPage() {
 
       {/* Pagination */}
       {pagination && pagination.last_page > 1 && (
-        <div className="mt-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-slate-500">
+        <div className="mt-4 flex flex-col gap-3 border border-[#dadce0] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-[#5f6368]">
             Halaman {pagination.current_page} dari {pagination.last_page} (total {pagination.total} user)
           </p>
           <div className="flex gap-2">
             <button disabled={page <= 1} onClick={() => setPage(page - 1)}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition disabled:cursor-not-allowed disabled:opacity-50">
+              className="border border-[#dadce0] bg-white px-3 py-2 text-sm font-medium text-[#5f6368] transition disabled:cursor-not-allowed disabled:opacity-50">
               Sebelumnya
             </button>
             <button disabled={page >= pagination.last_page} onClick={() => setPage(page + 1)}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition disabled:cursor-not-allowed disabled:opacity-50">
+              className="border border-[#dadce0] bg-white px-3 py-2 text-sm font-medium text-[#5f6368] transition disabled:cursor-not-allowed disabled:opacity-50">
               Selanjutnya
             </button>
           </div>
@@ -423,70 +423,70 @@ export default function DaftarUserPage() {
 
       {/* Create User Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-6" onClick={() => setShowCreateModal(false)}>
-          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#202124] px-3 py-6" onClick={() => setShowCreateModal(false)}>
+          <div className="border border-[#dadce0] w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-[#dadce0] px-5 py-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50">
-                  <UserPlus size={18} className="text-blue-600" />
+                <div className="flex h-9 w-9 items-center justify-center bg-[#e8f0fe]">
+                  <UserPlus size={18} className="text-[#1a73e8]" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-800">Tambah User Baru</h3>
-                  <p className="text-xs text-slate-500">Buat akun pengguna baru</p>
+                  <h3 className="text-base font-medium text-[#202124]">Tambah User Baru</h3>
+                  <p className="text-xs text-[#5f6368]">Buat akun pengguna baru</p>
                 </div>
               </div>
-              <button onClick={() => setShowCreateModal(false)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+              <button onClick={() => setShowCreateModal(false)} className="p-1.5 text-[#80868b] hover:bg-[#f1f3f4] hover:text-[#5f6368]">
                 <X size={18} />
               </button>
             </div>
 
             <div className="px-5 py-4 space-y-4">
               {formError && (
-                <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-2.5 text-xs font-medium text-red-700">
+                <div className="bg-[#fce8e6] border border-[#f28b82] px-4 py-2.5 text-xs font-medium text-[#a50e0e]">
                   {formError}
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">Nama Lengkap *</label>
+                <label className="block text-xs font-medium text-[#5f6368] mb-1.5">Nama Lengkap *</label>
                 <input
                   type="text"
                   value={form.name}
                   onChange={e => setForm({ ...form, name: e.target.value })}
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
                   placeholder="Masukkan nama lengkap"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">Email *</label>
+                <label className="block text-xs font-medium text-[#5f6368] mb-1.5">Email *</label>
                 <input
                   type="email"
                   value={form.email}
                   onChange={e => setForm({ ...form, email: e.target.value })}
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
                   placeholder="Masukkan email"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">Password *</label>
+                <label className="block text-xs font-medium text-[#5f6368] mb-1.5">Password *</label>
                 <input
                   type="password"
                   value={form.password}
                   onChange={e => setForm({ ...form, password: e.target.value })}
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
                   placeholder="Minimal 6 karakter"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1.5">Role *</label>
+                  <label className="block text-xs font-medium text-[#5f6368] mb-1.5">Role *</label>
                   <select
                     value={form.role}
                     onChange={e => setForm({ ...form, role: e.target.value, cabang_ids: e.target.value !== 'ADMIN_CABANG' ? [] : form.cabang_ids })}
-                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
                   >
                     <option value="HR">HR</option>
                     <option value="MANAGER">MANAGER</option>
@@ -499,11 +499,11 @@ export default function DaftarUserPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1.5">Status *</label>
+                  <label className="block text-xs font-medium text-[#5f6368] mb-1.5">Status *</label>
                   <select
                     value={form.status}
                     onChange={e => setForm({ ...form, status: e.target.value })}
-                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
                   >
                     <option value="AKTIF">AKTIF</option>
                     <option value="NONAKTIF">NONAKTIF</option>
@@ -513,34 +513,34 @@ export default function DaftarUserPage() {
 
               {form.role === 'ADMIN_CABANG' && (
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1.5">
-                    Pilih Cabang * <span className="text-slate-400 font-normal">(wajib minimal 1)</span>
+                  <label className="block text-xs font-medium text-[#5f6368] mb-1.5">
+                    Pilih Cabang * <span className="text-[#80868b] font-normal">(wajib minimal 1)</span>
                   </label>
-                  <div className="max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-2 space-y-1">
+                  <div className="max-h-48 overflow-y-auto border border-[#dadce0] bg-[#f8f9fa] p-2 space-y-1">
                     {cabangs.length === 0 ? (
-                      <p className="text-xs text-slate-400 text-center py-3">Tidak ada data cabang</p>
+                      <p className="text-xs text-[#80868b] text-center py-3">Tidak ada data cabang</p>
                     ) : (
                       cabangs.map(c => (
                         <label
                           key={c.id}
-                          className={`flex items-center gap-3 rounded-lg px-3 py-2 cursor-pointer transition ${form.cabang_ids.includes(c.id) ? 'bg-indigo-50 border border-indigo-200' : 'hover:bg-white border border-transparent'}`}
+                          className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition ${form.cabang_ids.includes(c.id) ? 'bg-[#e8f0fe] border border-[#e8f0fe]' : 'hover:bg-white border border-transparent'}`}
                         >
                           <input
                             type="checkbox"
                             checked={form.cabang_ids.includes(c.id)}
                             onChange={() => toggleCabang(c.id)}
-                            className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                            className="h-4 w-4 border-[#dadce0] text-[#1a73e8] focus:ring-[#1a73e8]"
                           />
                           <div className="flex-1">
-                            <p className="text-xs font-semibold text-slate-800">{c.nama_cabang}</p>
-                            {c.kode_cabang && <p className="text-[10px] text-slate-500">{c.kode_cabang}</p>}
+                            <p className="text-xs font-semibold text-[#202124]">{c.nama_cabang}</p>
+                            {c.kode_cabang && <p className="text-[10px] text-[#5f6368]">{c.kode_cabang}</p>}
                           </div>
                         </label>
                       ))
                     )}
                   </div>
                   {form.cabang_ids.length > 0 && (
-                    <p className="mt-1.5 text-[10px] text-indigo-600 font-medium">
+                    <p className="mt-1.5 text-[10px] text-[#1a73e8] font-medium">
                       {form.cabang_ids.length} cabang dipilih
                     </p>
                   )}
@@ -548,17 +548,17 @@ export default function DaftarUserPage() {
               )}
             </div>
 
-            <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-5 py-3">
+            <div className="flex items-center justify-end gap-2 border-t border-[#dadce0] px-5 py-3">
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                className="border border-[#dadce0] bg-white px-4 py-2 text-xs font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]"
               >
                 Batal
               </button>
               <button
                 onClick={handleCreate}
                 disabled={creating}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-[#0E6187] px-5 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-[#1a5e6f] disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 bg-[#0E6187] px-5 py-2 text-xs font-medium text-white transition hover:bg-[#084c63] disabled:opacity-50"
               >
                 {creating ? (
                   <>
@@ -579,70 +579,70 @@ export default function DaftarUserPage() {
 
       {/* Edit User Modal */}
       {showEditModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-6" onClick={() => setShowEditModal(false)}>
-          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#202124] px-3 py-6" onClick={() => setShowEditModal(false)}>
+          <div className="border border-[#dadce0] w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-[#dadce0] px-5 py-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50">
-                  <Pencil size={18} className="text-amber-600" />
+                <div className="flex h-9 w-9 items-center justify-center bg-[#fef7e0]">
+                  <Pencil size={18} className="text-[#b06000]" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-800">Edit User</h3>
-                  <p className="text-xs text-slate-500">Perbarui data pengguna</p>
+                  <h3 className="text-base font-medium text-[#202124]">Edit User</h3>
+                  <p className="text-xs text-[#5f6368]">Perbarui data pengguna</p>
                 </div>
               </div>
-              <button onClick={() => setShowEditModal(false)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+              <button onClick={() => setShowEditModal(false)} className="p-1.5 text-[#80868b] hover:bg-[#f1f3f4] hover:text-[#5f6368]">
                 <X size={18} />
               </button>
             </div>
 
             <div className="px-5 py-4 space-y-4">
               {editFormError && (
-                <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-2.5 text-xs font-medium text-red-700">
+                <div className="bg-[#fce8e6] border border-[#f28b82] px-4 py-2.5 text-xs font-medium text-[#a50e0e]">
                   {editFormError}
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">Nama Lengkap *</label>
+                <label className="block text-xs font-medium text-[#5f6368] mb-1.5">Nama Lengkap *</label>
                 <input
                   type="text"
                   value={editForm.name}
                   onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
                   placeholder="Masukkan nama lengkap"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">Email *</label>
+                <label className="block text-xs font-medium text-[#5f6368] mb-1.5">Email *</label>
                 <input
                   type="email"
                   value={editForm.email}
                   onChange={e => setEditForm({ ...editForm, email: e.target.value })}
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
                   placeholder="Masukkan email"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">Password <span className="text-slate-400 font-normal">(kosongkan jika tidak diubah)</span></label>
+                <label className="block text-xs font-medium text-[#5f6368] mb-1.5">Password <span className="text-[#80868b] font-normal">(kosongkan jika tidak diubah)</span></label>
                 <input
                   type="password"
                   value={editForm.password}
                   onChange={e => setEditForm({ ...editForm, password: e.target.value })}
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
                   placeholder="Kosongkan jika tidak diubah"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1.5">Role *</label>
+                  <label className="block text-xs font-medium text-[#5f6368] mb-1.5">Role *</label>
                   <select
                     value={editForm.role}
                     onChange={e => setEditForm({ ...editForm, role: e.target.value, cabang_ids: e.target.value !== 'ADMIN_CABANG' ? [] : editForm.cabang_ids })}
-                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
                   >
                     <option value="HR">HR</option>
                     <option value="MANAGER">MANAGER</option>
@@ -655,11 +655,11 @@ export default function DaftarUserPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1.5">Status *</label>
+                  <label className="block text-xs font-medium text-[#5f6368] mb-1.5">Status *</label>
                   <select
                     value={editForm.status}
                     onChange={e => setEditForm({ ...editForm, status: e.target.value })}
-                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
                   >
                     <option value="AKTIF">AKTIF</option>
                     <option value="NONAKTIF">NONAKTIF</option>
@@ -669,17 +669,17 @@ export default function DaftarUserPage() {
 
               {editForm.role === 'ADMIN_CABANG' && (
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1.5">
-                    Pilih Cabang * <span className="text-slate-400 font-normal">(wajib minimal 1)</span>
+                  <label className="block text-xs font-medium text-[#5f6368] mb-1.5">
+                    Pilih Cabang * <span className="text-[#80868b] font-normal">(wajib minimal 1)</span>
                   </label>
-                  <div className="max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-2 space-y-1">
+                  <div className="max-h-48 overflow-y-auto border border-[#dadce0] bg-[#f8f9fa] p-2 space-y-1">
                     {cabangs.length === 0 ? (
-                      <p className="text-xs text-slate-400 text-center py-3">Tidak ada data cabang</p>
+                      <p className="text-xs text-[#80868b] text-center py-3">Tidak ada data cabang</p>
                     ) : (
                       cabangs.map(c => (
                         <label
                           key={c.id}
-                          className={`flex items-center gap-3 rounded-lg px-3 py-2 cursor-pointer transition ${editForm.cabang_ids.includes(c.id) ? 'bg-indigo-50 border border-indigo-200' : 'hover:bg-white border border-transparent'}`}
+                          className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition ${editForm.cabang_ids.includes(c.id) ? 'bg-[#e8f0fe] border border-[#e8f0fe]' : 'hover:bg-white border border-transparent'}`}
                         >
                           <input
                             type="checkbox"
@@ -692,18 +692,18 @@ export default function DaftarUserPage() {
                                   : [...prev.cabang_ids, c.id],
                               }))
                             }}
-                            className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                            className="h-4 w-4 border-[#dadce0] text-[#1a73e8] focus:ring-[#1a73e8]"
                           />
                           <div className="flex-1">
-                            <p className="text-xs font-semibold text-slate-800">{c.nama_cabang}</p>
-                            {c.kode_cabang && <p className="text-[10px] text-slate-500">{c.kode_cabang}</p>}
+                            <p className="text-xs font-semibold text-[#202124]">{c.nama_cabang}</p>
+                            {c.kode_cabang && <p className="text-[10px] text-[#5f6368]">{c.kode_cabang}</p>}
                           </div>
                         </label>
                       ))
                     )}
                   </div>
                   {editForm.cabang_ids.length > 0 && (
-                    <p className="mt-1.5 text-[10px] text-indigo-600 font-medium">
+                    <p className="mt-1.5 text-[10px] text-[#1a73e8] font-medium">
                       {editForm.cabang_ids.length} cabang dipilih
                     </p>
                   )}
@@ -711,17 +711,17 @@ export default function DaftarUserPage() {
               )}
             </div>
 
-            <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-5 py-3">
+            <div className="flex items-center justify-end gap-2 border-t border-[#dadce0] px-5 py-3">
               <button
                 onClick={() => setShowEditModal(false)}
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                className="border border-[#dadce0] bg-white px-4 py-2 text-xs font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]"
               >
                 Batal
               </button>
               <button
                 onClick={handleUpdate}
                 disabled={editing}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-5 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-amber-600 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 bg-[#e37400] px-5 py-2 text-xs font-medium text-white transition hover:bg-[#b06000] disabled:opacity-50"
               >
                 {editing ? (
                   <>
@@ -743,25 +743,25 @@ export default function DaftarUserPage() {
       {/* Delete Confirmation */}
       {showDelete && selected && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" onClick={() => setShowDelete(false)}>
-          <div className="absolute inset-0 bg-black/40" />
-          <div className="relative bg-white rounded-2xl w-full max-w-sm shadow-xl p-5 sm:p-6 text-center" onClick={(e) => e.stopPropagation()}>
-            <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-3">
-              <AlertTriangle size={24} className="text-red-500" />
+          <div className="absolute inset-0 bg-[#202124]" />
+          <div className="border border-[#dadce0] relative bg-white w-full max-w-sm shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] p-5 sm:p-6 text-center" onClick={(e) => e.stopPropagation()}>
+            <div className="w-12 h-12 bg-[#fce8e6] flex items-center justify-center mx-auto mb-3">
+              <AlertTriangle size={24} className="text-[#d93025]" />
             </div>
-            <h3 className="font-semibold text-gray-900 mb-1">Hapus User</h3>
-            <p className="text-sm text-gray-500 mb-1">
+            <h3 className="font-semibold text-[#202124] mb-1">Hapus User</h3>
+            <p className="text-sm text-[#5f6368] mb-1">
               Yakin ingin menghapus <strong>{selected.name}</strong>?
             </p>
-            <p className="text-xs text-amber-600 mb-5">
+            <p className="text-xs text-[#b06000] mb-5">
               User dengan role MANAGER atau HR tidak dapat dihapus.
             </p>
             <div className="flex gap-2">
               <button onClick={() => setShowDelete(false)}
-                className="flex-1 py-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+                className="flex-1 py-2 text-sm font-medium border border-[#dadce0] text-[#5f6368] hover:bg-[#f8f9fa] transition-colors">
                 Batal
               </button>
               <button onClick={handleDelete} disabled={deleting}
-                className="flex-1 py-2 text-sm font-medium rounded-lg bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 transition-colors">
+                className="flex-1 py-2 text-sm font-medium bg-[#d93025] text-white hover:bg-[#c5221f] disabled:opacity-50 transition-colors">
                 {deleting ? 'Menghapus...' : 'Ya, Hapus'}
               </button>
             </div>

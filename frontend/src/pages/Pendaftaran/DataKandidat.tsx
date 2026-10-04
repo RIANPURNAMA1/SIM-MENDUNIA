@@ -123,19 +123,19 @@ const EDITABLE_FIELDS: EditableField[] = [
 // Warna SOLID (bukan soft) untuk badge status kandidat.
 // Kelas ditulis penuh karena Tailwind JIT tidak bisa membaca kelas dinamis.
 const STATUS_KANDIDAT_SOLID: Record<string, string> = {
-  'Calon Kandidat': 'bg-blue-600',
-  'Kandidat Aktif': 'bg-emerald-600',
-  'Proses Belajar': 'bg-indigo-600',
-  'Mengundurkan Diri': 'bg-red-600',
-  'Lulus Pendidikan': 'bg-emerald-600',
+  'Calon Kandidat': 'bg-[#0E6187]',
+  'Kandidat Aktif': 'bg-[#188038]',
+  'Proses Belajar': 'bg-[#8430ce]',
+  'Mengundurkan Diri': 'bg-[#c5221f]',
+  'Lulus Pendidikan': 'bg-[#137333]',
 }
 
 function StatusKandidatBadge({ status, className = '' }: { status?: string | null; className?: string }) {
   const label = status || 'Calon Kandidat'
   const bg = STATUS_KANDIDAT_SOLID[label] || STATUS_KANDIDAT_SOLID['Calon Kandidat']
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full ${bg} px-2.5 py-1 text-[11px] font-semibold text-white ${className}`}>
-      <span className="h-1.5 w-1.5 rounded-full bg-white/80" />
+    <span className={`inline-flex items-center gap-1.5 ${bg} px-2.5 py-1 text-[11px] font-semibold text-white ${className}`}>
+      <span className="h-1.5 w-1.5 bg-white" />
       {label}
     </span>
   )
@@ -145,18 +145,11 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
   const isCabang = variant === 'cabang'
   const navigate = useNavigate()
   const batchColors = [
-    { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', badge: 'bg-blue-100 text-blue-700 border-blue-200' },
-    { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', badge: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-    { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', badge: 'bg-amber-100 text-amber-700 border-amber-200' },
-    { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700', badge: 'bg-purple-100 text-purple-700 border-purple-200' },
-    { bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-700', badge: 'bg-rose-100 text-rose-700 border-rose-200' },
-    { bg: 'bg-cyan-50', border: 'border-cyan-200', text: 'text-cyan-700', badge: 'bg-cyan-100 text-cyan-700 border-cyan-200' },
-    { bg: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-700', badge: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
-    { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-700', badge: 'bg-orange-100 text-orange-700 border-orange-200' },
-    { bg: 'bg-teal-50', border: 'border-teal-200', text: 'text-teal-700', badge: 'bg-teal-100 text-teal-700 border-teal-200' },
-    { bg: 'bg-pink-50', border: 'border-pink-200', text: 'text-pink-700', badge: 'bg-pink-100 text-pink-700 border-pink-200' },
-    { bg: 'bg-lime-50', border: 'border-lime-200', text: 'text-lime-700', badge: 'bg-lime-100 text-lime-700 border-lime-200' },
-    { bg: 'bg-fuchsia-50', border: 'border-fuchsia-200', text: 'text-fuchsia-700', badge: 'bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200' },
+    { bg: 'bg-[#e8f0fe]', border: 'border-[#aecbfa]', text: 'text-[#1967d2]', badge: 'bg-[#d2e3fc] text-[#1967d2] border-[#aecbfa]' },
+    { bg: 'bg-[#e6f4ea]', border: 'border-[#a8dab5]', text: 'text-[#137333]', badge: 'bg-[#ceead6] text-[#137333] border-[#a8dab5]' },
+    { bg: 'bg-[#fef7e0]', border: 'border-[#fdd663]', text: 'text-[#b06000]', badge: 'bg-[#feefc3] text-[#b06000] border-[#fdd663]' },
+    { bg: 'bg-[#f1f3f4]', border: 'border-[#dadce0]', text: 'text-[#3c4043]', badge: 'bg-[#e8eaed] text-[#3c4043] border-[#dadce0]' },
+    { bg: 'bg-[#fce8e6]', border: 'border-[#f6aea9]', text: 'text-[#c5221f]', badge: 'bg-[#f6d7d5] text-[#c5221f] border-[#f6aea9]' },
   ]
   const [batchColorMap, setBatchColorMap] = useState<Record<string, number>>({})
   const getBatchColor = (batchNama: string) => {
@@ -1005,7 +998,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
   const totalPages = Math.max(1, Math.ceil(filteredList.length / perPage))
   const safePage = Math.min(page, totalPages)
 
-  const thBase = 'border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white '
+  const thBase = 'border-b border-[#e8eaed] px-4 py-3 text-xs font-medium text-[#5f6368] '
   const columns: ColumnDef<Kandidat, any>[] = [
     { id: 'no', header: 'No', enableSorting: false, meta: { thClass: `${thBase}text-center w-[36px] min-w-[36px]` } },
     ...(isCabang
@@ -1017,11 +1010,11 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
               type="checkbox"
               checked={t.getRowModel().rows.length > 0 && t.getRowModel().rows.every((r: any) => selectedIds.has((r.original as Kandidat).id))}
               onChange={toggleSelectAll}
-              className="h-4 w-4 rounded border-slate-400 text-blue-600 focus:ring-blue-500 cursor-pointer"
+              className="h-4 w-4 border-[#bdc1c6] text-[#1a73e8] focus:ring-[#1a73e8] cursor-pointer"
             />
           ),
           enableSorting: false,
-          meta: { thClass: 'border border-slate-600 px-3 py-3 text-center w-[40px] min-w-[40px]' },
+          meta: { thClass: `${thBase}text-center w-[40px] min-w-[40px]` },
         }]),
     { id: 'nik', accessorKey: 'nik', header: 'NIK', meta: { thClass: `${thBase}w-[150px] min-w-[150px]` } },
     { id: 'no_registrasi', accessorKey: 'no_registrasi', header: 'No. Registrasi', meta: { thClass: `${thBase}w-[150px] min-w-[150px]` } },
@@ -1049,7 +1042,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
     { id: 'kontrak', header: 'Kontrak', enableSorting: false, meta: { thClass: `${thBase}text-center w-[150px] min-w-[150px]` } },
     { id: 'status_kandidat', accessorKey: 'status_kandidat', header: 'Status Kandidat', meta: { thClass: `${thBase}text-center w-[150px] min-w-[150px]` } },
     { id: 'keterangan', accessorKey: 'keterangan', header: 'Ket.', meta: { thClass: `${thBase}w-[140px] min-w-[140px]` } },
-    { id: 'aksi', header: 'Aksi', enableSorting: false, meta: { thClass: 'sticky right-0 z-30 border border-slate-600 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-white bg-[#0e6187] shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] w-[60px] min-w-[60px]' } },
+    { id: 'aksi', header: 'Aksi', enableSorting: false, meta: { thClass: `${thBase}sticky right-0 z-30 border-l border-[#dadce0] bg-white text-center w-[60px] min-w-[60px]` } },
   ]
 
   const table = useReactTable({
@@ -1065,14 +1058,14 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
 
   const statusBadge = (status: string) => {
     const map: Record<string, { bg: string; text: string; label: string }> = {
-      Disetujui: { bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700', label: 'Disetujui' },
-      Ditolak: { bg: 'bg-red-50 border-red-200', text: 'text-red-700', label: 'Ditolak' },
-      Pending: { bg: 'bg-amber-50 border-amber-200', text: 'text-amber-700', label: 'Pending' },
+      Disetujui: { bg: 'bg-[#e6f4ea] border-[#a8dab5]', text: 'text-[#137333]', label: 'Disetujui' },
+      Ditolak: { bg: 'bg-[#fce8e6] border-[#f6aea9]', text: 'text-[#a50e0e]', label: 'Ditolak' },
+      Pending: { bg: 'bg-[#fef7e0] border-[#fdd663]', text: 'text-[#b06000]', label: 'Pending' },
     }
-    const s = map[status] || { bg: 'bg-slate-50 border-slate-200', text: 'text-slate-600', label: status }
+    const s = map[status] || { bg: 'bg-[#f8f9fa] border-[#dadce0]', text: 'text-[#5f6368]', label: status }
     return (
-      <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${s.bg} ${s.text}`}>
-        <span className={`h-1.5 w-1.5 rounded-full ${status === 'Disetujui' ? 'bg-emerald-500' : status === 'Ditolak' ? 'bg-red-500' : 'bg-amber-500'}`} />
+      <span className={`inline-flex items-center gap-1.5 border px-2.5 py-1 text-[11px] font-semibold ${s.bg} ${s.text}`}>
+        <span className={`h-1.5 w-1.5 ${status === 'Disetujui' ? 'bg-[#0E6187]' : status === 'Ditolak' ? 'bg-[#d93025]' : 'bg-[#e37400]'}`} />
         {s.label}
       </span>
     )
@@ -1125,7 +1118,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
     ])
     const cellStyle = ' style="mso-number-format:\'@\'"'
     const tableRows = [
-      `<tr>${headers.map(h => `<th style="background:#0E6187;color:white;font-weight:bold;padding:6px 10px;border:1px solid #ccc">${h}</th>`).join('')}</tr>`,
+      `<tr>${headers.map(h => `<th style="background:#1a73e8;color:white;font-weight:bold;padding:6px 10px;border:1px solid #ccc">${h}</th>`).join('')}</tr>`,
       ...rows.map((r, i) => `<tr>${r.map(v => `<td${cellStyle} style="padding:4px 10px;border:1px solid #ccc;background:${i % 2 === 0 ? '#fff' : '#f9fafb'}">${String(v ?? '')}</td>`).join('')}</tr>`)
     ]
     const htmlTable = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Data Kandidat</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body><table>${tableRows.join('')}</table></body></html>`
@@ -1558,33 +1551,29 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       {/* Breadcrumb */}
-      <nav className="mb-4 flex items-center gap-1.5 text-xs text-slate-500" aria-label="Breadcrumb">
-        <Link to="/" className="flex items-center gap-1 transition-colors hover:text-[#0E6187]">
+      <nav className="mb-4 flex items-center gap-1.5 text-xs text-[#5f6368]" aria-label="Breadcrumb">
+        <Link to="/" className="flex items-center gap-1 transition-colors hover:text-[#1a73e8]">
           <LayoutDashboard size={13} />
           <span>Beranda</span>
         </Link>
-        <ChevronRight size={12} className="text-slate-300" />
-        <Link to={isCabang ? '/admin-cabang/pendaftar' : '/pendaftar'} className="transition-colors hover:text-[#0E6187]">
+        <ChevronRight size={12} className="text-[#9aa0a6]" />
+        <Link to={isCabang ? '/admin-cabang/pendaftar' : '/pendaftar'} className="transition-colors hover:text-[#1a73e8]">
           Pendaftaran
         </Link>
-        <ChevronRight size={12} className="text-slate-300" />
-        <span className="font-medium text-slate-700">Data Kandidat</span>
+        <ChevronRight size={12} className="text-[#9aa0a6]" />
+        <span className="font-medium text-[#3c4043]">Data Kandidat</span>
       </nav>
 
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-4  p-4 sm:flex-row sm:items-center sm:justify-between ">
+      <div className="mb-4 flex flex-col gap-4 border-b border-[#dadce0] pb-4 sm:flex-row sm:items-center sm:justify-between ">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
-            <Users size={20} />
-          </div>
-          <div>
-            <h1 className="text-lg font-semibold text-slate-800">Data Kandidat</h1>
-            <p className="text-sm text-slate-500">Kelola data kandidat per batch</p>
+          <div className="flex h-10 w-10 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]"> <Users size={20} /> </div> <div> <h1 className="text-xl font-medium text-[#202124]">Data Kandidat</h1>
+            <p className="text-sm text-[#5f6368]">Kelola data kandidat per batch</p>
           </div>
         </div>
         <button
           onClick={() => { setShowTambah(true); setTambahSuccess(null); setTambahError(''); setTambahErrors({}) }}
-          className="inline-flex items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700"
+          className="inline-flex items-center justify-center gap-2 bg-[#0E6187] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#084c63]"
         >
           <Plus size={16} />
           Tambah Data
@@ -1603,9 +1592,9 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
           { label: 'Lulus Pendidikan', value: statusCounts['Lulus Pendidikan'] },
           { label: 'Cuti', value: statusCounts.Cuti },
         ].map(s => (
-          <div key={s.label} className="rounded-sm border border-slate-200 bg-white p-3 ">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{s.label}</p>
-            <p className="mt-0.5 text-xl font-bold text-slate-800">{s.value}</p>
+          <div key={s.label} className="border border-[#dadce0] bg-white p-3 ">
+            <p className="text-[10px] font-semibold text-[#5f6368]">{s.label}</p>
+            <p className="mt-0.5 text-xl font-bold text-[#202124]">{s.value}</p>
           </div>
         ))}
       </div>
@@ -1614,13 +1603,13 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
       <div className="mb-4 py-4 ">
         <div className="flex flex-wrap gap-3 items-center">
           <div className="relative w-full md:flex-1 md:w-auto">
-            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#80868b]" />
             <input
               type="text"
               placeholder="Cari nama, email, atau NIK..."
               value={search}
               onChange={handleSearch}
-              className="w-full rounded-lg border border-slate-300 bg-slate-50 py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
+              className="w-full border border-[#dadce0] bg-[#f8f9fa] py-2.5 pl-9 pr-3 text-sm text-[#3c4043] outline-none transition placeholder:text-[#80868b] focus:border-[#1a73e8] focus:bg-white focus:border-[#1a73e8]/20"
             />
           </div>
           {!isCabang && (
@@ -1628,39 +1617,39 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
               <select
                 value={filterCabang}
                 onChange={handleFilterCabang}
-                className="appearance-none rounded-lg border border-slate-300 bg-slate-50 px-8 py-2.5 pr-8 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
+                className="appearance-none border border-[#dadce0] bg-[#f8f9fa] px-8 py-2.5 pr-8 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] focus:bg-white focus:border-[#1a73e8]/20"
               >
                 <option value="">Semua Cabang</option>
                 {cabangOptions.map(c => (
                   <option key={c.id} value={c.id}>{c.nama}</option>
                 ))}
               </select>
-              <svg className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+              <svg className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#80868b]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
             </div>
           )}
           <div className="relative shrink-0" ref={batchDropdownRef}>
             <button type="button" onClick={() => setShowBatchDropdown(!showBatchDropdown)}
-              className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 w-full min-w-[180px] shadow-sm hover:shadow">
+              className="flex items-center gap-2 border border-[#dadce0] bg-white px-3 py-2.5 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] focus:border-[#1a73e8]/20 w-full min-w-[180px] hover:shadow">
               {filterBatch ? (
                 <span className="flex items-center gap-2 truncate">
-                  <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: batchOptions.find(b => String(b.id) === filterBatch)?.warna || '#3b82f6' }} />
+                  <span className="inline-block h-3 w-3 shrink-0 ring-1 ring-black/10" style={{ backgroundColor: batchOptions.find(b => String(b.id) === filterBatch)?.warna || '#3b82f6' }} />
                   <span className="truncate">{batchOptions.find(b => String(b.id) === filterBatch)?.nama || 'Semua Batch'}</span>
                 </span>
               ) : (
-                <span className="text-slate-400">Semua Batch</span>
+                <span className="text-[#80868b]">Semua Batch</span>
               )}
-              <svg className={`ml-auto h-4 w-4 text-slate-400 transition-transform ${showBatchDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+              <svg className={`ml-auto h-4 w-4 text-[#80868b] transition-transform ${showBatchDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
             </button>
             {showBatchDropdown && (
-              <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[220px] rounded-xl border border-slate-200 bg-white shadow-xl py-1 max-h-60 overflow-y-auto">
+              <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[220px] border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] py-1 max-h-60 overflow-y-auto">
                 <button type="button" onClick={() => { setFilterBatch(''); setShowBatchDropdown(false); setPage(1); doFetch(buildParams({ batch_id: '' })) }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:bg-blue-50 hover:text-blue-700 transition">
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[#5f6368] hover:bg-[#e8f0fe] hover:text-[#1967d2] transition">
                   Semua Batch
                 </button>
                 {batchOptions.map(b => (
                   <button key={b.id} type="button" onClick={() => { setFilterBatch(String(b.id)); setShowBatchDropdown(false); setPage(1); doFetch(buildParams({ batch_id: String(b.id) })) }}
-                    className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${String(b.id) === filterBatch ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}>
-                    <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: b.warna || '#3b82f6' }} />
+                    className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${String(b.id) === filterBatch ? 'bg-[#e8f0fe] text-[#1967d2] font-medium' : 'text-[#3c4043] hover:bg-[#f8f9fa]'}`}>
+                    <span className="inline-block h-3 w-3 shrink-0 ring-1 ring-black/10" style={{ backgroundColor: b.warna || '#3b82f6' }} />
                     <span className="truncate">{b.nama}</span>
                   </button>
                 ))}
@@ -1669,38 +1658,38 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
           </div>
           <button
             onClick={() => fetchData(search)}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0E6187] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#1a3a5c]"
+            className="inline-flex items-center justify-center gap-2 bg-[#0E6187] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#1a3a5c]"
           >
             <Search size={16} />
             Filter
           </button>
           <button
             onClick={resetFilter}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-800"
+            className="inline-flex items-center justify-center gap-2 border border-[#dadce0] bg-white px-4 py-2.5 text-sm font-medium text-[#5f6368] transition hover:bg-[#f8f9fa] hover:text-[#202124]"
           >
             <RotateCcw size={16} />
             Reset
           </button>
           <div className="relative group">
             <button
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-800"
+              className="inline-flex items-center justify-center gap-2 border border-[#dadce0] bg-white px-4 py-2.5 text-sm font-medium text-[#5f6368] transition hover:bg-[#f8f9fa] hover:text-[#202124]"
             >
               <Download size={16} />
               Export
             </button>
-            <div className="absolute right-0 top-full z-30 mt-1 hidden w-48 rounded-lg border border-slate-200 bg-white py-1 shadow-lg group-hover:block">
-              <button onClick={exportCSV} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
-                <Download size={14} className="text-slate-400" />
+            <div className="absolute right-0 top-full z-30 mt-1 hidden w-48 border border-[#dadce0] bg-white py-1 shadow-[0_1px_3px_rgba(60,64,67,0.15)] group-hover:block">
+              <button onClick={exportCSV} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-[#3c4043] hover:bg-[#f8f9fa] transition-colors">
+                <Download size={14} className="text-[#80868b]" />
                 Export CSV
               </button>
-              <button onClick={exportExcel} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
-                <Download size={14} className="text-slate-400" />
+              <button onClick={exportExcel} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-[#3c4043] hover:bg-[#f8f9fa] transition-colors">
+                <Download size={14} className="text-[#80868b]" />
                 Export Excel
               </button>
-              <div className="my-1 border-t border-slate-100" />
+              <div className="my-1 border-t border-[#e8eaed]" />
               <button onClick={() => { setShowExportLogin(true); setExportBatchId(''); setExportCabangId('') }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
-                <KeyRound size={14} className="text-emerald-400" />
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-[#3c4043] hover:bg-[#f8f9fa] transition-colors">
+                <KeyRound size={14} className="text-[#81c995]" />
                 Export PDF Akun Login
               </button>
             </div>
@@ -1708,7 +1697,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
           {!isCabang && (
             <button
               onClick={() => setShowImport(true)}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-800"
+              className="inline-flex items-center justify-center gap-2 border border-[#dadce0] bg-white px-4 py-2.5 text-sm font-medium text-[#5f6368] transition hover:bg-[#f8f9fa] hover:text-[#202124]"
             >
               <Upload size={16} />
               Import
@@ -1717,7 +1706,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
           {!isCabang && (
             <button
               onClick={handleSyncNoRegistrasi}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-300 bg-white px-4 py-2.5 text-sm font-medium text-emerald-600 shadow-sm transition hover:bg-emerald-50 hover:text-emerald-800"
+              className="inline-flex items-center justify-center gap-2 border border-[#a8dab5] bg-white px-4 py-2.5 text-sm font-medium text-[#137333] transition hover:bg-[#e6f4ea] hover:text-[#0d652d]"
             >
               <RefreshCw size={16} />
               Sync No. Reg
@@ -1728,9 +1717,9 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
 
       {/* Bulk Action Bar */}
       {selectedIds.size > 0 && !isCabang && (
-        <div className="mb-4 rounded-sm border border-blue-200 bg-blue-50 px-4 py-3 ">
+        <div className="mb-4 border border-[#aecbfa] bg-[#e8f0fe] px-4 py-3 ">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2 text-sm text-blue-700">
+            <div className="flex items-center gap-2 text-sm text-[#1967d2]">
               <Users size={16} />
               <span className="font-semibold">{selectedIds.size} kandidat dipilih</span>
             </div>
@@ -1738,27 +1727,27 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
               <div className="flex items-center gap-2">
                 <div className="relative shrink-0" ref={bulkBatchDropdownRef}>
                   <button type="button" onClick={() => setShowBulkBatchDropdown(!showBulkBatchDropdown)}
-                    className="flex items-center gap-2 rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 w-full min-w-[180px] shadow-sm hover:shadow">
+                    className="flex items-center gap-2 border border-[#8ab4f8] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] focus:border-[#1a73e8]/20 w-full min-w-[180px] hover:shadow">
                     {bulkBatchId ? (
                       <span className="flex items-center gap-2 truncate">
-                        <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: batchOptions.find(b => String(b.id) === bulkBatchId)?.warna || '#3b82f6' }} />
+                        <span className="inline-block h-3 w-3 shrink-0 ring-1 ring-black/10" style={{ backgroundColor: batchOptions.find(b => String(b.id) === bulkBatchId)?.warna || '#3b82f6' }} />
                         <span className="truncate">{batchOptions.find(b => String(b.id) === bulkBatchId)?.nama || 'Pilih Batch Tujuan...'}</span>
                       </span>
                     ) : (
-                      <span className="text-slate-400">Pilih Batch Tujuan...</span>
+                      <span className="text-[#80868b]">Pilih Batch Tujuan...</span>
                     )}
-                    <svg className={`ml-auto h-4 w-4 text-slate-400 transition-transform ${showBulkBatchDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                    <svg className={`ml-auto h-4 w-4 text-[#80868b] transition-transform ${showBulkBatchDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                   </button>
                   {showBulkBatchDropdown && (
-                    <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[220px] rounded-xl border border-slate-200 bg-white shadow-xl py-1 max-h-60 overflow-y-auto">
+                    <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[220px] border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] py-1 max-h-60 overflow-y-auto">
                       <button type="button" onClick={() => { setBulkBatchId(''); setShowBulkBatchDropdown(false) }}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:bg-blue-50 hover:text-blue-700 transition">
+                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[#5f6368] hover:bg-[#e8f0fe] hover:text-[#1967d2] transition">
                         Pilih Batch Tujuan...
                       </button>
                       {batchOptions.map(b => (
                         <button key={b.id} type="button" onClick={() => { setBulkBatchId(String(b.id)); setShowBulkBatchDropdown(false) }}
-                          className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${String(b.id) === bulkBatchId ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}>
-                          <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: b.warna || '#3b82f6' }} />
+                          className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${String(b.id) === bulkBatchId ? 'bg-[#e8f0fe] text-[#1967d2] font-medium' : 'text-[#3c4043] hover:bg-[#f8f9fa]'}`}>
+                          <span className="inline-block h-3 w-3 shrink-0 ring-1 ring-black/10" style={{ backgroundColor: b.warna || '#3b82f6' }} />
                           <span className="truncate">{b.nama}</span>
                         </button>
                       ))}
@@ -1768,7 +1757,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                 <button
                   onClick={handleBulkMoveBatch}
                   disabled={!bulkBatchId || bulkMoving}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#0E6187] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1a3a5c] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1.5 bg-[#0E6187] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1a3a5c] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {bulkMoving ? <Loader2 size={14} className="animate-spin" /> : <ArrowRight size={14} />}
                   {bulkMoving ? 'Memindahkan...' : 'Pindah Batch'}
@@ -1777,27 +1766,27 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
               <div className="flex items-center gap-2">
                 <div className="relative shrink-0" ref={bulkProductDropdownRef}>
                   <button type="button" onClick={() => setShowBulkProductDropdown(!showBulkProductDropdown)}
-                    className="flex items-center gap-2 rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 w-full min-w-[180px] shadow-sm hover:shadow">
+                    className="flex items-center gap-2 border border-[#8ab4f8] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] focus:border-[#1a73e8]/20 w-full min-w-[180px] hover:shadow">
                     {bulkProductId ? (
                       <span className="flex items-center gap-2 truncate">
-                        <span className="inline-block h-3 w-3 shrink-0 rounded-full bg-blue-500" />
+                        <span className="inline-block h-3 w-3 shrink-0 bg-[#0E6187]" />
                         <span className="truncate">{productOptions.find(p => String(p.id) === bulkProductId)?.nama || 'Pilih Program...'}</span>
                       </span>
                     ) : (
-                      <span className="text-slate-400">Pilih Program...</span>
+                      <span className="text-[#80868b]">Pilih Program...</span>
                     )}
-                    <svg className={`ml-auto h-4 w-4 text-slate-400 transition-transform ${showBulkProductDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                    <svg className={`ml-auto h-4 w-4 text-[#80868b] transition-transform ${showBulkProductDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                   </button>
                   {showBulkProductDropdown && (
-                    <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[220px] rounded-xl border border-slate-200 bg-white shadow-xl py-1 max-h-60 overflow-y-auto">
+                    <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[220px] border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] py-1 max-h-60 overflow-y-auto">
                       <button type="button" onClick={() => { setBulkProductId(''); setShowBulkProductDropdown(false) }}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:bg-blue-50 hover:text-blue-700 transition">
+                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[#5f6368] hover:bg-[#e8f0fe] hover:text-[#1967d2] transition">
                         Pilih Program...
                       </button>
                       {productOptions.map(p => (
                         <button key={p.id} type="button" onClick={() => { setBulkProductId(String(p.id)); setShowBulkProductDropdown(false) }}
-                          className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${String(p.id) === bulkProductId ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}>
-                          <span className="inline-block h-3 w-3 shrink-0 rounded-full bg-blue-500" />
+                          className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${String(p.id) === bulkProductId ? 'bg-[#e8f0fe] text-[#1967d2] font-medium' : 'text-[#3c4043] hover:bg-[#f8f9fa]'}`}>
+                          <span className="inline-block h-3 w-3 shrink-0 bg-[#0E6187]" />
                           <span className="truncate">{p.nama}</span>
                         </button>
                       ))}
@@ -1807,7 +1796,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                 <button
                   onClick={handleBulkChangeProduct}
                   disabled={!bulkProductId || bulkChangingProduct}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#0E6187] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1a3a5c] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1.5 bg-[#0E6187] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1a3a5c] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {bulkChangingProduct ? <Loader2 size={14} className="animate-spin" /> : <ArrowRight size={14} />}
                   {bulkChangingProduct ? 'Mengubah...' : 'Ubah Program'}
@@ -1816,14 +1805,14 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => { setSelectedIds(new Set()); setBulkBatchId(''); setBulkProductId('') }}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                  className="inline-flex items-center gap-1.5 border border-[#dadce0] bg-white px-3 py-2 text-sm font-medium text-[#5f6368] transition hover:bg-[#f8f9fa]"
                 >
                   <X size={14} /> Batal
                 </button>
                 <button
                   onClick={handleBulkDelete}
                   disabled={bulkDeleting}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 bg-[#c5221f] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#a50e0e] disabled:opacity-50"
                 >
                   {bulkDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                   {bulkDeleting ? 'Menghapus...' : 'Hapus'}
@@ -1835,20 +1824,20 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
       )}
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-sm border border-slate-200 ">
+      <div className="border border-[#dadce0] bg-white">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="relative w-14 h-14 flex items-center justify-center">
-              <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
+              <div className="absolute inset-0 rounded-full border-2 border-[#1a73e8]/10 border-t-[#1a73e8] animate-spin" />
               <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
             </div>
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto max-h-[calc(100vh-260px)] overflow-y-auto rounded-sm border border-slate-200">
+            <div className="max-h-[calc(100vh-260px)] overflow-auto">
               <table className="w-full min-w-[3200px] border-collapse text-left text-sm text-black">
-                <thead className="sticky top-0 z-20">
-                  <tr className="bg-[#0e6187]">
+                <thead className="sticky top-0 z-20 bg-white">
+                  <tr>
                     {table.getHeaderGroups()[0].headers.map(header => {
                       const canSort = header.column.getCanSort()
                       const sorted = header.column.getIsSorted()
@@ -1859,7 +1848,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                           scope="col"
                           onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
                           title={canSort ? 'Klik untuk urutkan' : undefined}
-                          className={`${meta?.thClass || 'border border-slate-600 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white'} ${canSort ? 'cursor-pointer select-none hover:bg-[#0a4f6e] transition-colors' : ''}`}
+                          className={`${meta?.thClass || 'border-b border-[#e8eaed] px-4 py-3 text-xs font-medium text-[#5f6368]'} ${canSort ? 'cursor-pointer select-none hover:bg-[#f1f3f4] transition-colors' : ''}`}
                         >
                           <span className="inline-flex items-center gap-1">
                             {flexRender(header.column.columnDef.header, header.getContext())}
@@ -1882,112 +1871,112 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                       const rowNum = (safePage - 1) * perPage + idx + 1
                       const batchBadgeBg = k.batch_warna || '#3b82f6'
                       return (
-                        <tr key={k.id} className={`${isEditing ? 'bg-blue-50/50' : k.level_status_keluar ? 'bg-red-200' : k.is_cuti ? 'bg-yellow-300' : 'bg-white'} transition hover:brightness-[0.97] group`}>
-                          <td className="border border-slate-200 px-4 py-3 text-center text-xs font-normal text-black">{rowNum}</td>
+                        <tr key={k.id} className={`${isEditing ? 'bg-[#e8f0fe]' : k.level_status_keluar ? 'bg-[#fce8e6]' : k.is_cuti ? 'bg-[#fef7e0]' : 'bg-white'} transition hover:bg-[#f8f9fa] group`}>
+                          <td className="border-b border-[#e8eaed] px-3 py-3 text-center text-xs font-normal text-black">{rowNum}</td>
                           {!isCabang && (
-                            <td className="border border-slate-200 px-3 py-3 text-center">
+                            <td className="border-b border-[#e8eaed] px-3 py-3 text-center">
                               <input
                                 type="checkbox"
                                 checked={selectedIds.has(k.id)}
                                 onChange={() => toggleSelect(k.id)}
-                                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                className="h-4 w-4 border-[#dadce0] text-[#1a73e8] focus:ring-[#1a73e8] cursor-pointer"
                               />
                             </td>
                           )}
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-mono font-semibold text-black whitespace-nowrap">
-                            {k.nik || <span className="text-gray-400">-</span>}
+                          <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-mono font-normal text-black whitespace-nowrap">
+                            {k.nik || <span className="text-[#80868b]">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-mono font-semibold text-black whitespace-nowrap">
-                            {k.no_registrasi || <span className="text-gray-400">-</span>}
+                          <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-mono font-normal text-black whitespace-nowrap">
+                            {k.no_registrasi || <span className="text-[#80868b]">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 max-w-[200px] overflow-hidden">
+                          <td className="border-b border-[#e8eaed] px-3 py-3 max-w-[200px] overflow-hidden">
                             <div className="flex items-center gap-2 min-w-0">
                               {(() => {
                                 const pid = k.matching_job?.penempatan_kandidat_id
                                 const foto = pid ? fotoMap[pid] : null
                                 return foto ? (
-                                  <img src={foto} alt={k.nama} className="h-8 w-8 rounded-full object-cover flex-none"
+                                  <img src={foto} alt={k.nama} className="h-8 w-8 object-cover flex-none"
                                     onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
                                 ) : (
                                   <img
                                     src={`https://ui-avatars.com/api/?name=${encodeURIComponent(k.nama)}&background=e5e7eb&color=6b7280&size=32`}
-                                    className="h-8 w-8 rounded-full object-cover flex-none"
+                                    className="h-8 w-8 object-cover flex-none"
                                     onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                                   />
                                 )
                               })()}
                               <div className="min-w-0">
-                                <div className={`font-semibold truncate ${k.level_status_keluar ? 'text-red-600' : 'text-black'}`}>{k.nama}</div>
+                                <div className={`font-semibold truncate ${k.level_status_keluar ? 'text-[#c5221f]' : 'text-black'}`}>{k.nama}</div>
                               </div>
                             </div>
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
+                          <td className="border-b border-[#e8eaed] px-3 py-3 whitespace-nowrap">
                             <button onClick={() => openBatchModal(k)}
-                              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium whitespace-nowrap leading-none text-white transition hover:opacity-80"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium whitespace-nowrap leading-none text-white transition hover:opacity-80"
                               style={{ backgroundColor: batchBadgeBg }}
                               title="Klik untuk ganti batch"
                             >
                               {k.batch_nama || '-'}
                             </button>
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black whitespace-nowrap">
-                            {k.cabang_nama || <span className="text-gray-400">-</span>}
+                          <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black whitespace-nowrap">
+                            {k.cabang_nama || <span className="text-[#80868b]">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black text-center">
+                          <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black text-center">
                             {k.jenis_kelamin === 'L' ? 'L' : k.jenis_kelamin === 'P' ? 'P' : '-'}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black whitespace-nowrap">
+                          <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black whitespace-nowrap">
                             {k.tempat_lahir !== '-' && k.tanggal_lahir !== '-' ? `${k.tempat_lahir}, ${k.tanggal_lahir}` : '-'}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black max-w-[250px]">
+                          <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black max-w-[250px]">
                             <span className="truncate block" title={k.alamat}>{k.alamat || '-'}</span>
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black whitespace-nowrap">
-                            {k.desa || <span className="text-gray-400">-</span>}
+                          <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black whitespace-nowrap">
+                            {k.desa || <span className="text-[#80868b]">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black whitespace-nowrap">
-                            {k.kecamatan || <span className="text-gray-400">-</span>}
+                          <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black whitespace-nowrap">
+                            {k.kecamatan || <span className="text-[#80868b]">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black whitespace-nowrap">
-                            {k.kabupaten || <span className="text-gray-400">-</span>}
+                          <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black whitespace-nowrap">
+                            {k.kabupaten || <span className="text-[#80868b]">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black whitespace-nowrap">
-                            {k.provinsi || <span className="text-gray-400">-</span>}
+                          <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black whitespace-nowrap">
+                            {k.provinsi || <span className="text-[#80868b]">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black whitespace-nowrap">
-                            {k.pendidikan_terakhir || <span className="text-gray-400">-</span>}
+                          <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black whitespace-nowrap">
+                            {k.pendidikan_terakhir || <span className="text-[#80868b]">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black text-center">
-                            {k.tahun_lulus || <span className="text-gray-400">-</span>}
+                          <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black text-center">
+                            {k.tahun_lulus || <span className="text-[#80868b]">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black text-center">
-                            {k.tinggi_badan || <span className="text-gray-400">-</span>}
+                          <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black text-center">
+                            {k.tinggi_badan || <span className="text-[#80868b]">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black text-center">
-                            {k.berat_badan || <span className="text-gray-400">-</span>}
+                          <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black text-center">
+                            {k.berat_badan || <span className="text-[#80868b]">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black text-center">
-                            {k.goldar || <span className="text-gray-400">-</span>}
+                          <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black text-center">
+                            {k.goldar || <span className="text-[#80868b]">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black text-center">
-                            {k.ukuran_baju || <span className="text-gray-400">-</span>}
+                          <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black text-center">
+                            {k.ukuran_baju || <span className="text-[#80868b]">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black">
-                            {k.status_pernikahan || <span className="text-gray-400">-</span>}
+                          <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black">
+                            {k.status_pernikahan || <span className="text-[#80868b]">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-mono font-semibold text-black whitespace-nowrap">
+                          <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-mono font-normal text-black whitespace-nowrap">
                             {k.email}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-mono font-semibold text-black whitespace-nowrap">
-                            {k.no_hp || <span className="text-gray-400">-</span>}
+                          <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-mono font-normal text-black whitespace-nowrap">
+                            {k.no_hp || <span className="text-[#80868b]">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black">
-                            {k.nama_ortu || <span className="text-gray-400">-</span>}
+                          <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black">
+                            {k.nama_ortu || <span className="text-[#80868b]">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-mono font-semibold text-black whitespace-nowrap">
-                            {k.no_hp_ortu || <span className="text-gray-400">-</span>}
+                          <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-mono font-normal text-black whitespace-nowrap">
+                            {k.no_hp_ortu || <span className="text-[#80868b]">-</span>}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-center whitespace-nowrap">
+                          <td className="border-b border-[#e8eaed] px-3 py-3 text-center whitespace-nowrap">
                             {k.kontrak ? (
                               k.kontrak.file_kontrak_ttd ? (
                                 <a
@@ -1995,7 +1984,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                                   target="_blank"
                                   rel="noreferrer"
                                   title={`Unduh kontrak ditandatangani${k.kontrak.ttd_uploaded_at ? ` (${new Date(k.kontrak.ttd_uploaded_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })})` : ''}`}
-                                  className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                                  className="inline-flex items-center gap-1.5 border border-[#a8dab5] bg-[#e6f4ea] px-2.5 py-1 text-[11px] font-semibold text-[#137333] transition hover:bg-[#084c63]"
                                 >
                                   <Download size={11} /> Sudah TTD
                                 </a>
@@ -2005,26 +1994,26 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                                   target="_blank"
                                   rel="noreferrer"
                                   title={`Lihat kontrak: ${k.kontrak.judul}`}
-                                  className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700 transition hover:bg-amber-100"
+                                  className="inline-flex items-center gap-1.5 border border-[#fdd663] bg-[#fef7e0] px-2.5 py-1 text-[11px] font-semibold text-[#b06000] transition hover:bg-[#feefc3]"
                                 >
                                   <FileText size={11} /> Belum TTD
                                 </a>
                               )
                             ) : (
-                              <span className="text-gray-400">-</span>
+                              <span className="text-[#80868b]">-</span>
                             )}
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 whitespace-nowrap">
+                          <td className="border-b border-[#e8eaed] px-3 py-3 whitespace-nowrap">
                             <StatusKandidatBadge status={k.status_kandidat} />
                           </td>
-                          <td className="border border-slate-200 px-4 py-3 text-xs font-normal text-black max-w-[180px]">
+                          <td className="border-b border-[#e8eaed] px-3 py-3 text-xs font-normal text-black max-w-[180px]">
                             <div className="flex flex-col gap-1">
-                              {k.level_status_keluar ? <span className="inline-block w-fit rounded bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">KELUAR</span> : null}
-                              {k.is_cuti ? <span className="inline-block w-fit rounded bg-yellow-400 px-2 py-0.5 text-[10px] font-bold text-black">CUTI</span> : null}
-                              {k.keterangan && k.keterangan !== '-' && String(k.keterangan) !== '0' ? <span className="truncate block" title={k.keterangan}>{k.keterangan}</span> : <span className="text-gray-400">-</span>}
+                              {k.level_status_keluar ? <span className="inline-block w-fit bg-[#d93025] px-2 py-0.5 text-[10px] font-bold text-white">KELUAR</span> : null}
+                              {k.is_cuti ? <span className="inline-block w-fit bg-[#f9ab00] px-2 py-0.5 text-[10px] font-bold text-black">CUTI</span> : null}
+                              {k.keterangan && k.keterangan !== '-' && String(k.keterangan) !== '0' ? <span className="truncate block" title={k.keterangan}>{k.keterangan}</span> : <span className="text-[#80868b]">-</span>}
                             </div>
                            </td>
-                           <td className={`sticky right-0 z-10 border border-slate-200 px-3 py-3 text-center shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] ${isEditing ? 'bg-blue-50/50' : 'bg-white'}`}>
+                           <td className={`sticky right-0 z-10 border-b border-l border-[#dadce0] px-3 py-3 text-center ${isEditing ? 'bg-[#e8f0fe]' : 'bg-white'}`}>
                             <div className="relative flex justify-center" ref={actionRef}>
                                   <button
                                     onMouseDown={e => e.stopPropagation()}
@@ -2036,7 +2025,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                                       setActionPos({ top, left: Math.max(8, rect.right - 208) })
                                       setOpenActionId(openActionId === k.id ? null : k.id)
                                     }}
-                                    className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
+                                    className="border border-[#dadce0] bg-white p-1.5 text-[#5f6368] transition hover:border-[#dadce0] hover:bg-[#f8f9fa] hover:text-[#3c4043]"
                                     title="Aksi"
                                   >
                                     <MoreHorizontal size={16} />
@@ -2046,29 +2035,29 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                                   <div
                                     ref={actionDropdownRef}
                                     onMouseDown={e => e.stopPropagation()}
-                                    className="fixed z-[9999] max-h-[70vh] w-52 overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+                                    className="fixed z-[9999] max-h-[70vh] w-52 overflow-y-auto border border-[#dadce0] bg-white py-1 shadow-[0_1px_3px_rgba(60,64,67,0.15)]"
                                     style={{ top: actionPos.top, left: actionPos.left }}
                                   >
                                     <button onClick={() => { setDetailKandidat(k); setOpenActionId(null); loadDokumen(k) }}
-                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
-                                      <Eye size={14} className="text-slate-400" />
+                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-[#3c4043] hover:bg-[#f8f9fa] transition-colors">
+                                      <Eye size={14} className="text-[#80868b]" />
                                       <span>Detail Lengkap</span>
                                     </button>
                                     <button onClick={() => { startEdit(k); setOpenActionId(null) }}
-                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
-                                      <Edit3 size={14} className="text-slate-400" />
+                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-[#3c4043] hover:bg-[#f8f9fa] transition-colors">
+                                      <Edit3 size={14} className="text-[#80868b]" />
                                       <span>Edit Data</span>
                                     </button>
                                     {!isCabang && (
                                     <button onClick={() => { setMergeModal({ kandidat: k }); setMergeQuery(''); setMergePage(1); setOpenActionId(null) }}
-                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
-                                      <ClipboardPaste size={14} className="text-cyan-500" />
+                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-[#3c4043] hover:bg-[#f8f9fa] transition-colors">
+                                      <ClipboardPaste size={14} className="text-[#1a73e8]" />
                                       <span>Merge Job Matching</span>
                                     </button>
                                     )}
                                     <Link to={isCabang ? `/admin-cabang/pendaftar/${k.id}/invoice` : `/pendaftar/${k.id}/invoice`} onClick={() => setOpenActionId(null)}
-                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
-                                      <Receipt size={14} className="text-slate-400" />
+                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-[#3c4043] hover:bg-[#f8f9fa] transition-colors">
+                                      <Receipt size={14} className="text-[#80868b]" />
                                       <span>Lihat Invoice</span>
                                     </Link>
                                     {!isCabang && (
@@ -2089,13 +2078,13 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                                         Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal memuat data pembayaran.', confirmButtonColor: '#0E6187' })
                                       }
                                     }}
-                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors">
-                                      <DollarSign size={14} className="text-emerald-400" />
+                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-[#3c4043] hover:bg-[#f8f9fa] transition-colors">
+                                      <DollarSign size={14} className="text-[#81c995]" />
                                       <span>Pembayaran Tagihan</span>
                                     </button>
                                     )}
-                                    <div className="my-1 border-t border-slate-100" />
-                                    <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Status Kandidat</p>
+                                    <div className="my-1 border-t border-[#e8eaed]" />
+                                    <p className="px-3 py-1 text-[10px] font-semibold r text-[#80868b]">Status Kandidat</p>
                                     {['Calon Kandidat', 'Kandidat Aktif', 'Proses Belajar', 'Mengundurkan Diri', 'Lulus Pendidikan'].map((st) => (
                                       <button key={st} onClick={() => {
                                         setOpenActionId(null)
@@ -2115,14 +2104,14 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                                         })
                                       }}
                                         disabled={updatingStatusKandidat === k.id || k.status_kandidat === st}
-                                        className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-40">
-                                        <span className={`h-2 w-2 rounded-full ${st === 'Calon Kandidat' ? 'bg-blue-500' : st === 'Kandidat Aktif' ? 'bg-emerald-500' : st === 'Mengundurkan Diri' ? 'bg-red-500' : 'bg-emerald-500'}`} />
+                                        className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-[#3c4043] hover:bg-[#f8f9fa] transition-colors disabled:opacity-40">
+                                        <span className={`h-2 w-2 ${st === 'Calon Kandidat' ? 'bg-[#0E6187]' : st === 'Kandidat Aktif' ? 'bg-[#0E6187]' : st === 'Mengundurkan Diri' ? 'bg-[#d93025]' : 'bg-[#0E6187]'}`} />
                                         <span>{st}</span>
-                                        {k.status_kandidat === st && <span className="ml-auto text-[10px] text-slate-400">sekarang</span>}
+                                        {k.status_kandidat === st && <span className="ml-auto text-[10px] text-[#80868b]">sekarang</span>}
                                       </button>
                                     ))}
-                                    <div className="my-1 border-t border-slate-100" />
-                                    <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Lainnya</p>
+                                    <div className="my-1 border-t border-[#e8eaed]" />
+                                    <p className="px-3 py-1 text-[10px] font-semibold r text-[#80868b]">Lainnya</p>
                                     {!isCabang && (
                                     <button onClick={() => {
                                       setOpenActionId(null)
@@ -2143,10 +2132,10 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                                       })
                                     }}
                                       disabled={togglingId === k.id}
-                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50">
+                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-[#3c4043] hover:bg-[#f8f9fa] transition-colors disabled:opacity-50">
                                       {k.status_akademik === 'NONAKTIF'
-                                        ? <Power size={14} className="text-emerald-400" />
-                                        : <PowerOff size={14} className="text-amber-400" />}
+                                        ? <Power size={14} className="text-[#81c995]" />
+                                        : <PowerOff size={14} className="text-[#f9ab00]" />}
                                       <span>{k.status_akademik === 'NONAKTIF' ? 'Aktifkan' : 'Nonaktifkan'}</span>
                                     </button>
                                     )}
@@ -2168,13 +2157,13 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                                       })
                                     }}
                                       disabled={togglingCutiId === k.id}
-                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50">
+                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-[#3c4043] hover:bg-[#f8f9fa] transition-colors disabled:opacity-50">
                                       {k.is_cuti
-                                        ? <Calendar size={14} className="text-amber-400" />
-                                        : <CalendarOff size={14} className="text-slate-400" />}
+                                        ? <Calendar size={14} className="text-[#f9ab00]" />
+                                        : <CalendarOff size={14} className="text-[#80868b]" />}
                                       <span>{k.is_cuti ? 'Aktifkan dari Cuti' : 'Cuti'}</span>
                                     </button>
-                                    <div className="my-1 border-t border-slate-100" />
+                                    <div className="my-1 border-t border-[#e8eaed]" />
                                     {!isCabang && (
                                     <button onClick={() => {
                                       setOpenActionId(null)
@@ -2199,8 +2188,8 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                                         }
                                       })
                                     }}
-                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 transition-colors">
-                                      <Trash2 size={14} className="text-red-400" />
+                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-[#c5221f] hover:bg-[#fce8e6] transition-colors">
+                                      <Trash2 size={14} className="text-[#ee675c]" />
                                       <span>Hapus Kandidat</span>
                                     </button>
                                     )}
@@ -2229,8 +2218,8 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                                         }
                                       })
                                     }}
-                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 transition-colors">
-                                      <PowerOff size={14} className="text-red-400" />
+                                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-[#c5221f] hover:bg-[#fce8e6] transition-colors">
+                                      <PowerOff size={14} className="text-[#ee675c]" />
                                       <span>Nonaktifkan</span>
                                     </button>
                                     )}
@@ -2243,20 +2232,20 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                     })
                   ) : (
                     <tr>
-                      <td colSpan={29} className="border border-slate-200 px-6 py-10 text-center">
-                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                      <td colSpan={29} className="px-6 py-12 text-center">
+                        <div className="mx-auto flex h-12 w-12 items-center justify-center bg-[#f1f3f4] text-[#80868b]">
                           <Users size={24} />
                         </div>
-                        <p className="mt-3 text-sm font-medium text-slate-600">Tidak ada kandidat ditemukan</p>
+                        <p className="mt-3 text-sm font-medium text-[#5f6368]">Tidak ada kandidat ditemukan</p>
                       </td>
                     </tr>
                   )}
                 </tbody>
               </table>
             </div>
-            <div className="border-t border-slate-200 px-4 py-3 text-sm text-slate-500">
+            <div className="border-t border-[#dadce0] px-4 py-3 text-sm text-[#5f6368]">
               Menampilkan {table.getRowModel().rows.length} dari {filteredList.length} kandidat
-              {selectedIds.size > 0 && <span className="ml-2 font-semibold text-red-600">({selectedIds.size} dipilih)</span>}
+              {selectedIds.size > 0 && <span className="ml-2 font-semibold text-[#c5221f]">({selectedIds.size} dipilih)</span>}
             </div>
           </>
         )}
@@ -2264,34 +2253,34 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
 
       {/* Pagination */}
       {!loading && filteredList.length > 0 && (
-        <div className="mt-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3 text-sm text-slate-500">
+        <div className="mt-4 flex flex-col gap-3 border border-[#dadce0] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3 text-sm text-[#5f6368]">
             <span className="text-xs font-medium">Per halaman</span>
             <div className="relative">
               <select
                 value={perPage}
                 onChange={e => { setPerPage(Number(e.target.value)); setPage(1) }}
-                className="appearance-none rounded-lg border border-slate-200 bg-slate-50 px-7 py-1.5 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
+                className="appearance-none border border-[#dadce0] bg-[#f8f9fa] px-7 py-1.5 text-sm font-medium text-[#3c4043] outline-none transition focus:border-[#1a73e8] focus:bg-white focus:border-[#1a73e8]/20"
               >
                 {[10, 25, 50, 100].map(n => (
                   <option key={n} value={n}>{n}</option>
                 ))}
               </select>
-              <svg className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+              <svg className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-[#80868b]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
             </div>
           </div>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setPage(1)}
               disabled={safePage <= 1}
-              className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:bg-slate-50 hover:text-slate-600 disabled:opacity-30 disabled:pointer-events-none"
+              className="border border-[#dadce0] bg-white p-1.5 text-[#80868b] transition hover:bg-[#f8f9fa] hover:text-[#5f6368] disabled:opacity-30 disabled:pointer-events-none"
             >
               <ChevronsLeft size={15} />
             </button>
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={safePage <= 1}
-              className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:bg-slate-50 hover:text-slate-600 disabled:opacity-30 disabled:pointer-events-none"
+              className="border border-[#dadce0] bg-white p-1.5 text-[#80868b] transition hover:bg-[#f8f9fa] hover:text-[#5f6368] disabled:opacity-30 disabled:pointer-events-none"
             >
               <ChevronLeft size={15} />
             </button>
@@ -2310,15 +2299,12 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
               }
               return pages.map((p, i) =>
                 p === '...' ? (
-                  <span key={`dots-${i}`} className="px-1.5 text-sm text-slate-300">...</span>
+                  <span key={`dots-${i}`} className="px-1.5 text-sm text-[#9aa0a6]">...</span>
                 ) : (
                   <button
                     key={p}
                     onClick={() => setPage(p)}
-                    className={`min-w-[34px] rounded-lg border px-3 py-1.5 text-sm font-medium transition ${p === safePage
-                        ? 'border-[#0E6187] bg-[#0E6187] text-white shadow-sm'
-                        : 'border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50 hover:text-slate-800'
-                      }`}
+                    className={`min-w-[34px] border px-3 py-1.5 text-sm font-medium transition ${p === safePage ? 'border-[#1a73e8] bg-[#0E6187] text-white ' : 'border-[#dadce0] bg-white text-[#5f6368] hover:bg-[#f8f9fa] hover:text-[#202124]' }`}
                   >
                     {p}
                   </button>
@@ -2328,14 +2314,14 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
             <button
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={safePage >= totalPages}
-              className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:bg-slate-50 hover:text-slate-600 disabled:opacity-30 disabled:pointer-events-none"
+              className="border border-[#dadce0] bg-white p-1.5 text-[#80868b] transition hover:bg-[#f8f9fa] hover:text-[#5f6368] disabled:opacity-30 disabled:pointer-events-none"
             >
               <ChevronRight size={15} />
             </button>
             <button
               onClick={() => setPage(totalPages)}
               disabled={safePage >= totalPages}
-              className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:bg-slate-50 hover:text-slate-600 disabled:opacity-30 disabled:pointer-events-none"
+              className="border border-[#dadce0] bg-white p-1.5 text-[#80868b] transition hover:bg-[#f8f9fa] hover:text-[#5f6368] disabled:opacity-30 disabled:pointer-events-none"
             >
               <ChevronsRight size={15} />
             </button>
@@ -2345,68 +2331,68 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
 
       {/* Detail Modal — Simple & Wide */}
       {detailKandidat && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4" onClick={() => setDetailKandidat(null)}>
-          <div className="flex w-full max-w-5xl max-h-[calc(100vh-1rem)] flex-col rounded-xl bg-white shadow-2xl overflow-hidden sm:max-h-[calc(100vh-2rem)]" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#202124]/50 p-2 sm:p-4" onClick={() => setDetailKandidat(null)}>
+          <div className="border border-[#dadce0] flex w-full max-w-5xl max-h-[calc(100vh-1rem)] flex-col bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] overflow-hidden sm:max-h-[calc(100vh-2rem)]" onClick={e => e.stopPropagation()}>
             {/* Header */}
-            <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:items-center sm:px-6 sm:py-4">
+            <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#dadce0] px-4 py-3 sm:items-center sm:px-6 sm:py-4">
               <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
-                <div className="h-9 w-9 shrink-0 rounded-full bg-[#0E6187] flex items-center justify-center sm:h-10 sm:w-10">
+                <div className="h-9 w-9 shrink-0 bg-[#0E6187] flex items-center justify-center sm:h-10 sm:w-10">
                   <span className="text-sm font-bold text-white">{detailKandidat.nama?.charAt(0)?.toUpperCase()}</span>
                 </div>
                 <div className="min-w-0">
-                  <h2 className="truncate text-sm font-bold text-slate-900 sm:text-base">{detailKandidat.nama}</h2>
-                  <p className="truncate text-xs text-slate-500">{detailKandidat.email}</p>
+                  <h2 className="truncate text-sm font-bold text-[#202124] sm:text-base">{detailKandidat.nama}</h2>
+                  <p className="truncate text-xs text-[#5f6368]">{detailKandidat.email}</p>
                 </div>
                 <span className="sm:ml-2">
                   <StatusKandidatBadge status={detailKandidat.status_kandidat} />
                 </span>
                 {detailKandidat.status_akademik && (
-                  <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-medium ${detailKandidat.status_akademik === 'AKTIF' ? 'border-emerald-200 bg-emerald-50 text-emerald-600' : 'border-red-200 bg-red-50 text-red-500'}`}>
+                  <span className={`inline-flex items-center gap-1 border px-2 py-0.5 text-[10px] font-medium ${detailKandidat.status_akademik === 'AKTIF' ? 'border-[#a8dab5] bg-[#e6f4ea] text-[#137333]' : 'border-[#f6aea9] bg-[#fce8e6] text-[#d93025]'}`}>
                     {detailKandidat.status_akademik}
                   </span>
                 )}
                 {detailKandidat.is_cuti ? (
-                  <span className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-600">
+                  <span className="inline-flex items-center gap-1 border border-[#fdd663] bg-[#fef7e0] px-2 py-0.5 text-[10px] font-medium text-[#b06000]">
                     CUTI{detailKandidat.cuti_sejak ? ` ${detailKandidat.cuti_sejak}` : ''}
                   </span>
                 ) : null}
               </div>
-              <button onClick={() => setDetailKandidat(null)} className="rounded-lg shrink-0 p-1.5 hover:bg-slate-100 transition"><X size={18} className="text-slate-400" /></button>
+              <button onClick={() => setDetailKandidat(null)} className="shrink-0 p-1.5 hover:bg-[#f1f3f4] transition"><X size={18} className="text-[#80868b]" /></button>
             </div>
 
             {/* Body — 3 Column Grid */}
             <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
               {/* Data Akun Kandidat */}
               {detailKandidat.password_plain ? (
-                <div className="mb-5 rounded-lg border border-amber-300 bg-amber-50 p-4">
-                  <h3 className="text-xs font-bold uppercase tracking-wide text-amber-700 mb-2">Data Akun Kandidat (Email + Password untuk login)</h3>
+                <div className="mb-5 border border-[#fdd663] bg-[#fef7e0] p-4">
+                  <h3 className="text-xs font-bold text-[#b06000] mb-2">Data Akun Kandidat (Email + Password untuk login)</h3>
                   <div className="grid grid-cols-1 gap-y-1 text-sm sm:grid-cols-2 sm:gap-x-6 sm:gap-y-1">
                     <div className="flex gap-2">
-                      <span className="font-semibold text-slate-700">No. Reg</span>
-                      <span className="text-slate-500">:</span>
-                      <span className="font-mono text-slate-900">{detailKandidat.no_registrasi}</span>
+                      <span className="font-semibold text-[#3c4043]">No. Reg</span>
+                      <span className="text-[#5f6368]">:</span>
+                      <span className="font-mono text-[#202124]">{detailKandidat.no_registrasi}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-semibold text-slate-700">Password</span>
-                      <span className="text-slate-500">:</span>
-                      <span className="font-mono font-bold text-red-600">{detailKandidat.password_plain}</span>
+                      <span className="font-semibold text-[#3c4043]">Password</span>
+                      <span className="text-[#5f6368]">:</span>
+                      <span className="font-mono font-bold text-[#c5221f]">{detailKandidat.password_plain}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-semibold text-slate-700">Nama</span>
-                      <span className="text-slate-500">:</span>
-                      <span className="text-slate-900">{detailKandidat.nama}</span>
+                      <span className="font-semibold text-[#3c4043]">Nama</span>
+                      <span className="text-[#5f6368]">:</span>
+                      <span className="text-[#202124]">{detailKandidat.nama}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="font-semibold text-slate-700">Email</span>
-                      <span className="text-slate-500">:</span>
-                      <span className="text-slate-900">{detailKandidat.email}</span>
+                      <span className="font-semibold text-[#3c4043]">Email</span>
+                      <span className="text-[#5f6368]">:</span>
+                      <span className="text-[#202124]">{detailKandidat.email}</span>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="mb-5 rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">Data Akun Kandidat</h3>
-                  <p className="text-xs text-slate-400">Password tidak tersedia (akun dibuat sebelum fitur ini diaktifkan)</p>
+                <div className="mb-5 border border-[#dadce0] bg-[#f8f9fa] p-4">
+                  <h3 className="text-xs font-bold text-[#5f6368] mb-1">Data Akun Kandidat</h3>
+                  <p className="text-xs text-[#80868b]">Password tidak tersedia (akun dibuat sebelum fitur ini diaktifkan)</p>
                 </div>
               )}
               <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-3 lg:gap-x-8">
@@ -2442,18 +2428,18 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
 
               {/* Data Diri & Matching Job (dari form siswa) */}
               {detailKandidat.matching_job && (
-                <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <div className="mt-6 border border-[#dadce0] bg-[#f8f9fa] p-4">
                   <div className="mb-3 flex items-center justify-between">
-                    <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500">Data Diri &amp; Matching Job</h3>
-                    <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold"
+                    <h3 className="text-xs font-bold text-[#5f6368]">Data Diri &amp; Matching Job</h3>
+                    <span className="inline-flex items-center gap-1 border px-2 py-0.5 text-[10px] font-semibold"
                       style={(() => {
                         const s = detailKandidat.matching_job!.status_formulir
                         const map: Record<string, { bg: string; border: string; text: string }> = {
-                          submitted: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-600' },
-                          approved: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-600' },
-                          reviewed: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-600' },
-                          rejected: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-500' },
-                          draft: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-600' },
+                          submitted: { bg: 'bg-[#e6f4ea]', border: 'border-[#a8dab5]', text: 'text-[#137333]' },
+                          approved: { bg: 'bg-[#e6f4ea]', border: 'border-[#a8dab5]', text: 'text-[#137333]' },
+                          reviewed: { bg: 'bg-[#e8f0fe]', border: 'border-[#aecbfa]', text: 'text-[#1a73e8]' },
+                          rejected: { bg: 'bg-[#fce8e6]', border: 'border-[#f6aea9]', text: 'text-[#d93025]' },
+                          draft: { bg: 'bg-[#fef7e0]', border: 'border-[#fdd663]', text: 'text-[#b06000]' },
                         }
                         const m = map[s] || map.draft
                         return { backgroundColor: m.bg, borderColor: m.border, color: m.text }
@@ -2465,27 +2451,27 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                   <MatchingJobSection data={detailKandidat.matching_job.data} learningLevel={detailKandidat.learning_level} statusFormulir={detailKandidat.matching_job.status_formulir} />
 
                   {(detailDokumen.length > 0 || detailDokumenLoading) && (
-                    <div className="mt-5 border-t border-slate-200 pt-4">
-                      <h4 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">Dokumen Pendukung</h4>
+                    <div className="mt-5 border-t border-[#dadce0] pt-4">
+                      <h4 className="mb-3 text-xs font-bold text-[#5f6368]">Dokumen Pendukung</h4>
                       {detailDokumenLoading ? (
-                        <p className="flex items-center gap-2 text-xs text-slate-400"><Loader2 size={14} className="animate-spin" /> Memuat dokumen...</p>
+                        <p className="flex items-center gap-2 text-xs text-[#80868b]"><Loader2 size={14} className="animate-spin" /> Memuat dokumen...</p>
                       ) : (
                         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                           {detailDokumen.map((d, i) => (
                             <button key={i}
                               onClick={() => d.file_url && window.open(d.file_url, '_blank')}
-                              className="group rounded-lg border border-slate-200 bg-white p-2 text-left transition hover:border-sky-300 hover:shadow-sm"
+                              className="group border border-[#dadce0] bg-white p-2 text-left transition hover:border-[#8ab4f8] hover:"
                               title={d.nama_file || ''}>
-                              <div className="mb-1.5 flex h-24 items-center justify-center overflow-hidden rounded-md bg-slate-100">
+                              <div className="mb-1.5 flex h-24 items-center justify-center overflow-hidden bg-[#f1f3f4]">
                                 {d.mime_type && String(d.mime_type).startsWith('image/') && d.file_url ? (
                                   <img src={d.file_url} alt={d.nama_file || 'dokumen'} className="h-full w-full object-cover"
                                     onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                                 ) : (
-                                  <FileText size={22} className="text-slate-400" />
+                                  <FileText size={22} className="text-[#80868b]" />
                                 )}
                               </div>
-                              <p className="truncate text-[11px] font-medium text-slate-700">{docLabel(d.jenis_dokumen)}</p>
-                              <p className="truncate text-[10px] text-slate-400">{d.nama_file || '-'}</p>
+                              <p className="truncate text-[11px] font-medium text-[#3c4043]">{docLabel(d.jenis_dokumen)}</p>
+                              <p className="truncate text-[10px] text-[#80868b]">{d.nama_file || '-'}</p>
                             </button>
                           ))}
                         </div>
@@ -2497,23 +2483,23 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
             </div>
 
             {/* Footer */}
-            <div className="flex flex-wrap items-center gap-2 border-t border-slate-200 px-4 py-3 sm:gap-3 sm:px-6">
+            <div className="flex flex-wrap items-center gap-2 border-t border-[#dadce0] px-4 py-3 sm:gap-3 sm:px-6">
               <button onClick={() => { setDetailKandidat(null); startEdit(detailKandidat); }}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0E6187] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1a3a5c] sm:w-auto">
+                className="flex w-full items-center justify-center gap-2 bg-[#0E6187] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1a3a5c] sm:w-auto">
                 <Edit3 size={14} /> Edit Data
               </button>
               {!isCabang && (
                 <button onClick={() => navigate(`/data-kandidat/job-matching/${detailKandidat.id}`)}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#0E6187] bg-white px-4 py-2 text-sm font-semibold text-[#0E6187] transition hover:bg-[#e8f2f7] sm:w-auto">
+                  className="flex w-full items-center justify-center gap-2 border border-[#1a73e8] bg-white px-4 py-2 text-sm font-semibold text-[#1a73e8] transition hover:bg-[#e8f2f7] sm:w-auto">
                   <ClipboardPaste size={14} /> Lengkapi Data Job Matching
                 </button>
               )}
               <Link to={isCabang ? `/admin-cabang/pendaftar/${detailKandidat.id}/invoice` : `/pendaftar/${detailKandidat.id}/invoice`}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-auto">
+                className="flex w-full items-center justify-center gap-2 border border-[#dadce0] bg-white px-4 py-2 text-sm font-semibold text-[#3c4043] transition hover:bg-[#f8f9fa] sm:w-auto">
                 <Receipt size={14} /> Lihat Invoice
               </Link>
               <button onClick={() => setDetailKandidat(null)}
-                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:ml-auto sm:w-auto">
+                className="w-full border border-[#dadce0] bg-white px-4 py-2 text-sm font-semibold text-[#3c4043] transition hover:bg-[#f8f9fa] sm:ml-auto sm:w-auto">
                 Tutup
               </button>
             </div>
@@ -2523,27 +2509,27 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
 
       {/* Pindah Batch Modal */}
       {batchModalKandidat && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setBatchModalKandidat(null)}>
-          <div className="w-full max-w-sm rounded-xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-              <h3 className="text-sm font-bold text-slate-900">Pindah Batch</h3>
-              <button onClick={() => setBatchModalKandidat(null)} className="rounded-lg p-1 hover:bg-slate-100 transition"><X size={16} className="text-slate-400" /></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#202124]/50 p-4" onClick={() => setBatchModalKandidat(null)}>
+          <div className="border border-[#dadce0] w-full max-w-sm bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-[#dadce0] px-5 py-4">
+              <h3 className="text-sm font-bold text-[#202124]">Pindah Batch</h3>
+              <button onClick={() => setBatchModalKandidat(null)} className="p-1 hover:bg-[#f1f3f4] transition"><X size={16} className="text-[#80868b]" /></button>
             </div>
             <div className="px-5 py-4">
-              <p className="mb-4 text-xs text-slate-500">
-                Pilih batch baru untuk <span className="font-semibold text-slate-700">{batchModalKandidat.nama}</span>
+              <p className="mb-4 text-xs text-[#5f6368]">
+                Pilih batch baru untuk <span className="font-semibold text-[#3c4043]">{batchModalKandidat.nama}</span>
               </p>
               <div className="space-y-1 max-h-60 overflow-y-auto">
                 <button onClick={() => { handlePindahBatch(batchModalKandidat.id, ''); setBatchModalKandidat(null) }}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-slate-500 hover:bg-slate-50 transition-colors">
-                  <span className="w-4 h-4 rounded-full border-2 border-slate-300" />
+                  className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm text-[#5f6368] hover:bg-[#f8f9fa] transition-colors">
+                  <span className="w-4 h-4 border-2 border-[#dadce0]" />
                   -
                 </button>
                 {batchOptions.map(b => (
                   <button key={b.id} onClick={() => { handlePindahBatch(batchModalKandidat.id, String(b.id)); setBatchModalKandidat(null) }}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                    className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm text-[#3c4043] hover:bg-[#f8f9fa] transition-colors"
                   >
-                    <span className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: b.warna || '#3b82f6' }} />
+                    <span className="w-4 h-4 shrink-0" style={{ backgroundColor: b.warna || '#3b82f6' }} />
                     {b.nama}
                   </button>
                 ))}
@@ -2556,32 +2542,32 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
       {/* Tambah Data Modal */}
       {/* Edit Modal */}
       {showEdit && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 pt-10 pb-10" onClick={cancelEdit}>
-          <div className="w-full max-w-4xl rounded-xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#202124]/50 p-4 pt-10 pb-10" onClick={cancelEdit}>
+          <div className="border border-[#dadce0] w-full max-w-4xl bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-[#dadce0] px-6 py-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-white">
+                <div className="flex h-10 w-10 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]">
                   <Edit3 size={18} />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-slate-900">Edit Data Kandidat</h2>
-                  <p className="text-xs text-slate-500">Perbarui data kandidat</p>
+                  <h2 className="text-base font-bold text-[#202124]">Edit Data Kandidat</h2>
+                  <p className="text-xs text-[#5f6368]">Perbarui data kandidat</p>
                 </div>
               </div>
-              <button onClick={cancelEdit} className="rounded-lg p-1.5 hover:bg-slate-100 transition">
-                <X size={18} className="text-slate-400" />
+              <button onClick={cancelEdit} className="p-1.5 hover:bg-[#f1f3f4] transition">
+                <X size={18} className="text-[#80868b]" />
               </button>
             </div>
 
             <form onSubmit={(e) => { e.preventDefault(); saveEdit() }} autoComplete="off" className="px-6 py-5 max-h-[70vh] overflow-y-auto">
               {editError && (
-                <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="mb-4 border border-[#f6aea9] bg-[#fce8e6] px-4 py-3 text-sm text-[#a50e0e]">
                   <p className="font-semibold mb-1">Gagal menyimpan:</p>
                   <pre className="whitespace-pre-wrap text-xs">{editError}</pre>
                 </div>
               )}
 
-              <h3 className="mb-3 text-sm font-bold text-slate-700 uppercase tracking-wide">Data Diri</h3>
+              <h3 className="mb-3 text-sm font-bold text-[#3c4043] ">Data Diri</h3>
               <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <FormField label="Nama Lengkap" value={String(editForm.nama ?? '')} onChange={v => updateField('nama', v)} placeholder="Nama lengkap" maxLength={255} />
                 <FormField label="Email" value={String(editForm.email ?? '')} onChange={v => updateField('email', v)} type="email" placeholder="email@contoh.com" />
@@ -2595,13 +2581,13 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                   options={[{ value: 'Belum Nikah', label: 'Belum Nikah' }, { value: 'Nikah', label: 'Nikah' }, { value: 'Cerai', label: 'Cerai' }]} />
               </div>
 
-              <h3 className="mb-3 text-sm font-bold text-slate-700 uppercase tracking-wide">Alamat</h3>
+              <h3 className="mb-3 text-sm font-bold text-[#3c4043] ">Alamat</h3>
               <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="sm:col-span-2 lg:col-span-3">
                   <FormField label="Alamat" value={String(editForm.alamat ?? '')} onChange={v => updateField('alamat', v)} placeholder="Alamat lengkap" />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Provinsi</label>
+                  <label className="mb-1 block text-xs font-medium text-[#5f6368]">Provinsi</label>
                   <select
                     value={findWilayahIdByName(provinsiList, editForm.provinsi ?? null)}
                     onChange={e => {
@@ -2614,14 +2600,14 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                       if (id) loadWilayahKabupaten(id)
                     }}
                     disabled={wilayahLoading.provinsi}
-                    className={`w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-700 outline-none transition ${wilayahLoading.provinsi ? 'cursor-wait' : ''} border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500`}
+                    className={`w-full border bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition ${wilayahLoading.provinsi ? 'cursor-wait' : ''} border-[#dadce0] focus:border-[#1a73e8] focus:border-[#1a73e8]`}
                   >
                     <option value="">{wilayahLoading.provinsi ? 'Memuat...' : 'Pilih Provinsi'}</option>
                     {provinsiList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Kab./Kota</label>
+                  <label className="mb-1 block text-xs font-medium text-[#5f6368]">Kab./Kota</label>
                   <select
                     value={findWilayahIdByName(kabupatenList, editForm.kabupaten ?? null)}
                     onChange={e => {
@@ -2633,14 +2619,14 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                       if (id) loadWilayahKecamatan(id)
                     }}
                     disabled={!findWilayahIdByName(provinsiList, editForm.provinsi ?? null) || wilayahLoading.kabupaten}
-                    className={`w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-700 outline-none transition ${wilayahLoading.kabupaten ? 'cursor-wait' : ''} border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400`}
+                    className={`w-full border bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition ${wilayahLoading.kabupaten ? 'cursor-wait' : ''} border-[#dadce0] focus:border-[#1a73e8] focus:border-[#1a73e8] disabled:cursor-not-allowed disabled:bg-[#f8f9fa] disabled:text-[#80868b]`}
                   >
                     <option value="">{!findWilayahIdByName(provinsiList, editForm.provinsi ?? null) ? 'Pilih Provinsi dulu' : wilayahLoading.kabupaten ? 'Memuat...' : 'Pilih Kab./Kota'}</option>
                     {kabupatenList.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Kecamatan</label>
+                  <label className="mb-1 block text-xs font-medium text-[#5f6368]">Kecamatan</label>
                   <select
                     value={findWilayahIdByName(kecamatanList, editForm.kecamatan ?? null)}
                     onChange={e => {
@@ -2651,14 +2637,14 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                       if (id) loadWilayahDesa(id)
                     }}
                     disabled={!findWilayahIdByName(kabupatenList, editForm.kabupaten ?? null) || wilayahLoading.kecamatan}
-                    className={`w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-700 outline-none transition ${wilayahLoading.kecamatan ? 'cursor-wait' : ''} border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400`}
+                    className={`w-full border bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition ${wilayahLoading.kecamatan ? 'cursor-wait' : ''} border-[#dadce0] focus:border-[#1a73e8] focus:border-[#1a73e8] disabled:cursor-not-allowed disabled:bg-[#f8f9fa] disabled:text-[#80868b]`}
                   >
                     <option value="">{!findWilayahIdByName(kabupatenList, editForm.kabupaten ?? null) ? 'Pilih Kab./Kota dulu' : wilayahLoading.kecamatan ? 'Memuat...' : 'Pilih Kecamatan'}</option>
                     {kecamatanList.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Desa</label>
+                  <label className="mb-1 block text-xs font-medium text-[#5f6368]">Desa</label>
                   <select
                     value={findWilayahIdByName(desaList, editForm.desa ?? null)}
                     onChange={e => {
@@ -2667,7 +2653,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                       updateField('desa', found?.name || '')
                     }}
                     disabled={!findWilayahIdByName(kecamatanList, editForm.kecamatan ?? null) || wilayahLoading.desa}
-                    className={`w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-700 outline-none transition ${wilayahLoading.desa ? 'cursor-wait' : ''} border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400`}
+                    className={`w-full border bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition ${wilayahLoading.desa ? 'cursor-wait' : ''} border-[#dadce0] focus:border-[#1a73e8] focus:border-[#1a73e8] disabled:cursor-not-allowed disabled:bg-[#f8f9fa] disabled:text-[#80868b]`}
                   >
                     <option value="">{!findWilayahIdByName(kecamatanList, editForm.kecamatan ?? null) ? 'Pilih Kecamatan dulu' : wilayahLoading.desa ? 'Memuat...' : 'Pilih Desa'}</option>
                     {desaList.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -2675,7 +2661,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                 </div>
               </div>
 
-              <h3 className="mb-3 text-sm font-bold text-slate-700 uppercase tracking-wide">Pendidikan & Data Fisik</h3>
+              <h3 className="mb-3 text-sm font-bold text-[#3c4043] ">Pendidikan & Data Fisik</h3>
               <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <FormSelect label="Pendidikan Terakhir" value={String(editForm.pendidikan_terakhir ?? '')} onChange={v => updateField('pendidikan_terakhir', v)}
                   options={[{ value: 'SD/Sederajat', label: 'SD/Sederajat' }, { value: 'SMP/Sederajat', label: 'SMP/Sederajat' }, { value: 'SMA/Sederajat', label: 'SMA/Sederajat' }, { value: 'D1-D3', label: 'D1-D3' }, { value: 'S1', label: 'S1' }, { value: 'S2', label: 'S2' }]} />
@@ -2688,7 +2674,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                   options={[{ value: 'XS', label: 'XS' }, { value: 'S', label: 'S' }, { value: 'M', label: 'M' }, { value: 'L', label: 'L' }, { value: 'XL', label: 'XL' }, { value: 'XXL', label: 'XXL' }]} />
               </div>
 
-              <h3 className="mb-3 text-sm font-bold text-slate-700 uppercase tracking-wide">Keluarga & Lainnya</h3>
+              <h3 className="mb-3 text-sm font-bold text-[#3c4043] ">Keluarga & Lainnya</h3>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <FormField label="Nama Orang Tua/Wali" value={String(editForm.nama_ortu ?? '')} onChange={v => updateField('nama_ortu', v)} placeholder="Nama orang tua (maks. 255)" maxLength={255} />
                 <FormField label="No. Tlp Orang Tua" value={String(editForm.no_hp_ortu ?? '')} onChange={v => updateField('no_hp_ortu', v)} placeholder="No. tlp orang tua (maks. 20)" maxLength={20} />
@@ -2700,13 +2686,13 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
               </div>
             </form>
 
-            <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-3.5">
+            <div className="flex items-center justify-end gap-3 border-t border-[#dadce0] px-6 py-3.5">
               <button type="button" onClick={cancelEdit}
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                className="border border-[#dadce0] bg-white px-4 py-2 text-sm font-semibold text-[#3c4043] transition hover:bg-[#f8f9fa]">
                 Batal
               </button>
               <button type="button" onClick={saveEdit} disabled={saving}
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                className="inline-flex items-center gap-2 bg-[#0E6187] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#084c63] disabled:opacity-50 disabled:cursor-not-allowed">
                 {saving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
                 {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
               </button>
@@ -2716,45 +2702,45 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
       )}
 
       {showTambah && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 pt-10 pb-10" onClick={() => { setShowTambah(false); setTambahSuccess(null) }}>
-          <div className="w-full max-w-4xl rounded-xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#202124]/50 p-4 pt-10 pb-10" onClick={() => { setShowTambah(false); setTambahSuccess(null) }}>
+          <div className="border border-[#dadce0] w-full max-w-4xl bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]" onClick={e => e.stopPropagation()}>
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+            <div className="flex items-center justify-between border-b border-[#dadce0] px-6 py-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600 text-white">
+                <div className="flex h-10 w-10 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]">
                   <Plus size={18} />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-slate-900">Tambah Data Kandidat</h2>
-                  <p className="text-xs text-slate-500">Lengkapi data kandidat baru</p>
+                  <h2 className="text-base font-bold text-[#202124]">Tambah Data Kandidat</h2>
+                  <p className="text-xs text-[#5f6368]">Lengkapi data kandidat baru</p>
                 </div>
               </div>
-              <button onClick={() => { setShowTambah(false); setTambahSuccess(null) }} className="rounded-lg p-1.5 hover:bg-slate-100 transition">
-                <X size={18} className="text-slate-400" />
+              <button onClick={() => { setShowTambah(false); setTambahSuccess(null) }} className="p-1.5 hover:bg-[#f1f3f4] transition">
+                <X size={18} className="text-[#80868b]" />
               </button>
             </div>
 
             {tambahSuccess ? (
               <div className="px-6 py-10 text-center">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
-                  <Check size={32} className="text-emerald-600" />
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center bg-[#0E6187]">
+                  <Check size={32} className="text-[#137333]" />
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 mb-2">Kandidat Berhasil Ditambahkan!</h3>
-                <p className="text-sm text-slate-500 mb-6">Data kandidat baru telah tersimpan di sistem.</p>
-                <div className="mx-auto mb-6 max-w-sm rounded-lg border border-slate-200 bg-slate-50 p-4 text-left">
+                <h3 className="text-lg font-bold text-[#202124] mb-2">Kandidat Berhasil Ditambahkan!</h3>
+                <p className="text-sm text-[#5f6368] mb-6">Data kandidat baru telah tersimpan di sistem.</p>
+                <div className="mx-auto mb-6 max-w-sm border border-[#dadce0] bg-[#f8f9fa] p-4 text-left">
                   <div className="mb-3">
-                    <p className="text-xs text-slate-400">No. Registrasi</p>
-                    <p className="text-sm font-mono font-bold text-slate-800">{tambahSuccess.noReg}</p>
+                    <p className="text-xs text-[#80868b]">No. Registrasi</p>
+                    <p className="text-sm font-mono font-bold text-[#202124]">{tambahSuccess.noReg}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400">Password Akun</p>
-                    <p className="text-sm font-mono font-bold text-red-600">{tambahSuccess.password}</p>
+                    <p className="text-xs text-[#80868b]">Password Akun</p>
+                    <p className="text-sm font-mono font-bold text-[#c5221f]">{tambahSuccess.password}</p>
                   </div>
                 </div>
-                <p className="text-xs text-slate-400 mb-4">Simpan informasi di atas, password hanya ditampilkan sekali.</p>
+                <p className="text-xs text-[#80868b] mb-4">Simpan informasi di atas, password hanya ditampilkan sekali.</p>
                 <div className="flex justify-center gap-3">
                   <button onClick={() => { setShowTambah(false); setTambahSuccess(null) }}
-                    className="rounded-lg bg-[#0E6187] px-6 py-2 text-sm font-semibold text-white transition hover:bg-[#1a3a5c]">
+                    className="bg-[#0E6187] px-6 py-2 text-sm font-semibold text-white transition hover:bg-[#1a3a5c]">
                     Tutup
                   </button>
                 </div>
@@ -2762,13 +2748,13 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
             ) : (
               <form onSubmit={handleTambahSubmit} autoComplete="off" className="px-6 py-5 max-h-[70vh] overflow-y-auto">
                 {tambahError && (
-                  <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <div className="mb-4 border border-[#f6aea9] bg-[#fce8e6] px-4 py-3 text-sm text-[#a50e0e]">
                     <p className="font-semibold mb-1">Gagal menyimpan:</p>
                     <pre className="whitespace-pre-wrap text-xs">{tambahError}</pre>
                   </div>
                 )}
                 {/* Data Diri */}
-                <h3 className="mb-3 text-sm font-bold text-slate-700 uppercase tracking-wide">Data Diri</h3>
+                <h3 className="mb-3 text-sm font-bold text-[#3c4043] ">Data Diri</h3>
                 <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   <FormField label="Nama Lengkap *" value={tambahForm.nama} onChange={v => updateTambahField('nama', v)} placeholder="Nama lengkap" maxLength={255} error={tambahErrors.nama} />
                   <FormField label="Email *" value={tambahForm.email} onChange={v => updateTambahField('email', v)} type="email" placeholder="email@contoh.com" error={tambahErrors.email} />
@@ -2784,7 +2770,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                 </div>
 
                 {/* Alamat */}
-                <h3 className="mb-3 text-sm font-bold text-slate-700 uppercase tracking-wide">Alamat</h3>
+                <h3 className="mb-3 text-sm font-bold text-[#3c4043] ">Alamat</h3>
                 <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   <div className="sm:col-span-2 lg:col-span-3">
                     <FormField label="Alamat" value={tambahForm.alamat} onChange={v => updateTambahField('alamat', v)} placeholder="Alamat lengkap" error={tambahErrors.alamat} />
@@ -2796,7 +2782,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                 </div>
 
                 {/* Pendidikan & Fisik */}
-                <h3 className="mb-3 text-sm font-bold text-slate-700 uppercase tracking-wide">Pendidikan & Data Fisik</h3>
+                <h3 className="mb-3 text-sm font-bold text-[#3c4043] ">Pendidikan & Data Fisik</h3>
                 <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   <FormSelect label="Pendidikan Terakhir" value={tambahForm.pendidikan_terakhir} onChange={v => updateTambahField('pendidikan_terakhir', v)}
                     options={[{ value: 'SD/Sederajat', label: 'SD/Sederajat' }, { value: 'SMP/Sederajat', label: 'SMP/Sederajat' }, { value: 'SMA/Sederajat', label: 'SMA/Sederajat' }, { value: 'D1-D3', label: 'D1-D3' }, { value: 'S1', label: 'S1' }, { value: 'S2', label: 'S2' }]} error={tambahErrors.pendidikan_terakhir} />
@@ -2810,41 +2796,38 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                 </div>
 
                 {/* Keluarga & Lainnya */}
-                <h3 className="mb-3 text-sm font-bold text-slate-700 uppercase tracking-wide">Keluarga & Lainnya</h3>
+                <h3 className="mb-3 text-sm font-bold text-[#3c4043] ">Keluarga & Lainnya</h3>
                 <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   <FormField label="Nama Orang Tua/Wali" value={tambahForm.nama_ortu} onChange={v => updateTambahField('nama_ortu', v)} placeholder="Nama orang tua (maks. 255)" maxLength={255} error={tambahErrors.nama_ortu} />
                   <FormField label="No. Tlp Orang Tua" value={tambahForm.no_hp_ortu} onChange={v => updateTambahField('no_hp_ortu', v)} placeholder="No. tlp orang tua (maks. 20)" maxLength={20} error={tambahErrors.no_hp_ortu} />
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-600">Batch</label>
+                    <label className="mb-1 block text-xs font-medium text-[#5f6368]">Batch</label>
                     <div className="relative">
                       <button type="button" onClick={() => setShowTambahBatchDropdown(!showTambahBatchDropdown)}
-                        className={`flex w-full items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm text-left outline-none transition ${tambahErrors.batch_id
-                            ? 'border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500'
-                            : 'border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
-                          }`}>
+                        className={`flex w-full items-center gap-2 border bg-white px-3 py-2 text-sm text-left outline-none transition ${tambahErrors.batch_id ? 'border-[#ee675c] focus:border-[#d93025] focus:border-[#1a73e8] focus:ring-[#d93025]' : 'border-[#dadce0] focus:border-[#1a73e8] focus:border-[#1a73e8]' }`}>
                         {tambahForm.batch_id ? (
                           <span className="flex items-center gap-2 truncate">
-                            <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: batchOptions.find(b => String(b.id) === tambahForm.batch_id)?.warna || '#3b82f6' }} />
-                            <span className="truncate text-slate-700">{batchOptions.find(b => String(b.id) === tambahForm.batch_id)?.nama || 'Pilih...'}</span>
+                            <span className="inline-block h-3 w-3 shrink-0 ring-1 ring-black/10" style={{ backgroundColor: batchOptions.find(b => String(b.id) === tambahForm.batch_id)?.warna || '#3b82f6' }} />
+                            <span className="truncate text-[#3c4043]">{batchOptions.find(b => String(b.id) === tambahForm.batch_id)?.nama || 'Pilih...'}</span>
                           </span>
                         ) : (
-                          <span className="text-slate-400">Pilih...</span>
+                          <span className="text-[#80868b]">Pilih...</span>
                         )}
-                        <svg className={`ml-auto h-4 w-4 shrink-0 text-slate-400 transition-transform ${showTambahBatchDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                        <svg className={`ml-auto h-4 w-4 shrink-0 text-[#80868b] transition-transform ${showTambahBatchDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                       </button>
                       {showTambahBatchDropdown && (
-                        <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[200px] rounded-xl border border-slate-200 bg-white py-1 shadow-xl max-h-60 overflow-y-auto">
+                        <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[200px] border border-[#dadce0] bg-white py-1 shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] max-h-60 overflow-y-auto">
                           {batchOptions.map(b => (
                             <button key={b.id} type="button" onClick={() => { updateTambahField('batch_id', String(b.id)); setShowTambahBatchDropdown(false) }}
-                              className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${String(b.id) === tambahForm.batch_id ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}>
-                              <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: b.warna || '#3b82f6' }} />
+                              className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${String(b.id) === tambahForm.batch_id ? 'bg-[#e8f0fe] text-[#1967d2] font-medium' : 'text-[#3c4043] hover:bg-[#f8f9fa]'}`}>
+                              <span className="inline-block h-3 w-3 shrink-0 ring-1 ring-black/10" style={{ backgroundColor: b.warna || '#3b82f6' }} />
                               <span className="truncate">{b.nama}</span>
                             </button>
                           ))}
                         </div>
                       )}
                     </div>
-                    {tambahErrors.batch_id && <p className="mt-1 text-[11px] text-red-500">{tambahErrors.batch_id}</p>}
+                    {tambahErrors.batch_id && <p className="mt-1 text-[11px] text-[#d93025]">{tambahErrors.batch_id}</p>}
                   </div>
                   <FormSelect label="Program" value={tambahForm.product_id} onChange={v => updateTambahField('product_id', v)}
                     options={productOptions.map(p => ({ value: String(p.id), label: p.nama }))} error={tambahErrors.product_id} />
@@ -2857,13 +2840,13 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
 
             {/* Footer */}
             {!tambahSuccess && (
-              <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-3.5">
+              <div className="flex items-center justify-end gap-3 border-t border-[#dadce0] px-6 py-3.5">
                 <button type="button" onClick={() => { setShowTambah(false); setTambahSuccess(null) }}
-                  className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                  className="border border-[#dadce0] bg-white px-4 py-2 text-sm font-semibold text-[#3c4043] transition hover:bg-[#f8f9fa]">
                   Batal
                 </button>
                 <button type="submit" onClick={handleTambahSubmit} disabled={tambahLoading || !tambahForm.nama || !tambahForm.email}
-                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                  className="inline-flex items-center gap-2 bg-[#0E6187] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#084c63] disabled:opacity-50 disabled:cursor-not-allowed">
                   {tambahLoading ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
                   {tambahLoading ? 'Menyimpan...' : 'Simpan Kandidat'}
                 </button>
@@ -2875,92 +2858,88 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
 
       {/* Import Modal */}
       {showImport && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 pt-10 pb-10" onClick={resetImport}>
-          <div className="w-full max-w-5xl rounded-xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#202124]/50 p-4 pt-10 pb-10" onClick={resetImport}>
+          <div className="border border-[#dadce0] w-full max-w-5xl bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-[#dadce0] px-6 py-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
-                  <Upload size={18} />
-                </div>
-                <div>
-                  <h2 className="text-base font-bold text-slate-900">Import Data Kandidat</h2>
-                  <p className="text-xs text-slate-500">Upload file CSV/Excel, atau tempel langsung data dari Excel (dipisah TAB)</p>
+                <div className="flex h-10 w-10 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]"> <Upload size={18} /> </div> <div> <h2 className="text-base font-bold text-[#202124]">Import Data Kandidat</h2>
+                  <p className="text-xs text-[#5f6368]">Upload file CSV/Excel, atau tempel langsung data dari Excel (dipisah TAB)</p>
                 </div>
               </div>
-              <button onClick={resetImport} className="rounded-lg p-1.5 hover:bg-slate-100 transition">
-                <X size={18} className="text-slate-400" />
+              <button onClick={resetImport} className="p-1.5 hover:bg-[#f1f3f4] transition">
+                <X size={18} className="text-[#80868b]" />
               </button>
             </div>
             <div className="px-6 py-5">
               {!importResult ? (
                 <>
-                  <div className="mb-5 flex w-fit gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1">
+                  <div className="mb-5 flex w-fit gap-1 border border-[#dadce0] bg-[#f1f3f4] p-1">
                     <button type="button" onClick={() => setImportTab('file')}
-                      className={`rounded-md px-4 py-1.5 text-xs font-semibold transition ${importTab === 'file' ? 'bg-white text-[#0E6187] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                      className={`px-4 py-1.5 text-xs font-semibold transition ${importTab === 'file' ? 'bg-white text-[#1a73e8] ' : 'text-[#5f6368] hover:text-[#3c4043]'}`}>
                       Upload File
                     </button>
                     <button type="button" onClick={() => setImportTab('paste')}
-                      className={`inline-flex items-center gap-1.5 rounded-md px-4 py-1.5 text-xs font-semibold transition ${importTab === 'paste' ? 'bg-white text-[#0E6187] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                      className={`inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold transition ${importTab === 'paste' ? 'bg-white text-[#1a73e8] ' : 'text-[#5f6368] hover:text-[#3c4043]'}`}>
                       <ClipboardPaste size={13} /> Tempel Data
                     </button>
                   </div>
                   <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end">
                     {importTab === 'file' ? (
                       <div className="flex-1">
-                        <label className="mb-1 block text-xs font-medium text-slate-600">Pilih File</label>
+                        <label className="mb-1 block text-xs font-medium text-[#5f6368]">Pilih File</label>
                         <input
                           ref={importFileRef}
                           type="file"
                           accept=".csv,.xls,.xlsx"
                           onChange={handleImportFile}
-                          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-[#0E6187] file:px-3 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1a3a5c]"
+                          className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] file:mr-3 file:border-0 file:bg-[#0E6187] file:px-3 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1a3a5c]"
                         />
                       </div>
                     ) : (
                       <div className="flex-1">
-                        <label className="mb-1 block text-xs font-medium text-slate-600">Tempel Data dari Excel (tiap kolom dipisahkan TAB, satu kandidat per baris)</label>
+                        <label className="mb-1 block text-xs font-medium text-[#5f6368]">Tempel Data dari Excel (tiap kolom dipisahkan TAB, satu kandidat per baris)</label>
                         <textarea
                           value={importPasteText}
                           onChange={e => setImportPasteText(e.target.value)}
                           rows={6}
                           placeholder={'Contoh:\n3203065607070004\t2026-05-0335\tMila Citra Lestari\tBATCH 18 GEL2\tP\tCianjur, 16 Juli 2007\tAlamat\tDesa\tKecamatan\tKabupaten\tProvinsi\t087770241206\tSMA/SMK/Sederajat\t2026\t153\t48\t\tL\tBelum Menikah\temail@contoh.com\tRohanah\t087744141335'}
-                          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 font-mono"
+                          className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] focus:border-[#1a73e8]/20 font-mono"
                         />
                         <button
                           type="button"
                           onClick={handlePasteParse}
                           disabled={!importPasteText.trim()}
-                          className="mt-2 inline-flex items-center gap-2 rounded-lg border border-[#0E6187] bg-[#0E6187]/5 px-4 py-2 text-xs font-semibold text-[#0E6187] transition hover:bg-[#0E6187]/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="mt-2 inline-flex items-center gap-2 border border-[#1a73e8] bg-[#0E6187]/5 px-4 py-2 text-xs font-semibold text-[#1a73e8] transition hover:bg-[#0a4d6b]/10 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <ClipboardPaste size={14} /> Pindai & Parsing
                         </button>
                       </div>
                     )}
                     <div className="sm:w-60">
-                      <label className="mb-1 block text-xs font-medium text-slate-600">Batch Tujuan</label>
+                      <label className="mb-1 block text-xs font-medium text-[#5f6368]">Batch Tujuan</label>
                       <div className="relative shrink-0" ref={importBatchDropdownRef}>
                         <button type="button" onClick={() => setShowImportBatchDropdown(!showImportBatchDropdown)}
-                          className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 w-full min-w-[180px] shadow-sm hover:shadow">
+                          className="flex items-center gap-2 border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] focus:border-[#1a73e8]/20 w-full min-w-[180px] hover:shadow">
                           {importBatchId ? (
                             <span className="flex items-center gap-2 truncate">
-                              <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: batchOptions.find(b => String(b.id) === importBatchId)?.warna || '#3b82f6' }} />
+                              <span className="inline-block h-3 w-3 shrink-0 ring-1 ring-black/10" style={{ backgroundColor: batchOptions.find(b => String(b.id) === importBatchId)?.warna || '#3b82f6' }} />
                               <span className="truncate">{batchOptions.find(b => String(b.id) === importBatchId)?.nama || 'Pilih Batch...'}</span>
                             </span>
                           ) : (
-                            <span className="text-slate-400">Pilih Batch...</span>
+                            <span className="text-[#80868b]">Pilih Batch...</span>
                           )}
-                          <svg className={`ml-auto h-4 w-4 text-slate-400 transition-transform ${showImportBatchDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                          <svg className={`ml-auto h-4 w-4 text-[#80868b] transition-transform ${showImportBatchDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                         </button>
                         {showImportBatchDropdown && (
-                          <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[220px] rounded-xl border border-slate-200 bg-white shadow-xl py-1 max-h-60 overflow-y-auto">
+                          <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[220px] border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] py-1 max-h-60 overflow-y-auto">
                             <button type="button" onClick={() => { setImportBatchId(''); setShowImportBatchDropdown(false) }}
-                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:bg-blue-50 hover:text-blue-700 transition">
+                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[#5f6368] hover:bg-[#e8f0fe] hover:text-[#1967d2] transition">
                               Pilih Batch...
                             </button>
                             {batchOptions.map(b => (
                               <button key={b.id} type="button" onClick={() => { setImportBatchId(String(b.id)); setShowImportBatchDropdown(false) }}
-                                className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${String(b.id) === importBatchId ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}>
-                                <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: b.warna || '#3b82f6' }} />
+                                className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${String(b.id) === importBatchId ? 'bg-[#e8f0fe] text-[#1967d2] font-medium' : 'text-[#3c4043] hover:bg-[#f8f9fa]'}`}>
+                                <span className="inline-block h-3 w-3 shrink-0 ring-1 ring-black/10" style={{ backgroundColor: b.warna || '#3b82f6' }} />
                                 <span className="truncate">{b.nama}</span>
                               </button>
                             ))}
@@ -2969,11 +2948,11 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                       </div>
                     </div>
                     <div className="sm:w-60">
-                      <label className="mb-1 block text-xs font-medium text-slate-600">Program / Product</label>
+                      <label className="mb-1 block text-xs font-medium text-[#5f6368]">Program / Product</label>
                       <select
                         value={importProductId}
                         onChange={e => setImportProductId(e.target.value)}
-                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                        className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none focus:border-[#1a73e8] focus:border-[#1a73e8]/20"
                       >
                         <option value="">Pilih Program...</option>
                         {productOptions.map(p => (
@@ -2984,7 +2963,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                     <button
                       onClick={handleImportSubmit}
                       disabled={!importBatchId || importData.length === 0 || importLoading}
-                      className="inline-flex items-center gap-2 rounded-lg bg-[#0E6187] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#1a3a5c] disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="inline-flex items-center gap-2 bg-[#0E6187] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#1a3a5c] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {importLoading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
                       {importLoading ? 'Mengimport...' : `Import ${importData.length} Data`}
@@ -2993,17 +2972,17 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
 
                   {importData.length > 0 && (
                     <div className="mb-5">
-                      <p className="mb-2 text-xs font-medium text-slate-600">Pemetaan Kolom ({importData.length} baris terdeteksi)</p>
-                      <p className="mb-3 text-[11px] text-slate-400">Kolom dengan nama yang cocok akan otomatis dipetakan. Sesuaikan jika perlu. Kolom yang dipilih "- Lewati -" tidak akan diimport.</p>
+                      <p className="mb-2 text-xs font-medium text-[#5f6368]">Pemetaan Kolom ({importData.length} baris terdeteksi)</p>
+                      <p className="mb-3 text-[11px] text-[#80868b]">Kolom dengan nama yang cocok akan otomatis dipetakan. Sesuaikan jika perlu. Kolom yang dipilih "- Lewati -" tidak akan diimport.</p>
                       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                         {importHeaders.map(h => (
-                          <div key={h} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5">
-                            <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-slate-700" title={h}>{h}</span>
-                            <svg className="h-3 w-3 flex-shrink-0 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                          <div key={h} className="flex items-center gap-2 border border-[#dadce0] bg-[#f8f9fa] px-2 py-1.5">
+                            <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-[#3c4043]" title={h}>{h}</span>
+                            <svg className="h-3 w-3 flex-shrink-0 text-[#9aa0a6]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                             <select
                               value={importMapping[h] || ''}
                               onChange={e => setImportMapping(prev => ({ ...prev, [h]: e.target.value }))}
-                              className="w-[130px] rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[11px] text-slate-700 outline-none focus:border-blue-400"
+                              className="w-[130px] border border-[#dadce0] bg-white px-1.5 py-0.5 text-[11px] text-[#3c4043] outline-none focus:border-[#8ab4f8]"
                             >
                               {fieldOptions.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                             </select>
@@ -3015,21 +2994,21 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
 
                   {importData.length > 0 && (
                     <div>
-                      <p className="mb-2 text-xs font-medium text-slate-600">Preview Data (5 baris pertama)</p>
-                      <div className="overflow-x-auto rounded-lg border border-slate-200">
-                        <table className="w-full min-w-[600px] border-collapse text-left text-xs text-slate-700">
+                      <p className="mb-2 text-xs font-medium text-[#5f6368]">Preview Data (5 baris pertama)</p>
+                      <div className="overflow-x-auto border border-[#dadce0]">
+                        <table className="w-full min-w-[600px] border-collapse text-left text-xs text-[#3c4043]">
                           <thead>
-                            <tr className="bg-slate-50">
+                            <tr className="bg-[#f8f9fa]">
                               {importHeaders.filter(h => importMapping[h]).map(h => (
-                                <th key={h} className="border border-slate-200 px-3 py-2 font-semibold text-slate-600">{h}<br /><span className="font-normal text-slate-400">→ {fieldOptions.find(f => f.value === importMapping[h])?.label || importMapping[h]}</span></th>
+                                <th key={h} className="border border-[#dadce0] px-3 py-2 font-semibold text-[#5f6368]">{h}<br /><span className="font-normal text-[#80868b]">→ {fieldOptions.find(f => f.value === importMapping[h])?.label || importMapping[h]}</span></th>
                               ))}
                             </tr>
                           </thead>
                           <tbody>
                             {importData.slice(0, 5).map((row, i) => (
-                              <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
+                              <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-[#f8f9fa]/50'}>
                                 {importHeaders.filter(h => importMapping[h]).map(h => (
-                                  <td key={h} className="border border-slate-200 px-3 py-2">{String(row[h] ?? '')}</td>
+                                  <td key={h} className="border border-[#dadce0] px-3 py-2">{String(row[h] ?? '')}</td>
                                 ))}
                               </tr>
                             ))}
@@ -3043,28 +3022,28 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                 <div className="py-6 text-center">
                   {importResult.success > 0 && importResult.failed === 0 ? (
                     <>
-                      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
-                        <Check size={32} className="text-emerald-600" />
+                      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center bg-[#0E6187]">
+                        <Check size={32} className="text-[#137333]" />
                       </div>
-                      <h3 className="mb-2 text-lg font-bold text-slate-900">Import Berhasil!</h3>
-                      <p className="text-sm text-slate-600">{importResult.success} data kandidat berhasil diimport.</p>
+                      <h3 className="mb-2 text-lg font-bold text-[#202124]">Import Berhasil!</h3>
+                      <p className="text-sm text-[#5f6368]">{importResult.success} data kandidat berhasil diimport.</p>
                     </>
                   ) : (
                     <>
-                      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
-                        <FileText size={32} className="text-amber-600" />
+                      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center bg-[#feefc3]">
+                        <FileText size={32} className="text-[#b06000]" />
                       </div>
-                      <h3 className="mb-2 text-lg font-bold text-slate-900">Import Selesai</h3>
-                      <p className="text-sm text-slate-600 mb-4">
-                        <span className="font-semibold text-emerald-600">{importResult.success} berhasil</span> dan{' '}
-                        <span className="font-semibold text-red-600">{importResult.failed} gagal</span>
+                      <h3 className="mb-2 text-lg font-bold text-[#202124]">Import Selesai</h3>
+                      <p className="text-sm text-[#5f6368] mb-4">
+                        <span className="font-semibold text-[#137333]">{importResult.success} berhasil</span> dan{' '}
+                        <span className="font-semibold text-[#c5221f]">{importResult.failed} gagal</span>
                       </p>
                       {importResult.errors.length > 0 && (
                         <div className="mx-auto max-w-lg text-left">
-                          <p className="mb-2 text-xs font-medium text-slate-500">Detail Error:</p>
-                          <div className="max-h-48 overflow-y-auto rounded-lg border border-red-200 bg-red-50 p-3">
+                          <p className="mb-2 text-xs font-medium text-[#5f6368]">Detail Error:</p>
+                          <div className="max-h-48 overflow-y-auto border border-[#f6aea9] bg-[#fce8e6] p-3">
                             {importResult.errors.map((err, i) => (
-                              <p key={i} className="mb-1 text-xs text-red-600">
+                              <p key={i} className="mb-1 text-xs text-[#c5221f]">
                                 {err.row > 0 ? `Baris ${err.row}: ` : ''}{err.message}
                               </p>
                             ))}
@@ -3076,34 +3055,34 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
 
                   {importResult.created.length > 0 && (
                     <div className="mx-auto mt-4 max-w-2xl text-left">
-                      <p className="mb-2 text-xs font-medium text-slate-600">Data Akun Kandidat (Email + Password untuk login):</p>
-                      <div className="max-h-64 overflow-y-auto rounded-lg border border-emerald-200 bg-emerald-50">
+                      <p className="mb-2 text-xs font-medium text-[#5f6368]">Data Akun Kandidat (Email + Password untuk login):</p>
+                      <div className="max-h-64 overflow-y-auto border border-[#a8dab5] bg-[#e6f4ea]">
                         <table className="w-full border-collapse text-left text-xs">
-                          <thead className="sticky top-0 bg-emerald-100">
+                          <thead className="sticky top-0">
                             <tr>
-                              <th className="border-b border-emerald-200 px-3 py-2 font-semibold text-emerald-800">No. Reg</th>
-                              <th className="border-b border-emerald-200 px-3 py-2 font-semibold text-emerald-800">Nama</th>
-                              <th className="border-b border-emerald-200 px-3 py-2 font-semibold text-emerald-800">Email</th>
-                              <th className="border-b border-emerald-200 px-3 py-2 font-semibold text-emerald-800">Password</th>
+                              <th className="text-xs font-medium text-[#5f6368] px-3 py-2">No. Reg</th>
+                              <th className="text-xs font-medium text-[#5f6368] px-3 py-2">Nama</th>
+                              <th className="text-xs font-medium text-[#5f6368] px-3 py-2">Email</th>
+                              <th className="text-xs font-medium text-[#5f6368] px-3 py-2">Password</th>
                             </tr>
                           </thead>
                           <tbody>
                             {importResult.created.map((c, i) => (
-                              <tr key={i} className={i % 2 === 0 ? 'bg-emerald-50' : 'bg-white'}>
-                                <td className="border-b border-emerald-100 px-3 py-1.5 font-mono text-[11px] text-slate-700">{c.no_registrasi}</td>
-                                <td className="border-b border-emerald-100 px-3 py-1.5 text-slate-700">{c.nama}</td>
-                                <td className="border-b border-emerald-100 px-3 py-1.5 text-slate-700">{c.email}</td>
-                                <td className="border-b border-emerald-100 px-3 py-1.5 font-mono font-bold text-slate-900">{c.password}</td>
+                              <tr key={i} className={i % 2 === 0 ? 'bg-[#e6f4ea]' : 'bg-white'}>
+                                <td className="border-b border-[#e8eaed] px-3 py-1.5 font-mono text-[11px] text-[#3c4043]">{c.no_registrasi}</td>
+                                <td className="border-b border-[#e8eaed] px-3 py-1.5 text-[#3c4043]">{c.nama}</td>
+                                <td className="border-b border-[#e8eaed] px-3 py-1.5 text-[#3c4043]">{c.email}</td>
+                                <td className="border-b border-[#e8eaed] px-3 py-1.5 font-mono font-bold text-[#202124]">{c.password}</td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
                       </div>
-                      <p className="mt-2 text-[11px] text-amber-600">Simpan data ini! Password hanya ditampilkan sekali ini saja.</p>
+                      <p className="mt-2 text-[11px] text-[#b06000]">Simpan data ini! Password hanya ditampilkan sekali ini saja.</p>
                     </div>
                   )}
 
-                  <button onClick={resetImport} className="mt-6 inline-flex items-center gap-2 rounded-lg bg-slate-800 px-5 py-2 text-sm font-medium text-white transition hover:bg-slate-900">
+                  <button onClick={resetImport} className="mt-6 inline-flex items-center gap-2 bg-[#202124] px-5 py-2 text-sm font-medium text-white transition hover:bg-[#202124]">
                     Tutup
                   </button>
                 </div>
@@ -3115,48 +3094,44 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
 
       {/* Export Akun Login Modal */}
       {showExportLogin && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowExportLogin(false)}>
-          <div className="w-full max-w-md rounded-xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#202124]/50 p-4" onClick={() => setShowExportLogin(false)}>
+          <div className="border border-[#dadce0] w-full max-w-md bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-[#dadce0] px-5 py-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
-                  <KeyRound size={18} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">Export Akun Login Kandidat</h3>
-                  <p className="text-xs text-slate-500">Pilih batch & cabang, lalu export PDF</p>
+                <div className="flex h-10 w-10 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]"> <KeyRound size={18} /> </div> <div> <h3 className="text-sm font-bold text-[#202124]">Export Akun Login Kandidat</h3>
+                  <p className="text-xs text-[#5f6368]">Pilih batch & cabang, lalu export PDF</p>
                 </div>
               </div>
-              <button onClick={() => setShowExportLogin(false)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 transition">
+              <button onClick={() => setShowExportLogin(false)} className="p-1.5 text-[#80868b] hover:bg-[#f1f3f4] transition">
                 <X size={18} />
               </button>
             </div>
             <div className="space-y-4 px-5 py-4">
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">Batch <span className="text-red-500">*</span></label>
+                <label className="mb-1 block text-xs font-medium text-[#5f6368]">Batch <span className="text-[#d93025]">*</span></label>
                 <div className="relative" ref={exportBatchDropdownRef}>
                   <button type="button" onClick={() => setShowExportBatchDropdown(!showExportBatchDropdown)}
-                    className="flex w-full items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-sm hover:shadow">
+                    className="flex w-full items-center gap-2 border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] focus:border-[#1a73e8]/20 hover:shadow">
                     {exportBatchId ? (
                       <span className="flex items-center gap-2 truncate">
-                        <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: batchOptions.find(b => String(b.id) === exportBatchId)?.warna || '#3b82f6' }} />
+                        <span className="inline-block h-3 w-3 shrink-0 ring-1 ring-black/10" style={{ backgroundColor: batchOptions.find(b => String(b.id) === exportBatchId)?.warna || '#3b82f6' }} />
                         <span className="truncate">{batchOptions.find(b => String(b.id) === exportBatchId)?.nama || 'Pilih Batch...'}</span>
                       </span>
                     ) : (
-                      <span className="text-slate-400">Pilih Batch...</span>
+                      <span className="text-[#80868b]">Pilih Batch...</span>
                     )}
-                    <svg className={`ml-auto h-4 w-4 text-slate-400 transition-transform ${showExportBatchDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                    <svg className={`ml-auto h-4 w-4 text-[#80868b] transition-transform ${showExportBatchDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                   </button>
                   {showExportBatchDropdown && (
-                    <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[220px] rounded-xl border border-slate-200 bg-white shadow-xl py-1 max-h-60 overflow-y-auto">
+                    <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[220px] border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] py-1 max-h-60 overflow-y-auto">
                       <button type="button" onClick={() => { setExportBatchId(''); setShowExportBatchDropdown(false) }}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:bg-blue-50 hover:text-blue-700 transition">
+                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[#5f6368] hover:bg-[#e8f0fe] hover:text-[#1967d2] transition">
                         Pilih Batch...
                       </button>
                       {batchOptions.map(b => (
                         <button key={b.id} type="button" onClick={() => { setExportBatchId(String(b.id)); setShowExportBatchDropdown(false) }}
-                          className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${String(b.id) === exportBatchId ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}>
-                          <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: b.warna || '#3b82f6' }} />
+                          className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${String(b.id) === exportBatchId ? 'bg-[#e8f0fe] text-[#1967d2] font-medium' : 'text-[#3c4043] hover:bg-[#f8f9fa]'}`}>
+                          <span className="inline-block h-3 w-3 shrink-0 ring-1 ring-black/10" style={{ backgroundColor: b.warna || '#3b82f6' }} />
                           <span className="truncate">{b.nama}</span>
                         </button>
                       ))}
@@ -3166,11 +3141,11 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
               </div>
               {!isCabang && (
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">Cabang</label>
+                <label className="mb-1 block text-xs font-medium text-[#5f6368]">Cabang</label>
                 <select
                   value={exportCabangId}
                   onChange={e => setExportCabangId(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] focus:border-[#1a73e8]/20"
                 >
                   <option value="">Semua Cabang</option>
                   {cabangOptions.map(c => (
@@ -3179,17 +3154,17 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                 </select>
               </div>
               )}
-              <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs text-emerald-700">
+              <div className="border border-[#a8dab5] bg-[#e6f4ea] px-3 py-2.5 text-xs text-[#137333]">
                 PDF berisi <span className="font-semibold">No. Registrasi, Nama, E-mail, dan Password</span> login kandidat pada batch & cabang terpilih.
               </div>
             </div>
-            <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-5 py-3.5">
+            <div className="flex items-center justify-end gap-3 border-t border-[#dadce0] px-5 py-3.5">
               <button onClick={() => setShowExportLogin(false)}
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                className="border border-[#dadce0] bg-white px-4 py-2 text-sm font-semibold text-[#3c4043] transition hover:bg-[#f8f9fa]">
                 Batal
               </button>
               <button onClick={handleExportLoginPdf} disabled={!exportBatchId || exporting}
-                className="inline-flex items-center gap-2 rounded-lg bg-[#0E6187] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#1a3a5c] disabled:opacity-50 disabled:cursor-not-allowed">
+                className="inline-flex items-center gap-2 bg-[#0E6187] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#1a3a5c] disabled:opacity-50 disabled:cursor-not-allowed">
                 {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
                 {exporting ? 'Mengekspor...' : 'Export PDF'}
               </button>
@@ -3221,19 +3196,19 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
         })()
 
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setPaymentModal(null)}>
-            <div className="w-full max-w-lg rounded-xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#202124]/50 p-4" onClick={() => setPaymentModal(null)}>
+            <div className="border border-[#dadce0] w-full max-w-lg bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between border-b border-[#dadce0] px-5 py-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50">
-                    <DollarSign size={18} className="text-emerald-600" />
+                  <div className="flex h-9 w-9 items-center justify-center bg-[#e6f4ea]">
+                    <DollarSign size={18} className="text-[#137333]" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-800">Pembayaran Tagihan</h3>
-                    <p className="text-xs text-slate-500">{k.nama}</p>
+                    <h3 className="text-sm font-bold text-[#202124]">Pembayaran Tagihan</h3>
+                    <p className="text-xs text-[#5f6368]">{k.nama}</p>
                   </div>
                 </div>
-                <button onClick={() => setPaymentModal(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+                <button onClick={() => setPaymentModal(null)} className="p-1 text-[#80868b] hover:bg-[#f1f3f4] hover:text-[#5f6368]">
                   <X size={17} />
                 </button>
               </div>
@@ -3241,61 +3216,61 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
               <div className="space-y-4 px-5 py-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">Tanggal</label>
+                    <label className="block text-xs font-medium text-[#5f6368] mb-1">Tanggal</label>
                     <input type="date" value={new Date().toISOString().split('T')[0]} readOnly
-                      className="w-full rounded-md border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-500" />
+                      className="w-full border border-[#dadce0] bg-[#f8f9fa] px-3 py-2 text-sm text-[#5f6368]" />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">Batch</label>
+                    <label className="block text-xs font-medium text-[#5f6368] mb-1">Batch</label>
                     <input type="text" value={k.batch_nama || '-'} readOnly
-                      className="w-full rounded-md border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-500" />
+                      className="w-full border border-[#dadce0] bg-[#f8f9fa] px-3 py-2 text-sm text-[#5f6368]" />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Nama Kandidat</label>
+                  <label className="block text-xs font-medium text-[#5f6368] mb-1">Nama Kandidat</label>
                   <input type="text" value={k.nama} readOnly
-                    className="w-full rounded-md border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-500" />
+                    className="w-full border border-[#dadce0] bg-[#f8f9fa] px-3 py-2 text-sm text-[#5f6368]" />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Nominal Pembayaran <span className="text-red-500">*</span></label>
+                  <label className="block text-xs font-medium text-[#5f6368] mb-1">Nominal Pembayaran <span className="text-[#d93025]">*</span></label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-400">Rp</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-[#80868b]">Rp</span>
                     <input type="text" inputMode="numeric" required value={paymentJumlah}
                       onChange={e => {
                         const raw = e.target.value.replace(/[^\d]/g, '')
                         setPaymentJumlah(raw ? Number(raw).toLocaleString('id-ID') : '')
                       }}
                       placeholder="0"
-                      className="w-full rounded-md border border-slate-300 bg-white py-2 pl-10 pr-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                      className="w-full border border-[#dadce0] bg-white py-2 pl-10 pr-3 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] focus:border-[#1a73e8]" />
                   </div>
                 </div>
 
                 {distribusi.length > 0 && (
-                  <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 space-y-2">
-                    <p className="text-[11px] font-semibold text-blue-700 uppercase tracking-wide">Preview Distribusi Pembayaran</p>
+                  <div className="border border-[#aecbfa] bg-[#e8f0fe] p-3 space-y-2">
+                    <p className="text-[11px] font-semibold text-[#1967d2] ">Preview Distribusi Pembayaran</p>
                     {distribusi.map((d, i) => (
                       <div key={i} className="flex items-center justify-between text-sm">
-                        <span className="text-slate-700 font-medium">{d.nama}</span>
-                        <span className="font-semibold text-slate-700">Rp {d.bayar.toLocaleString('id-ID')}</span>
+                        <span className="text-[#3c4043] font-medium">{d.nama}</span>
+                        <span className="font-semibold text-[#3c4043]">Rp {d.bayar.toLocaleString('id-ID')}</span>
                       </div>
                     ))}
                     {Number(paymentJumlah.replace(/\./g, '')) > distribusi.reduce((s, d) => s + d.bayar, 0) && (
-                      <div className="border-t border-blue-200 pt-2 mt-2 flex justify-between text-sm">
-                        <span className="text-blue-600">Sisa kembali</span>
-                        <span className="font-bold text-blue-700">Rp {(Number(paymentJumlah.replace(/\./g, '')) - distribusi.reduce((s, d) => s + d.bayar, 0)).toLocaleString('id-ID')}</span>
+                      <div className="border-t border-[#aecbfa] pt-2 mt-2 flex justify-between text-sm">
+                        <span className="text-[#1a73e8]">Sisa kembali</span>
+                        <span className="font-bold text-[#1967d2]">Rp {(Number(paymentJumlah.replace(/\./g, '')) - distribusi.reduce((s, d) => s + d.bayar, 0)).toLocaleString('id-ID')}</span>
                       </div>
                     )}
                   </div>
                 )}
               </div>
 
-              <div className="flex items-center justify-between border-t border-slate-200 px-5 py-3">
-                <p className="text-[11px] text-slate-400">Pembayaran akan langsung tercatat</p>
+              <div className="flex items-center justify-between border-t border-[#dadce0] px-5 py-3">
+                <p className="text-[11px] text-[#80868b]">Pembayaran akan langsung tercatat</p>
                 <div className="flex gap-2">
                   <button onClick={() => setPaymentModal(null)}
-                    className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">
+                    className="border border-[#dadce0] bg-white px-4 py-2 text-xs font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]">
                     Batal
                   </button>
                   <button
@@ -3319,7 +3294,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                         setPaymentSaving(false)
                       }
                     }}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-5 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 bg-[#0E6187] px-5 py-2 text-xs font-medium text-white transition hover:bg-[#084c63] disabled:opacity-50"
                   >
                     {paymentSaving ? 'Menyimpan...' : 'Simpan Pembayaran'}
                   </button>
@@ -3335,92 +3310,92 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
         const totalPages = Math.max(1, Math.ceil(mergeTotal / 25))
         const badgeFor = (s: string | null) => {
           const map: Record<string, string> = {
-            draft: 'border-slate-200 bg-slate-100 text-slate-600',
-            submitted: 'border-amber-200 bg-amber-50 text-amber-700',
-            reviewed: 'border-blue-200 bg-blue-50 text-blue-700',
-            approved: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-            rejected: 'border-red-200 bg-red-50 text-red-600',
+            draft: 'border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]',
+            submitted: 'border-[#fdd663] bg-[#fef7e0] text-[#b06000]',
+            reviewed: 'border-[#aecbfa] bg-[#e8f0fe] text-[#1967d2]',
+            approved: 'border-[#a8dab5] bg-[#e6f4ea] text-[#137333]',
+            rejected: 'border-[#f6aea9] bg-[#fce8e6] text-[#c5221f]',
           }
-          return map[s || ''] || 'border-slate-200 bg-slate-100 text-slate-600'
+          return map[s || ''] || 'border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]'
         }
         return (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4" onClick={() => setMergeModal(null)}>
-            <div className="w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
-              <div className="flex items-start justify-between border-b border-slate-200 px-5 py-4">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#202124]/50 p-4" onClick={() => setMergeModal(null)}>
+            <div className="border border-[#dadce0] w-full max-w-5xl overflow-hidden bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]" onClick={e => e.stopPropagation()}>
+              <div className="flex items-start justify-between border-b border-[#dadce0] px-5 py-4">
                 <div>
-                  <h2 className="text-base font-semibold text-slate-900">Merge Job Matching</h2>
-                  <p className="mt-0.5 text-xs text-slate-500">
-                    Pilih kandidat dari Sistem Penempatan untuk <span className="font-semibold text-slate-700">{mk.nama}</span> ({mk.no_registrasi})
+                  <h2 className="text-base font-semibold text-[#202124]">Merge Job Matching</h2>
+                  <p className="mt-0.5 text-xs text-[#5f6368]">
+                    Pilih kandidat dari Sistem Penempatan untuk <span className="font-semibold text-[#3c4043]">{mk.nama}</span> ({mk.no_registrasi})
                   </p>
                 </div>
-                <button onClick={() => setMergeModal(null)} className="rounded-lg p-1.5 hover:bg-slate-100 transition"><X size={18} className="text-slate-400" /></button>
+                <button onClick={() => setMergeModal(null)} className="p-1.5 hover:bg-[#f1f3f4] transition"><X size={18} className="text-[#80868b]" /></button>
               </div>
 
-              <div className="flex items-center gap-3 border-b border-slate-200 px-5 py-3">
+              <div className="flex items-center gap-3 border-b border-[#dadce0] px-5 py-3">
                 <div className="relative flex-1">
-                  <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#80868b]" />
                   <input
                     value={mergeQuery}
                     onChange={e => { setMergeQuery(e.target.value); setMergePage(1) }}
                     placeholder="Cari nama kandidat Sistem Penempatan..."
-                    className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187]"
+                    className="w-full border border-[#dadce0] bg-white py-2 pl-9 pr-3 text-sm text-[#3c4043] outline-none transition placeholder:text-[#80868b] focus:border-[#1a73e8]"
                   />
                 </div>
-                <span className="shrink-0 text-xs text-slate-500">Kandidat {mergeTotal} item</span>
+                <span className="shrink-0 text-xs text-[#5f6368]">Kandidat {mergeTotal} item</span>
               </div>
 
               <div className="max-h-[50vh] overflow-auto">
                 {mergeLoading ? (
-                  <div className="flex items-center justify-center gap-2 py-12 text-sm text-slate-400">
+                  <div className="flex items-center justify-center gap-2 py-12 text-sm text-[#80868b]">
                     <Loader2 size={16} className="animate-spin" /> Memuat kandidat...
                   </div>
                 ) : mergeList.length === 0 ? (
-                  <p className="py-12 text-center text-sm text-slate-400">Tidak ada kandidat ditemukan.</p>
+                  <p className="py-12 text-center text-sm text-[#80868b]">Tidak ada kandidat ditemukan.</p>
                 ) : (
                   <table className="w-full text-sm">
-                    <thead className="sticky top-0 z-10 bg-slate-50 text-left text-[11px] uppercase tracking-wider text-slate-500">
+                    <thead className="sticky top-0 z-10 text-left text-[11px] r text-[#5f6368]">
                       <tr>
-                        <th className="px-4 py-2.5 font-semibold">No</th>
-                        <th className="px-4 py-2.5 font-semibold">Kandidat</th>
-                        <th className="px-4 py-2.5 font-semibold">Cabang</th>
-                        <th className="px-4 py-2.5 font-semibold">JK</th>
-                        <th className="px-4 py-2.5 font-semibold">Umur</th>
-                        <th className="px-4 py-2.5 font-semibold">Bidang SSW</th>
-                        <th className="px-4 py-2.5 font-semibold">Progres</th>
-                        <th className="px-4 py-2.5 font-semibold">Status Formulir</th>
-                        <th className="px-4 py-2.5 font-semibold">Aksi</th>
+                        <th className="text-xs font-medium text-[#5f6368] px-4 py-2.5">No</th>
+                        <th className="text-xs font-medium text-[#5f6368] px-4 py-2.5">Kandidat</th>
+                        <th className="text-xs font-medium text-[#5f6368] px-4 py-2.5">Cabang</th>
+                        <th className="text-xs font-medium text-[#5f6368] px-4 py-2.5">JK</th>
+                        <th className="text-xs font-medium text-[#5f6368] px-4 py-2.5">Umur</th>
+                        <th className="text-xs font-medium text-[#5f6368] px-4 py-2.5">Bidang SSW</th>
+                        <th className="text-xs font-medium text-[#5f6368] px-4 py-2.5">Progres</th>
+                        <th className="text-xs font-medium text-[#5f6368] px-4 py-2.5">Status Formulir</th>
+                        <th className="text-xs font-medium text-[#5f6368] px-4 py-2.5">Aksi</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-[#e8eaed]">
                       {mergeList.map((item, i) => (
-                        <tr key={item.id} className="hover:bg-slate-50/60">
-                          <td className="px-4 py-2.5 text-slate-500">{(mergePage - 1) * 25 + i + 1}</td>
+                        <tr key={item.id} className="hover:bg-[#f8f9fa]/60">
+                          <td className="px-4 py-2.5 text-[#5f6368]">{(mergePage - 1) * 25 + i + 1}</td>
                           <td className="px-4 py-2.5">
                             <div className="flex items-center gap-2.5">
                               {item.foto_url ? (
-                                <img src={item.foto_url} alt={item.nama_romaji} className="h-9 w-9 rounded-full object-cover flex-none" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+                                <img src={item.foto_url} alt={item.nama_romaji} className="h-9 w-9 object-cover flex-none" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
                               ) : (
-                                <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.nama_romaji || '-')}&background=e5e7eb&color=6b7280&size=36`} className="h-9 w-9 rounded-full flex-none" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                                <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.nama_romaji || '-')}&background=e5e7eb&color=6b7280&size=36`} className="h-9 w-9 flex-none" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
                               )}
                               <div>
-                                <p className="font-medium text-slate-800">{item.nama_romaji || '-'}</p>
-                                {item.nama_katakana ? <p className="text-xs text-slate-400">{item.nama_katakana}</p> : null}
+                                <p className="font-medium text-[#202124]">{item.nama_romaji || '-'}</p>
+                                {item.nama_katakana ? <p className="text-xs text-[#80868b]">{item.nama_katakana}</p> : null}
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-2.5 text-slate-600">{item.nama_cabang || '-'}</td>
-                          <td className="px-4 py-2.5 text-slate-600">{item.jenis_kelamin || '-'}</td>
-                          <td className="px-4 py-2.5 text-slate-600">{item.umur ?? '-'}</td>
-                          <td className="px-4 py-2.5 text-slate-600">{item.bidang_ssw || '-'}</td>
-                          <td className="px-4 py-2.5 text-slate-600">{item.status_progres || '-'}</td>
+                          <td className="px-4 py-2.5 text-[#5f6368]">{item.nama_cabang || '-'}</td>
+                          <td className="px-4 py-2.5 text-[#5f6368]">{item.jenis_kelamin || '-'}</td>
+                          <td className="px-4 py-2.5 text-[#5f6368]">{item.umur ?? '-'}</td>
+                          <td className="px-4 py-2.5 text-[#5f6368]">{item.bidang_ssw || '-'}</td>
+                          <td className="px-4 py-2.5 text-[#5f6368]">{item.status_progres || '-'}</td>
                           <td className="px-4 py-2.5">
-                            <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${badgeFor(item.status_formulir)}`}>{item.status_formulir || '-'}</span>
+                            <span className={`border px-2 py-0.5 text-[11px] font-medium ${badgeFor(item.status_formulir)}`}>{item.status_formulir || '-'}</span>
                           </td>
                           <td className="px-4 py-2.5">
                             <button
                               disabled={mergeMerging !== null}
                               onClick={() => handleMerge(item)}
-                              className="inline-flex items-center gap-1.5 rounded-lg bg-[#0E6187] px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-[#0a4d69] disabled:opacity-50"
+                              className="inline-flex items-center gap-1.5 bg-[#0E6187] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#0a4d69] disabled:opacity-50"
                             >
                               {mergeMerging === item.id ? <Loader2 size={13} className="animate-spin" /> : <ClipboardPaste size={13} />}
                               Merge
@@ -3433,14 +3408,14 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                 )}
               </div>
 
-              <div className="flex items-center justify-between border-t border-slate-200 px-5 py-3">
-                <p className="text-xs text-slate-500">Total {mergeTotal} kandidat</p>
+              <div className="flex items-center justify-between border-t border-[#dadce0] px-5 py-3">
+                <p className="text-xs text-[#5f6368]">Total {mergeTotal} kandidat</p>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => setMergePage(p => Math.max(1, p - 1))} disabled={mergePage <= 1} className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 transition hover:bg-slate-50 hover:text-slate-600 disabled:opacity-30 disabled:pointer-events-none">
+                  <button onClick={() => setMergePage(p => Math.max(1, p - 1))} disabled={mergePage <= 1} className="border border-[#dadce0] bg-white p-1.5 text-[#80868b] transition hover:bg-[#f8f9fa] hover:text-[#5f6368] disabled:opacity-30 disabled:pointer-events-none">
                     <ChevronLeft size={15} />
                   </button>
-                  <span className="px-2 text-xs text-slate-500">Hal {mergePage} / {totalPages}</span>
-                  <button onClick={() => setMergePage(p => Math.min(totalPages, p + 1))} disabled={mergePage >= totalPages} className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 transition hover:bg-slate-50 hover:text-slate-600 disabled:opacity-30 disabled:pointer-events-none">
+                  <span className="px-2 text-xs text-[#5f6368]">Hal {mergePage} / {totalPages}</span>
+                  <button onClick={() => setMergePage(p => Math.min(totalPages, p + 1))} disabled={mergePage >= totalPages} className="border border-[#dadce0] bg-white p-1.5 text-[#80868b] transition hover:bg-[#f8f9fa] hover:text-[#5f6368] disabled:opacity-30 disabled:pointer-events-none">
                     <ChevronRight size={15} />
                   </button>
                 </div>
@@ -3457,8 +3432,8 @@ function InfoItem({ label, value, mono }: { label: string; value: string | null 
   const show = value !== null && value !== undefined && value !== '' && value !== '-'
   return (
     <div>
-      <p className="text-xs font-medium text-slate-400">{label}</p>
-      <p className={`text-sm font-medium ${mono ? 'font-mono' : ''} ${show ? 'text-slate-800' : 'text-slate-300'}`}>
+      <p className="text-xs font-medium text-[#80868b]">{label}</p>
+      <p className={`text-sm font-medium ${mono ? 'font-mono' : ''} ${show ? 'text-[#202124]' : 'text-[#9aa0a6]'}`}>
         {show ? value : '-'}
       </p>
     </div>
@@ -3479,7 +3454,7 @@ function docLabel(jenis: string | null | undefined): string {
 
 function MatchingJobSection({ data, learningLevel, statusFormulir }: { data: Record<string, any>; learningLevel?: number | null; statusFormulir?: string }) {
   if (!data || Object.keys(data).length === 0) {
-    return <p className="text-xs text-slate-400">Belum ada data dari form Data Diri & Matching Job.</p>
+    return <p className="text-xs text-[#80868b]">Belum ada data dari form Data Diri & Matching Job.</p>
   }
 
   const fmtYes = (v: any) => (v === 1 || v === '1' ? 'Ya' : v === 0 || v === '0' ? 'Tidak' : null)
@@ -3488,15 +3463,15 @@ function MatchingJobSection({ data, learningLevel, statusFormulir }: { data: Rec
 
   const Item = ({ label, value, className }: { label: string; value: any; className?: string }) => (
     <div className={className}>
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-0.5 break-words text-sm font-medium text-slate-800">{raw(value) ?? '-'}</p>
+      <p className="text-[11px] font-semibold text-[#80868b]">{label}</p>
+      <p className="mt-0.5 break-words text-sm font-medium text-[#202124]">{raw(value) ?? '-'}</p>
     </div>
   )
 
   const SectionCard = ({ title, right, children }: { title: string; right?: ReactNode; children: ReactNode }) => (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
+    <div className="border border-[#dadce0] bg-white p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{title}</p>
+        <p className="text-xs font-bold text-[#5f6368]">{title}</p>
         {right}
       </div>
       {children}
@@ -3510,10 +3485,10 @@ function MatchingJobSection({ data, learningLevel, statusFormulir }: { data: Rec
   const ssw: string[] = Array.isArray(data.sertifikat_ssw) ? data.sertifikat_ssw : []
 
   const warnaStatus: Record<string, string> = {
-    pending: 'bg-amber-100 text-amber-700',
-    final: 'bg-emerald-100 text-emerald-700',
-    submitted: 'bg-sky-100 text-sky-700',
-    'locked': 'bg-slate-100 text-slate-600',
+    pending: 'bg-[#feefc3] text-[#b06000]',
+    final: 'bg-[#ceead6] text-[#137333]',
+    submitted: 'bg-[#d2e3fc] text-[#1967d2]',
+    'locked': 'bg-[#f1f3f4] text-[#5f6368]',
   }
 
   return (
@@ -3521,7 +3496,7 @@ function MatchingJobSection({ data, learningLevel, statusFormulir }: { data: Rec
       <SectionCard
         title="Data Pribadi & Kontak"
         right={statusFormulir ? (
-          <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold capitalize ${warnaStatus[statusFormulir.toLowerCase()] ?? 'bg-slate-100 text-slate-600'}`}>
+          <span className={`px-2.5 py-0.5 text-[11px] font-semibold capitalize ${warnaStatus[statusFormulir.toLowerCase()] ?? 'bg-[#f1f3f4] text-[#5f6368]'}`}>
             {statusFormulir}
           </span>
         ) : undefined}
@@ -3571,9 +3546,9 @@ function MatchingJobSection({ data, learningLevel, statusFormulir }: { data: Rec
           <Item label="Minum Alkohol" value={fmtYes(data.minum_alkohol)} />
         </div>
         {raw(data.riwayat_penyakit) && (
-          <div className="mt-3 border-t border-slate-100 pt-3">
-            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Riwayat Penyakit</p>
-            <p className="break-words text-sm text-slate-800">{data.riwayat_penyakit}</p>
+          <div className="mt-3 border-t border-[#e8eaed] pt-3">
+            <p className="mb-1 text-[11px] font-semibold text-[#80868b]">Riwayat Penyakit</p>
+            <p className="break-words text-sm text-[#202124]">{data.riwayat_penyakit}</p>
           </div>
         )}
       </SectionCard>
@@ -3581,17 +3556,17 @@ function MatchingJobSection({ data, learningLevel, statusFormulir }: { data: Rec
       <SectionCard title="Pendidikan Terakhir">
         <Item label="Pendidikan Terakhir" value={data.pendidikan_terakhir} />
         {pendidikan.length > 0 && (
-          <div className="mt-3 grid gap-3 border-t border-slate-100 pt-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-3 grid gap-3 border-t border-[#e8eaed] pt-3 sm:grid-cols-2 lg:grid-cols-3">
             {pendidikan.map((p, i) => (
-              <div key={i} className="rounded-md border border-slate-100 bg-slate-50 p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{p.jenjang || 'Pendidikan'}</p>
-                <p className="mt-0.5 text-sm font-medium text-slate-800">{p.nama_sekolah || '-'}</p>
+              <div key={i} className="border border-[#e8eaed] bg-[#f8f9fa] p-3">
+                <p className="text-[11px] font-semibold text-[#80868b]">{p.jenjang || 'Pendidikan'}</p>
+                <p className="mt-0.5 text-sm font-medium text-[#202124]">{p.nama_sekolah || '-'}</p>
                 {(p.jurusan || p.tahun_lulus) && (
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-[#5f6368]">
                     {[raw(p.jurusan), raw(p.tahun_lulus) ? `lulus ${p.tahun_lulus}` : null].filter(Boolean).join(' · ')}
                   </p>
                 )}
-                {raw(p.deskripsi) && <p className="mt-1 text-xs text-slate-600">{p.deskripsi}</p>}
+                {raw(p.deskripsi) && <p className="mt-1 text-xs text-[#5f6368]">{p.deskripsi}</p>}
               </div>
             ))}
           </div>
@@ -3602,10 +3577,10 @@ function MatchingJobSection({ data, learningLevel, statusFormulir }: { data: Rec
         <SectionCard title="Pengalaman Kerja">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {pengalaman.map((p, i) => (
-              <div key={i} className="rounded-md border border-slate-100 bg-slate-50 p-3">
-                <p className="text-sm font-medium text-slate-800">{p.nama_perusahaan || '-'}</p>
-                <p className="text-xs text-slate-500">{raw(p.posisi) || 'Posisi'}{raw(p.tahun_masuk) ? ` · ${p.tahun_masuk}${raw(p.tahun_keluar) ? ` – ${p.tahun_keluar}` : ''}` : ''}</p>
-                {raw(p.deskripsi) && <p className="mt-1 text-xs text-slate-600">{p.deskripsi}</p>}
+              <div key={i} className="border border-[#e8eaed] bg-[#f8f9fa] p-3">
+                <p className="text-sm font-medium text-[#202124]">{p.nama_perusahaan || '-'}</p>
+                <p className="text-xs text-[#5f6368]">{raw(p.posisi) || 'Posisi'}{raw(p.tahun_masuk) ? ` · ${p.tahun_masuk}${raw(p.tahun_keluar) ? ` – ${p.tahun_keluar}` : ''}` : ''}</p>
+                {raw(p.deskripsi) && <p className="mt-1 text-xs text-[#5f6368]">{p.deskripsi}</p>}
               </div>
             ))}
           </div>
@@ -3626,27 +3601,27 @@ function MatchingJobSection({ data, learningLevel, statusFormulir }: { data: Rec
             )}
           </div>
         ) : (
-          <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3">
-            <p className="text-xs font-semibold text-amber-700">🔒 Kemampuan & Sertifikat (JLPT / JFT / SSW)</p>
-            <p className="mt-1 text-xs text-amber-600">
+          <div className="border border-[#fdd663] bg-[#fef7e0] px-4 py-3">
+            <p className="text-xs font-semibold text-[#b06000]">🔒 Kemampuan & Sertifikat (JLPT / JFT / SSW)</p>
+            <p className="mt-1 text-xs text-[#b06000]">
               Belum tersedia — bagian ini terbuka setelah kandidat mencapai Level 2 pembelajaran.
             </p>
           </div>
         )}
         <div className="mt-4">
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Keahlian yang Dimiliki</p>
+          <p className="mb-2 text-[11px] font-semibold text-[#80868b]">Keahlian yang Dimiliki</p>
           {keahlian.length === 0 ? (
-            <p className="text-sm text-slate-500">Tidak ada data keahlian.</p>
+            <p className="text-sm text-[#5f6368]">Tidak ada data keahlian.</p>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               {keahlian.map((k, i) => (
-                <div key={i} className="rounded-md border border-slate-100 bg-slate-50 p-3">
-                  <p className="text-sm font-medium text-slate-800">{k.keahlian || '-'}</p>
-                  <p className="text-xs text-slate-500">
+                <div key={i} className="border border-[#e8eaed] bg-[#f8f9fa] p-3">
+                  <p className="text-sm font-medium text-[#202124]">{k.keahlian || '-'}</p>
+                  <p className="text-xs text-[#5f6368]">
                     {[raw(k.tingkat), raw(k.lama_pengalaman) ? `${k.lama_pengalaman} tahun` : null].filter(Boolean).join(' · ')}
                   </p>
-                  {raw(k.deskripsi) && <p className="mt-1 text-xs text-slate-600">{k.deskripsi}</p>}
-                  {raw(k.sertifikat_file) && <p className="mt-1 text-xs text-slate-500">Sertifikat: {k.sertifikat_file}</p>}
+                  {raw(k.deskripsi) && <p className="mt-1 text-xs text-[#5f6368]">{k.deskripsi}</p>}
+                  {raw(k.sertifikat_file) && <p className="mt-1 text-xs text-[#5f6368]">Sertifikat: {k.sertifikat_file}</p>}
                 </div>
               ))}
             </div>
@@ -3659,12 +3634,12 @@ function MatchingJobSection({ data, learningLevel, statusFormulir }: { data: Rec
           <Item label="Penghasilan Keluarga" value={data.penghasilan_keluarga} />
         </div>
         {keluarga.length > 0 && (
-          <div className="mt-3 grid gap-3 border-t border-slate-100 pt-3 sm:grid-cols-2">
+          <div className="mt-3 grid gap-3 border-t border-[#e8eaed] pt-3 sm:grid-cols-2">
             {keluarga.map((k, i) => (
-              <div key={i} className="rounded-md border border-slate-100 bg-slate-50 p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{k.hubungan || 'Keluarga'}</p>
-                <p className="mt-0.5 text-sm font-medium text-slate-800">{k.nama || '-'}</p>
-                <p className="text-xs text-slate-500">
+              <div key={i} className="border border-[#e8eaed] bg-[#f8f9fa] p-3">
+                <p className="text-[11px] font-semibold text-[#80868b]">{k.hubungan || 'Keluarga'}</p>
+                <p className="mt-0.5 text-sm font-medium text-[#202124]">{k.nama || '-'}</p>
+                <p className="text-xs text-[#5f6368]">
                   {[raw(k.usia), raw(k.pekerjaan)].filter(Boolean).join(' · ')}
                 </p>
               </div>
@@ -3713,19 +3688,16 @@ function FormField({ label, value, onChange, type, placeholder, error, maxLength
   const hasError = !!error
   return (
     <div>
-      <label className="mb-1 block text-xs font-medium text-slate-600">{label}</label>
+      <label className="mb-1 block text-xs font-medium text-[#5f6368]">{label}</label>
       <input
         type={type || 'text'}
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
-        className={`w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 ${hasError
-            ? 'border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500'
-            : 'border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
-          }`}
+        className={`w-full border bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition placeholder:text-[#80868b] ${hasError ? 'border-[#ee675c] focus:border-[#d93025] focus:border-[#1a73e8] focus:ring-[#d93025]' : 'border-[#dadce0] focus:border-[#1a73e8] focus:border-[#1a73e8]' }`}
       />
-      {hasError && <p className="mt-1 text-[11px] text-red-500">{error}</p>}
+      {hasError && <p className="mt-1 text-[11px] text-[#d93025]">{error}</p>}
     </div>
   )
 }
@@ -3734,19 +3706,16 @@ function FormSelect({ label, value, onChange, options, error }: { label: string;
   const hasError = !!error
   return (
     <div>
-      <label className="mb-1 block text-xs font-medium text-slate-600">{label}</label>
+      <label className="mb-1 block text-xs font-medium text-[#5f6368]">{label}</label>
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
-        className={`w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-700 outline-none transition ${hasError
-            ? 'border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500'
-            : 'border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
-          }`}
+        className={`w-full border bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition ${hasError ? 'border-[#ee675c] focus:border-[#d93025] focus:border-[#1a73e8] focus:ring-[#d93025]' : 'border-[#dadce0] focus:border-[#1a73e8] focus:border-[#1a73e8]' }`}
       >
         <option value="">Pilih...</option>
         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
-      {hasError && <p className="mt-1 text-[11px] text-red-500">{error}</p>}
+      {hasError && <p className="mt-1 text-[11px] text-[#d93025]">{error}</p>}
     </div>
   )
 }

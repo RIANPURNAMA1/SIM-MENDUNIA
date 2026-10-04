@@ -83,7 +83,7 @@ export default function CabangPage() {
       toCanvas(qrCanvasRef.current, qrItem.barcode, {
         width: 200,
         margin: 2,
-        color: { dark: '#1e293b', light: '#ffffff' },
+        color: { dark: '#3c4043', light: '#ffffff' },
       })
     }
   }, [qrItem])
@@ -321,16 +321,16 @@ export default function CabangPage() {
       {/* Success Alert */}
       {successMessage && (
         <div className="mb-4 animate-slide-down">
-          <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 shadow-sm">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100">
-              <CheckCircle size={18} className="text-emerald-600" />
+          <div className="flex items-center gap-3 border border-[#a8dab5] bg-[#e6f4ea] px-4 py-3">
+            <div className="flex h-8 w-8 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]">
+              <CheckCircle size={18} className="text-[#137333]" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-emerald-800">{successMessage}</p>
+              <p className="text-sm font-medium text-[#0d652d]">{successMessage}</p>
             </div>
             <button
               onClick={() => setSuccessMessage(null)}
-              className="flex h-6 w-6 items-center justify-center rounded-full text-emerald-400 hover:bg-emerald-100 hover:text-emerald-600 transition-colors"
+              className="flex h-6 w-6 items-center justify-center text-[#81c995] hover:bg-[#084c63] hover:text-[#137333] transition-colors"
             >
               <X size={14} />
             </button>
@@ -339,19 +339,19 @@ export default function CabangPage() {
       )}
 
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-4 border-b border-[#dadce0] pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
-            <MapPin size={20} className="text-white" />
+          <div className="flex h-10 w-10 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]">
+            <MapPin size={20} />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-slate-800">Cabang / Lokasi</h1>
-            <p className="text-sm text-slate-500">{data.length} total cabang</p>
+            <h1 className="text-xl font-medium text-[#202124]">Cabang / Lokasi</h1>
+            <p className="text-sm text-[#5f6368]">{data.length} total cabang</p>
           </div>
         </div>
         <button
           onClick={openCreate}
-          className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1"
+          className="inline-flex items-center gap-2 bg-[#0E6187] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#084c63] focus:outline-none focus:border-[#188038]"
         >
           <Plus size={16} />
           Tambah Cabang
@@ -359,19 +359,19 @@ export default function CabangPage() {
       </div>
 
       {/* Filter */}
-      <div className="mb-4 rounded-lg p-4 shadow-sm">
+      <div className="mb-4 p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative flex-1">
             <Search
               size={16}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#80868b]"
             />
             <input
               type="text"
               placeholder="Cari cabang..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full border border-[#dadce0] bg-white py-2 pl-9 pr-3 text-sm text-[#3c4043] outline-none transition placeholder:text-[#80868b] focus:border-[#1a73e8]"
             />
           </div>
         </div>
@@ -380,109 +380,105 @@ export default function CabangPage() {
       {/* Table */}
       <div className="relative overflow-x-auto">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-full border-collapse text-left text-sm text-slate-700">
-            <thead className="text-sm text-slate-600">
+          <table className="w-full min-w-full border-collapse text-left text-sm text-[#3c4043]">
+            <thead className="text-sm text-[#5f6368]">
               <tr>
-                <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Kode</th>
-                <th scope="col" className="border border-slate-200 px-4 py-3 font-medium">Nama Cabang</th>
-                <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Tipe</th>
-                <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Radius</th>
-                <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium">Aksi</th>
+                <th scope="col" className="text-xs font-medium text-[#5f6368] px-4 py-3">Kode</th>
+                <th scope="col" className="text-xs font-medium text-[#5f6368] px-4 py-3">Nama Cabang</th>
+                <th scope="col" className="text-xs font-medium text-[#5f6368] px-4 py-3 text-center">Tipe</th>
+                <th scope="col" className="text-xs font-medium text-[#5f6368] px-4 py-3 text-center">Radius</th>
+                <th scope="col" className="text-xs font-medium text-[#5f6368] px-4 py-3 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 Array.from({ length: 3 }).map((_, i) => (
                   <tr key={i}>
-                    <td colSpan={5} className="border border-slate-200 px-4 py-3">
+                    <td colSpan={5} className="px-6 py-12 text-center">
                       <div className="flex items-center gap-3">
-                        <div className="h-3 bg-slate-200/70 rounded w-16 animate-pulse" />
-                        <div className="h-3 bg-slate-200/70 rounded w-40 animate-pulse" />
+                        <div className="h-3 bg-[#e8eaed] w-16 animate-pulse" />
+                        <div className="h-3 bg-[#e8eaed] w-40 animate-pulse" />
                       </div>
                     </td>
                   </tr>
                 ))
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="border border-slate-200 px-6 py-10 text-center">
-                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                  <td colSpan={5} className="px-6 py-12 text-center">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center bg-[#f1f3f4] text-[#80868b]">
                       <MapPin size={24} />
                     </div>
-                    <p className="mt-3 text-sm font-medium text-slate-600">
+                    <p className="mt-3 text-sm font-medium text-[#5f6368]">
                       {search ? 'Cabang tidak ditemukan' : 'Belum ada cabang'}
                     </p>
                   </td>
                 </tr>
               ) : (
                 filtered.map((item) => (
-                  <tr key={item.id} className="bg-white transition hover:bg-slate-50">
-                    <td className="border border-slate-200 px-4 py-3">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-mono font-semibold rounded-lg">
+                  <tr key={item.id} className="bg-white transition hover:bg-[#f8f9fa]">
+                    <td className="border-b border-[#e8eaed] px-4 py-3">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#e8f0fe] text-[#1967d2] text-xs font-mono font-semibold">
                         <Hash size={11} />
                         {item.kode_cabang || '-'}
                       </span>
                     </td>
-                    <td className="border border-slate-200 px-4 py-3">
+                    <td className="border-b border-[#e8eaed] px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <MapPin size={14} className="text-slate-300 shrink-0" />
+                        <MapPin size={14} className="text-[#80868b] shrink-0" />
                         <div className="min-w-0">
-                          <span className="text-sm font-medium text-slate-800 block truncate">{item.nama_cabang}</span>
+                          <span className="text-sm font-medium text-[#202124] block truncate">{item.nama_cabang}</span>
                           {item.penempatan_cabang_nama ? (
-                            <span className="inline-flex items-center gap-1 mt-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                            <span className="inline-flex items-center gap-1 mt-1 text-[11px] font-semibold text-[#137333] bg-[#e6f4ea] border border-[#a8dab5] px-2 py-0.5">
                               <Link2 size={10} />
                               Penempatan: {item.penempatan_cabang_nama}{item.penempatan_cabang_kode ? ` (${item.penempatan_cabang_kode})` : ''}
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 mt-1 text-[11px] font-medium text-slate-400 bg-slate-50 border border-slate-200 rounded-full px-2 py-0.5">
+                            <span className="inline-flex items-center gap-1 mt-1 text-[11px] font-medium text-[#80868b] bg-[#f8f9fa] border border-[#dadce0] px-2 py-0.5">
                               Belum tersinkron
                             </span>
                           )}
                         </div>
                       </div>
                     </td>
-                    <td className="border border-slate-200 px-4 py-3 text-center">
-                      <span className={`inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-full ${
-                        item.status_pusat === 'PUSAT'
-                          ? 'bg-purple-50 text-purple-700'
-                          : 'bg-slate-100 text-slate-600'
-                      }`}>
+                    <td className="border-b border-[#e8eaed] px-4 py-3 text-center">
+                      <span className={`inline-flex items-center px-2 py-0.5 text-xs font-semibold ${ item.status_pusat === 'PUSAT' ? 'bg-[#e8def8] text-[#8430ce]' : 'bg-[#f1f3f4] text-[#5f6368]' }`}>
                         {item.status_pusat || 'CABANG'}
                       </span>
                     </td>
-                    <td className="border border-slate-200 px-4 py-3 text-center text-sm text-slate-600">
+                    <td className="border-b border-[#e8eaed] px-4 py-3 text-center text-sm text-[#5f6368]">
                       {item.radius ? `${item.radius}m` : '-'}
                       {item.locations && item.locations.length > 0 && (
-                        <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[10px] font-semibold">
+                        <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 bg-[#e8f0fe] text-[#1a73e8] text-[10px] font-semibold">
                           +{item.locations.length} titik
                         </span>
                       )}
                     </td>
-                    <td className="border border-slate-200 px-4 py-3 text-center">
+                    <td className="border-b border-[#e8eaed] px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-1">
                         <button
                           onClick={() => openSync(item)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                          className="p-1.5 text-[#80868b] hover:text-[#137333] hover:bg-[#e6f4ea] transition-colors"
                           title="Sinkronkan dengan Sistem Penempatan"
                         >
                           <RefreshCw size={15} />
                         </button>
                         <button
                           onClick={() => { setQrItem(item) }}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                          className="p-1.5 text-[#80868b] hover:text-[#1a73e8] hover:bg-[#e8f0fe] transition-colors"
                           title="Lihat QR"
                         >
                           <QrCode size={15} />
                         </button>
                         <button
                           onClick={() => openEdit(item)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                          className="p-1.5 text-[#80868b] hover:text-[#1a73e8] hover:bg-[#e8f0fe] transition-colors"
                           title="Edit"
                         >
                           <Edit3 size={15} />
                         </button>
                         <button
                           onClick={() => { setDeleteItem(item); setShowDelete(true) }}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          className="p-1.5 text-[#80868b] hover:text-[#c5221f] hover:bg-[#fce8e6] transition-colors"
                           title="Hapus"
                         >
                           <Trash2 size={15} />
@@ -500,13 +496,13 @@ export default function CabangPage() {
       {/* QR Code Modal */}
       {qrItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" onClick={() => setQrItem(null)}>
-          <div className="absolute inset-0 bg-black/40" />
-          <div className="relative bg-white rounded-2xl w-full max-w-sm shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="absolute inset-0 bg-[#202124]" />
+          <div className="border border-[#dadce0] relative bg-white w-full max-w-sm shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h3 className="font-semibold text-gray-900">QR Code Cabang</h3>
-              <button onClick={() => setQrItem(null)} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-                <X size={18} className="text-slate-400" />
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#e8eaed]">
+              <h3 className="font-semibold text-[#202124]">QR Code Cabang</h3>
+              <button onClick={() => setQrItem(null)} className="p-1.5 hover:bg-[#f1f3f4] transition-colors">
+                <X size={18} className="text-[#80868b]" />
               </button>
             </div>
 
@@ -517,25 +513,25 @@ export default function CabangPage() {
                   <div className="flex items-center justify-center gap-3 mb-3">
                     <img src="/logo-sm.png" alt="Logo" className="h-9 w-auto" />
                     <div className="text-left">
-                      <h2 className="text-lg font-bold text-[#0E6187] tracking-wide leading-tight">ABSENSI MENDUNIA</h2>
-                      <p className="text-[10px] text-slate-500">Sistem Informasi Absensi</p>
+                      <h2 className="text-base font-medium text-[#202124] leading-tight">ABSENSI MENDUNIA</h2>
+                      <p className="text-[10px] text-[#5f6368]">Sistem Informasi Absensi</p>
                     </div>
                   </div>
-                  <hr className="border-slate-200 mb-4" />
-                  <p className="text-xs font-semibold text-slate-600 uppercase tracking-widest mb-1">QR Code Absensi</p>
-                  <p className="text-base font-bold text-[#0E6187] mb-4">{qrItem.nama_cabang}</p>
+                  <hr className="border-[#dadce0] mb-4" />
+                  <p className="text-xs font-semibold text-[#5f6368] st mb-1">QR Code Absensi</p>
+                  <p className="text-sm font-medium text-[#3c4043] mb-4">{qrItem.nama_cabang}</p>
                   <div className="flex justify-center mb-3">
-                    <canvas ref={qrCanvasRef} className="rounded-xl border-2 border-slate-200" />
+                    <canvas ref={qrCanvasRef} className="border-2 border-[#dadce0]" />
                   </div>
-                  <p className="text-[10px] text-slate-400 font-mono tracking-wider">{qrItem.barcode}</p>
-                  <p className="text-[9px] text-slate-300 mt-4">Scan QR ini untuk melakukan absensi</p>
+                  <p className="text-[10px] text-[#80868b] font-mono tracking-wider">{qrItem.barcode}</p>
+                  <p className="text-[9px] text-[#80868b] mt-4">Scan QR ini untuk melakukan absensi</p>
                 </div>
 
                 {/* Action buttons */}
                 <div className="px-5 pb-5 flex flex-col gap-2">
                   <button
                     onClick={handleDownloadPdf}
-                    className="w-full py-2.5 text-sm font-semibold rounded-xl bg-[#0E6187] text-white hover:bg-[#1a5e6f] transition-colors flex items-center justify-center gap-2"
+                    className="w-full py-2.5 text-sm font-semibold bg-[#0E6187] text-white hover:bg-[#084c63] transition-colors flex items-center justify-center gap-2"
                   >
                     <Download size={16} />
                     Download PDF
@@ -543,14 +539,14 @@ export default function CabangPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={handleDownloadQr}
-                      className="flex-1 py-2 text-sm font-medium rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                      className="flex-1 py-2 text-sm font-medium border border-[#dadce0] text-[#5f6368] hover:bg-[#f8f9fa] transition-colors flex items-center justify-center gap-2"
                     >
                       <Download size={14} />
                       QR PNG
                     </button>
                     <button
                       onClick={() => { window.print() }}
-                      className="flex-1 py-2 text-sm font-medium rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                      className="flex-1 py-2 text-sm font-medium border border-[#dadce0] text-[#5f6368] hover:bg-[#f8f9fa] transition-colors flex items-center justify-center gap-2"
                     >
                       <Printer size={14} />
                       Cetak
@@ -560,9 +556,9 @@ export default function CabangPage() {
               </>
             ) : (
               <div className="py-10 text-center px-5">
-                <QrCode size={48} className="text-slate-300 mx-auto mb-3" />
-                <p className="text-sm text-slate-400">Cabang ini belum memiliki barcode</p>
-                <p className="text-xs text-slate-400 mt-1">Edit cabang untuk menghasilkan barcode secara otomatis</p>
+                <QrCode size={48} className="text-[#80868b] mx-auto mb-3" />
+                <p className="text-sm text-[#80868b]">Cabang ini belum memiliki barcode</p>
+                <p className="text-xs text-[#80868b] mt-1">Edit cabang untuk menghasilkan barcode secara otomatis</p>
               </div>
             )}
           </div>
@@ -575,25 +571,25 @@ export default function CabangPage() {
           className="fixed inset-0 z-50 flex items-start justify-center pt-8 sm:pt-10 p-3 sm:p-4"
           onClick={closeModal}
         >
-          <div className="absolute inset-0 bg-black/40" />
+          <div className="absolute inset-0 bg-[#202124]" />
           <div
-            className="relative bg-white rounded-2xl w-full max-w-lg shadow-xl"
+            className="border border-[#dadce0] relative bg-white w-full max-w-lg shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]"
             onClick={(e) => e.stopPropagation()}
           >
             <form onSubmit={handleSave}>
-              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-[#e8eaed] sticky top-0 bg-white z-10">
                 <div>
-                  <h5 className="font-bold text-gray-900 m-0">
+                  <h5 className="text-base font-medium text-[#202124] m-0">
                     {editItem ? 'Edit Cabang' : 'Tambah Cabang'}
                   </h5>
-                  <span className="text-[11px] text-blue-600 font-medium">
+                  <span className="text-[11px] text-[#1a73e8] font-medium">
                     {editItem ? 'Perbarui data cabang' : 'Buat cabang baru'}
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"
+                  className="p-1.5 hover:bg-[#f1f3f4] text-[#80868b]"
                 >
                   <X size={18} />
                 </button>
@@ -601,14 +597,14 @@ export default function CabangPage() {
 
               <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
                 {error && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                  <div className="p-3 bg-[#fce8e6] border border-[#f28b82] text-sm text-[#c5221f]">
                     {error}
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Kode Cabang <span className="text-red-500">*</span>
+                  <label className="block text-xs font-semibold text-[#3c4043] mb-1">
+                    Kode Cabang <span className="text-[#d93025]">*</span>
                   </label>
                   <input
                     type="text"
@@ -617,13 +613,13 @@ export default function CabangPage() {
                     value={form.kode_cabang}
                     onChange={(e) => setForm({ ...form, kode_cabang: e.target.value.toUpperCase() })}
                     placeholder="Contoh: JKT, BDG, SBY"
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    className="w-full px-3 py-2 text-sm border border-[#dadce0] focus:outline-none focus:border-[#1a73e8]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Nama Cabang <span className="text-red-500">*</span>
+                  <label className="block text-xs font-semibold text-[#3c4043] mb-1">
+                    Nama Cabang <span className="text-[#d93025]">*</span>
                   </label>
                   <input
                     type="text"
@@ -632,18 +628,18 @@ export default function CabangPage() {
                     value={form.nama_cabang}
                     onChange={(e) => setForm({ ...form, nama_cabang: e.target.value })}
                     placeholder="Nama lengkap cabang"
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    className="w-full px-3 py-2 text-sm border border-[#dadce0] focus:outline-none focus:border-[#1a73e8]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Tipe <span className="text-red-500">*</span>
+                  <label className="block text-xs font-semibold text-[#3c4043] mb-1">
+                    Tipe <span className="text-[#d93025]">*</span>
                   </label>
                   <select
                     value={form.status_pusat}
                     onChange={(e) => setForm({ ...form, status_pusat: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    className="w-full px-3 py-2 text-sm border border-[#dadce0] focus:outline-none focus:border-[#1a73e8]"
                   >
                     <option value="CABANG">Cabang</option>
                     <option value="PUSAT">Pusat</option>
@@ -652,8 +648,8 @@ export default function CabangPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
-                      Latitude <span className="text-red-500">*</span>
+                    <label className="block text-xs font-semibold text-[#3c4043] mb-1">
+                      Latitude <span className="text-[#d93025]">*</span>
                     </label>
                     <input
                       type="number"
@@ -662,12 +658,12 @@ export default function CabangPage() {
                       value={form.latitude}
                       onChange={(e) => setForm({ ...form, latitude: e.target.value })}
                       placeholder="-6.2088"
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      className="w-full px-3 py-2 text-sm border border-[#dadce0] focus:outline-none focus:border-[#1a73e8]"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
-                      Longitude <span className="text-red-500">*</span>
+                    <label className="block text-xs font-semibold text-[#3c4043] mb-1">
+                      Longitude <span className="text-[#d93025]">*</span>
                     </label>
                     <input
                       type="number"
@@ -676,12 +672,12 @@ export default function CabangPage() {
                       value={form.longitude}
                       onChange={(e) => setForm({ ...form, longitude: e.target.value })}
                       placeholder="106.8456"
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      className="w-full px-3 py-2 text-sm border border-[#dadce0] focus:outline-none focus:border-[#1a73e8]"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
-                      Radius (m) <span className="text-red-500">*</span>
+                    <label className="block text-xs font-semibold text-[#3c4043] mb-1">
+                      Radius (m) <span className="text-[#d93025]">*</span>
                     </label>
                     <input
                       type="number"
@@ -689,7 +685,7 @@ export default function CabangPage() {
                       value={form.radius}
                       onChange={(e) => setForm({ ...form, radius: e.target.value })}
                       placeholder="100"
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      className="w-full px-3 py-2 text-sm border border-[#dadce0] focus:outline-none focus:border-[#1a73e8]"
                     />
                   </div>
                 </div>
@@ -698,32 +694,32 @@ export default function CabangPage() {
                   <button
                     type="button"
                     onClick={getCurrentLocation}
-                    className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-[#1a73e8] hover:text-[#1967d2] transition-colors"
                   >
                     <Crosshair size={12} />
                     Ambil lokasi saat ini
                   </button>
                 </div>
 
-                <div className="border-t border-dashed border-gray-200 pt-3">
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                <div className="border-t border-dashed border-[#dadce0] pt-3">
+                  <label className="block text-xs font-semibold text-[#3c4043] mb-1">
                     Titik Lokasi Absensi Lainnya
                   </label>
-                  <p className="text-[11px] text-gray-400 mb-2">
+                  <p className="text-[11px] text-[#80868b] mb-2">
                     Tambahkan koordinat lain agar absensi juga bisa dilakukan dari titik tersebut.
                   </p>
                   <div className="space-y-2">
                     {form.locations.length === 0 && (
-                      <p className="text-[11px] text-gray-400">Belum ada titik lokasi tambahan.</p>
+                      <p className="text-[11px] text-[#80868b]">Belum ada titik lokasi tambahan.</p>
                     )}
                     {form.locations.map((loc, idx) => (
-                      <div key={idx} className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
+                      <div key={idx} className="border border-[#dadce0] bg-[#f8f9fa] p-3 space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-bold text-slate-500 uppercase">Titik {idx + 1}</span>
+                          <span className="text-xs font-medium text-[#5f6368]">Titik {idx + 1}</span>
                           <button
                             type="button"
                             onClick={() => removeLocation(idx)}
-                            className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            className="p-1 text-[#80868b] hover:text-[#c5221f] hover:bg-[#fce8e6] transition-colors"
                             title="Hapus titik"
                           >
                             <Trash2 size={14} />
@@ -731,35 +727,35 @@ export default function CabangPage() {
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                           <div>
-                            <label className="block text-[11px] font-medium text-gray-500 mb-0.5">Latitude</label>
+                            <label className="block text-[11px] font-medium text-[#5f6368] mb-0.5">Latitude</label>
                             <input
                               type="number"
                               step="any"
                               value={loc.latitude}
                               onChange={(e) => updateLocation(idx, 'latitude', e.target.value)}
                               placeholder="-6.2088"
-                              className="w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                              className="w-full px-2.5 py-1.5 text-xs border border-[#dadce0] focus:outline-none focus:border-[#1a73e8]"
                             />
                           </div>
                           <div>
-                            <label className="block text-[11px] font-medium text-gray-500 mb-0.5">Longitude</label>
+                            <label className="block text-[11px] font-medium text-[#5f6368] mb-0.5">Longitude</label>
                             <input
                               type="number"
                               step="any"
                               value={loc.longitude}
                               onChange={(e) => updateLocation(idx, 'longitude', e.target.value)}
                               placeholder="106.8456"
-                              className="w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                              className="w-full px-2.5 py-1.5 text-xs border border-[#dadce0] focus:outline-none focus:border-[#1a73e8]"
                             />
                           </div>
                           <div>
-                            <label className="block text-[11px] font-medium text-gray-500 mb-0.5">Radius (m)</label>
+                            <label className="block text-[11px] font-medium text-[#5f6368] mb-0.5">Radius (m)</label>
                             <input
                               type="number"
                               value={loc.radius}
                               onChange={(e) => updateLocation(idx, 'radius', e.target.value)}
                               placeholder="100"
-                              className="w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                              className="w-full px-2.5 py-1.5 text-xs border border-[#dadce0] focus:outline-none focus:border-[#1a73e8]"
                             />
                           </div>
                         </div>
@@ -769,12 +765,12 @@ export default function CabangPage() {
                             value={loc.label}
                             onChange={(e) => updateLocation(idx, 'label', e.target.value)}
                             placeholder="Nama titik (opsional), mis. Kantor Lapangan"
-                            className="flex-1 px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                            className="flex-1 px-2.5 py-1.5 text-xs border border-[#dadce0] focus:outline-none focus:border-[#1a73e8]"
                           />
                           <button
                             type="button"
                             onClick={() => getCurrentLocationFor(idx)}
-                            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-blue-600 hover:text-blue-700 transition-colors shrink-0"
+                            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#1a73e8] hover:text-[#1967d2] transition-colors shrink-0"
                           >
                             <Crosshair size={12} />
                             Gunakan lokasi saat ini
@@ -786,7 +782,7 @@ export default function CabangPage() {
                   <button
                     type="button"
                     onClick={addLocation}
-                    className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                    className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-[#1a73e8] hover:text-[#1967d2] transition-colors"
                   >
                     <Plus size={14} />
                     Tambah titik lokasi
@@ -794,7 +790,7 @@ export default function CabangPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  <label className="block text-xs font-semibold text-[#3c4043] mb-1">
                     Alamat
                   </label>
                   <textarea
@@ -802,7 +798,7 @@ export default function CabangPage() {
                     value={form.alamat}
                     onChange={(e) => setForm({ ...form, alamat: e.target.value })}
                     placeholder="Alamat lengkap cabang"
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
+                    className="w-full px-3 py-2 text-sm border border-[#dadce0] focus:outline-none focus:border-[#1a73e8] resize-none"
                   />
                 </div>
 
@@ -810,14 +806,14 @@ export default function CabangPage() {
                   <button
                     type="button"
                     onClick={closeModal}
-                    className="flex-1 py-2.5 text-sm font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+                    className="flex-1 py-2.5 text-sm font-medium border border-[#dadce0] text-[#5f6368] hover:bg-[#f8f9fa] transition-colors"
                   >
                     Batal
                   </button>
                   <button
                     type="submit"
                     disabled={saving}
-                    className="flex-1 py-2.5 text-sm font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                    className="flex-1 py-2.5 text-sm font-medium bg-[#0E6187] text-white hover:bg-[#084c63] disabled:opacity-50 transition-colors"
                   >
                     {saving ? 'Menyimpan...' : editItem ? 'Simpan' : 'Tambah'}
                   </button>
@@ -831,26 +827,26 @@ export default function CabangPage() {
       {/* Delete Confirmation */}
       {showDelete && deleteItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" onClick={() => setShowDelete(false)}>
-          <div className="absolute inset-0 bg-black/40" />
-          <div className="relative bg-white rounded-2xl w-full max-w-sm shadow-xl p-5 sm:p-6 text-center" onClick={(e) => e.stopPropagation()}>
-            <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-3">
-              <AlertTriangle size={24} className="text-red-500" />
+          <div className="absolute inset-0 bg-[#202124]" />
+          <div className="border border-[#dadce0] relative bg-white w-full max-w-sm shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] p-5 sm:p-6 text-center" onClick={(e) => e.stopPropagation()}>
+            <div className="w-12 h-12 bg-[#fce8e6] flex items-center justify-center mx-auto mb-3">
+              <AlertTriangle size={24} className="text-[#d93025]" />
             </div>
-            <h3 className="font-semibold text-gray-900 mb-1">Hapus Cabang</h3>
-            <p className="text-sm text-gray-500 mb-5">
+            <h3 className="font-semibold text-[#202124] mb-1">Hapus Cabang</h3>
+            <p className="text-sm text-[#5f6368] mb-5">
               Yakin ingin menghapus <strong>{deleteItem.nama_cabang}</strong>?
             </p>
             <div className="flex gap-2">
               <button
                 onClick={() => setShowDelete(false)}
-                className="flex-1 py-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+                className="flex-1 py-2 text-sm font-medium border border-[#dadce0] text-[#5f6368] hover:bg-[#f8f9fa] transition-colors"
               >
                 Batal
               </button>
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="flex-1 py-2 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
+                className="flex-1 py-2 text-sm font-medium bg-[#c5221f] text-white hover:bg-[#a50e0e] disabled:opacity-50 transition-colors"
               >
                 {deleting ? 'Menghapus...' : 'Hapus'}
               </button>
@@ -865,51 +861,51 @@ export default function CabangPage() {
           className="fixed inset-0 z-50 flex items-start justify-center pt-8 sm:pt-12 p-3 sm:p-4"
           onClick={() => setSyncItem(null)}
         >
-          <div className="absolute inset-0 bg-black/40" />
+          <div className="absolute inset-0 bg-[#202124]" />
           <div
-            className="relative bg-white rounded-2xl w-full max-w-lg shadow-xl flex flex-col max-h-[85vh]"
+            className="border border-[#dadce0] relative bg-white w-full max-w-lg shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] flex flex-col max-h-[85vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10 rounded-t-2xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#e8eaed] sticky top-0 bg-white z-10">
               <div>
-                <h5 className="font-bold text-gray-900 m-0 flex items-center gap-2">
-                  <RefreshCw size={16} className="text-emerald-600" />
+                <h5 className="text-base font-medium text-[#202124] m-0 flex items-center gap-2">
+                  <RefreshCw size={16} className="text-[#137333]" />
                   Sinkronkan Cabang
                 </h5>
-                <span className="text-[11px] text-slate-500 font-medium">
+                <span className="text-[11px] text-[#5f6368] font-medium">
                   {syncItem.kode_cabang ? `${syncItem.kode_cabang} · ` : ''}{syncItem.nama_cabang}
                 </span>
               </div>
               <button
                 onClick={() => setSyncItem(null)}
-                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"
+                className="p-1.5 hover:bg-[#f1f3f4] text-[#80868b]"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div className="p-5 border-b border-gray-100 shrink-0">
+            <div className="p-5 border-b border-[#e8eaed] shrink-0">
               <div className="relative">
                 <Search
                   size={16}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#80868b]"
                 />
                 <input
                   type="text"
                   placeholder="Cari cabang Sistem Penempatan..."
                   value={penempatanSearch}
                   onChange={(e) => setPenempatanSearch(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="w-full border border-[#dadce0] bg-white py-2 pl-9 pr-3 text-sm text-[#3c4043] outline-none transition placeholder:text-[#80868b] focus:border-[#1a73e8]"
                 />
               </div>
-              <p className="text-[11px] text-slate-400 mt-2">
+              <p className="text-[11px] text-[#80868b] mt-2">
                 Pilih cabang Sistem Penempatan yang sama dengan <strong>{syncItem.nama_cabang}</strong> untuk dikaitkan.
               </p>
               {syncItem.penempatan_cabang_nama && (
                 <button
                   onClick={() => handleUnlink(syncItem)}
                   disabled={syncing}
-                  className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg px-3 py-1.5 transition-colors disabled:opacity-50"
+                  className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#c5221f] bg-[#fce8e6] hover:bg-[#fce8e6] border border-[#f28b82] px-3 py-1.5 transition-colors disabled:opacity-50"
                 >
                   <Unlink size={12} /> Putus koneksi saat ini: {syncItem.penempatan_cabang_nama}
                 </button>
@@ -918,17 +914,17 @@ export default function CabangPage() {
 
             <div className="flex-1 overflow-y-auto p-3 space-y-2 min-h-[160px]">
               {penempatanLoading ? (
-                <div className="flex flex-col items-center justify-center py-10 text-slate-400">
-                  <RefreshCw size={20} className="animate-spin text-emerald-600 mb-2" />
+                <div className="flex flex-col items-center justify-center py-10 text-[#80868b]">
+                  <RefreshCw size={20} className="animate-spin text-[#137333] mb-2" />
                   <p className="text-xs font-medium">Memuat cabang Sistem Penempatan...</p>
                 </div>
               ) : filteredPenempatan.length === 0 ? (
                 <div className="py-10 text-center">
-                  <Globe size={32} className="text-slate-300 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-slate-500">
+                  <Globe size={32} className="text-[#80868b] mx-auto mb-2" />
+                  <p className="text-sm font-medium text-[#5f6368]">
                     {penempatanSearch ? 'Cabang tidak ditemukan' : 'Belum ada cabang di Sistem Penempatan'}
                   </p>
-                  <p className="text-xs text-slate-400 mt-1">Pastikan Sistem Penempatan dapat diakses.</p>
+                  <p className="text-xs text-[#80868b] mt-1">Pastikan Sistem Penempatan dapat diakses.</p>
                 </div>
               ) : (
                 filteredPenempatan.map((pc) => {
@@ -938,33 +934,25 @@ export default function CabangPage() {
                       key={pc.id}
                       disabled={syncing}
                       onClick={() => handleSync(pc)}
-                      className={`w-full text-left flex items-center gap-3 rounded-xl border px-3.5 py-3 transition-all ${
-                        isLinked
-                          ? 'border-emerald-300 bg-emerald-50'
-                          : 'border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/40'
-                      } disabled:opacity-60`}
+                      className={`w-full text-left flex items-center gap-3 border px-3.5 py-3 transition-all ${ isLinked ? 'border-[#a8dab5] bg-[#e6f4ea]' : 'border-[#dadce0] bg-white hover:border-[#a8dab5] hover:bg-[#e6f4ea]' } disabled:opacity-60`}
                     >
-                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                        isLinked ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-500'
-                      }`}>
+                      <div className={`w-9 h-9 flex items-center justify-center shrink-0 ${ isLinked ? 'bg-[#0E6187] text-white' : 'bg-[#f1f3f4] text-[#5f6368]' }`}>
                         {isLinked ? <CheckCircle size={17} /> : <MapPin size={17} />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-slate-800 truncate">
+                        <p className="text-sm font-semibold text-[#202124] truncate">
                           {pc.nama_cabang}
                           {(pc.kode_cabang || pc.kode || pc.code) && (
-                            <span className="ml-2 text-[10px] font-mono font-bold text-slate-400">
+                            <span className="ml-2 text-[10px] font-mono font-medium text-[#80868b]">
                               {pc.kode_cabang || pc.kode || pc.code}
                             </span>
                           )}
                         </p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
+                        <p className="text-[11px] text-[#80868b] mt-0.5">
                           {[pc.tipe || pc.status_pusat || pc.status, pc.radius ? `${pc.radius}m` : null].filter(Boolean).join(' · ') || 'Cabang Sistem Penempatan'}
                         </p>
                       </div>
-                      <span className={`shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full ${
-                        isLinked ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                      }`}>
+                      <span className={`shrink-0 text-xs font-medium px-2.5 py-1 ${ isLinked ? 'bg-[#0E6187] text-white' : 'bg-[#f1f3f4] text-[#5f6368]' }`}>
                         {isLinked ? 'Terhubung' : 'Hubungkan'}
                       </span>
                     </button>

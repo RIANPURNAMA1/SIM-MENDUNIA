@@ -108,7 +108,7 @@ function sumHargaDeep(item: KategoriItem): number {
   return own + kids
 }
 
-const inputClass = 'w-full rounded-lg border border-slate-300 px-4 py-2 text-sm text-gray-800 placeholder-slate-400 outline-none transition focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187]'
+const inputClass = 'w-full border border-[#dadce0] px-4 py-2 text-sm text-[#202124] placeholder-[#80868b] outline-none transition focus:border-[#1a73e8]'
 
 const TABS = [
   { key: 'info' as const, label: 'Informasi Dasar', icon: Tag },
@@ -399,44 +399,44 @@ export default function ProductForm() {
     }
 
     return (
-      <div key={key} className={depth > 0 ? 'ml-4 mt-2 border-l-2 border-indigo-200 pl-3' : ''}>
-        <div className={`rounded-lg border ${depth === 0 ? 'border-slate-300 bg-white shadow-sm' : 'border-slate-200 bg-slate-50'}`}>
+      <div key={key} className={depth > 0 ? 'ml-4 mt-2 border-l-2 border-[#e8f0fe] pl-3' : ''}>
+        <div className={`border ${depth === 0 ? 'border-[#dadce0] bg-white ' : 'border-[#dadce0] bg-[#f8f9fa]'}`}>
           <div className="flex items-end gap-2 p-3">
             {hasChildren ? (
               <button type="button" onClick={() => toggleExpand(key)}
-                className="flex-none p-1 rounded-md hover:bg-slate-100 transition mb-0.5">
-                {isExpanded ? <ChevronDown size={16} className="text-slate-500" /> : <ChevronRight size={16} className="text-slate-500" />}
+                className="flex-none p-1 hover:bg-[#f1f3f4] transition mb-0.5">
+                {isExpanded ? <ChevronDown size={16} className="text-[#5f6368]" /> : <ChevronRight size={16} className="text-[#5f6368]" />}
               </button>
             ) : <span className="w-6 flex-none" />}
             <div className="flex-1 min-w-0">
-              <label className="block text-xs font-bold text-slate-600 mb-1.5">{depth === 0 ? 'Nama Kategori' : 'Nama Sub-Kategori'}</label>
+              <label className="block text-xs font-bold text-[#5f6368] mb-1.5">{depth === 0 ? 'Nama Kategori' : 'Nama Sub-Kategori'}</label>
               <input type="text" placeholder={depth === 0 ? 'Contoh: Level 1, SPP, Ujian...' : 'Contoh: MCU, Pembelajaran, Asrama...'}
                 value={item.name}
                 onChange={e => updateItem(path, 'name', e.target.value)}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#202124] placeholder-[#80868b] outline-none transition focus:border-[#1a73e8]" />
             </div>
             <div className="w-32 flex-none">
-              <label className="block text-xs font-bold text-slate-600 mb-1.5">Harga (Rp)</label>
+              <label className="block text-xs font-bold text-[#5f6368] mb-1.5">Harga (Rp)</label>
               <div className="relative">
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Rp</span>
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-[#80868b]">Rp</span>
                 <input type="number" min={0} placeholder="0"
                   value={item.harga || ''}
                   onChange={e => updateItem(path, 'harga', parseFloat(e.target.value) || 0)}
-                  className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-2 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                  className="w-full border border-[#dadce0] bg-white pl-9 pr-2 py-2 text-sm text-[#202124] placeholder-[#80868b] outline-none transition focus:border-[#1a73e8]" />
               </div>
             </div>
             <div className="w-32 flex-none">
-              <label className="block text-xs font-bold text-emerald-600 mb-1.5">Komisi (Rp)</label>
+              <label className="block text-xs font-bold text-[#137333] mb-1.5">Komisi (Rp)</label>
               <div className="relative">
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-400">Rp</span>
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-[#188038]">Rp</span>
                 <input type="number" min={0} placeholder="0"
                   value={item.komisi || ''}
                   onChange={e => updateItem(path, 'komisi', parseFloat(e.target.value) || 0)}
-                  className="w-full rounded-lg border border-emerald-300 bg-emerald-50 pl-9 pr-2 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
+                  className="w-full border border-[#a8dab5] bg-[#e6f4ea] pl-9 pr-2 py-2 text-sm text-[#202124] placeholder-[#80868b] outline-none transition focus:border-[#1a73e8] focus:ring-[#188038] focus:border-[#188038]" />
               </div>
             </div>
             <button type="button" onClick={() => removeItem(path)}
-              className="flex-none rounded-lg border border-slate-200 bg-white p-2 text-slate-400 transition hover:border-red-300 hover:bg-red-50 hover:text-red-500 mb-0.5">
+              className="flex-none border border-[#dadce0] bg-white p-2 text-[#80868b] transition hover:border-[#f28b82] hover:bg-[#fce8e6] hover:text-[#d93025] mb-0.5">
               <Trash2 size={15} />
             </button>
           </div>
@@ -444,20 +444,20 @@ export default function ProductForm() {
           {/* ===== Pengaturan Tagihan ===== */}
           <div className="mx-3 mb-3">
             <button type="button" onClick={() => toggleExpand(billingKey)}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors">
-              <span className="text-[11px] font-bold text-amber-700">Pengaturan Tagihan</span>
+              className="w-full flex items-center justify-between px-3 py-2 bg-[#fef7e0] border border-[#fdd663] hover:bg-[#fce8b2] transition-colors">
+              <span className="text-[11px] font-bold text-[#b06000]">Pengaturan Tagihan</span>
               <div className="flex items-center gap-1.5">
                 {(item.trigger_type !== 'registration' || item.due_type !== 'days_after_invoice' || item.reminder_setting || (item.reminder_hour && item.reminder_hour !== '09:00')) && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                  <span className="w-1.5 h-1.5 bg-[#e37400]" />
                 )}
-                {isBillingOpen ? <ChevronDown size={12} className="text-amber-600" /> : <ChevronRight size={12} className="text-amber-600" />}
+                {isBillingOpen ? <ChevronDown size={12} className="text-[#b06000]" /> : <ChevronRight size={12} className="text-[#b06000]" />}
               </div>
             </button>
             {isBillingOpen && (
-              <div className="mt-2 p-3 rounded-lg border border-amber-200 bg-amber-50/50 space-y-3">
+              <div className="mt-2 p-3 border border-[#fdd663] bg-[#fef7e0] space-y-3">
                 {/* Trigger */}
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1.5">Trigger Pembuatan Tagihan</label>
+                  <label className="block text-[11px] font-bold text-[#5f6368] mb-1.5">Trigger Pembuatan Tagihan</label>
                   <div className="space-y-1">
                     {TRIGGER_OPTIONS.map(opt => (
                       <label key={opt.value} className="flex items-center gap-2 cursor-pointer group">
@@ -470,8 +470,8 @@ export default function ProductForm() {
                               updateBilling('trigger_value', m ? m[1] : '1');
                             }
                           }}
-                          className="w-3.5 h-3.5 text-amber-600 border-slate-300 focus:ring-amber-500" />
-                        <span className="text-[11px] text-slate-600 group-hover:text-slate-800">{opt.label}</span>
+                          className="w-3.5 h-3.5 text-[#b06000] border-[#dadce0] focus:ring-[#e37400]" />
+                        <span className="text-[11px] text-[#5f6368] group-hover:text-[#202124]">{opt.label}</span>
                       </label>
                     ))}
                   </div>
@@ -480,77 +480,65 @@ export default function ProductForm() {
                 {/* Level jadwal (untuk trigger/due berbasis jadwal level) */}
                 {(item.trigger_type === 'schedule_start' || item.due_type === 'days_after_schedule_start') && (
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1.5">Level Jadwal</label>
+                    <label className="block text-[11px] font-bold text-[#5f6368] mb-1.5">Level Jadwal</label>
                     <div className="flex gap-1.5 flex-wrap">
                       {[1, 2, 3, 4].map(lv => (
                         <button key={lv} type="button"
                           onClick={() => updateBilling('trigger_value', String(lv))}
-                          className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors ${
-                            item.trigger_value === String(lv)
-                              ? 'bg-amber-500 text-white shadow-sm'
-                              : 'bg-white border border-amber-300 text-amber-700 hover:bg-amber-100'
-                          }`}>Level {lv}</button>
+                          className={`px-2.5 py-1 text-[11px] font-bold transition-colors ${ item.trigger_value === String(lv) ? 'bg-[#e37400] text-white ' : 'bg-white border border-[#fdd663] text-[#b06000] hover:bg-[#fef7e0]' }`}>Level {lv}</button>
                       ))}
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-1">Tagihan mengikuti jadwal level ini di setiap batch kandidat.</p>
+                    <p className="text-[10px] text-[#80868b] mt-1">Tagihan mengikuti jadwal level ini di setiap batch kandidat.</p>
                   </div>
                 )}
 
                 {/* Due type */}
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1.5">Pengaturan Jatuh Tempo</label>
+                  <label className="block text-[11px] font-bold text-[#5f6368] mb-1.5">Pengaturan Jatuh Tempo</label>
                   <div className="space-y-1.5">
                     {DUE_OPTIONS.map(opt => (
                       <label key={opt.value} className="flex items-center gap-2 cursor-pointer group">
                         <input type="radio" name={`due-${key}`} value={opt.value}
                           checked={item.due_type === opt.value}
                           onChange={() => updateBilling('due_type', opt.value)}
-                          className="w-3.5 h-3.5 text-amber-600 border-slate-300 focus:ring-amber-500" />
-                        <span className="text-[11px] text-slate-600 group-hover:text-slate-800">{opt.label}</span>
+                          className="w-3.5 h-3.5 text-[#b06000] border-[#dadce0] focus:ring-[#e37400]" />
+                        <span className="text-[11px] text-[#5f6368] group-hover:text-[#202124]">{opt.label}</span>
                       </label>
                     ))}
                   </div>
                   {/* Conditional field */}
                   {(item.due_type === 'days_after_invoice' || item.due_type === 'days_after_schedule_start') && (
                     <div className="mt-2 ml-5">
-                      <label className="block text-[10px] font-semibold text-slate-500 mb-1">Jumlah Hari</label>
+                      <label className="block text-[10px] font-semibold text-[#5f6368] mb-1">Jumlah Hari</label>
                       <div className="flex gap-1.5 flex-wrap">
                         {[3, 7, 14, 30].map(d => (
                           <button key={d} type="button"
                             onClick={() => updateBilling('due_value', String(d))}
-                            className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors ${
-                              item.due_value === String(d)
-                                ? 'bg-amber-500 text-white shadow-sm'
-                                : 'bg-white border border-amber-300 text-amber-700 hover:bg-amber-100'
-                            }`}>{d} Hari</button>
+                            className={`px-2.5 py-1 text-[11px] font-bold transition-colors ${ item.due_value === String(d) ? 'bg-[#e37400] text-white ' : 'bg-white border border-[#fdd663] text-[#b06000] hover:bg-[#fef7e0]' }`}>{d} Hari</button>
                         ))}
                         <button type="button"
                           onClick={() => updateBilling('due_value', '')}
-                          className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors ${
-                            item.due_value && ![3,7,14,30].includes(Number(item.due_value))
-                              ? 'bg-amber-500 text-white shadow-sm'
-                              : 'bg-white border border-amber-300 text-amber-700 hover:bg-amber-100'
-                          }`}>Custom</button>
+                          className={`px-2.5 py-1 text-[11px] font-bold transition-colors ${ item.due_value && ![3,7,14,30].includes(Number(item.due_value)) ? 'bg-[#e37400] text-white ' : 'bg-white border border-[#fdd663] text-[#b06000] hover:bg-[#fef7e0]' }`}>Custom</button>
                         <input type="number" min={1} placeholder="Hari"
                           value={item.due_value && ![3,7,14,30].includes(Number(item.due_value)) ? item.due_value : ''}
                           onChange={e => updateBilling('due_value', e.target.value || null)}
-                          className="w-20 rounded-md border border-amber-300 bg-white px-2 py-1 text-[11px] text-slate-700 outline-none focus:ring-1 focus:ring-amber-400" />
+                          className="w-20 border border-[#fdd663] bg-white px-2 py-1 text-[11px] text-[#3c4043] outline-none focus:border-[#1a73e8] focus:ring-[#f9ab00]" />
                       </div>
                     </div>
                   )}
                   {item.due_type === 'fixed_date' && (
                     <div className="mt-2 ml-5">
-                      <label className="block text-[10px] font-semibold text-slate-500 mb-1">Tanggal Jatuh Tempo</label>
+                      <label className="block text-[10px] font-semibold text-[#5f6368] mb-1">Tanggal Jatuh Tempo</label>
                       <input type="date" value={item.due_value || ''}
                         onChange={e => updateBilling('due_value', e.target.value || null)}
-                        className="rounded-md border border-amber-300 bg-white px-2.5 py-1.5 text-[11px] text-slate-700 outline-none focus:ring-1 focus:ring-amber-400" />
+                        className="border border-[#fdd663] bg-white px-2.5 py-1.5 text-[11px] text-[#3c4043] outline-none focus:border-[#1a73e8] focus:ring-[#f9ab00]" />
                     </div>
                   )}
                 </div>
 
                 {/* Reminder */}
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1.5">Reminder Pembayaran</label>
+                  <label className="block text-[11px] font-bold text-[#5f6368] mb-1.5">Reminder Pembayaran</label>
                   <div className="flex flex-wrap gap-1.5 ml-1">
                     {REMINDER_OPTIONS.map(r => {
                       const active = item.reminder_setting?.includes(r) || false
@@ -561,125 +549,101 @@ export default function ProductForm() {
                             const next = active ? current.filter(x => x !== r) : [...current, r]
                             updateBilling('reminder_setting', next.length > 0 ? next : null)
                           }}
-                          className={`px-2 py-1 rounded-md text-[10px] font-bold transition-colors ${
-                            active
-                              ? 'bg-amber-500 text-white shadow-sm'
-                              : 'bg-white border border-amber-300 text-amber-600 hover:bg-amber-100'
-                          }`}>{r}</button>
+                          className={`px-2 py-1 text-[10px] font-bold transition-colors ${ active ? 'bg-[#e37400] text-white ' : 'bg-white border border-[#fdd663] text-[#b06000] hover:bg-[#fef7e0]' }`}>{r}</button>
                       )
                     })}
                   </div>
                   <div className="mt-2 ml-1">
-                    <label className="block text-[10px] font-semibold text-slate-500 mb-1">Jam Pengiriman Notifikasi</label>
+                    <label className="block text-[10px] font-semibold text-[#5f6368] mb-1">Jam Pengiriman Notifikasi</label>
                     <input type="time" value={item.reminder_hour || '09:00'}
                       onChange={e => updateBilling('reminder_hour', e.target.value || '09:00')}
-                      className="rounded-md border border-amber-300 bg-white px-2.5 py-1.5 text-[11px] text-slate-700 outline-none focus:ring-1 focus:ring-amber-400" />
+                      className="border border-[#fdd663] bg-white px-2.5 py-1.5 text-[11px] text-[#3c4043] outline-none focus:border-[#1a73e8] focus:ring-[#f9ab00]" />
                   </div>
                 </div>
 
                 {/* Channel & Template */}
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1.5">Channel Pengiriman</label>
+                  <label className="block text-[11px] font-bold text-[#5f6368] mb-1.5">Channel Pengiriman</label>
                   <div className="flex flex-wrap gap-1.5 ml-1 mb-3">
                     {[{ val: 'wa', label: 'WhatsApp' }, { val: 'email', label: 'Email' }, { val: 'both', label: 'Keduanya' }].map(ch => {
                       const active = (item.channel || 'wa') === ch.val
                       return (
                         <button key={ch.val} type="button"
                           onClick={() => updateBilling('channel', ch.val)}
-                          className={`px-2 py-1 rounded-md text-[10px] font-bold transition-colors ${
-                            active
-                              ? 'bg-amber-500 text-white shadow-sm'
-                              : 'bg-white border border-amber-300 text-amber-600 hover:bg-amber-100'
-                          }`}>{ch.label}</button>
+                          className={`px-2 py-1 text-[10px] font-bold transition-colors ${ active ? 'bg-[#e37400] text-white ' : 'bg-white border border-[#fdd663] text-[#b06000] hover:bg-[#fef7e0]' }`}>{ch.label}</button>
                       )
                     })}
                   </div>
 
                   {(item.channel === 'wa' || item.channel === 'both' || !item.channel) && (
                     <div className="mb-3">
-                      <label className="block text-[10px] font-semibold text-slate-500 mb-1">Template Pesan WhatsApp</label>
+                      <label className="block text-[10px] font-semibold text-[#5f6368] mb-1">Template Pesan WhatsApp</label>
                       <div className="flex flex-wrap gap-1 ml-1 mb-1.5">
                         {WA_TEMPLATES.map(t => (
                           <button key={t.label} type="button"
                             onClick={() => updateBilling('template_pesan', t.template)}
-                            className={`px-2 py-0.5 rounded text-[9px] font-semibold transition-colors ${
-                              item.template_pesan === t.template
-                                ? 'bg-amber-500 text-white'
-                                : 'bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100'
-                            }`}>{t.label}</button>
+                            className={`px-2 py-0.5 text-[9px] font-semibold transition-colors ${ item.template_pesan === t.template ? 'bg-[#e37400] text-white' : 'bg-[#fef7e0] border border-[#fdd663] text-[#b06000] hover:bg-[#fef7e0]' }`}>{t.label}</button>
                         ))}
                         <button type="button"
                           onClick={() => updateBilling('template_pesan', null)}
-                          className={`px-2 py-0.5 rounded text-[9px] font-semibold transition-colors ${
-                            !item.template_pesan
-                              ? 'bg-slate-500 text-white'
-                              : 'bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200'
-                          }`}>Custom</button>
+                          className={`px-2 py-0.5 text-[9px] font-semibold transition-colors ${ !item.template_pesan ? 'bg-[#9aa0a6] text-white' : 'bg-[#f1f3f4] border border-[#dadce0] text-[#5f6368] hover:bg-[#e8eaed]' }`}>Custom</button>
                       </div>
                       <div className="flex flex-wrap gap-1 ml-1 mb-1.5">
                         {TEMPLATE_VARS.map(v => (
                           <button key={v.var} type="button"
                             onClick={() => updateBilling('template_pesan', (item.template_pesan || '') + v.var)}
-                            className="px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-[9px] font-mono text-slate-600 transition-colors"
+                            className="px-1.5 py-0.5 bg-[#f1f3f4] hover:bg-[#e8eaed] text-[9px] font-mono text-[#5f6368] transition-colors"
                             title={v.desc}>{v.var}</button>
                         ))}
                       </div>
                       <textarea rows={3} value={item.template_pesan || ''}
                         onChange={e => updateBilling('template_pesan', e.target.value || null)}
                         placeholder="Tulis atau pilih template di atas..."
-                        className="w-full rounded-md border border-amber-300 bg-white px-2.5 py-1.5 text-[11px] text-slate-700 outline-none focus:ring-1 focus:ring-amber-400 resize-none font-mono" />
+                        className="w-full border border-[#fdd663] bg-white px-2.5 py-1.5 text-[11px] text-[#3c4043] outline-none focus:border-[#1a73e8] focus:ring-[#f9ab00] resize-none font-mono" />
                     </div>
                   )}
 
                   {(item.channel === 'email' || item.channel === 'both') && (
                     <>
                       <div className="mb-2">
-                        <label className="block text-[10px] font-semibold text-slate-500 mb-1">Subject Email</label>
+                        <label className="block text-[10px] font-semibold text-[#5f6368] mb-1">Subject Email</label>
                         <div className="flex flex-wrap gap-1 ml-1 mb-1.5">
                           {TEMPLATE_VARS.map(v => (
                             <button key={v.var} type="button"
                               onClick={() => updateBilling('subject_email', (item.subject_email || '') + v.var)}
-                              className="px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-[9px] font-mono text-slate-600 transition-colors"
+                              className="px-1.5 py-0.5 bg-[#f1f3f4] hover:bg-[#e8eaed] text-[9px] font-mono text-[#5f6368] transition-colors"
                               title={v.desc}>{v.var}</button>
                           ))}
                         </div>
                         <input type="text" value={item.subject_email || ''}
                           onChange={e => updateBilling('subject_email', e.target.value || null)}
                           placeholder="Contoh: Pengingat Pembayaran {kategori}"
-                          className="w-full rounded-md border border-amber-300 bg-white px-2.5 py-1.5 text-[11px] text-slate-700 outline-none focus:ring-1 focus:ring-amber-400 font-mono" />
+                          className="w-full border border-[#fdd663] bg-white px-2.5 py-1.5 text-[11px] text-[#3c4043] outline-none focus:border-[#1a73e8] focus:ring-[#f9ab00] font-mono" />
                       </div>
                       <div className="mb-1">
-                        <label className="block text-[10px] font-semibold text-slate-500 mb-1">Template Email</label>
+                        <label className="block text-[10px] font-semibold text-[#5f6368] mb-1">Template Email</label>
                         <div className="flex flex-wrap gap-1 ml-1 mb-1.5">
                           {EMAIL_TEMPLATES.map(t => (
                             <button key={t.label} type="button"
                               onClick={() => { updateBilling('subject_email', t.subject); updateBilling('template_email', t.body) }}
-                              className={`px-2 py-0.5 rounded text-[9px] font-semibold transition-colors ${
-                                item.template_email === t.body
-                                  ? 'bg-amber-500 text-white'
-                                  : 'bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100'
-                              }`}>{t.label}</button>
+                              className={`px-2 py-0.5 text-[9px] font-semibold transition-colors ${ item.template_email === t.body ? 'bg-[#e37400] text-white' : 'bg-[#fef7e0] border border-[#fdd663] text-[#b06000] hover:bg-[#fef7e0]' }`}>{t.label}</button>
                           ))}
                           <button type="button"
                             onClick={() => { updateBilling('template_email', null); updateBilling('subject_email', null) }}
-                            className={`px-2 py-0.5 rounded text-[9px] font-semibold transition-colors ${
-                              !item.template_email
-                                ? 'bg-slate-500 text-white'
-                                : 'bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200'
-                            }`}>Custom</button>
+                            className={`px-2 py-0.5 text-[9px] font-semibold transition-colors ${ !item.template_email ? 'bg-[#9aa0a6] text-white' : 'bg-[#f1f3f4] border border-[#dadce0] text-[#5f6368] hover:bg-[#e8eaed]' }`}>Custom</button>
                         </div>
                         <div className="flex flex-wrap gap-1 ml-1 mb-1.5">
                           {TEMPLATE_VARS.map(v => (
                             <button key={v.var} type="button"
                               onClick={() => updateBilling('template_email', (item.template_email || '') + v.var)}
-                              className="px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-[9px] font-mono text-slate-600 transition-colors"
+                              className="px-1.5 py-0.5 bg-[#f1f3f4] hover:bg-[#e8eaed] text-[9px] font-mono text-[#5f6368] transition-colors"
                               title={v.desc}>{v.var}</button>
                           ))}
                         </div>
                         <textarea rows={4} value={item.template_email || ''}
                           onChange={e => updateBilling('template_email', e.target.value || null)}
                           placeholder="Tulis atau pilih template di atas..."
-                          className="w-full rounded-md border border-amber-300 bg-white px-2.5 py-1.5 text-[11px] text-slate-700 outline-none focus:ring-1 focus:ring-amber-400 resize-none font-mono" />
+                          className="w-full border border-[#fdd663] bg-white px-2.5 py-1.5 text-[11px] text-[#3c4043] outline-none focus:border-[#1a73e8] focus:ring-[#f9ab00] resize-none font-mono" />
                       </div>
                     </>
                   )}
@@ -692,10 +656,10 @@ export default function ProductForm() {
           {hasChildren && depth === 0 && (
             <div className="flex items-center justify-between px-3 pb-2.5 -mt-1">
               <button type="button" onClick={() => addItem(path)}
-                className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition">
+                className="text-xs font-semibold text-[#1a73e8] hover:text-[#185abc] transition">
                 <Plus size={12} className="inline mr-0.5" /> Tambah Sub
               </button>
-              <span className="text-xs font-bold text-indigo-700 bg-indigo-100 px-3 py-1 rounded-full">
+              <span className="text-xs font-bold text-[#1967d2] bg-[#e8f0fe] px-3 py-1">
                 Total: Rp {ownTotal.toLocaleString('id-ID')}
               </span>
             </div>
@@ -703,7 +667,7 @@ export default function ProductForm() {
           {!hasChildren && depth === 0 && (
             <div className="flex justify-end px-3 pb-2.5 -mt-1">
               <button type="button" onClick={() => addItem(path)}
-                className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition">
+                className="text-xs font-semibold text-[#1a73e8] hover:text-[#185abc] transition">
                 <Plus size={12} className="inline mr-0.5" /> Tambah Sub
               </button>
             </div>
@@ -721,7 +685,7 @@ export default function ProductForm() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 size={28} className="animate-spin text-[#0E6187]" />
+        <Loader2 size={28} className="animate-spin text-[#1a73e8]" />
       </div>
     )
   }
@@ -729,30 +693,30 @@ export default function ProductForm() {
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       {/* Breadcrumb */}
-      <nav className="mb-4 flex flex-wrap items-center gap-1.5 text-xs text-slate-500" aria-label="Breadcrumb">
-        <Link to="/" className="flex items-center gap-1 transition-colors hover:text-[#0E6187]">
+      <nav className="mb-4 flex flex-wrap items-center gap-1.5 text-xs text-[#5f6368]" aria-label="Breadcrumb">
+        <Link to="/" className="flex items-center gap-1 transition-colors hover:text-[#1a73e8]">
           <LayoutDashboard size={13} />
           <span>Beranda</span>
         </Link>
-        <ChevronRight size={12} className="text-slate-300" />
-        <Link to="/data-product" className="transition-colors hover:text-[#0E6187]">Program &amp; Affiliate</Link>
-        <ChevronRight size={12} className="text-slate-300" />
-        <span className="font-medium text-slate-700">{isEdit ? 'Edit Produk' : 'Tambah Produk Baru'}</span>
+        <ChevronRight size={12} className="text-[#9aa0a6]" />
+        <Link to="/data-product" className="transition-colors hover:text-[#1a73e8]">Program &amp; Affiliate</Link>
+        <ChevronRight size={12} className="text-[#9aa0a6]" />
+        <span className="font-medium text-[#3c4043]">{isEdit ? 'Edit Produk' : 'Tambah Produk Baru'}</span>
       </nav>
 
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-4 border-b border-[#dadce0] pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate('/data-product')}
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-700" title="Kembali">
+            className="flex h-10 w-10 items-center justify-center border border-[#dadce0] bg-white text-[#5f6368] transition hover:bg-[#f8f9fa] hover:text-[#3c4043]" title="Kembali">
             <ArrowLeft size={18} />
           </button>
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white border border-blue-100">
+          <div className="flex h-10 w-10 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368] border border-[#e8f0fe]">
             <Package size={20} />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-slate-800">{isEdit ? 'Edit Produk' : 'Tambah Produk Baru'}</h1>
-            <p className="text-sm text-slate-500">{isEdit ? 'Perbarui data produk dan pengaturan komisi' : 'Lengkapi data produk untuk memulai'}</p>
+            <h1 className="text-xl font-medium text-[#202124]">{isEdit ? 'Edit Produk' : 'Tambah Produk Baru'}</h1>
+            <p className="text-sm text-[#5f6368]">{isEdit ? 'Perbarui data produk dan pengaturan komisi' : 'Lengkapi data produk untuk memulai'}</p>
           </div>
         </div>
       </div>
@@ -764,17 +728,13 @@ export default function ProductForm() {
           e.preventDefault()
         }
       }}>
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="overflow-hidden border border-[#dadce0] bg-white">
           {/* Tabs (bisa diklik bebas) */}
-          <div className="border-b border-slate-200 px-4 sm:px-5">
+          <div className="border-b border-[#dadce0] px-4 sm:px-5">
             <div className="flex gap-1 overflow-x-auto">
               {TABS.map(tab => (
                 <button key={tab.key} type="button" onClick={() => setActiveTab(tab.key)}
-                  className={`flex flex-none items-center gap-1.5 whitespace-nowrap rounded-t-lg border-b-2 px-4 py-3 text-sm font-semibold transition-all ${
-                    activeTab === tab.key
-                      ? 'border-[#0E6187] bg-[#0E6187]/5 text-[#0E6187]'
-                      : 'border-transparent text-slate-400 hover:bg-slate-50 hover:text-slate-600'
-                  }`}>
+                  className={`flex flex-none items-center gap-1.5 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition-all ${ activeTab === tab.key ? 'border-[#1a73e8] bg-[#f8f9fa] text-[#1a73e8]' : 'border-transparent text-[#80868b] hover:bg-[#f8f9fa] hover:text-[#5f6368]' }`}>
                   <tab.icon size={15} />
                   {tab.label}
                 </button>
@@ -786,20 +746,20 @@ export default function ProductForm() {
           {activeTab === 'info' && (
             <div className="space-y-5 p-5">
               <div>
-                <label className="mb-1 block text-sm font-semibold text-gray-800">Nama Produk <span className="text-red-500">*</span></label>
+                <label className="mb-1 block text-sm font-semibold text-[#202124]">Nama Produk <span className="text-[#d93025]">*</span></label>
                 <input type="text" required placeholder="Contoh: Program Tahfidz 2026" value={form.nama} onChange={e => setForm({ ...form, nama: e.target.value })}
                   className={inputClass} />
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-gray-800">Gambar Produk <span className="text-xs font-normal text-gray-400">(opsional)</span></label>
+                  <label className="mb-1 block text-sm font-semibold text-[#202124]">Gambar Produk <span className="text-xs font-normal text-[#80868b]">(opsional)</span></label>
                   <div className="flex items-center gap-3">
                     {(gambarPreview || editing?.gambar) && (
                       <img src={gambarPreview || `${APP_URL}/storage/${editing?.gambar}`} alt="Preview"
-                        className="h-16 w-16 rounded-lg border border-gray-200 object-cover" />
+                        className="h-16 w-16 border border-[#dadce0] object-cover" />
                     )}
-                    <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-600 transition hover:bg-gray-100">
+                    <label className="flex cursor-pointer items-center gap-2 border border-dashed border-[#dadce0] bg-[#f8f9fa] px-4 py-2.5 text-sm text-[#5f6368] transition hover:bg-[#f1f3f4]">
                       <input type="file" accept="image/*" className="hidden" onChange={e => {
                         const file = e.target.files?.[0]
                         if (file) {
@@ -812,14 +772,14 @@ export default function ProductForm() {
                     </label>
                     {(gambarFile || editing?.gambar) && (
                       <button type="button" onClick={() => { setGambarFile(null); setGambarPreview(null); setHapusGambar(true) }}
-                        className="text-sm text-red-500 hover:text-red-700">Hapus</button>
+                        className="text-sm text-[#d93025] hover:text-[#a50e0e]">Hapus</button>
                     )}
                   </div>
-                  <p className="mt-1 text-[11px] text-gray-400">Format JPG/PNG/WebP, maksimal 2MB</p>
+                  <p className="mt-1 text-[11px] text-[#80868b]">Format JPG/PNG/WebP, maksimal 2MB</p>
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-gray-800">Batch / Angkatan <span className="text-xs font-normal text-gray-400">(opsional)</span></label>
+                  <label className="mb-1 block text-sm font-semibold text-[#202124]">Batch / Angkatan <span className="text-xs font-normal text-[#80868b]">(opsional)</span></label>
                   <div className="flex items-center gap-2">
                     <select value={form.batch_id} onChange={e => setForm({ ...form, batch_id: e.target.value })}
                       className={`${inputClass} appearance-none cursor-pointer`}>
@@ -834,49 +794,49 @@ export default function ProductForm() {
                     {(() => {
                       const selected = batches.find(b => String(b.id) === form.batch_id)
                       if (!selected) return null
-                      const warna = selected.warna || '#3b82f6'
+                      const warna = selected.warna || '#0E6187'
                       return (
-                        <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-slate-200 bg-white px-2 py-1.5"
+                        <span className="inline-flex items-center gap-1.5 whitespace-nowrap border border-[#dadce0] bg-white px-2 py-1.5"
                           style={{ borderColor: warna }}>
-                          <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: warna }} />
+                          <span className="inline-block h-3 w-3" style={{ backgroundColor: warna }} />
                         </span>
                       )
                     })()}
                   </div>
-                  <p className="mt-1 text-[11px] text-gray-400">Pilih batch agar pendaftar otomatis masuk batch ini</p>
+                  <p className="mt-1 text-[11px] text-[#80868b]">Pilih batch agar pendaftar otomatis masuk batch ini</p>
                 </div>
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-semibold text-gray-800">Deskripsi <span className="text-xs font-normal text-gray-400">(opsional)</span></label>
+                <label className="mb-1 block text-sm font-semibold text-[#202124]">Deskripsi <span className="text-xs font-normal text-[#80868b]">(opsional)</span></label>
                 <textarea placeholder="Jelaskan tentang produk ini..." value={form.deskripsi} onChange={e => setForm({ ...form, deskripsi: e.target.value })} rows={3}
                   className={`${inputClass} resize-none`} />
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-gray-800">Komisi Global <span className="text-xs font-normal text-gray-400">(Rp)</span></label>
+                  <label className="mb-1 block text-sm font-semibold text-[#202124]">Komisi Global <span className="text-xs font-normal text-[#80868b]">(Rp)</span></label>
                   <input type="number" min={0} placeholder="0" value={form.komisi} onChange={e => setForm({ ...form, komisi: e.target.value })}
                     className={inputClass} />
-                  <p className="mt-1 text-[11px] text-gray-400">Dibayarkan saat kandidat di-approve</p>
+                  <p className="mt-1 text-[11px] text-[#80868b]">Dibayarkan saat kandidat di-approve</p>
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-gray-800">Affiliate</label>
+                  <label className="mb-1 block text-sm font-semibold text-[#202124]">Affiliate</label>
                   <label className="relative inline-flex cursor-pointer items-center py-2">
                     <input type="checkbox" className="peer sr-only" checked={form.is_affiliable} onChange={e => setForm({ ...form, is_affiliable: e.target.checked })} />
-                    <div className="h-5 w-9 rounded-full bg-slate-300 after:absolute after:top-[2px] after:left-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-emerald-500 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#0E6187]/30" />
-                    <span className="ml-3 text-sm text-slate-600">{form.is_affiliable ? 'Dapat di-affiliate-kan' : 'Tidak untuk affiliate'}</span>
+                    <div className="h-5 w-9 rounded-full bg-[#e8eaed] after:absolute after:top-[2px] after:left-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-[#dadce0] after:bg-white after:transition-all after:content-[''] peer-checked:bg-[#0E6187] peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:border-[#1a73e8] peer-/30" />
+                    <span className="ml-3 text-sm text-[#5f6368]">{form.is_affiliable ? 'Dapat di-affiliate-kan' : 'Tidak untuk affiliate'}</span>
                   </label>
-                  <p className="mt-1 text-[11px] text-gray-400">Nonaktifkan jika tidak boleh dipromosikan affiliate</p>
+                  <p className="mt-1 text-[11px] text-[#80868b]">Nonaktifkan jika tidak boleh dipromosikan affiliate</p>
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-gray-800">Status Produk</label>
+                  <label className="mb-1 block text-sm font-semibold text-[#202124]">Status Produk</label>
                   <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}
                     className={`${inputClass} appearance-none cursor-pointer`}>
                     <option value="aktif">Aktif</option>
                     <option value="nonaktif">Nonaktif</option>
                   </select>
-                  <p className="mt-1 text-[11px] text-gray-400">Nonaktif = tidak bisa didaftar</p>
+                  <p className="mt-1 text-[11px] text-[#80868b]">Nonaktif = tidak bisa didaftar</p>
                 </div>
               </div>
             </div>
@@ -885,15 +845,15 @@ export default function ProductForm() {
           {/* ===== Tab: Kategori & Harga ===== */}
           {activeTab === 'kategori' && (
             <div className="space-y-2 p-5">
-              <p className="mb-3 text-xs text-slate-500">Definisikan tahapan pembayaran. Kategori utama bisa memiliki sub-kategori.</p>
+              <p className="mb-3 text-xs text-[#5f6368]">Definisikan tahapan pembayaran. Kategori utama bisa memiliki sub-kategori.</p>
               {form.kategori_items.map((item, idx) => renderKategoriRow(item, [idx], 0))}
               <button type="button" onClick={() => addItem([])}
-                className="w-full rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 py-3 text-sm font-semibold text-slate-500 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600">
+                className="w-full border-2 border-dashed border-[#dadce0] bg-[#f8f9fa] py-3 text-sm font-semibold text-[#5f6368] transition hover:border-[#1a73e8] hover:bg-[#e8f0fe] hover:text-[#1a73e8]">
                 <Plus size={14} className="mr-1 inline" /> Tambah Kategori Baru
               </button>
-              <div className="mt-4 flex items-center justify-between rounded-lg border border-[#0E6187]/10 bg-[#0E6187]/5 px-4 py-3">
-                <span className="text-sm font-bold text-slate-700">Total Harga</span>
-                <span className="text-base font-bold text-[#0E6187]">Rp {totalHarga.toLocaleString('id-ID')}</span>
+              <div className="mt-4 flex items-center justify-between border border-[#1a73e8] bg-[#f8f9fa] px-4 py-3">
+                <span className="text-sm font-bold text-[#3c4043]">Total Harga</span>
+                <span className="text-base font-bold text-[#1a73e8]">Rp {totalHarga.toLocaleString('id-ID')}</span>
               </div>
             </div>
           )}
@@ -901,10 +861,10 @@ export default function ProductForm() {
           {/* ===== Tab: Komisi ===== */}
           {activeTab === 'komisi' && (
             <div className="p-5">
-              <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50/50 px-4 py-3">
+              <div className="mb-4 border border-[#a8dab5] bg-[#e6f4ea] px-4 py-3">
                 <div className="flex items-start gap-2">
-                  <Info size={14} className="mt-0.5 flex-none text-emerald-600" />
-                  <div className="text-[11px] leading-relaxed text-emerald-800">
+                  <Info size={14} className="mt-0.5 flex-none text-[#137333]" />
+                  <div className="text-[11px] leading-relaxed text-[#0d652d]">
                     <p className="mb-1 font-semibold">Cara kerja:</p>
                     <ul className="list-inside list-disc space-y-0.5">
                       <li>Komisi di-trigger saat <strong>semua sub-kategori lunas</strong></li>
@@ -918,11 +878,11 @@ export default function ProductForm() {
 
               {form.kategori_items.filter(i => i.children && i.children.length > 0).length === 0 ? (
                 <div className="py-10 text-center">
-                  <Users size={32} className="mx-auto mb-2 text-slate-300" />
-                  <p className="text-sm text-slate-500">Belum ada kategori dengan sub-kategori</p>
-                  <p className="mt-1 text-[11px] text-slate-400">Tambahkan sub-kategori di tab "Kategori &amp; Harga" untuk mengatur komisi tier</p>
+                  <Users size={32} className="mx-auto mb-2 text-[#9aa0a6]" />
+                  <p className="text-sm text-[#5f6368]">Belum ada kategori dengan sub-kategori</p>
+                  <p className="mt-1 text-[11px] text-[#80868b]">Tambahkan sub-kategori di tab "Kategori &amp; Harga" untuk mengatur komisi tier</p>
                   <button type="button" onClick={() => setActiveTab('kategori')}
-                    className="mt-3 rounded-lg bg-[#0E6187] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#0a4f66]">
+                    className="mt-3 bg-[#0E6187] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#084c63]">
                     Buka Tab Kategori
                   </button>
                 </div>
@@ -952,19 +912,19 @@ export default function ProductForm() {
                     }
 
                     return (
-                      <div key={parentIdx} className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-                        <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-4 py-3">
+                      <div key={parentIdx} className="overflow-hidden border border-[#dadce0] bg-white">
+                        <div className="flex items-center justify-between border-b border-[#e8eaed] bg-[#f8f9fa] px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-slate-800">{parent.name}</span>
-                            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700">{parentTiers.length} tier</span>
+                            <span className="text-sm font-bold text-[#202124]">{parent.name}</span>
+                            <span className="bg-[#e6f4ea] px-2 py-0.5 text-[10px] font-medium text-[#137333]">{parentTiers.length} tier</span>
                           </div>
-                          <span className="text-[11px] text-slate-400">Sub: {childNames}</span>
+                          <span className="text-[11px] text-[#80868b]">Sub: {childNames}</span>
                         </div>
 
                         <div className="p-3">
                           {parentTiers.length > 0 ? (
                             <div className="space-y-2">
-                              <div className="grid grid-cols-[110px_50px_50px_1fr_32px] gap-2 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                              <div className="grid grid-cols-[110px_50px_50px_1fr_32px] gap-2 px-1 text-[10px] font-bold r text-[#80868b]">
                                 <span>Batch</span>
                                 <span className="text-center" title="Jumlah kandidat lunas minimum">Min</span>
                                 <span className="text-center" title="Jumlah kandidat lunas maksimum">Max</span>
@@ -974,26 +934,26 @@ export default function ProductForm() {
                               {parentTiers.map((t, _ti) => {
                                 const globalIdx = form.komisi_tiers.indexOf(t)
                                 return (
-                                  <div key={globalIdx} className="grid grid-cols-[110px_50px_50px_1fr_32px] items-center gap-2 rounded-lg bg-slate-50 p-1.5">
+                                  <div key={globalIdx} className="grid grid-cols-[110px_50px_50px_1fr_32px] items-center gap-2 bg-[#f8f9fa] p-1.5">
                                     <select value={t.batch_id ?? ''}
                                       onChange={e => updateTier(globalIdx, 'batch_id', e.target.value ? parseInt(e.target.value) : null)}
-                                      className="truncate rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs text-slate-700 outline-none focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187]/20">
+                                      className="truncate border border-[#dadce0] bg-white px-2 py-2 text-xs text-[#3c4043] outline-none ">
                                       <option value="">Semua Batch</option>
                                       {batches.map(b => <option key={b.id} value={b.id}>{b.nama_batch}</option>)}
                                     </select>
                                     <input type="number" min={1} value={t.min_orang}
                                       onChange={e => updateTier(globalIdx, 'min_orang', parseInt(e.target.value) || 1)}
-                                      className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-center text-xs font-semibold text-slate-700 outline-none focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187]/20" />
+                                      className="border border-[#dadce0] bg-white px-2 py-2 text-center text-xs font-semibold text-[#3c4043] outline-none " />
                                     <input type="number" min={t.min_orang} placeholder="∞" value={t.max_orang ?? ''}
                                       onChange={e => updateTier(globalIdx, 'max_orang', e.target.value ? parseInt(e.target.value) : null)}
-                                      className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-center text-xs text-slate-700 outline-none focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187]/20" />
+                                      className="border border-[#dadce0] bg-white px-2 py-2 text-center text-xs text-[#3c4043] outline-none " />
                                     <div className="relative">
-                                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-600">Rp</span>
+                                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-[#137333]">Rp</span>
                                       <input type="number" min={0} value={t.komisi ?? 0}
                                         onChange={e => updateTier(globalIdx, 'komisi', parseFloat(e.target.value) || 0)}
-                                        className="w-full rounded-lg border border-emerald-200 bg-emerald-50 pl-9 pr-2 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20" />
+                                        className="w-full border border-[#a8dab5] bg-[#e6f4ea] pl-9 pr-2 py-2 text-xs font-semibold text-[#202124] outline-none focus:border-[#188038] focus:border-[#1a73e8] focus:ring-[#188038]" />
                                     </div>
-                                    <button type="button" onClick={() => removeTier(globalIdx)} className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500">
+                                    <button type="button" onClick={() => removeTier(globalIdx)} className="p-2 text-[#80868b] transition-colors hover:bg-[#fce8e6] hover:text-[#d93025]">
                                       <Trash size={13} />
                                     </button>
                                   </div>
@@ -1001,10 +961,10 @@ export default function ProductForm() {
                               })}
                             </div>
                           ) : (
-                            <p className="py-3 text-center text-xs text-slate-400">Belum ada tier.</p>
+                            <p className="py-3 text-center text-xs text-[#80868b]">Belum ada tier.</p>
                           )}
                           <button type="button" onClick={addParentTier}
-                            className="mt-2 w-full rounded-lg border-2 border-dashed border-slate-200 py-2 text-xs font-semibold text-slate-500 transition-colors hover:border-[#0E6187]/30 hover:bg-[#0E6187]/5 hover:text-[#0E6187]">
+                            className="mt-2 w-full border-2 border-dashed border-[#dadce0] py-2 text-xs font-semibold text-[#5f6368] transition-colors hover:border-[#1a73e8] hover:bg-[#f8f9fa] hover:text-[#1a73e8]">
                             <Plus size={13} className="mr-1 inline" /> Tambah Tier
                           </button>
                         </div>
@@ -1020,11 +980,11 @@ export default function ProductForm() {
         {/* ===== Actions ===== */}
         <div className="mt-4 flex flex-col-reverse gap-3 pb-2 sm:flex-row sm:justify-end">
           <button type="button" onClick={() => navigate('/data-product')}
-            className="rounded-lg border border-gray-300 px-6 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">
+            className="border border-[#dadce0] px-6 py-2.5 text-sm font-semibold text-[#3c4043] transition hover:bg-[#f8f9fa]">
             Batal
           </button>
           <button type="submit" disabled={saving}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0E6187] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#1a5e6f] disabled:cursor-not-allowed disabled:opacity-50">
+            className="inline-flex items-center justify-center gap-2 bg-[#0E6187] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#202124] disabled:cursor-not-allowed disabled:opacity-50">
             {saving ? <><Loader2 size={15} className="animate-spin" /> Menyimpan...</> : editing ? 'Simpan Perubahan' : 'Buat Produk'}
           </button>
         </div>

@@ -35,8 +35,8 @@ interface DashboardData {
 }
 
 const COLORS = [
-  '#0E6187', '#0891b2', '#f59e0b', '#10b981', '#8b5cf6',
-  '#f97316', '#ef4444', '#ec4899', '#14b8a6', '#6366f1',
+  '#0E6187', '#188038', '#e37400', '#8430ce', '#1967d2',
+  '#d93025', '#137333', '#0b8043', '#174ea6', '#b06000',
 ]
 
 export default function DashboardKeuangan() {
@@ -63,8 +63,8 @@ export default function DashboardKeuangan() {
       <div className="px-6 py-8">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="w-10 h-10 border-4 border-slate-200 border-t-[#0E6187] rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-sm text-slate-500">Memuat dashboard keuangan...</p>
+            <div className="w-10 h-10 border-4 border-[#dadce0] border-t-[#1a73e8] rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-sm text-[#5f6368]">Memuat dashboard keuangan...</p>
           </div>
         </div>
       </div>
@@ -135,13 +135,13 @@ export default function DashboardKeuangan() {
             if (num >= 1000) return `${(num / 1000).toFixed(0)}rb`
             return v
           },
-          color: '#94a3b8',
+          color: '#80868b',
           font: { size: 11 },
         },
-        grid: { color: '#f1f5f9' },
+        grid: { color: '#e8eaed' },
       },
       x: {
-        ticks: { color: '#94a3b8', font: { size: 11 } },
+        ticks: { color: '#80868b', font: { size: 11 } },
         grid: { display: false },
       },
     },
@@ -168,13 +168,13 @@ export default function DashboardKeuangan() {
             if (num >= 1000) return `${(num / 1000).toFixed(0)}rb`
             return v
           },
-          color: '#94a3b8',
+          color: '#80868b',
           font: { size: 11 },
         },
-        grid: { color: '#f1f5f9' },
+        grid: { color: '#e8eaed' },
       },
       x: {
-        ticks: { color: '#94a3b8', font: { size: 11 } },
+        ticks: { color: '#80868b', font: { size: 11 } },
         grid: { display: false },
       },
     },
@@ -199,35 +199,35 @@ export default function DashboardKeuangan() {
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4 space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="mb-4 flex flex-col gap-4 border-b border-[#dadce0] pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
-            <Wallet size={20} className="text-white" />
+          <div className="flex h-10 w-10 items-center justify-center bg-[#e8f0fe] text-[#1a73e8]">
+            <Wallet size={20} />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-slate-800">Dashboard Keuangan</h1>
-            <p className="text-sm text-slate-500">{bulanNames[new Date().getMonth()]} {new Date().getFullYear()}</p>
+            <h1 className="text-xl font-medium text-[#202124]">Dashboard Keuangan</h1>
+            <p className="text-sm text-[#5f6368]">{bulanNames[new Date().getMonth()]} {new Date().getFullYear()}</p>
           </div>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
+          <div className="flex flex-wrap items-center gap-2 border border-[#dadce0] bg-white p-2">
             <div className="flex items-center gap-1.5">
-              <Calendar size={14} className="text-slate-400" />
+              <Calendar size={14} className="text-[#80868b]" />
               <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
-                className="rounded-md border border-slate-300 px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187]" />
-              <span className="text-xs text-slate-400">s/d</span>
+                className="border border-[#dadce0] px-2 py-1.5 text-xs text-[#3c4043] outline-none focus:border-[#1a73e8]" />
+              <span className="text-xs text-[#80868b]">s/d</span>
               <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
-                className="rounded-md border border-slate-300 px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-[#0E6187] focus:ring-1 focus:ring-[#0E6187]" />
+                className="border border-[#dadce0] px-2 py-1.5 text-xs text-[#3c4043] outline-none focus:border-[#1a73e8]" />
             </div>
             <button onClick={() => fetchData(startDate, endDate)}
-              className="inline-flex items-center gap-1 rounded-md bg-[#0E6187] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#15506b]">
+              className="inline-flex items-center gap-1 bg-[#0E6187] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#084c63]">
               <Filter size={12} />
               Filter
             </button>
             {(startDate || endDate) && (
               <button onClick={() => { setStartDate(''); setEndDate(''); fetchData() }}
-                className="inline-flex items-center gap-1 rounded-md border border-slate-300 px-2 py-1.5 text-xs text-slate-500 transition hover:bg-slate-50">
+                className="inline-flex items-center gap-1 border border-[#dadce0] px-2 py-1.5 text-xs text-[#5f6368] transition hover:bg-[#f8f9fa]">
                 <X size={12} />
                 Reset
               </button>
@@ -235,7 +235,7 @@ export default function DashboardKeuangan() {
           </div>
           <Link
             to="/pengeluaran"
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-[#0E6187] px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#15506b]"
+            className="inline-flex items-center justify-center gap-2 bg-[#0E6187] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#084c63]"
           >
             <Receipt size={16} />
             Lihat Semua Pengeluaran
@@ -245,77 +245,77 @@ export default function DashboardKeuangan() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+        <div className="bg-white border border-[#dadce0] p-4">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Pengeluaran Bulan Ini</span>
-            <div className="w-8 h-8 bg-[#0E6187]/10 rounded-lg flex items-center justify-center">
-              <Wallet size={16} className="text-[#0E6187]" />
+            <span className="text-xs font-medium text-[#5f6368]">Pengeluaran Bulan Ini</span>
+            <div className="w-8 h-8 bg-[#f1f3f4] flex items-center justify-center">
+              <Wallet size={16} className="text-[#1a73e8]" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-slate-900">{formatRupiah(data.total_bulan_ini)}</p>
+          <p className="text-2xl font-medium text-[#202124]">{formatRupiah(data.total_bulan_ini)}</p>
           <div className="flex items-center gap-1 mt-2">
             {data.persentase_bulan_lalu > 0 ? (
-              <ArrowUp size={14} className="text-red-500" />
+              <ArrowUp size={14} className="text-[#d93025]" />
             ) : data.persentase_bulan_lalu < 0 ? (
-              <ArrowDown size={14} className="text-green-500" />
+              <ArrowDown size={14} className="text-[#188038]" />
             ) : null}
-            <span className={`text-xs font-medium ${data.persentase_bulan_lalu > 0 ? 'text-red-500' : data.persentase_bulan_lalu < 0 ? 'text-green-500' : 'text-slate-400'}`}>
+            <span className={`text-xs font-medium ${data.persentase_bulan_lalu > 0 ? 'text-[#d93025]' : data.persentase_bulan_lalu < 0 ? 'text-[#188038]' : 'text-[#80868b]'}`}>
               {data.persentase_bulan_lalu > 0 ? '+' : ''}{data.persentase_bulan_lalu}% dari bulan lalu
             </span>
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+        <div className="bg-white border border-[#dadce0] p-4">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Pendapatan Bulan Ini</span>
-            <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
-              <TrendingUp size={16} className="text-green-600" />
+            <span className="text-xs font-medium text-[#5f6368]">Pendapatan Bulan Ini</span>
+            <div className="w-8 h-8 bg-[#e6f4ea] flex items-center justify-center">
+              <TrendingUp size={16} className="text-[#137333]" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-green-600">{formatRupiah(data.pendapatan_bulan_ini)}</p>
-          <p className="text-xs text-slate-400 mt-2">Dari pendaftar verified</p>
+          <p className="text-2xl font-medium text-[#137333]">{formatRupiah(data.pendapatan_bulan_ini)}</p>
+          <p className="text-xs text-[#80868b] mt-2">Dari pendaftar verified</p>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+        <div className="bg-white border border-[#dadce0] p-4">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Laba Bulan Ini</span>
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${data.laba_bulan_ini >= 0 ? 'bg-blue-50' : 'bg-red-50'}`}>
+            <span className="text-xs font-medium text-[#5f6368]">Laba Bulan Ini</span>
+            <div className={`w-8 h-8 flex items-center justify-center ${data.laba_bulan_ini >= 0 ? 'bg-[#e8f0fe]' : 'bg-[#fce8e6]'}`}>
               {data.laba_bulan_ini >= 0 ? (
-                <TrendingUp size={16} className="text-blue-600" />
+                <TrendingUp size={16} className="text-[#1a73e8]" />
               ) : (
-                <TrendingDown size={16} className="text-red-600" />
+                <TrendingDown size={16} className="text-[#c5221f]" />
               )}
             </div>
           </div>
-          <p className={`text-2xl font-bold ${data.laba_bulan_ini >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+          <p className={`text-2xl font-medium ${data.laba_bulan_ini >= 0 ? 'text-[#1a73e8]' : 'text-[#c5221f]'}`}>
             {formatRupiah(data.laba_bulan_ini)}
           </p>
-          <p className="text-xs text-slate-400 mt-2">Pendapatan - Pengeluaran</p>
+          <p className="text-xs text-[#80868b] mt-2">Pendapatan - Pengeluaran</p>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+        <div className="bg-white border border-[#dadce0] p-4">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Transaksi</span>
-            <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
-              <Receipt size={16} className="text-purple-600" />
+            <span className="text-xs font-medium text-[#5f6368]">Total Transaksi</span>
+            <div className="w-8 h-8 bg-[#e8def8] flex items-center justify-center">
+              <Receipt size={16} className="text-[#8430ce]" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-slate-900">{data.jumlah_transaksi_bulan_ini}</p>
-          <p className="text-xs text-slate-400 mt-2">Transaksi bulan ini</p>
+          <p className="text-2xl font-medium text-[#202124]">{data.jumlah_transaksi_bulan_ini}</p>
+          <p className="text-xs text-[#80868b] mt-2">Transaksi bulan ini</p>
         </div>
       </div>
 
       {/* Charts Row 1: Bar + Doughnut */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-          <h3 className="text-sm font-semibold text-slate-800 mb-4">Pengeluaran Bulanan {new Date().getFullYear()}</h3>
+        <div className="lg:col-span-2 bg-white border border-[#dadce0] p-5">
+          <h3 className="text-sm font-medium text-[#202124] mb-4">Pengeluaran Bulanan {new Date().getFullYear()}</h3>
           <div className="h-[280px]">
             <Bar data={barChartData} options={barOptions} />
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-          <h3 className="text-sm font-semibold text-slate-800 mb-4">Berdasarkan Kategori</h3>
+        <div className="bg-white border border-[#dadce0] p-5">
+          <h3 className="text-sm font-medium text-[#202124] mb-4">Berdasarkan Kategori</h3>
           {data.per_kategori.length > 0 ? (
             <>
               <div className="h-[220px] flex items-center justify-center">
@@ -325,16 +325,16 @@ export default function DashboardKeuangan() {
                 {data.per_kategori.map((k, i) => (
                   <div key={k.kode} className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                      <span className="text-slate-600">{k.nama}</span>
+                      <span className="w-2.5 h-2.5" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                      <span className="text-[#5f6368]">{k.nama}</span>
                     </div>
-                    <span className="font-medium text-slate-800">{formatRupiah(k.total)}</span>
+                    <span className="font-medium text-[#202124]">{formatRupiah(k.total)}</span>
                   </div>
                 ))}
               </div>
             </>
           ) : (
-            <div className="h-[220px] flex items-center justify-center text-sm text-slate-400">
+            <div className="h-[220px] flex items-center justify-center text-sm text-[#80868b]">
               Belum ada data kategori
             </div>
           )}
@@ -343,43 +343,43 @@ export default function DashboardKeuangan() {
 
       {/* Charts Row 2: Line + Recent */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-          <h3 className="text-sm font-semibold text-slate-800 mb-4">Tren Pengeluaran</h3>
+        <div className="lg:col-span-2 bg-white border border-[#dadce0] p-5">
+          <h3 className="text-sm font-medium text-[#202124] mb-4">Tren Pengeluaran</h3>
           <div className="h-[240px]">
             <Line data={lineChartData} options={lineOptions} />
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <div className="bg-white border border-[#dadce0] p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-slate-800">Pengeluaran Terakhir</h3>
-            <Link to="/pengeluaran" className="text-xs text-[#0E6187] hover:underline font-medium">
+            <h3 className="text-sm font-medium text-[#202124]">Pengeluaran Terakhir</h3>
+            <Link to="/pengeluaran" className="text-xs text-[#1a73e8] hover:underline font-medium">
               Lihat Semua
             </Link>
           </div>
           {data.recent.length > 0 ? (
             <div className="space-y-3">
               {data.recent.map(item => (
-                <div key={item.id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+                <div key={item.id} className="flex items-center justify-between py-2 border-b border-[#e8eaed] last:border-0">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex px-1.5 py-0.5 bg-[#0E6187]/10 text-[#0E6187] text-[10px] font-semibold rounded">
+                      <span className="inline-flex px-1.5 py-0.5 bg-[#f1f3f4] text-[#1a73e8] text-[10px] font-medium">
                         {item.kategori?.kode}
                       </span>
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-[#80868b]">
                         {new Date(item.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-500 truncate mt-0.5">{item.keterangan || 'Tanpa keterangan'}</p>
+                    <p className="text-xs text-[#5f6368] truncate mt-0.5">{item.keterangan || 'Tanpa keterangan'}</p>
                   </div>
-                  <span className="text-xs font-semibold text-red-600 whitespace-nowrap ml-2">
+                  <span className="text-xs font-medium text-[#c5221f] whitespace-nowrap ml-2">
                     -{formatRupiah(item.nominal)}
                   </span>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="flex items-center justify-center h-40 text-sm text-slate-400">
+            <div className="flex items-center justify-center h-40 text-sm text-[#80868b]">
               Belum ada pengeluaran
             </div>
           )}

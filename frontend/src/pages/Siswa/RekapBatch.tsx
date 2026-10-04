@@ -203,15 +203,15 @@ export default function RekapBatch() {
   const statusBadge = (status: string, dibayar: number, tagihan: number) => {
     const isLunas = dibayar >= tagihan && tagihan > 0
     const map: Record<string, { bg: string; text: string; label: string }> = {
-      unpaid: { bg: 'bg-slate-100', text: 'text-slate-600', label: 'Belum Bayar' },
-      processing: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Proses' },
-      partial: { bg: 'bg-orange-100', text: 'text-orange-700', label: 'Belum Lunas' },
-      verified: { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'Lunas' },
+      unpaid: { bg: 'bg-[#e8eaed]', text: 'text-[#3c4043]', label: 'Belum Bayar' },
+      processing: { bg: 'bg-[#3c4043]', text: 'text-white', label: 'Proses' },
+      partial: { bg: 'bg-[#e8eaed]', text: 'text-[#202124]', label: 'Belum Lunas' },
+      verified: { bg: 'bg-[#0E6187]', text: 'text-white', label: 'Lunas' },
     }
     const key = status === 'verified' && !isLunas ? 'partial' : status
-    const s = map[key] || { bg: 'bg-slate-100', text: 'text-slate-600', label: status }
+    const s = map[key] || { bg: 'bg-[#e8eaed]', text: 'text-[#3c4043]', label: status }
     return (
-      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${s.bg} ${s.text}`}>
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold ${s.bg} ${s.text}`}>
         {s.label}
       </span>
     )
@@ -255,65 +255,65 @@ export default function RekapBatch() {
     }
 
     return (
-      <div key={batch_id} className="mb-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+      <div key={batch_id} className="mb-6 overflow-hidden border border-[#dadce0] bg-white">
         <button
           onClick={() => toggleBatch(batch_id)}
-          className="w-full flex items-center justify-between px-4 py-3 bg-white hover:bg-slate-50 transition-colors"
+          className="w-full flex items-center justify-between px-4 py-3 bg-white hover:bg-[#f8f9fa] transition-colors"
         >
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0E6187]">
+            <div className="flex h-8 w-8 items-center justify-center bg-[#0E6187]">
               <Layers size={14} className="text-white" />
             </div>
             <div className="text-left">
-              <h3 className="text-sm font-bold text-slate-800">{batchName}</h3>
-              <p className="text-xs text-slate-500">{items.length} Kandidat</p>
+              <h3 className="text-sm font-bold text-[#202124]">{batchName}</h3>
+              <p className="text-xs text-[#5f6368]">{items.length} Kandidat</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex items-center gap-4 text-xs">
-              <span className="text-slate-500">Tagihan: <span className="font-bold text-slate-700">Rp {fmt(groupTagihan)}</span></span>
-              <span className="text-emerald-600">Dibayar: <span className="font-bold">Rp {fmt(groupDibayar)}</span></span>
-              <span className="text-red-600">Sisa: <span className="font-bold">Rp {fmt(groupSisa)}</span></span>
+              <span className="text-[#5f6368]">Tagihan: <span className="font-bold text-[#3c4043]">Rp {fmt(groupTagihan)}</span></span>
+              <span className="text-[#5f6368]">Dibayar: <span className="font-bold text-[#1a73e8]">Rp {fmt(groupDibayar)}</span></span>
+              <span className="text-[#5f6368]">Sisa: <span className="font-bold text-[#202124]">Rp {fmt(groupSisa)}</span></span>
             </div>
-            <span className="text-slate-400">{isCollapsed ? '▶' : '▼'}</span>
+            <span className="text-[#80868b]">{isCollapsed ? '▶' : '▼'}</span>
           </div>
         </button>
 
         {!isCollapsed && (
-          <div className="overflow-x-auto border-t border-slate-200">
-            <table className="w-full min-w-[900px] border-collapse text-left text-sm text-slate-700">
-              <thead className="text-sm text-white bg-[#0E6187]">
+          <div className="overflow-x-auto border-t border-[#dadce0]">
+            <table className="w-full min-w-[900px] border-collapse text-left text-sm text-[#3c4043]">
+              <thead className="text-sm">
                 <tr>
-                  <th scope="col" className="border border-slate-200 px-4 py-3 font-medium w-[220px]">Kandidat</th>
+                  <th scope="col" className="text-xs font-medium text-[#5f6368] px-4 py-3 w-[220px]">Kandidat</th>
                   {kategoriColumns.map(col => {
                     const k = col.kategori
                     return (
-                      <th key={k.id} scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium min-w-[120px]">
+                      <th key={k.id} scope="col" className="border border-[#dadce0] px-4 py-3 text-center font-medium min-w-[120px] text-[#3c4043]">
                         {k.nama}
                       </th>
                     )
                   })}
-                  <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium w-[120px]">Tagihan</th>
-                  <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium w-[120px]">Dibayar</th>
-                  <th scope="col" className="border border-slate-200 px-4 py-3 text-right font-medium w-[120px]">Sisa</th>
-                  <th scope="col" className="border border-slate-200 px-4 py-3 text-center font-medium w-[110px]">Status</th>
+                  <th scope="col" className="text-xs font-medium text-[#5f6368] px-4 py-3 w-[120px] text-right">Tagihan</th>
+                  <th scope="col" className="text-xs font-medium text-[#5f6368] px-4 py-3 w-[120px] text-right">Dibayar</th>
+                  <th scope="col" className="text-xs font-medium text-[#5f6368] px-4 py-3 w-[120px] text-right">Sisa</th>
+                  <th scope="col" className="text-xs font-medium text-[#5f6368] px-4 py-3 w-[110px] text-center">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {pagedItems.map(p => {
                   const { tagihan, dibayar, sisa } = calcRow(p)
                   return (
-                    <tr key={p.id} className="bg-white transition hover:bg-slate-50">
-                      <td className="border border-slate-200 px-4 py-3">
+                    <tr key={p.id} className="bg-white transition hover:bg-[#f8f9fa]">
+                      <td className="border-b border-[#e8eaed] border-b border-b px-4 py-3">
                         <div className="flex items-center gap-3">
                           <img
                             src={`https://ui-avatars.com/api/?name=${encodeURIComponent(p.nama)}&background=e5e7eb&color=6b7280&size=28`}
-                            className="h-8 w-8 rounded-full object-cover shrink-0"
+                            className="h-8 w-8 object-cover shrink-0"
                             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                           />
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold text-slate-800 truncate">{p.nama}</p>
-                            <p className="text-xs text-slate-500 truncate">{p.email}</p>
+                            <p className="text-sm font-semibold text-[#202124] truncate">{p.nama}</p>
+                            <p className="text-xs text-[#5f6368] truncate">{p.email}</p>
                           </div>
                         </div>
                       </td>
@@ -322,37 +322,33 @@ export default function RekapBatch() {
                         const relevant = hasKategori(p, k.id)
                         if (!relevant) {
                           return (
-                            <td key={k.id} className="border border-slate-200 px-4 py-3 text-center text-sm text-slate-300 min-w-[120px]">-</td>
+                            <td key={k.id} className="border border-[#dadce0] px-4 py-3 text-center text-sm text-[#9aa0a6] min-w-[120px]">-</td>
                           )
                         }
                         const katDetail = p.detail?.find((d: DetailItem) => d.kategori_id === k.id)
                         const dibayar = katDetail?.dibayar || 0
                         const biayaRaw = katDetail?.biaya || 0
-                        const katTotalTransfer = Number(katDetail?.total_transfer) || 0
-                        const biaya = uniqueCodeOp === 'subtract' && katTotalTransfer > 0 ? katTotalTransfer : biayaRaw
-                        const isLunas = biaya > 0 && dibayar >= biaya
-                        const isPartial = dibayar > 0 && !isLunas
                         return (
-                          <td key={k.id} className="border border-slate-200 px-4 py-3 text-center whitespace-nowrap min-w-[120px]">
-                            <span className={`text-sm font-semibold ${isLunas ? 'text-emerald-700' : isPartial ? 'text-orange-600' : dibayar > 0 ? 'text-emerald-700' : 'text-slate-500'}`}>
+                          <td key={k.id} className="border border-[#dadce0] px-4 py-3 text-center whitespace-nowrap min-w-[120px]">
+                            <span className={`text-sm font-semibold ${dibayar > 0 ? 'text-[#202124]' : 'text-[#80868b]'}`}>
                               {dibayar > 0 ? `Rp ${fmt(dibayar)}` : '-'}
                             </span>
                             {biayaRaw > 0 && (
-                              <div className="text-[10px] text-slate-400 mt-0.5">Rp {fmt(biayaRaw)}</div>
+                              <div className="text-[10px] text-[#80868b] mt-0.5">Rp {fmt(biayaRaw)}</div>
                             )}
                           </td>
                         )
                       })}
-                      <td className="border border-slate-200 px-4 py-3 text-right text-sm font-semibold text-slate-800 whitespace-nowrap">
+                      <td className="border-b border-[#e8eaed] border-b border-b px-4 py-3 text-right text-sm font-semibold text-[#202124] whitespace-nowrap">
                         Rp {fmt(tagihan)}
                       </td>
-                      <td className="border border-slate-200 px-4 py-3 text-right text-sm font-semibold text-emerald-700 whitespace-nowrap">
+                      <td className="border-b border-[#e8eaed] border-b border-b px-4 py-3 text-right text-sm font-semibold text-[#1a73e8] whitespace-nowrap">
                         Rp {fmt(dibayar)}
                       </td>
-                      <td className="border border-slate-200 px-4 py-3 text-right text-sm font-semibold text-red-600 whitespace-nowrap">
+                      <td className="border-b border-[#e8eaed] border-b border-b px-4 py-3 text-right text-sm font-semibold text-[#202124] whitespace-nowrap">
                         {sisa > 0 ? `Rp ${fmt(sisa)}` : '-'}
                       </td>
-                      <td className="border border-slate-200 px-4 py-3 text-center">
+                      <td className="border-b border-[#e8eaed] border-b border-b px-4 py-3 text-center">
                         {statusBadge(p.status_pembayaran, dibayar, tagihan)}
                       </td>
                     </tr>
@@ -360,35 +356,35 @@ export default function RekapBatch() {
                 })}
               </tbody>
               <tfoot>
-                <tr className="bg-slate-50 font-semibold text-sm">
-                  <td className="border border-slate-200 px-4 py-3" colSpan={kategoriColumns.length + 1}>
-                    <span className="text-slate-500">Total {batchName}</span>
+                <tr className="bg-[#f8f9fa] font-semibold text-sm">
+                  <td className="border-b border-[#e8eaed] border-b border-b px-4 py-3" colSpan={kategoriColumns.length + 1}>
+                    <span className="text-[#5f6368]">Total {batchName}</span>
                   </td>
-                  <td className="border border-slate-200 px-4 py-3 text-right text-slate-800">Rp {fmt(groupTagihan)}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-right text-emerald-700">Rp {fmt(groupDibayar)}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-right text-red-600">{groupSisa > 0 ? `Rp ${fmt(groupSisa)}` : '-'}</td>
-                  <td className="border border-slate-200 px-4 py-3 text-center text-slate-500">{items.length} orang</td>
+                  <td className="border-b border-[#e8eaed] border-b border-b px-4 py-3 text-right text-[#202124]">Rp {fmt(groupTagihan)}</td>
+                  <td className="border-b border-[#e8eaed] border-b border-b px-4 py-3 text-right text-[#1a73e8]">Rp {fmt(groupDibayar)}</td>
+                  <td className="border-b border-[#e8eaed] border-b border-b px-4 py-3 text-right text-[#202124]">{groupSisa > 0 ? `Rp ${fmt(groupSisa)}` : '-'}</td>
+                  <td className="border-b border-[#e8eaed] border-b border-b px-4 py-3 text-center text-[#5f6368]">{items.length} orang</td>
                 </tr>
               </tfoot>
             </table>
             {items.length > batchPerPage && (
-              <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3">
-                <span className="text-sm text-slate-500">
+              <div className="flex items-center justify-between border-t border-[#dadce0] px-4 py-3">
+                <span className="text-sm text-[#5f6368]">
                   Menampilkan {pagedItems.length} dari {items.length} pendaftar
                 </span>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => setPage(safePage - 1)}
                     disabled={safePage <= 1}
-                    className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none"
+                    className="border border-[#dadce0] bg-white p-1.5 text-[#5f6368] transition hover:bg-[#f8f9fa] disabled:opacity-30 disabled:pointer-events-none"
                   >
                     <ChevronLeft size={16} />
                   </button>
-                  <span className="min-w-[32px] text-center text-sm font-medium text-slate-600">{safePage} / {totalPages}</span>
+                  <span className="min-w-[32px] text-center text-sm font-medium text-[#5f6368]">{safePage} / {totalPages}</span>
                   <button
                     onClick={() => setPage(safePage + 1)}
                     disabled={safePage >= totalPages}
-                    className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none"
+                    className="border border-[#dadce0] bg-white p-1.5 text-[#5f6368] transition hover:bg-[#f8f9fa] disabled:opacity-30 disabled:pointer-events-none"
                   >
                     <ChevronRight size={16} />
                   </button>
@@ -404,38 +400,38 @@ export default function RekapBatch() {
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       {/* Breadcrumb */}
-      <nav className="mb-4 flex items-center gap-1.5 text-xs text-slate-500" aria-label="Breadcrumb">
-        <Link to="/" className="flex items-center gap-1 transition-colors hover:text-[#0E6187]">
+      <nav className="mb-4 flex items-center gap-1.5 text-xs text-[#5f6368]" aria-label="Breadcrumb">
+        <Link to="/" className="flex items-center gap-1 transition-colors hover:text-[#1a73e8]">
           <LayoutDashboard size={13} />
           <span>Beranda</span>
         </Link>
-        <ChevronRight size={12} className="text-slate-300" />
-        <Link to="/pendaftar" className="transition-colors hover:text-[#0E6187]">
+        <ChevronRight size={12} className="text-[#9aa0a6]" />
+        <Link to="/pendaftar" className="transition-colors hover:text-[#1a73e8]">
           Manage Kandidat
         </Link>
-        <ChevronRight size={12} className="text-slate-300" />
-        <span className="font-medium text-slate-700">Rekap Per Batch</span>
+        <ChevronRight size={12} className="text-[#9aa0a6]" />
+        <span className="font-medium text-[#3c4043]">Rekap Per Batch</span>
       </nav>
 
-      <div className="mb-4 flex flex-col gap-4  p-4  sm:flex-row sm:items-center sm:justify-between ">
+      <div className="mb-4 flex flex-col gap-4 border-b border-[#dadce0] pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white">
+          <div className="flex h-10 w-10 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]">
             <Layers size={20} />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-slate-800">Rekap Per Batch</h1>
-            <p className="text-sm text-slate-500">Rincian pembayaran kandidat per kategori biaya</p>
+            <h1 className="text-xl font-medium text-[#202124]">Rekap Per Batch</h1>
+            <p className="text-sm text-[#5f6368]">Rincian pembayaran kandidat per kategori biaya</p>
           </div>
         </div>
       </div>
 
-      <div className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mb-4 border border-[#dadce0] bg-white p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           {!isAdminCabang && (
           <select
             value={filterCabang}
             onChange={(e) => { setFilterCabang(e.target.value); setFilterBatch(''); setCollapsedBatches(new Set()); fetchData(e.target.value); }}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition "
           >
             <option value="">Semua Cabang</option>
             {cabangList.map(c => (
@@ -446,27 +442,27 @@ export default function RekapBatch() {
 
           <div className="relative">
             <button onClick={() => setShowBatchDropdown(!showBatchDropdown)}
-              className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+              className="flex items-center gap-2 border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition ">
               {filterBatch ? (() => {
                 const b = data.find(x => String(x.batch_id) === filterBatch)
                 return <>
-                  {b?.warna ? <span className="inline-block w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: b.warna }} /> : null}
+                  {b?.warna ? <span className="inline-block w-3 h-3 shrink-0" style={{ backgroundColor: b.warna }} /> : null}
                   <span className="truncate">{b?.batch || filterBatch}</span>
                 </>
-              })() : <span className="text-slate-500">Semua Batch</span>}
+              })() : <span className="text-[#5f6368]">Semua Batch</span>}
             </button>
             {showBatchDropdown && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowBatchDropdown(false)} />
-                <div className="absolute top-full left-0 mt-1 z-50 rounded-md border border-slate-200 bg-white shadow-lg max-h-48 overflow-y-auto min-w-[180px]">
+                <div className="absolute top-full left-0 mt-1 z-50 border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15)] max-h-48 overflow-y-auto min-w-[180px]">
                   <button onClick={() => { setFilterBatch(''); setShowBatchDropdown(false) }}
-                    className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition hover:bg-slate-50 ${!filterBatch ? 'bg-blue-50 font-semibold' : ''}`}>
+                    className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition hover:bg-[#f8f9fa] ${!filterBatch ? 'bg-[#e8f0fe] text-[#1967d2] text-[#202124]' : ''}`}>
                     Semua Batch
                   </button>
                   {data.map(b => (
                     <button key={b.batch_id} onClick={() => { setFilterBatch(String(b.batch_id)); setShowBatchDropdown(false) }}
-                      className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition hover:bg-slate-50 ${String(b.batch_id) === filterBatch ? 'bg-blue-50 font-semibold' : ''}`}>
-                      {b.warna ? <span className="inline-block w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: b.warna }} /> : null}
+                      className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition hover:bg-[#f8f9fa] ${String(b.batch_id) === filterBatch ? 'bg-[#e8f0fe] text-[#1967d2] text-[#202124]' : ''}`}>
+                      {b.warna ? <span className="inline-block w-3 h-3 shrink-0" style={{ backgroundColor: b.warna }} /> : null}
                       {b.batch}
                     </button>
                   ))}
@@ -476,14 +472,14 @@ export default function RekapBatch() {
           </div>
           <div className="flex items-center gap-2">
             <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-            <span className="text-xs text-slate-400">s/d</span>
+              className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition " />
+            <span className="text-xs text-[#80868b]">s/d</span>
             <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+              className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition " />
           </div>
           <button
             onClick={() => { setFilterCabang(''); setFilterBatch(''); setDateFrom(''); setDateTo(''); setCollapsedBatches(new Set()); fetchData(); }}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="inline-flex items-center justify-center gap-2 border border-[#dadce0] bg-white px-3 py-2 text-sm font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]"
           >
             <RotateCcw size={16} />
             Reset
@@ -492,31 +488,31 @@ export default function RekapBatch() {
       </div>
 
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-          <div className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-blue-50 sm:h-10 sm:w-10">
-            <Receipt size={16} className="text-blue-600" />
+        <div className="flex min-w-0 items-center gap-3 border border-[#dadce0] bg-white p-3 sm:p-4">
+          <div className="flex h-9 w-9 flex-none items-center justify-center bg-[#0E6187] sm:h-10 sm:w-10">
+            <Receipt size={16} className="text-white" />
           </div>
           <div className="min-w-0">
-            <p className="text-[10px] text-slate-500 sm:text-xs">Total Biaya</p>
-            <p className="break-words text-base font-bold leading-tight text-slate-800 sm:text-xl lg:text-2xl">Rp {fmt(grandStats.total)}</p>
+            <p className="text-[10px] text-[#5f6368] sm:text-xs">Total Biaya</p>
+            <p className="break-words text-base font-bold leading-tight text-[#202124] sm:text-xl lg:text-2xl">Rp {fmt(grandStats.total)}</p>
           </div>
         </div>
-        <div className="flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-          <div className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-emerald-50 sm:h-10 sm:w-10">
-            <CheckCircle size={16} className="text-emerald-600" />
+        <div className="flex min-w-0 items-center gap-3 border border-[#dadce0] bg-white p-3 sm:p-4">
+          <div className="flex h-9 w-9 flex-none items-center justify-center bg-[#3c4043] sm:h-10 sm:w-10">
+            <CheckCircle size={16} className="text-white" />
           </div>
           <div className="min-w-0">
-            <p className="text-[10px] text-emerald-600 sm:text-xs">Terkumpul</p>
-            <p className="break-words text-base font-bold leading-tight text-emerald-700 sm:text-xl lg:text-2xl">Rp {fmt(grandStats.paid)}</p>
+            <p className="text-[10px] text-[#5f6368] sm:text-xs">Terkumpul</p>
+            <p className="break-words text-base font-bold leading-tight text-[#202124] sm:text-xl lg:text-2xl">Rp {fmt(grandStats.paid)}</p>
           </div>
         </div>
-        <div className="flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-          <div className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-red-50 sm:h-10 sm:w-10">
-            <AlertCircle size={16} className="text-red-500" />
+        <div className="flex min-w-0 items-center gap-3 border border-[#dadce0] bg-white p-3 sm:p-4">
+          <div className="flex h-9 w-9 flex-none items-center justify-center bg-[#202124] sm:h-10 sm:w-10">
+            <AlertCircle size={16} className="text-white" />
           </div>
           <div className="min-w-0">
-            <p className="text-[10px] text-red-600 sm:text-xs">Outstanding</p>
-            <p className="break-words text-base font-bold leading-tight text-red-600 sm:text-xl lg:text-2xl">Rp {fmt(grandStats.outstanding)}</p>
+            <p className="text-[10px] text-[#5f6368] sm:text-xs">Outstanding</p>
+            <p className="break-words text-base font-bold leading-tight text-[#202124] sm:text-xl lg:text-2xl">Rp {fmt(grandStats.outstanding)}</p>
           </div>
         </div>
       </div>
@@ -524,16 +520,16 @@ export default function RekapBatch() {
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="relative w-14 h-14 flex items-center justify-center">
-            <div className="absolute inset-0 rounded-full border-2 border-[#0E6187]/10 border-t-[#0E6187] animate-spin" />
+            <div className="rounded-full absolute inset-0 border-2 border-[#1a73e8]/10 border-t-[#1a73e8] animate-spin" />
             <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
           </div>
         </div>
       ) : filteredBatches.length === 0 ? (
-        <div className="rounded-lg border border-slate-200 bg-white px-6 py-10 text-center shadow-sm">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+        <div className="border border-[#dadce0] bg-white px-6 py-10 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center bg-[#f1f3f4] text-[#80868b]">
             <Receipt size={24} />
           </div>
-          <p className="mt-3 text-sm font-medium text-slate-600">Tidak ada data ditemukan</p>
+          <p className="mt-3 text-sm font-medium text-[#5f6368]">Tidak ada data ditemukan</p>
         </div>
       ) : (
         filteredBatches.map(batch => renderBatchTable(batch))
@@ -541,13 +537,13 @@ export default function RekapBatch() {
 
       {!loading && filteredBatches.length > 0 && (
         <div className="mt-2 flex items-center justify-between">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-[#5f6368]">
             {filteredBatches.length} batch &middot; {allItems.length} kandidat
           </p>
-          <div className="flex items-center gap-3 text-[10px] text-slate-500">
-            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-600" /> Lunas</span>
-            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500" /> Belum Lunas</span>
-            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-300" /> Belum Bayar</span>
+          <div className="flex items-center gap-3 text-[10px] text-[#5f6368]">
+            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 bg-[#0E6187]" /> Lunas</span>
+            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 bg-[#5f6368]" /> Belum Lunas</span>
+            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 bg-[#e8eaed]" /> Belum Bayar</span>
           </div>
         </div>
       )}

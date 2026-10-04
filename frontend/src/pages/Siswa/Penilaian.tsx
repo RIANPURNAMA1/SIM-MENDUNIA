@@ -54,11 +54,11 @@ interface Category {
 }
 
 const SCORE_BADGE = (s: number | null): string => {
-  if (s === null) return "bg-gray-100 text-gray-400";
-  if (s >= 90) return "bg-emerald-100 text-emerald-700";
-  if (s >= 75) return "bg-blue-100 text-blue-700";
-  if (s >= 60) return "bg-amber-100 text-amber-700";
-  return "bg-rose-100 text-rose-700";
+  if (s === null) return "bg-[#f1f3f4] text-[#80868b]";
+  if (s >= 90) return "bg-[#ceead6] text-[#137333]";
+  if (s >= 75) return "bg-[#e8f0fe] text-[#1967d2]";
+  if (s >= 60) return "bg-[#fef7e0] text-[#b06000]";
+  return "bg-[#f6d7d5] text-[#a50e0e]";
 };
 
 const DAYS_IND = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
@@ -220,31 +220,31 @@ export default function PenilaianPage() {
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-4 border-b border-[#dadce0] pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] text-white border border-blue-100">
+          <div className="flex h-10 w-10 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]">
             <Notebook size={20} />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-slate-800">Rekap Penilaian Siswa</h1>
-            <p className="text-sm text-slate-500">Pantau perkembangan dan nilai siswa per pertemuan</p>
+            <h1 className="text-xl font-medium text-[#202124]">Rekap Penilaian Siswa</h1>
+            <p className="text-sm text-[#5f6368]">Pantau perkembangan dan nilai siswa per pertemuan</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-50 rounded-md px-3 py-1.5">
-          <Check className="w-3.5 h-3.5 text-emerald-500" />
+        <div className="flex items-center gap-2 text-xs text-[#80868b] bg-[#f8f9fa] px-3 py-1.5">
+          <Check className="w-3.5 h-3.5 text-[#188038]" />
           <span>Terisi</span>
-          <Minus className="w-3.5 h-3.5 text-slate-300" />
+          <Minus className="w-3.5 h-3.5 text-[#9aa0a6]" />
           <span>Kosong</span>
         </div>
       </div>
 
       {/* Filter */}
-      <div className="mb-4 rounded-lg p-4 shadow-sm">
+      <div className="mb-4 p-4">
         <div className="flex flex-wrap items-end gap-3">
           <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1">Cabang</label>
+            <label className="block text-xs font-semibold text-[#5f6368] mb-1">Cabang</label>
             <select value={filterCabang} onChange={(e) => handleCabangChange(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+              className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none focus:border-[#1a73e8]">
               <option value="">Pilih Cabang</option>
               {cabangs.map((c) => (
                 <option key={c.id} value={c.id}>{c.nama_cabang}</option>
@@ -252,9 +252,9 @@ export default function PenilaianPage() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1">Batch</label>
+            <label className="block text-xs font-semibold text-[#5f6368] mb-1">Batch</label>
             <select value={filterBatch} onChange={(e) => handleBatchChange(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+              className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none focus:border-[#1a73e8]">
               <option value="">Pilih Batch</option>
               {batchList.map((b) => (
                 <option key={b.id} value={b.id}>{b.nama_batch}</option>
@@ -262,9 +262,9 @@ export default function PenilaianPage() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1">Sensei</label>
+            <label className="block text-xs font-semibold text-[#5f6368] mb-1">Sensei</label>
             <select value={filterGuru} onChange={(e) => handleGuruChange(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+              className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none focus:border-[#1a73e8]">
               <option value="">Pilih Sensei</option>
               {gurus.map((g) => (
                 <option key={g.id} value={g.id}>{g.name}</option>
@@ -272,9 +272,9 @@ export default function PenilaianPage() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1">Level</label>
+            <label className="block text-xs font-semibold text-[#5f6368] mb-1">Level</label>
             <select value={filterLevel} onChange={(e) => handleLevelChange(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+              className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none focus:border-[#1a73e8]">
               <option value="">Pilih Level</option>
               {levels.map((l) => (
                 <option key={l} value={l}>Level {l}</option>
@@ -282,13 +282,13 @@ export default function PenilaianPage() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1">&nbsp;</label>
+            <label className="block text-xs font-semibold text-[#5f6368] mb-1">&nbsp;</label>
             <button onClick={() => {
               setFilterCabang(""); setFilterBatch(""); setFilterGuru(""); setFilterLevel("");
               setBatchList([]); setKelas(null); setStudents([]); setDays([]);
               fetchMatrix({});
             }}
-              className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-200">
+              className="inline-flex items-center justify-center gap-2 border border-[#dadce0] bg-white px-3 py-2 text-sm font-medium text-[#3c4043] transition hover:bg-[#f8f9fa] focus:outline-none focus:border-[#1a73e8]">
               Reset
             </button>
           </div>
@@ -298,48 +298,48 @@ export default function PenilaianPage() {
       {kelas && categories.length > 0 && (
         <>
           <div className="mb-3">
-            <h6 className="text-sm font-semibold text-slate-700">
+            <h6 className="text-sm font-semibold text-[#3c4043]">
               {days.length > 0 ? `${formatDate(days[0])} - ${formatDate(days[days.length - 1])} ${new Date(days[0] + "T00:00:00").getFullYear()}` : ""}
             </h6>
           </div>
 
           {/* Table */}
-          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-hidden border border-[#dadce0] bg-white">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-full border-collapse text-left text-sm text-slate-700">
-                <thead className="text-sm text-slate-600">
+              <table className="w-full min-w-full border-collapse text-left text-sm text-[#3c4043]">
+                <thead className="text-sm text-[#5f6368]">
                   <tr>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 font-medium sticky left-0 bg-white min-w-[140px] z-10" style={{ boxShadow: "2px 0 4px rgba(0,0,0,0.02)" }}>
+                    <th scope="col" className="text-xs font-medium text-[#5f6368] px-4 py-3 sticky left-0 bg-white min-w-[140px] z-10" style={{ boxShadow: "2px 0 4px rgba(0,0,0,0.02)" }}>
                       Nama Siswa
                     </th>
-                    <th scope="col" className="border border-slate-200 px-4 py-3 font-medium min-w-[100px]">Kelas</th>
+                    <th scope="col" className="text-xs font-medium text-[#5f6368] px-4 py-3 min-w-[100px]">Kelas</th>
                     {days.map((d) => (
-                      <th key={d} scope="col" className="border border-slate-200 px-4 py-3 text-center min-w-[70px]">
-                        <span className="text-xs text-slate-600">{dayName(d)}</span>
-                        <span className="block text-[10px] text-slate-400">{formatDate(d)}</span>
+                      <th key={d} scope="col" className="border border-[#dadce0] px-4 py-3 text-center min-w-[70px]">
+                        <span className="text-xs text-[#5f6368]">{dayName(d)}</span>
+                        <span className="block text-[10px] text-[#80868b]">{formatDate(d)}</span>
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={2 + days.length} className="border border-slate-200 px-6 py-8 text-center text-sm text-slate-400">Memuat data...</td></tr>
+                    <tr><td colSpan={2 + days.length} className="border border-[#dadce0] px-6 py-8 text-center text-sm text-[#80868b]">Memuat data...</td></tr>
                   ) : students.length === 0 ? (
-                    <tr><td colSpan={2 + days.length} className="border border-slate-200 px-6 py-10 text-center">
-                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                    <tr><td colSpan={2 + days.length} className="border border-[#dadce0] px-6 py-10 text-center">
+                      <div className="mx-auto flex h-12 w-12 items-center justify-center bg-[#f1f3f4] text-[#80868b]">
                         <Notebook size={24} />
                       </div>
-                      <p className="mt-3 text-sm font-medium text-slate-600">Tidak ada siswa aktif di batch ini.</p>
+                      <p className="mt-3 text-sm font-medium text-[#5f6368]">Tidak ada siswa aktif di batch ini.</p>
                     </td></tr>
                   ) : students.map((s) => (
-                    <tr key={s.id} className="bg-white transition hover:bg-slate-50">
-                      <td className="border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-800 sticky left-0 bg-white z-[1]" style={{ boxShadow: "2px 0 4px rgba(0,0,0,0.02)" }}>
+                    <tr key={s.id} className="bg-white transition hover:bg-[#f8f9fa]">
+                      <td className="border-b border-[#e8eaed] px-4 py-2.5 text-sm font-medium text-[#202124] sticky left-0 bg-white z-[1]" style={{ boxShadow: "2px 0 4px rgba(0,0,0,0.02)" }}>
                         {s.nama}
                       </td>
-                      <td className="border border-slate-200 px-4 py-2.5 text-sm text-slate-600">
+                      <td className="border-b border-[#e8eaed] px-4 py-2.5 text-sm text-[#5f6368]">
                         {kelas?.nama_kelas || s.kelas_relasi?.nama_kelas || s.kelas || "-"}
                         {kelas && (
-                          <span className="block text-[10px] text-slate-400">
+                          <span className="block text-[10px] text-[#80868b]">
                             Level {kelas.level} - {kelas.tanggal_mulai && new Date(kelas.tanggal_mulai + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short" })} s/d {kelas.tanggal_selesai && new Date(kelas.tanggal_selesai + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
                           </span>
                         )}
@@ -348,17 +348,17 @@ export default function PenilaianPage() {
                         const key = `${s.id}_${d}`;
                         const hasAssessment = assessmentCheck[key];
                         return (
-                          <td key={d} className="border border-slate-200 px-4 py-2.5 text-center">
+                          <td key={d} className="border border-[#dadce0] px-4 py-2.5 text-center">
                             {hasAssessment ? (
                               <button
                                 onClick={() => openDetailModal(s.id, s.nama)}
-                                className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-emerald-100 text-emerald-600 transition hover:bg-emerald-200"
+                                className="inline-flex items-center justify-center h-7 w-7 bg-[#0E6187] text-white transition hover:bg-[#084c63]"
                                 title="Lihat detail"
                               >
                                 <Check className="h-4 w-4" />
                               </button>
                             ) : (
-                              <span className="text-sm text-slate-300">-</span>
+                              <span className="text-sm text-[#9aa0a6]">-</span>
                             )}
                           </td>
                         );
@@ -373,43 +373,43 @@ export default function PenilaianPage() {
       )}
 
       {kelas && categories.length === 0 && !loading && (
-        <div className="text-center text-slate-400 py-10">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+        <div className="text-center text-[#80868b] py-10">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center bg-[#f1f3f4] text-[#80868b]">
             <Notebook size={24} />
           </div>
-          <p className="mt-3 text-sm text-slate-500">Belum ada kategori penilaian untuk level ini.</p>
+          <p className="mt-3 text-sm text-[#5f6368]">Belum ada kategori penilaian untuk level ini.</p>
         </div>
       )}
 
       {!kelas && !loading && (
-        <div className="text-center text-slate-400 py-10">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+        <div className="text-center text-[#80868b] py-10">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center bg-[#f1f3f4] text-[#80868b]">
             <Notebook size={24} />
           </div>
-          <p className="mt-3 text-sm text-slate-500">Pilih Cabang, Batch, Sensei, dan Level untuk melihat rekap penilaian.</p>
+          <p className="mt-3 text-sm text-[#5f6368]">Pilih Cabang, Batch, Sensei, dan Level untuk melihat rekap penilaian.</p>
         </div>
       )}
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={closeModal}>
-          <div className="flex w-full max-w-7xl flex-col rounded-xl bg-white shadow-xl max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center #202124-\[#202124\] p-4" onClick={closeModal}>
+          <div className="border border-[#dadce0] flex w-full max-w-7xl flex-col bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-[#dadce0] px-6 py-4">
               <div>
-                <h2 className="text-lg font-semibold text-slate-800">{modalData?.siswa || "Memuat..."}</h2>
-                <span className="text-xs text-slate-400">{modalData ? `${modalData.total_pertemuan} pertemuan` : ""}</span>
+                <h2 className="text-lg font-semibold text-[#202124]">{modalData?.siswa || "Memuat..."}</h2>
+                <span className="text-xs text-[#80868b]">{modalData ? `${modalData.total_pertemuan} pertemuan` : ""}</span>
               </div>
-              <button onClick={closeModal} className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
+              <button onClick={closeModal} className="p-1.5 text-[#80868b] transition hover:bg-[#f1f3f4] hover:text-[#5f6368]">
                 <span className="text-xl leading-none">&times;</span>
               </button>
             </div>
             <div className="overflow-y-auto px-6 py-4">
               {modalLoading ? (
-                <div className="py-8 text-center text-sm text-slate-400">Memuat data penilaian...</div>
+                <div className="py-8 text-center text-sm text-[#80868b]">Memuat data penilaian...</div>
               ) : !modalData ? (
-                <div className="py-8 text-center text-sm text-rose-500">Gagal memuat data penilaian.</div>
+                <div className="py-8 text-center text-sm text-[#d93025]">Gagal memuat data penilaian.</div>
               ) : modalData.categories.length === 0 ? (
-                <div className="py-8 text-center text-sm text-slate-400">Belum ada data penilaian untuk siswa ini.</div>
+                <div className="py-8 text-center text-sm text-[#80868b]">Belum ada data penilaian untuk siswa ini.</div>
               ) : (
                 <div className="space-y-6">
                   {modalData.categories.map((cat, ci) => {
@@ -418,18 +418,18 @@ export default function PenilaianPage() {
 
                     return (
                       <div key={ci}>
-                        <h6 className="mb-2 text-sm font-semibold text-slate-800">{cat.nama_kategori}</h6>
+                        <h6 className="mb-2 text-sm font-semibold text-[#202124]">{cat.nama_kategori}</h6>
 
                         {isRekapAkhir ? (
                           <div className="overflow-x-auto">
-                            <table className="w-full text-[11px] border-collapse border border-slate-200 [&_th]:border [&_th]:border-slate-200 [&_td]:border [&_td]:border-slate-200">
+                            <table className="w-full text-[11px] border-collapse border border-[#dadce0] [&_th]:border [&_th]:border-[#dadce0] [&_td]:border [&_td]:border-[#dadce0]">
                               <thead>
-                                <tr className="bg-amber-700 text-white">
-                                  <th className="px-2 py-1 text-left">Tanggal</th>
+                                <tr className="bg-[#b06000] text-white">
+                                  <th className="text-xs font-medium text-[#5f6368] px-2 py-1 text-left">Tanggal</th>
                                   {cat.components.map((comp) => (
                                     <th key={comp.id} className="px-2 py-1 text-center">{comp.nama}</th>
                                   ))}
-                                  <th className="px-2 py-1 text-center">Rata-Rata</th>
+                                  <th className="text-xs font-medium text-[#5f6368] px-2 py-1 text-center">Rata-Rata</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -437,18 +437,18 @@ export default function PenilaianPage() {
                                   const scores = pt.scores.filter(s => s !== null);
                                   const avg = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
                                   return (
-                                    <tr key={pi} className="border-b border-slate-100">
-                                      <td className="px-2 py-1 text-slate-600">{pt.hari}, {pt.tanggal}</td>
+                                    <tr key={pi} className="border-b border-[#e8eaed]">
+                                      <td className="px-2 py-1 text-[#5f6368]">{pt.hari}, {pt.tanggal}</td>
                                       {pt.scores.map((s, j) => (
                                         <td key={j} className="px-2 py-1 text-center">
                                           {s !== null ? (
-                                            <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${SCORE_BADGE(s)}`}>
+                                            <span className={`inline-flex px-1.5 py-0.5 text-[10px] font-medium ${SCORE_BADGE(s)}`}>
                                               {Math.round(s)}
                                             </span>
-                                          ) : <span className="text-slate-300">-</span>}
+                                          ) : <span className="text-[#9aa0a6]">-</span>}
                                         </td>
                                       ))}
-                                      <td className="px-2 py-1 text-center font-semibold text-slate-700">
+                                      <td className="px-2 py-1 text-center font-semibold text-[#3c4043]">
                                         {avg !== null ? avg.toFixed(1) : "-"}
                                       </td>
                                     </tr>
@@ -459,14 +459,14 @@ export default function PenilaianPage() {
                           </div>
                         ) : (
                           <div className="overflow-x-auto">
-                            <table className="w-full text-[11px] border-collapse border border-slate-200 [&_th]:border [&_th]:border-slate-200 [&_td]:border [&_td]:border-slate-200">
+                            <table className="w-full text-[11px] border-collapse border border-[#dadce0] [&_th]:border [&_th]:border-[#dadce0] [&_td]:border [&_td]:border-[#dadce0]">
                               <thead>
-                                <tr className="bg-amber-700 text-white">
-                                  <th className="px-2 py-1 text-left">Tanggal</th>
+                                <tr className="bg-[#b06000] text-white">
+                                  <th className="text-xs font-medium text-[#5f6368] px-2 py-1 text-left">Tanggal</th>
                                   {cat.components.map((comp) => (
                                     <th key={comp.id} className="px-2 py-1 text-center">{comp.nama}</th>
                                   ))}
-                                  <th className="px-2 py-1 text-center">Rata-Rata</th>
+                                  <th className="text-xs font-medium text-[#5f6368] px-2 py-1 text-center">Rata-Rata</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -474,18 +474,18 @@ export default function PenilaianPage() {
                                   const scores = pt.scores.filter(s => s !== null);
                                   const avg = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
                                   return (
-                                    <tr key={pi} className="border-b border-slate-100">
-                                      <td className="px-2 py-1 text-slate-600 whitespace-nowrap">{pt.hari}, {pt.tanggal}</td>
+                                    <tr key={pi} className="border-b border-[#e8eaed]">
+                                      <td className="px-2 py-1 text-[#5f6368] whitespace-nowrap">{pt.hari}, {pt.tanggal}</td>
                                       {pt.scores.map((s, j) => (
                                         <td key={j} className="px-2 py-1 text-center">
                                           {s !== null ? (
-                                            <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${SCORE_BADGE(s)}`}>
+                                            <span className={`inline-flex px-1.5 py-0.5 text-[10px] font-medium ${SCORE_BADGE(s)}`}>
                                               {Math.round(s)}
                                             </span>
-                                          ) : <span className="text-slate-300">-</span>}
+                                          ) : <span className="text-[#9aa0a6]">-</span>}
                                         </td>
                                       ))}
-                                      <td className="px-2 py-1 text-center font-semibold text-slate-700">
+                                      <td className="px-2 py-1 text-center font-semibold text-[#3c4043]">
                                         {avg !== null ? avg.toFixed(1) : "-"}
                                       </td>
                                     </tr>
@@ -501,8 +501,8 @@ export default function PenilaianPage() {
                 </div>
               )}
             </div>
-            <div className="flex justify-end border-t border-slate-200 px-6 py-4">
-              <button onClick={closeModal} className="rounded-lg px-4 py-2 text-sm text-slate-600 transition hover:bg-slate-100">Tutup</button>
+            <div className="flex justify-end border-t border-[#dadce0] px-6 py-4">
+              <button onClick={closeModal} className="px-4 py-2 text-sm text-[#5f6368] transition hover:bg-[#f1f3f4]">Tutup</button>
             </div>
           </div>
         </div>

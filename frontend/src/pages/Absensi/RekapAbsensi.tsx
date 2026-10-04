@@ -106,16 +106,16 @@ export default function RekapAbsensiPage() {
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-4 border-b border-[#dadce0] pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
-            <BarChart3 size={20} className="text-white" />
+          <div className="flex h-10 w-10 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]">
+            <BarChart3 size={20} />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-slate-800">
+            <h1 className="text-xl font-medium text-[#202124]">
               Rekap Absensi
             </h1>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-[#5f6368]">
               Rekapitulasi kehadiran karyawan - {monthLabel()}
             </p>
           </div>
@@ -123,34 +123,34 @@ export default function RekapAbsensiPage() {
       </div>
 
       {/* Filter */}
-      <div className="mb-4 rounded-lg p-4 shadow-sm">
+      <div className="mb-4 p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-500 shrink-0">
+            <span className="text-xs font-semibold text-[#5f6368] shrink-0">
               Dari
             </span>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
             />
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-500 shrink-0">
+            <span className="text-xs font-semibold text-[#5f6368] shrink-0">
               Sampai
             </span>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
             />
           </div>
           <select
             value={filterCabang}
             onChange={(e) => setFilterCabang(e.target.value)}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
           >
             <option value="">Semua Cabang</option>
             {listCabang.map((c) => (
@@ -162,7 +162,7 @@ export default function RekapAbsensiPage() {
           <select
             value={filterDivisi}
             onChange={(e) => setFilterDivisi(e.target.value)}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
           >
             <option value="">Semua Divisi</option>
             {listDivisi.map((d) => (
@@ -173,14 +173,14 @@ export default function RekapAbsensiPage() {
           </select>
           <button
             onClick={() => fetchData()}
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-slate-800 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-700"
+            className="inline-flex items-center justify-center gap-2 bg-[#202124] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#3c4043]"
           >
             <Search size={16} />
             Filter
           </button>
           <button
             onClick={resetFilter}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="inline-flex items-center justify-center gap-2 border border-[#dadce0] bg-white px-3 py-2 text-sm font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]"
           >
             <RotateCcw size={16} />
             Reset
@@ -191,59 +191,59 @@ export default function RekapAbsensiPage() {
       {/* Summary Cards */}
       {!loading && data.length > 0 && (
         <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-7">
-          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
-            <span className="block text-lg font-bold text-slate-800">
+          <div className="border border-[#dadce0] bg-white px-3 py-2 text-center">
+            <span className="block text-lg font-bold text-[#202124]">
               {t.hadir}
             </span>
-            <p className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">
+            <p className="text-[10px] font-semibold tracking-wider text-[#5f6368] uppercase">
               Hadir
             </p>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
-            <span className="block text-lg font-bold text-slate-800">
+          <div className="border border-[#dadce0] bg-white px-3 py-2 text-center">
+            <span className="block text-lg font-bold text-[#202124]">
               {t.terlambat}
             </span>
-            <p className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">
+            <p className="text-[10px] font-semibold tracking-wider text-[#5f6368] uppercase">
               Telat
             </p>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
-            <span className="block text-lg font-bold text-slate-800">
+          <div className="border border-[#dadce0] bg-white px-3 py-2 text-center">
+            <span className="block text-lg font-bold text-[#202124]">
               {t.izin}
             </span>
-            <p className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">
+            <p className="text-[10px] font-semibold tracking-wider text-[#5f6368] uppercase">
               Izin
             </p>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
-            <span className="block text-lg font-bold text-slate-800">
+          <div className="border border-[#dadce0] bg-white px-3 py-2 text-center">
+            <span className="block text-lg font-bold text-[#202124]">
               {t.alpa}
             </span>
-            <p className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">
+            <p className="text-[10px] font-semibold tracking-wider text-[#5f6368] uppercase">
               Alpa
             </p>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
-            <span className="block text-lg font-bold text-slate-800">
+          <div className="border border-[#dadce0] bg-white px-3 py-2 text-center">
+            <span className="block text-lg font-bold text-[#202124]">
               {t.pulang_awal}
             </span>
-            <p className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">
+            <p className="text-[10px] font-semibold tracking-wider text-[#5f6368] uppercase">
               P.Awal
             </p>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
-            <span className="block text-lg font-bold text-slate-800">
+          <div className="border border-[#dadce0] bg-white px-3 py-2 text-center">
+            <span className="block text-lg font-bold text-[#202124]">
               {t.lembur}
             </span>
-            <p className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">
+            <p className="text-[10px] font-semibold tracking-wider text-[#5f6368] uppercase">
               Lembur
             </p>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-center shadow-sm">
-            <span className="block text-lg font-bold text-slate-900">
+          <div className="border border-[#dadce0] bg-[#f8f9fa] px-3 py-2 text-center">
+            <span className="block text-lg font-bold text-[#202124]">
               {t.karyawan}
             </span>
-            <p className="text-[10px] font-bold tracking-wider text-slate-600 uppercase">
+            <p className="text-[10px] font-bold tracking-wider text-[#5f6368] uppercase">
               Karyawan
             </p>
           </div>
@@ -251,41 +251,41 @@ export default function RekapAbsensiPage() {
       )}
 
       {/* Table */}
-      <div className="relative overflow-x-auto rounded-lg border border-slate-200">
-        <table className="w-full min-w-full border-collapse text-left text-xs text-slate-700">
-          <thead className="bg-slate-50 text-[10px] text-slate-600 uppercase tracking-wide">
+      <div className="relative overflow-x-auto border border-[#dadce0]">
+        <table className="w-full min-w-full border-collapse text-left text-xs text-[#3c4043]">
+          <thead className="text-[10px] text-[#5f6368]">
             <tr>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold">
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5">
                 Karyawan
               </th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold">
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5">
                 Cabang
               </th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold">
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5">
                 Divisi
               </th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">
                 Hadir
               </th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">
                 Telat
               </th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">
                 Izin
               </th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">
                 Alpa
               </th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">
                 P.Awal
               </th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">
                 Lembur
               </th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">
                 Jam Kerja
               </th>
-              <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">
+              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">
                 Total Jam
               </th>
             </tr>
@@ -294,70 +294,66 @@ export default function RekapAbsensiPage() {
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i}>
-                  <td
-                    colSpan={11}
-                    className="border border-slate-200 px-3 py-3"
+                  <td colSpan={11} className="px-6 py-12 text-center"
                   >
-                    <div className="h-3 w-full rounded bg-slate-200/70" />
+                    <div className="h-3 w-full #e8eaed-\[#e8eaed\]" />
                   </td>
                 </tr>
               ))
             ) : data.length === 0 ? (
               <tr>
-                <td
-                  colSpan={11}
-                  className="border border-slate-200 px-4 py-10 text-center"
+                <td colSpan={11} className="px-6 py-12 text-center"
                 >
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center bg-[#f1f3f4] text-[#80868b]">
                     <BarChart3 size={24} />
                   </div>
-                  <p className="mt-3 text-sm font-medium text-slate-600">
+                  <p className="mt-3 text-sm font-medium text-[#5f6368]">
                     Tidak ada data rekap
                   </p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-[#80868b]">
                     Coba ubah rentang tanggal atau filter
                   </p>
                 </td>
               </tr>
             ) : (
               data.map((item, idx) => (
-                <tr key={idx} className="bg-white transition hover:bg-slate-50">
-                  <td className="border border-slate-200 px-3 py-2.5">
-                    <div className="font-semibold text-slate-800">
+                <tr key={idx} className="bg-white transition hover:bg-[#f8f9fa]">
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5">
+                    <div className="font-semibold text-[#202124]">
                       {item.nama}
                     </div>
-                    <div className="text-[9px] text-slate-400">
+                    <div className="text-[9px] text-[#80868b]">
                       {item.jabatan || "-"}
                     </div>
                   </td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-slate-500">
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-[#5f6368]">
                     {item.cabang}
                   </td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-slate-500">
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-[#5f6368]">
                     {item.divisi}
                   </td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-center font-semibold text-emerald-600">
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-center font-semibold text-[#137333]">
                     {item.hadir}
                   </td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-center font-semibold text-amber-600">
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-center font-semibold text-[#b06000]">
                     {item.terlambat}
                   </td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-center font-semibold text-blue-600">
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-center font-semibold text-[#1a73e8]">
                     {item.izin}
                   </td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-center font-semibold text-rose-600">
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-center font-semibold text-[#c5221f]">
                     {item.alpa}
                   </td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-center font-semibold text-orange-600">
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-center font-semibold text-[#b06000]">
                     {item.pulang_awal}
                   </td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-center font-semibold text-purple-600">
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-center font-semibold text-[#7627bb]">
                     {item.jumlah_lembur}x
                   </td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-center text-slate-600">
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-center text-[#5f6368]">
                     {item.total_jam_kerja}
                   </td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-center font-semibold text-slate-800">
+                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-center font-semibold text-[#202124]">
                     {item.grand_total_jam}
                   </td>
                 </tr>

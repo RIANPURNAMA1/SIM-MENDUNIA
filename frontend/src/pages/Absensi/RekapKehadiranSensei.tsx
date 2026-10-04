@@ -256,25 +256,25 @@ export default function RekapKehadiranSenseiPage() {
 
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
-      <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-4 border-b border-[#dadce0] pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
-            <BarChart3 size={20} className="text-white" />
+          <div className="flex h-10 w-10 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]">
+            <BarChart3 size={20} />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-slate-800">Rekap Kehadiran Sensei</h1>
-            <p className="text-sm text-slate-500">Rekapitulasi kehadiran sensei per bulan</p>
+            <h1 className="text-xl font-medium text-[#202124]">Rekap Kehadiran Sensei</h1>
+            <p className="text-sm text-[#5f6368]">Rekapitulasi kehadiran sensei per bulan</p>
           </div>
         </div>
       </div>
 
       {/* Filter */}
-      <div className="mb-4 rounded-lg p-4 shadow-sm">
+      <div className="mb-4 p-4">
         <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
           <select
             value={selectedUserId}
             onChange={(e) => setSelectedUserId(e.target.value ? Number(e.target.value) : "")}
-            className="w-full min-w-[200px] rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:w-auto sm:flex-1"
+            className="w-full min-w-[200px] border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] sm:w-auto sm:flex-1"
           >
             <option value="">Pilih Sensei</option>
             {senseiList.map((k) => (
@@ -286,7 +286,7 @@ export default function RekapKehadiranSenseiPage() {
           <select
             value={bulan}
             onChange={(e) => setBulan(Number(e.target.value))}
-            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:w-auto"
+            className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] sm:w-auto"
           >
             {MONTHS_IND.map((name, idx) => (
               <option key={idx} value={idx + 1}>{name}</option>
@@ -295,7 +295,7 @@ export default function RekapKehadiranSenseiPage() {
           <select
             value={tahun}
             onChange={(e) => setTahun(Number(e.target.value))}
-            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:w-auto"
+            className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] sm:w-auto"
           >
             {Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i).map((y) => (
               <option key={y} value={y}>{y}</option>
@@ -305,7 +305,7 @@ export default function RekapKehadiranSenseiPage() {
             <select
               value={filterCabang}
               onChange={(e) => handleCabangChange(e.target.value)}
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:w-auto"
+              className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] sm:w-auto"
             >
               <option value="">Semua Cabang</option>
               {cabangList.map((c) => (
@@ -325,7 +325,7 @@ export default function RekapKehadiranSenseiPage() {
             <select
               value={filterLevel}
               onChange={(e) => setFilterLevel(e.target.value)}
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:w-auto"
+              className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] sm:w-auto"
             >
               <option value="">Semua Level</option>
               {levelOptions.map((l) => (
@@ -336,7 +336,7 @@ export default function RekapKehadiranSenseiPage() {
           <button
             onClick={fetchData}
             disabled={!selectedUserId || loading}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-slate-800 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-700 disabled:opacity-50 sm:w-auto"
+            className="inline-flex w-full items-center justify-center gap-2 bg-[#202124] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#3c4043] disabled:opacity-50 sm:w-auto"
           >
             <Search size={16} />
             Tampilkan
@@ -354,7 +354,7 @@ export default function RekapKehadiranSenseiPage() {
               setBatchList([]);
               setCabangList([]);
             }}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 sm:w-auto"
+            className="inline-flex w-full items-center justify-center gap-2 border border-[#dadce0] bg-white px-3 py-2 text-sm font-medium text-[#3c4043] transition hover:bg-[#f8f9fa] sm:w-auto"
           >
             <RotateCcw size={16} />
             Reset
@@ -366,13 +366,13 @@ export default function RekapKehadiranSenseiPage() {
       <div className="mb-4 flex items-center gap-2">
         <button
           onClick={() => setViewMode("calendar")}
-          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition ${viewMode === "calendar" ? "bg-slate-800 text-white" : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"}`}
+          className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition ${viewMode === "calendar" ? "bg-[#202124] text-white" : "border border-[#dadce0] bg-white text-[#3c4043] hover:bg-[#f8f9fa]"}`}
         >
           <Calendar size={15} /> Kalender
         </button>
         <button
           onClick={() => setViewMode("table")}
-          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition ${viewMode === "table" ? "bg-slate-800 text-white" : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"}`}
+          className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition ${viewMode === "table" ? "bg-[#202124] text-white" : "border border-[#dadce0] bg-white text-[#3c4043] hover:bg-[#f8f9fa]"}`}
         >
           <Table size={15} /> Tabel
         </button>
@@ -380,52 +380,52 @@ export default function RekapKehadiranSenseiPage() {
 
       {/* Table View */}
       {viewMode === "table" && (
-        <div className="mb-4 overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="mb-4 overflow-x-auto border border-[#dadce0] bg-white">
           {tableLoading ? (
-            <div className="px-4 py-16 text-center text-sm text-slate-400">Memuat data...</div>
+            <div className="px-4 py-16 text-center text-sm text-[#80868b]">Memuat data...</div>
           ) : filteredTableData.length === 0 ? (
-            <div className="flex flex-col items-center justify-center px-4 py-16 text-slate-400">
+            <div className="flex flex-col items-center justify-center px-4 py-16 text-[#80868b]">
               <Table size={40} className="mb-3" />
-              <p className="text-sm font-medium text-slate-500">Tidak ada data kelas</p>
+              <p className="text-sm font-medium text-[#5f6368]">Tidak ada data kelas</p>
             </div>
           ) : (
-            <table className="w-full min-w-[900px] border-collapse text-left text-sm text-slate-700">
-              <thead className="text-[10px] text-slate-600 uppercase tracking-wide">
+            <table className="w-full min-w-[900px] border-collapse text-left text-sm text-[#3c4043]">
+              <thead className="text-[10px] text-[#5f6368]">
                 <tr>
-                  <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">No</th>
-                  <th className="border border-slate-200 px-3 py-2.5 font-semibold">Batch</th>
-                  <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">Level</th>
-                  <th className="border border-slate-200 px-3 py-2.5 font-semibold">Nama Kelas</th>
-                  <th className="border border-slate-200 px-3 py-2.5 font-semibold">Nama Sensei</th>
-                  <th className="border border-slate-200 px-3 py-2.5 font-semibold">Tgl Mulai</th>
-                  <th className="border border-slate-200 px-3 py-2.5 font-semibold">Tgl Selesai</th>
-                  <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">Total Pertemuan</th>
-                  <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">Absen Terisi</th>
-                  <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">Alpa</th>
-                  <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">Izin</th>
-                  <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">Tidak Absen Pulang</th>
-                  <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">Pulang Lebih Awal</th>
-                  <th className="border border-slate-200 px-3 py-2.5 font-semibold text-center">Status</th>
+                  <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">No</th>
+                  <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5">Batch</th>
+                  <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Level</th>
+                  <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5">Nama Kelas</th>
+                  <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5">Nama Sensei</th>
+                  <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5">Tgl Mulai</th>
+                  <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5">Tgl Selesai</th>
+                  <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Total Pertemuan</th>
+                  <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Absen Terisi</th>
+                  <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Alpa</th>
+                  <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Izin</th>
+                  <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Tidak Absen Pulang</th>
+                  <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Pulang Lebih Awal</th>
+                  <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredTableData.map((row, idx) => (
-                  <tr key={row.id} className="bg-white transition hover:bg-slate-50">
-                    <td className="border border-slate-200 px-3 py-2 text-center text-xs font-medium text-slate-500">{idx + 1}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-xs">{row.batch_nama}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-center text-xs font-semibold">{row.level}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-xs font-medium text-slate-800">{row.nama_kelas}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-xs">{row.sensei}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-xs text-slate-600">{row.tanggal_mulai}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-xs text-slate-600">{row.tanggal_selesai}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-center text-xs font-semibold">{row.total_pertemuan}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-center text-xs font-semibold">{row.absen_terisi}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-center text-xs font-semibold text-rose-600">{row.alpa}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-center text-xs font-semibold text-amber-600">{row.izin}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-center text-xs font-semibold text-rose-600">{row.tidak_absen_pulang ?? 0}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-center text-xs font-semibold text-amber-600">{row.pulang_lebih_awal ?? 0}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-center">
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${row.status === 'aktif' ? 'bg-emerald-100 text-emerald-700' : row.status === 'selesai' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}`}>
+                  <tr key={row.id} className="bg-white transition hover:bg-[#f8f9fa]">
+                    <td className="border-b border-[#e8eaed] px-3 py-2 text-center text-xs font-medium text-[#5f6368]">{idx + 1}</td>
+                    <td className="border-b border-[#e8eaed] px-3 py-2 text-xs">{row.batch_nama}</td>
+                    <td className="border-b border-[#e8eaed] px-3 py-2 text-center text-xs font-semibold">{row.level}</td>
+                    <td className="border-b border-[#e8eaed] px-3 py-2 text-xs font-medium text-[#202124]">{row.nama_kelas}</td>
+                    <td className="border-b border-[#e8eaed] px-3 py-2 text-xs">{row.sensei}</td>
+                    <td className="border-b border-[#e8eaed] px-3 py-2 text-xs text-[#5f6368]">{row.tanggal_mulai}</td>
+                    <td className="border-b border-[#e8eaed] px-3 py-2 text-xs text-[#5f6368]">{row.tanggal_selesai}</td>
+                    <td className="border-b border-[#e8eaed] px-3 py-2 text-center text-xs font-semibold">{row.total_pertemuan}</td>
+                    <td className="border-b border-[#e8eaed] px-3 py-2 text-center text-xs font-semibold">{row.absen_terisi}</td>
+                    <td className="border-b border-[#e8eaed] px-3 py-2 text-center text-xs font-semibold text-[#c5221f]">{row.alpa}</td>
+                    <td className="border-b border-[#e8eaed] px-3 py-2 text-center text-xs font-semibold text-[#b06000]">{row.izin}</td>
+                    <td className="border-b border-[#e8eaed] px-3 py-2 text-center text-xs font-semibold text-[#c5221f]">{row.tidak_absen_pulang ?? 0}</td>
+                    <td className="border-b border-[#e8eaed] px-3 py-2 text-center text-xs font-semibold text-[#b06000]">{row.pulang_lebih_awal ?? 0}</td>
+                    <td className="border-b border-[#e8eaed] px-3 py-2 text-center">
+                      <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-semibold ${row.status === 'aktif' ? 'bg-[#0E6187] text-white' : row.status === 'selesai' ? 'bg-[#e8f0fe] text-[#1967d2]' : 'bg-[#f1f3f4] text-[#5f6368]'}`}>
                         {row.status === 'aktif' ? 'Aktif' : row.status === 'selesai' ? 'Selesai' : row.status}
                       </span>
                     </td>
@@ -445,24 +445,24 @@ export default function RekapKehadiranSenseiPage() {
           {filteredKelasList.map((k) => {
             const batchInfo = batchList.find((b) => b.id === k.batch_id);
             return (
-            <div key={k.id} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+            <div key={k.id} className="border border-[#dadce0] bg-white p-3">
               <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0 truncate text-xs font-bold text-slate-700">{k.nama_kelas}</div>
+                <div className="min-w-0 truncate text-xs font-bold text-[#3c4043]">{k.nama_kelas}</div>
                 {batchInfo && (
-                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white" style={{ backgroundColor: batchInfo.warna || "#0E6187" }}>
-                    <span className="h-1.5 w-1.5 rounded-full bg-white/80" />
+                  <span className="inline-flex shrink-0 items-center gap-1 px-2 py-0.5 text-[10px] font-semibold text-white" style={{ backgroundColor: batchInfo.warna || "#0E6187" }}>
+                    <span className="h-1.5 w-1.5 bg-white" />
                     {k.batch_nama}
                   </span>
                 )}
               </div>
-              <div className="mt-0.5 text-[10px] text-slate-400">
+              <div className="mt-0.5 text-[10px] text-[#80868b]">
                 Level {k.level} · {k.batch_cabang_nama || "Tanpa Cabang"}
               </div>
               <div className="mt-1.5 flex items-center justify-between text-[10px]">
-                <span className="text-slate-500">
+                <span className="text-[#5f6368]">
                   {k.tanggal_mulai} - {k.tanggal_selesai}
                 </span>
-                <span className="font-semibold text-slate-700">
+                <span className="font-semibold text-[#3c4043]">
                   {k.jumlah_absen}/{k.total_pertemuan} absen
                 </span>
               </div>
@@ -475,29 +475,29 @@ export default function RekapKehadiranSenseiPage() {
       {/* Summary */}
       {!loading && Object.keys(rekapData).length > 0 && (
         <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
-            <span className="block text-lg font-bold text-emerald-600">{s.hadir}</span>
-            <p className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">Hadir</p>
+          <div className="border border-[#dadce0] bg-white px-3 py-2 text-center">
+            <span className="block text-lg font-bold text-[#137333]">{s.hadir}</span>
+            <p className="text-[10px] font-semibold tracking-wider text-[#5f6368] uppercase">Hadir</p>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
-            <span className="block text-lg font-bold text-purple-600">{s.tidakAbsenPulang}</span>
-            <p className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">Tidak Absen Pulang</p>
+          <div className="border border-[#dadce0] bg-white px-3 py-2 text-center">
+            <span className="block text-lg font-bold text-[#7627bb]">{s.tidakAbsenPulang}</span>
+            <p className="text-[10px] font-semibold tracking-wider text-[#5f6368] uppercase">Tidak Absen Pulang</p>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
-            <span className="block text-lg font-bold text-amber-600">{s.terlambat}</span>
-            <p className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">Telat</p>
+          <div className="border border-[#dadce0] bg-white px-3 py-2 text-center">
+            <span className="block text-lg font-bold text-[#b06000]">{s.terlambat}</span>
+            <p className="text-[10px] font-semibold tracking-wider text-[#5f6368] uppercase">Telat</p>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
-            <span className="block text-lg font-bold text-rose-600">{s.alpa}</span>
-            <p className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">Alpa</p>
+          <div className="border border-[#dadce0] bg-white px-3 py-2 text-center">
+            <span className="block text-lg font-bold text-[#c5221f]">{s.alpa}</span>
+            <p className="text-[10px] font-semibold tracking-wider text-[#5f6368] uppercase">Alpa</p>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
-            <span className="block text-lg font-bold text-orange-600">{s.pulangAwal}</span>
-            <p className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">P.Awal</p>
+          <div className="border border-[#dadce0] bg-white px-3 py-2 text-center">
+            <span className="block text-lg font-bold text-[#b06000]">{s.pulangAwal}</span>
+            <p className="text-[10px] font-semibold tracking-wider text-[#5f6368] uppercase">P.Awal</p>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-center shadow-sm">
-            <span className="block text-lg font-bold text-slate-500">{s.libur}</span>
-            <p className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">Libur</p>
+          <div className="border border-[#dadce0] bg-white px-3 py-2 text-center">
+            <span className="block text-lg font-bold text-[#5f6368]">{s.libur}</span>
+            <p className="text-[10px] font-semibold tracking-wider text-[#5f6368] uppercase">Libur</p>
           </div>
         </div>
       )}
@@ -505,35 +505,35 @@ export default function RekapKehadiranSenseiPage() {
       {/* Legend */}
       {!loading && Object.keys(rekapData).length > 0 && (
         <div className="mb-3 flex flex-wrap gap-2 text-[10px] font-semibold">
-          <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-emerald-500" /> Hadir</span>
-          <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-amber-400" /> Telat</span>
-          <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-rose-500" /> Alpa</span>
-          <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-orange-400" /> P.Awal</span>
-          <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-slate-400" /> Libur</span>
-          <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm border border-slate-300 bg-white" /> Blm Absen</span>
-          <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm" style={{ backgroundColor: "#fff3cd" }} /> Rentang Kelas</span>
+          <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 bg-[#0E6187]" /> Hadir</span>
+          <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 bg-[#f9ab00]" /> Telat</span>
+          <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 bg-[#d93025]" /> Alpa</span>
+          <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 bg-[#f9ab00]" /> P.Awal</span>
+          <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 bg-[#bdc1c6]" /> Libur</span>
+          <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 border border-[#dadce0] bg-white" /> Blm Absen</span>
+          <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3" style={{ backgroundColor: "#fef7e0" }} /> Rentang Kelas</span>
         </div>
       )}
 
       {/* Calendar Grid */}
-      <div className="overflow-x-auto rounded-lg border border-slate-200">
+      <div className="overflow-x-auto border border-[#dadce0]">
         {!selectedUserId ? (
-          <div className="flex flex-col items-center justify-center px-4 py-16 text-slate-400">
+          <div className="flex flex-col items-center justify-center px-4 py-16 text-[#80868b]">
             <BarChart3 size={40} className="mb-3" />
-            <p className="text-sm font-medium text-slate-500">Pilih sensei dan tekan Tampilkan</p>
+            <p className="text-sm font-medium text-[#5f6368]">Pilih sensei dan tekan Tampilkan</p>
           </div>
         ) : loading ? (
-          <div className="px-4 py-16 text-center text-sm text-slate-400">Memuat data...</div>
+          <div className="px-4 py-16 text-center text-sm text-[#80868b]">Memuat data...</div>
         ) : Object.keys(rekapData).length === 0 ? (
-          <div className="flex flex-col items-center justify-center px-4 py-16 text-slate-400">
+          <div className="flex flex-col items-center justify-center px-4 py-16 text-[#80868b]">
             <BarChart3 size={40} className="mb-3" />
-            <p className="text-sm font-medium text-slate-500">Tidak ada data kehadiran untuk bulan ini</p>
+            <p className="text-sm font-medium text-[#5f6368]">Tidak ada data kehadiran untuk bulan ini</p>
           </div>
         ) : (
           <div className="min-w-[700px]">
-            <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
+            <div className="grid grid-cols-7 border-b border-[#dadce0] bg-[#f8f9fa]">
               {DAY_NAMES.map((name) => (
-                <div key={name} className="border-r border-slate-200 px-2 py-2 text-center text-[10px] font-bold tracking-wider text-slate-500 uppercase last:border-r-0">
+                <div key={name} className="border-r border-[#dadce0] px-2 py-2 text-center text-[10px] font-bold tracking-wider text-[#5f6368] uppercase last:border-r-0">
                   {name}
                 </div>
               ))}
@@ -541,7 +541,7 @@ export default function RekapKehadiranSenseiPage() {
             <div className="grid grid-cols-7">
               {calendarDays.map((day, idx) => {
                 if (day === null) {
-                  return <div key={`empty-${idx}`} className="border-b border-r border-slate-100 bg-slate-50/50 last:border-r-0" />;
+                  return <div key={`empty-${idx}`} className="border-b border-r border-[#e8eaed] bg-[#f8f9fa] last:border-r-0" />;
                 }
                 const ds = dateStr(day);
                 const dayData = rekapData[ds];
@@ -559,25 +559,25 @@ export default function RekapKehadiranSenseiPage() {
                 return (
                   <div
                     key={ds}
-                    className={`relative min-h-[70px] border-b border-r border-slate-100 p-1.5 transition last:border-r-0 ${clickable ? "cursor-pointer hover:bg-slate-50" : ""} ${!inClassRange && !dayData ? "bg-slate-50/30" : ""}`}
+                    className={`relative min-h-[70px] border-b border-r border-[#e8eaed] p-1.5 transition last:border-r-0 ${clickable ? "cursor-pointer hover:bg-[#f8f9fa]" : ""} ${!inClassRange && !dayData ? "bg-[#f8f9fa]" : ""}`}
                     onClick={() => clickable && handleCellClick(ds, dayData)}
                     title={filteredEntries.length ? filteredEntries.map((e) => `${e.kelas_nama}: ${e.status}`).join(", ") : (inClassRange ? "Rentang kelas - klik untuk ubah status" : "")}
-                    style={inClassRange ? { backgroundColor: "#fff3cd" } : undefined}
+                    style={inClassRange ? { backgroundColor: "#fef7e0" } : undefined}
                   >
-                    <span className={`text-[10px] font-bold ${filteredEntries.length ? "text-slate-600" : inClassRange ? "text-amber-700" : "text-slate-300"}`}>
+                    <span className={`text-[10px] font-bold ${filteredEntries.length ? "text-[#5f6368]" : inClassRange ? "text-[#b06000]" : "text-[#9aa0a6]"}`}>
                       {day}
                     </span>
                     {filteredEntries.map((e, ei) => (
                       <div
                         key={ei}
-                        className={`mt-0.5 inline-flex items-center justify-center rounded px-1 py-0.5 text-[9px] font-bold leading-tight ${statusColorClass(e.status)}`}
+                        className={`mt-0.5 inline-flex items-center justify-center px-1 py-0.5 text-[9px] font-bold leading-tight ${statusColorClass(e.status)}`}
                         style={{ minWidth: 16, minHeight: 16 }}
                       >
                         {e.initial}
                       </div>
                     ))}
                     {!dayData && inClassRange && (
-                      <div className="mt-0.5 text-center text-[8px] text-amber-500 font-medium">-</div>
+                      <div className="mt-0.5 text-center text-[8px] text-[#e37400] font-medium">-</div>
                     )}
                   </div>
                 );
@@ -590,27 +590,27 @@ export default function RekapKehadiranSenseiPage() {
 
       {/* Modal */}
       {modal.show && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3">
-          <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-              <h3 className="text-sm font-semibold text-slate-800">Ubah Status</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#202124] px-3">
+          <div className="border border-[#dadce0] w-full max-w-md bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]">
+            <div className="flex items-center justify-between border-b border-[#dadce0] px-4 py-3">
+              <h3 className="text-sm font-semibold text-[#202124]">Ubah Status</h3>
               <button
                 onClick={closeModal}
-                className="rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                className="p-1 text-[#80868b] transition hover:bg-[#f1f3f4] hover:text-[#5f6368]"
               >
                 <X size={16} />
               </button>
             </div>
             <div className="px-4 py-4">
-              <p className="mb-1 text-xs text-slate-500">Tanggal</p>
-              <p className="mb-3 text-sm font-semibold text-slate-800">{modal.tanggal}</p>
+              <p className="mb-1 text-xs text-[#5f6368]">Tanggal</p>
+              <p className="mb-3 text-sm font-semibold text-[#202124]">{modal.tanggal}</p>
               {modalClassesInRange.length > 1 ? (
                 <>
-                  <label className="mb-1 block text-xs text-slate-500">Kelas</label>
+                  <label className="mb-1 block text-xs text-[#5f6368]">Kelas</label>
                   <select
                     value={modal.kelas_sensei_id}
                     onChange={(e) => handleKelasChange(Number(e.target.value))}
-                    className="mb-3 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    className="mb-3 w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
                   >
                     {modalClassesInRange.map((k) => (
                       <option key={k.id} value={k.id}>{k.nama_kelas}</option>
@@ -619,15 +619,15 @@ export default function RekapKehadiranSenseiPage() {
                 </>
               ) : (
                 <>
-                  <p className="mb-1 text-xs text-slate-500">Kelas</p>
-                  <p className="mb-3 text-sm font-semibold text-slate-800">{modal.kelas_nama}</p>
+                  <p className="mb-1 text-xs text-[#5f6368]">Kelas</p>
+                  <p className="mb-3 text-sm font-semibold text-[#202124]">{modal.kelas_nama}</p>
                 </>
               )}
-              <label className="mb-1 block text-xs text-slate-500">Status</label>
+              <label className="mb-1 block text-xs text-[#5f6368]">Status</label>
               <select
                 value={modal.status}
                 onChange={(e) => setModal((prev) => ({ ...prev, status: e.target.value }))}
-                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
               >
                 {STATUS_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -636,46 +636,46 @@ export default function RekapKehadiranSenseiPage() {
 
               <div className="mt-3 grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 flex items-center gap-1 text-xs text-slate-500">
+                  <label className="mb-1 flex items-center gap-1 text-xs text-[#5f6368]">
                     <Clock size={12} /> Jam Masuk
                   </label>
                   <input
                     type="time"
                     value={modal.jam_masuk}
                     onChange={(e) => setModal((prev) => ({ ...prev, jam_masuk: e.target.value }))}
-                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 flex items-center gap-1 text-xs text-slate-500">
+                  <label className="mb-1 flex items-center gap-1 text-xs text-[#5f6368]">
                     <Clock size={12} /> Jam Pulang
                   </label>
                   <input
                     type="time"
                     value={modal.jam_pulang}
                     onChange={(e) => setModal((prev) => ({ ...prev, jam_pulang: e.target.value }))}
-                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
                   />
                 </div>
               </div>
 
               <div className="mt-3 grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 flex items-center gap-1 text-xs text-slate-500">
+                  <label className="mb-1 flex items-center gap-1 text-xs text-[#5f6368]">
                     <Camera size={12} /> Foto Masuk
                   </label>
                   <input
                     type="file"
                     accept="image/*"
                     onChange={(e) => setModal((prev) => ({ ...prev, foto_masuk: e.target.files?.[0] || null }))}
-                    className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500 file:mr-2 file:rounded file:border-0 file:bg-blue-50 file:px-2 file:py-1 file:text-xs file:font-medium file:text-blue-700"
+                    className="w-full border border-[#dadce0] bg-white px-2 py-1.5 text-xs text-[#3c4043] outline-none transition focus:border-[#1a73e8] file:mr-2 file: file:border-0 file:bg-[#e8f0fe] file:px-2 file:py-1 file:text-xs file:font-medium file:text-[#1967d2]"
                   />
                   {modal.foto_masuk_prev && !modal.foto_masuk && (
                     <a href={`${APP_URL}/storage/${modal.foto_masuk_prev}`} target="_blank" rel="noreferrer">
                       <img
                         src={`${APP_URL}/storage/${modal.foto_masuk_prev}`}
                         alt="foto masuk"
-                        className="mt-2 h-16 w-16 rounded-lg border border-slate-200 object-cover"
+                        className="mt-2 h-16 w-16 border border-[#dadce0] object-cover"
                       />
                     </a>
                   )}
@@ -683,26 +683,26 @@ export default function RekapKehadiranSenseiPage() {
                     <img
                       src={URL.createObjectURL(modal.foto_masuk)}
                       alt="foto masuk baru"
-                      className="mt-2 h-16 w-16 rounded-lg border border-emerald-300 object-cover"
+                      className="mt-2 h-16 w-16 border border-[#a8dab5] object-cover"
                     />
                   )}
                 </div>
                 <div>
-                  <label className="mb-1 flex items-center gap-1 text-xs text-slate-500">
+                  <label className="mb-1 flex items-center gap-1 text-xs text-[#5f6368]">
                     <Camera size={12} /> Foto Pulang
                   </label>
                   <input
                     type="file"
                     accept="image/*"
                     onChange={(e) => setModal((prev) => ({ ...prev, foto_pulang: e.target.files?.[0] || null }))}
-                    className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500 file:mr-2 file:rounded file:border-0 file:bg-blue-50 file:px-2 file:py-1 file:text-xs file:font-medium file:text-blue-700"
+                    className="w-full border border-[#dadce0] bg-white px-2 py-1.5 text-xs text-[#3c4043] outline-none transition focus:border-[#1a73e8] file:mr-2 file: file:border-0 file:bg-[#e8f0fe] file:px-2 file:py-1 file:text-xs file:font-medium file:text-[#1967d2]"
                   />
                   {modal.foto_pulang_prev && !modal.foto_pulang && (
                     <a href={`${APP_URL}/storage/${modal.foto_pulang_prev}`} target="_blank" rel="noreferrer">
                       <img
                         src={`${APP_URL}/storage/${modal.foto_pulang_prev}`}
                         alt="foto pulang"
-                        className="mt-2 h-16 w-16 rounded-lg border border-slate-200 object-cover"
+                        className="mt-2 h-16 w-16 border border-[#dadce0] object-cover"
                       />
                     </a>
                   )}
@@ -710,23 +710,23 @@ export default function RekapKehadiranSenseiPage() {
                     <img
                       src={URL.createObjectURL(modal.foto_pulang)}
                       alt="foto pulang baru"
-                      className="mt-2 h-16 w-16 rounded-lg border border-emerald-300 object-cover"
+                      className="mt-2 h-16 w-16 border border-[#a8dab5] object-cover"
                     />
                   )}
                 </div>
               </div>
             </div>
-            <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3">
+            <div className="flex justify-end gap-2 border-t border-[#dadce0] px-4 py-3">
               <button
                 onClick={closeModal}
-                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                className="border border-[#dadce0] bg-white px-4 py-2 text-xs font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]"
               >
                 Batal
               </button>
               <button
                 onClick={handleUpdateStatus}
                 disabled={modal.submitting}
-                className="rounded-md bg-slate-800 px-4 py-2 text-xs font-medium text-white transition hover:bg-slate-700 disabled:opacity-50"
+                className="bg-[#202124] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#3c4043] disabled:opacity-50"
               >
                 {modal.submitting ? "Menyimpan..." : "Simpan"}
               </button>
@@ -740,13 +740,13 @@ export default function RekapKehadiranSenseiPage() {
 
 function statusColorClass(status: string): string {
   switch (status) {
-    case "HADIR": return "bg-emerald-500 text-white";
-    case "TERLAMBAT": return "bg-amber-400 text-white";
+    case "HADIR": return "bg-[#188038] text-white";
+    case "TERLAMBAT": return "bg-[#f9ab00] text-white";
     case "ALPA":
-    case "TIDAK ABSEN PULANG": return "bg-rose-500 text-white";
-    case "PULANG LEBIH AWAL": return "bg-orange-400 text-white";
-    case "LIBUR": return "bg-slate-400 text-white";
-    default: return "border border-slate-300 bg-white text-slate-600";
+    case "TIDAK ABSEN PULANG": return "bg-[#d93025] text-white";
+    case "PULANG LEBIH AWAL": return "bg-[#f9ab00] text-white";
+    case "LIBUR": return "bg-[#bdc1c6] text-white";
+    default: return "border border-[#dadce0] bg-white text-[#5f6368]";
   }
 }
 
@@ -773,23 +773,23 @@ function BatchSelect({ options, value, onChange, className = "" }: {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className={`inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${className}`}
+        className={`inline-flex items-center gap-2 border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] ${className}`}
       >
         {selected ? (
           <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: selected.warna || "#0E6187" }} />
+            <span className="h-2.5 w-2.5 shrink-0" style={{ backgroundColor: selected.warna || "#0E6187" }} />
             <span className="max-w-[160px] truncate">{selected.nama_batch}</span>
           </span>
         ) : (
           "Semua Batch"
         )}
-        <ChevronDown size={14} className="shrink-0 text-slate-400" />
+        <ChevronDown size={14} className="shrink-0 text-[#80868b]" />
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-40 mt-1 max-h-60 w-72 overflow-auto rounded-md border border-slate-200 bg-white py-1 shadow-lg">
+        <div className="absolute left-0 top-full z-40 mt-1 max-h-60 w-72 overflow-auto border border-[#dadce0] bg-white py-1 shadow-[0_1px_3px_rgba(60,64,67,0.15)]">
           <button
             onClick={() => { onChange(""); setOpen(false); }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-600 transition hover:bg-slate-50"
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-[#5f6368] transition hover:bg-[#f8f9fa]"
           >
             Semua Batch
           </button>
@@ -797,9 +797,9 @@ function BatchSelect({ options, value, onChange, className = "" }: {
             <button
               key={b.id}
               onClick={() => { onChange(String(b.id)); setOpen(false); }}
-              className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-slate-50 ${String(b.id) === value ? "bg-blue-50 text-blue-700" : "text-slate-700"}`}
+              className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-[#f8f9fa] ${String(b.id) === value ? "bg-[#e8f0fe] text-[#1967d2]" : "text-[#3c4043]"}`}
             >
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: b.warna || "#0E6187" }} />
+              <span className="h-2.5 w-2.5 shrink-0" style={{ backgroundColor: b.warna || "#0E6187" }} />
               <span className="min-w-0 flex-1 truncate">{b.nama_batch}</span>
             </button>
           ))}

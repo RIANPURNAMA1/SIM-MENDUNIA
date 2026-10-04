@@ -178,7 +178,7 @@ export default function AsiaPointsMap({ className = "" }: { className?: string }
         ctx.fill();
 
         // label
-        ctx.font = `600 10px Inter, system-ui, sans-serif`;
+        ctx.font = `600 10px "Google Sans Flex", system-ui, sans-serif`;
         ctx.fillStyle = "rgba(255,255,255,0.82)";
         ctx.textAlign = "center";
         ctx.fillText(NODES[n].label, p.x, p.y + 14);

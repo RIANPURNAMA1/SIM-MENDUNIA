@@ -16,13 +16,13 @@ interface KaryawanOption {
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 
 const shiftColors: Record<number, string> = {
-  1: 'bg-emerald-500',
-  2: 'bg-blue-500',
-  3: 'bg-amber-500',
-  4: 'bg-red-500',
-  5: 'bg-indigo-500',
-  6: 'bg-slate-500',
-  7: 'bg-cyan-500',
+  1: 'bg-[#188038]',
+  2: 'bg-[#0E6187]',
+  3: 'bg-[#e37400]',
+  4: 'bg-[#d93025]',
+  5: 'bg-[#0E6187]',
+  6: 'bg-[#80868b]',
+  7: 'bg-[#0E6187]',
 }
 
 export default function JadwalShiftPage() {
@@ -190,14 +190,14 @@ export default function JadwalShiftPage() {
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-4 rounded-lg p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-4 border-b border-[#dadce0] pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-blue-100">
-            <Calendar size={20} className="text-white" />
+          <div className="flex h-10 w-10 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]">
+            <Calendar size={20} />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-slate-800">Atur Jadwal Shift</h1>
-            <p className="text-sm text-slate-500">Kelola jadwal shift karyawan per tanggal</p>
+            <h1 className="text-xl font-medium text-[#202124]">Atur Jadwal Shift</h1>
+            <p className="text-sm text-[#5f6368]">Kelola jadwal shift karyawan per tanggal</p>
           </div>
         </div>
       </div>
@@ -206,12 +206,12 @@ export default function JadwalShiftPage() {
         {/* Left Panel - Controls */}
         <div className="lg:col-span-1 space-y-4">
           {/* Pilih Karyawan */}
-          <div className="rounded-lg p-4 shadow-sm">
-            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Pilih Karyawan</label>
+          <div className="p-4">
+            <label className="block text-xs font-semibold text-[#3c4043] mb-1.5">Pilih Karyawan</label>
             <select
               value={selectedUserId}
               onChange={(e) => { setSelectedUserId(e.target.value ? parseInt(e.target.value) : ''); setSelectedDates([]) }}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              className="w-full px-3 py-2 text-sm border border-[#dadce0] focus:outline-none focus:border-[#1a73e8]"
             >
               <option value="">-- Pilih Karyawan --</option>
               {karyawanList.map((k) => (
@@ -221,17 +221,17 @@ export default function JadwalShiftPage() {
           </div>
 
           {/* Bulan & Tahun */}
-          <div className="rounded-lg p-4 shadow-sm">
-            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Bulan & Tahun</label>
+          <div className="p-4">
+            <label className="block text-xs font-semibold text-[#3c4043] mb-1.5">Bulan & Tahun</label>
             <div className="grid grid-cols-2 gap-2">
               <select value={month} onChange={(e) => { setMonth(parseInt(e.target.value)); setSelectedDates([]) }}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                className="w-full px-3 py-2 text-sm border border-[#dadce0] focus:outline-none focus:border-[#1a73e8]">
                 {MONTHS.map((name, i) => (
                   <option key={i} value={i + 1}>{name}</option>
                 ))}
               </select>
               <select value={year} onChange={(e) => { setYear(parseInt(e.target.value)); setSelectedDates([]) }}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                className="w-full px-3 py-2 text-sm border border-[#dadce0] focus:outline-none focus:border-[#1a73e8]">
                 {[year - 1, year, year + 1].map((y) => (
                   <option key={y} value={y}>{y}</option>
                 ))}
@@ -241,8 +241,8 @@ export default function JadwalShiftPage() {
 
           {/* Selected Dates Info */}
           {selectedDates.length > 0 && (
-            <div className="rounded-lg p-4 shadow-sm">
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+            <div className="p-4">
+              <label className="block text-xs font-semibold text-[#3c4043] mb-1.5">
                 TANGGAL DIPILIH: {selectedDates.length} hari
               </label>
               <div className="flex flex-wrap gap-1 mb-3 max-h-28 overflow-y-auto">
@@ -250,20 +250,20 @@ export default function JadwalShiftPage() {
                   [...selectedDates].sort().map((tgl) => {
                     const d = new Date(tgl + 'T00:00:00')
                     const label = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
-                    return <span key={tgl} className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">{label}</span>
+                    return <span key={tgl} className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#e8f0fe] text-[#1967d2] text-xs">{label}</span>
                   })
                 ) : (
-                  <span className="text-sm text-blue-700 font-medium">{selectedDates.length} tanggal terpilih</span>
+                  <span className="text-sm text-[#1967d2] font-medium">{selectedDates.length} tanggal terpilih</span>
                 )}
               </div>
             </div>
           )}
 
           {/* Shift Selection */}
-          <div className="rounded-lg p-4 shadow-sm">
-            <label className="block text-xs font-semibold text-gray-700 mb-1.5">PILIH SHIFT:</label>
+          <div className="p-4">
+            <label className="block text-xs font-semibold text-[#3c4043] mb-1.5">PILIH SHIFT:</label>
             <select value={selectedShift} onChange={(e) => { setIsLibur(e.target.value === 'LIBUR'); setSelectedShift(e.target.value) }}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 mb-2">
+              className="w-full px-3 py-2 text-sm border border-[#dadce0] focus:outline-none focus:border-[#1a73e8] mb-2">
               <option value="">-- Pilih Shift --</option>
               {shifts.map((s) => (
                 <option key={s.id} value={s.id}>{s.nama_shift} ({s.jam_masuk.substring(0, 5)} - {s.jam_pulang.substring(0, 5)})</option>
@@ -272,23 +272,23 @@ export default function JadwalShiftPage() {
             </select>
 
             {isLibur && (
-              <div className="mb-2 px-3 py-2 bg-red-50 text-red-700 text-sm rounded-lg font-medium flex items-center gap-2">
+              <div className="mb-2 px-3 py-2 bg-[#fce8e6] text-[#a50e0e] text-sm font-medium flex items-center gap-2">
                 <Sun size={14} /> Libur
               </div>
             )}
 
             <input type="text" value={keterangan} onChange={(e) => setKeterangan(e.target.value)}
               placeholder="Keterangan (opsional)"
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 mb-3"
+              className="w-full px-3 py-2 text-sm border border-[#dadce0] focus:outline-none focus:border-[#1a73e8] mb-3"
             />
 
             <div className="flex gap-2">
               <button onClick={confirmDelete} disabled={selectedDates.length === 0 || loading}
-                className="flex-1 py-2 text-sm font-medium rounded-lg bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 transition-colors flex items-center justify-center gap-1">
+                className="flex-1 py-2 text-sm font-medium bg-[#d93025] text-white hover:bg-[#c5221f] disabled:opacity-50 transition-colors flex items-center justify-center gap-1">
                 <Trash2 size={14} /> Hapus
               </button>
               <button onClick={confirmSave} disabled={selectedDates.length === 0 || !selectedShift || loading}
-                className="flex-1 py-2 text-sm font-medium rounded-lg bg-[#0E6187] text-white hover:bg-[#1a5e6f] disabled:opacity-50 transition-colors flex items-center justify-center gap-1">
+                className="flex-1 py-2 text-sm font-medium bg-[#0E6187] text-white hover:bg-[#084c63] disabled:opacity-50 transition-colors flex items-center justify-center gap-1">
                 <Save size={14} /> Simpan
               </button>
             </div>
@@ -296,11 +296,11 @@ export default function JadwalShiftPage() {
 
           {/* Legend */}
           {shifts.length > 0 && (
-            <div className="rounded-lg p-4 shadow-sm">
-              <span className="text-xs font-semibold text-gray-700">Legenda Shift:</span>
+            <div className="p-4">
+              <span className="text-xs font-semibold text-[#3c4043]">Legenda Shift:</span>
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {shifts.map((s) => (
-                  <span key={s.id} className={`inline-flex items-center px-2 py-0.5 text-xs text-white rounded-full ${shiftColors[s.id] || 'bg-slate-500'}`}>
+                  <span key={s.id} className={`inline-flex items-center px-2 py-0.5 text-xs text-white ${shiftColors[s.id] || 'bg-[#80868b]'}`}>
                     {s.nama_shift}
                   </span>
                 ))}
@@ -311,25 +311,25 @@ export default function JadwalShiftPage() {
 
         {/* Right Panel - Calendar */}
         <div className="lg:col-span-3">
-          <div className="rounded-lg p-4 shadow-sm">
+          <div className="p-4">
             {selectedUserId ? (
               <>
                 {/* Calendar Header */}
                 <div className="flex items-center justify-between mb-4">
-                  <button onClick={() => changeMonth(-1)} className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors">
+                  <button onClick={() => changeMonth(-1)} className="p-2 hover:bg-[#f1f3f4] text-[#5f6368] transition-colors">
                     <ChevronLeft size={18} />
                   </button>
-                  <h3 className="font-bold text-slate-800">{MONTHS[month - 1]} {year}</h3>
-                  <button onClick={() => changeMonth(1)} className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors">
+                  <h3 className="text-base font-medium text-[#202124]">{MONTHS[month - 1]} {year}</h3>
+                  <button onClick={() => changeMonth(1)} className="p-2 hover:bg-[#f1f3f4] text-[#5f6368] transition-colors">
                     <ChevronRight size={18} />
                   </button>
                 </div>
 
                 {/* Quick Select Buttons */}
                 <div className="flex flex-wrap gap-1.5 mb-4">
-                  <button onClick={selectAll} className="px-2.5 py-1 text-xs font-medium rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors">Pilih Semua</button>
-                  <button onClick={selectWeekdays} className="px-2.5 py-1 text-xs font-medium rounded-lg border border-emerald-200 text-emerald-600 hover:bg-emerald-50 transition-colors">Pilih Hari Kerja</button>
-                  <button onClick={clearDates} className="px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors">Clear</button>
+                  <button onClick={selectAll} className="px-2.5 py-1 text-xs font-medium border border-[#e8f0fe] text-[#1a73e8] hover:bg-[#e8f0fe] transition-colors">Pilih Semua</button>
+                  <button onClick={selectWeekdays} className="px-2.5 py-1 text-xs font-medium border border-[#a8dab5] text-[#137333] hover:bg-[#e6f4ea] transition-colors">Pilih Hari Kerja</button>
+                  <button onClick={clearDates} className="px-2.5 py-1 text-xs font-medium border border-[#dadce0] text-[#5f6368] hover:bg-[#f8f9fa] transition-colors">Clear</button>
                 </div>
 
                 {/* Calendar Grid */}
@@ -338,7 +338,7 @@ export default function JadwalShiftPage() {
                     <thead>
                       <tr>
                         {dayNames.map((name, i) => (
-                          <th key={i} className={`p-2 text-xs font-semibold text-center border border-slate-200 ${i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-slate-600'}`}>
+                          <th key={i} className={`p-2 text-xs font-semibold text-center border-b border-[#dadce0] ${i === 0 ? 'text-[#d93025]' : i === 6 ? 'text-[#1a73e8]' : 'text-[#5f6368]'}`}>
                             {name}
                           </th>
                         ))}
@@ -349,7 +349,7 @@ export default function JadwalShiftPage() {
                         <tr key={weekIdx}>
                           {Array.from({ length: 7 }).map((_, dayIdx) => {
                             const dayNum = weekIdx * 7 + dayIdx - firstDay + 1
-                            if (dayNum < 1 || dayNum > daysInMonth) return <td key={dayIdx} className="border border-slate-100 p-1" />
+                            if (dayNum < 1 || dayNum > daysInMonth) return <td key={dayIdx} className="border border-[#e8eaed] p-1" />
 
                             const dateStr = getDateStr(dayNum)
                             const isSelected = selectedDates.includes(dateStr)
@@ -361,22 +361,19 @@ export default function JadwalShiftPage() {
                             const effectiveShifts = hasData ? jadwalArr : (defaultShift && !isWeekend(dayNum) ? [{ shift: defaultShift } as ShiftJadwal] : [])
 
                             return (
-                              <td key={dayIdx} className="border border-slate-100 p-1">
+                              <td key={dayIdx} className="border border-[#e8eaed] p-1">
                                 <div
                                   onClick={() => toggleDate(dateStr)}
-                                  className={`relative flex flex-col items-center justify-center min-h-[56px] rounded-lg cursor-pointer transition-all duration-150
-                                    ${isSelected ? 'bg-[#0E6187] text-white shadow-md scale-105' : 'hover:bg-slate-50 hover:shadow-sm'}
-                                    ${isToday(dayNum) && !isSelected ? 'ring-2 ring-blue-400' : ''}
-                                  `}
+                                  className={`relative flex flex-col items-center justify-center min-h-[56px] cursor-pointer transition-all duration-150 ${isSelected ? 'bg-[#0E6187] text-white scale-105' : 'hover:bg-[#f8f9fa] hover:'} ${isToday(dayNum) && !isSelected ? 'ring-2 ring-[#1a73e8]' : ''}`}
                                 >
-                                  <span className={`text-sm font-bold ${isSelected ? 'text-white' : isLiburDay && !hasData ? 'text-red-400' : 'text-slate-700'}`}>
+                                  <span className={`text-sm font-medium ${isSelected ? 'text-white' : isLiburDay && !hasData ? 'text-[#d93025]' : 'text-[#3c4043]'}`}>
                                     {dayNum}
                                   </span>
                                   {effectiveShifts.map((j: any, idx: number) => (
                                     j.is_libur ? (
-                                      <span key={idx} className="text-[9px] font-bold text-red-500 mt-0.5">LIBUR</span>
+                                      <span key={idx} className="text-[10px] font-medium text-[#d93025] mt-0.5">LIBUR</span>
                                     ) : j.shift ? (
-                                      <span key={idx} className={`text-[9px] text-white px-1 rounded mt-0.5 ${shiftColors[j.shift.id] || 'bg-slate-500'}`}
+                                      <span key={idx} className={`text-[9px] text-white px-1 mt-0.5 ${shiftColors[j.shift.id] || 'bg-[#80868b]'}`}
                                         style={{ lineHeight: '1.2' }}>
                                         {j.shift.nama_shift}
                                       </span>
@@ -394,10 +391,10 @@ export default function JadwalShiftPage() {
                 </div>
 
                 {/* Existing Schedule */}
-                <div className="mt-4 p-3 bg-slate-50 rounded-lg">
-                  <span className="text-xs font-semibold text-slate-600">Jadwal Tersimpan:</span>
+                <div className="mt-4 p-3 bg-[#f8f9fa]">
+                  <span className="text-xs font-semibold text-[#5f6368]">Jadwal Tersimpan:</span>
                   {defaultShift && (
-                    <span className="ml-2 text-[10px] text-slate-400">(default: <strong>{defaultShift.nama_shift}</strong>)</span>
+                    <span className="ml-2 text-[10px] text-[#80868b]">(default: <strong>{defaultShift.nama_shift}</strong>)</span>
                   )}
                   <div className="mt-2 max-h-48 overflow-y-auto space-y-1">
                     {(() => {
@@ -417,13 +414,13 @@ export default function JadwalShiftPage() {
                           const label = d.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' })
                           return (
                             <div key={tgl} className="flex items-center gap-2 text-xs">
-                              <span className="text-slate-500 w-24 shrink-0">{label}</span>
+                              <span className="text-[#5f6368] w-24 shrink-0">{label}</span>
                               <div className="flex gap-1">
                                 {arr.map((j: any, idx: number) => (
                                   j.is_libur ? (
-                                    <span key={idx} className="px-2 py-0.5 bg-red-100 text-red-700 font-medium rounded text-[10px]">LIBUR</span>
+                                    <span key={idx} className="px-2 py-0.5 bg-[#fce8e6] text-[#a50e0e] font-medium text-[10px]">LIBUR</span>
                                   ) : j.shift ? (
-                                    <span key={idx} className={`px-2 py-0.5 rounded text-[10px] ${j.is_default ? 'bg-slate-200 text-slate-600' : 'text-white ' + (shiftColors[j.shift.id] || 'bg-slate-500')}`}>
+                                    <span key={idx} className={`px-2 py-0.5 text-[10px] ${j.is_default ? 'bg-[#e8eaed] text-[#5f6368]' : 'text-white ' + (shiftColors[j.shift.id] || 'bg-[#80868b]')}`}>
                                       {j.shift.nama_shift}{j.is_default ? '' : ''}
                                     </span>
                                   ) : null
@@ -433,14 +430,14 @@ export default function JadwalShiftPage() {
                           )
                         })
                       ) : (
-                        <span className="text-xs text-slate-400">Pilih karyawan untuk melihat jadwal</span>
+                        <span className="text-xs text-[#80868b]">Pilih karyawan untuk melihat jadwal</span>
                       )
                     })()}
                   </div>
                 </div>
               </>
             ) : (
-              <div className="text-center py-16 text-slate-400">
+              <div className="text-center py-16 text-[#80868b]">
                 <Calendar size={48} className="mx-auto mb-3 opacity-40" />
                 <p className="text-sm font-medium">Pilih karyawan untuk melihat kalender jadwal shift</p>
               </div>
@@ -452,21 +449,21 @@ export default function JadwalShiftPage() {
       {/* Confirm Modal */}
       {showConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" onClick={() => setShowConfirm(false)}>
-          <div className="absolute inset-0 bg-black/40" />
-          <div className="relative bg-white rounded-2xl w-full max-w-sm shadow-xl p-5 sm:p-6 text-center" onClick={(e) => e.stopPropagation()}>
-            <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-3">
-              <AlertTriangle size={24} className="text-blue-500" />
+          <div className="absolute inset-0 bg-[#202124]" />
+          <div className="border border-[#dadce0] relative bg-white w-full max-w-sm shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] p-5 sm:p-6 text-center" onClick={(e) => e.stopPropagation()}>
+            <div className="w-12 h-12 bg-[#e8f0fe] flex items-center justify-center mx-auto mb-3">
+              <AlertTriangle size={24} className="text-[#1a73e8]" />
             </div>
-            <h3 className="font-semibold text-gray-900 mb-1">Konfirmasi</h3>
-            <p className="text-sm text-gray-500 mb-5">{confirmMessage}</p>
+            <h3 className="font-semibold text-[#202124] mb-1">Konfirmasi</h3>
+            <p className="text-sm text-[#5f6368] mb-5">{confirmMessage}</p>
             <div className="flex gap-2">
               <button onClick={() => setShowConfirm(false)}
-                className="flex-1 py-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+                className="flex-1 py-2 text-sm font-medium border border-[#dadce0] text-[#5f6368] hover:bg-[#f8f9fa] transition-colors">
                 Batal
               </button>
               <button onClick={confirmAction === 'save' ? handleSave : handleDelete}
                 disabled={loading}
-                className="flex-1 py-2 text-sm font-medium rounded-lg bg-[#0E6187] text-white hover:bg-[#1a5e6f] disabled:opacity-50 transition-colors">
+                className="flex-1 py-2 text-sm font-medium bg-[#0E6187] text-white hover:bg-[#084c63] disabled:opacity-50 transition-colors">
                 {loading ? 'Memproses...' : 'Ya, Lanjutkan'}
               </button>
             </div>

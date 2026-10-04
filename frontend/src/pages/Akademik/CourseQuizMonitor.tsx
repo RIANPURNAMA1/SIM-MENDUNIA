@@ -140,16 +140,16 @@ const fmtDay = (d: string, isToday: boolean) => {
 }
 
 const RANK_CLS: Record<number, string> = {
-  1: 'bg-amber-400/20 border-amber-400/50 text-amber-300',
-  2: 'bg-slate-300/15 border-slate-300/40 text-slate-200',
-  3: 'bg-orange-500/15 border-orange-500/40 text-orange-300',
+  1: 'bg-[#fef7e0] border-[#f9ab00] text-[#b06000]',
+  2: 'bg-[#f1f3f4] border-[#bdc1c6] text-[#5f6368]',
+  3: 'bg-[#fce8e6] border-[#f28b82] text-[#a50e0e]',
 }
 
 const STATUS_UI: Record<string, { cls: string; label: string }> = {
-  benar: { cls: 'bg-emerald-500 border-emerald-400 text-white', label: 'Dijawab benar' },
-  salah: { cls: 'bg-red-500 border-red-400 text-white', label: 'Dijawab salah' },
-  pending: { cls: 'bg-amber-500 border-amber-400 text-white', label: 'Menunggu dinilai' },
-  kosong: { cls: 'bg-white/[0.06] border-white/10 text-slate-500', label: 'Belum dijawab' },
+  benar: { cls: 'bg-[#188038] border-[#0d652d] text-[#202124]', label: 'Dijawab benar' },
+  salah: { cls: 'bg-[#d93025] border-[#a50e0e] text-[#202124]', label: 'Dijawab salah' },
+  pending: { cls: 'bg-[#fef7e0] border-[#f9ab00] text-[#b06000]', label: 'Menunggu dinilai' },
+  kosong: { cls: 'bg-[#f8f9fa] border-[#dadce0] text-[#80868b]', label: 'Belum dijawab' },
 }
 
 export default function CourseQuizMonitor() {
@@ -333,10 +333,10 @@ export default function CourseQuizMonitor() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[70vh] items-center justify-center bg-[#0f1115]">
+      <div className="flex min-h-[70vh] items-center justify-center bg-[#f8f9fa]">
         <div className="text-center">
-          <div className="w-10 h-10 border-4 border-[#0E6187]/20 border-t-[#0E6187] rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-xs font-semibold text-slate-400">Membuka ruang monitoring...</p>
+          <div className="w-10 h-10 border-4 border-[#1a73e8]/20 border-t-[#1a73e8] rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-sm text-[#5f6368]">Membuka ruang monitoring...</p>
         </div>
       </div>
     )
@@ -344,13 +344,13 @@ export default function CourseQuizMonitor() {
 
   if (failed && !data) {
     return (
-      <div className="flex min-h-[70vh] items-center justify-center bg-[#0f1115] px-6">
+      <div className="flex min-h-[70vh] items-center justify-center bg-[#f8f9fa] px-6">
         <div className="text-center">
-          <ShieldAlert size={30} className="text-red-400 mx-auto mb-2" />
-          <p className="text-sm font-bold text-white">Gagal memuat monitoring</p>
-          <p className="text-xs text-slate-400 font-medium mt-1">Periksa koneksi atau pastikan kursus memiliki paket soal</p>
+          <ShieldAlert size={30} className="text-[#d93025] mx-auto mb-2" />
+          <p className="text-sm font-medium text-[#202124]">Gagal memuat monitoring</p>
+          <p className="text-xs text-[#5f6368] mt-1">Periksa koneksi atau pastikan kursus memiliki paket soal</p>
           <button onClick={() => { setLoading(true); fetchMonitor() }}
-            className="mt-4 text-xs font-bold text-[#6fb3d8] hover:underline">
+            className="mt-4 text-xs font-medium text-[#1a73e8] hover:underline">
             Coba Lagi
           </button>
         </div>
@@ -359,25 +359,25 @@ export default function CourseQuizMonitor() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f1115] text-white pb-8">
+    <div className="min-h-screen bg-[#f8f9fa] text-[#202124] pb-8">
       {/* ── Header ── */}
-      <div className="border-b border-white/10 bg-[#16181d]/95">
+      <div className="border-b border-[#dadce0] bg-white">
         <div className="mx-auto max-w-7xl px-4 py-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5 min-w-0">
               <button onClick={() => navigate(-1)}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 transition-colors shrink-0">
-                <ArrowLeft size={15} className="text-slate-300" />
+                className="btn btn-neutral btn-sm w-8 h-8 p-0 shrink-0">
+                <ArrowLeft size={15} className="text-[#5f6368]" />
               </button>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h1 className="text-sm font-bold text-white truncate">{navTitle || lessonInfo?.title || courseInfo?.title || 'Monitoring Kursus'}</h1>
-                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold shrink-0 ${isToday && liveCount > 0 ? 'bg-red-500/15 text-red-400' : isToday ? 'bg-white/10 text-slate-400' : 'bg-white/10 text-slate-400'}`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${isToday && liveCount > 0 ? 'bg-red-500 animate-pulse' : 'bg-slate-500'}`} />
+                  <h1 className="text-base font-medium text-[#202124] truncate">{navTitle || lessonInfo?.title || courseInfo?.title || 'Monitoring Kursus'}</h1>
+                  <span className={`inline-flex items-center gap-1 bg-[#f1f3f4] px-2 py-0.5 text-[10px] font-medium shrink-0 ${isToday && liveCount > 0 ? 'bg-[#fce8e6] text-[#c5221f]' : 'bg-[#f1f3f4] text-[#5f6368]'}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${isToday && liveCount > 0 ? 'bg-[#d93025] animate-pulse' : 'bg-[#bdc1c6]'}`} />
                     {isToday ? 'LIVE' : 'RIWAYAT'}
                   </span>
                 </div>
-                <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                <p className="text-xs text-[#5f6368] mt-0.5">
                   {lessonInfo && `${courseInfo?.title || ''} · `}
                   {courseInfo && [courseInfo.batch_name, courseInfo.level && `Level ${courseInfo.level}`].filter(Boolean).join(' · ')}
                   {paketTitle ? ` · ${paketTitle}` : ''}
@@ -386,12 +386,12 @@ export default function CourseQuizMonitor() {
                   {lastSync && ` · diperbarui ${ago(new Date(lastSync).toISOString())}`}
                 </p>
                 {data?.scope?.batch_id ? (
-                  <p className="text-[10px] font-medium text-[#7ec3e4] mt-1 inline-flex items-center gap-1">
+                  <p className="text-xs font-medium text-[#1a73e8] mt-1 inline-flex items-center gap-1">
                     <Users size={11} />
                     Hanya kandidat {data.scope.batch_name || `batch ${data.scope.batch_id}`}{data.scope.level ? ` · Level ${data.scope.level}` : ''} pada pertemuan ini
                   </p>
                 ) : (
-                  <p className="text-[10px] font-medium text-slate-500 mt-1">
+                  <p className="text-xs font-medium text-[#80868b] mt-1">
                     Seluruh batch yang mengerjakan paket ini
                   </p>
                 )}
@@ -400,12 +400,12 @@ export default function CourseQuizMonitor() {
 
             <div className="flex items-center gap-2 shrink-0">
               <button onClick={() => setPaused(p => !p)}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-bold transition-colors ${paused ? 'bg-[#0E6187]/20 text-[#7ec3e4]' : 'bg-white/5 text-slate-300 hover:bg-white/10'}`}>
+                className={`flex items-center gap-1.5 border border-[#dadce0] bg-white px-3 py-2 text-[11px] font-medium text-[#3c4043] hover:bg-[#f8f9fa] transition-colors`}>
                 {paused ? <Play size={13} /> : <Pause size={13} />}
                 {paused ? 'Lanjut' : 'Jeda'}
               </button>
               <button onClick={fetchMonitor} disabled={fetchingRef.current}
-                className="flex items-center gap-1.5 rounded-lg bg-[#0E6187] px-3 py-2 text-[11px] font-bold text-white hover:bg-[#0a4d6b] transition-colors disabled:opacity-60">
+                className="flex items-center gap-1.5 bg-[#0E6187] px-3 py-2 text-[11px] font-medium text-white hover:bg-[#084c63] transition-colors disabled:opacity-60">
                 <RefreshCw size={13} className={fetchingRef.current ? 'animate-spin' : ''} />
                 Segarkan
               </button>
@@ -415,24 +415,24 @@ export default function CourseQuizMonitor() {
           {/* Pilih paket — semua paket dalam kursus, semua batch */}
           {pakets.length > 0 && (
             <div className="mt-3 flex items-center gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-400 mr-1 shrink-0">
-                <Radio size={12} className="text-red-400" /> Paket:
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#5f6368] mr-1 shrink-0">
+                <Radio size={12} className="text-[#d93025]" /> Paket:
               </span>
               {pakets.map(p => (
                 <button key={p.id} onClick={() => setSelectedPaketId(p.id)}
-                  className={`shrink-0 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-bold transition-colors ${
+                  className={`shrink-0 inline-flex items-center gap-1.5 border border-[#dadce0] px-2.5 py-1.5 text-[10px] font-medium transition-colors ${
                     selectedPaketId === p.id
                       ? 'bg-[#0E6187] text-white'
-                      : 'bg-white/5 text-slate-300 hover:bg-white/10'
+                      : 'border border-[#dadce0] bg-white text-[#3c4043] hover:bg-[#f8f9fa]'
                   }`}>
                   <span className="truncate max-w-[180px]">{p.title}</span>
                   {p.live_today > 0 && (
-                    <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${selectedPaketId === p.id ? 'bg-white/20 text-white' : 'bg-red-500/15 text-red-400'}`}>
-                      <span className={`h-1 w-1 rounded-full ${selectedPaketId === p.id ? 'bg-white' : 'bg-red-400 animate-pulse'}`} />{p.live_today}
+                    <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${selectedPaketId === p.id ? 'bg-[#084c63] text-white' : 'bg-[#d93025]/15 text-[#d93025]'}`}>
+                      <span className={`h-1 w-1 rounded-full ${selectedPaketId === p.id ? 'bg-white' : 'bg-[#d93025] animate-pulse'}`} />{p.live_today}
                     </span>
                   )}
                   {p.submitted_today > 0 && (
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${selectedPaketId === p.id ? 'bg-white/20 text-white' : 'bg-white/5 text-slate-500'}`}>{p.submitted_today}</span>
+                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${selectedPaketId === p.id ? 'bg-[#084c63] text-white' : 'bg-[#f1f3f4] text-[#80868b]'}`}>{p.submitted_today}</span>
                   )}
                 </button>
               ))}
@@ -441,49 +441,49 @@ export default function CourseQuizMonitor() {
 
           {/* Stats */}
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-            <div className="rounded-lg bg-[#16181d] border border-white/10 px-3 py-2.5">
-              <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
-                <Users size={12} className="text-slate-500 shrink-0" />
+            <div className="border border-[#dadce0] bg-white px-3 py-2.5">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-[#5f6368]">
+                <Users size={12} className="text-[#80868b] shrink-0" />
                 <span className="truncate">Sedang Mengerjakan</span>
               </div>
-              <p className="text-lg font-bold text-white leading-none mt-2 tabular-nums">{liveCount}</p>
+              <p className="text-xl font-medium text-[#202124] leading-none mt-2 tabular-nums">{liveCount}</p>
             </div>
-            <div className="rounded-lg bg-[#16181d] border border-white/10 px-3 py-2.5">
-              <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
-                <CheckCircle2 size={12} className="text-slate-500 shrink-0" />
+            <div className="border border-[#dadce0] bg-white px-3 py-2.5">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-[#5f6368]">
+                <CheckCircle2 size={12} className="text-[#80868b] shrink-0" />
                 <span className="truncate">Sudah Kumpul</span>
               </div>
-              <p className="text-lg font-bold text-white leading-none mt-2 tabular-nums">{finished.length}</p>
+              <p className="text-xl font-medium text-[#202124] leading-none mt-2 tabular-nums">{finished.length}</p>
             </div>
-            <div className="rounded-lg bg-[#16181d] border border-white/10 px-3 py-2.5">
-              <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
-                <ShieldAlert size={12} className="text-slate-500 shrink-0" />
+            <div className="border border-[#dadce0] bg-white px-3 py-2.5">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-[#5f6368]">
+                <ShieldAlert size={12} className="text-[#80868b] shrink-0" />
                 <span className="truncate">Total Peringatan</span>
               </div>
-              <p className={`text-lg font-bold leading-none mt-2 tabular-nums ${warningsTotal > 0 ? 'text-red-400' : 'text-white'}`}>{warningsTotal}</p>
+              <p className={`text-xl font-medium leading-none mt-2 tabular-nums ${warningsTotal > 0 ? 'text-[#d93025]' : 'text-[#202124]'}`}>{warningsTotal}</p>
             </div>
-            <div className="rounded-lg bg-[#16181d] border border-white/10 px-3 py-2.5">
-              <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
-                <ListChecks size={12} className="text-slate-500 shrink-0" />
+            <div className="border border-[#dadce0] bg-white px-3 py-2.5">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-[#5f6368]">
+                <ListChecks size={12} className="text-[#80868b] shrink-0" />
                 <span className="truncate">Soal Terjawab</span>
               </div>
-              <p className="text-lg font-bold text-white leading-none mt-2 tabular-nums">{answeredTotal}/{live.reduce((s, a) => s + a.total_count, 0)}</p>
+              <p className="text-xl font-medium text-[#202124] leading-none mt-2 tabular-nums">{answeredTotal}/{live.reduce((s, a) => s + a.total_count, 0)}</p>
             </div>
-            <div className="rounded-lg bg-[#16181d] border border-white/10 px-3 py-2.5">
-              <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
-                <Trophy size={12} className="text-amber-400 shrink-0" />
+            <div className="border border-[#dadce0] bg-white px-3 py-2.5">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-[#5f6368]">
+                <Trophy size={12} className="text-[#e37400] shrink-0" />
                 <span className="truncate">Poin Tertinggi</span>
               </div>
-              <p className="text-lg font-bold text-amber-300 leading-none mt-2 tabular-nums">
+              <p className="text-xl font-medium text-[#b06000] leading-none mt-2 tabular-nums">
                 {topPoints !== null ? `${topPoints}/${maxPointsTotal || '--'}` : '--/--'}
               </p>
             </div>
-            <div className="rounded-lg bg-[#16181d] border border-white/10 px-3 py-2.5">
-              <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
-                <Timer size={12} className="text-slate-500 shrink-0" />
+            <div className="border border-[#dadce0] bg-white px-3 py-2.5">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-[#5f6368]">
+                <Timer size={12} className="text-[#80868b] shrink-0" />
                 <span className="truncate">Waktu Tercepat</span>
               </div>
-              <p className="text-lg font-bold text-white leading-none mt-2 tabular-nums">{fastest !== null ? fmtClock(fastest) : '--:--'}</p>
+              <p className="text-xl font-medium text-[#202124] leading-none mt-2 tabular-nums">{fastest !== null ? fmtClock(fastest) : '--:--'}</p>
             </div>
           </div>
         </div>
@@ -493,38 +493,37 @@ export default function CourseQuizMonitor() {
       <div className="mx-auto max-w-7xl px-4 py-4">
         {/* Pilih hari */}
         <div className="mb-3.5 flex flex-wrap items-center gap-1.5">
-          <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-400 mr-1">
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#5f6368] mr-1">
             <CalendarDays size={12} /> Hari:
           </span>
           {(data?.dates || []).map(dt => (
             <button key={dt.date} onClick={() => { setUserPickedDate(true); setSelectedDate(dt.date) }}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-bold transition-colors ${
+              className={`inline-flex items-center gap-1.5 border border-[#dadce0] px-2.5 py-1.5 text-[10px] font-medium transition-colors ${
                 selectedDate === dt.date
                   ? 'bg-[#0E6187] text-white'
-                  : 'bg-white/5 text-slate-300 hover:bg-white/10'
+                  : 'border border-[#dadce0] bg-white text-[#3c4043] hover:bg-[#f8f9fa]'
               }`}>
               {fmtDay(dt.date, dt.is_today)}
-              <span className={selectedDate === dt.date ? 'text-white/70' : 'text-slate-500'}>({dt.count})</span>
+              <span className={selectedDate === dt.date ? 'text-white/80' : 'text-[#80868b]'}>({dt.count})</span>
             </button>
           ))}
           <input type="date" value={selectedDate} max={todayStr}
             onChange={e => { if (!e.target.value) return; setUserPickedDate(true); setSelectedDate(e.target.value) }}
-            className="ml-auto bg-white/5 border border-white/10 text-slate-200 text-[10px] font-bold rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#0E6187]"
-            style={{ colorScheme: 'dark' }}
+            className="ml-auto border border-[#dadce0] bg-white text-[#3c4043] text-xs px-2 py-1.5 focus:outline-none focus:border-[#1a73e8]"
             title="Pilih tanggal lain" />
         </div>
 
         {!data?.paket ? (
-          <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.02] p-12 text-center">
-            <ListChecks size={28} className="text-slate-500 mx-auto mb-3" />
-            <p className="text-sm font-bold text-slate-200">Kursus ini belum memiliki paket soal</p>
-            <p className="text-xs text-slate-500 font-medium mt-1">Buat paket soal pada halaman kursus untuk mulai memonitor kandidat.</p>
+          <div className="border border-dashed border-[#dadce0] bg-white p-12 text-center">
+            <ListChecks size={28} className="text-[#80868b] mx-auto mb-3" />
+            <p className="text-sm font-medium text-[#202124]">Kursus ini belum memiliki paket soal</p>
+            <p className="text-xs text-[#5f6368] mt-1">Buat paket soal pada halaman kursus untuk mulai memonitor kandidat.</p>
           </div>
         ) : attempts.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.02] p-12 text-center">
-            <CheckCircle2 size={28} className="text-slate-500 mx-auto mb-3" />
-            <p className="text-sm font-bold text-slate-200">Belum ada kandidat mengerjakan pada {fmtDay(selectedDate, isToday).toLowerCase()}</p>
-            <p className="text-xs text-slate-500 font-medium mt-1">
+          <div className="border border-dashed border-[#dadce0] bg-white p-12 text-center">
+            <CheckCircle2 size={28} className="text-[#80868b] mx-auto mb-3" />
+            <p className="text-sm font-medium text-[#202124]">Belum ada kandidat mengerjakan pada {fmtDay(selectedDate, isToday).toLowerCase()}</p>
+            <p className="text-xs text-[#5f6368] mt-1">
               {(data?.dates || []).length > 0
                 ? 'History pengerjaan ada di hari lain — pilih chip Hari di atas.'
                 : 'Kandidat dari semua batch yang mulai mengerjakan quiz ini pada hari tersebut akan muncul di sini.'}
@@ -544,26 +543,26 @@ export default function CourseQuizMonitor() {
                 const statuses = Array.from({ length: a.total_count }, (_, i) => a.answers_status[i] || 'kosong')
                 return (
                   <div key={a.attempt_id} onClick={() => openDetail(a.attempt_id)}
-                    className="rounded-lg border border-white/10 bg-[#16181d] p-3.5 cursor-pointer active:bg-[#0E6187]/10 transition-colors">
+                    className="border border-[#dadce0] bg-white p-3.5 cursor-pointer active:bg-[#f8f9fa] transition-colors">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className={`inline-flex w-7 h-7 items-center justify-center rounded-md border text-[11px] font-bold tabular-nums shrink-0 ${RANK_CLS[a.rank] ?? 'bg-white/5 border-white/10 text-slate-300'}`}>{a.rank}</span>
-                        <p className="text-[12px] font-bold text-white truncate">{a.siswa.nama}</p>
-                        <span className={`shrink-0 text-[10px] font-bold tabular-nums ${a.rank === 1 ? 'text-amber-300' : 'text-slate-300'}`}>
+                        <span className={`inline-flex w-7 h-7 items-center justify-center border text-xs font-medium tabular-nums shrink-0 ${RANK_CLS[a.rank] ?? 'bg-[#f1f3f4] border-[#dadce0] text-[#5f6368]'}`}>{a.rank}</span>
+                        <p className="text-[13px] font-medium text-[#202124] truncate">{a.siswa.nama}</p>
+                        <span className={`shrink-0 text-[10px] font-medium tabular-nums ${a.rank === 1 ? 'text-[#b06000]' : 'text-[#5f6368]'}`}>
                           {Number(a.live_points) || 0} poin
                         </span>
                       </div>
                       {isLive ? (
-                        <span className="inline-flex items-center gap-1 rounded-md bg-[#0E6187]/15 px-1.5 py-0.5 text-[9px] font-bold text-[#7ec3e4] shrink-0">
-                          <span className="h-1 w-1 rounded-full bg-[#7ec3e4] animate-pulse" />LAKUKAN
+                        <span className="inline-flex items-center gap-1 bg-[#e8f0fe] px-2 py-0.5 text-[10px] font-medium text-[#1967d2] shrink-0">
+                          <span className="h-1 w-1 rounded-full bg-[#0E6187] animate-pulse" />LAKUKAN
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 rounded-md bg-white/5 px-1.5 py-0.5 text-[9px] font-bold text-slate-300 shrink-0">
+                        <span className="inline-flex items-center gap-1 bg-[#f1f3f4] px-2 py-0.5 text-[10px] font-medium text-[#5f6368] shrink-0">
                           <CheckCircle2 size={9} />KUMPUL
                         </span>
                       )}
                     </div>
-                    <p className="text-[10px] text-slate-500 font-medium mt-1">
+                    <p className="text-xs text-[#80868b] mt-1">
                       {[a.siswa.batch && `Batch ${a.siswa.batch}`, a.siswa.cabang, a.siswa.level !== null && a.siswa.level !== undefined && `Level ${a.siswa.level}`].filter(Boolean).join(' · ') || '-'}
                       {isLive ? ` · ${a.answered_count}/${a.total_count} terjawab${a.auto_submitted ? ' · auto' : ''}` : ` · ${Number(a.score) || 0} poin${a.auto_submitted ? ' · auto' : ''}`}
                     </p>
@@ -573,7 +572,7 @@ export default function CourseQuizMonitor() {
                         const ui = STATUS_UI[s] || STATUS_UI.kosong
                         return (
                           <span key={i} title={`Soal ${i + 1} — ${ui.label}`}
-                            className={`h-6 w-6 rounded-md border flex items-center justify-center text-[9px] font-bold ${ui.cls}`}>
+                            className={`h-6 w-6 border flex items-center justify-center text-[10px] font-medium ${ui.cls}`}>
                             {i + 1}
                           </span>
                         )
@@ -581,24 +580,24 @@ export default function CourseQuizMonitor() {
                     </div>
 
                     <div className="flex items-center justify-between gap-3 mt-2.5">
-                      <div className="flex items-center gap-2 text-[11px] font-bold min-w-0">
-                        <span className="text-slate-300 whitespace-nowrap">{a.correct_count}/{a.total_count} benar</span>
-                        <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md whitespace-nowrap ${a.warnings >= a.max_warnings ? 'bg-red-500/15 text-red-400' : a.warnings > 0 ? 'bg-amber-500/15 text-amber-400' : 'bg-white/5 text-slate-500'}`}>
+                      <div className="flex items-center gap-2 text-xs font-medium min-w-0">
+                        <span className="text-[#5f6368] whitespace-nowrap">{a.correct_count}/{a.total_count} benar</span>
+                        <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 font-medium whitespace-nowrap ${a.warnings >= a.max_warnings ? 'bg-[#d93025]/15 text-[#d93025]' : a.warnings > 0 ? 'bg-#e37400/15 text-[#e37400]' : 'bg-[#f1f3f4] text-[#80868b]'}`}>
                           <ShieldAlert size={10} /> {a.warnings}/{a.max_warnings}
                         </span>
                       </div>
                       {isLive ? (
-                        <span className={`text-[11px] font-bold text-right whitespace-nowrap ${lowTime ? 'text-red-400' : 'text-slate-300'}`}>
+                        <span className={`text-xs font-medium text-right whitespace-nowrap ${lowTime ? 'text-[#d93025]' : 'text-[#5f6368]'}`}>
                           {remaining !== null ? `${fmtClock(remaining)} tersisa` : '0:00 tersisa'}
                         </span>
                       ) : (
-                        <span className="text-[10px] text-slate-500 font-medium text-right whitespace-nowrap">
+                        <span className="text-xs text-[#80868b] text-right whitespace-nowrap">
                           selesai {fmtDate(a.submitted_at)}
                         </span>
                       )}
                     </div>
                     {stale && (
-                      <p className="text-[9.5px] font-bold text-amber-400 mt-1.5">Tidak aktif</p>
+                      <p className="text-[10px] font-medium text-[#e37400] mt-1.5">Tidak aktif</p>
                     )}
                   </div>
                 )
@@ -606,11 +605,11 @@ export default function CourseQuizMonitor() {
             </div>
 
             {/* Desktop table */}
-            <div className="hidden md:block rounded-md border border-white/10 bg-[#16181d] overflow-hidden">
+            <div className="hidden md:block border border-[#dadce0] bg-white overflow-hidden">
               <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-white/10 bg-white/[0.04] text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  <tr className="bg-[#f8f9fa] border-b border-[#e8eaed] text-xs font-medium text-[#5f6368]">
                     <th className="px-3 py-2.5 whitespace-nowrap">Peringkat</th>
                     <th className="px-3 py-2.5 whitespace-nowrap">Kandidat</th>
                     <th className="px-3 py-2.5 whitespace-nowrap">Jawaban per Soal</th>
@@ -630,35 +629,35 @@ export default function CourseQuizMonitor() {
                     const statuses = Array.from({ length: a.total_count }, (_, i) => a.answers_status[i] || 'kosong')
                     return (
                       <tr key={a.attempt_id} onClick={() => openDetail(a.attempt_id)}
-                        className="border-b border-white/5 last:border-0 cursor-pointer transition-colors hover:bg-[#0E6187]/10">
+                        className="border-b border-[#e8eaed] last:border-0 cursor-pointer transition-colors hover:bg-[#f8f9fa]">
                         <td className="px-3 py-3 align-top">
-                          <span className={`inline-flex w-7 h-7 items-center justify-center rounded-md border text-[11px] font-bold tabular-nums ${RANK_CLS[a.rank] ?? 'bg-white/5 border-white/10 text-slate-300'}`}>
+                          <span className={`inline-flex w-7 h-7 items-center justify-center   border text-xs font-medium tabular-nums ${RANK_CLS[a.rank] ?? 'bg-[#f1f3f4] border-[#dadce0] text-[#5f6368]'}`}>
                             {a.rank}
                           </span>
                         </td>
                         <td className="px-3 py-3 align-top min-w-[180px]">
                           <div className="flex items-center gap-2">
-                            <p className="text-[12px] font-bold text-white leading-tight">{a.siswa.nama}</p>
+                            <p className="text-[13px] font-medium text-[#202124] leading-tight">{a.siswa.nama}</p>
                             {a.status === 'in_progress' ? (
-                              <span className="inline-flex items-center gap-1 rounded-md bg-[#0E6187]/15 px-1.5 py-0.5 text-[9px] font-bold text-[#7ec3e4] shrink-0">
-                                <span className="h-1 w-1 rounded-full bg-[#7ec3e4] animate-pulse" />LAKUKAN
+                              <span className="inline-flex items-center gap-1 bg-[#e8f0fe] px-2 py-0.5 text-[10px] font-medium text-[#1967d2] shrink-0">
+                                <span className="h-1 w-1 rounded-full bg-[#0E6187] animate-pulse" />LAKUKAN
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 rounded-md bg-white/5 px-1.5 py-0.5 text-[9px] font-bold text-slate-300 shrink-0">
+                              <span className="inline-flex items-center gap-1 bg-[#f1f3f4] px-2 py-0.5 text-[10px] font-medium text-[#5f6368] shrink-0">
                                 <CheckCircle2 size={9} />KUMPUL
                               </span>
                             )}
                           </div>
-                          <p className="text-[10px] text-slate-500 font-medium mt-0.5">
+                          <p className="text-[10px] text-[#80868b] font-medium mt-0.5">
                             {[a.siswa.batch && `Batch ${a.siswa.batch}`, a.siswa.cabang, a.siswa.level !== null && a.siswa.level !== undefined && `Level ${a.siswa.level}`].filter(Boolean).join(' · ') || '-'}
                           </p>
-                          <p className="text-[9.5px] text-slate-500 font-medium mt-1">
+                          <p className="text-[10px] text-[#80868b] mt-1">
                             {a.status === 'in_progress'
                               ? `${a.answered_count}/${a.total_count} terjawab${a.auto_submitted ? ' · auto' : ''}`
                               : `${Number(a.score) || 0} poin${a.auto_submitted ? ' · auto' : ''}`}
                           </p>
                           {stale && (
-                            <p className="text-[9.5px] font-bold text-amber-400 mt-0.5">Tidak aktif</p>
+                            <p className="text-[10px] font-medium text-[#e37400] mt-0.5">Tidak aktif</p>
                           )}
                         </td>
                         <td className="px-3 py-3 align-top">
@@ -667,7 +666,7 @@ export default function CourseQuizMonitor() {
                               const ui = STATUS_UI[s] || STATUS_UI.kosong
                               return (
                                 <span key={i} title={`Soal ${i + 1} — ${ui.label}`}
-                                  className={`h-6 w-6 rounded-md border flex items-center justify-center text-[9px] font-bold ${ui.cls}`}>
+                                  className={`h-6 w-6 border flex items-center justify-center text-[10px] font-medium ${ui.cls}`}>
                                   {i + 1}
                                 </span>
                               )
@@ -675,26 +674,26 @@ export default function CourseQuizMonitor() {
                           </div>
                         </td>
                         <td className="px-3 py-3 align-top text-center whitespace-nowrap">
-                          <p className="text-[12px] font-bold text-slate-200">{a.correct_count}/{a.total_count}</p>
+                          <p className="text-[13px] font-medium text-[#202124]">{a.correct_count}/{a.total_count}</p>
                         </td>
                         <td className="px-3 py-3 align-top text-center whitespace-nowrap">
-                          <p className={`text-[12px] font-bold tabular-nums ${a.rank === 1 ? 'text-amber-300' : 'text-white'}`}>
+                          <p className={`text-[13px] font-medium tabular-nums ${a.rank === 1 ? 'text-[#b06000]' : 'text-[#202124]'}`}>
                             {Number(a.live_points) || 0}
-                            <span className="text-[10px] text-slate-500 font-semibold">/{Number(a.max_points) || 0}</span>
+                            <span className="text-[10px] text-[#80868b] font-normal">/{Number(a.max_points) || 0}</span>
                           </p>
                         </td>
                         <td className="px-3 py-3 align-top text-center whitespace-nowrap">
-                          <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md ${a.warnings >= a.max_warnings ? 'bg-red-500/15 text-red-400' : a.warnings > 0 ? 'bg-amber-500/15 text-amber-400' : 'bg-white/5 text-slate-500'}`}>
+                          <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 ${a.warnings >= a.max_warnings ? 'bg-[#d93025]/15 text-[#d93025]' : a.warnings > 0 ? 'bg-#e37400/15 text-[#e37400]' : 'bg-[#f1f3f4] text-[#80868b]'}`}>
                             <ShieldAlert size={10} /> {a.warnings}/{a.max_warnings}
                           </span>
                         </td>
                         <td className="px-3 py-3 align-top whitespace-nowrap">
                           {a.status === 'in_progress' ? (
-                            <span className={`text-[11px] font-bold ${lowTime ? 'text-red-400' : 'text-slate-300'}`}>
+                            <span className={`text-xs font-medium ${lowTime ? 'text-[#d93025]' : 'text-[#5f6368]'}`}>
                               {remaining !== null ? `${fmtClock(remaining)} tersisa` : '0:00 tersisa'}
                             </span>
                           ) : (
-                            <span className="text-[10px] text-slate-500 font-medium">
+                            <span className="text-xs text-[#80868b]">
                               selesai {fmtDate(a.submitted_at)}
                             </span>
                           )}
@@ -707,14 +706,14 @@ export default function CourseQuizMonitor() {
             </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2.5">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border border-[#dadce0] bg-white px-3 py-2.5">
               {Object.entries(STATUS_UI).map(([k, v]) => (
-                <span key={k} className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400">
-                  <span className={`h-3.5 w-3.5 rounded-md border ${v.cls}`} />
+                <span key={k} className="flex items-center gap-1.5 text-xs font-medium text-[#5f6368]">
+                  <span className={`h-3.5 w-3.5 border ${v.cls}`} />
                   {v.label}
                 </span>
               ))}
-              <span className="text-[10px] text-slate-500 font-medium md:ml-auto">Klik untuk melihat detail & menilai esai</span>
+              <span className="text-xs text-[#80868b] md:ml-auto">Klik untuk melihat detail & menilai esai</span>
             </div>
           </>
         )}
@@ -723,54 +722,54 @@ export default function CourseQuizMonitor() {
       {/* ── Detail modal ── */}
       {showDetail && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4" onClick={() => setShowDetail(false)}>
-          <div className="bg-white w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-[#F0F1F5] sticky top-0 bg-white">
+          <div className="bg-white w-full sm:max-w-2xl max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-[#e8eaed] sticky top-0 bg-white">
               <div>
-                <h2 className="text-sm font-bold text-[#14182B]">Detail Pengerjaan</h2>
-                <p className="text-[10px] text-[#8B90A0] font-medium">{detail?.siswa?.nama || 'Kandidat'} · Percobaan #{detail?.attempt?.attempt_number}</p>
+                <h2 className="text-base font-medium text-[#202124]">Detail Pengerjaan</h2>
+                <p className="text-[10px] text-[#80868b] font-medium">{detail?.siswa?.nama || 'Kandidat'} · Percobaan #{detail?.attempt?.attempt_number}</p>
               </div>
-              <button onClick={() => setShowDetail(false)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F4F5F8] hover:bg-[#E5E7EF]">
-                <X size={15} className="text-[#4B5063]" />
+              <button onClick={() => setShowDetail(false)} className="btn btn-neutral btn-sm w-8 h-8 p-0 shrink-0">
+                <X size={15} className="text-[#3c4043]" />
               </button>
             </div>
 
             <div className="p-5 space-y-4">
               {detailLoading || !detail ? (
-                <div className="text-center text-xs text-[#8B90A0] py-12">Memuat detail...</div>
+                <div className="text-center text-xs text-[#80868b] py-12">Memuat detail...</div>
               ) : (
                 <>
                   <div className="grid grid-cols-3 gap-2">
-                    <div className="bg-[#F4F5F8] rounded-xl p-3 text-center">
-                      <p className="text-lg font-bold text-[#14182B]">{Number(detail.attempt.score) || 0}</p>
-                      <p className="text-[10px] text-[#8B90A0] font-semibold">Skor</p>
+                    <div className="bg-[#f1f3f4] p-3 text-center">
+                      <p className="text-xl font-medium text-[#202124]">{Number(detail.attempt.score) || 0}</p>
+                      <p className="text-[10px] text-[#80868b] font-semibold">Skor</p>
                     </div>
-                    <div className="bg-[#F4F5F8] rounded-xl p-3 text-center">
-                      <p className="text-lg font-bold text-[#14182B]">{detail.attempt.correct_count}/{detail.attempt.total_count}</p>
-                      <p className="text-[10px] text-[#8B90A0] font-semibold">Jawaban Benar</p>
+                    <div className="bg-[#f1f3f4] p-3 text-center">
+                      <p className="text-xl font-medium text-[#202124]">{detail.attempt.correct_count}/{detail.attempt.total_count}</p>
+                      <p className="text-[10px] text-[#80868b] font-semibold">Jawaban Benar</p>
                     </div>
-                    <div className="bg-[#F4F5F8] rounded-xl p-3 text-center">
-                      <p className="text-lg font-bold text-[#14182B]">{detail.attempt.warnings}</p>
-                      <p className="text-[10px] text-[#8B90A0] font-semibold">Peringatan</p>
+                    <div className="bg-[#f1f3f4] p-3 text-center">
+                      <p className="text-xl font-medium text-[#202124]">{detail.attempt.warnings}</p>
+                      <p className="text-[10px] text-[#80868b] font-semibold">Peringatan</p>
                     </div>
                   </div>
 
                   {detail.attempt.webcam_photo && (
                     <div>
-                      <p className="text-[11px] font-bold text-[#4B5063] mb-2 flex items-center gap-1.5"><Camera size={12} /> Foto Pengerjaan</p>
-                      <img src={detail.attempt.webcam_photo ?? undefined} alt="Webcam" className="w-full rounded-xl border border-[#E5E7EF] max-h-52 object-cover" />
+                      <p className="text-[11px] font-medium text-[#3c4043] mb-2 flex items-center gap-1.5"><Camera size={12} /> Foto Pengerjaan</p>
+                      <img src={detail.attempt.webcam_photo ?? undefined} alt="Webcam" className="w-full border border-[#e8eaed] max-h-52 object-cover" />
                     </div>
                   )}
 
                   <div className="space-y-3">
                     {detail.questions.map((q, i) => (
-                      <div key={q.id} className="border border-[#E5E7EF] rounded-xl p-4">
+                      <div key={q.id} className="border border-[#e8eaed] p-4">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex gap-1.5 items-baseline min-w-0 flex-1">
-                            <p className="text-[12px] font-bold text-[#14182B] leading-snug shrink-0">{i + 1}.</p>
-                            <div className="text-[12px] font-bold text-[#14182B] leading-snug min-w-0 flex-1 [&_*]:inline [&_img]:max-h-40 [&_img]:rounded [&_img]:my-1 [&_img]:align-middle"
+                            <p className="text-[12px] font-medium text-[#202124] leading-snug shrink-0">{i + 1}.</p>
+                            <div className="text-[12px] font-medium text-[#202124] leading-snug min-w-0 flex-1 [&_*]:inline [&_img]:max-h-40 [&_img]:rounded [&_img]:my-1 [&_img]:align-middle"
                               dangerouslySetInnerHTML={{ __html: cleanQuillHtml(q.question) }} />
                           </div>
-                          <span className={`text-[10px] font-bold shrink-0 px-2 py-0.5 rounded-full ${q.question_type === 'essay' && q.is_correct === null && q.answer_text?.trim() ? 'bg-amber-50 text-amber-600' : q.is_correct === true ? 'bg-emerald-50 text-emerald-600' : q.is_correct === false ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-[#8B90A0]'}`}>
+                          <span className={`text-[10px] font-medium shrink-0 px-2 py-0.5 rounded-full ${q.question_type === 'essay' && q.is_correct === null && q.answer_text?.trim() ? 'bg-[#fef7e0] text-[#e37400]' : q.is_correct === true ? 'bg-[#e6f4ea] text-[#137333]' : q.is_correct === false ? 'bg-[#fce8e6] text-[#c5221f]' : 'bg-[#f1f3f4] text-[#80868b]'}`}>
                             {q.question_type === 'essay' && q.is_correct === null && q.answer_text?.trim() ? 'BELUM DINILAI' : q.is_correct === true ? 'BENAR' : q.is_correct === false ? 'SALAH' : 'TIDAK DIJAWAB'}
                           </span>
                         </div>
@@ -778,13 +777,13 @@ export default function CourseQuizMonitor() {
                           <div className="mt-2 space-y-2">
                             {q.image_url && (
                               <div>
-                                <span className="inline-flex items-center gap-1 text-[9px] font-bold text-[#0069b0] uppercase tracking-wide mb-1"><ImageIcon size={10} /> Soal Gambar</span>
-                                <img src={mediaUrl(q.image_url)} alt="Gambar soal" className="w-full max-h-44 object-contain rounded-lg border border-[#E5E7EF] bg-[#F4F5F8]" />
+                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[#1a73e8] mb-1"><ImageIcon size={10} /> Soal Gambar</span>
+                                <img src={mediaUrl(q.image_url)} alt="Gambar soal" className="w-full max-h-44 object-contain border border-[#e8eaed] bg-[#f1f3f4]" />
                               </div>
                             )}
                             {q.audio_url && (
                               <div>
-                                <span className="inline-flex items-center gap-1 text-[9px] font-bold text-[#0069b0] uppercase tracking-wide mb-1"><Volume2 size={10} /> Soal Suara</span>
+                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[#1a73e8] mb-1"><Volume2 size={10} /> Soal Suara</span>
                                 <audio src={mediaUrl(q.audio_url)} controls className="w-full h-9" />
                               </div>
                             )}
@@ -797,43 +796,43 @@ export default function CourseQuizMonitor() {
                                 {q.options.map((opt, oi) => {
                                   const isSelected = q.selected_index === oi
                                   return (
-                                    <span key={oi} className={`w-8 h-8 flex items-center justify-center rounded-full text-[11px] font-bold border-2 ${isSelected ? 'border-violet-500 bg-violet-500 text-white' : 'border-[#E5E7EF] bg-[#F4F5F8] text-[#8B90A0]'}`}>
+                                    <span key={oi} className={`w-8 h-8 flex items-center justify-center rounded-full text-[11px] font-medium border-2 ${isSelected ? 'border-#8430ce bg-#8430ce text-[#202124]' : 'border-[#e8eaed] bg-[#f1f3f4] text-[#80868b]'}`}>
                                       {optText(opt)}
                                     </span>
                                   )
                                 })}
                               </div>
-                              <p className="text-[10px] text-[#8B90A0] font-medium mt-1.5">
-                                Jawaban: <span className="font-bold text-violet-600">{q.selected_index !== null && q.selected_index !== undefined ? optText(q.options[q.selected_index]) : 'Tidak diisi'}</span>
-                                {q.is_correct === true && <span className="ml-2 text-[9px] font-bold text-violet-500">TERISI · POIN DIBERIKAN</span>}
+                              <p className="text-[10px] text-[#80868b] font-medium mt-1.5">
+                                Jawaban: <span className="font-medium text-[#8430ce]">{q.selected_index !== null && q.selected_index !== undefined ? optText(q.options[q.selected_index]) : 'Tidak diisi'}</span>
+                                {q.is_correct === true && <span className="ml-2 text-[10px] font-medium text-[#7627bb]">TERISI · POIN DIBERIKAN</span>}
                               </p>
                             </div>
                           ) : q.question_type === 'essay' ? (
                             <div>
-                              <div className="text-[10px] font-bold text-[#4B5063] mb-1.5">Jawaban Siswa</div>
-                              <p className="text-[11px] text-[#14182B] bg-[#F4F5F8] border border-[#E5E7EF] rounded-lg px-3 py-2.5 whitespace-pre-wrap min-h-[44px]">
-                                {q.answer_text?.trim() ? q.answer_text : <span className="text-[#8B90A0]">Tidak diisi</span>}
+                              <div className="text-[10px] font-medium text-[#3c4043] mb-1.5">Jawaban Siswa</div>
+                              <p className="text-[11px] text-[#202124] bg-[#f1f3f4] border border-[#e8eaed] px-3 py-2.5 whitespace-pre-wrap min-h-[44px]">
+                                {q.answer_text?.trim() ? q.answer_text : <span className="text-[#80868b]">Tidak diisi</span>}
                               </p>
                               {q.keyword && (
-                                <p className="text-[10px] text-amber-600 font-medium mt-1.5"><span className="font-bold">Kata kunci:</span> {q.keyword}</p>
+                                <p className="text-[10px] text-[#e37400] font-medium mt-1.5"><span className="font-medium text-[#b06000]">Kata kunci:</span> {q.keyword}</p>
                               )}
                               {q.answer_text?.trim() && (
                                 <div className="flex items-center gap-2 mt-3">
                                   <div>
-                                    <label className="text-[10px] font-semibold text-[#4B5063] block mb-1">Nilai (0–{q.points})</label>
+                                    <label className="text-[10px] font-semibold text-[#3c4043] block mb-1">Nilai (0–{q.points})</label>
                                     <input type="number" min={0} max={q.points}
                                       value={grades[q.id] ?? ''}
                                       onChange={e => setGrades(g => ({ ...g, [q.id]: e.target.value }))}
-                                      className="w-24 text-xs border border-[#E5E7EF] rounded-lg px-3 py-2 focus:outline-none focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/10"
+                                      className="w-24 text-xs border border-[#e8eaed] px-3 py-2 focus:outline-none focus:border-[#1a73e8] focus:ring-2 focus:ring-[#1a73e8]/10"
                                       placeholder="-" />
                                   </div>
                                   <button type="button" disabled={savingGrade !== null || !grades[q.id]?.trim()}
                                     onClick={() => saveGrade(q.id)}
-                                    className="self-end text-[11px] font-bold text-white bg-[#0069b0] px-3.5 py-2 rounded-lg disabled:opacity-40 hover:bg-[#004d7a]">
+                                    className="btn btn-primary btn-sm disabled:opacity-40">
                                     {savingGrade === q.id ? 'Menyimpan...' : 'Simpan Nilai'}
                                   </button>
                                   {q.earned_points !== null && q.earned_points !== undefined && (
-                                    <span className={`self-end text-[11px] font-bold px-2 py-1 rounded-full ${q.is_correct === true ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                                    <span className={`self-end text-[11px] font-medium px-2 py-1 rounded-full ${q.is_correct === true ? 'bg-[#e6f4ea] text-[#137333]' : 'bg-[#fef7e0] text-[#e37400]'}`}>
                                       {q.earned_points}/{q.points} poin
                                     </span>
                                   )}
@@ -848,14 +847,14 @@ export default function CourseQuizMonitor() {
                             const isSelected = isMultiQ ? selectedSet.has(oi) : (q.selected_index === oi)
                             return (
                               <div key={oi}
-                                className={`flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-lg font-medium ${isCorrect ? 'bg-emerald-50 text-emerald-700 font-bold' : isSelected ? 'bg-red-50 text-red-500 font-bold' : 'bg-[#F4F5F8] text-[#4B5063]'}`}>
-                                <span className={`w-4 h-4 flex items-center justify-center text-[9px] font-bold shrink-0 ${isMultiQ ? 'rounded-md' : 'rounded-full'} ${isCorrect ? 'bg-emerald-500 text-white' : isSelected ? 'bg-red-500 text-white' : 'bg-[#E5E7EF] text-[#8B90A0]'}`}>
+                                className={`flex items-center gap-2 text-[11px] px-3 py-1.5 font-medium ${isCorrect ? 'bg-[#e6f4ea] text-[#0d652d]' : isSelected ? 'bg-[#fce8e6] text-[#c5221f]' : 'bg-[#f1f3f4] text-[#3c4043]'}`}>
+                                <span className={`w-4 h-4 flex items-center justify-center text-[10px] font-medium shrink-0 ${isMultiQ ? ' ' : 'rounded-full'} ${isCorrect ? 'bg-#188038 text-[#202124]' : isSelected ? 'bg-[#d93025] text-[#202124]' : 'bg-[#e8eaed] text-[#80868b]'}`}>
                                   {String.fromCharCode(65 + oi)}
                                 </span>
-                                {optAbsUrl(opt) && <img src={optAbsUrl(opt)} className="h-5 w-5 rounded-md object-cover shrink-0" alt="" />}
+                                {optAbsUrl(opt) && <img src={optAbsUrl(opt)} className="h-5 w-5 object-cover shrink-0" alt="" />}
                                 <span className="flex-1">{optText(opt)}</span>
-                                {isCorrect && <span className="text-[9px] font-bold shrink-0">KUNCI</span>}
-                                {isSelected && <span className="text-[9px] font-bold shrink-0">JAWABAN</span>}
+                                {isCorrect && <span className="text-[10px] font-medium shrink-0">KUNCI</span>}
+                                {isSelected && <span className="text-[10px] font-medium shrink-0">JAWABAN</span>}
                               </div>
                             )
                           }))}
