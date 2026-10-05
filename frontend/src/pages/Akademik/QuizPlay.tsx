@@ -407,16 +407,7 @@ export default function QuizPlay() {
             customClass: { popup: 'celebrate-popup' },
             didOpen: celebrateResult,
           }).then(() => {
-            const searchParams = new URLSearchParams(location.search)
-            const lesson = searchParams.get('lesson')
-            const courseId = searchParams.get('course') || searchParams.get('course_id') || ''
-            if (courseId && lesson) {
-              navigate(`/siswa-dashboard/lms/${courseId}/materi/${lesson}`, { replace: true })
-            } else if (lesson) {
-              navigate(`/siswa-dashboard/lms/materi/${lesson}`, { replace: true })
-            } else {
-              navigate(`/siswa-dashboard/quiz/${paketId}${location.search}`, { replace: true })
-            }
+            navigate(`/siswa-dashboard/quiz/${paketId}${location.search}`, { replace: true })
           })
         } else {
           const searchParams = new URLSearchParams(location.search)
@@ -811,15 +802,15 @@ export default function QuizPlay() {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[#edf1f5]">
       {/* ── Top Header (Dark) ── */}
-      <div className="relative bg-[#1f2022] px-4 py-2 md:px-6">
+      <div className="relative border-b border-gray-200 bg-white px-4 py-2 md:px-6">
         <div className="flex items-center justify-between gap-3">
           <div className="flex flex-col leading-tight">
-            <p className="text-[13px] text-white">
-              <span className="font-normal text-gray-300">Question: </span>
+            <p className="text-[13px] text-gray-900">
+              <span className="font-normal text-gray-500">Question: </span>
               <span className="font-bold">{sectionLocalIndex + 1}</span>
             </p>
-            <p className="mt-1 text-[13px] font-normal text-gray-300">Section:</p>
-            <p className="max-w-[160px] truncate text-[13px] font-semibold text-white">{currentSectionName || '—'}</p>
+            <p className="mt-1 text-[13px] font-normal text-gray-500">Section:</p>
+            <p className="max-w-[160px] truncate text-[13px] font-semibold text-gray-900">{currentSectionName || '—'}</p>
           </div>
 
           <div className="flex items-center gap-2">
@@ -833,7 +824,7 @@ export default function QuizPlay() {
               />
             )}
             {cameraEnabled && !streamRef.current && (
-              <span className="inline-flex items-center gap-1.5 rounded bg-red-500/15 px-2 py-1 text-[10px] font-bold text-red-300">
+              <span className="inline-flex items-center gap-1.5 rounded bg-red-500/15 px-2 py-1 text-[10px] font-bold text-red-600">
                 <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" /> Kamera mati
               </span>
             )}
@@ -849,13 +840,13 @@ export default function QuizPlay() {
 
         {/* Timer */}
         <div className="mt-2 flex items-center justify-center gap-2 sm:absolute sm:left-1/2 sm:top-1/2 sm:mt-0 sm:-translate-x-1/2 sm:-translate-y-1/2">
-          <svg className="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg className="h-6 w-6 text-gray-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 16 14" />
           </svg>
           <div className="flex items-baseline gap-2 sm:flex-col sm:gap-0">
-            <p className="text-[11px] tracking-wide text-white">Time Remaining</p>
-            <p className={`text-lg leading-tight font-bold ${lowTime ? 'text-red-400' : 'text-white'}`}>{fmtClock(remaining)}</p>
+            <p className="text-[11px] tracking-wide text-gray-500">Time Remaining</p>
+            <p className={`text-lg leading-tight font-bold ${lowTime ? 'text-red-600' : 'text-gray-900'}`}>{fmtClock(remaining)}</p>
           </div>
         </div>
       </div>
@@ -930,7 +921,8 @@ export default function QuizPlay() {
                 const isAnswered = isAnsweredQ(q)
                 const isFlagged = flagged.has(idx)
                 const isLocked = isLockedIndex(idx)
-                const bgColor = isLocked ? '#94a3b8' : idx === currentIndex ? '#3f6b3e' : isAnswered ? '#474747' : '#5e8b5d'
+                const bgColor = isLocked ? '#cbd5e1' : idx === currentIndex ? '#3f6b3e' : isAnswered ? '#cbd5e1' : '#5e8b5d'
+                const textColor = isLocked ? '#475569' : isAnswered && idx !== currentIndex ? '#475569' : '#ffffff'
                 return (
                   <div key={q.id}>
                     <div className="flex items-center pb-1.5 md:pb-2">
@@ -938,8 +930,8 @@ export default function QuizPlay() {
                         onClick={() => { if (!isLocked) setCurrentIndex(idx) }}
                         disabled={isLocked}
                         title={isLocked ? 'Bagian ini sudah selesai' : undefined}
-                        className={`relative flex h-[24px] w-full max-w-[46px] items-center justify-center rounded text-[11px] font-bold leading-none text-white transition-all sm:max-w-[50px] sm:text-[12px] md:h-[28px] md:max-w-[56px] md:text-[13px] ${isLocked ? 'cursor-not-allowed opacity-70' : 'hover:opacity-90'}`}
-                        style={{ backgroundColor: bgColor }}
+                        className={`relative flex h-[24px] w-full max-w-[46px] items-center justify-center rounded text-[11px] font-bold leading-none transition-all sm:max-w-[50px] sm:text-[12px] md:h-[28px] md:max-w-[56px] md:text-[13px] ${isLocked ? 'cursor-not-allowed' : 'hover:opacity-90'}`}
+                        style={{ backgroundColor: bgColor, color: textColor }}
                       >
                         {isLocked ? (
                           <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1060,7 +1052,7 @@ export default function QuizPlay() {
       </div>
 
       {/* ── Footer ── */}
-      <div className="flex items-center justify-between gap-2 bg-[#1f2022] px-3 py-2 md:px-6">
+      <div className="flex items-center justify-between gap-2 border-t border-gray-200 bg-white px-3 py-2 md:px-6">
         <button
           onClick={() => toggleFlag(currentIndex)}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-[#405640] transition-colors hover:bg-[#4d664d] md:h-9 md:w-10"

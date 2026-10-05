@@ -205,47 +205,58 @@ export default function KelasSenseiPage() {
             <p className="text-sm text-[#5f6368]">Daftar kelas</p>
           </div>
         </div>
-        <button onClick={openAddModal} className="inline-flex items-center gap-2 bg-[#202124] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#3c4043]">
+        <button onClick={openAddModal} className="inline-flex w-full items-center justify-center gap-2 bg-[#202124] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#3c4043] sm:w-auto">
           <Plus size={16} /> Tambah Kelas
         </button>
       </div>
 
       {/* Filter */}
-      <div className="mb-4 p-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-[#5f6368] shrink-0">Dari</span>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]" />
+      <div className="mb-4 border border-[#dadce0] bg-white p-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <label className="flex min-w-0 flex-col gap-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-[#5f6368]">Dari</span>
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="min-w-0 w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]" />
+          </label>
+          <label className="flex min-w-0 flex-col gap-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-[#5f6368]">Sampai</span>
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="min-w-0 w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]" />
+          </label>
+          <label className="flex min-w-0 flex-col gap-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-[#5f6368]">Sensei</span>
+            <select value={filterSensei} onChange={(e) => setFilterSensei(e.target.value)} className="min-w-0 w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]">
+              <option value="">Semua Sensei</option>
+              {listSensei.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </label>
+          <label className="flex min-w-0 flex-col gap-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-[#5f6368]">Batch</span>
+            <select value={filterBatch} onChange={(e) => setFilterBatch(e.target.value)} className="min-w-0 w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]">
+              <option value="">Semua Batch</option>
+              {listBatch.map((b) => (
+                <option key={b.id} value={b.id}>{b.nama_batch}</option>
+              ))}
+            </select>
+          </label>
+          <label className="flex min-w-0 flex-col gap-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-[#5f6368]">Status</span>
+            <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }} className="min-w-0 w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]">
+              <option value="">Semua Status</option>
+              <option value="aktif">Aktif</option>
+              <option value="proses">Proses Pembelajaran</option>
+              <option value="selesai">Selesai</option>
+              <option value="dibatalkan">Dibatalkan</option>
+            </select>
+          </label>
+          <div className="flex min-w-0 items-end gap-2">
+            <button onClick={applyFilter} className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 bg-[#202124] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#3c4043]">
+              <Search size={16} /> Filter
+            </button>
+            <button onClick={resetFilter} className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 border border-[#dadce0] bg-white px-3 py-2 text-sm font-medium text-[#3c4043] transition hover:bg-[#f1f3f4]">
+              <RotateCcw size={16} /> Reset
+            </button>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-[#5f6368] shrink-0">Sampai</span>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]" />
-          </div>
-          <select value={filterSensei} onChange={(e) => setFilterSensei(e.target.value)} className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]">
-            <option value="">Semua Sensei</option>
-            {listSensei.map((s) => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
-          <select value={filterBatch} onChange={(e) => setFilterBatch(e.target.value)} className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]">
-            <option value="">Semua Batch</option>
-            {listBatch.map((b) => (
-              <option key={b.id} value={b.id}>{b.nama_batch}</option>
-            ))}
-          </select>
-          <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }} className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]">
-            <option value="">Semua Status</option>
-            <option value="aktif">Aktif</option>
-            <option value="proses">Proses Pembelajaran</option>
-            <option value="selesai">Selesai</option>
-            <option value="dibatalkan">Dibatalkan</option>
-          </select>
-          <button onClick={applyFilter} className="inline-flex items-center justify-center gap-2 bg-[#202124] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#3c4043]">
-            <Search size={16} /> Filter
-          </button>
-          <button onClick={resetFilter} className="inline-flex items-center justify-center gap-2 border border-[#dadce0] bg-white px-3 py-2 text-sm font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]">
-            <RotateCcw size={16} /> Reset
-          </button>
         </div>
       </div>
 

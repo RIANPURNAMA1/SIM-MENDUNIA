@@ -18,7 +18,7 @@ function formatResponse(text: string): string {
     let r = escapeHtml(s);
     r = r.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
     r = r.replace(/\*(.*?)\*/g, "<em>$1</em>");
-    r = r.replace(/`([^`]+)`/g, "<code class='bg-gray-100 text-rose-600 px-1 rounded text-xs'>$1</code>");
+    r = r.replace(/`([^`]+)`/g, "<code class='bg-gray-100 text-rose-600 px-1 text-xs'>$1</code>");
     return r;
   };
 
@@ -34,7 +34,7 @@ function formatResponse(text: string): string {
 
     if (line.trim().startsWith("```")) {
       if (inCode) {
-        html += `<pre class="bg-gray-100 p-3 rounded-lg overflow-x-auto text-sm my-2"><code>${escapeHtml(codeBuffer.join("\n"))}</code></pre>`;
+        html += `<pre class="bg-gray-100 p-3 overflow-x-auto text-sm my-2"><code>${escapeHtml(codeBuffer.join("\n"))}</code></pre>`;
         codeBuffer = [];
         inCode = false;
       } else {
@@ -94,7 +94,7 @@ function formatResponse(text: string): string {
   }
 
   if (inCode) {
-    html += `<pre class="bg-gray-100 p-3 rounded-lg overflow-x-auto text-sm my-2"><code>${escapeHtml(codeBuffer.join("\n"))}</code></pre>`;
+    html += `<pre class="bg-gray-100 p-3 overflow-x-auto text-sm my-2"><code>${escapeHtml(codeBuffer.join("\n"))}</code></pre>`;
   }
   if (inTable && tableRows.length > 0) {
     html += '<div class="overflow-x-auto my-2">';
@@ -182,7 +182,7 @@ export default function AiChatPage() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white shadow-sm border border-gray-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Bot className="w-6 h-6 text-[#0E6187]" />
@@ -192,11 +192,11 @@ export default function AiChatPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
+            <span className="flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-2 py-1">
               <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
               Terhubung
             </span>
-            <button onClick={clearChat} className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg" title="Hapus chat">
+            <button onClick={clearChat} className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50" title="Hapus chat">
               <Trash2 className="w-4 h-4" />
             </button>
           </div>
@@ -208,7 +208,7 @@ export default function AiChatPage() {
               <div className="flex-shrink-0 w-9 h-9 bg-[#0E6187] text-white rounded-full flex items-center justify-center">
                 <Bot className="w-5 h-5" />
               </div>
-              <div className="bg-white rounded-xl shadow-sm p-4 max-w-[80%] rounded-tl-none">
+              <div className="bg-white shadow-sm p-4 max-w-[80%]">
                 <p className="font-semibold text-sm text-gray-800 mb-1">AI Assistant</p>
                 <p className="text-sm text-gray-600">Halo! Saya asisten AI SIM Mendunia yang menguasai seluruh data sistem secara real-time. Saya bisa membaca dan menganalisis data dari semua modul:</p>
                 <ul className="mt-2 text-sm text-gray-600 list-disc list-inside space-y-0.5">
@@ -231,7 +231,7 @@ export default function AiChatPage() {
               <div className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center ${msg.role === "user" ? "bg-gray-500 text-white" : "bg-[#0E6187] text-white"}`}>
                 {msg.role === "user" ? <User className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
               </div>
-              <div className={`rounded-xl shadow-sm p-4 max-w-[80%] ${msg.role === "user" ? "bg-blue-50 rounded-tr-none" : "bg-white rounded-tl-none"}`}>
+              <div className={`shadow-sm p-4 max-w-[80%] ${msg.role === "user" ? "bg-blue-50" : "bg-white"}`}>
                 <p className="font-semibold text-sm text-gray-800 mb-1">{msg.role === "user" ? "Anda" : "AI Assistant"}</p>
                 {msg.role === "assistant" ? (
                   <div className="text-sm text-gray-700 leading-relaxed ai-response" dangerouslySetInnerHTML={{ __html: formatResponse(msg.content) }} />
@@ -248,7 +248,7 @@ export default function AiChatPage() {
               <div className="flex-shrink-0 w-9 h-9 bg-[#0E6187] text-white rounded-full flex items-center justify-center">
                 <Bot className="w-5 h-5" />
               </div>
-              <div className="bg-white rounded-xl shadow-sm p-4 rounded-tl-none">
+              <div className="bg-white shadow-sm p-4">
                 <p className="font-semibold text-sm text-gray-800 mb-2">AI Assistant</p>
                 <div className="flex gap-1.5">
                   <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
@@ -271,13 +271,13 @@ export default function AiChatPage() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Tanyakan sesuatu tentang data..."
-              className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187] focus:border-[#0E6187]"
+              className="flex-1 px-4 py-2.5 border border-gray-300  text-sm focus:ring-2 focus:ring-[#0E6187] focus:border-[#0E6187]"
               disabled={loading}
             />
             <button
               onClick={handleSend}
               disabled={loading || !input.trim()}
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#0E6187] text-white rounded-lg hover:bg-[#1a5e6f] disabled:opacity-50 text-sm font-medium"
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#0E6187] text-white  hover:bg-[#1a5e6f] disabled:opacity-50 text-sm font-medium"
             >
               <Send className="w-4 h-4" />
               Kirim

@@ -1,4 +1,4 @@
-import { Users, Briefcase, BookOpen, UserCheck, FileText, Wallet } from 'lucide-react'
+import { Briefcase, BookOpen, UserCheck, FileText, Wallet } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -67,9 +67,9 @@ export default function DashboardHome() {
               to={dash.path}
               className="group"
             >
-              <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-300 h-full cursor-pointer">
+              <div className="bg-white border border-gray-200  p-5  hover: hover:border-gray-300 transition-all duration-300 h-full cursor-pointer">
                 {/* Icon */}
-                <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-gray-200 transition-colors">
+                <div className="w-10 h-10 bg-gray-100  flex items-center justify-center mb-4 group-hover:bg-gray-200 transition-colors">
                   <Icon size={20} className="text-gray-700" />
                 </div>
 
@@ -95,7 +95,7 @@ export default function DashboardHome() {
       </div>
 
       {/* Footer Info */}
-      <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+      <div className="mt-8 p-4 bg-blue-50 border border-blue-200 ">
         <p className="text-sm text-blue-900">
           <strong>💡 Tip:</strong> Setiap dashboard memiliki fitur dan data yang berbeda. Gunakan menu navigasi di sidebar untuk akses cepat ke fitur tertentu.
         </p>

@@ -106,7 +106,7 @@ export default function DraggableCamera({ cameraRef, overlayCanvasRef, cameraAct
         <button
           type="button"
           onClick={() => setMinimized(false)}
-          className="fixed bottom-4 right-4 z-[80] flex items-center gap-2 rounded-full bg-[#1f2022]/90 px-3 py-2 text-white shadow-xl ring-1 ring-white/20 transition-colors hover:bg-[#1f2022]"
+          className="fixed bottom-4 right-4 z-[80] flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-gray-800 shadow-xl transition-colors hover:bg-gray-50"
           title="Tampilkan kamera pengawas"
         >
           <Video size={15} className="text-emerald-400" />
@@ -132,13 +132,13 @@ export default function DraggableCamera({ cameraRef, overlayCanvasRef, cameraAct
         cursor: dragging ? 'grabbing' : 'grab',
       }}
     >
-      <div className={`overflow-hidden rounded-lg bg-black shadow-2xl ring-1 ring-white/25 ${dragging ? 'ring-white/50' : ''} ${resizing ? 'ring-amber-300/70' : ''}`}>
-        <div className="flex items-center justify-between gap-2 bg-[#1f2022] px-2 py-1">
-          <span className="flex items-center gap-1.5 text-[10px] font-bold text-white/85">
+      <div className={`overflow-hidden rounded-lg bg-white shadow-xl ring-1 ring-gray-300 ${dragging ? 'ring-gray-500' : ''} ${resizing ? 'ring-amber-300/70' : ''}`}>
+        <div className="flex items-center justify-between gap-2 border-b border-gray-200 bg-white px-2 py-1">
+          <span className="flex items-center gap-1.5 text-[10px] font-bold text-gray-700">
             <Video size={11} className="text-emerald-400" />
             Kamera Pengawas
           </span>
-          <span className="hidden items-center gap-1 text-[9px] font-medium text-white/45 md:flex">
+          <span className="hidden items-center gap-1 text-[9px] font-medium text-gray-400 md:flex">
             <GripHorizontal size={12} />
             Geser
           </span>
@@ -146,7 +146,7 @@ export default function DraggableCamera({ cameraRef, overlayCanvasRef, cameraAct
             type="button"
             onPointerDown={e => e.stopPropagation()}
             onClick={e => { e.stopPropagation(); setMinimized(true) }}
-            className="rounded p-0.5 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            className="rounded p-0.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800"
             title="Sembunyikan kamera (pengawasan tetap aktif)"
           >
             <VideoOff size={13} />
@@ -162,7 +162,7 @@ export default function DraggableCamera({ cameraRef, overlayCanvasRef, cameraAct
           className="absolute bottom-0 right-0 z-10 flex h-5 w-5 cursor-nwse-resize items-center justify-center"
           title="Ubah ukuran kamera (seret sudut)"
         >
-          <MoveDiagonal size={13} className="text-white/70" />
+          <MoveDiagonal size={13} className="text-gray-400" />
         </div>
       </div>
     </div>

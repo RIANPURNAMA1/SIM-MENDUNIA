@@ -1938,6 +1938,10 @@ class AdminCabangController extends Controller
             $c->sensei_nama = $sensei?->name ?? null;
             $c->sensei_id = $sensei?->id ?? null;
             $c->nama_kelas = $c->kelasSensei?->nama_kelas ?? null;
+            // Periode kelas supaya frontend bisa menentukan status siklus belajar.
+            $c->kelas_tanggal_mulai = $c->kelasSensei?->tanggal_mulai ?? null;
+            $c->kelas_tanggal_selesai = $c->kelasSensei?->tanggal_selesai ?? null;
+            $c->kelas_status = $c->kelasSensei?->status ?? null;
             $c->makeVisible('password_course');
         };
 

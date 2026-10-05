@@ -302,7 +302,7 @@ export default function DataNotifikasiSetting() {
 
   const mailMailer = mailField('mail_mailer')?.value || 'log'
   const mailHostFilled = !!mailField('mail_host')?.value
-  const mailUserFilled = !!mailField('mail_username')?.value
+  // const mailUserFilled = !!mailField('mail_username')?.value
   const mailReady = mailMailer === 'smtp' ? (mailHostFilled && mailPasswordSet) : true
 
   const handleTestEmail = async () => {
@@ -422,7 +422,7 @@ export default function DataNotifikasiSetting() {
                 <select
                   value={row.cabang_id}
                   onChange={e => updateCabangAdminRow(index, { cabang_id: e.target.value })}
-                  className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 bg-white sm:w-64">
+                  className="px-3 py-2 border border-slate-200  text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 bg-white sm:w-64">
                   <option value="">— Pilih Cabang —</option>
                   <option value="all">Semua Cabang</option>
                   {cabangList.map(c => (
@@ -435,10 +435,10 @@ export default function DataNotifikasiSetting() {
                   onChange={e => updateCabangAdminRow(index, { phone: e.target.value })}
                   placeholder="628xxxxxxxxxx"
                   autoComplete="new-password"
-                  className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 bg-white"
+                  className="flex-1 px-3 py-2 border border-slate-200  text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 bg-white"
                 />
                 <button onClick={() => removeCabangAdminRow(index)}
-                  className="inline-flex items-center justify-center px-3 py-2 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors">
+                  className="inline-flex items-center justify-center px-3 py-2  border border-red-200 text-red-500 hover:bg-red-50 transition-colors">
                   <Trash2 size={15} />
                 </button>
               </div>
@@ -446,7 +446,7 @@ export default function DataNotifikasiSetting() {
           </div>
 
           <button onClick={addCabangAdminRow}
-            className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-dashed border-emerald-300 text-emerald-600 text-sm font-medium hover:bg-emerald-50 transition-colors">
+            className="mt-3 inline-flex items-center gap-2 px-4 py-2  border border-dashed border-emerald-300 text-emerald-600 text-sm font-medium hover:bg-emerald-50 transition-colors">
             <Plus size={15} /> Tambah
           </button>
         </div>
@@ -469,7 +469,7 @@ export default function DataNotifikasiSetting() {
               onChange={e => handleGlobalValueChange(setting.key, e.target.value)}
               placeholder={valueMeta.placeholder}
               autoComplete="new-password"
-              className={`px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 bg-white ${valueMeta.wide ? 'w-full' : 'w-full md:w-96 font-mono'}`}
+              className={`px-3 py-2 border border-slate-200  text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20 bg-white ${valueMeta.wide ? 'w-full' : 'w-full md:w-96 font-mono'}`}
             />
             {setting.key === 'wa_pendaftaran_admin_phones' && (
               <p className="mt-1.5 text-[11px] text-slate-400">
@@ -493,18 +493,18 @@ export default function DataNotifikasiSetting() {
           </div>
         </div>
         <button onClick={() => handleGlobalToggle(setting.key, !setting.is_enabled)}
-          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${setting.is_enabled ? 'bg-emerald-500' : 'bg-slate-300'}`}>
-          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${setting.is_enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+          className={`relative inline-flex h-6 w-11 shrink-0 items-center  transition-colors ${setting.is_enabled ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+          <span className={`inline-block h-4 w-4 transform  bg-white transition-transform ${setting.is_enabled ? 'translate-x-6' : 'translate-x-1'}`} />
         </button>
       </div>
     )
   }
 
   const renderSettingPanel = (title: string, subtitle: string, icon: React.ReactNode, iconBg: string, iconColor: string, rows: GlobalSetting[], onSave: () => void, savingFlag: boolean) => (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div className="bg-white  border border-slate-200  overflow-hidden">
       <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center`}>
+          <div className={`w-10 h-10  ${iconBg} flex items-center justify-center`}>
             {icon}
           </div>
           <div>
@@ -513,7 +513,7 @@ export default function DataNotifikasiSetting() {
           </div>
         </div>
         <button onClick={onSave} disabled={savingFlag}
-          className="flex items-center gap-2 px-4 py-2 bg-[#0E6187] text-white rounded-xl text-sm font-medium hover:bg-[#1a2d4d] disabled:opacity-50 transition-colors">
+          className="flex items-center gap-2 px-4 py-2 bg-[#0E6187] text-white  text-sm font-medium hover:bg-[#1a2d4d] disabled:opacity-50 transition-colors">
           {savingFlag ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Simpan
         </button>
       </div>
@@ -524,10 +524,10 @@ export default function DataNotifikasiSetting() {
   )
 
   const renderTestEmailCard = () => (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div className="bg-white  border border-slate-200  overflow-hidden">
       <div className="px-6 py-4 border-b border-slate-100">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+          <div className="w-10 h-10  bg-blue-500/10 flex items-center justify-center">
             <Send size={20} className="text-blue-600" />
           </div>
           <div>
@@ -540,22 +540,22 @@ export default function DataNotifikasiSetting() {
         <div className="flex items-center gap-3">
           <input type="email" value={testEmail} onChange={e => setTestEmail(e.target.value)}
             placeholder="Masukkan alamat email tujuan"
-            className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20" />
+            className="flex-1 px-4 py-2.5 border border-slate-200  text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20" />
           <button onClick={handleTestEmail} disabled={testing || !testEmail.trim()}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#0E6187] text-white rounded-xl text-sm font-medium hover:bg-[#1a2d4d] disabled:opacity-50 transition-colors">
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#0E6187] text-white  text-sm font-medium hover:bg-[#1a2d4d] disabled:opacity-50 transition-colors">
             {testing ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
             Kirim Tes
           </button>
         </div>
         {testResult && (
-          <div className={`p-4 rounded-xl text-sm border ${testResult.success ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
+          <div className={`p-4  text-sm border ${testResult.success ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
             <div className="flex items-center gap-2 mb-2">
               {testResult.success ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
               <span className="font-medium">{testResult.success ? 'Berhasil' : 'Gagal'}</span>
             </div>
             <p>{testResult.message}</p>
             {testResult.config && (
-              <pre className="mt-2 text-xs bg-white/60 rounded-lg p-3 overflow-x-auto">
+              <pre className="mt-2 text-xs bg-white/60  p-3 overflow-x-auto">
                 {JSON.stringify(testResult.config, null, 2)}
               </pre>
             )}
@@ -566,10 +566,10 @@ export default function DataNotifikasiSetting() {
   )
 
   const renderTestWaCard = () => (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div className="bg-white  border border-slate-200  overflow-hidden">
       <div className="px-6 py-4 border-b border-slate-100">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+          <div className="w-10 h-10  bg-emerald-500/10 flex items-center justify-center">
             <MessageSquare size={20} className="text-emerald-600" />
           </div>
           <div>
@@ -582,22 +582,22 @@ export default function DataNotifikasiSetting() {
         <div className="flex items-center gap-3">
           <input type="text" value={testWaPhone} onChange={e => setTestWaPhone(e.target.value)}
             placeholder="Masukkan nomor tujuan (628xxx)"
-            className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20" />
+            className="flex-1 px-4 py-2.5 border border-slate-200  text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20" />
           <button onClick={handleTestWa} disabled={testingWa || !testWaPhone.trim()}
-            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors">
+            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white  text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors">
             {testingWa ? <Loader2 size={14} className="animate-spin" /> : <MessageSquare size={14} />}
             Kirim Tes
           </button>
         </div>
         {testWaResult && (
-          <div className={`p-4 rounded-xl text-sm border ${testWaResult.success ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
+          <div className={`p-4  text-sm border ${testWaResult.success ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
             <div className="flex items-center gap-2 mb-2">
               {testWaResult.success ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
               <span className="font-medium">{testWaResult.success ? 'Berhasil' : 'Gagal'}</span>
             </div>
             <p>{testWaResult.message}</p>
             {testWaResult.config && (
-              <pre className="mt-2 text-xs bg-white/60 rounded-lg p-3 overflow-x-auto">
+              <pre className="mt-2 text-xs bg-white/60  p-3 overflow-x-auto">
                 {JSON.stringify(testWaResult.config, null, 2)}
               </pre>
             )}
@@ -608,10 +608,10 @@ export default function DataNotifikasiSetting() {
   )
 
   const renderWebhookCard = () => (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div className="bg-white  border border-slate-200  overflow-hidden">
       <div className="px-6 py-4 border-b border-slate-100">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center">
+          <div className="w-10 h-10  bg-violet-500/10 flex items-center justify-center">
             <Webhook size={20} className="text-violet-600" />
           </div>
           <div>
@@ -621,7 +621,7 @@ export default function DataNotifikasiSetting() {
         </div>
       </div>
       <div className="px-6 py-4 space-y-4">
-        <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2.5 text-xs text-slate-600">
+        <div className=" bg-slate-50 border border-slate-200 px-3 py-2.5 text-xs text-slate-600">
           <span className="font-semibold text-slate-700">Webhook URL:</span>{' '}
           <code className="text-[#0E6187] font-mono">https://api.sim.mendunia.id/api/wa-webhook</code>
           <span className="block mt-0.5 text-slate-400">Pesan masuk dari WhatsApp Gateway otomatis diteruskan ke URL ini. Gunakan simulator di bawah untuk menguji alur balasan.</span>
@@ -631,7 +631,7 @@ export default function DataNotifikasiSetting() {
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1.5">Skenario</label>
             <select value={testWhScenario} onChange={e => handleScenarioChange(e.target.value)}
-              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20">
+              className="w-full px-4 py-2.5 border border-slate-200  text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20">
               <option value="payment_confirm">Balasan admin mutasi — KONFIRMASI</option>
               <option value="payment_cancel">Balasan admin mutasi — BATAL</option>
               <option value="izin_approve">Balasan manager izin — IYA</option>
@@ -642,14 +642,14 @@ export default function DataNotifikasiSetting() {
             <label className="block text-xs font-medium text-slate-600 mb-1.5">Nomor Pengirim</label>
             <input type="text" value={testWhPhone} onChange={e => setTestWhPhone(e.target.value)}
               placeholder="628xxxxxxxxxx"
-              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
+              className="w-full px-4 py-2.5 border border-slate-200  text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
           </div>
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1.5">Isi Pesan</label>
           <input type="text" value={testWhMessage} onChange={e => setTestWhMessage(e.target.value)}
             placeholder="KONFIRMASI / BATAL / IYA / TIDAK"
-            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
+            className="w-full px-4 py-2.5 border border-slate-200  text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
         </div>
 
         <div className="flex items-center gap-2">
@@ -661,7 +661,7 @@ export default function DataNotifikasiSetting() {
         {testWhUsePayload && (
           <textarea value={testWhPayload} onChange={e => setTestWhPayload(e.target.value)} rows={5}
             placeholder='{"data":{"message":{"from":"6282118364415","conversation":"KONFIRMASI"}}}'
-            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
+            className="w-full px-4 py-2.5 border border-slate-200  text-sm font-mono focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
         )}
 
         <div className="flex flex-wrap items-center gap-4">
@@ -670,73 +670,73 @@ export default function DataNotifikasiSetting() {
             Eksekusi sungguhan (mengubah status data)
           </label>
           <button onClick={handleTestWebhook} disabled={testingWh}
-            className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 disabled:opacity-50 transition-colors">
+            className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 text-white  text-sm font-medium hover:bg-violet-700 disabled:opacity-50 transition-colors">
             {testingWh ? <Loader2 size={14} className="animate-spin" /> : <Webhook size={14} />}
             Uji Webhook
           </button>
         </div>
         {testWhExecute && (
-          <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-xs text-amber-700">
+          <div className="flex items-start gap-2  bg-amber-50 border border-amber-200 px-3 py-2.5 text-xs text-amber-700">
             <ShieldAlert size={14} className="mt-0.5 shrink-0" />
             <span>Mode eksekusi sungguhan akan benar-benar memverifikasi/menolak pembayaran atau menyetujui/menolak izin jika ada pengajuan pending yang cocok.</span>
           </div>
         )}
 
         {testWhResult && (
-          <div className={`p-4 rounded-xl text-sm border ${testWhResult.success === false ? 'bg-red-50 border-red-200 text-red-700' : 'bg-violet-50 border-violet-200 text-violet-800'}`}>
+          <div className={`p-4  text-sm border ${testWhResult.success === false ? 'bg-red-50 border-red-200 text-red-700' : 'bg-violet-50 border-violet-200 text-violet-800'}`}>
             <div className="flex items-center gap-2 mb-2">
               {testWhResult.success === false ? <AlertCircle size={16} /> : <CheckCircle size={16} />}
               <span className="font-medium">{testWhResult.success === false ? 'Gagal' : 'Payload diproses'}</span>
-              {testWhResult.executed && <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">Eksekusi nyata</span>}
+              {testWhResult.executed && <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide bg-amber-100 text-amber-700  px-2 py-0.5">Eksekusi nyata</span>}
             </div>
             {testWhResult.message && <p>{testWhResult.message}</p>}
             {testWhResult.success !== false && (
               <div className="mt-3 space-y-2 text-xs">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div className="rounded-lg bg-white/70 px-3 py-2">
+                  <div className=" bg-white/70 px-3 py-2">
                     <p className="text-[10px] text-violet-400 font-semibold uppercase">Parsed From</p>
                     <p className="font-mono font-semibold">{testWhResult.parsed_from || '-'}</p>
                   </div>
-                  <div className="rounded-lg bg-white/70 px-3 py-2">
+                  <div className=" bg-white/70 px-3 py-2">
                     <p className="text-[10px] text-violet-400 font-semibold uppercase">Parsed Message</p>
                     <p className="font-mono font-semibold">{testWhResult.parsed_message || '-'}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <span className={`rounded-full px-2.5 py-1 font-semibold ${testWhResult.is_payment_admin ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                  <span className={` px-2.5 py-1 font-semibold ${testWhResult.is_payment_admin ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
                     Admin Mutasi: {testWhResult.is_payment_admin ? 'YA' : 'TIDAK'}
                   </span>
-                  <span className={`rounded-full px-2.5 py-1 font-semibold ${testWhResult.is_manager ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}`}>
+                  <span className={` px-2.5 py-1 font-semibold ${testWhResult.is_manager ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}`}>
                     Manager Izin: {testWhResult.is_manager ? 'YA' : 'TIDAK'}
                   </span>
                   {testWhResult.payment_reply && (
-                    <span className={`rounded-full px-2.5 py-1 font-semibold ${testWhResult.payment_reply === 'approve' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                    <span className={` px-2.5 py-1 font-semibold ${testWhResult.payment_reply === 'approve' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
                       Balasan: {testWhResult.payment_reply === 'approve' ? 'KONFIRMASI (setujui)' : 'BATAL (tolak)'}
                     </span>
                   )}
                   {testWhResult.manager_reply && (
-                    <span className="rounded-full px-2.5 py-1 font-semibold bg-blue-100 text-blue-700">Balasan Izin: {testWhResult.manager_reply}</span>
+                    <span className=" px-2.5 py-1 font-semibold bg-blue-100 text-blue-700">Balasan Izin: {testWhResult.manager_reply}</span>
                   )}
-                  <span className={`rounded-full px-2.5 py-1 font-semibold ${testWhResult.has_pending_payment ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
+                  <span className={` px-2.5 py-1 font-semibold ${testWhResult.has_pending_payment ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
                     Ada pembayaran pending: {testWhResult.has_pending_payment ? 'YA' : 'TIDAK'}
                   </span>
-                  <span className={`rounded-full px-2.5 py-1 font-semibold ${testWhResult.has_pending_izin ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
+                  <span className={` px-2.5 py-1 font-semibold ${testWhResult.has_pending_izin ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
                     Ada izin pending: {testWhResult.has_pending_izin ? 'YA' : 'TIDAK'}
                   </span>
                 </div>
                 {testWhResult.pending_payment_detail && (
-                  <div className="rounded-lg bg-white/70 px-3 py-2">
+                  <div className=" bg-white/70 px-3 py-2">
                     <p className="text-[10px] text-violet-400 font-semibold uppercase">Detail Pembayaran Pending</p>
                     <p className="font-medium">{testWhResult.pending_payment_detail.nama} — No. Reg: {testWhResult.pending_payment_detail.no_registrasi || '-'} (Status: {testWhResult.pending_payment_detail.status_pembayaran})</p>
                   </div>
                 )}
                 {testWhResult.executed ? (
-                  <div className="rounded-lg bg-white/70 px-3 py-2">
+                  <div className=" bg-white/70 px-3 py-2">
                     <p className="text-[10px] text-violet-400 font-semibold uppercase">Hasil Webhook</p>
                     <pre className="mt-1 text-xs overflow-x-auto">{JSON.stringify(testWhResult.webhook_result, null, 2)}</pre>
                   </div>
                 ) : (
-                  <div className="rounded-lg bg-white/70 px-3 py-2">
+                  <div className=" bg-white/70 px-3 py-2">
                     <p className="text-[10px] text-violet-400 font-semibold uppercase">Prediksi Hasil</p>
                     <p className="font-medium">{testWhResult.expected || '-'}</p>
                   </div>
@@ -750,7 +750,7 @@ export default function DataNotifikasiSetting() {
   )
 
   const renderInfoBox = () => (
-    <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 text-sm text-blue-700">
+    <div className="bg-blue-50 border border-blue-200  p-5 text-sm text-blue-700">
       <p className="font-medium mb-2">Cara kerja notifikasi otomatis:</p>
       <ul className="list-disc list-inside space-y-1.5 text-xs">
         <li>Pengingat dikirim setiap hari jam 09:00 via <code className="bg-blue-100 px-1 rounded">php artisan app:reminder-pembayaran</code></li>
@@ -788,12 +788,12 @@ export default function DataNotifikasiSetting() {
       </div>
 
       {successMsg && (
-        <div className="flex items-center gap-2 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-sm">
+        <div className="flex items-center gap-2 p-4 bg-emerald-50 border border-emerald-200  text-emerald-700 text-sm">
           <CheckCircle size={16} /> {successMsg}
         </div>
       )}
       {errorMsg && (
-        <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+        <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200  text-red-700 text-sm">
           <AlertCircle size={16} /> {errorMsg}
         </div>
       )}
@@ -802,7 +802,7 @@ export default function DataNotifikasiSetting() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
         {tabs.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold border-2 transition-colors ${activeTab === tab.id ? 'bg-[#0E6187] border-[#0E6187] text-white shadow-md' : 'bg-white border-slate-200 text-slate-500 hover:border-[#0E6187]/40 hover:text-[#0E6187]'}`}>
+            className={`flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold border-2 transition-colors ${activeTab === tab.id ? 'bg-[#0E6187] border-[#0E6187] text-white ' : 'bg-white border-slate-200 text-slate-500 hover:border-[#0E6187]/40 hover:text-[#0E6187]'}`}>
             <span className={activeTab === tab.id ? 'text-white' : tab.color}>{tab.icon}</span>
             {tab.label}
           </button>
@@ -812,7 +812,7 @@ export default function DataNotifikasiSetting() {
       {/* ===== Notifikasi WhatsApp ===== */}
       {activeTab === 'wa' && (
         <>
-          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-sm text-emerald-700">
+          <div className="bg-emerald-50 border border-emerald-200  p-4 text-sm text-emerald-700">
             <div className="flex items-start gap-2.5">
               <MessageSquare size={16} className="mt-0.5 shrink-0" />
               <div>
@@ -854,10 +854,10 @@ export default function DataNotifikasiSetting() {
           )}
 
           {/* SMTP Email Settings */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-white  border border-slate-200  overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                <div className="w-10 h-10  bg-blue-500/10 flex items-center justify-center">
                   <Mail size={20} className="text-blue-600" />
                 </div>
                 <div>
@@ -866,13 +866,13 @@ export default function DataNotifikasiSetting() {
                 </div>
               </div>
               <button onClick={saveMail} disabled={savingMail}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white  text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors">
                 {savingMail ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Simpan
               </button>
             </div>
             <div className="px-6 py-5">
               {/* Status bar */}
-              <div className={`mb-5 flex flex-wrap items-center gap-2 rounded-xl border px-4 py-3 text-[13px] ${
+              <div className={`mb-5 flex flex-wrap items-center gap-2  border px-4 py-3 text-[13px] ${
                 mailReady
                   ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
                   : 'border-amber-200 bg-amber-50 text-amber-700'
@@ -910,7 +910,7 @@ export default function DataNotifikasiSetting() {
 
                       {setting.key === 'mail_encryption' ? (
                         <select value={val || 'none'} onChange={e => handleMailValueChange(setting.key, e.target.value)}
-                          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20">
+                          className="w-full px-3 py-2 border border-slate-200  text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20">
                           <option value="tls">tls</option>
                           <option value="ssl">ssl</option>
                           <option value="none">none</option>
@@ -918,7 +918,7 @@ export default function DataNotifikasiSetting() {
                         </select>
                       ) : setting.key === 'mail_mailer' ? (
                         <select value={val || 'log'} onChange={e => handleMailValueChange(setting.key, e.target.value)}
-                          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20">
+                          className="w-full px-3 py-2 border border-slate-200  text-sm focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20">
                           <option value="smtp">smtp</option>
                           <option value="log">log</option>
                         </select>
@@ -930,14 +930,14 @@ export default function DataNotifikasiSetting() {
                             autoComplete="new-password"
                             onChange={e => handleMailValueChange(setting.key, e.target.value)}
                             placeholder={isSet ? '••••••••  (kosongkan bila tidak diubah)' : 'App password / Email Password'}
-                            className="flex-1 min-w-0 px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20"
+                            className="flex-1 min-w-0 px-3 py-2 border border-slate-200  text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20"
                           />
                           {(mailPasswordValue || isSet) && (
                             <button
                               type="button"
                               onClick={clearMailPassword}
                               title="Hapus password tersimpan"
-                              className="shrink-0 px-3 py-2 border border-slate-200 rounded-lg text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors"
+                              className="shrink-0 px-3 py-2 border border-slate-200  text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors"
                             >
                               Hapus
                             </button>
@@ -949,7 +949,7 @@ export default function DataNotifikasiSetting() {
                           value={val}
                           onChange={e => handleMailValueChange(setting.key, e.target.value)}
                           placeholder={setting.key === 'mail_host' ? 'smtp.gmail.com' : setting.key === 'mail_port' ? '587' : setting.key === 'mail_from_name' ? 'SIM Mendunia' : ''}
-                          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20"
+                          className="w-full px-3 py-2 border border-slate-200  text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20"
                         />
                       )}
                     </div>
@@ -981,7 +981,7 @@ export default function DataNotifikasiSetting() {
             saveGlobal,
             saving,
           )}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+          <div className="bg-white  border border-slate-200  p-5">
             <p className="text-sm text-slate-600">
               Saat <span className="font-semibold text-slate-700">"Halaman landing/website publik ditampilkan"</span> dimatikan, maka:
             </p>
@@ -996,10 +996,10 @@ export default function DataNotifikasiSetting() {
       {/* ===== AI Assistant ===== */}
       {activeTab === 'ai' && (
         <>
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-white  border border-slate-200  overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-fuchsia-500/10 flex items-center justify-center">
+                <div className="w-10 h-10  bg-fuchsia-500/10 flex items-center justify-center">
                   <Bot size={20} className="text-fuchsia-600" />
                 </div>
                 <div>
@@ -1008,7 +1008,7 @@ export default function DataNotifikasiSetting() {
                 </div>
               </div>
               <button onClick={saveAi} disabled={savingAi}
-                className="flex items-center gap-2 px-4 py-2 bg-[#0E6187] text-white rounded-xl text-sm font-medium hover:bg-[#1a2d4d] disabled:opacity-50 transition-colors">
+                className="flex items-center gap-2 px-4 py-2 bg-[#0E6187] text-white  text-sm font-medium hover:bg-[#1a2d4d] disabled:opacity-50 transition-colors">
                 {savingAi ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Simpan
               </button>
             </div>
@@ -1024,8 +1024,8 @@ export default function DataNotifikasiSetting() {
                     ['modelsstudio', 'Model Studio', 'bg-cyan-600'],
                   ] as [AiProvider, string, string][]).map(([p, label, iconBg]) => (
                     <button key={p} onClick={() => setAiProvider(p)}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-colors ${aiProvider === p ? 'border-fuchsia-500 bg-fuchsia-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
-                      <span className={`w-9 h-9 rounded-lg flex items-center justify-center ${iconBg}`}>
+                      className={`flex items-center gap-3 px-4 py-3  border-2 transition-colors ${aiProvider === p ? 'border-fuchsia-500 bg-fuchsia-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                      <span className={`w-9 h-9  flex items-center justify-center ${iconBg}`}>
                         <Bot size={18} className="text-white" />
                       </span>
                       <span className="text-left">
@@ -1045,15 +1045,15 @@ export default function DataNotifikasiSetting() {
                   ['gpt', 'GPT', 'sk-xxxxxxxxxxxx', aiGptKey, setAiGptKey, aiGptModel, setAiGptModel, undefined, undefined],
                   ['modelsstudio', 'Model Studio', 'sk-ws-xxxxxxxxxxxx', aiMsKey, setAiMsKey, aiMsModel, setAiMsModel, aiMsBaseUrl, setAiMsBaseUrl],
                 ] as [AiProvider, string, string, string, (v: string) => void, string, (v: string) => void, string | undefined, ((v: string) => void) | undefined][]).map(([p, label, placeholder, keyValue, setKey, modelValue, setModel, baseUrlValue, setBaseUrl]) => (
-                  <div key={p} className="p-4 rounded-xl border-2 border-slate-200 space-y-4">
+                  <div key={p} className="p-4  border-2 border-slate-200 space-y-4">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-bold text-slate-700">{label}</span>
                       {getConfigured(p) ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5  bg-emerald-50 text-emerald-600">
                           <CheckCircle size={10} /> Key terpasang
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-400">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5  bg-slate-100 text-slate-400">
                           Key belum diisi
                         </span>
                       )}
@@ -1066,7 +1066,7 @@ export default function DataNotifikasiSetting() {
                         onChange={e => setKey(e.target.value)}
                         placeholder={getMaskedKey(p) || placeholder}
                         autoComplete="new-password"
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20" />
+                        className="w-full px-3 py-2 border border-slate-200  text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20" />
                     </div>
                     {setBaseUrl && (
                       <div>
@@ -1076,7 +1076,7 @@ export default function DataNotifikasiSetting() {
                         <input type="text" value={baseUrlValue || ''}
                           onChange={e => setBaseUrl(e.target.value)}
                           placeholder={aiSettings?.base_urls?.modelsstudio || 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1'}
-                          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20" />
+                          className="w-full px-3 py-2 border border-slate-200  text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20" />
                       </div>
                     )}
                     <div>
@@ -1086,7 +1086,7 @@ export default function DataNotifikasiSetting() {
                       <input type="text" value={modelValue}
                         onChange={e => setModel(e.target.value)}
                         placeholder={aiSettings?.models?.[p] || 'nama-model'}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20" />
+                        className="w-full px-3 py-2 border border-slate-200  text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#0E6187]/20" />
                     </div>
                   </div>
                 ))}
@@ -1096,7 +1096,7 @@ export default function DataNotifikasiSetting() {
                 <label className="block text-sm font-medium text-slate-600 mb-1.5">Cek Koneksi</label>
                 <div className="flex flex-wrap items-center gap-3">
                   <button onClick={testAi} disabled={testingAi}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-fuchsia-600 text-white rounded-xl text-sm font-medium hover:bg-fuchsia-700 disabled:opacity-50 transition-colors">
+                    className="flex items-center gap-2 px-5 py-2.5 bg-fuchsia-600 text-white  text-sm font-medium hover:bg-fuchsia-700 disabled:opacity-50 transition-colors">
                     {testingAi ? <Loader2 size={14} className="animate-spin" /> : <Activity size={14} />}
                     Uji Koneksi {aiProvider.charAt(0).toUpperCase() + aiProvider.slice(1)}
                   </button>
@@ -1105,7 +1105,7 @@ export default function DataNotifikasiSetting() {
                   </span>
                 </div>
                 {aiTestResult && (
-                  <div className={`mt-3 p-4 rounded-xl text-sm border ${aiTestResult.success ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
+                  <div className={`mt-3 p-4  text-sm border ${aiTestResult.success ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
                     <div className="flex items-center gap-2 mb-1">
                       {aiTestResult.success ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
                       <span className="font-medium">{aiTestResult.success ? 'Berhasil' : 'Gagal'}</span>
@@ -1117,7 +1117,7 @@ export default function DataNotifikasiSetting() {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+          <div className="bg-white  border border-slate-200  p-5">
             <p className="text-sm text-slate-600">
               AI Assistant dipakai oleh fitur <span className="font-semibold text-slate-700">AI Chat</span> (menu sidebar) dan import data via AI.
             </p>

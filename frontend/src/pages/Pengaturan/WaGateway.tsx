@@ -46,12 +46,12 @@ interface GatewayStatus {
   gateway?: Record<string, unknown>
 }
 
-const statusMeta: Record<DeviceStatus, { label: string; className: string; dot: string }> = {
-  connected: { label: 'Terhubung', className: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
-  qr: { label: 'Menunggu Scan QR', className: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-500' },
-  connecting: { label: 'Menghubungkan...', className: 'bg-blue-50 text-blue-700 border-blue-200', dot: 'bg-blue-500 animate-pulse' },
-  disconnected: { label: 'Terputus', className: 'bg-slate-100 text-slate-600 border-slate-200', dot: 'bg-slate-400' },
-  loggedOut: { label: 'Logged Out', className: 'bg-rose-50 text-rose-700 border-rose-200', dot: 'bg-rose-500' },
+const statusMeta: Record<DeviceStatus, { label: string; className: string }> = {
+  connected: { label: 'Terhubung', className: 'bg-[#137333]' },
+  qr: { label: 'Menunggu Scan QR', className: 'bg-[#e37400]' },
+  connecting: { label: 'Menghubungkan...', className: 'bg-[#1a73e8]' },
+  disconnected: { label: 'Terputus', className: 'bg-[#9aa0a6]' },
+  loggedOut: { label: 'Logged Out', className: 'bg-[#c5221f]' },
 }
 
 function formatDate(value?: string | null) {
@@ -286,8 +286,11 @@ export default function WaGateway() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="animate-spin text-[#0E6187]" size={32} />
+      <div className="flex min-h-[400px] items-center justify-center p-6">
+        <div className="relative w-14 h-14 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-full border-2 border-[#1a73e8]/10 border-t-[#1a73e8] animate-spin" />
+          <img src="/logo-sm.png" alt="Mendunia" className="w-7 h-7" />
+        </div>
       </div>
     )
   }
@@ -295,42 +298,42 @@ export default function WaGateway() {
   const notConfigured = gateway && !gateway.configured
 
   return (
-    <div className="space-y-5">
+    <div className="px-3 py-3 sm:px-6 sm:py-4">
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-1.5 text-xs text-slate-500" aria-label="Breadcrumb">
-        <Link to="/" className="flex items-center gap-1 transition-colors hover:text-[#0E6187]">
+      <nav className="mb-4 flex items-center gap-1.5 text-xs text-[#5f6368]" aria-label="Breadcrumb">
+        <Link to="/" className="flex items-center gap-1 transition-colors hover:text-[#1a73e8]">
           <LayoutDashboard size={13} />
           <span>Beranda</span>
         </Link>
-        <ChevronRight size={12} className="text-slate-300" />
-        <span className="font-medium text-slate-700">WhatsApp Gateway</span>
+        <ChevronRight size={12} className="text-[#9aa0a6]" />
+        <span className="font-medium text-[#3c4043]">WhatsApp Gateway</span>
       </nav>
 
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="mb-4 flex flex-col gap-4 border-b border-[#dadce0] pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#0E6187]">
-            <MessageCircle size={22} className="text-white" />
+          <div className="flex h-10 w-10 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]">
+            <MessageCircle size={20} />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-800">WhatsApp Gateway</h1>
-            <p className="text-sm text-slate-500">Hubungkan nomor WhatsApp dengan scan QR — tanpa API pihak ketiga</p>
+            <h1 className="text-xl font-medium text-[#202124]">WhatsApp Gateway</h1>
+            <p className="text-sm text-[#5f6368]">Hubungkan nomor WhatsApp dengan scan QR — tanpa API pihak ketiga</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => load(true)}
             disabled={refreshing}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 border border-[#dadce0] bg-white px-3 py-2 text-sm font-medium text-[#3c4043] transition hover:bg-[#f8f9fa] disabled:opacity-50"
           >
-            <RefreshCw size={15} className={refreshing ? 'animate-spin' : ''} />
+            <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
             Muat Ulang
           </button>
           <button
             onClick={() => setShowAdd(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#0E6187] px-4 py-2 text-sm font-medium text-white hover:bg-[#1a2d4d]"
+            className="inline-flex items-center justify-center gap-2 bg-[#0E6187] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#084c63]"
           >
-            <Plus size={15} />
+            <Plus size={16} />
             Tambah Device
           </button>
         </div>
@@ -338,235 +341,280 @@ export default function WaGateway() {
 
       {/* Alerts */}
       {success && (
-        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          <CheckCircle2 size={16} /> {success}
+        <div className="mb-4 flex items-start gap-3 border border-[#b7e1c1] bg-[#e6f4ea] p-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center bg-[#ceead6]">
+            <CheckCircle2 size={16} className="text-[#137333]" />
+          </div>
+          <p className="pt-1.5 text-sm font-medium text-[#137333]">{success}</p>
         </div>
       )}
       {error && (
-        <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          <AlertCircle size={16} /> {error}
+        <div className="mb-4 flex items-start gap-3 border border-[#f6aea9] bg-[#fce8e6] p-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center bg-[#f6d7d5]">
+            <AlertCircle size={16} className="text-[#c5221f]" />
+          </div>
+          <p className="pt-1.5 text-sm font-medium text-[#c5221f]">{error}</p>
         </div>
       )}
 
       {notConfigured && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-          <div className="flex items-center gap-2 font-semibold">
-            <AlertCircle size={16} /> Gateway belum dikonfigurasi
+        <div className="mb-4 flex items-start gap-3 border border-[#fdd663] bg-[#fef7e0] p-4">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center bg-[#feefc3]">
+            <AlertCircle size={16} className="text-[#b06000]" />
           </div>
-          <p className="mt-1 text-amber-700">
-            Isi <span className="font-semibold">WA Gateway Base URL</span> dan <span className="font-semibold">Token</span> pada
-            Pengaturan Notifikasi, lalu jalankan service <code className="rounded bg-amber-100 px-1">wa-gateway</code>.
-          </p>
-          <Link to="/notifikasi-wa-setting" className="mt-2 inline-flex items-center gap-1 font-medium text-[#0E6187] hover:underline">
-            <Settings size={13} /> Buka Pengaturan Notifikasi
-          </Link>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-[#8f4b00]">Gateway belum dikonfigurasi</p>
+            <p className="mt-0.5 text-xs text-[#b06000]">
+              Isi <span className="font-semibold">WA Gateway Base URL</span> dan <span className="font-semibold">Token</span> pada
+              Pengaturan Notifikasi, lalu jalankan service <code className="bg-[#feefc3] px-1">wa-gateway</code>.
+            </p>
+            <Link to="/notifikasi-wa-setting" className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#1967d2] hover:underline">
+              <Settings size={13} /> Buka Pengaturan Notifikasi
+            </Link>
+          </div>
         </div>
       )}
 
-      {/* Gateway status banner */}
-      <div className={`rounded-2xl border p-4 ${gateway?.online ? 'border-emerald-200 bg-white' : 'border-slate-200 bg-white'}`}>
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${gateway?.online ? 'bg-emerald-50' : 'bg-slate-100'}`}>
-              {gateway?.online ? <Wifi size={20} className="text-emerald-600" /> : <WifiOff size={20} className="text-slate-400" />}
+      {/* Ringkasan */}
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        {([
+          { label: 'Status Gateway', value: gateway?.online ? 'Online' : 'Offline', icon: gateway?.online ? Wifi : WifiOff, chip: gateway?.online ? 'bg-[#137333]' : 'bg-[#9aa0a6]', hint: gateway?.base_url || '-' },
+          { label: 'Total Device', value: devices.length, icon: Smartphone, chip: 'bg-[#0E6187]', hint: 'terdaftar di gateway' },
+          { label: 'Terhubung', value: connectedCount, icon: CheckCircle2, chip: 'bg-[#137333]', hint: 'siap kirim pesan' },
+          { label: 'Menunggu QR', value: qrCount, icon: QrCode, chip: 'bg-[#e37400]', hint: 'perlu scan manual' },
+          { label: 'Offline', value: offlineCount, icon: Power, chip: 'bg-[#5f6368]', hint: 'terputus / logout' },
+        ] as const).map(s => {
+          const Icon = s.icon
+          return (
+            <div key={s.label} className="border border-[#dadce0] bg-white p-3">
+              <div className="flex items-center gap-2">
+                <span className={`flex h-8 w-8 shrink-0 items-center justify-center text-white ${s.chip}`}>
+                  <Icon size={16} />
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-[11px] font-semibold text-[#5f6368]">{s.label}</p>
+                  <p className="truncate text-[10px] text-[#80868b]">{s.hint}</p>
+                </div>
+              </div>
+              <p className="mt-2 truncate text-xl font-bold text-[#202124]">{s.value}</p>
             </div>
-            <div>
-              <p className="text-sm font-semibold text-slate-700">
-                {gateway?.online ? 'Gateway Online' : 'Gateway Offline'}
-              </p>
-              <p className="text-xs text-slate-400 font-mono">{gateway?.base_url || '-'}</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="rounded-xl bg-emerald-50 px-4 py-2">
-              <p className="text-lg font-bold text-emerald-700">{connectedCount}</p>
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600">Terhubung</p>
-            </div>
-            <div className="rounded-xl bg-amber-50 px-4 py-2">
-              <p className="text-lg font-bold text-amber-700">{qrCount}</p>
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-600">Menunggu QR</p>
-            </div>
-            <div className="rounded-xl bg-slate-100 px-4 py-2">
-              <p className="text-lg font-bold text-slate-600">{offlineCount}</p>
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Offline</p>
-            </div>
-          </div>
-        </div>
-        {gateway?.message && (
-          <p className="mt-3 flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
-            <AlertCircle size={13} /> {gateway.message}
-          </p>
-        )}
+          )
+        })}
       </div>
 
-      {/* Device list */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 px-5 py-3">
-          <h2 className="text-sm font-semibold text-slate-700">Daftar Device ({devices.length})</h2>
+      {gateway?.message && (
+        <div className="mb-4 flex items-start gap-3 border border-[#dadce0] bg-[#f8f9fa] p-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center bg-[#f1f3f4]">
+            <AlertCircle size={16} className="text-[#5f6368]" />
+          </div>
+          <p className="pt-1.5 text-xs text-[#5f6368]">{gateway.message}</p>
         </div>
+      )}
 
-        {devices.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 px-6 py-14 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100">
-              <Smartphone size={26} className="text-slate-400" />
-            </div>
-            <p className="text-sm font-medium text-slate-600">Belum ada device WhatsApp</p>
-            <p className="max-w-sm text-xs text-slate-400">
-              Tambahkan device, beri nama, lalu scan QR menggunakan aplikasi WhatsApp di ponsel Anda
-              (Perangkat Tertaut → Tautkan Perangkat).
-            </p>
-            <button
-              onClick={() => setShowAdd(true)}
-              className="mt-1 inline-flex items-center gap-2 rounded-lg bg-[#0E6187] px-4 py-2 text-sm font-medium text-white hover:bg-[#1a2d4d]"
-            >
-              <Plus size={15} /> Tambah Device
-            </button>
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {devices.map((device) => {
-              const meta = statusMeta[device.status] || statusMeta.disconnected
-              const isBusy = busySlug === device.slug
-              const isDefault = gateway?.default_device === device.slug
-              return (
-                <div key={device.slug} className="flex flex-wrap items-center gap-4 px-5 py-4 hover:bg-slate-50/60">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100">
-                    <Smartphone size={20} className={device.status === 'connected' ? 'text-emerald-600' : 'text-slate-400'} />
+      {/* Table Device */}
+      <div className="overflow-x-auto border border-[#dadce0] bg-white">
+        <table className="w-full border-collapse text-left text-sm text-black" style={{ tableLayout: 'fixed', minWidth: '1000px' }}>
+          <colgroup>
+            <col className="w-[260px]" />
+            <col className="w-[180px]" />
+            <col className="w-[140px]" />
+            <col className="w-[100px]" />
+            <col className="w-[170px]" />
+            <col className="w-[330px]" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th scope="col" className="px-4 py-3 text-xs font-medium text-[#5f6368]">Device</th>
+              <th scope="col" className="px-4 py-3 text-xs font-medium text-[#5f6368]">Status</th>
+              <th scope="col" className="px-4 py-3 text-xs font-medium text-[#5f6368]">Nomor</th>
+              <th scope="col" className="px-4 py-3 text-xs font-medium text-[#5f6368]">Default</th>
+              <th scope="col" className="px-4 py-3 text-xs font-medium text-[#5f6368]">Terakhir Connect</th>
+              <th scope="col" className="px-4 py-3 text-xs font-medium text-[#5f6368]">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {devices.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-6 py-12 text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center bg-[#f1f3f4] text-[#80868b]">
+                    <Smartphone size={24} />
                   </div>
-
-                  <div className="min-w-[180px] flex-1">
-                    {renamingSlug === device.slug ? (
-                      <div className="flex items-center gap-2">
-                        <input
-                          value={renameValue}
-                          autoFocus
-                          onChange={(e) => setRenameValue(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && handleRename(device.slug)}
-                          className="w-48 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                        />
-                        <button onClick={() => handleRename(device.slug)} disabled={isBusy}
-                          className="rounded-lg bg-[#0E6187] px-2.5 py-1.5 text-xs font-medium text-white disabled:opacity-50">
-                          Simpan
-                        </button>
-                        <button onClick={() => { setRenamingSlug(null); setRenameValue('') }}
-                          className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-500">
-                          Batal
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-semibold text-slate-700">{device.name}</span>
-                        {isDefault && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-[#0E6187]/10 px-2 py-0.5 text-[10px] font-semibold text-[#0E6187]">
-                            <Star size={10} /> Default
-                          </span>
+                  <p className="mt-3 text-sm font-medium text-[#5f6368]">Belum ada device WhatsApp</p>
+                  <p className="mx-auto mt-1 max-w-sm text-xs text-[#80868b]">
+                    Tambahkan device, beri nama, lalu scan QR menggunakan aplikasi WhatsApp di ponsel Anda
+                    (Perangkat Tertaut → Tautkan Perangkat).
+                  </p>
+                  <button
+                    onClick={() => setShowAdd(true)}
+                    className="mt-3 inline-flex items-center gap-2 bg-[#0E6187] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#084c63]"
+                  >
+                    <Plus size={15} /> Tambah Device
+                  </button>
+                </td>
+              </tr>
+            ) : (
+              devices.map((device) => {
+                const meta = statusMeta[device.status] || statusMeta.disconnected
+                const isBusy = busySlug === device.slug
+                const isDefault = gateway?.default_device === device.slug
+                return (
+                  <tr key={device.slug} className="bg-white transition hover:bg-[#f8f9fa]">
+                    <td className="border-b border-[#e8eaed] px-3 py-3">
+                      {renamingSlug === device.slug ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            value={renameValue}
+                            autoFocus
+                            onChange={(e) => setRenameValue(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleRename(device.slug)}
+                            className="w-40 border border-[#dadce0] bg-white px-2 py-1.5 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
+                          />
+                          <button onClick={() => handleRename(device.slug)} disabled={isBusy}
+                            className="bg-[#0E6187] px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-[#084c63] disabled:opacity-50">
+                            Simpan
+                          </button>
+                          <button onClick={() => { setRenamingSlug(null); setRenameValue('') }}
+                            className="border border-[#dadce0] bg-white px-2.5 py-1.5 text-xs text-[#3c4043] transition hover:bg-[#f8f9fa]">
+                            Batal
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center bg-[#f1f3f4] text-[#5f6368]">
+                            <Smartphone size={16} />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="truncate text-sm font-semibold text-[#202124]">{device.name}</span>
+                              <button
+                                onClick={() => { setRenamingSlug(device.slug); setRenameValue(device.name) }}
+                                className="shrink-0 text-[#9aa0a6] transition-colors hover:text-[#1a73e8]"
+                                title="Ubah nama"
+                              >
+                                <Pencil size={12} />
+                              </button>
+                            </div>
+                            <div className="truncate font-mono text-xs text-[#80868b]">{device.slug}</div>
+                          </div>
+                        </div>
+                      )}
+                    </td>
+                    <td className="border-b border-[#e8eaed] px-3 py-3">
+                      <span className={`inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 text-[11px] font-semibold text-white ${meta.className}`}>
+                        <span className="h-1.5 w-1.5 shrink-0 bg-white/90" />
+                        {meta.label}
+                      </span>
+                    </td>
+                    <td className="border-b border-[#e8eaed] px-3 py-3">
+                      <span className="block truncate font-mono text-xs text-black">
+                        {device.phone ? `+${device.phone}` : <span className="text-[#80868b]">-</span>}
+                      </span>
+                    </td>
+                    <td className="border-b border-[#e8eaed] px-3 py-3">
+                      {isDefault ? (
+                        <span className="inline-flex items-center gap-1 whitespace-nowrap bg-[#e8f0fe] px-2 py-1 text-[11px] font-semibold text-[#1967d2]">
+                          <Star size={11} /> Default
+                        </span>
+                      ) : (
+                        <span className="text-[#80868b]">-</span>
+                      )}
+                    </td>
+                    <td className="border-b border-[#e8eaed] px-3 py-3 text-sm whitespace-nowrap text-black">
+                      {formatDate(device.lastConnectedAt)}
+                    </td>
+                    <td className="border-b border-[#e8eaed] px-3 py-3">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {(device.status === 'qr' || !device.hasSession) && device.status !== 'connected' && (
+                          <button onClick={() => handleScan(device)}
+                            className="inline-flex items-center gap-1.5 bg-[#e37400] px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-[#c26500]">
+                            <QrCode size={13} /> Scan QR
+                          </button>
                         )}
-                        <button
-                          onClick={() => { setRenamingSlug(device.slug); setRenameValue(device.name) }}
-                          className="text-slate-300 transition-colors hover:text-[#0E6187]"
-                          title="Ubah nama"
-                        >
-                          <Pencil size={12} />
+                        {device.status !== 'connected' && device.hasSession && (
+                          <button onClick={() => handleScan(device)} disabled={isBusy}
+                            className="inline-flex items-center gap-1.5 border border-[#aecbfa] bg-white px-2.5 py-1.5 text-xs font-medium text-[#1967d2] transition hover:bg-[#e8f0fe] disabled:opacity-50">
+                            {isBusy ? <Loader2 size={13} className="animate-spin" /> : <Power size={13} />} Sambungkan
+                          </button>
+                        )}
+                        {device.status === 'connected' && (
+                          <button onClick={() => openTest(device)}
+                            className="inline-flex items-center gap-1.5 bg-[#137333] px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-[#0d5c28]">
+                            <Send size={13} /> Uji Kirim
+                          </button>
+                        )}
+                        {device.status === 'connected' && !isDefault && (
+                          <button onClick={() => handleSetDefault(device)} disabled={isBusy}
+                            className="inline-flex items-center gap-1.5 border border-[#dadce0] bg-white px-2.5 py-1.5 text-xs font-medium text-[#3c4043] transition hover:bg-[#f8f9fa] disabled:opacity-50"
+                            title="Jadikan device default pengiriman notifikasi">
+                            <Star size={13} /> Default
+                          </button>
+                        )}
+                        {device.hasSession && (
+                          <button onClick={() => handleLogout(device)} disabled={isBusy}
+                            className="inline-flex items-center gap-1.5 border border-[#dadce0] bg-white px-2.5 py-1.5 text-xs font-medium text-[#3c4043] transition hover:bg-[#f8f9fa] disabled:opacity-50"
+                            title="Logout & hapus sesi">
+                            <Power size={13} /> Logout
+                          </button>
+                        )}
+                        <button onClick={() => handleDelete(device)} disabled={isBusy}
+                          className="inline-flex items-center justify-center border border-[#f6aea9] bg-white p-1.5 text-[#c5221f] transition hover:bg-[#fce8e6] disabled:opacity-50"
+                          title="Hapus device">
+                          <Trash2 size={13} />
                         </button>
                       </div>
-                    )}
-                    <p className="mt-0.5 font-mono text-xs text-slate-400">
-                      {device.slug}{device.phone ? ` • +${device.phone}` : ''}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-col items-start gap-1">
-                    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${meta.className}`}>
-                      <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
-                      {meta.label}
-                    </span>
-                    <span className="text-[10px] text-slate-400">Terakhir: {formatDate(device.lastConnectedAt)}</span>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {(device.status === 'qr' || !device.hasSession) && device.status !== 'connected' && (
-                      <button onClick={() => handleScan(device)}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-600">
-                        <QrCode size={13} /> Scan QR
-                      </button>
-                    )}
-                    {device.status !== 'connected' && device.hasSession && (
-                      <button onClick={() => handleScan(device)} disabled={isBusy}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50">
-                        {isBusy ? <Loader2 size={13} className="animate-spin" /> : <Power size={13} />} Sambungkan
-                      </button>
-                    )}
-                    {device.status === 'connected' && (
-                      <button onClick={() => openTest(device)}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700">
-                        <Send size={13} /> Uji Kirim
-                      </button>
-                    )}
-                    {device.status === 'connected' && !isDefault && (
-                      <button onClick={() => handleSetDefault(device)} disabled={isBusy}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-                        title="Jadikan device default pengiriman notifikasi">
-                        <Star size={13} /> Default
-                      </button>
-                    )}
-                    {device.hasSession && (
-                      <button onClick={() => handleLogout(device)} disabled={isBusy}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-                        title="Logout & hapus sesi">
-                        <Power size={13} /> Logout
-                      </button>
-                    )}
-                    <button onClick={() => handleDelete(device)} disabled={isBusy}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-50"
-                      title="Hapus device">
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
+                    </td>
+                  </tr>
+                )
+              })
+            )}
+          </tbody>
+        </table>
+        <div className="border-t border-[#dadce0] px-4 py-3 text-sm text-[#5f6368]">
+          Total {devices.length} device &middot; {connectedCount} terhubung &middot; {offlineCount} offline
+        </div>
       </div>
 
       {/* Info */}
-      <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-700">
-        <p className="mb-1.5 font-medium">Cara menghubungkan WhatsApp:</p>
-        <ol className="list-inside list-decimal space-y-1 text-xs">
-          <li>Klik <span className="font-semibold">Tambah Device</span> dan beri nama (mis. "CS Mendunia").</li>
-          <li>Scan QR yang muncul dengan WhatsApp di ponsel: <span className="font-medium">Pengaturan → Perangkat Tertaut → Tautkan Perangkat</span>.</li>
-          <li>Setelah status <span className="font-semibold text-emerald-700">Terhubung</span>, jadikan device <span className="font-semibold">Default</span> agar semua notifikasi dikirim dari nomor tersebut.</li>
+      <div className="mt-4 border border-[#aecbfa] bg-[#e8f0fe] p-4">
+        <p className="text-sm font-semibold text-[#174ea6]">Cara menghubungkan WhatsApp:</p>
+        <ol className="mt-1.5 list-inside list-decimal space-y-1 text-xs text-[#174ea6]">
+          <li>Klik <span className="font-semibold">Tambah Device</span> dan beri nama (mis. &quot;CS Mendunia&quot;).</li>
+          <li>Scan QR yang muncul dengan WhatsApp di ponsel: <span className="font-semibold">Pengaturan → Perangkat Tertaut → Tautkan Perangkat</span>.</li>
+          <li>Setelah status <span className="font-semibold">Terhubung</span>, jadikan device <span className="font-semibold">Default</span> agar semua notifikasi dikirim dari nomor tersebut.</li>
         </ol>
       </div>
 
       {/* Modal Tambah Device */}
       {showAdd && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-              <h3 className="font-semibold text-slate-800">Tambah Device WhatsApp</h3>
-              <button onClick={() => setShowAdd(false)} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#202124]/50 p-4" onClick={() => setShowAdd(false)}>
+          <div className="w-full max-w-md border border-[#dadce0] bg-white" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-[#e8eaed] px-5 py-3.5">
+              <h3 className="text-sm font-semibold text-[#202124]">Tambah Device WhatsApp</h3>
+              <button onClick={() => setShowAdd(false)} className="p-1.5 transition-colors hover:bg-[#f1f3f4]">
+                <X size={18} className="text-[#80868b]" />
+              </button>
             </div>
             <div className="space-y-4 px-5 py-5">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-600">Nama Device</label>
+                <label className="mb-1.5 block text-sm font-medium text-[#3c4043]">Nama Device</label>
                 <input
                   value={newName}
                   autoFocus
                   onChange={(e) => setNewName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
                   placeholder="Contoh: CS Mendunia, Admin Pusat"
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#0E6187]/20"
+                  className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition placeholder:text-[#80868b] focus:border-[#1a73e8]"
                 />
-                <p className="mt-1 text-xs text-slate-400">Nama ini hanya label internal untuk membedakan device.</p>
+                <p className="mt-1 text-xs text-[#80868b]">Nama ini hanya label internal untuk membedakan device.</p>
               </div>
             </div>
-            <div className="flex justify-end gap-2 border-t border-slate-100 px-5 py-4">
-              <button onClick={() => setShowAdd(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">
+            <div className="flex items-center justify-end gap-3 border-t border-[#e8eaed] px-5 py-3.5">
+              <button onClick={() => setShowAdd(false)}
+                className="border border-[#dadce0] bg-white px-4 py-2 text-sm font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]">
                 Batal
               </button>
               <button onClick={handleCreate} disabled={creating || !newName.trim()}
-                className="inline-flex items-center gap-2 rounded-lg bg-[#0E6187] px-4 py-2 text-sm font-medium text-white hover:bg-[#1a2d4d] disabled:opacity-50">
+                className="inline-flex items-center gap-2 bg-[#0E6187] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#084c63] disabled:opacity-50">
                 {creating ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
                 Buat & Tampilkan QR
               </button>
@@ -577,53 +625,55 @@ export default function WaGateway() {
 
       {/* Modal QR */}
       {qrModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#202124]/50 p-4" onClick={() => setQrModal((m) => ({ ...m, open: false }))}>
+          <div className="w-full max-w-md border border-[#dadce0] bg-white" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-[#e8eaed] px-5 py-3.5">
               <div>
-                <h3 className="font-semibold text-slate-800">Scan QR — {qrModal.name}</h3>
-                <p className="text-xs text-slate-400">Slug: {qrModal.slug}</p>
+                <h3 className="text-sm font-semibold text-[#202124]">Scan QR — {qrModal.name}</h3>
+                <p className="font-mono text-xs text-[#80868b]">Slug: {qrModal.slug}</p>
               </div>
-              <button onClick={() => setQrModal((m) => ({ ...m, open: false }))} className="text-slate-400 hover:text-slate-600">
-                <X size={18} />
+              <button onClick={() => setQrModal((m) => ({ ...m, open: false }))} className="p-1.5 transition-colors hover:bg-[#f1f3f4]">
+                <X size={18} className="text-[#80868b]" />
               </button>
             </div>
             <div className="flex flex-col items-center gap-4 px-5 py-6">
               {qrModal.status === 'connected' ? (
                 <div className="flex flex-col items-center gap-2 py-6 text-center">
-                  <CheckCircle2 size={48} className="text-emerald-500" />
-                  <p className="font-semibold text-slate-700">Device berhasil terhubung!</p>
-                  <p className="text-xs text-slate-400">
+                  <div className="flex h-14 w-14 items-center justify-center bg-[#ceead6]">
+                    <CheckCircle2 size={28} className="text-[#137333]" />
+                  </div>
+                  <p className="text-sm font-semibold text-[#202124]">Device berhasil terhubung!</p>
+                  <p className="text-xs text-[#80868b]">
                     {qrModal.phone ? `Nomor: +${qrModal.phone}` : 'Koneksi WhatsApp aktif.'}
                   </p>
                   <button onClick={() => setQrModal((m) => ({ ...m, open: false }))}
-                    className="mt-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                    className="mt-2 bg-[#137333] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#0d5c28]">
                     Selesai
                   </button>
                 </div>
               ) : qrModal.qrImage ? (
                 <>
-                  <div className="rounded-2xl border-4 border-slate-100 p-2">
+                  <div className="border border-[#dadce0] p-2">
                     <img src={qrModal.qrImage} alt="QR WhatsApp" className="h-64 w-64" />
                   </div>
-                  <div className="flex items-center gap-2 text-xs font-medium text-amber-600">
+                  <div className="flex items-center gap-2 text-xs font-medium text-[#b06000]">
                     <Loader2 size={13} className="animate-spin" />
                     Menunggu scan... QR diperbarui otomatis.
                   </div>
                 </>
               ) : (
                 <div className="flex flex-col items-center gap-3 py-10 text-center">
-                  <Loader2 size={36} className="animate-spin text-[#0E6187]" />
-                  <p className="text-sm text-slate-500">
+                  <Loader2 size={36} className="animate-spin text-[#1a73e8]" />
+                  <p className="text-sm text-[#5f6368]">
                     {qrModal.status === 'connecting' ? 'Menyiapkan sesi & QR...' : 'Menunggu QR tersedia...'}
                   </p>
                 </div>
               )}
               {qrModal.status !== 'connected' && (
-                <div className="w-full rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
-                  Buka WhatsApp → <span className="font-medium text-slate-600">Pengaturan</span> →
-                  <span className="font-medium text-slate-600"> Perangkat Tertaut</span> →
-                  <span className="font-medium text-slate-600"> Tautkan Perangkat</span>, lalu arahkan kamera ke QR di atas.
+                <div className="w-full bg-[#f8f9fa] px-4 py-3 text-xs text-[#5f6368]">
+                  Buka WhatsApp → <span className="font-semibold text-[#3c4043]">Pengaturan</span> →
+                  <span className="font-semibold text-[#3c4043]"> Perangkat Tertaut</span> →
+                  <span className="font-semibold text-[#3c4043]"> Tautkan Perangkat</span>, lalu arahkan kamera ke QR di atas.
                 </div>
               )}
             </div>
@@ -633,56 +683,56 @@ export default function WaGateway() {
 
       {/* Modal Uji Kirim */}
       {testModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#202124]/50 p-4" onClick={() => setTestModal((m) => ({ ...m, open: false }))}>
+          <div className="w-full max-w-md border border-[#dadce0] bg-white" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-[#e8eaed] px-5 py-3.5">
               <div>
-                <h3 className="font-semibold text-slate-800">Uji Kirim WhatsApp</h3>
-                <p className="text-xs text-slate-400">Device: {testModal.name}</p>
+                <h3 className="text-sm font-semibold text-[#202124]">Uji Kirim WhatsApp</h3>
+                <p className="text-xs text-[#80868b]">Device: {testModal.name}</p>
               </div>
-              <button onClick={() => setTestModal((m) => ({ ...m, open: false }))} className="text-slate-400 hover:text-slate-600">
-                <X size={18} />
+              <button onClick={() => setTestModal((m) => ({ ...m, open: false }))} className="p-1.5 transition-colors hover:bg-[#f1f3f4]">
+                <X size={18} className="text-[#80868b]" />
               </button>
             </div>
             <div className="space-y-4 px-5 py-5">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-600">Nomor Tujuan</label>
+                <label className="mb-1.5 block text-sm font-medium text-[#3c4043]">Nomor Tujuan</label>
                 <input
                   value={testModal.phone}
                   autoFocus
                   onChange={(e) => setTestModal((m) => ({ ...m, phone: e.target.value }))}
                   placeholder="628xxxxxxxxxx"
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#0E6187]/20"
+                  className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition placeholder:text-[#80868b] focus:border-[#1a73e8]"
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-600">Pesan (opsional)</label>
+                <label className="mb-1.5 block text-sm font-medium text-[#3c4043]">Pesan (opsional)</label>
                 <textarea
                   value={testModal.message}
                   onChange={(e) => setTestModal((m) => ({ ...m, message: e.target.value }))}
                   rows={3}
                   placeholder="✅ Uji coba WhatsApp dari SIM Mendunia berhasil!"
-                  className="w-full resize-none rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#0E6187]/20"
+                  className="w-full resize-none border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition placeholder:text-[#80868b] focus:border-[#1a73e8]"
                 />
               </div>
               {testModal.result && (
-                <div className={`flex items-start gap-2 rounded-xl border px-4 py-3 text-sm ${
+                <div className={`flex items-start gap-2 border p-3 text-sm ${
                   testModal.result.success
-                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                    : 'border-red-200 bg-red-50 text-red-700'
+                    ? 'border-[#b7e1c1] bg-[#e6f4ea] text-[#137333]'
+                    : 'border-[#f6aea9] bg-[#fce8e6] text-[#c5221f]'
                 }`}>
                   {testModal.result.success ? <CheckCircle2 size={16} className="mt-0.5" /> : <AlertCircle size={16} className="mt-0.5" />}
                   <span>{testModal.result.message}</span>
                 </div>
               )}
             </div>
-            <div className="flex justify-end gap-2 border-t border-slate-100 px-5 py-4">
+            <div className="flex items-center justify-end gap-3 border-t border-[#e8eaed] px-5 py-3.5">
               <button onClick={() => setTestModal((m) => ({ ...m, open: false }))}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">
+                className="border border-[#dadce0] bg-white px-4 py-2 text-sm font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]">
                 Tutup
               </button>
               <button onClick={handleSendTest} disabled={testModal.sending || !testModal.phone.trim()}
-                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50">
+                className="inline-flex items-center gap-2 bg-[#137333] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#0d5c28] disabled:opacity-50">
                 {testModal.sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                 Kirim
               </button>

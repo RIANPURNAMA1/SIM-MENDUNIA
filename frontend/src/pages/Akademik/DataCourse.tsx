@@ -5,7 +5,7 @@ import {
   ListChecks, Eye, EyeOff, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Camera, Clock, Repeat,
   Award, Users, UserCheck, UserRound, Pencil, Loader2, ArrowLeft, Video, UploadCloud, Upload, Mic, RotateCcw,
   Settings, LayoutGrid, ShieldCheck, Link2, Building2, Layers, Settings2, FileCheck2, Radio,
-  ClipboardPaste, Tags, BarChart3, Copy,
+  ClipboardPaste, Tags, BarChart3, Copy, CheckCircle2,
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -284,6 +284,9 @@ interface Course {
   alert?: string | null
   alert_active?: boolean
   password_course?: string | null
+  kelas_tanggal_mulai?: string | null
+  kelas_tanggal_selesai?: string | null
+  kelas_status?: string | null
 }
 
 interface LmsCategory {
@@ -508,6 +511,13 @@ interface LessonItem {
   status: string
 }
 
+interface LessonQuizStat {
+  live_count: number
+  submitted_count: number
+  paket_count: number
+  warning_total: number
+}
+
 interface LessonSlideData {
   id: number
   file_path: string
@@ -538,6 +548,67 @@ const emptyPaketForm = {
 const emptyQuestionForm = { question: '', section_id: '', question_type: 'choice', rating_max: '9', correct_index: '', correct_indexes: [] as number[], points: '1', keyword: '', image_path: '', image_url: '', audio_path: '', audio_url: '', audio_max_plays: '2' }
 
 const DEFAULT_SECTIONS = ['Script and Vocabulary', 'Grammar', 'Reading', 'Listening', 'Conversation', 'Kanji', 'Vocabulary']
+
+const COURSE_STATUS_STYLE: Record<string, string> = {
+  aktif: 'bg-[#ceead6] text-[#137333]',
+  proses: 'bg-[#fef7e0] text-[#b06000]',
+  selesai: 'bg-[#e8f0fe] text-[#1967d2]',
+  dibatalkan: 'bg-[#f6d7d5] text-[#a50e0e]',
+  nonaktif: 'bg-[#f1f3f4] text-[#5f6368]',
+}
+
+const COURSE_STATUS_LABEL: Record<string, string> = {
+  aktif: 'Aktif',
+  proses: 'Proses Pembelajaran',
+  selesai: 'Selesai',
+  dibatalkan: 'Dibatalkan',
+  nonaktif: 'Nonaktif',
+}
+
+/**
+ * Status siklus belajar kursus, sama dengan yang dipakai di halaman Kelas Sensei:
+ * "proses" dihitung dari tanggal_mulai/tanggal_selesai kelas sensei, bukan dari
+ * kolom status kursus. Kursus tanpa kelas sensei (Manual) pakai status kursus.
+ */
+const courseCycleStatus = (c: Course): string => {
+  if (c.status === 'nonaktif') return 'nonaktif'
+  const { kelas_tanggal_mulai: mulaiRaw, kelas_tanggal_selesai: selesaiRaw, kelas_status: ksStatus } = c
+  if (!mulaiRaw && !selesaiRaw && !ksStatus) return c.status === 'aktif' ? 'aktif' : 'nonaktif'
+  if (ksStatus === 'dibatalkan') return 'dibatalkan'
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const mulai = mulaiRaw ? new Date(`${String(mulaiRaw).slice(0, 10)}T00:00:00`) : null
+  const selesai = selesaiRaw ? new Date(`${String(selesaiRaw).slice(0, 10)}T00:00:00`) : null
+  if (selesai && today > selesai) return 'selesai'
+  if (mulai && today >= mulai && (!selesai || today <= selesai)) return 'proses'
+  if (mulai && today < mulai) return ksStatus === 'selesai' ? 'selesai' : 'aktif'
+  return ksStatus === 'selesai' ? 'selesai' : ksStatus || 'aktif'
+}
+
+/** Badge status siklus belajar + rentang tanggal kelas sensei. */
+const CourseStatusBadge = ({ c }: { c: Course }) => {
+  const st = courseCycleStatus(c)
+  const fmt = (v?: string | null) => {
+    if (!v) return null
+    const s = String(v).slice(0, 10)
+    const [y, m, d] = s.split('-')
+    if (!y || !m || !d) return null
+    return `${d}/${m}/${y}`
+  }
+  const mulai = fmt(c.kelas_tanggal_mulai)
+  const selesai = fmt(c.kelas_tanggal_selesai)
+  return (
+    <div className="flex flex-col items-center gap-0.5">
+      <span
+        title={mulai && selesai ? `Periode ${mulai} s.d. ${selesai}` : undefined}
+        className={`inline-block whitespace-nowrap text-[11px] font-bold px-2.5 py-1 ${COURSE_STATUS_STYLE[st] || 'bg-[#f1f3f4] text-[#5f6368]'}`}
+      >
+        {COURSE_STATUS_LABEL[st] || st}
+      </span>
+      {mulai && selesai && <span className="text-[10px] text-[#80868b] whitespace-nowrap">{mulai} - {selesai}</span>}
+    </div>
+  )
+}
 
 /** Badge nama sensei pengajar. "Manual" = kursus dibuat admin, bukan lewat Tambah Kelas. */
 const SenseiBadge = ({ nama, namaKelas }: { nama?: string | null; namaKelas?: string | null }) => {
@@ -757,6 +828,7 @@ export default function DataCourse() {
   const [courseLessons, setCourseLessons] = useState<LessonItem[]>([])
   const [courseLessonsLoading, setCourseLessonsLoading] = useState(false)
   const [lessonSource, setLessonSource] = useState<'paket' | 'course'>('paket')
+  const [lessonQuizStats, setLessonQuizStats] = useState<Record<number, LessonQuizStat>>({})
 
   // ==================== Welcome Video Setting ====================
   const [showWelcomeSettings, setShowWelcomeSettings] = useState(false)
@@ -1311,6 +1383,24 @@ export default function DataCourse() {
     lmsAdminApi.lessons(courseId).then(res => {
       setCourseLessons(res.data.lessons || [])
     }).catch(() => setCourseLessons([])).finally(() => setCourseLessonsLoading(false))
+    fetchLessonQuizStats(courseId)
+  }
+
+  const fetchLessonQuizStats = (courseId: number) => {
+    const now = new Date()
+    const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+    adminQuizApi.courseMonitorOverview(courseId, { date }).then(res => {
+      const map: Record<number, LessonQuizStat> = {}
+      ;(res.data?.lessons || []).forEach((l: any) => {
+        map[l.id] = {
+          live_count: Number(l.live_count) || 0,
+          submitted_count: Number(l.submitted_count) || 0,
+          paket_count: Number(l.paket_count) || 0,
+          warning_total: Number(l.warning_total) || 0,
+        }
+      })
+      setLessonQuizStats(map)
+    }).catch(() => setLessonQuizStats({}))
   }
 
   const openCreateCourseLesson = () => {
@@ -3113,9 +3203,7 @@ const visibleBatches = filterCabang
                     <div key={c.id} className="p-4">
                       <div className="flex items-start justify-between gap-3">
                         <p className="text-sm font-semibold text-[#202124] leading-snug">{c.title}</p>
-                        <span className={`shrink-0 inline-block text-[10px] font-semibold px-2 py-0.5 ${c.status === 'aktif' ? 'bg-[#e6f4ea] text-[#137333]' : 'bg-[#f1f3f4] text-[#5f6368]'}`}>
-                          {c.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
-                        </span>
+                        <CourseStatusBadge c={c} />
                       </div>
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                         {c.category && (
@@ -3197,9 +3285,7 @@ const visibleBatches = filterCabang
                             <span className="inline-block min-w-[32px] bg-[#f8f9fa] px-2.5 py-1.5 text-xs font-bold text-[#5f6368]">{c.lessons_count}</span>
                           </td>
                           <td className="border-b border-[#e8eaed] px-4 py-3 text-center">
-                            <span className={`inline-block whitespace-nowrap text-[11px] font-bold px-2.5 py-1 ${c.status === 'aktif' ? 'bg-[#0E6187] text-white' : 'bg-[#bdc1c6] text-white'}`}>
-                              {c.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
-                            </span>
+                            <CourseStatusBadge c={c} />
                           </td>
                           <td className="border-b border-[#e8eaed] px-4 py-3">
                             <div className="flex items-center justify-center gap-1.5">
@@ -3296,7 +3382,11 @@ const visibleBatches = filterCabang
                   </div>
                 ) : (
                   <div className="divide-y divide-[#e8eaed]">
-                    {courseLessons.map((lesson, idx) => (
+                    {courseLessons.map((lesson, idx) => {
+                      const qStat = lessonQuizStats[lesson.id]
+                      const liveCount = qStat?.live_count ?? 0
+                      const submittedCount = qStat?.submitted_count ?? 0
+                      return (
                       <div key={lesson.id} onClick={() => navigate(`${base}/course/${activeCourse.id}/pertemuan/${lesson.id}`)}
                         className="flex items-center gap-3 px-5 py-4 hover:#f8f9fa-\[#f8f9fa\] transition-colors group cursor-pointer">
                         {!isAdminCabang && (
@@ -3327,7 +3417,27 @@ const visibleBatches = filterCabang
                             </span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1 shrink-0">
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <div className="flex items-center gap-1.5">
+                            {liveCount > 0 && (
+                              <span className="inline-flex items-center gap-1 bg-[#fce8e6] text-[#c5221f] px-2 py-1 text-[10px] font-bold whitespace-nowrap">
+                                <span className="h-1.5 w-1.5 rounded-full bg-[#d93025] animate-pulse" />
+                                Sedang Quiz
+                                <span className="bg-white/70 px-1 rounded">{liveCount}</span>
+                              </span>
+                            )}
+                            {liveCount === 0 && submittedCount > 0 && (
+                              <span className="inline-flex items-center gap-1 bg-[#e6f4ea] text-[#137333] px-2 py-1 text-[10px] font-bold whitespace-nowrap">
+                                <CheckCircle2 size={11} /> Quiz Selesai
+                                <span className="bg-white/70 px-1 rounded">{submittedCount}</span>
+                              </span>
+                            )}
+                            {qStat && qStat.paket_count > 0 && (
+                              <span className="inline-flex items-center gap-1 bg-[#f1f3f4] text-[#5f6368] px-2 py-1 text-[10px] font-semibold whitespace-nowrap">
+                                <ListChecks size={11} /> {qStat.paket_count} Paket
+                              </span>
+                            )}
+                          </div>
                           <button onClick={(e) => { e.stopPropagation(); openLessonMonitor(lesson) }}
                             className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#c5221f] bg-[#fce8e6] px-2 py-1.5 hover:bg-[#f6d7d5] transition-colors" title="Monitoring kandidat">
                             <Radio size={13} /> Monitoring
@@ -3344,7 +3454,8 @@ const visibleBatches = filterCabang
                           </div>
                         )}
                       </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>
